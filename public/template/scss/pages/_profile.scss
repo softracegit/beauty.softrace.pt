@@ -1,0 +1,64 @@
+/*--------------------------------------------------------------
+# Profile Page
+--------------------------------------------------------------*/
+
+/* Profile Social Links */
+.profile-social-links {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.profile-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--accent-color), transparent 90%);
+  color: var(--accent-color);
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: var(--accent-color);
+    color: white;
+  }
+}
+
+/* Profile Overview Detail Rows */
+.profile-overview .uview-detail-row {
+  padding: var(--spacing-sm) 0;
+}
+
+/* Profile Edit Form */
+.profile-edit-form .row {
+  margin-bottom: var(--spacing-md);
+}
+
+.profile-edit-form label {
+  font-weight: 500;
+  color: var(--muted-color);
+  font-size: 0.8125rem;
+}
+
+/* Profile Skills */
+.profile-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.profile-skill-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: var(--background-color);
+  color: var(--default-color);
+  border: 1px solid var(--border-color);
+}

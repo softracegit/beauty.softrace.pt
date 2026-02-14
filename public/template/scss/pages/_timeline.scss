@@ -1,0 +1,168 @@
+// Timeline Page Styles
+
+// Timeline Container
+.timeline {
+  position: relative;
+  padding-left: 30px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-color);
+  }
+}
+
+// Timeline Date Separator
+.timeline-date {
+  position: relative;
+  margin-bottom: 1.5rem;
+  margin-left: -30px;
+  padding-left: 30px;
+
+  .badge {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+// Timeline Item
+.timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Timeline Marker
+.timeline-marker {
+  position: absolute;
+  left: -30px;
+  top: 1rem;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  z-index: 1;
+
+  i {
+    font-size: 0.75rem;
+  }
+}
+
+// Timeline Content
+.timeline-content {
+  .card {
+    margin-bottom: 0;
+    transition: box-shadow 0.2s ease;
+
+    &:hover {
+      box-shadow: var(--shadow-md);
+    }
+  }
+
+  .card-body {
+    padding: 1rem 1.25rem;
+  }
+}
+
+// Milestone Icon
+.milestone-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+// Project Icon
+.project-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+// File Attachment
+.file-attachment {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: var(--background-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+
+  i {
+    font-size: 1rem;
+  }
+}
+
+// Event Types badges
+.badge.rounded-circle {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+
+  i {
+    font-size: 0.75rem;
+  }
+}
+
+// Responsive
+@media (max-width: 991px) {
+  .timeline {
+    padding-left: 24px;
+
+    &::before {
+      left: 8px;
+    }
+  }
+
+  .timeline-marker {
+    left: -24px;
+    width: 20px;
+    height: 20px;
+    font-size: 0.625rem;
+
+    i {
+      font-size: 0.625rem;
+    }
+  }
+
+  .timeline-date {
+    margin-left: -24px;
+    padding-left: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .timeline-content .card-body {
+    padding: 1rem;
+  }
+
+  .milestone-icon,
+  .project-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+}

@@ -1,0 +1,221 @@
+# Laravel
+/vendor/
+/node_modules/
+/public/hot
+/public/storage
+/storage/*.key
+/storage/app/*
+!/storage/app/.gitignore
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/logs/*
+!/storage/logs/.gitignore
+/bootstrap/cache/*
+!/bootstrap/cache/.gitignore
+
+# Environment files
+.env
+.env.backup
+.env.production
+.env.local
+.env.*.local
+!.env.example
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+.phpunit.result.cache
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+laravel.log
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory
+coverage/
+*.lcov
+.nyc_output
+phpunit.xml
+
+# Dependency directories
+node_modules/
+jspm_packages/
+bower_components/
+SmartAdmin-pro/
+
+# Build & Compiled files
+/public/assets/
+/public/build/
+/public/mix-manifest.json
+/public/js/
+/public/css/
+/public/fonts/
+/public/images/
+!/public/images/.gitkeep
+/public/storage
+/public/vendor
+
+# Compiled assets (Laravel Mix / Vite)
+/public/hot
+/public/storage
+/public/vendor
+
+# Cache & Temporary files
+.cache/
+.parcel-cache/
+.temp/
+*.cache
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Package manager files
+package-lock.json
+yarn.lock
+composer.phar
+
+# Testing
+.phpunit.result.cache
+.phpunit.cache
+/tests/.phpunit.result.cache
+
+# Laravel Sail
+/.docker/
+/.env.sail
+
+# Laravel Horizon
+horizon.pid
+
+# Laravel Telescope
+/telescope/
+
+# Laravel Dusk
+/tests/Browser/screenshots
+/tests/Browser/console
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+/database/*.sqlite
+/database/*.sqlite-journal
+
+# Compiled assets (se usar Laravel Mix)
+/public/mix-manifest.json
+
+# TypeScript
+*.tsbuildinfo
+
+# Optional npm cache
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Build directories
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+
+# Template files (não versionar o template HTML original)
+/SmartAdmin-pro/
+
+# Uploaded files (se houver uploads de utilizadores)
+/storage/app/public/*
+!/storage/app/public/.gitignore
+
+# Session files
+/storage/framework/sessions/*
+
+# Cache files
+/storage/framework/cache/*
+/storage/framework/views/*
+
+# Compiled Blade templates
+/storage/framework/views/*.php
+
+# IDE specific
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# Local configuration
+/config/local.php
+/config/local/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# System files
+.directory
+.Trash-*
