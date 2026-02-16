@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projects Dashboard - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item active" data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section active" data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link active" href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Projects Dashboard</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Dashboards</a>
+          <span class="breadcrumb-item active">Projects</span>
+        </nav>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="dashboard-grid dashboard-grid-4">
+        <!-- Total Projects -->
+        <div class="card widget-stat">
+          <div class="widget-stat-header">
+            <div>
+              <div class="widget-stat-value">48</div>
+              <div class="widget-stat-label">Total Projects</div>
+            </div>
+            <div class="widget-stat-icon primary">
+              <i class="bi bi-folder"></i>
+            </div>
+          </div>
+          <div class="widget-stat-change positive">
+            <i class="bi bi-arrow-up"></i> 5 new this month
+          </div>
+        </div>
+
+        <!-- Completed -->
+        <div class="card widget-stat">
+          <div class="widget-stat-header">
+            <div>
+              <div class="widget-stat-value">32</div>
+              <div class="widget-stat-label">Completed</div>
+            </div>
+            <div class="widget-stat-icon success">
+              <i class="bi bi-check-circle"></i>
+            </div>
+          </div>
+          <div class="widget-stat-change positive">
+            <i class="bi bi-arrow-up"></i> 12% vs last month
+          </div>
+        </div>
+
+        <!-- In Progress -->
+        <div class="card widget-stat">
+          <div class="widget-stat-header">
+            <div>
+              <div class="widget-stat-value">12</div>
+              <div class="widget-stat-label">In Progress</div>
+            </div>
+            <div class="widget-stat-icon warning">
+              <i class="bi bi-clock"></i>
+            </div>
+          </div>
+          <div class="widget-stat-change neutral">
+            <i class="bi bi-dash"></i> No change
+          </div>
+        </div>
+
+        <!-- Overdue -->
+        <div class="card widget-stat">
+          <div class="widget-stat-header">
+            <div>
+              <div class="widget-stat-value">4</div>
+              <div class="widget-stat-label">Overdue</div>
+            </div>
+            <div class="widget-stat-icon danger">
+              <i class="bi bi-exclamation-circle"></i>
+            </div>
+          </div>
+          <div class="widget-stat-change negative">
+            <i class="bi bi-arrow-up"></i> 2 more than last week
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Status & Task Distribution -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-8">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Project Progress</h5>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                  This Quarter <i class="bi bi-chevron-down ms-1"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="#">This Month</a></li>
+                  <li><a class="dropdown-item active" href="#">This Quarter</a></li>
+                  <li><a class="dropdown-item" href="#">This Year</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="projectProgressChart" style="height: 320px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-4">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Task Distribution</h5>
+            </div>
+            <div class="card-body">
+              <div id="taskDistributionChart"></div>
+              <div class="chart-legend mt-3">
+                <div class="legend-item">
+                  <span class="legend-dot" style="background-color: var(--success-color);"></span>
+                  <span class="legend-label">Completed</span>
+                  <span class="legend-value">156</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background-color: var(--accent-color);"></span>
+                  <span class="legend-label">In Progress</span>
+                  <span class="legend-value">89</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background-color: var(--warning-color);"></span>
+                  <span class="legend-label">Pending</span>
+                  <span class="legend-value">45</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background-color: var(--danger-color);"></span>
+                  <span class="legend-label">Overdue</span>
+                  <span class="legend-value">12</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Projects -->
+      <div class="row g-4 mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Active Projects</h5>
+              <a href="#" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus"></i> New Project
+              </a>
+            </div>
+            <div class="card-body p-0">
+              <div class="project-list">
+                <div class="project-item">
+                  <div class="project-info">
+                    <div class="project-icon" style="background: color-mix(in srgb, var(--accent-color), transparent 90%);">
+                      <i class="bi bi-browser-chrome" style="color: var(--accent-color);"></i>
+                    </div>
+                    <div class="project-details">
+                      <div class="project-name">Website Redesign</div>
+                      <div class="project-client">TechCorp Inc.</div>
+                    </div>
+                  </div>
+                  <div class="project-team">
+                    <div class="avatar-group">
+                      <img src="assets/img/avatars/avatar-1.webp" alt="" class="avatar" title="John Doe">
+                      <img src="assets/img/avatars/avatar-2.webp" alt="" class="avatar" title="Jane Smith">
+                      <img src="assets/img/avatars/avatar-3.webp" alt="" class="avatar" title="Mike Wilson">
+                      <span class="avatar-more">+2</span>
+                    </div>
+                  </div>
+                  <div class="project-progress-info">
+                    <div class="d-flex justify-content-between mb-1">
+                      <span class="project-progress-label">Progress</span>
+                      <span class="project-progress-value">72%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-bar" style="width: 72%;"></div>
+                    </div>
+                  </div>
+                  <div class="project-deadline">
+                    <span class="deadline-label">Deadline</span>
+                    <span class="deadline-date">Feb 15, 2024</span>
+                  </div>
+                  <div class="project-status">
+                    <span class="badge bg-success">On Track</span>
+                  </div>
+                  <div class="project-actions">
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                </div>
+                <div class="project-item">
+                  <div class="project-info">
+                    <div class="project-icon" style="background: color-mix(in srgb, var(--success-color), transparent 90%);">
+                      <i class="bi bi-phone" style="color: var(--success-color);"></i>
+                    </div>
+                    <div class="project-details">
+                      <div class="project-name">Mobile App Development</div>
+                      <div class="project-client">StartupXYZ</div>
+                    </div>
+                  </div>
+                  <div class="project-team">
+                    <div class="avatar-group">
+                      <img src="assets/img/avatars/avatar-4.webp" alt="" class="avatar" title="Emily Brown">
+                      <img src="assets/img/avatars/avatar-5.webp" alt="" class="avatar" title="Chris Lee">
+                      <span class="avatar-more">+4</span>
+                    </div>
+                  </div>
+                  <div class="project-progress-info">
+                    <div class="d-flex justify-content-between mb-1">
+                      <span class="project-progress-label">Progress</span>
+                      <span class="project-progress-value">45%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-bar bg-warning" style="width: 45%;"></div>
+                    </div>
+                  </div>
+                  <div class="project-deadline">
+                    <span class="deadline-label">Deadline</span>
+                    <span class="deadline-date text-danger">Jan 25, 2024</span>
+                  </div>
+                  <div class="project-status">
+                    <span class="badge bg-warning">At Risk</span>
+                  </div>
+                  <div class="project-actions">
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                </div>
+                <div class="project-item">
+                  <div class="project-info">
+                    <div class="project-icon" style="background: color-mix(in srgb, var(--info-color), transparent 90%);">
+                      <i class="bi bi-database" style="color: var(--info-color);"></i>
+                    </div>
+                    <div class="project-details">
+                      <div class="project-name">Database Migration</div>
+                      <div class="project-client">Enterprise Co.</div>
+                    </div>
+                  </div>
+                  <div class="project-team">
+                    <div class="avatar-group">
+                      <img src="assets/img/avatars/avatar-6.webp" alt="" class="avatar" title="Sarah Williams">
+                      <img src="assets/img/avatars/avatar-7.webp" alt="" class="avatar" title="Tom Jackson">
+                    </div>
+                  </div>
+                  <div class="project-progress-info">
+                    <div class="d-flex justify-content-between mb-1">
+                      <span class="project-progress-label">Progress</span>
+                      <span class="project-progress-value">88%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-bar bg-success" style="width: 88%;"></div>
+                    </div>
+                  </div>
+                  <div class="project-deadline">
+                    <span class="deadline-label">Deadline</span>
+                    <span class="deadline-date">Feb 28, 2024</span>
+                  </div>
+                  <div class="project-status">
+                    <span class="badge bg-success">On Track</span>
+                  </div>
+                  <div class="project-actions">
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                </div>
+                <div class="project-item">
+                  <div class="project-info">
+                    <div class="project-icon" style="background: color-mix(in srgb, var(--warning-color), transparent 90%);">
+                      <i class="bi bi-palette" style="color: var(--warning-color);"></i>
+                    </div>
+                    <div class="project-details">
+                      <div class="project-name">Brand Identity</div>
+                      <div class="project-client">Global Solutions</div>
+                    </div>
+                  </div>
+                  <div class="project-team">
+                    <div class="avatar-group">
+                      <img src="assets/img/avatars/avatar-8.webp" alt="" class="avatar" title="Lisa Anderson">
+                      <img src="assets/img/avatars/avatar-9.webp" alt="" class="avatar" title="David Kim">
+                      <img src="assets/img/avatars/avatar-1.webp" alt="" class="avatar" title="John Doe">
+                    </div>
+                  </div>
+                  <div class="project-progress-info">
+                    <div class="d-flex justify-content-between mb-1">
+                      <span class="project-progress-label">Progress</span>
+                      <span class="project-progress-value">25%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-bar bg-danger" style="width: 25%;"></div>
+                    </div>
+                  </div>
+                  <div class="project-deadline">
+                    <span class="deadline-label">Deadline</span>
+                    <span class="deadline-date text-danger">Jan 20, 2024</span>
+                  </div>
+                  <div class="project-status">
+                    <span class="badge bg-danger">Overdue</span>
+                  </div>
+                  <div class="project-actions">
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Team Workload & Upcoming Milestones -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Team Workload</h5>
+              <a href="#" class="btn btn-sm btn-link">View All</a>
+            </div>
+            <div class="card-body p-0">
+              <div class="workload-list">
+                <div class="workload-item">
+                  <img src="assets/img/avatars/avatar-1.webp" alt="" class="workload-avatar">
+                  <div class="workload-info">
+                    <div class="workload-name">John Doe</div>
+                    <div class="workload-role">Lead Developer</div>
+                  </div>
+                  <div class="workload-stats">
+                    <span class="workload-tasks">8 tasks</span>
+                    <div class="workload-bar-container">
+                      <div class="workload-bar" style="width: 85%;">
+                        <div class="workload-bar-fill overloaded"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="badge bg-danger-subtle text-danger">Overloaded</span>
+                </div>
+                <div class="workload-item">
+                  <img src="assets/img/avatars/avatar-2.webp" alt="" class="workload-avatar">
+                  <div class="workload-info">
+                    <div class="workload-name">Jane Smith</div>
+                    <div class="workload-role">UI Designer</div>
+                  </div>
+                  <div class="workload-stats">
+                    <span class="workload-tasks">5 tasks</span>
+                    <div class="workload-bar-container">
+                      <div class="workload-bar" style="width: 60%;">
+                        <div class="workload-bar-fill normal"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="badge bg-success-subtle text-success">Normal</span>
+                </div>
+                <div class="workload-item">
+                  <img src="assets/img/avatars/avatar-3.webp" alt="" class="workload-avatar">
+                  <div class="workload-info">
+                    <div class="workload-name">Mike Wilson</div>
+                    <div class="workload-role">Backend Developer</div>
+                  </div>
+                  <div class="workload-stats">
+                    <span class="workload-tasks">6 tasks</span>
+                    <div class="workload-bar-container">
+                      <div class="workload-bar" style="width: 70%;">
+                        <div class="workload-bar-fill warning"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="badge bg-warning-subtle text-warning">High</span>
+                </div>
+                <div class="workload-item">
+                  <img src="assets/img/avatars/avatar-4.webp" alt="" class="workload-avatar">
+                  <div class="workload-info">
+                    <div class="workload-name">Emily Brown</div>
+                    <div class="workload-role">QA Engineer</div>
+                  </div>
+                  <div class="workload-stats">
+                    <span class="workload-tasks">3 tasks</span>
+                    <div class="workload-bar-container">
+                      <div class="workload-bar" style="width: 35%;">
+                        <div class="workload-bar-fill low"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="badge bg-info-subtle text-info">Low</span>
+                </div>
+                <div class="workload-item">
+                  <img src="assets/img/avatars/avatar-5.webp" alt="" class="workload-avatar">
+                  <div class="workload-info">
+                    <div class="workload-name">Chris Lee</div>
+                    <div class="workload-role">DevOps Engineer</div>
+                  </div>
+                  <div class="workload-stats">
+                    <span class="workload-tasks">4 tasks</span>
+                    <div class="workload-bar-container">
+                      <div class="workload-bar" style="width: 50%;">
+                        <div class="workload-bar-fill normal"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="badge bg-success-subtle text-success">Normal</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Upcoming Milestones</h5>
+              <a href="#" class="btn btn-sm btn-link">View All</a>
+            </div>
+            <div class="card-body p-0">
+              <div class="milestone-list">
+                <div class="milestone-item">
+                  <div class="milestone-date">
+                    <span class="milestone-day">20</span>
+                    <span class="milestone-month">Jan</span>
+                  </div>
+                  <div class="milestone-info">
+                    <div class="milestone-title">Design Review</div>
+                    <div class="milestone-project">Website Redesign</div>
+                  </div>
+                  <span class="badge bg-danger">2 days left</span>
+                </div>
+                <div class="milestone-item">
+                  <div class="milestone-date">
+                    <span class="milestone-day">25</span>
+                    <span class="milestone-month">Jan</span>
+                  </div>
+                  <div class="milestone-info">
+                    <div class="milestone-title">Beta Release</div>
+                    <div class="milestone-project">Mobile App Development</div>
+                  </div>
+                  <span class="badge bg-warning">1 week left</span>
+                </div>
+                <div class="milestone-item">
+                  <div class="milestone-date">
+                    <span class="milestone-day">01</span>
+                    <span class="milestone-month">Feb</span>
+                  </div>
+                  <div class="milestone-info">
+                    <div class="milestone-title">Database Cutover</div>
+                    <div class="milestone-project">Database Migration</div>
+                  </div>
+                  <span class="badge bg-info">2 weeks left</span>
+                </div>
+                <div class="milestone-item">
+                  <div class="milestone-date">
+                    <span class="milestone-day">10</span>
+                    <span class="milestone-month">Feb</span>
+                  </div>
+                  <div class="milestone-info">
+                    <div class="milestone-title">Logo Approval</div>
+                    <div class="milestone-project">Brand Identity</div>
+                  </div>
+                  <span class="badge bg-success">3 weeks left</span>
+                </div>
+                <div class="milestone-item">
+                  <div class="milestone-date">
+                    <span class="milestone-day">15</span>
+                    <span class="milestone-month">Feb</span>
+                  </div>
+                  <div class="milestone-info">
+                    <div class="milestone-title">Final Delivery</div>
+                    <div class="milestone-project">Website Redesign</div>
+                  </div>
+                  <span class="badge bg-success">4 weeks left</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity & Time Tracking -->
+      <div class="row g-4">
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+              <div class="widget-activity">
+                <div class="activity-item">
+                  <div class="activity-icon success">
+                    <i class="bi bi-check-lg"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <a href="#">John Doe</a> completed task "API Integration"
+                    </div>
+                    <div class="activity-text">Website Redesign project</div>
+                    <div class="activity-time">10 minutes ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon primary">
+                    <i class="bi bi-chat-left-text"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <a href="#">Jane Smith</a> commented on "Homepage Design"
+                    </div>
+                    <div class="activity-text">"The new layout looks great! Just minor tweaks needed."</div>
+                    <div class="activity-time">25 minutes ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon warning">
+                    <i class="bi bi-flag"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <a href="#">Mike Wilson</a> flagged "Database Schema" as high priority
+                    </div>
+                    <div class="activity-text">Database Migration project</div>
+                    <div class="activity-time">1 hour ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon info">
+                    <i class="bi bi-plus-lg"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      <a href="#">Emily Brown</a> created new task "User Testing"
+                    </div>
+                    <div class="activity-text">Mobile App Development project</div>
+                    <div class="activity-time">2 hours ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon danger">
+                    <i class="bi bi-exclamation"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">
+                      Task "Logo Concepts" is now overdue
+                    </div>
+                    <div class="activity-text">Brand Identity project</div>
+                    <div class="activity-time">3 hours ago</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Time Tracking</h5>
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary active">This Week</button>
+                <button type="button" class="btn btn-outline-secondary">Last Week</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="timeTrackingChart" style="height: 280px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get CSS custom properties
+      const style = getComputedStyle(document.documentElement);
+      const accentColor = style.getPropertyValue('--accent-color').trim();
+      const successColor = style.getPropertyValue('--success-color').trim();
+      const warningColor = style.getPropertyValue('--warning-color').trim();
+      const dangerColor = style.getPropertyValue('--danger-color').trim();
+      const infoColor = style.getPropertyValue('--info-color').trim();
+      const mutedColor = style.getPropertyValue('--muted-color').trim();
+      const borderColor = style.getPropertyValue('--border-color').trim();
+      // Project Progress Chart
+      const projectProgressOptions = {
+        series: [{
+          name: 'Completed',
+          data: [44, 55, 57, 56, 61, 58, 63, 60, 66, 68, 72, 78]
+        }, {
+          name: 'In Progress',
+          data: [76, 85, 101, 98, 87, 105, 91, 114, 94, 85, 78, 70]
+        }, {
+          name: 'Pending',
+          data: [35, 41, 36, 26, 45, 48, 52, 53, 41, 38, 32, 28]
+        }],
+        chart: {
+          type: 'bar',
+          height: 320,
+          stacked: true,
+          toolbar: {
+            show: false
+          }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            borderRadius: 4,
+            columnWidth: '55%'
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        colors: [successColor, accentColor, warningColor],
+        xaxis: {
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        yaxis: {
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        grid: {
+          borderColor: borderColor,
+          strokeDashArray: 4
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'right'
+        }
+      };
+      const projectProgressChart = new ApexCharts(document.querySelector('#projectProgressChart'), projectProgressOptions);
+      projectProgressChart.render();
+      // Task Distribution Chart
+      const taskDistributionOptions = {
+        series: [156, 89, 45, 12],
+        chart: {
+          type: 'donut',
+          height: 240
+        },
+        labels: ['Completed', 'In Progress', 'Pending', 'Overdue'],
+        colors: [successColor, accentColor, warningColor, dangerColor],
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '70%',
+              labels: {
+                show: true,
+                total: {
+                  show: true,
+                  label: 'Total Tasks',
+                  formatter: function() {
+                    return '302';
+                  }
+                }
+              }
+            }
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        legend: {
+          show: false
+        },
+        stroke: {
+          width: 0
+        }
+      };
+      const taskDistributionChart = new ApexCharts(document.querySelector('#taskDistributionChart'), taskDistributionOptions);
+      taskDistributionChart.render();
+      // Time Tracking Chart
+      const timeTrackingOptions = {
+        series: [{
+          name: 'Hours Logged',
+          data: [8.5, 7.2, 9.0, 8.0, 6.5, 4.0, 0]
+        }, {
+          name: 'Target',
+          data: [8, 8, 8, 8, 8, 4, 0]
+        }],
+        chart: {
+          type: 'bar',
+          height: 280,
+          toolbar: {
+            show: false
+          }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            columnWidth: '55%',
+            borderRadius: 4
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        colors: [accentColor, borderColor],
+        xaxis: {
+          categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        yaxis: {
+          labels: {
+            formatter: function(val) {
+              return val + 'h';
+            },
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        grid: {
+          borderColor: borderColor,
+          strokeDashArray: 4
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'right'
+        },
+        tooltip: {
+          y: {
+            formatter: function(val) {
+              return val + ' hours';
+            }
+          }
+        }
+      };
+      const timeTrackingChart = new ApexCharts(document.querySelector('#timeTrackingChart'), timeTrackingOptions);
+      timeTrackingChart.render();
+    });
+  </script>
+</body>
+
+</html>

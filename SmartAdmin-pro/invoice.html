@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoice #INV-2024-001 - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section active" data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link active" href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Invoice Details</h1>
+          <nav>
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item"><a href="invoice-list.html">Invoices</a></li>
+              <li class="breadcrumb-item active">#INV-2024-001</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+
+      <div class="inv-view-grid">
+        <!-- Invoice Document -->
+        <div class="card inv-document">
+          <div class="card-body">
+            <!-- Header -->
+            <div class="inv-doc-header">
+              <div class="inv-doc-logo">
+                <img src="assets/img/logo.webp" alt="SmartAdmin">
+                <span>SmartAdmin</span>
+              </div>
+              <div class="inv-doc-title">
+                <h2>Invoice</h2>
+                <div class="inv-doc-number">#INV-2024-001</div>
+              </div>
+            </div>
+
+            <!-- Addresses -->
+            <div class="inv-addresses">
+              <div>
+                <div class="inv-address-label">From</div>
+                <div class="inv-address-name">SmartAdmin</div>
+                <div class="inv-address-details">
+                  A108 Adam Street<br>
+                  New York, NY 535022<br>
+                  <a href="mailto:billing@example.com">billing@example.com</a><br>
+                  +1 5589 55488 55
+                </div>
+              </div>
+              <div>
+                <div class="inv-address-label">Bill To</div>
+                <div class="inv-address-name">Acme Corporation</div>
+                <div class="inv-address-details">
+                  742 Evergreen Terrace<br>
+                  Springfield, IL 62704<br>
+                  <a href="mailto:accounts@acme.com">accounts@acme.com</a><br>
+                  +1 5589 76543 21
+                </div>
+              </div>
+            </div>
+
+            <!-- Meta Info -->
+            <div class="inv-meta">
+              <div>
+                <div class="inv-meta-label">Invoice Date</div>
+                <div class="fw-medium">January 15, 2024</div>
+              </div>
+              <div>
+                <div class="inv-meta-label">Due Date</div>
+                <div class="fw-medium">February 14, 2024</div>
+              </div>
+              <div>
+                <div class="inv-meta-label">Status</div>
+                <span class="inv-badge inv-badge-paid">Paid</span>
+              </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="inv-items">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Description</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Rate</th>
+                    <th class="text-end">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="fw-medium">Web Development</td>
+                    <td class="text-muted">Frontend development and responsive design</td>
+                    <td class="text-center">40 hrs</td>
+                    <td class="text-end">$85.00</td>
+                    <td class="text-end fw-semibold">$3,400.00</td>
+                  </tr>
+                  <tr>
+                    <td class="fw-medium">UI/UX Design</td>
+                    <td class="text-muted">User interface design and prototyping</td>
+                    <td class="text-center">15 hrs</td>
+                    <td class="text-end">$75.00</td>
+                    <td class="text-end fw-semibold">$1,125.00</td>
+                  </tr>
+                  <tr>
+                    <td class="fw-medium">Server Setup</td>
+                    <td class="text-muted">Cloud infrastructure and deployment</td>
+                    <td class="text-center">1</td>
+                    <td class="text-end">$350.00</td>
+                    <td class="text-end fw-semibold">$350.00</td>
+                  </tr>
+                  <tr>
+                    <td class="fw-medium">QA Testing</td>
+                    <td class="text-muted">Quality assurance and bug fixing</td>
+                    <td class="text-center">8 hrs</td>
+                    <td class="text-end">$55.00</td>
+                    <td class="text-end fw-semibold">$440.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Summary -->
+            <div class="d-flex justify-content-end">
+              <div class="inv-summary" style="min-width: 280px;">
+                <table class="table table-borderless">
+                  <tbody>
+                    <tr>
+                      <td>Subtotal</td>
+                      <td class="text-end">$5,315.00</td>
+                    </tr>
+                    <tr>
+                      <td>Discount (5%)</td>
+                      <td class="text-end text-danger">-$265.75</td>
+                    </tr>
+                    <tr>
+                      <td>Tax (10%)</td>
+                      <td class="text-end">$53.75</td>
+                    </tr>
+                    <tr class="inv-summary-total">
+                      <td>Total</td>
+                      <td class="text-end">$5,103.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="inv-notes">
+              <div class="inv-notes-label">Notes</div>
+              <p class="mb-0 text-muted small">Payment is due within 30 days. Please include the invoice number in your payment reference. Thank you for your business!</p>
+            </div>
+
+            <!-- Footer -->
+            <div class="inv-doc-footer">
+              <div>
+                <i class="ph ph-phone"></i>
+                <div class="small text-muted">+1 5589 55488 55</div>
+              </div>
+              <div>
+                <i class="ph ph-envelope-simple"></i>
+                <div class="small text-muted">billing@example.com</div>
+              </div>
+              <div>
+                <i class="ph ph-globe"></i>
+                <div class="small text-muted">www.example.com</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="inv-sidebar">
+          <!-- Actions -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="inv-sidebar-title">Actions</h5>
+            </div>
+            <div class="card-body">
+              <div class="inv-action-list">
+                <button class="btn btn-primary" onclick="window.print()">
+                  <i class="ph ph-printer me-2"></i> Print Invoice
+                </button>
+                <button class="btn btn-outline-primary">
+                  <i class="ph ph-download-simple me-2"></i> Download PDF
+                </button>
+                <button class="btn btn-outline-secondary">
+                  <i class="ph ph-paper-plane-tilt me-2"></i> Send Invoice
+                </button>
+                <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editInvoiceModal">
+                  <i class="ph ph-pencil-simple me-2"></i> Edit Invoice
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Info -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="inv-sidebar-title">Payment Info</h5>
+            </div>
+            <div class="card-body">
+              <ul class="inv-payment-list">
+                <li>
+                  <span class="inv-payment-label">Method</span>
+                  <span class="inv-payment-value">Bank Transfer</span>
+                </li>
+                <li>
+                  <span class="inv-payment-label">Bank</span>
+                  <span class="inv-payment-value">Chase Bank</span>
+                </li>
+                <li>
+                  <span class="inv-payment-label">Account</span>
+                  <span class="inv-payment-value">**** 4589</span>
+                </li>
+                <li>
+                  <span class="inv-payment-label">Routing</span>
+                  <span class="inv-payment-value">021000021</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Client Info -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="inv-sidebar-title">Client</h5>
+            </div>
+            <div class="card-body">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="inv-client-avatar" style="width: 48px; height: 48px; font-size: 1rem; background: color-mix(in srgb, var(--accent-color), transparent 85%); color: var(--accent-color);">AC</div>
+                <div>
+                  <div class="fw-semibold">Acme Corporation</div>
+                  <div class="text-muted small">Enterprise Client</div>
+                </div>
+              </div>
+              <ul class="inv-payment-list">
+                <li>
+                  <span class="inv-payment-label">Total Invoices</span>
+                  <span class="inv-payment-value">12</span>
+                </li>
+                <li>
+                  <span class="inv-payment-label">Total Paid</span>
+                  <span class="inv-payment-value text-success">$42,500</span>
+                </li>
+                <li>
+                  <span class="inv-payment-label">Outstanding</span>
+                  <span class="inv-payment-value text-warning">$5,103</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Invoice Modal -->
+    <div class="modal fade" id="editInvoiceModal" tabindex="-1" aria-labelledby="editInvoiceModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editInvoiceModalLabel">
+              <i class="ph ph-pencil-simple me-2"></i>Edit Invoice
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form>
+              <!-- Client & Invoice Info -->
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Client Name</label>
+                  <input type="text" class="form-control" value="Acme Corporation">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Client Email</label>
+                  <input type="email" class="form-control" value="accounts@acme.com">
+                </div>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                  <label class="form-label">Invoice Number</label>
+                  <input type="text" class="form-control" value="#INV-2024-001" readonly>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Issue Date</label>
+                  <input type="date" class="form-control" value="2024-01-15">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Due Date</label>
+                  <input type="date" class="form-control" value="2024-02-14">
+                </div>
+              </div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Status</label>
+                  <select class="form-select">
+                    <option value="paid" selected>Paid</option>
+                    <option value="pending">Pending</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="draft">Draft</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Payment Method</label>
+                  <select class="form-select">
+                    <option value="bank" selected>Bank Transfer</option>
+                    <option value="card">Credit Card</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="cash">Cash</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Line Items -->
+              <hr>
+              <h6 class="mb-3">Line Items</h6>
+              <div class="table-responsive mb-3">
+                <table class="table table-sm align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Description</th>
+                      <th style="width: 90px;">Qty</th>
+                      <th style="width: 120px;">Rate</th>
+                      <th style="width: 120px;" class="text-end">Amount</th>
+                      <th style="width: 40px;"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input type="text" class="form-control form-control-sm" value="Web Development"></td>
+                      <td><input type="text" class="form-control form-control-sm" value="Frontend development and responsive design"></td>
+                      <td><input type="number" class="form-control form-control-sm" value="40" min="1"></td>
+                      <td><input type="number" class="form-control form-control-sm" value="85.00" step="0.01"></td>
+                      <td class="text-end fw-medium">$3,400.00</td>
+                      <td><button type="button" class="btn btn-sm btn-icon text-danger"><i class="ph ph-trash"></i></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" class="form-control form-control-sm" value="UI/UX Design"></td>
+                      <td><input type="text" class="form-control form-control-sm" value="User interface design and prototyping"></td>
+                      <td><input type="number" class="form-control form-control-sm" value="15" min="1"></td>
+                      <td><input type="number" class="form-control form-control-sm" value="75.00" step="0.01"></td>
+                      <td class="text-end fw-medium">$1,125.00</td>
+                      <td><button type="button" class="btn btn-sm btn-icon text-danger"><i class="ph ph-trash"></i></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" class="form-control form-control-sm" value="Server Setup"></td>
+                      <td><input type="text" class="form-control form-control-sm" value="Cloud infrastructure and deployment"></td>
+                      <td><input type="number" class="form-control form-control-sm" value="1" min="1"></td>
+                      <td><input type="number" class="form-control form-control-sm" value="350.00" step="0.01"></td>
+                      <td class="text-end fw-medium">$350.00</td>
+                      <td><button type="button" class="btn btn-sm btn-icon text-danger"><i class="ph ph-trash"></i></button></td>
+                    </tr>
+                    <tr>
+                      <td><input type="text" class="form-control form-control-sm" value="QA Testing"></td>
+                      <td><input type="text" class="form-control form-control-sm" value="Quality assurance and bug fixing"></td>
+                      <td><input type="number" class="form-control form-control-sm" value="8" min="1"></td>
+                      <td><input type="number" class="form-control form-control-sm" value="55.00" step="0.01"></td>
+                      <td class="text-end fw-medium">$440.00</td>
+                      <td><button type="button" class="btn btn-sm btn-icon text-danger"><i class="ph ph-trash"></i></button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary mb-3">
+                <i class="ph ph-plus me-1"></i> Add Item
+              </button>
+
+              <!-- Totals -->
+              <div class="d-flex justify-content-end mb-3">
+                <div style="min-width: 250px;">
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-muted">Subtotal</span>
+                    <span class="fw-medium">$5,315.00</span>
+                  </div>
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-muted">Discount (%)</span>
+                    <input type="number" class="form-control form-control-sm" style="width: 80px;" value="5" min="0" max="100">
+                  </div>
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="text-muted">Tax (%)</span>
+                    <input type="number" class="form-control form-control-sm" style="width: 80px;" value="10" min="0" max="100">
+                  </div>
+                  <hr class="my-2">
+                  <div class="d-flex justify-content-between py-1">
+                    <span class="fw-semibold">Total</span>
+                    <span class="fw-bold fs-5">$5,103.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div>
+                <label class="form-label">Notes</label>
+                <textarea class="form-control" rows="2">Payment is due within 30 days. Please include the invoice number in your payment reference. Thank you for your business!</textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-danger me-auto">
+              <i class="ph ph-trash me-1"></i> Delete
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary">
+              <i class="ph ph-floppy-disk me-1"></i> Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Results - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section active" data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link active" href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Search Results</h1>
+          <nav>
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active">Search Results</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+
+      <div class="sr-page">
+        <!-- Search Hero -->
+        <div class="sr-hero">
+          <div class="sr-hero-content">
+            <h2 class="sr-hero-title">What are you looking for?</h2>
+            <form class="sr-search-form" action="search-results.html" method="get">
+              <div class="sr-search-wrap">
+                <i class="ph ph-magnifying-glass"></i>
+                <input type="text" class="sr-search-input" name="q" placeholder="Search pages, users, files..." value="dashboard">
+                <button class="btn btn-light sr-search-btn" type="submit">Search</button>
+              </div>
+            </form>
+            <div class="sr-recent">
+              <span class="sr-recent-label">Recent:</span>
+              <a href="search-results.html?q=users" class="sr-recent-tag">users</a>
+              <a href="search-results.html?q=reports" class="sr-recent-tag">reports</a>
+              <a href="search-results.html?q=settings" class="sr-recent-tag">settings</a>
+              <a href="search-results.html?q=invoices" class="sr-recent-tag">invoices</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Layout -->
+        <div class="sr-layout">
+          <!-- Main Results -->
+          <div class="sr-main">
+            <!-- Results Header -->
+            <div class="sr-header">
+              <div class="sr-header-info">
+                <h5 class="sr-query">Results for "<strong>dashboard</strong>"</h5>
+                <span class="sr-stats">24 results found in 0.08s</span>
+              </div>
+              <div class="sr-header-sort">
+                <label class="sr-sort-label">Sort:</label>
+                <select class="form-select form-select-sm sr-sort-select">
+                  <option value="relevance">Relevance</option>
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Result Tabs -->
+            <div class="sr-tabs">
+              <button class="sr-tab sr-tab-active" data-tab="all">
+                <i class="ph ph-squares-four"></i> All
+                <span class="sr-tab-count">24</span>
+              </button>
+              <button class="sr-tab" data-tab="pages">
+                <i class="ph ph-file"></i> Pages
+                <span class="sr-tab-count">8</span>
+              </button>
+              <button class="sr-tab" data-tab="users">
+                <i class="ph ph-users"></i> Users
+                <span class="sr-tab-count">5</span>
+              </button>
+              <button class="sr-tab" data-tab="files">
+                <i class="ph ph-folder-open"></i> Files
+                <span class="sr-tab-count">11</span>
+              </button>
+            </div>
+
+            <!-- Results List -->
+            <div class="sr-results">
+              <!-- Pages Section -->
+              <div class="sr-group" data-group="pages">
+                <h6 class="sr-group-title">
+                  <i class="ph ph-file me-2"></i>Pages
+                </h6>
+                <div class="sr-items">
+                  <a href="index.html" class="sr-item">
+                    <div class="sr-item-icon sr-item-icon-accent">
+                      <i class="ph ph-gauge"></i>
+                    </div>
+                    <div class="sr-item-body">
+                      <h6 class="sr-item-title">Sales <mark>Dashboard</mark></h6>
+                      <p class="sr-item-excerpt">Main sales <mark>dashboard</mark> with real-time analytics, revenue tracking, and performance metrics. Monitor your business KPIs at a glance...</p>
+                      <div class="sr-item-meta">
+                        <span><i class="ph ph-folder me-1"></i>Dashboards</span>
+                        <span><i class="ph ph-clock me-1"></i>Updated 2 hours ago</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-right sr-item-arrow"></i>
+                  </a>
+                  <a href="dashboard-analytics.html" class="sr-item">
+                    <div class="sr-item-icon sr-item-icon-success">
+                      <i class="ph ph-chart-line-up"></i>
+                    </div>
+                    <div class="sr-item-body">
+                      <h6 class="sr-item-title">Analytics <mark>Dashboard</mark></h6>
+                      <p class="sr-item-excerpt">Comprehensive analytics <mark>dashboard</mark> with visitor statistics, traffic sources, user behavior analysis, and conversion tracking...</p>
+                      <div class="sr-item-meta">
+                        <span><i class="ph ph-folder me-1"></i>Dashboards</span>
+                        <span><i class="ph ph-clock me-1"></i>Updated 1 day ago</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-right sr-item-arrow"></i>
+                  </a>
+                  <a href="dashboard-crm.html" class="sr-item">
+                    <div class="sr-item-icon sr-item-icon-info">
+                      <i class="ph ph-users"></i>
+                    </div>
+                    <div class="sr-item-body">
+                      <h6 class="sr-item-title">CRM <mark>Dashboard</mark></h6>
+                      <p class="sr-item-excerpt">Customer relationship management <mark>dashboard</mark> for tracking leads, deals, and customer interactions. Manage your sales pipeline...</p>
+                      <div class="sr-item-meta">
+                        <span><i class="ph ph-folder me-1"></i>Dashboards</span>
+                        <span><i class="ph ph-clock me-1"></i>Updated 3 days ago</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-right sr-item-arrow"></i>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Users Section -->
+              <div class="sr-group" data-group="users">
+                <h6 class="sr-group-title">
+                  <i class="ph ph-users me-2"></i>Users
+                </h6>
+                <div class="sr-items">
+                  <a href="users-view.html" class="sr-item">
+                    <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Johnson" class="sr-item-avatar">
+                    <div class="sr-item-body">
+                      <h6 class="sr-item-title">
+                        Sarah Johnson
+                        <span class="sr-item-badge sr-item-badge-success">Active</span>
+                      </h6>
+                      <p class="sr-item-excerpt">Product Manager · Works on <mark>Dashboard</mark> Analytics project · San Francisco, CA</p>
+                      <div class="sr-item-meta">
+                        <span><i class="ph ph-envelope me-1"></i>sarah.j@example.com</span>
+                        <span><i class="ph ph-calendar me-1"></i>Joined Jan 2023</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-right sr-item-arrow"></i>
+                  </a>
+                  <a href="users-view.html" class="sr-item">
+                    <img src="assets/img/avatars/avatar-2.webp" alt="Michael Chen" class="sr-item-avatar">
+                    <div class="sr-item-body">
+                      <h6 class="sr-item-title">
+                        Michael Chen
+                        <span class="sr-item-badge sr-item-badge-success">Active</span>
+                      </h6>
+                      <p class="sr-item-excerpt">Lead Developer · Maintaining <mark>Dashboard</mark> components and APIs · New York, NY</p>
+                      <div class="sr-item-meta">
+                        <span><i class="ph ph-envelope me-1"></i>m.chen@example.com</span>
+                        <span><i class="ph ph-calendar me-1"></i>Joined Mar 2022</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-right sr-item-arrow"></i>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Files Section -->
+              <div class="sr-group" data-group="files">
+                <h6 class="sr-group-title">
+                  <i class="ph ph-folder-open me-2"></i>Files
+                </h6>
+                <div class="sr-items">
+                  <a href="#" class="sr-item">
+                    <div class="sr-item-icon sr-item-icon-danger">
+                      <i class="ph ph-file-pdf"></i>
+                    </div>
+                    <div class="sr-item-body">
+                      <h6 class="sr-item-title"><mark>Dashboard</mark>_Design_Specs.pdf</h6>
+                      <p class="sr-item-excerpt">Complete design specifications for the new <mark>dashboard</mark> interface including wireframes, color schemes, and component guidelines...</p>
+                      <div class="sr-item-meta">
+                        <span><i class="ph ph-hard-drive me-1"></i>2.4 MB</span>
+                        <span><i class="ph ph-user me-1"></i>Emily Davis</span>
+                        <span><i class="ph ph-clock me-1"></i>Jan 15, 2024</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-right sr-item-arrow"></i>
+                  </a>
+                  <a href="#" class="sr-item">
+                    <div class="sr-item-icon sr-item-icon-success">
+                      <i class="ph ph-file-xls"></i>
+                    </div>
+                    <div class="sr-item-body">
+                      <h6 class="sr-item-title"><mark>Dashboard</mark>_Analytics_Q4.xlsx</h6>
+                      <p class="sr-item-excerpt">Q4 2023 analytics report with <mark>dashboard</mark> usage metrics, user engagement data, and performance benchmarks...</p>
+                      <div class="sr-item-meta">
+                        <span><i class="ph ph-hard-drive me-1"></i>856 KB</span>
+                        <span><i class="ph ph-user me-1"></i>James Wilson</span>
+                        <span><i class="ph ph-clock me-1"></i>Jan 10, 2024</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-right sr-item-arrow"></i>
+                  </a>
+                  <a href="#" class="sr-item">
+                    <div class="sr-item-icon sr-item-icon-accent">
+                      <i class="ph ph-file-image"></i>
+                    </div>
+                    <div class="sr-item-body">
+                      <h6 class="sr-item-title"><mark>Dashboard</mark>_Mockup_v2.fig</h6>
+                      <p class="sr-item-excerpt">Updated Figma mockup for the <mark>dashboard</mark> redesign project with new widget layouts and responsive breakpoints...</p>
+                      <div class="sr-item-meta">
+                        <span><i class="ph ph-hard-drive me-1"></i>4.1 MB</span>
+                        <span><i class="ph ph-user me-1"></i>Sarah Johnson</span>
+                        <span><i class="ph ph-clock me-1"></i>Jan 18, 2024</span>
+                      </div>
+                    </div>
+                    <i class="ph ph-arrow-right sr-item-arrow"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="sr-pagination">
+              <span class="sr-page-info">Showing 1-10 of 24 results</span>
+              <nav>
+                <ul class="pagination mb-0">
+                  <li class="page-item disabled">
+                    <a class="page-link" href="#"><i class="ph ph-caret-left"></i></a>
+                  </li>
+                  <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                  <li class="page-item"><a class="page-link" href="#">2</a></li>
+                  <li class="page-item"><a class="page-link" href="#">3</a></li>
+                  <li class="page-item">
+                    <a class="page-link" href="#"><i class="ph ph-caret-right"></i></a>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="sr-sidebar">
+            <!-- Filters -->
+            <div class="sr-filter-card">
+              <h6 class="sr-filter-heading">
+                <i class="ph ph-funnel me-2"></i>Filters
+              </h6>
+              <div class="sr-filter-section">
+                <span class="sr-filter-label">Type</span>
+                <div class="sr-filter-checks">
+                  <label class="sr-check">
+                    <input type="checkbox" checked>
+                    <span class="sr-check-box"><i class="ph-bold ph-check"></i></span>
+                    <span class="sr-check-text">Pages</span>
+                    <span class="sr-check-count">8</span>
+                  </label>
+                  <label class="sr-check">
+                    <input type="checkbox" checked>
+                    <span class="sr-check-box"><i class="ph-bold ph-check"></i></span>
+                    <span class="sr-check-text">Users</span>
+                    <span class="sr-check-count">5</span>
+                  </label>
+                  <label class="sr-check">
+                    <input type="checkbox" checked>
+                    <span class="sr-check-box"><i class="ph-bold ph-check"></i></span>
+                    <span class="sr-check-text">Files</span>
+                    <span class="sr-check-count">11</span>
+                  </label>
+                  <label class="sr-check">
+                    <input type="checkbox" checked>
+                    <span class="sr-check-box"><i class="ph-bold ph-check"></i></span>
+                    <span class="sr-check-text">Projects</span>
+                    <span class="sr-check-count">0</span>
+                  </label>
+                </div>
+              </div>
+              <div class="sr-filter-section">
+                <span class="sr-filter-label">Date Range</span>
+                <select class="form-select form-select-sm">
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                </select>
+              </div>
+              <div class="sr-filter-section">
+                <span class="sr-filter-label">File Type</span>
+                <div class="sr-filter-checks">
+                  <label class="sr-check">
+                    <input type="checkbox">
+                    <span class="sr-check-box"><i class="ph-bold ph-check"></i></span>
+                    <span class="sr-check-text">PDF</span>
+                  </label>
+                  <label class="sr-check">
+                    <input type="checkbox">
+                    <span class="sr-check-box"><i class="ph-bold ph-check"></i></span>
+                    <span class="sr-check-text">Documents</span>
+                  </label>
+                  <label class="sr-check">
+                    <input type="checkbox">
+                    <span class="sr-check-box"><i class="ph-bold ph-check"></i></span>
+                    <span class="sr-check-text">Images</span>
+                  </label>
+                  <label class="sr-check">
+                    <input type="checkbox">
+                    <span class="sr-check-box"><i class="ph-bold ph-check"></i></span>
+                    <span class="sr-check-text">Spreadsheets</span>
+                  </label>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-sm w-100">
+                <i class="ph ph-funnel me-1"></i>Apply Filters
+              </button>
+            </div>
+
+            <!-- Search Tips -->
+            <div class="sr-tips-card">
+              <h6 class="sr-filter-heading">
+                <i class="ph ph-lightbulb me-2"></i>Search Tips
+              </h6>
+              <div class="sr-tips">
+                <div class="sr-tip">
+                  <code>"sales report"</code>
+                  <span>Exact phrase match</span>
+                </div>
+                <div class="sr-tip">
+                  <code>dashboard -analytics</code>
+                  <span>Exclude a term</span>
+                </div>
+                <div class="sr-tip">
+                  <code>type:pdf</code>
+                  <span>Filter by file type</span>
+                </div>
+                <div class="sr-tip">
+                  <code>from:sarah</code>
+                  <span>Search by author</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabs = document.querySelectorAll('.sr-tab');
+      const groups = document.querySelectorAll('.sr-group');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          tabs.forEach(t => t.classList.remove('sr-tab-active'));
+          this.classList.add('sr-tab-active');
+          const filter = this.dataset.tab;
+          groups.forEach(group => {
+            if (filter === 'all' || group.dataset.group === filter) {
+              group.style.display = '';
+            } else {
+              group.style.display = 'none';
+            }
+          });
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

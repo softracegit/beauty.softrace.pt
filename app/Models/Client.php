@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Client extends Model
@@ -94,5 +96,29 @@ class Client extends Model
     public function notes(): MorphMany
     {
         return $this->morphMany(Note::class, 'notable')->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Get all deals for this client
+     */
+    public function deals(): HasMany
+    {
+        return $this->hasMany(Deal::class);
+    }
+
+    /**
+     * Get all leads for this client (via opportunities)
+     */
+    public function leads(): HasManyThrough
+    {
+        return $this->hasManyThrough(Lead::class, Opportunity::class, 'client_id', 'id', 'id', 'lead_id');
+    }
+
+    /**
+     * Get all opportunities for this client
+     */
+    public function opportunities(): HasMany
+    {
+        return $this->hasMany(Opportunity::class);
     }
 }

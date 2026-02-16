@@ -1,0 +1,120 @@
+/*--------------------------------------------------------------
+# Roles & Permissions Page
+--------------------------------------------------------------*/
+
+/* Roles List */
+.role-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color-light);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: var(--background-color);
+  }
+
+  &.active {
+    background: color-mix(in srgb, var(--accent-color), transparent 95%);
+    border-left: 3px solid var(--accent-color);
+    padding-left: calc(var(--spacing-lg) - 3px);
+
+    .role-name {
+      color: var(--accent-color);
+    }
+  }
+}
+
+.role-info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.role-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.role-details {
+  min-width: 0;
+}
+
+.role-name {
+  font-weight: 600;
+  color: var(--heading-color);
+  font-size: 0.875rem;
+}
+
+.role-users {
+  font-size: 0.75rem;
+  color: var(--muted-color);
+}
+
+.role-actions {
+  .btn-link {
+    color: var(--muted-color);
+    padding: 4px 6px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+
+    &:hover {
+      color: var(--accent-color);
+    }
+  }
+}
+
+.role-item:hover .role-actions .btn-link {
+  opacity: 1;
+}
+
+/* Permissions Table */
+.permissions-table {
+  th {
+    font-weight: 600;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-color);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  td {
+    vertical-align: middle;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.875rem;
+  }
+
+  .form-check-input {
+    cursor: pointer;
+    width: 1.0625rem;
+    height: 1.0625rem;
+
+    &:checked {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+    }
+  }
+
+  .permission-group td {
+    padding-top: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--heading-color);
+    background: var(--background-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+}

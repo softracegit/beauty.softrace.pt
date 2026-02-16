@@ -1,0 +1,2175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo List - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section active" data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link active" href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Todo List</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Apps</a>
+          <span class="breadcrumb-item active">Todo List</span>
+        </nav>
+      </div>
+
+      <!-- Todo Container -->
+      <div class="todo-container">
+        <!-- Mobile Sidebar Overlay -->
+        <div class="todo-sidebar-overlay" id="todoSidebarOverlay"></div>
+
+        <!-- Todo Sidebar -->
+        <div class="todo-sidebar" id="todoSidebar">
+          <!-- Mobile Close Button -->
+          <button class="todo-sidebar-close" id="todoSidebarClose" aria-label="Close sidebar">
+            <i class="bi bi-x-lg"></i>
+          </button>
+          <div class="todo-sidebar-header">
+            <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+              <i class="bi bi-plus-lg me-2"></i>Add Task
+            </button>
+          </div>
+
+          <nav class="todo-nav">
+            <ul class="todo-nav-list">
+              <li class="todo-nav-item active" data-filter="all">
+                <i class="bi bi-list-task"></i>
+                <span>All Tasks</span>
+                <span class="todo-nav-count">24</span>
+              </li>
+              <li class="todo-nav-item" data-filter="today">
+                <i class="bi bi-calendar-day"></i>
+                <span>Today</span>
+                <span class="todo-nav-count">5</span>
+              </li>
+              <li class="todo-nav-item" data-filter="upcoming">
+                <i class="bi bi-calendar-week"></i>
+                <span>Upcoming</span>
+                <span class="todo-nav-count">12</span>
+              </li>
+              <li class="todo-nav-item" data-filter="important">
+                <i class="bi bi-star"></i>
+                <span>Important</span>
+                <span class="todo-nav-count">3</span>
+              </li>
+              <li class="todo-nav-item" data-filter="completed">
+                <i class="bi bi-check2-circle"></i>
+                <span>Completed</span>
+                <span class="todo-nav-count">18</span>
+              </li>
+              <li class="todo-nav-item" data-filter="trash">
+                <i class="bi bi-trash"></i>
+                <span>Trash</span>
+              </li>
+            </ul>
+          </nav>
+
+          <div class="todo-projects">
+            <div class="todo-projects-header">
+              <span>Projects</span>
+              <button class="todo-projects-add" title="Add Project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                <i class="bi bi-plus"></i>
+              </button>
+            </div>
+            <ul class="todo-projects-list">
+              <li class="todo-project-item" data-project="work">
+                <span class="todo-project-dot" style="background: var(--accent-color);"></span>
+                <span>Work</span>
+                <span class="todo-nav-count">8</span>
+              </li>
+              <li class="todo-project-item" data-project="personal">
+                <span class="todo-project-dot" style="background: var(--success-color);"></span>
+                <span>Personal</span>
+                <span class="todo-nav-count">6</span>
+              </li>
+              <li class="todo-project-item" data-project="shopping">
+                <span class="todo-project-dot" style="background: var(--warning-color);"></span>
+                <span>Shopping</span>
+                <span class="todo-nav-count">4</span>
+              </li>
+              <li class="todo-project-item" data-project="health">
+                <span class="todo-project-dot" style="background: var(--danger-color);"></span>
+                <span>Health & Fitness</span>
+                <span class="todo-nav-count">3</span>
+              </li>
+              <li class="todo-project-item" data-project="learning">
+                <span class="todo-project-dot" style="background: var(--info-color);"></span>
+                <span>Learning</span>
+                <span class="todo-nav-count">3</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="todo-tags">
+            <div class="todo-tags-header">
+              <span>Tags</span>
+            </div>
+            <div class="todo-tags-list">
+              <span class="todo-tag">urgent</span>
+              <span class="todo-tag">meeting</span>
+              <span class="todo-tag">design</span>
+              <span class="todo-tag">development</span>
+              <span class="todo-tag">review</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Todo Main -->
+        <div class="todo-main" id="todoMain">
+          <!-- Todo Header -->
+          <div class="todo-header">
+            <!-- Mobile Sidebar Toggle -->
+            <button class="todo-sidebar-toggle" id="todoSidebarToggle" aria-label="Open lists">
+              <i class="bi bi-list-task"></i>
+            </button>
+
+            <div class="todo-header-title">
+              <h5>All Tasks</h5>
+              <span class="todo-header-count">24 tasks</span>
+            </div>
+            <div class="todo-header-actions">
+              <div class="todo-search">
+                <i class="bi bi-search todo-search-icon"></i>
+                <input type="text" class="form-control" placeholder="Search tasks...">
+              </div>
+              <div class="dropdown">
+                <button class="todo-filter-btn" data-bs-toggle="dropdown">
+                  <i class="bi bi-funnel"></i>
+                  <span>Filter</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item active" href="#"><i class="bi bi-sort-down me-2"></i>Date Added</a></li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Due Date</a></li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-flag me-2"></i>Priority</a></li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-sort-alpha-down me-2"></i>Alphabetical</a></li>
+                </ul>
+              </div>
+              <div class="todo-view-toggle">
+                <button class="todo-view-btn active" data-view="list" title="List View">
+                  <i class="bi bi-list-ul"></i>
+                </button>
+                <button class="todo-view-btn" data-view="board" title="Board View">
+                  <i class="bi bi-kanban"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Todo List -->
+          <div class="todo-list" id="todoList">
+            <!-- Section: Today -->
+            <div class="todo-section">
+              <div class="todo-section-header">
+                <button class="todo-section-toggle">
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <h6>Today</h6>
+                <span class="todo-section-count">5</span>
+              </div>
+              <div class="todo-section-content">
+                <!-- Task 1 -->
+                <div class="todo-item" data-task="1" data-title="Review dashboard design mockups" data-description="Review the latest dashboard design mockups from the design team. Check for consistency with the brand guidelines, verify all components are properly aligned, and provide feedback on the color scheme and typography choices." data-project="work" data-priority="high" data-due-date="2026-01-20" data-due-time="17:00" data-tags="design,review" data-important="true">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task1">
+                    <label for="task1"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Review dashboard design mockups</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--accent-color);">Work</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Today</span>
+                      <span class="todo-item-tag">design</span>
+                      <span class="todo-item-tag">review</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star starred" title="Important">
+                      <i class="bi bi-star-fill"></i>
+                    </button>
+                    <span class="todo-item-priority high">High</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item todo-view-btn-trigger" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
+                        <li><a class="dropdown-item todo-edit-btn-trigger" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger todo-delete-btn-trigger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 2 -->
+                <div class="todo-item" data-task="2" data-title="Team standup meeting at 10 AM" data-description="Daily team standup meeting to discuss progress, blockers, and plans for the day." data-project="work" data-priority="medium" data-due-date="2026-01-20" data-due-time="10:00" data-tags="meeting" data-important="false">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task2">
+                    <label for="task2"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Team standup meeting at 10 AM</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--accent-color);">Work</span>
+                      <span class="todo-item-due"><i class="bi bi-clock"></i> 10:00 AM</span>
+                      <span class="todo-item-tag">meeting</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority medium">Medium</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item todo-view-btn-trigger" href="#"><i class="bi bi-eye me-2"></i>View Details</a></li>
+                        <li><a class="dropdown-item todo-edit-btn-trigger" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger todo-delete-btn-trigger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 3 -->
+                <div class="todo-item" data-task="3">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task3">
+                    <label for="task3"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Buy groceries for the week</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--warning-color);">Shopping</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Today</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority low">Low</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 4 -->
+                <div class="todo-item" data-task="4">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task4">
+                    <label for="task4"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Gym workout - Leg day</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--danger-color);">Health & Fitness</span>
+                      <span class="todo-item-due"><i class="bi bi-clock"></i> 6:00 PM</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star starred" title="Important">
+                      <i class="bi bi-star-fill"></i>
+                    </button>
+                    <span class="todo-item-priority medium">Medium</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 5 -->
+                <div class="todo-item" data-task="5">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task5">
+                    <label for="task5"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Complete React tutorial chapter 5</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--info-color);">Learning</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Today</span>
+                      <span class="todo-item-tag">development</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority medium">Medium</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Tomorrow -->
+            <div class="todo-section">
+              <div class="todo-section-header">
+                <button class="todo-section-toggle">
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <h6>Tomorrow</h6>
+                <span class="todo-section-count">4</span>
+              </div>
+              <div class="todo-section-content">
+                <!-- Task 6 -->
+                <div class="todo-item" data-task="6">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task6">
+                    <label for="task6"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Prepare quarterly report presentation</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--accent-color);">Work</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Tomorrow</span>
+                      <span class="todo-item-tag">urgent</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star starred" title="Important">
+                      <i class="bi bi-star-fill"></i>
+                    </button>
+                    <span class="todo-item-priority high">High</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 7 -->
+                <div class="todo-item" data-task="7">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task7">
+                    <label for="task7"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Call dentist to schedule appointment</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--success-color);">Personal</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Tomorrow</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority low">Low</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 8 -->
+                <div class="todo-item" data-task="8">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task8">
+                    <label for="task8"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Code review for feature branch</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--accent-color);">Work</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Tomorrow</span>
+                      <span class="todo-item-tag">development</span>
+                      <span class="todo-item-tag">review</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority medium">Medium</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 9 -->
+                <div class="todo-item" data-task="9">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task9">
+                    <label for="task9"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Watch online course video on UX principles</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--info-color);">Learning</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Tomorrow</span>
+                      <span class="todo-item-tag">design</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority low">Low</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: This Week -->
+            <div class="todo-section">
+              <div class="todo-section-header">
+                <button class="todo-section-toggle">
+                  <i class="bi bi-chevron-down"></i>
+                </button>
+                <h6>This Week</h6>
+                <span class="todo-section-count">3</span>
+              </div>
+              <div class="todo-section-content">
+                <!-- Task 10 -->
+                <div class="todo-item" data-task="10">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task10">
+                    <label for="task10"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Submit expense report</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--accent-color);">Work</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Jan 24</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority medium">Medium</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 11 -->
+                <div class="todo-item" data-task="11">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task11">
+                    <label for="task11"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Plan weekend trip to the mountains</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--success-color);">Personal</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Jan 25</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority low">Low</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Task 12 -->
+                <div class="todo-item" data-task="12">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="task12">
+                    <label for="task12"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Buy new running shoes</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--warning-color);">Shopping</span>
+                      <span class="todo-item-due"><i class="bi bi-calendar"></i> Jan 26</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <span class="todo-item-priority low">Low</span>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-calendar me-2"></i>Change Due Date</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-folder me-2"></i>Move to Project</a></li>
+                        <li>
+                          <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Completed -->
+            <div class="todo-section collapsed">
+              <div class="todo-section-header">
+                <button class="todo-section-toggle">
+                  <i class="bi bi-chevron-right"></i>
+                </button>
+                <h6>Completed</h6>
+                <span class="todo-section-count">4</span>
+              </div>
+              <div class="todo-section-content" style="display: none;">
+                <!-- Completed Task 1 -->
+                <div class="todo-item completed" data-task="c1">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="taskC1" checked>
+                    <label for="taskC1"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Send project proposal to client</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--accent-color);">Work</span>
+                      <span class="todo-item-completed-date">Completed yesterday</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-counterclockwise me-2"></i>Mark as incomplete</a></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Completed Task 2 -->
+                <div class="todo-item completed" data-task="c2">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="taskC2" checked>
+                    <label for="taskC2"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Fix navigation bug in mobile app</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--accent-color);">Work</span>
+                      <span class="todo-item-completed-date">Completed yesterday</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-counterclockwise me-2"></i>Mark as incomplete</a></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Completed Task 3 -->
+                <div class="todo-item completed" data-task="c3">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="taskC3" checked>
+                    <label for="taskC3"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Pay electricity bill</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--success-color);">Personal</span>
+                      <span class="todo-item-completed-date">Completed 2 days ago</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-counterclockwise me-2"></i>Mark as incomplete</a></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Completed Task 4 -->
+                <div class="todo-item completed" data-task="c4">
+                  <div class="todo-item-check">
+                    <input type="checkbox" class="todo-checkbox" id="taskC4" checked>
+                    <label for="taskC4"></label>
+                  </div>
+                  <div class="todo-item-content">
+                    <div class="todo-item-title">Morning jog - 5km</div>
+                    <div class="todo-item-meta">
+                      <span class="todo-item-project" style="--project-color: var(--danger-color);">Health & Fitness</span>
+                      <span class="todo-item-completed-date">Completed 2 days ago</span>
+                    </div>
+                  </div>
+                  <div class="todo-item-actions">
+                    <button class="todo-item-star" title="Important">
+                      <i class="bi bi-star"></i>
+                    </button>
+                    <div class="dropdown">
+                      <button class="todo-item-more" data-bs-toggle="dropdown">
+                        <i class="bi bi-three-dots"></i>
+                      </button>
+                      <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-arrow-counterclockwise me-2"></i>Mark as incomplete</a></li>
+                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Delete</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Add Task -->
+          <div class="todo-quick-add">
+            <button class="todo-quick-add-btn" id="quickAddBtn">
+              <i class="bi bi-plus-lg"></i>
+              <span>Add a task</span>
+            </button>
+            <div class="todo-quick-add-form" id="quickAddForm" style="display: none;">
+              <input type="text" class="form-control" id="quickTaskInput" placeholder="What do you need to do?">
+              <div class="todo-quick-add-actions">
+                <button class="btn btn-sm btn-outline-secondary" title="Set due date">
+                  <i class="bi bi-calendar"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" title="Set priority">
+                  <i class="bi bi-flag"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" title="Add to project">
+                  <i class="bi bi-folder"></i>
+                </button>
+                <div class="ms-auto">
+                  <button class="btn btn-sm btn-outline-secondary me-1" id="cancelQuickAdd">Cancel</button>
+                  <button class="btn btn-sm btn-primary" id="saveQuickAdd">Add Task</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Task Modal -->
+      <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addTaskModalLabel">Add New Task</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form class="todo-form">
+                <div class="mb-3">
+                  <label class="form-label">Task Title</label>
+                  <input type="text" class="form-control" placeholder="What do you need to do?">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Description</label>
+                  <textarea class="form-control" rows="3" placeholder="Add more details..."></textarea>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-6">
+                    <label class="form-label">Due Date</label>
+                    <input type="date" class="form-control">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Due Time</label>
+                    <input type="time" class="form-control">
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-6">
+                    <label class="form-label">Project</label>
+                    <select class="form-select">
+                      <option value="">Select project</option>
+                      <option value="work">Work</option>
+                      <option value="personal">Personal</option>
+                      <option value="shopping">Shopping</option>
+                      <option value="health">Health & Fitness</option>
+                      <option value="learning">Learning</option>
+                    </select>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label">Priority</label>
+                    <select class="form-select">
+                      <option value="low">Low</option>
+                      <option value="medium" selected>Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Tags</label>
+                  <input type="text" class="form-control" placeholder="Add tags separated by comma">
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="markImportant">
+                  <label class="form-check-label" for="markImportant">Mark as important</label>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary">Add Task</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- View Task Modal -->
+      <div class="modal fade" id="viewTaskModal" tabindex="-1" aria-labelledby="viewTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="viewTaskModalLabel">Task Details</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="todo-view-task">
+                <div class="todo-view-header">
+                  <div class="todo-view-check">
+                    <input type="checkbox" class="todo-checkbox" id="viewTaskCheckbox">
+                    <label for="viewTaskCheckbox"></label>
+                  </div>
+                  <div class="todo-view-title-wrapper">
+                    <h4 class="todo-view-title" id="viewTaskTitle">Review dashboard design mockups</h4>
+                    <button class="todo-view-star starred" id="viewTaskStar">
+                      <i class="bi bi-star-fill"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="todo-view-meta">
+                  <div class="todo-view-meta-item">
+                    <i class="bi bi-folder"></i>
+                    <span class="todo-view-project" id="viewTaskProject" style="--project-color: var(--accent-color);">Work</span>
+                  </div>
+                  <div class="todo-view-meta-item">
+                    <i class="bi bi-calendar"></i>
+                    <span id="viewTaskDueDate">Today, January 20, 2026</span>
+                  </div>
+                  <div class="todo-view-meta-item">
+                    <i class="bi bi-clock"></i>
+                    <span id="viewTaskDueTime">5:00 PM</span>
+                  </div>
+                  <div class="todo-view-meta-item">
+                    <i class="bi bi-flag"></i>
+                    <span class="todo-item-priority high" id="viewTaskPriority">High</span>
+                  </div>
+                </div>
+
+                <div class="todo-view-section">
+                  <h6>Description</h6>
+                  <p id="viewTaskDescription">Review the latest dashboard design mockups from the design team. Check for consistency with the brand guidelines, verify all components are properly aligned, and provide feedback on the color scheme and typography choices.</p>
+                </div>
+
+                <div class="todo-view-section">
+                  <h6>Tags</h6>
+                  <div class="todo-view-tags" id="viewTaskTags">
+                    <span class="todo-item-tag">design</span>
+                    <span class="todo-item-tag">review</span>
+                  </div>
+                </div>
+
+                <div class="todo-view-section">
+                  <h6>Subtasks</h6>
+                  <div class="todo-subtasks" id="viewTaskSubtasks">
+                    <div class="todo-subtask">
+                      <input type="checkbox" class="todo-subtask-check" id="subtask1" checked>
+                      <label for="subtask1">Review color palette</label>
+                    </div>
+                    <div class="todo-subtask">
+                      <input type="checkbox" class="todo-subtask-check" id="subtask2" checked>
+                      <label for="subtask2">Check responsive layout</label>
+                    </div>
+                    <div class="todo-subtask">
+                      <input type="checkbox" class="todo-subtask-check" id="subtask3">
+                      <label for="subtask3">Verify typography</label>
+                    </div>
+                    <div class="todo-subtask">
+                      <input type="checkbox" class="todo-subtask-check" id="subtask4">
+                      <label for="subtask4">Write feedback document</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="todo-view-section">
+                  <h6>Activity</h6>
+                  <div class="todo-activity">
+                    <div class="todo-activity-item">
+                      <img src="assets/img/profile-img.webp" alt="You">
+                      <div class="todo-activity-content">
+                        <span class="todo-activity-text"><strong>You</strong> created this task</span>
+                        <span class="todo-activity-time">2 days ago</span>
+                      </div>
+                    </div>
+                    <div class="todo-activity-item">
+                      <img src="assets/img/profile-img.webp" alt="You">
+                      <div class="todo-activity-content">
+                        <span class="todo-activity-text"><strong>You</strong> marked as important</span>
+                        <span class="todo-activity-time">1 day ago</span>
+                      </div>
+                    </div>
+                    <div class="todo-activity-item">
+                      <img src="assets/img/profile-img.webp" alt="You">
+                      <div class="todo-activity-content">
+                        <span class="todo-activity-text"><strong>You</strong> completed subtask "Review color palette"</span>
+                        <span class="todo-activity-time">5 hours ago</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-danger me-auto" id="viewTaskDelete">
+                <i class="bi bi-trash me-1"></i>Delete
+              </button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-primary" id="viewTaskEdit">
+                <i class="bi bi-pencil me-1"></i>Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Task Modal -->
+      <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editTaskModalLabel">Edit Task</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form class="todo-form" id="editTaskForm">
+                <div class="mb-3">
+                  <label class="form-label">Task Title</label>
+                  <input type="text" class="form-control" id="editTaskTitle" value="Review dashboard design mockups">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Description</label>
+                  <textarea class="form-control" rows="4" id="editTaskDescription">Review the latest dashboard design mockups from the design team. Check for consistency with the brand guidelines, verify all components are properly aligned, and provide feedback on the color scheme and typography choices.</textarea>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Due Date</label>
+                    <input type="date" class="form-control" id="editTaskDueDate" value="2026-01-20">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Due Time</label>
+                    <input type="time" class="form-control" id="editTaskDueTime" value="17:00">
+                  </div>
+                </div>
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Project</label>
+                    <select class="form-select" id="editTaskProject">
+                      <option value="">Select project</option>
+                      <option value="work" selected>Work</option>
+                      <option value="personal">Personal</option>
+                      <option value="shopping">Shopping</option>
+                      <option value="health">Health & Fitness</option>
+                      <option value="learning">Learning</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Priority</label>
+                    <select class="form-select" id="editTaskPriority">
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high" selected>High</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Tags</label>
+                  <input type="text" class="form-control" id="editTaskTags" value="design, review">
+                  <div class="form-text">Separate tags with commas</div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Subtasks</label>
+                  <div class="todo-edit-subtasks" id="editTaskSubtasks">
+                    <div class="todo-edit-subtask">
+                      <input type="text" class="form-control" value="Review color palette">
+                      <button type="button" class="todo-edit-subtask-remove">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                    <div class="todo-edit-subtask">
+                      <input type="text" class="form-control" value="Check responsive layout">
+                      <button type="button" class="todo-edit-subtask-remove">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                    <div class="todo-edit-subtask">
+                      <input type="text" class="form-control" value="Verify typography">
+                      <button type="button" class="todo-edit-subtask-remove">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                    <div class="todo-edit-subtask">
+                      <input type="text" class="form-control" value="Write feedback document">
+                      <button type="button" class="todo-edit-subtask-remove">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addSubtaskBtn">
+                    <i class="bi bi-plus me-1"></i>Add Subtask
+                  </button>
+                </div>
+
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="editMarkImportant" checked>
+                  <label class="form-check-label" for="editMarkImportant">Mark as important</label>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-danger me-auto" id="editTaskDelete">
+                <i class="bi bi-trash me-1"></i>Delete
+              </button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="saveTaskBtn">
+                <i class="bi bi-check-lg me-1"></i>Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Project Modal -->
+      <div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addProjectModalLabel">Add Project</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <form>
+                <div class="mb-3">
+                  <label class="form-label">Project Name</label>
+                  <input type="text" class="form-control" placeholder="Enter project name">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Color</label>
+                  <div class="todo-color-picker">
+                    <label class="todo-color-option">
+                      <input type="radio" name="projectColor" value="primary" checked>
+                      <span style="background: var(--accent-color);"></span>
+                    </label>
+                    <label class="todo-color-option">
+                      <input type="radio" name="projectColor" value="success">
+                      <span style="background: var(--success-color);"></span>
+                    </label>
+                    <label class="todo-color-option">
+                      <input type="radio" name="projectColor" value="warning">
+                      <span style="background: var(--warning-color);"></span>
+                    </label>
+                    <label class="todo-color-option">
+                      <input type="radio" name="projectColor" value="danger">
+                      <span style="background: var(--danger-color);"></span>
+                    </label>
+                    <label class="todo-color-option">
+                      <input type="radio" name="projectColor" value="info">
+                      <span style="background: var(--info-color);"></span>
+                    </label>
+                    <label class="todo-color-option">
+                      <input type="radio" name="projectColor" value="secondary">
+                      <span style="background: var(--muted-color);"></span>
+                    </label>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary">Add Project</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const todoNavItems = document.querySelectorAll('.todo-nav-item');
+      const projectItems = document.querySelectorAll('.todo-project-item');
+      const todoItems = document.querySelectorAll('.todo-item');
+      const sectionToggles = document.querySelectorAll('.todo-section-toggle');
+      const quickAddBtn = document.getElementById('quickAddBtn');
+      const quickAddForm = document.getElementById('quickAddForm');
+      const cancelQuickAdd = document.getElementById('cancelQuickAdd');
+      const saveQuickAdd = document.getElementById('saveQuickAdd');
+      const quickTaskInput = document.getElementById('quickTaskInput');
+      const viewBtns = document.querySelectorAll('.todo-view-btn');
+      // Modal instances
+      const viewTaskModal = new bootstrap.Modal(document.getElementById('viewTaskModal'));
+      const editTaskModal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+      // Current task being viewed/edited
+      let currentTaskElement = null;
+      // Project color mapping
+      const projectColors = {
+        'work': 'var(--accent-color)',
+        'personal': 'var(--success-color)',
+        'shopping': 'var(--warning-color)',
+        'health': 'var(--danger-color)',
+        'learning': 'var(--info-color)'
+      };
+      // Project name mapping
+      const projectNames = {
+        'work': 'Work',
+        'personal': 'Personal',
+        'shopping': 'Shopping',
+        'health': 'Health & Fitness',
+        'learning': 'Learning'
+      };
+      // Format date for display
+      function formatDate(dateStr) {
+        if (!dateStr) return 'No due date';
+        const date = new Date(dateStr);
+        const options = {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        };
+        return date.toLocaleDateString('en-US', options);
+      }
+      // Format time for display
+      function formatTime(timeStr) {
+        if (!timeStr) return '';
+        const [hours, minutes] = timeStr.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${minutes} ${ampm}`;
+      }
+      // Populate View Task Modal
+      function populateViewModal(taskEl) {
+        const data = taskEl.dataset;
+        document.getElementById('viewTaskTitle').textContent = data.title || 'Untitled Task';
+        document.getElementById('viewTaskDescription').textContent = data.description || 'No description provided.';
+        document.getElementById('viewTaskDueDate').textContent = formatDate(data.dueDate);
+        document.getElementById('viewTaskDueTime').textContent = formatTime(data.dueTime);
+        // Project
+        const projectEl = document.getElementById('viewTaskProject');
+        const projectKey = data.project || 'work';
+        projectEl.textContent = projectNames[projectKey] || projectKey;
+        projectEl.style.setProperty('--project-color', projectColors[projectKey] || 'var(--accent-color)');
+        // Priority
+        const priorityEl = document.getElementById('viewTaskPriority');
+        priorityEl.textContent = (data.priority || 'medium').charAt(0).toUpperCase() + (data.priority || 'medium').slice(1);
+        priorityEl.className = 'todo-item-priority ' + (data.priority || 'medium');
+        // Important star
+        const starEl = document.getElementById('viewTaskStar');
+        if (data.important === 'true') {
+          starEl.classList.add('starred');
+          starEl.querySelector('i').className = 'bi bi-star-fill';
+        } else {
+          starEl.classList.remove('starred');
+          starEl.querySelector('i').className = 'bi bi-star';
+        }
+        // Checkbox
+        const checkboxEl = document.getElementById('viewTaskCheckbox');
+        checkboxEl.checked = taskEl.classList.contains('completed');
+        // Tags
+        const tagsContainer = document.getElementById('viewTaskTags');
+        tagsContainer.innerHTML = '';
+        if (data.tags) {
+          data.tags.split(',').forEach(tag => {
+            const tagEl = document.createElement('span');
+            tagEl.className = 'todo-item-tag';
+            tagEl.textContent = tag.trim();
+            tagsContainer.appendChild(tagEl);
+          });
+        } else {
+          tagsContainer.innerHTML = '<span class="text-muted">No tags</span>';
+        }
+      }
+      // Populate Edit Task Modal
+      function populateEditModal(taskEl) {
+        const data = taskEl.dataset;
+        document.getElementById('editTaskTitle').value = data.title || '';
+        document.getElementById('editTaskDescription').value = data.description || '';
+        document.getElementById('editTaskDueDate').value = data.dueDate || '';
+        document.getElementById('editTaskDueTime').value = data.dueTime || '';
+        document.getElementById('editTaskProject').value = data.project || '';
+        document.getElementById('editTaskPriority').value = data.priority || 'medium';
+        document.getElementById('editTaskTags').value = data.tags ? data.tags.replace(/,/g, ', ') : '';
+        document.getElementById('editMarkImportant').checked = data.important === 'true';
+      }
+      // View task button click (from dropdown)
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.todo-view-btn-trigger')) {
+          e.preventDefault();
+          const taskEl = e.target.closest('.todo-item');
+          if (taskEl) {
+            currentTaskElement = taskEl;
+            populateViewModal(taskEl);
+            viewTaskModal.show();
+          }
+        }
+      });
+      // Edit task button click (from dropdown)
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.todo-edit-btn-trigger')) {
+          e.preventDefault();
+          const taskEl = e.target.closest('.todo-item');
+          if (taskEl) {
+            currentTaskElement = taskEl;
+            populateEditModal(taskEl);
+            editTaskModal.show();
+          }
+        }
+      });
+      // Delete task button click (from dropdown)
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.todo-delete-btn-trigger')) {
+          e.preventDefault();
+          const taskEl = e.target.closest('.todo-item');
+          if (taskEl && confirm('Are you sure you want to delete this task?')) {
+            taskEl.style.opacity = '0';
+            taskEl.style.transform = 'translateX(-20px)';
+            setTimeout(() => taskEl.remove(), 300);
+          }
+        }
+      });
+      // View modal - Edit button
+      document.getElementById('viewTaskEdit').addEventListener('click', function() {
+        viewTaskModal.hide();
+        if (currentTaskElement) {
+          populateEditModal(currentTaskElement);
+          editTaskModal.show();
+        }
+      });
+      // View modal - Delete button
+      document.getElementById('viewTaskDelete').addEventListener('click', function() {
+        if (currentTaskElement && confirm('Are you sure you want to delete this task?')) {
+          viewTaskModal.hide();
+          currentTaskElement.style.opacity = '0';
+          currentTaskElement.style.transform = 'translateX(-20px)';
+          setTimeout(() => currentTaskElement.remove(), 300);
+        }
+      });
+      // View modal - Star toggle
+      document.getElementById('viewTaskStar').addEventListener('click', function() {
+        this.classList.toggle('starred');
+        const icon = this.querySelector('i');
+        if (this.classList.contains('starred')) {
+          icon.className = 'bi bi-star-fill';
+          if (currentTaskElement) {
+            currentTaskElement.dataset.important = 'true';
+            const starBtn = currentTaskElement.querySelector('.todo-item-star');
+            if (starBtn) {
+              starBtn.classList.add('starred');
+              starBtn.querySelector('i').className = 'bi bi-star-fill';
+            }
+          }
+        } else {
+          icon.className = 'bi bi-star';
+          if (currentTaskElement) {
+            currentTaskElement.dataset.important = 'false';
+            const starBtn = currentTaskElement.querySelector('.todo-item-star');
+            if (starBtn) {
+              starBtn.classList.remove('starred');
+              starBtn.querySelector('i').className = 'bi bi-star';
+            }
+          }
+        }
+      });
+      // View modal - Checkbox toggle
+      document.getElementById('viewTaskCheckbox').addEventListener('change', function() {
+        if (currentTaskElement) {
+          const checkbox = currentTaskElement.querySelector('.todo-checkbox');
+          if (checkbox) {
+            checkbox.checked = this.checked;
+            if (this.checked) {
+              currentTaskElement.classList.add('completed');
+            } else {
+              currentTaskElement.classList.remove('completed');
+            }
+          }
+        }
+      });
+      // Edit modal - Delete button
+      document.getElementById('editTaskDelete').addEventListener('click', function() {
+        if (currentTaskElement && confirm('Are you sure you want to delete this task?')) {
+          editTaskModal.hide();
+          currentTaskElement.style.opacity = '0';
+          currentTaskElement.style.transform = 'translateX(-20px)';
+          setTimeout(() => currentTaskElement.remove(), 300);
+        }
+      });
+      // Edit modal - Save button
+      document.getElementById('saveTaskBtn').addEventListener('click', function() {
+        if (currentTaskElement) {
+          // Update data attributes
+          currentTaskElement.dataset.title = document.getElementById('editTaskTitle').value;
+          currentTaskElement.dataset.description = document.getElementById('editTaskDescription').value;
+          currentTaskElement.dataset.dueDate = document.getElementById('editTaskDueDate').value;
+          currentTaskElement.dataset.dueTime = document.getElementById('editTaskDueTime').value;
+          currentTaskElement.dataset.project = document.getElementById('editTaskProject').value;
+          currentTaskElement.dataset.priority = document.getElementById('editTaskPriority').value;
+          currentTaskElement.dataset.tags = document.getElementById('editTaskTags').value.replace(/\s*,\s*/g, ',');
+          currentTaskElement.dataset.important = document.getElementById('editMarkImportant').checked ? 'true' : 'false';
+          // Update visible elements
+          const titleEl = currentTaskElement.querySelector('.todo-item-title');
+          if (titleEl) titleEl.textContent = currentTaskElement.dataset.title;
+          // Update priority badge
+          const priorityEl = currentTaskElement.querySelector('.todo-item-priority');
+          if (priorityEl) {
+            priorityEl.className = 'todo-item-priority ' + currentTaskElement.dataset.priority;
+            priorityEl.textContent = currentTaskElement.dataset.priority.charAt(0).toUpperCase() + currentTaskElement.dataset.priority.slice(1);
+          }
+          // Update star
+          const starBtn = currentTaskElement.querySelector('.todo-item-star');
+          if (starBtn) {
+            if (currentTaskElement.dataset.important === 'true') {
+              starBtn.classList.add('starred');
+              starBtn.querySelector('i').className = 'bi bi-star-fill';
+            } else {
+              starBtn.classList.remove('starred');
+              starBtn.querySelector('i').className = 'bi bi-star';
+            }
+          }
+          // Update project
+          const projectEl = currentTaskElement.querySelector('.todo-item-project');
+          if (projectEl && currentTaskElement.dataset.project) {
+            projectEl.textContent = projectNames[currentTaskElement.dataset.project] || currentTaskElement.dataset.project;
+            projectEl.style.setProperty('--project-color', projectColors[currentTaskElement.dataset.project] || 'var(--accent-color)');
+          }
+          editTaskModal.hide();
+        }
+      });
+      // Edit modal - Add subtask button
+      document.getElementById('addSubtaskBtn').addEventListener('click', function() {
+        const subtasksContainer = document.getElementById('editTaskSubtasks');
+        const newSubtask = document.createElement('div');
+        newSubtask.className = 'todo-edit-subtask';
+        newSubtask.innerHTML = `
+      <input type="text" class="form-control" placeholder="Enter subtask...">
+      <button type="button" class="todo-edit-subtask-remove">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    `;
+        subtasksContainer.appendChild(newSubtask);
+        newSubtask.querySelector('input').focus();
+      });
+      // Edit modal - Remove subtask
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.todo-edit-subtask-remove')) {
+          e.target.closest('.todo-edit-subtask').remove();
+        }
+      });
+      // Navigation filter
+      todoNavItems.forEach(item => {
+        item.addEventListener('click', function() {
+          todoNavItems.forEach(i => i.classList.remove('active'));
+          projectItems.forEach(i => i.classList.remove('active'));
+          this.classList.add('active');
+          // Update header title
+          const headerTitle = document.querySelector('.todo-header-title h5');
+          headerTitle.textContent = this.querySelector('span').textContent;
+        });
+      });
+      // Project filter
+      projectItems.forEach(item => {
+        item.addEventListener('click', function() {
+          todoNavItems.forEach(i => i.classList.remove('active'));
+          projectItems.forEach(i => i.classList.remove('active'));
+          this.classList.add('active');
+          // Update header title
+          const headerTitle = document.querySelector('.todo-header-title h5');
+          headerTitle.textContent = this.querySelector('span:not(.todo-project-dot):not(.todo-nav-count)').textContent;
+        });
+      });
+      // Task checkbox toggle
+      document.querySelectorAll('.todo-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          const todoItem = this.closest('.todo-item');
+          if (this.checked) {
+            todoItem.classList.add('completed');
+            // Add animation
+            todoItem.style.opacity = '0.5';
+            setTimeout(() => {
+              todoItem.style.opacity = '';
+            }, 300);
+          } else {
+            todoItem.classList.remove('completed');
+          }
+        });
+      });
+      // Star toggle
+      document.querySelectorAll('.todo-item-star').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          this.classList.toggle('starred');
+          const icon = this.querySelector('i');
+          const todoItem = this.closest('.todo-item');
+          if (this.classList.contains('starred')) {
+            icon.className = 'bi bi-star-fill';
+            if (todoItem) todoItem.dataset.important = 'true';
+          } else {
+            icon.className = 'bi bi-star';
+            if (todoItem) todoItem.dataset.important = 'false';
+          }
+        });
+      });
+      // Section toggle (collapse/expand)
+      sectionToggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+          const section = this.closest('.todo-section');
+          const content = section.querySelector('.todo-section-content');
+          const icon = this.querySelector('i');
+          section.classList.toggle('collapsed');
+          if (section.classList.contains('collapsed')) {
+            content.style.display = 'none';
+            icon.className = 'bi bi-chevron-right';
+          } else {
+            content.style.display = 'block';
+            icon.className = 'bi bi-chevron-down';
+          }
+        });
+      });
+      // Quick add toggle
+      quickAddBtn.addEventListener('click', function() {
+        this.style.display = 'none';
+        quickAddForm.style.display = 'block';
+        quickTaskInput.focus();
+      });
+      cancelQuickAdd.addEventListener('click', function() {
+        quickAddForm.style.display = 'none';
+        quickAddBtn.style.display = 'flex';
+        quickTaskInput.value = '';
+      });
+      saveQuickAdd.addEventListener('click', function() {
+        const taskTitle = quickTaskInput.value.trim();
+        if (taskTitle) {
+          // In a real app, this would add the task to the list
+          alert('Task added: ' + taskTitle);
+          quickTaskInput.value = '';
+          quickAddForm.style.display = 'none';
+          quickAddBtn.style.display = 'flex';
+        }
+      });
+      // Enter key to add task
+      quickTaskInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          saveQuickAdd.click();
+        } else if (e.key === 'Escape') {
+          cancelQuickAdd.click();
+        }
+      });
+      // View toggle
+      const todoList = document.getElementById('todoList');
+      viewBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+          viewBtns.forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          const viewType = this.dataset.view;
+          if (viewType === 'board') {
+            todoList.classList.add('board-view');
+          } else {
+            todoList.classList.remove('board-view');
+          }
+        });
+      });
+      // Task item click - open view modal
+      todoItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+          // Don't trigger if clicking on checkbox, star, or dropdown
+          if (e.target.closest('.todo-item-check') ||
+            e.target.closest('.todo-item-star') ||
+            e.target.closest('.todo-item-more') ||
+            e.target.closest('.dropdown-menu')) {
+            return;
+          }
+          // Open view modal
+          currentTaskElement = this;
+          populateViewModal(this);
+          viewTaskModal.show();
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item active" data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section active" data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link active" href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Welcome Banner -->
+      <div class="dash-welcome">
+        <div class="dash-welcome-content">
+          <h2 class="dash-welcome-title">Welcome back, John</h2>
+          <p class="dash-welcome-text">Here's what's happening with your business today.</p>
+        </div>
+        <div class="dash-welcome-actions">
+          <div class="dash-date">
+            <i class="bi bi-calendar3"></i>
+            <span id="dashDate"></span>
+          </div>
+          <div class="dash-date">
+            <i class="bi bi-clock"></i>
+            <span id="dashTime"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Strip -->
+      <div class="dash-kpi-strip">
+        <div class="dash-kpi">
+          <div class="dash-kpi-icon primary">
+            <i class="bi bi-wallet2"></i>
+          </div>
+          <div class="dash-kpi-body">
+            <div class="dash-kpi-value">$12,426</div>
+            <div class="dash-kpi-label">Total Revenue</div>
+          </div>
+          <div class="dash-kpi-trend positive">
+            <i class="bi bi-trending-up"></i>
+            <span>+12.5%</span>
+          </div>
+        </div>
+
+        <div class="dash-kpi">
+          <div class="dash-kpi-icon success">
+            <i class="bi bi-bag-check"></i>
+          </div>
+          <div class="dash-kpi-body">
+            <div class="dash-kpi-value">1,248</div>
+            <div class="dash-kpi-label">Total Orders</div>
+          </div>
+          <div class="dash-kpi-trend positive">
+            <i class="bi bi-trending-up"></i>
+            <span>+8.2%</span>
+          </div>
+        </div>
+
+        <div class="dash-kpi">
+          <div class="dash-kpi-icon warning">
+            <i class="bi bi-people"></i>
+          </div>
+          <div class="dash-kpi-body">
+            <div class="dash-kpi-value">5,432</div>
+            <div class="dash-kpi-label">Customers</div>
+          </div>
+          <div class="dash-kpi-trend positive">
+            <i class="bi bi-trending-up"></i>
+            <span>+5.8%</span>
+          </div>
+        </div>
+
+        <div class="dash-kpi">
+          <div class="dash-kpi-icon danger">
+            <i class="bi bi-arrow-return-left"></i>
+          </div>
+          <div class="dash-kpi-body">
+            <div class="dash-kpi-value">42</div>
+            <div class="dash-kpi-label">Refunds</div>
+          </div>
+          <div class="dash-kpi-trend negative">
+            <i class="bi bi-trending-down"></i>
+            <span>-3.1%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Grid: Charts Row -->
+      <div class="dash-grid dash-grid-charts">
+        <!-- Revenue Chart (2/3 width) -->
+        <div class="card dash-chart-main">
+          <div class="card-header">
+            <h5 class="card-title">Revenue Overview</h5>
+            <div class="card-actions">
+              <div class="dash-chart-tabs">
+                <button class="dash-chart-tab active" data-period="monthly">Monthly</button>
+                <button class="dash-chart-tab" data-period="weekly">Weekly</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" id="revenueBarChart"></div>
+          </div>
+        </div>
+
+        <!-- Traffic Sources (1/3 width) -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Traffic Sources</h5>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" id="trafficDonutChart"></div>
+            <div class="dash-traffic-legend">
+              <div class="dash-traffic-item">
+                <span class="dash-traffic-dot" style="--dot-color: var(--accent-color)"></span>
+                <span class="dash-traffic-name">Direct</span>
+                <span class="dash-traffic-val">42%</span>
+              </div>
+              <div class="dash-traffic-item">
+                <span class="dash-traffic-dot" style="--dot-color: var(--success-color)"></span>
+                <span class="dash-traffic-name">Organic</span>
+                <span class="dash-traffic-val">28%</span>
+              </div>
+              <div class="dash-traffic-item">
+                <span class="dash-traffic-dot" style="--dot-color: var(--warning-color)"></span>
+                <span class="dash-traffic-name">Referral</span>
+                <span class="dash-traffic-val">18%</span>
+              </div>
+              <div class="dash-traffic-item">
+                <span class="dash-traffic-dot" style="--dot-color: var(--info-color)"></span>
+                <span class="dash-traffic-name">Social</span>
+                <span class="dash-traffic-val">12%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Grid: Table + Activity Row -->
+      <div class="dash-grid dash-grid-content">
+        <!-- Recent Orders Table (2/3) -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Recent Orders</h5>
+            <div class="card-actions">
+              <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table dash-table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Customer</th>
+                    <th>Product</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><a href="#" class="fw-medium">#ORD-001</a></td>
+                    <td>
+                      <div class="dash-customer">
+                        <img src="assets/img/avatars/avatar-1.webp" alt="">
+                        <span>John Doe</span>
+                      </div>
+                    </td>
+                    <td>Premium Plan</td>
+                    <td class="fw-semibold">$299.00</td>
+                    <td><span class="dash-status success">Completed</span></td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" class="fw-medium">#ORD-002</a></td>
+                    <td>
+                      <div class="dash-customer">
+                        <img src="assets/img/avatars/avatar-2.webp" alt="">
+                        <span>Jane Smith</span>
+                      </div>
+                    </td>
+                    <td>Basic Plan</td>
+                    <td class="fw-semibold">$99.00</td>
+                    <td><span class="dash-status warning">Pending</span></td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" class="fw-medium">#ORD-003</a></td>
+                    <td>
+                      <div class="dash-customer">
+                        <img src="assets/img/avatars/avatar-3.webp" alt="">
+                        <span>Mike Johnson</span>
+                      </div>
+                    </td>
+                    <td>Enterprise Plan</td>
+                    <td class="fw-semibold">$999.00</td>
+                    <td><span class="dash-status success">Completed</span></td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" class="fw-medium">#ORD-004</a></td>
+                    <td>
+                      <div class="dash-customer">
+                        <img src="assets/img/avatars/avatar-4.webp" alt="">
+                        <span>Sarah Wilson</span>
+                      </div>
+                    </td>
+                    <td>Basic Plan</td>
+                    <td class="fw-semibold">$99.00</td>
+                    <td><span class="dash-status danger">Cancelled</span></td>
+                  </tr>
+                  <tr>
+                    <td><a href="#" class="fw-medium">#ORD-005</a></td>
+                    <td>
+                      <div class="dash-customer">
+                        <img src="assets/img/avatars/avatar-5.webp" alt="">
+                        <span>Alex Brown</span>
+                      </div>
+                    </td>
+                    <td>Pro Plan</td>
+                    <td class="fw-semibold">$199.00</td>
+                    <td><span class="dash-status success">Completed</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Timeline (1/3) -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Activity</h5>
+            <div class="card-actions">
+              <a href="activity.html" class="btn-icon" title="View all"><i class="bi bi-arrow-up-right"></i></a>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="dash-timeline">
+              <div class="dash-timeline-item">
+                <div class="dash-timeline-marker success"></div>
+                <div class="dash-timeline-body">
+                  <div class="dash-timeline-title">New order <a href="#">#ORD-001</a></div>
+                  <div class="dash-timeline-time">5 min ago</div>
+                </div>
+              </div>
+              <div class="dash-timeline-item">
+                <div class="dash-timeline-marker primary"></div>
+                <div class="dash-timeline-body">
+                  <div class="dash-timeline-title"><a href="#">John Doe</a> registered</div>
+                  <div class="dash-timeline-time">15 min ago</div>
+                </div>
+              </div>
+              <div class="dash-timeline-item">
+                <div class="dash-timeline-marker warning"></div>
+                <div class="dash-timeline-body">
+                  <div class="dash-timeline-title">Server CPU at 85%</div>
+                  <div class="dash-timeline-time">1 hour ago</div>
+                </div>
+              </div>
+              <div class="dash-timeline-item">
+                <div class="dash-timeline-marker info"></div>
+                <div class="dash-timeline-body">
+                  <div class="dash-timeline-title">Comment on <a href="#">blog post</a></div>
+                  <div class="dash-timeline-time">2 hours ago</div>
+                </div>
+              </div>
+              <div class="dash-timeline-item">
+                <div class="dash-timeline-marker danger"></div>
+                <div class="dash-timeline-body">
+                  <div class="dash-timeline-title">Order <a href="#">#ORD-004</a> cancelled</div>
+                  <div class="dash-timeline-time">3 hours ago</div>
+                </div>
+              </div>
+              <div class="dash-timeline-item">
+                <div class="dash-timeline-marker success"></div>
+                <div class="dash-timeline-body">
+                  <div class="dash-timeline-title">Payment received $2,450</div>
+                  <div class="dash-timeline-time">5 hours ago</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Row: Transactions + Region + Devices -->
+      <div class="dash-grid dash-grid-bottom">
+        <!-- Recent Transactions -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Recent Transactions</h5>
+            <div class="card-actions">
+              <a href="#" class="btn-icon" title="View all"><i class="bi bi-arrow-up-right"></i></a>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="transaction-list" style="padding: var(--spacing-md) var(--spacing-lg);">
+              <div class="transaction-item">
+                <div class="transaction-icon success">
+                  <i class="bi bi-arrow-down-left"></i>
+                </div>
+                <div class="transaction-details">
+                  <div class="transaction-title">Payment from #ORD-001</div>
+                  <div class="transaction-meta">Jan 29, 2026</div>
+                </div>
+                <div class="transaction-amount positive">+$299.00</div>
+              </div>
+              <div class="transaction-item">
+                <div class="transaction-icon danger">
+                  <i class="bi bi-arrow-up-right"></i>
+                </div>
+                <div class="transaction-details">
+                  <div class="transaction-title">Refund to Sarah Wilson</div>
+                  <div class="transaction-meta">Jan 28, 2026</div>
+                </div>
+                <div class="transaction-amount negative">-$99.00</div>
+              </div>
+              <div class="transaction-item">
+                <div class="transaction-icon success">
+                  <i class="bi bi-arrow-down-left"></i>
+                </div>
+                <div class="transaction-details">
+                  <div class="transaction-title">Payment from #ORD-003</div>
+                  <div class="transaction-meta">Jan 27, 2026</div>
+                </div>
+                <div class="transaction-amount positive">+$999.00</div>
+              </div>
+              <div class="transaction-item">
+                <div class="transaction-icon success">
+                  <i class="bi bi-arrow-down-left"></i>
+                </div>
+                <div class="transaction-details">
+                  <div class="transaction-title">Payment from #ORD-005</div>
+                  <div class="transaction-meta">Jan 26, 2026</div>
+                </div>
+                <div class="transaction-amount positive">+$199.00</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sales by Region -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Sales by Region</h5>
+          </div>
+          <div class="card-body">
+            <div class="region-list">
+              <div class="region-item">
+                <div class="region-info">
+                  <span class="region-flag">🇺🇸</span>
+                  <span class="region-name">United States</span>
+                </div>
+                <div class="region-stats">
+                  <div class="progress region-progress">
+                    <div class="progress-bar" style="width: 72%"></div>
+                  </div>
+                  <span class="region-value">$8,420</span>
+                </div>
+              </div>
+              <div class="region-item">
+                <div class="region-info">
+                  <span class="region-flag">🇬🇧</span>
+                  <span class="region-name">United Kingdom</span>
+                </div>
+                <div class="region-stats">
+                  <div class="progress region-progress">
+                    <div class="progress-bar bg-success" style="width: 58%"></div>
+                  </div>
+                  <span class="region-value">$5,180</span>
+                </div>
+              </div>
+              <div class="region-item">
+                <div class="region-info">
+                  <span class="region-flag">🇩🇪</span>
+                  <span class="region-name">Germany</span>
+                </div>
+                <div class="region-stats">
+                  <div class="progress region-progress">
+                    <div class="progress-bar bg-warning" style="width: 45%"></div>
+                  </div>
+                  <span class="region-value">$3,750</span>
+                </div>
+              </div>
+              <div class="region-item">
+                <div class="region-info">
+                  <span class="region-flag">🇫🇷</span>
+                  <span class="region-name">France</span>
+                </div>
+                <div class="region-stats">
+                  <div class="progress region-progress">
+                    <div class="progress-bar bg-info" style="width: 32%"></div>
+                  </div>
+                  <span class="region-value">$2,340</span>
+                </div>
+              </div>
+              <div class="region-item">
+                <div class="region-info">
+                  <span class="region-flag">🇯🇵</span>
+                  <span class="region-name">Japan</span>
+                </div>
+                <div class="region-stats">
+                  <div class="progress region-progress">
+                    <div class="progress-bar bg-danger" style="width: 24%"></div>
+                  </div>
+                  <span class="region-value">$1,890</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Device Breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Device Breakdown</h5>
+          </div>
+          <div class="card-body">
+            <div class="device-list">
+              <div class="device-item">
+                <div class="device-icon">
+                  <i class="bi bi-display"></i>
+                </div>
+                <div class="device-info">
+                  <div class="device-name">Desktop</div>
+                  <div class="progress device-progress">
+                    <div class="progress-bar" style="width: 58%"></div>
+                  </div>
+                </div>
+                <div class="device-stats">
+                  <div class="device-percent">58%</div>
+                  <div class="device-count">7,240</div>
+                </div>
+              </div>
+              <div class="device-item">
+                <div class="device-icon">
+                  <i class="bi bi-phone"></i>
+                </div>
+                <div class="device-info">
+                  <div class="device-name">Mobile</div>
+                  <div class="progress device-progress">
+                    <div class="progress-bar bg-success" style="width: 32%"></div>
+                  </div>
+                </div>
+                <div class="device-stats">
+                  <div class="device-percent">32%</div>
+                  <div class="device-count">3,980</div>
+                </div>
+              </div>
+              <div class="device-item">
+                <div class="device-icon">
+                  <i class="bi bi-tablet"></i>
+                </div>
+                <div class="device-info">
+                  <div class="device-name">Tablet</div>
+                  <div class="progress device-progress">
+                    <div class="progress-bar bg-warning" style="width: 10%"></div>
+                  </div>
+                </div>
+                <div class="device-stats">
+                  <div class="device-percent">10%</div>
+                  <div class="device-count">1,280</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row: 2x2 Grid -->
+      <div class="dash-grid dash-grid-2x2">
+        <!-- Sales Targets -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Sales Targets</h5>
+          </div>
+          <div class="card-body">
+            <div class="dash-targets">
+              <div class="dash-target">
+                <div class="dash-target-header">
+                  <span class="dash-target-label">Product Sales</span>
+                  <span class="dash-target-value">75%</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar" style="width: 75%"></div>
+                </div>
+              </div>
+              <div class="dash-target">
+                <div class="dash-target-header">
+                  <span class="dash-target-label">Service Revenue</span>
+                  <span class="dash-target-value">60%</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar bg-success" style="width: 60%"></div>
+                </div>
+              </div>
+              <div class="dash-target">
+                <div class="dash-target-header">
+                  <span class="dash-target-label">New Customers</span>
+                  <span class="dash-target-value">85%</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar bg-warning" style="width: 85%"></div>
+                </div>
+              </div>
+              <div class="dash-target">
+                <div class="dash-target-header">
+                  <span class="dash-target-label">Retention Rate</span>
+                  <span class="dash-target-value">92%</span>
+                </div>
+                <div class="progress">
+                  <div class="progress-bar bg-info" style="width: 92%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Products -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Top Products</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="dash-products">
+              <div class="dash-product-item">
+                <div class="dash-product-rank">1</div>
+                <div class="dash-product-info">
+                  <div class="dash-product-name">Enterprise Plan</div>
+                  <div class="dash-product-meta">142 sales</div>
+                </div>
+                <div class="dash-product-revenue">$141,858</div>
+              </div>
+              <div class="dash-product-item">
+                <div class="dash-product-rank">2</div>
+                <div class="dash-product-info">
+                  <div class="dash-product-name">Premium Plan</div>
+                  <div class="dash-product-meta">256 sales</div>
+                </div>
+                <div class="dash-product-revenue">$76,544</div>
+              </div>
+              <div class="dash-product-item">
+                <div class="dash-product-rank">3</div>
+                <div class="dash-product-info">
+                  <div class="dash-product-name">Pro Plan</div>
+                  <div class="dash-product-meta">389 sales</div>
+                </div>
+                <div class="dash-product-revenue">$77,411</div>
+              </div>
+              <div class="dash-product-item">
+                <div class="dash-product-rank">4</div>
+                <div class="dash-product-info">
+                  <div class="dash-product-name">Basic Plan</div>
+                  <div class="dash-product-meta">461 sales</div>
+                </div>
+                <div class="dash-product-revenue">$45,639</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Customers -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Recent Customers</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="dash-customers-list">
+              <div class="dash-customer-row">
+                <img src="assets/img/avatars/avatar-5.webp" alt="" class="dash-customer-avatar">
+                <div class="dash-customer-info">
+                  <div class="dash-customer-name">Alex Brown</div>
+                  <div class="dash-customer-email">alex@example.com</div>
+                </div>
+                <span class="dash-status success">Active</span>
+              </div>
+              <div class="dash-customer-row">
+                <img src="assets/img/avatars/avatar-6.webp" alt="" class="dash-customer-avatar">
+                <div class="dash-customer-info">
+                  <div class="dash-customer-name">Emily Davis</div>
+                  <div class="dash-customer-email">emily@example.com</div>
+                </div>
+                <span class="dash-status success">Active</span>
+              </div>
+              <div class="dash-customer-row">
+                <img src="assets/img/avatars/avatar-7.webp" alt="" class="dash-customer-avatar">
+                <div class="dash-customer-info">
+                  <div class="dash-customer-name">Chris Lee</div>
+                  <div class="dash-customer-email">chris@example.com</div>
+                </div>
+                <span class="dash-status warning">Pending</span>
+              </div>
+              <div class="dash-customer-row">
+                <img src="assets/img/avatars/avatar-8.webp" alt="" class="dash-customer-avatar">
+                <div class="dash-customer-info">
+                  <div class="dash-customer-name">Maria Garcia</div>
+                  <div class="dash-customer-email">maria@example.com</div>
+                </div>
+                <span class="dash-status success">Active</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- To Do List -->
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">To Do</h5>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-outline-primary"><i class="bi bi-plus"></i> Add</button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="task-list">
+              <div class="task-item">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task-1">
+                  <label for="task-1">task</label>
+                </div>
+                <div class="task-info">
+                  <div class="task-title">Review Q4 financial report</div>
+                  <div class="task-meta">
+                    <span class="task-due"><i class="bi bi-clock"></i> Today</span>
+                    <span class="todo-priority high"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="task-item">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task-2">
+                  <label for="task-2">task</label>
+                </div>
+                <div class="task-info">
+                  <div class="task-title">Prepare marketing campaign draft</div>
+                  <div class="task-meta">
+                    <span class="task-due"><i class="bi bi-clock"></i> Tomorrow</span>
+                    <span class="todo-priority medium"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="task-item">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task-3" checked>
+                  <label for="task-3">task</label>
+                </div>
+                <div class="task-info">
+                  <div class="task-title">Update user documentation</div>
+                  <div class="task-meta">
+                    <span class="task-due"><i class="bi bi-clock"></i> Jan 27</span>
+                    <span class="todo-priority low"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="task-item">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task-4">
+                  <label for="task-4">task</label>
+                </div>
+                <div class="task-info">
+                  <div class="task-title">Schedule team standup meeting</div>
+                  <div class="task-meta">
+                    <span class="task-due"><i class="bi bi-clock"></i> Feb 1</span>
+                    <span class="todo-priority low"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="task-item">
+                <div class="task-checkbox">
+                  <input type="checkbox" id="task-5">
+                  <label for="task-5">task</label>
+                </div>
+                <div class="task-info">
+                  <div class="task-title">Deploy v2.4 hotfix to production</div>
+                  <div class="task-meta">
+                    <span class="task-due"><i class="bi bi-clock"></i> Today</span>
+                    <span class="todo-priority high"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Live date & time
+      var dateEl = document.getElementById('dashDate');
+      var timeEl = document.getElementById('dashTime');
+
+      function updateDateTime() {
+        var now = new Date();
+        dateEl.textContent = now.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+        timeEl.textContent = now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+      }
+      updateDateTime();
+      setInterval(updateDateTime, 1000);
+      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim();
+      const successColor = getComputedStyle(document.documentElement).getPropertyValue('--success-color').trim();
+      const warningColor = getComputedStyle(document.documentElement).getPropertyValue('--warning-color').trim();
+      const infoColor = getComputedStyle(document.documentElement).getPropertyValue('--info-color').trim();
+      const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
+      const mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--muted-color').trim();
+      // Revenue Bar Chart - Data sets
+      var revenueData = {
+        monthly: {
+          series: [{
+            name: 'Revenue',
+            data: [4200, 5800, 4900, 6200, 5100, 7400, 6800, 8100, 7200, 9500, 8900, 10200]
+          }, {
+            name: 'Expenses',
+            data: [2800, 3200, 2900, 3400, 3100, 3800, 3500, 4200, 3900, 4800, 4200, 5100]
+          }],
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        },
+        weekly: {
+          series: [{
+            name: 'Revenue',
+            data: [1850, 2100, 1720, 2480, 1950, 2250, 2680]
+          }, {
+            name: 'Expenses',
+            data: [980, 1150, 870, 1320, 1040, 1180, 1410]
+          }],
+          categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        }
+      };
+      var barOptions = {
+        series: revenueData.monthly.series,
+        chart: {
+          type: 'bar',
+          height: 320,
+          fontFamily: 'inherit',
+          toolbar: {
+            show: false
+          },
+          zoom: {
+            enabled: false
+          },
+          animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 400
+          }
+        },
+        plotOptions: {
+          bar: {
+            borderRadius: 6,
+            columnWidth: '55%',
+            dataLabels: {
+              position: 'top'
+            }
+          }
+        },
+        colors: [accentColor, successColor],
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          show: true,
+          width: 2,
+          colors: ['transparent']
+        },
+        xaxis: {
+          categories: revenueData.monthly.categories,
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          labels: {
+            style: {
+              colors: mutedColor,
+              fontSize: '12px'
+            }
+          }
+        },
+        yaxis: {
+          labels: {
+            style: {
+              colors: mutedColor,
+              fontSize: '12px'
+            },
+            formatter: function(value) {
+              return '$' + (value / 1000).toFixed(1) + 'k';
+            }
+          }
+        },
+        grid: {
+          borderColor: borderColor,
+          strokeDashArray: 4,
+          xaxis: {
+            lines: {
+              show: false
+            }
+          }
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'right',
+          fontSize: '13px',
+          markers: {
+            width: 10,
+            height: 10,
+            radius: 4
+          },
+          itemMargin: {
+            horizontal: 12
+          }
+        },
+        tooltip: {
+          y: {
+            formatter: function(value) {
+              return '$' + value.toLocaleString();
+            }
+          }
+        }
+      };
+      var barChart = new ApexCharts(document.querySelector('#revenueBarChart'), barOptions);
+      barChart.render();
+      // Tab switching
+      var chartTabs = document.querySelectorAll('.dash-chart-tab');
+      chartTabs.forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          chartTabs.forEach(function(t) {
+            t.classList.remove('active');
+          });
+          this.classList.add('active');
+          var period = this.getAttribute('data-period');
+          var data = revenueData[period];
+          barChart.updateOptions({
+            xaxis: {
+              categories: data.categories
+            }
+          }, false, false);
+          barChart.updateSeries(data.series);
+        });
+      });
+      // Traffic Donut Chart
+      const donutOptions = {
+        series: [42, 28, 18, 12],
+        chart: {
+          type: 'donut',
+          height: 240,
+          fontFamily: 'inherit'
+        },
+        labels: ['Direct', 'Organic', 'Referral', 'Social'],
+        colors: [accentColor, successColor, warningColor, infoColor],
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '72%',
+              labels: {
+                show: true,
+                name: {
+                  show: true,
+                  fontSize: '13px',
+                  color: mutedColor
+                },
+                value: {
+                  show: true,
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  formatter: function(val) {
+                    return val + '%';
+                  }
+                },
+                total: {
+                  show: true,
+                  label: 'Total',
+                  fontSize: '13px',
+                  color: mutedColor,
+                  formatter: function() {
+                    return '12.4K';
+                  }
+                }
+              }
+            }
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        legend: {
+          show: false
+        },
+        stroke: {
+          width: 3,
+          colors: ['var(--surface-color)']
+        }
+      };
+      const donutChart = new ApexCharts(document.querySelector('#trafficDonutChart'), donutOptions);
+      donutChart.render();
+      // Update charts on theme change
+      document.addEventListener('themeChanged', function() {
+        const newBorderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim();
+        const newMutedColor = getComputedStyle(document.documentElement).getPropertyValue('--muted-color').trim();
+        barChart.updateOptions({
+          grid: {
+            borderColor: newBorderColor
+          },
+          xaxis: {
+            labels: {
+              style: {
+                colors: newMutedColor
+              }
+            }
+          },
+          yaxis: {
+            labels: {
+              style: {
+                colors: newMutedColor
+              }
+            }
+          }
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

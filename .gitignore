@@ -70,7 +70,6 @@ phpunit.xml
 node_modules/
 jspm_packages/
 bower_components/
-SmartAdmin-pro/
 
 # Build & Compiled files
 /public/assets/
@@ -173,9 +172,6 @@ out/
 .next/
 .nuxt/
 .svelte-kit/
-
-# Template files (não versionar o template HTML original)
-/SmartAdmin-pro/
 
 # Uploaded files (se houver uploads de utilizadores)
 /storage/app/public/*

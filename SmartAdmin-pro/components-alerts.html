@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerts - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section active" data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group open">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="true">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav show">
+              <li><a class="panel-link active" href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Alerts</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Components</a>
+          <span class="breadcrumb-item active">Alerts</span>
+        </nav>
+      </div>
+
+      <!-- Default Alerts -->
+      <section class="section">
+        <div class="row g-4">
+          <!-- Basic Alerts -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Default Alerts</h5>
+                <p class="card-subtitle">Basic alert styles for different contexts</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-primary" role="alert">
+                  A simple primary alert—check it out!
+                </div>
+                <div class="alert alert-secondary" role="alert">
+                  A simple secondary alert—check it out!
+                </div>
+                <div class="alert alert-success" role="alert">
+                  A simple success alert—check it out!
+                </div>
+                <div class="alert alert-danger" role="alert">
+                  A simple danger alert—check it out!
+                </div>
+                <div class="alert alert-warning" role="alert">
+                  A simple warning alert—check it out!
+                </div>
+                <div class="alert alert-info mb-0" role="alert">
+                  A simple info alert—check it out!
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alerts with Links -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Alerts with Links</h5>
+                <p class="card-subtitle">Use <code>.alert-link</code> class for matching links</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-primary" role="alert">
+                  A simple primary alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+                </div>
+                <div class="alert alert-secondary" role="alert">
+                  A simple secondary alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+                </div>
+                <div class="alert alert-success" role="alert">
+                  A simple success alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+                </div>
+                <div class="alert alert-danger" role="alert">
+                  A simple danger alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+                </div>
+                <div class="alert alert-warning" role="alert">
+                  A simple warning alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+                </div>
+                <div class="alert alert-info mb-0" role="alert">
+                  A simple info alert with <a href="#" class="alert-link">an example link</a>. Give it a click if you like.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dismissible Alerts -->
+      <section class="section">
+        <h5 class="section-title mb-3">Dismissible Alerts</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Dismissible Alerts</h5>
+                <p class="card-subtitle">Add close button to dismiss alerts</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-primary alert-dismissible fade show" role="alert">
+                  <strong>Primary!</strong> This alert can be dismissed.
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                  <strong>Success!</strong> Your action has been completed successfully.
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                  <strong>Warning!</strong> Please review the information carefully.
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
+                  <strong>Danger!</strong> An error occurred while processing.
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Alerts with Heading</h5>
+                <p class="card-subtitle">Use <code>.alert-heading</code> for titles</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                  <h4 class="alert-heading">Well done!</h4>
+                  <p>You successfully read this important alert message. This example text is going to run a bit longer so that you can see how spacing within an alert works.</p>
+                  <hr>
+                  <p class="mb-0">Whenever you need to, be sure to use margin utilities to keep things nice and tidy.</p>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-danger alert-dismissible fade show mb-0" role="alert">
+                  <h4 class="alert-heading">Something went wrong!</h4>
+                  <p>We couldn't process your request at this time. Please try again later or contact support if the problem persists.</p>
+                  <hr>
+                  <p class="mb-0">Error Code: <code>ERR_CONNECTION_REFUSED</code></p>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Alerts with Icons -->
+      <section class="section">
+        <h5 class="section-title mb-3">Alerts with Icons</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Icon Alerts</h5>
+                <p class="card-subtitle">Alerts with icons using flex layout</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-primary alert-icon" role="alert">
+                  <i class="bi bi-info-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Heads up!</strong> This alert needs your attention, but it's not super important.
+                  </div>
+                </div>
+                <div class="alert alert-success alert-icon" role="alert">
+                  <i class="bi bi-check-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Success!</strong> Your changes have been saved successfully.
+                  </div>
+                </div>
+                <div class="alert alert-warning alert-icon" role="alert">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Warning!</strong> This action may have unexpected consequences.
+                  </div>
+                </div>
+                <div class="alert alert-danger alert-icon mb-0" role="alert">
+                  <i class="bi bi-x-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Error!</strong> Something went wrong. Please try again.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Icon Alerts Dismissible</h5>
+                <p class="card-subtitle">Icon alerts with close button</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-primary alert-icon alert-dismissible fade show" role="alert">
+                  <i class="bi bi-bell"></i>
+                  <div class="alert-icon-content">
+                    <strong>New notification!</strong> You have 3 unread messages in your inbox.
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-success alert-icon alert-dismissible fade show" role="alert">
+                  <i class="bi bi-cloud-check"></i>
+                  <div class="alert-icon-content">
+                    <strong>Backup complete!</strong> All your data has been securely saved.
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-warning alert-icon alert-dismissible fade show" role="alert">
+                  <i class="bi bi-shield-exclamation"></i>
+                  <div class="alert-icon-content">
+                    <strong>Security alert!</strong> We noticed a new login from an unknown device.
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-danger alert-icon alert-dismissible fade show mb-0" role="alert">
+                  <i class="bi bi-bug"></i>
+                  <div class="alert-icon-content">
+                    <strong>System error!</strong> Please contact support with error ID: #4521.
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Outline Alerts -->
+      <section class="section">
+        <h5 class="section-title mb-3">Outline Alerts</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Outline Style</h5>
+                <p class="card-subtitle">Alerts with transparent background</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-outline-primary" role="alert">
+                  A simple outline primary alert—check it out!
+                </div>
+                <div class="alert alert-outline-success" role="alert">
+                  A simple outline success alert—check it out!
+                </div>
+                <div class="alert alert-outline-warning" role="alert">
+                  A simple outline warning alert—check it out!
+                </div>
+                <div class="alert alert-outline-danger" role="alert">
+                  A simple outline danger alert—check it out!
+                </div>
+                <div class="alert alert-outline-info mb-0" role="alert">
+                  A simple outline info alert—check it out!
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Outline with Icons</h5>
+                <p class="card-subtitle">Outline alerts with icons</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-outline-primary alert-icon" role="alert">
+                  <i class="bi bi-info-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Info!</strong> This is an informational outline alert.
+                  </div>
+                </div>
+                <div class="alert alert-outline-success alert-icon" role="alert">
+                  <i class="bi bi-check-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Success!</strong> Operation completed without issues.
+                  </div>
+                </div>
+                <div class="alert alert-outline-warning alert-icon" role="alert">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Warning!</strong> Please proceed with caution.
+                  </div>
+                </div>
+                <div class="alert alert-outline-danger alert-icon" role="alert">
+                  <i class="bi bi-x-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Error!</strong> The action could not be completed.
+                  </div>
+                </div>
+                <div class="alert alert-outline-info alert-icon mb-0" role="alert">
+                  <i class="bi bi-lightbulb"></i>
+                  <div class="alert-icon-content">
+                    <strong>Tip!</strong> You can use keyboard shortcuts for faster navigation.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Solid Alerts -->
+      <section class="section">
+        <h5 class="section-title mb-3">Solid Alerts</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Solid Style</h5>
+                <p class="card-subtitle">Alerts with solid background colors</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-solid-primary" role="alert">
+                  A simple solid primary alert—check it out!
+                </div>
+                <div class="alert alert-solid-success" role="alert">
+                  A simple solid success alert—check it out!
+                </div>
+                <div class="alert alert-solid-warning" role="alert">
+                  A simple solid warning alert—check it out!
+                </div>
+                <div class="alert alert-solid-danger" role="alert">
+                  A simple solid danger alert—check it out!
+                </div>
+                <div class="alert alert-solid-info mb-0" role="alert">
+                  A simple solid info alert—check it out!
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Solid with Icons</h5>
+                <p class="card-subtitle">Solid alerts with icons</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-solid-primary alert-icon" role="alert">
+                  <i class="bi bi-info-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Info!</strong> This is an informational solid alert.
+                  </div>
+                </div>
+                <div class="alert alert-solid-success alert-icon" role="alert">
+                  <i class="bi bi-check-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Success!</strong> Operation completed successfully.
+                  </div>
+                </div>
+                <div class="alert alert-solid-warning alert-icon" role="alert">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Warning!</strong> Please review before continuing.
+                  </div>
+                </div>
+                <div class="alert alert-solid-danger alert-icon" role="alert">
+                  <i class="bi bi-x-circle"></i>
+                  <div class="alert-icon-content">
+                    <strong>Error!</strong> Critical failure detected.
+                  </div>
+                </div>
+                <div class="alert alert-solid-info alert-icon mb-0" role="alert">
+                  <i class="bi bi-lightbulb"></i>
+                  <div class="alert-icon-content">
+                    <strong>Tip!</strong> Check out our documentation for more info.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Alerts with Lists -->
+      <section class="section">
+        <h5 class="section-title mb-3">Alerts with Additional Content</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Alerts with Lists</h5>
+                <p class="card-subtitle">Include bullet points in alerts</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-warning" role="alert">
+                  <h5 class="alert-heading">Please fix the following errors:</h5>
+                  <ul class="mb-0">
+                    <li>Email address is required</li>
+                    <li>Password must be at least 8 characters</li>
+                    <li>Please accept the terms and conditions</li>
+                  </ul>
+                </div>
+                <div class="alert alert-info mb-0" role="alert">
+                  <h5 class="alert-heading">System requirements:</h5>
+                  <ul class="mb-0">
+                    <li>Minimum 4GB RAM recommended</li>
+                    <li>Chrome 90+ or Firefox 88+</li>
+                    <li>Stable internet connection</li>
+                    <li>JavaScript must be enabled</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Alerts with Buttons</h5>
+                <p class="card-subtitle">Include action buttons in alerts</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-warning alert-icon" role="alert">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <div class="alert-icon-content">
+                    <h5 class="alert-heading">Your trial is expiring!</h5>
+                    <p class="mb-3">Your free trial will expire in 3 days. Upgrade now to continue enjoying all premium features.</p>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-warning btn-sm">Upgrade Now</button>
+                      <button type="button" class="btn btn-outline-dark btn-sm">Learn More</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="alert alert-danger alert-icon mb-0" role="alert">
+                  <i class="bi bi-shield-x"></i>
+                  <div class="alert-icon-content">
+                    <h5 class="alert-heading">Account Suspended</h5>
+                    <p class="mb-3">Your account has been suspended due to suspicious activity. Please verify your identity to restore access.</p>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-danger btn-sm">Verify Identity</button>
+                      <button type="button" class="btn btn-outline-danger btn-sm">Contact Support</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Examples -->
+      <section class="section">
+        <h5 class="section-title mb-3">Live Examples</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Toast-style Alerts</h5>
+                <p class="card-subtitle">Compact alerts for notifications</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-success alert-icon alert-dismissible fade show py-2" role="alert">
+                  <i class="bi bi-check-circle"></i>
+                  <div class="alert-icon-content">File uploaded successfully</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-danger alert-icon alert-dismissible fade show py-2" role="alert">
+                  <i class="bi bi-x-circle"></i>
+                  <div class="alert-icon-content">Failed to save changes</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-warning alert-icon alert-dismissible fade show py-2" role="alert">
+                  <i class="bi bi-exclamation-circle"></i>
+                  <div class="alert-icon-content">Your session will expire in 5 minutes</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <div class="alert alert-info alert-icon alert-dismissible fade show py-2 mb-0" role="alert">
+                  <i class="bi bi-download"></i>
+                  <div class="alert-icon-content">Download started...</div>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Trigger Alerts</h5>
+                <p class="card-subtitle">Click buttons to show alerts dynamically</p>
+              </div>
+              <div class="card-body">
+                <div id="alertPlaceholder"></div>
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-primary btn-sm" onclick="showAlert('primary', 'info-circle', 'Info', 'This is a primary alert triggered by button click.')">
+                    <i class="bi bi-info-circle me-1"></i> Info
+                  </button>
+                  <button type="button" class="btn btn-success btn-sm" onclick="showAlert('success', 'check-circle', 'Success', 'Action completed successfully!')">
+                    <i class="bi bi-check-circle me-1"></i> Success
+                  </button>
+                  <button type="button" class="btn btn-warning btn-sm" onclick="showAlert('warning', 'exclamation-triangle', 'Warning', 'Please be careful with this action.')">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Warning
+                  </button>
+                  <button type="button" class="btn btn-danger btn-sm" onclick="showAlert('danger', 'x-circle', 'Error', 'Something went wrong. Please try again.')">
+                    <i class="bi bi-x-circle me-1"></i> Error
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Real-World Examples -->
+      <section class="section">
+        <h5 class="section-title mb-3">Real-World Examples</h5>
+        <div class="row g-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Common Use Cases</h5>
+                <p class="card-subtitle">Examples of alerts in typical scenarios</p>
+              </div>
+              <div class="card-body">
+                <div class="row g-4">
+                  <!-- Cookie Consent -->
+                  <div class="col-lg-6">
+                    <h6 class="text-muted small text-uppercase mb-3">Cookie Consent</h6>
+                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                      <div class="d-flex align-items-start gap-3">
+                        <i class="bi bi-cookie fs-4"></i>
+                        <div class="flex-grow-1">
+                          <strong>We use cookies</strong>
+                          <p class="mb-2 small">This website uses cookies to improve your experience. By continuing to browse, you agree to our use of cookies.</p>
+                          <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-info btn-sm">Accept All</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm">Customize</button>
+                          </div>
+                        </div>
+                      </div>
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                  </div>
+
+                  <!-- Email Verification -->
+                  <div class="col-lg-6">
+                    <h6 class="text-muted small text-uppercase mb-3">Email Verification</h6>
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                      <div class="d-flex align-items-start gap-3">
+                        <i class="bi bi-envelope-exclamation fs-4"></i>
+                        <div class="flex-grow-1">
+                          <strong>Verify your email address</strong>
+                          <p class="mb-2 small">We sent a verification email to <strong>john@example.com</strong>. Click the link in the email to verify your account.</p>
+                          <a href="#" class="btn btn-link btn-sm p-0">Resend verification email</a>
+                        </div>
+                      </div>
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                  </div>
+
+                  <!-- Payment Success -->
+                  <div class="col-lg-6">
+                    <h6 class="text-muted small text-uppercase mb-3">Payment Success</h6>
+                    <div class="alert alert-success" role="alert">
+                      <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-circle bg-success bg-opacity-25 p-2">
+                          <i class="bi bi-credit-card text-success fs-5"></i>
+                        </div>
+                        <div>
+                          <strong>Payment Successful!</strong>
+                          <p class="mb-1 small">Your payment of <strong>$99.00</strong> has been processed.</p>
+                          <p class="mb-0 small text-muted">Transaction ID: <code>#TXN-2024-001234</code></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- System Maintenance -->
+                  <div class="col-lg-6">
+                    <h6 class="text-muted small text-uppercase mb-3">System Maintenance</h6>
+                    <div class="alert alert-solid-primary" role="alert">
+                      <div class="d-flex align-items-start gap-3">
+                        <i class="bi bi-tools fs-4"></i>
+                        <div>
+                          <strong>Scheduled Maintenance</strong>
+                          <p class="mb-1 small">Our system will undergo maintenance on <strong>January 25, 2026</strong> from <strong>2:00 AM to 4:00 AM UTC</strong>.</p>
+                          <p class="mb-0 small opacity-75">Some features may be temporarily unavailable during this time.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- New Feature Announcement -->
+                  <div class="col-lg-6">
+                    <h6 class="text-muted small text-uppercase mb-3">Feature Announcement</h6>
+                    <div class="alert alert-primary alert-dismissible fade show" role="alert">
+                      <div class="d-flex align-items-start gap-3">
+                        <span class="badge bg-primary rounded-pill">New</span>
+                        <div class="flex-grow-1">
+                          <strong>Dark mode is here!</strong>
+                          <p class="mb-2 small">You can now switch to dark mode for a more comfortable viewing experience in low-light conditions.</p>
+                          <a href="#" class="btn btn-sm btn-primary">Try it now</a>
+                        </div>
+                      </div>
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                  </div>
+
+                  <!-- Form Validation Error -->
+                  <div class="col-lg-6">
+                    <h6 class="text-muted small text-uppercase mb-3">Form Validation</h6>
+                    <div class="alert alert-danger" role="alert">
+                      <div class="d-flex align-items-start gap-3">
+                        <i class="bi bi-exclamation-octagon fs-4"></i>
+                        <div>
+                          <strong>Please correct the following errors:</strong>
+                          <ul class="mb-0 small mt-2">
+                            <li>Username is already taken</li>
+                            <li>Password must contain at least one uppercase letter</li>
+                            <li>Phone number format is invalid</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    // Function to show dynamic alerts
+    function showAlert(type, icon, title, message) {
+      var alertPlaceholder = document.getElementById('alertPlaceholder');
+      var alertId = 'alert-' + Date.now();
+      var alertHtml = `
+      <div id="${alertId}" class="alert alert-${type} alert-icon alert-dismissible fade show" role="alert">
+        <i class="bi bi-${icon}"></i>
+        <div class="alert-icon-content">
+          <strong>${title}!</strong> ${message}
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    `;
+      alertPlaceholder.insertAdjacentHTML('beforeend', alertHtml);
+      // Auto-dismiss after 5 seconds
+      setTimeout(function() {
+        var alertElement = document.getElementById(alertId);
+        if (alertElement) {
+          var bsAlert = new bootstrap.Alert(alertElement);
+          bsAlert.close();
+        }
+      }, 5000);
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Upload - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section active" data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link active" href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">File Upload</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Forms</a>
+          <span class="breadcrumb-item active">File Upload</span>
+        </nav>
+      </div>
+
+      <!-- Basic Upload -->
+      <section class="section">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Basic File Input</h5>
+                <p class="card-subtitle">Standard HTML file input</p>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label for="basicFile" class="form-label">Default file input</label>
+                  <input class="form-control" type="file" id="basicFile">
+                </div>
+                <div class="mb-3">
+                  <label for="multipleFiles" class="form-label">Multiple files</label>
+                  <input class="form-control" type="file" id="multipleFiles" multiple>
+                  <div class="form-text">Hold Ctrl/Cmd to select multiple files</div>
+                </div>
+                <div class="mb-3">
+                  <label for="disabledFile" class="form-label">Disabled file input</label>
+                  <input class="form-control" type="file" id="disabledFile" disabled>
+                </div>
+                <div class="mb-0">
+                  <label for="smallFile" class="form-label">Small file input</label>
+                  <input class="form-control form-control-sm" type="file" id="smallFile">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">File Type Restrictions</h5>
+                <p class="card-subtitle">Limit accepted file types</p>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label for="imageOnly" class="form-label">Images only</label>
+                  <input class="form-control" type="file" id="imageOnly" accept="image/*">
+                  <div class="form-text">Accepts: JPG, PNG, GIF, WebP, SVG</div>
+                </div>
+                <div class="mb-3">
+                  <label for="pdfOnly" class="form-label">PDF documents</label>
+                  <input class="form-control" type="file" id="pdfOnly" accept=".pdf">
+                  <div class="form-text">Accepts: PDF files only</div>
+                </div>
+                <div class="mb-3">
+                  <label for="docsOnly" class="form-label">Documents</label>
+                  <input class="form-control" type="file" id="docsOnly" accept=".doc,.docx,.pdf,.txt">
+                  <div class="form-text">Accepts: DOC, DOCX, PDF, TXT</div>
+                </div>
+                <div class="mb-0">
+                  <label for="videoOnly" class="form-label">Video files</label>
+                  <input class="form-control" type="file" id="videoOnly" accept="video/*">
+                  <div class="form-text">Accepts: MP4, WebM, MOV, AVI</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Drag & Drop Upload -->
+      <section class="section">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Drag & Drop Zone</h5>
+                <p class="card-subtitle">Drop files or click to browse</p>
+              </div>
+              <div class="card-body">
+                <div class="upload-dropzone" id="dropzone1">
+                  <input type="file" id="dropzoneInput1" multiple hidden>
+                  <div class="upload-dropzone-content">
+                    <div class="upload-dropzone-icon">
+                      <i class="bi bi-cloud-arrow-up"></i>
+                    </div>
+                    <h5 class="upload-dropzone-title">Drop files here or click to upload</h5>
+                    <p class="upload-dropzone-text">Supports: JPG, PNG, PDF, DOC (Max 10MB each)</p>
+                  </div>
+                </div>
+                <div class="upload-file-list mt-3" id="fileList1"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Image Drop Zone</h5>
+                <p class="card-subtitle">Image preview on upload</p>
+              </div>
+              <div class="card-body">
+                <div class="upload-dropzone upload-dropzone-image" id="dropzone2">
+                  <input type="file" id="dropzoneInput2" accept="image/*" multiple hidden>
+                  <div class="upload-dropzone-content">
+                    <div class="upload-dropzone-icon">
+                      <i class="bi bi-image"></i>
+                    </div>
+                    <h5 class="upload-dropzone-title">Drop images here</h5>
+                    <p class="upload-dropzone-text">PNG, JPG, GIF, WebP up to 5MB</p>
+                  </div>
+                </div>
+                <div class="upload-image-preview mt-3" id="imagePreview2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Upload Variants -->
+      <section class="section">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Compact Dropzone</h5>
+                <p class="card-subtitle">Smaller upload area</p>
+              </div>
+              <div class="card-body">
+                <div class="upload-dropzone upload-dropzone-compact" id="dropzone3">
+                  <input type="file" id="dropzoneInput3" multiple hidden>
+                  <div class="upload-dropzone-content">
+                    <i class="bi bi-cloud-arrow-up me-2"></i>
+                    <span>Drop files or <a href="#" class="upload-browse-link">browse</a></span>
+                  </div>
+                </div>
+                <div class="upload-file-list mt-3" id="fileList3"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Button Style Upload</h5>
+                <p class="card-subtitle">Upload with button click</p>
+              </div>
+              <div class="card-body">
+                <div class="d-flex gap-2 mb-3">
+                  <label class="btn btn-primary">
+                    <i class="bi bi-upload me-2"></i>Upload Files
+                    <input type="file" id="buttonUpload1" hidden multiple>
+                  </label>
+                  <label class="btn btn-outline-primary">
+                    <i class="bi bi-image me-2"></i>Upload Images
+                    <input type="file" id="buttonUpload2" hidden accept="image/*" multiple>
+                  </label>
+                </div>
+                <div class="upload-file-list" id="buttonFileList"></div>
+
+                <hr class="my-4">
+
+                <p class="text-muted mb-2">Icon buttons:</p>
+                <div class="d-flex gap-2">
+                  <label class="btn btn-outline-secondary btn-icon" title="Upload file">
+                    <i class="bi bi-paperclip"></i>
+                    <input type="file" hidden>
+                  </label>
+                  <label class="btn btn-outline-secondary btn-icon" title="Upload image">
+                    <i class="bi bi-card-image"></i>
+                    <input type="file" hidden accept="image/*">
+                  </label>
+                  <label class="btn btn-outline-secondary btn-icon" title="Upload video">
+                    <i class="bi bi-camera-video"></i>
+                    <input type="file" hidden accept="video/*">
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Avatar & Profile Upload -->
+      <section class="section">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Avatar Upload</h5>
+                <p class="card-subtitle">Profile picture upload</p>
+              </div>
+              <div class="card-body">
+                <div class="row g-4">
+                  <!-- Circle Avatar -->
+                  <div class="col-sm-6">
+                    <p class="text-muted small mb-2">Circle Avatar</p>
+                    <div class="upload-avatar" id="avatar1">
+                      <input type="file" accept="image/*" hidden>
+                      <img src="assets/img/profile-img.webp" alt="Avatar" class="upload-avatar-img">
+                      <div class="upload-avatar-overlay">
+                        <i class="bi bi-camera"></i>
+                      </div>
+                    </div>
+                    <p class="text-muted small mt-2 text-center">Click to change</p>
+                  </div>
+                  <!-- Square Avatar -->
+                  <div class="col-sm-6">
+                    <p class="text-muted small mb-2">Square Avatar</p>
+                    <div class="upload-avatar upload-avatar-square" id="avatar2">
+                      <input type="file" accept="image/*" hidden>
+                      <img src="assets/img/avatars/avatar-2.webp" alt="Avatar" class="upload-avatar-img">
+                      <div class="upload-avatar-overlay">
+                        <i class="bi bi-camera"></i>
+                      </div>
+                    </div>
+                    <p class="text-muted small mt-2 text-center">Click to change</p>
+                  </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Avatar with Button -->
+                <div class="d-flex align-items-center gap-3">
+                  <img src="assets/img/avatars/avatar-3.webp" alt="Avatar" class="rounded-circle" width="64" height="64" id="avatarPreview3">
+                  <div>
+                    <label class="btn btn-sm btn-primary mb-1">
+                      <i class="bi bi-upload me-1"></i>Upload Photo
+                      <input type="file" id="avatarInput3" accept="image/*" hidden>
+                    </label>
+                    <button type="button" class="btn btn-sm btn-outline-danger mb-1" id="avatarRemove3">
+                      <i class="bi bi-trash me-1"></i>Remove
+                    </button>
+                    <p class="text-muted small mb-0">JPG, PNG. Max 2MB</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Cover Image Upload</h5>
+                <p class="card-subtitle">Banner or header image</p>
+              </div>
+              <div class="card-body">
+                <div class="upload-cover" id="coverUpload">
+                  <input type="file" accept="image/*" hidden>
+                  <img src="https://placehold.co/800x200/3b82f6/ffffff?text=Cover+Image" alt="Cover" class="upload-cover-img">
+                  <div class="upload-cover-overlay">
+                    <i class="bi bi-camera fs-4"></i>
+                    <span>Change Cover</span>
+                  </div>
+                </div>
+                <div class="form-text mt-2">Recommended size: 1200x300 pixels. Max 5MB.</div>
+
+                <hr class="my-4">
+
+                <!-- Logo Upload -->
+                <p class="text-muted small mb-2">Company Logo</p>
+                <div class="upload-logo" id="logoUpload">
+                  <input type="file" accept="image/*" hidden>
+                  <div class="upload-logo-placeholder">
+                    <i class="bi bi-building"></i>
+                    <span>Upload Logo</span>
+                  </div>
+                </div>
+                <div class="form-text mt-2">PNG or SVG with transparent background preferred</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Upload with Progress -->
+      <section class="section">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Upload with Progress</h5>
+                <p class="card-subtitle">Simulated upload progress</p>
+              </div>
+              <div class="card-body">
+                <div class="upload-dropzone upload-dropzone-compact mb-3" id="dropzone4">
+                  <input type="file" id="dropzoneInput4" multiple hidden>
+                  <div class="upload-dropzone-content">
+                    <i class="bi bi-cloud-arrow-up me-2"></i>
+                    <span>Drop files or <a href="#" class="upload-browse-link">browse</a></span>
+                  </div>
+                </div>
+
+                <div class="upload-progress-list" id="progressList">
+                  <!-- Example progress items -->
+                  <div class="upload-progress-item">
+                    <div class="upload-progress-icon">
+                      <i class="bi bi-file-earmark-image text-primary"></i>
+                    </div>
+                    <div class="upload-progress-info">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="upload-progress-name">screenshot.png</span>
+                        <span class="upload-progress-size">2.4 MB</span>
+                      </div>
+                      <div class="progress" style="height: 4px;">
+                        <div class="progress-bar" style="width: 100%;"></div>
+                      </div>
+                    </div>
+                    <div class="upload-progress-status">
+                      <i class="bi bi-check-circle-fill text-success"></i>
+                    </div>
+                  </div>
+
+                  <div class="upload-progress-item">
+                    <div class="upload-progress-icon">
+                      <i class="bi bi-file-earmark-pdf text-danger"></i>
+                    </div>
+                    <div class="upload-progress-info">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="upload-progress-name">document.pdf</span>
+                        <span class="upload-progress-size">1.8 MB</span>
+                      </div>
+                      <div class="progress" style="height: 4px;">
+                        <div class="progress-bar bg-primary progress-bar-animated progress-bar-striped" style="width: 65%;"></div>
+                      </div>
+                    </div>
+                    <div class="upload-progress-status">
+                      <span class="text-muted small">65%</span>
+                    </div>
+                  </div>
+
+                  <div class="upload-progress-item">
+                    <div class="upload-progress-icon">
+                      <i class="bi bi-file-earmark-word text-info"></i>
+                    </div>
+                    <div class="upload-progress-info">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="upload-progress-name">report.docx</span>
+                        <span class="upload-progress-size">856 KB</span>
+                      </div>
+                      <div class="progress" style="height: 4px;">
+                        <div class="progress-bar bg-danger" style="width: 100%;"></div>
+                      </div>
+                      <span class="text-danger small">Upload failed</span>
+                    </div>
+                    <div class="upload-progress-status">
+                      <button class="btn btn-sm btn-outline-primary" title="Retry">
+                        <i class="bi bi-arrow-clockwise"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">File Preview Cards</h5>
+                <p class="card-subtitle">Uploaded files with actions</p>
+              </div>
+              <div class="card-body">
+                <div class="upload-dropzone upload-dropzone-compact mb-3" id="dropzone5">
+                  <input type="file" id="dropzoneInput5" multiple hidden>
+                  <div class="upload-dropzone-content">
+                    <i class="bi bi-cloud-arrow-up me-2"></i>
+                    <span>Drop files or <a href="#" class="upload-browse-link">browse</a></span>
+                  </div>
+                </div>
+
+                <div class="upload-file-cards" id="fileCards">
+                  <!-- Example file cards -->
+                  <div class="upload-file-card">
+                    <div class="upload-file-card-preview upload-file-card-preview-image">
+                      <img src="https://placehold.co/100x80/3b82f6/ffffff?text=IMG" alt="Preview">
+                    </div>
+                    <div class="upload-file-card-info">
+                      <span class="upload-file-card-name">photo-001.jpg</span>
+                      <span class="upload-file-card-size">1.2 MB</span>
+                    </div>
+                    <div class="upload-file-card-actions">
+                      <button class="btn btn-sm btn-outline-secondary" title="Preview">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" title="Remove">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="upload-file-card">
+                    <div class="upload-file-card-preview">
+                      <i class="bi bi-file-earmark-pdf text-danger"></i>
+                    </div>
+                    <div class="upload-file-card-info">
+                      <span class="upload-file-card-name">contract.pdf</span>
+                      <span class="upload-file-card-size">2.8 MB</span>
+                    </div>
+                    <div class="upload-file-card-actions">
+                      <button class="btn btn-sm btn-outline-secondary" title="Download">
+                        <i class="bi bi-download"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" title="Remove">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="upload-file-card">
+                    <div class="upload-file-card-preview">
+                      <i class="bi bi-file-earmark-zip text-warning"></i>
+                    </div>
+                    <div class="upload-file-card-info">
+                      <span class="upload-file-card-name">archive.zip</span>
+                      <span class="upload-file-card-size">15.4 MB</span>
+                    </div>
+                    <div class="upload-file-card-actions">
+                      <button class="btn btn-sm btn-outline-secondary" title="Download">
+                        <i class="bi bi-download"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" title="Remove">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Validation & Limits -->
+      <section class="section">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Validation States</h5>
+                <p class="card-subtitle">Valid and invalid feedback</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label for="validFile" class="form-label">Valid upload</label>
+                    <input class="form-control is-valid" type="file" id="validFile">
+                    <div class="valid-feedback">File uploaded successfully!</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="invalidFile" class="form-label">Invalid upload</label>
+                    <input class="form-control is-invalid" type="file" id="invalidFile">
+                    <div class="invalid-feedback">Please select a valid file.</div>
+                  </div>
+                  <div class="mb-0">
+                    <label for="requiredFile" class="form-label">Required file <span class="text-danger">*</span></label>
+                    <input class="form-control" type="file" id="requiredFile" required>
+                    <div class="invalid-feedback">Please upload a file.</div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Upload Limits</h5>
+                <p class="card-subtitle">File size and count restrictions</p>
+              </div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <label class="form-label">Max file size: 5MB</label>
+                  <div class="upload-dropzone upload-dropzone-compact" id="dropzoneMaxSize">
+                    <input type="file" hidden data-max-size="5242880">
+                    <div class="upload-dropzone-content">
+                      <i class="bi bi-cloud-arrow-up me-2"></i>
+                      <span>Max 5MB per file</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label">Max 3 files</label>
+                  <div class="upload-dropzone upload-dropzone-compact" id="dropzoneMaxFiles">
+                    <input type="file" hidden multiple data-max-files="3">
+                    <div class="upload-dropzone-content">
+                      <i class="bi bi-cloud-arrow-up me-2"></i>
+                      <span>Upload up to 3 files</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="alert alert-info mb-0">
+                  <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Upload Guidelines</h6>
+                  <ul class="mb-0 small">
+                    <li>Maximum file size: 10 MB</li>
+                    <li>Supported formats: JPG, PNG, PDF, DOC, DOCX</li>
+                    <li>Maximum 5 files per upload</li>
+                    <li>Files are automatically scanned for viruses</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gallery Upload -->
+      <section class="section">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title">Gallery Upload</h5>
+            <p class="card-subtitle">Upload multiple images with preview grid</p>
+          </div>
+          <div class="card-body">
+            <div class="upload-dropzone upload-dropzone-lg mb-4" id="galleryDropzone">
+              <input type="file" id="galleryInput" accept="image/*" multiple hidden>
+              <div class="upload-dropzone-content">
+                <div class="upload-dropzone-icon">
+                  <i class="bi bi-images"></i>
+                </div>
+                <h5 class="upload-dropzone-title">Drag & drop images here</h5>
+                <p class="upload-dropzone-text">or click to browse from your computer</p>
+                <button type="button" class="btn btn-primary mt-2">
+                  <i class="bi bi-plus-lg me-2"></i>Select Images
+                </button>
+              </div>
+            </div>
+
+            <!-- Gallery Preview -->
+            <div class="upload-gallery" id="galleryPreview">
+              <!-- Example preview items -->
+              <div class="upload-gallery-item">
+                <img src="https://placehold.co/200x150/3b82f6/ffffff?text=1" alt="Gallery image">
+                <div class="upload-gallery-overlay">
+                  <button type="button" class="btn btn-sm btn-light" title="View">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" title="Remove">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                <div class="upload-gallery-info">
+                  <span>image-001.jpg</span>
+                </div>
+              </div>
+              <div class="upload-gallery-item">
+                <img src="https://placehold.co/200x150/22c55e/ffffff?text=2" alt="Gallery image">
+                <div class="upload-gallery-overlay">
+                  <button type="button" class="btn btn-sm btn-light" title="View">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" title="Remove">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                <div class="upload-gallery-info">
+                  <span>image-002.jpg</span>
+                </div>
+              </div>
+              <div class="upload-gallery-item">
+                <img src="https://placehold.co/200x150/f59e0b/ffffff?text=3" alt="Gallery image">
+                <div class="upload-gallery-overlay">
+                  <button type="button" class="btn btn-sm btn-light" title="View">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" title="Remove">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                <div class="upload-gallery-info">
+                  <span>image-003.jpg</span>
+                </div>
+              </div>
+              <div class="upload-gallery-item">
+                <img src="https://placehold.co/200x150/ef4444/ffffff?text=4" alt="Gallery image">
+                <div class="upload-gallery-overlay">
+                  <button type="button" class="btn btn-sm btn-light" title="View">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-danger" title="Remove">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+                <div class="upload-gallery-info">
+                  <span>image-004.jpg</span>
+                </div>
+              </div>
+              <!-- Add more placeholder -->
+              <div class="upload-gallery-add" id="galleryAddBtn">
+                <i class="bi bi-plus-lg"></i>
+                <span>Add More</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize all dropzones
+      const dropzones = document.querySelectorAll('.upload-dropzone');
+      dropzones.forEach(function(dropzone) {
+        const input = dropzone.querySelector('input[type="file"]');
+        if (!input) return;
+        // Click to browse
+        dropzone.addEventListener('click', function(e) {
+          if (e.target.tagName !== 'INPUT') {
+            input.click();
+          }
+        });
+        // Drag events
+        ['dragenter', 'dragover'].forEach(function(eventName) {
+          dropzone.addEventListener(eventName, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('dragover');
+          });
+        });
+        ['dragleave', 'drop'].forEach(function(eventName) {
+          dropzone.addEventListener(eventName, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover');
+          });
+        });
+        // Drop handler
+        dropzone.addEventListener('drop', function(e) {
+          const files = e.dataTransfer.files;
+          if (files.length) {
+            input.files = files;
+            input.dispatchEvent(new Event('change'));
+          }
+        });
+      });
+      // File list display for dropzone1
+      const dropzoneInput1 = document.getElementById('dropzoneInput1');
+      const fileList1 = document.getElementById('fileList1');
+      if (dropzoneInput1 && fileList1) {
+        dropzoneInput1.addEventListener('change', function() {
+          displayFileList(this.files, fileList1);
+        });
+      }
+      // Image preview for dropzone2
+      const dropzoneInput2 = document.getElementById('dropzoneInput2');
+      const imagePreview2 = document.getElementById('imagePreview2');
+      if (dropzoneInput2 && imagePreview2) {
+        dropzoneInput2.addEventListener('change', function() {
+          displayImagePreviews(this.files, imagePreview2);
+        });
+      }
+      // File list for dropzone3
+      const dropzoneInput3 = document.getElementById('dropzoneInput3');
+      const fileList3 = document.getElementById('fileList3');
+      if (dropzoneInput3 && fileList3) {
+        dropzoneInput3.addEventListener('change', function() {
+          displayFileList(this.files, fileList3);
+        });
+      }
+      // Button uploads
+      const buttonUpload1 = document.getElementById('buttonUpload1');
+      const buttonUpload2 = document.getElementById('buttonUpload2');
+      const buttonFileList = document.getElementById('buttonFileList');
+      if (buttonUpload1 && buttonFileList) {
+        buttonUpload1.addEventListener('change', function() {
+          displayFileList(this.files, buttonFileList);
+        });
+      }
+      if (buttonUpload2 && buttonFileList) {
+        buttonUpload2.addEventListener('change', function() {
+          displayFileList(this.files, buttonFileList);
+        });
+      }
+      // Avatar uploads
+      const avatars = document.querySelectorAll('.upload-avatar');
+      avatars.forEach(function(avatar) {
+        const input = avatar.querySelector('input[type="file"]');
+        const img = avatar.querySelector('.upload-avatar-img');
+        avatar.addEventListener('click', function() {
+          input.click();
+        });
+        input.addEventListener('change', function() {
+          if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              img.src = e.target.result;
+            };
+            reader.readAsDataURL(this.files[0]);
+          }
+        });
+      });
+      // Avatar with button
+      const avatarInput3 = document.getElementById('avatarInput3');
+      const avatarPreview3 = document.getElementById('avatarPreview3');
+      const avatarRemove3 = document.getElementById('avatarRemove3');
+      if (avatarInput3 && avatarPreview3) {
+        avatarInput3.addEventListener('change', function() {
+          if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              avatarPreview3.src = e.target.result;
+            };
+            reader.readAsDataURL(this.files[0]);
+          }
+        });
+      }
+      if (avatarRemove3 && avatarPreview3) {
+        avatarRemove3.addEventListener('click', function() {
+          avatarPreview3.src = 'assets/img/avatars/avatar-3.webp';
+          if (avatarInput3) avatarInput3.value = '';
+        });
+      }
+      // Cover upload
+      const coverUpload = document.getElementById('coverUpload');
+      if (coverUpload) {
+        const input = coverUpload.querySelector('input[type="file"]');
+        const img = coverUpload.querySelector('.upload-cover-img');
+        coverUpload.addEventListener('click', function() {
+          input.click();
+        });
+        input.addEventListener('change', function() {
+          if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              img.src = e.target.result;
+            };
+            reader.readAsDataURL(this.files[0]);
+          }
+        });
+      }
+      // Logo upload
+      const logoUpload = document.getElementById('logoUpload');
+      if (logoUpload) {
+        const input = logoUpload.querySelector('input[type="file"]');
+        const placeholder = logoUpload.querySelector('.upload-logo-placeholder');
+        logoUpload.addEventListener('click', function() {
+          input.click();
+        });
+        input.addEventListener('change', function() {
+          if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              placeholder.innerHTML = '<img src="' + e.target.result + '" alt="Logo">';
+            };
+            reader.readAsDataURL(this.files[0]);
+          }
+        });
+      }
+      // Gallery add button
+      const galleryAddBtn = document.getElementById('galleryAddBtn');
+      const galleryInput = document.getElementById('galleryInput');
+      if (galleryAddBtn && galleryInput) {
+        galleryAddBtn.addEventListener('click', function() {
+          galleryInput.click();
+        });
+      }
+      // Helper function to display file list
+      function displayFileList(files, container) {
+        container.innerHTML = '';
+        Array.from(files).forEach(function(file) {
+          const item = document.createElement('div');
+          item.className = 'upload-file-item';
+          item.innerHTML = `
+        <div class="upload-file-icon">
+          <i class="bi ${getFileIcon(file.type)}"></i>
+        </div>
+        <div class="upload-file-info">
+          <span class="upload-file-name">${file.name}</span>
+          <span class="upload-file-size">${formatFileSize(file.size)}</span>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger upload-file-remove">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      `;
+          item.querySelector('.upload-file-remove').addEventListener('click', function() {
+            item.remove();
+          });
+          container.appendChild(item);
+        });
+      }
+      // Helper function to display image previews
+      function displayImagePreviews(files, container) {
+        container.innerHTML = '';
+        Array.from(files).forEach(function(file) {
+          if (!file.type.startsWith('image/')) return;
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const item = document.createElement('div');
+            item.className = 'upload-image-item';
+            item.innerHTML = `
+          <img src="${e.target.result}" alt="${file.name}">
+          <button type="button" class="upload-image-remove">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        `;
+            item.querySelector('.upload-image-remove').addEventListener('click', function() {
+              item.remove();
+            });
+            container.appendChild(item);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+      // Helper function to get file icon
+      function getFileIcon(type) {
+        if (type.startsWith('image/')) return 'bi-file-earmark-image text-primary';
+        if (type === 'application/pdf') return 'bi-file-earmark-pdf text-danger';
+        if (type.includes('word')) return 'bi-file-earmark-word text-info';
+        if (type.includes('excel') || type.includes('spreadsheet')) return 'bi-file-earmark-excel text-success';
+        if (type.includes('zip') || type.includes('rar')) return 'bi-file-earmark-zip text-warning';
+        if (type.startsWith('video/')) return 'bi-file-earmark-play text-purple';
+        if (type.startsWith('audio/')) return 'bi-file-earmark-music text-pink';
+        return 'bi-file-earmark text-secondary';
+      }
+      // Helper function to format file size
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+      // Form validation
+      const forms = document.querySelectorAll('.needs-validation');
+      forms.forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+    });
+  </script>
+</body>
+
+</html>

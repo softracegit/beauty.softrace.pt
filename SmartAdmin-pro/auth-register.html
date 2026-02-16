@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <div class="auth-layout">
+    <!-- Branding Panel -->
+    <div class="auth-brand-panel">
+      <div class="auth-brand-content">
+        <a href="index.html" class="auth-brand-logo">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+          <span>SmartAdmin</span>
+        </a>
+        <div class="auth-brand-text">
+          <h2>Smart solutions for modern teams</h2>
+          <p>Streamline your workflow, manage your team, and make data-driven decisions — all from one powerful dashboard.</p>
+        </div>
+        <div class="auth-brand-features">
+          <div class="auth-brand-feature">
+            <i class="ph-duotone ph-chart-line-up"></i>
+            <span>Real-time Analytics</span>
+          </div>
+          <div class="auth-brand-feature">
+            <i class="ph-duotone ph-users-three"></i>
+            <span>Team Management</span>
+          </div>
+          <div class="auth-brand-feature">
+            <i class="ph-duotone ph-shield-check"></i>
+            <span>Enterprise Security</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Panel -->
+    <div class="auth-form-panel">
+      <div class="auth-container">
+        <!-- Mobile Logo (hidden on desktop) -->
+        <a href="index.html" class="auth-logo">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+          <span>SmartAdmin</span>
+        </a>
+
+        <div class="auth-card">
+          <div class="auth-card-header">
+            <h1 class="auth-title">Create an account</h1>
+            <p class="auth-subtitle">Start your 30-day free trial</p>
+          </div>
+
+          <form class="auth-form" novalidate>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="firstName" class="form-label">First name</label>
+                  <input type="text" class="form-control" id="firstName" name="firstName" placeholder="John" required>
+                  <div class="invalid-feedback">Please enter your first name.</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="lastName" class="form-label">Last name</label>
+                  <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Doe" required>
+                  <div class="invalid-feedback">Please enter your last name.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="email" class="form-label">Email address</label>
+              <input type="email" class="form-control" id="email" name="email" placeholder="name@example.com" required>
+              <div class="invalid-feedback">Please enter a valid email address.</div>
+            </div>
+
+            <div class="form-group">
+              <label for="password" class="form-label">Password</label>
+              <div class="input-group">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Create a password" required minlength="8">
+                <button class="btn btn-outline-secondary" type="button" data-toggle-password>
+                  <i class="ph ph-eye"></i>
+                </button>
+              </div>
+              <div class="form-text">Must be at least 8 characters.</div>
+              <div class="invalid-feedback">Password must be at least 8 characters.</div>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+              <label class="form-check-label" for="terms">
+                I agree to the <a href="#" class="auth-link">Terms of Service</a> and <a href="#" class="auth-link">Privacy Policy</a>
+              </label>
+              <div class="invalid-feedback">You must agree to the terms.</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Create account</button>
+
+            <div class="auth-divider">
+              <span>or continue with</span>
+            </div>
+
+            <div class="auth-social">
+              <button type="button" class="btn btn-outline-secondary">
+                <i class="ph ph-google-logo"></i>
+                Google
+              </button>
+              <button type="button" class="btn btn-outline-secondary">
+                <i class="ph ph-github-logo"></i>
+                GitHub
+              </button>
+            </div>
+          </form>
+
+          <p class="auth-footer-text">
+            Already have an account? <a href="auth-login.html" class="auth-link">Sign in</a>
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer-centered">
+          <div class="footer-copyright">
+            &copy; 2026 <a href="#">SmartAdmin</a>. All Rights Reserved.
+          </div>
+          <div class="footer-links">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Service</a>
+            <a href="#">Help</a>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+</body>
+
+</html>

@@ -3,10 +3,51 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Client;
+use App\Models\Agent;
+use App\Models\Lead;
+use App\Models\Opportunity;
+use App\Models\Property;
+use App\Models\Deal;
 
 class DashboardController extends Controller
 {
-    public function index($page)
+    /**
+     * Dashboard principal - Resumo Geral
+     */
+    public function index()
+    {
+        return view('dashboard.index');
+    }
+
+    /**
+     * Dashboard de Imóveis
+     */
+    public function imoveis()
+    {
+        return view('dashboard.imoveis');
+    }
+
+    /**
+     * Dashboard de Negócios
+     */
+    public function negocios()
+    {
+        return view('dashboard.negocios');
+    }
+
+    /**
+     * Dashboard de Clientes
+     */
+    public function clientes()
+    {
+        return view('dashboard.clientes');
+    }
+
+    /**
+     * Método antigo para páginas do template (mantido para compatibilidade)
+     */
+    public function page($page)
     {
         $allowedPages = [
             'index',      

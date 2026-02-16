@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAQ - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section active" data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link active" href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Frequently Asked Questions</h1>
+          <nav>
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+              <li class="breadcrumb-item active">FAQ</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+
+      <div class="faq-page">
+        <!-- Hero Search Banner -->
+        <div class="faq-hero">
+          <div class="faq-hero-content">
+            <h2 class="faq-hero-title">How can we help you?</h2>
+            <p class="faq-hero-subtitle">Search our knowledge base or browse categories below to find your answer.</p>
+            <div class="faq-search-wrap">
+              <i class="ph ph-magnifying-glass"></i>
+              <input type="text" class="faq-search-input" placeholder="Type your question here..." id="faqSearch">
+            </div>
+            <div class="faq-popular-tags">
+              <span class="faq-tags-label">Popular:</span>
+              <a href="#general" class="faq-tag">Getting Started</a>
+              <a href="#billing" class="faq-tag">Billing</a>
+              <a href="#account" class="faq-tag">Account</a>
+              <a href="#security" class="faq-tag">Security</a>
+              <a href="#technical" class="faq-tag">API & Integrations</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Cards -->
+        <div class="faq-categories">
+          <a href="#general" class="faq-cat-card faq-cat-active" data-category="general">
+            <div class="faq-cat-icon faq-cat-icon-general">
+              <i class="ph-duotone ph-question"></i>
+            </div>
+            <span class="faq-cat-name">General</span>
+            <span class="faq-cat-count">4 articles</span>
+          </a>
+          <a href="#account" class="faq-cat-card" data-category="account">
+            <div class="faq-cat-icon faq-cat-icon-account">
+              <i class="ph-duotone ph-user"></i>
+            </div>
+            <span class="faq-cat-name">Account</span>
+            <span class="faq-cat-count">4 articles</span>
+          </a>
+          <a href="#billing" class="faq-cat-card" data-category="billing">
+            <div class="faq-cat-icon faq-cat-icon-billing">
+              <i class="ph-duotone ph-credit-card"></i>
+            </div>
+            <span class="faq-cat-name">Billing</span>
+            <span class="faq-cat-count">4 articles</span>
+          </a>
+          <a href="#security" class="faq-cat-card" data-category="security">
+            <div class="faq-cat-icon faq-cat-icon-security">
+              <i class="ph-duotone ph-shield-check"></i>
+            </div>
+            <span class="faq-cat-name">Security</span>
+            <span class="faq-cat-count">4 articles</span>
+          </a>
+          <a href="#technical" class="faq-cat-card" data-category="technical">
+            <div class="faq-cat-icon faq-cat-icon-technical">
+              <i class="ph-duotone ph-code"></i>
+            </div>
+            <span class="faq-cat-name">Technical</span>
+            <span class="faq-cat-count">4 articles</span>
+          </a>
+        </div>
+
+        <!-- FAQ Sections -->
+        <div class="faq-sections">
+          <!-- General -->
+          <div class="faq-section" id="general">
+            <h5 class="faq-section-title">
+              <i class="ph-duotone ph-question me-2"></i>General Questions
+            </h5>
+            <div class="faq-items">
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="general1">
+                  <span class="faq-item-question">What is SmartAdmin and how does it work?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="general1">
+                  <p>SmartAdmin is a comprehensive admin dashboard solution designed to help businesses manage their operations efficiently. It provides tools for analytics, user management, project tracking, and more. Simply sign up, configure your workspace, and start managing your business from a single, unified interface.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="general2">
+                  <span class="faq-item-question">How do I get started with the platform?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="general2">
+                  <p>Getting started is easy! After signing up, you'll be guided through a quick onboarding process that helps you set up your workspace. You can import existing data, invite team members, and customize your dashboard to fit your needs. We also offer video tutorials and documentation to help you make the most of all features.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="general3">
+                  <span class="faq-item-question">Is there a mobile app available?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="general3">
+                  <p>Yes! We offer native mobile apps for both iOS and Android devices. The mobile apps provide access to key features including notifications, quick actions, and essential dashboards. You can download them from the App Store or Google Play Store.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="general4">
+                  <span class="faq-item-question">What browsers are supported?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="general4">
+                  <p>We support all modern browsers including Chrome, Firefox, Safari, and Edge. For the best experience, we recommend using the latest version of your preferred browser. Internet Explorer is not supported.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Account -->
+          <div class="faq-section" id="account">
+            <h5 class="faq-section-title">
+              <i class="ph-duotone ph-user me-2"></i>Account Management
+            </h5>
+            <div class="faq-items">
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="account1">
+                  <span class="faq-item-question">How do I reset my password?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="account1">
+                  <p>To reset your password, click on the "Forgot Password" link on the login page. Enter your email address and we'll send you a secure link to create a new password. The link expires after 24 hours for security reasons. If you don't receive the email, check your spam folder.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="account2">
+                  <span class="faq-item-question">How can I update my profile information?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="account2">
+                  <p>Navigate to Settings > Profile to update your personal information including name, email, phone number, and profile picture. Changes are saved automatically. Note that changing your email address will require verification of the new email.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="account3">
+                  <span class="faq-item-question">How do I delete my account?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="account3">
+                  <p>You can request account deletion from Settings > Account > Delete Account. Please note that this action is irreversible. All your data will be permanently deleted after a 30-day grace period. If you're the owner of a team workspace, you'll need to transfer ownership first.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="account4">
+                  <span class="faq-item-question">Can I have multiple accounts?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="account4">
+                  <p>Each email address can only be associated with one account. However, you can be a member of multiple workspaces with a single account. If you need separate accounts for different organizations, you'll need to use different email addresses.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Billing -->
+          <div class="faq-section" id="billing">
+            <h5 class="faq-section-title">
+              <i class="ph-duotone ph-credit-card me-2"></i>Billing &amp; Payments
+            </h5>
+            <div class="faq-items">
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="billing1">
+                  <span class="faq-item-question">What payment methods do you accept?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="billing1">
+                  <p>We accept all major credit cards (Visa, MasterCard, American Express, Discover), PayPal, and bank transfers for annual plans. All payments are processed securely through Stripe. For Enterprise customers, we also offer invoice-based billing.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="billing2">
+                  <span class="faq-item-question">How do I upgrade or downgrade my plan?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="billing2">
+                  <p>You can change your plan anytime from Settings > Billing > Change Plan. When upgrading, you'll be charged the prorated difference immediately. When downgrading, the new rate applies at your next billing cycle. Your data and settings are preserved during plan changes.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="billing3">
+                  <span class="faq-item-question">Can I get a refund?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="billing3">
+                  <p>We offer a 30-day money-back guarantee for all paid plans. If you're not satisfied within the first 30 days, contact our support team for a full refund. After 30 days, refunds are handled on a case-by-case basis. Annual subscriptions can be refunded within 30 days of purchase.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="billing4">
+                  <span class="faq-item-question">Where can I find my invoices?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="billing4">
+                  <p>All invoices are available in Settings > Billing > Invoice History. You can view, download, and print invoices in PDF format. Invoices are also sent to your billing email address automatically after each payment.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Security -->
+          <div class="faq-section" id="security">
+            <h5 class="faq-section-title">
+              <i class="ph-duotone ph-shield-check me-2"></i>Security
+            </h5>
+            <div class="faq-items">
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="security1">
+                  <span class="faq-item-question">How do I enable two-factor authentication?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="security1">
+                  <p>Go to Settings > Security > Two-Factor Authentication and click "Enable". You can use an authenticator app (Google Authenticator, Authy) or receive codes via SMS. We recommend using an authenticator app for better security. You'll also receive backup codes for emergency access.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="security2">
+                  <span class="faq-item-question">Is my data encrypted?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="security2">
+                  <p>Yes, we use industry-standard encryption to protect your data. All data in transit is encrypted using TLS 1.3, and data at rest is encrypted using AES-256. We also employ additional security measures including regular security audits, intrusion detection, and secure data centers.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="security3">
+                  <span class="faq-item-question">What happens if I suspect unauthorized access?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="security3">
+                  <p>If you suspect unauthorized access, immediately change your password and enable two-factor authentication if not already enabled. You can view all active sessions in Settings > Security > Active Sessions and terminate any suspicious ones. Contact our security team immediately if you notice any unusual activity.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="security4">
+                  <span class="faq-item-question">Are you GDPR compliant?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="security4">
+                  <p>Yes, we are fully GDPR compliant. We provide tools for data export, deletion requests, and consent management. You can access your data privacy settings in Settings > Privacy. We also have a dedicated Data Protection Officer and maintain detailed records of all data processing activities.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technical -->
+          <div class="faq-section" id="technical">
+            <h5 class="faq-section-title">
+              <i class="ph-duotone ph-code me-2"></i>Technical Questions
+            </h5>
+            <div class="faq-items">
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="technical1">
+                  <span class="faq-item-question">Do you have an API?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="technical1">
+                  <p>Yes, we provide a comprehensive REST API for Pro and Enterprise plans. The API allows you to access and manipulate your data programmatically. Full documentation is available in our Developer Portal, including code examples, SDKs, and rate limit information.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="technical2">
+                  <span class="faq-item-question">What integrations are available?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="technical2">
+                  <p>We integrate with 100+ popular tools including Slack, Microsoft Teams, Google Workspace, Salesforce, Jira, GitHub, and more. You can browse and configure integrations in Settings > Integrations. We also support webhooks and Zapier for custom integrations.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="technical3">
+                  <span class="faq-item-question">How do I export my data?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="technical3">
+                  <p>You can export your data anytime from Settings > Data > Export. We support multiple formats including CSV, JSON, and PDF for reports. Large exports are processed in the background and you'll receive a download link via email when ready.</p>
+                </div>
+              </div>
+              <div class="faq-item">
+                <button class="faq-item-toggle" data-faq-target="technical4">
+                  <span class="faq-item-question">What is your uptime guarantee?</span>
+                  <i class="ph ph-caret-down faq-item-arrow"></i>
+                </button>
+                <div class="faq-item-answer" id="technical4">
+                  <p>We guarantee 99.9% uptime for Pro plans and 99.99% for Enterprise plans, backed by our SLA. You can monitor our system status in real-time at status.example.com. Scheduled maintenance is announced in advance and typically occurs during off-peak hours.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resources -->
+        <div class="faq-resources">
+          <h5 class="faq-section-title">
+            <i class="ph-duotone ph-books me-2"></i>Helpful Resources
+          </h5>
+          <div class="faq-resource-grid">
+            <a href="#" class="faq-resource-card">
+              <div class="faq-resource-icon faq-resource-icon-docs">
+                <i class="ph-duotone ph-book-open"></i>
+              </div>
+              <h6 class="faq-resource-name">Documentation</h6>
+              <p class="faq-resource-desc">Detailed guides, tutorials, and API reference for developers.</p>
+              <span class="faq-resource-link">Browse Docs <i class="ph ph-arrow-right"></i></span>
+            </a>
+            <a href="#" class="faq-resource-card">
+              <div class="faq-resource-icon faq-resource-icon-video">
+                <i class="ph-duotone ph-play-circle"></i>
+              </div>
+              <h6 class="faq-resource-name">Video Tutorials</h6>
+              <p class="faq-resource-desc">Step-by-step video guides to help you get the most out of the platform.</p>
+              <span class="faq-resource-link">Watch Videos <i class="ph ph-arrow-right"></i></span>
+            </a>
+            <a href="#" class="faq-resource-card">
+              <div class="faq-resource-icon faq-resource-icon-community">
+                <i class="ph-duotone ph-users-three"></i>
+              </div>
+              <h6 class="faq-resource-name">Community Forum</h6>
+              <p class="faq-resource-desc">Connect with other users, share tips, and get help from the community.</p>
+              <span class="faq-resource-link">Join Community <i class="ph ph-arrow-right"></i></span>
+            </a>
+          </div>
+        </div>
+
+        <!-- CTA Banner -->
+        <div class="faq-cta">
+          <div class="faq-cta-content">
+            <div class="faq-cta-icon">
+              <i class="ph-duotone ph-headset"></i>
+            </div>
+            <div>
+              <h4 class="faq-cta-title">Still can't find your answer?</h4>
+              <p class="faq-cta-text">Our support team is available 24/7 to help you with any questions or issues.</p>
+            </div>
+          </div>
+          <a href="contact.html" class="btn btn-light faq-cta-btn">
+            <i class="ph ph-envelope me-2"></i>Contact Support
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // FAQ Toggle
+      const toggles = document.querySelectorAll('.faq-item-toggle');
+      toggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+          const item = this.closest('.faq-item');
+          const isOpen = item.classList.contains('faq-item-open');
+          // Close siblings in same section
+          const section = this.closest('.faq-items');
+          section.querySelectorAll('.faq-item-open').forEach(openItem => {
+            openItem.classList.remove('faq-item-open');
+          });
+          if (!isOpen) {
+            item.classList.add('faq-item-open');
+          }
+        });
+      });
+      // Category filter highlight
+      const catCards = document.querySelectorAll('.faq-cat-card');
+      catCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+          catCards.forEach(c => c.classList.remove('faq-cat-active'));
+          this.classList.add('faq-cat-active');
+        });
+      });
+      // Search filter
+      const searchInput = document.getElementById('faqSearch');
+      searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        const items = document.querySelectorAll('.faq-item');
+        const sections = document.querySelectorAll('.faq-section');
+        if (!query) {
+          items.forEach(item => item.style.display = '');
+          sections.forEach(s => s.style.display = '');
+          return;
+        }
+        items.forEach(item => {
+          const question = item.querySelector('.faq-item-question').textContent.toLowerCase();
+          const answer = item.querySelector('.faq-item-answer').textContent.toLowerCase();
+          item.style.display = (question.includes(query) || answer.includes(query)) ? '' : 'none';
+        });
+        // Hide sections with no visible items
+        sections.forEach(section => {
+          const visibleItems = section.querySelectorAll('.faq-item:not([style*="display: none"])');
+          section.style.display = visibleItems.length ? '' : 'none';
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

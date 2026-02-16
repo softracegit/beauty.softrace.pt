@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tooltips - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section active" data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group open">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="true">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav show">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link active" href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Tooltips</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Components</a>
+          <span class="breadcrumb-item active">Tooltips</span>
+        </nav>
+      </div>
+
+      <!-- Basic Tooltips -->
+      <section class="section">
+        <div class="row g-4">
+          <!-- Default Tooltip -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Default Tooltips</h5>
+                <p class="card-subtitle">Hover over elements to see tooltips</p>
+              </div>
+              <div class="card-body">
+                <p class="mb-4">
+                  Tooltips are great for providing
+                  <a href="#" data-bs-toggle="tooltip" data-bs-title="This is a tooltip on a link">additional context</a>
+                  to users without cluttering the interface.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-secondary" data-bs-toggle="tooltip" data-bs-title="Default tooltip">
+                    Hover me
+                  </button>
+                  <button type="button" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-title="I'm a primary button tooltip">
+                    Primary
+                  </button>
+                  <button type="button" class="btn btn-success" data-bs-toggle="tooltip" data-bs-title="Success action tooltip">
+                    Success
+                  </button>
+                  <button type="button" class="btn btn-danger" data-bs-toggle="tooltip" data-bs-title="Danger! Be careful">
+                    Danger
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tooltip Directions -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Tooltip Directions</h5>
+                <p class="card-subtitle">Tooltips can appear in four directions</p>
+              </div>
+              <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                  <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Tooltip on top">
+                    Top
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tooltip on right">
+                    Right
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Tooltip on bottom">
+                    Bottom
+                  </button>
+                  <button type="button" class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-placement="left" data-bs-title="Tooltip on left">
+                    Left
+                  </button>
+                </div>
+                <div class="mt-4 p-4 bg-light rounded text-center">
+                  <p class="text-muted small mb-3">Visual direction reference:</p>
+                  <div class="d-inline-block position-relative" style="width: 120px; height: 80px;">
+                    <span class="position-absolute top-0 start-50 translate-middle-x badge bg-primary">Top</span>
+                    <span class="position-absolute top-50 end-0 translate-middle-y badge bg-primary">Right</span>
+                    <span class="position-absolute bottom-0 start-50 translate-middle-x badge bg-primary">Bottom</span>
+                    <span class="position-absolute top-50 start-0 translate-middle-y badge bg-primary">Left</span>
+                    <span class="position-absolute top-50 start-50 translate-middle border rounded px-3 py-2 bg-white">Element</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tooltip on Elements -->
+      <section class="section">
+        <h5 class="section-title mb-3">Tooltips on Various Elements</h5>
+        <div class="row g-4">
+          <!-- Icons -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Tooltips on Icons</h5>
+                <p class="card-subtitle">Common pattern for icon-only buttons</p>
+              </div>
+              <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Edit">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Delete">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Download">
+                    <i class="bi bi-download"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Share">
+                    <i class="bi bi-share"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Settings">
+                    <i class="bi bi-gear"></i>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="More options">
+                    <i class="bi bi-three-dots-vertical"></i>
+                  </button>
+                </div>
+                <p class="small text-muted mb-3">Standalone icons:</p>
+                <div class="d-flex flex-wrap gap-3">
+                  <i class="bi bi-info-circle text-primary fs-5" data-bs-toggle="tooltip" data-bs-title="Information" style="cursor: pointer;"></i>
+                  <i class="bi bi-question-circle text-info fs-5" data-bs-toggle="tooltip" data-bs-title="Help" style="cursor: pointer;"></i>
+                  <i class="bi bi-exclamation-circle text-warning fs-5" data-bs-toggle="tooltip" data-bs-title="Warning" style="cursor: pointer;"></i>
+                  <i class="bi bi-check-circle text-success fs-5" data-bs-toggle="tooltip" data-bs-title="Verified" style="cursor: pointer;"></i>
+                  <i class="bi bi-x-circle text-danger fs-5" data-bs-toggle="tooltip" data-bs-title="Error" style="cursor: pointer;"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Links & Text -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Tooltips on Links & Text</h5>
+                <p class="card-subtitle">Provide additional context for text elements</p>
+              </div>
+              <div class="card-body">
+                <p class="mb-3">
+                  Our <a href="#" data-bs-toggle="tooltip" data-bs-title="View our complete privacy policy">privacy policy</a>
+                  explains how we handle your data. For questions about
+                  <a href="#" data-bs-toggle="tooltip" data-bs-title="Learn about our pricing tiers">pricing</a>,
+                  please contact our <a href="#" data-bs-toggle="tooltip" data-bs-title="Available Mon-Fri, 9am-5pm">sales team</a>.
+                </p>
+                <p class="mb-3">
+                  Technical terms like <abbr title="" data-bs-toggle="tooltip" data-bs-title="Application Programming Interface">API</abbr>,
+                  <abbr title="" data-bs-toggle="tooltip" data-bs-title="Cascading Style Sheets">CSS</abbr>, and
+                  <abbr title="" data-bs-toggle="tooltip" data-bs-title="HyperText Markup Language">HTML</abbr>
+                  can be explained with tooltips.
+                </p>
+                <div class="border-top pt-3 mt-3">
+                  <p class="small text-muted mb-2">Inline help text:</p>
+                  <p class="mb-0">
+                    Password requirements
+                    <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" data-bs-title="Must be 8+ characters with at least one uppercase, lowercase, number, and special character"></i>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HTML & Custom Tooltips -->
+      <section class="section">
+        <h5 class="section-title mb-3">HTML & Custom Tooltips</h5>
+        <div class="row g-4">
+          <!-- HTML Content -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">HTML Content in Tooltips</h5>
+                <p class="card-subtitle">Rich content with formatting</p>
+              </div>
+              <div class="card-body">
+                <div class="d-flex flex-wrap gap-3">
+                  <button type="button" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="<strong>Bold</strong> and <em>italic</em> text">
+                    Formatted Text
+                  </button>
+                  <button type="button" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="<i class='bi bi-star-fill text-warning'></i> 4.8 rating (2,453 reviews)">
+                    With Icon
+                  </button>
+                  <button type="button" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="Line 1<br>Line 2<br>Line 3">
+                    Multi-line
+                  </button>
+                  <button type="button" class="btn btn-primary" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="<span class='badge bg-success'>Active</span> User is online">
+                    With Badge
+                  </button>
+                </div>
+                <div class="mt-4 p-3 bg-light rounded">
+                  <code class="small">data-bs-html="true"</code>
+                  <p class="small text-muted mb-0 mt-2">Enable HTML content in tooltips with this attribute.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Disabled Elements -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Tooltips on Disabled Elements</h5>
+                <p class="card-subtitle">Wrap disabled elements in a container</p>
+              </div>
+              <div class="card-body">
+                <p class="text-muted small mb-3">Disabled elements need a wrapper for tooltips to work:</p>
+                <div class="d-flex flex-wrap gap-3 mb-4">
+                  <span data-bs-toggle="tooltip" data-bs-title="You don't have permission to perform this action">
+                    <button class="btn btn-primary" disabled>Disabled Button</button>
+                  </span>
+                  <span data-bs-toggle="tooltip" data-bs-title="This feature is coming soon">
+                    <button class="btn btn-success" disabled>Coming Soon</button>
+                  </span>
+                  <span data-bs-toggle="tooltip" data-bs-title="Please complete the form first">
+                    <button class="btn btn-outline-primary" disabled>Submit</button>
+                  </span>
+                </div>
+                <div class="p-3 bg-light rounded">
+                  <p class="small mb-2"><strong>Pattern:</strong></p>
+                  <code class="small">&lt;span data-bs-toggle="tooltip" title="..."&gt;<br>&nbsp;&nbsp;&lt;button disabled&gt;...&lt;/button&gt;<br>&lt;/span&gt;</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Form Tooltips -->
+      <section class="section">
+        <h5 class="section-title mb-3">Tooltips in Forms</h5>
+        <div class="row g-4">
+          <!-- Form Field Tooltips -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Form Field Tooltips</h5>
+                <p class="card-subtitle">Help users understand form requirements</p>
+              </div>
+              <div class="card-body">
+                <form>
+                  <div class="mb-3">
+                    <label for="usernameField" class="form-label">
+                      Username
+                      <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" data-bs-title="Choose a unique username between 3-20 characters. Only letters, numbers, and underscores allowed."></i>
+                    </label>
+                    <input type="text" class="form-control" id="usernameField" placeholder="Enter username">
+                  </div>
+                  <div class="mb-3">
+                    <label for="emailField" class="form-label">
+                      Email address
+                      <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" data-bs-title="We'll never share your email with anyone else."></i>
+                    </label>
+                    <input type="email" class="form-control" id="emailField" placeholder="name@example.com">
+                  </div>
+                  <div class="mb-3">
+                    <label for="passwordField" class="form-label">
+                      Password
+                      <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="<strong>Requirements:</strong><br>• 8+ characters<br>• One uppercase<br>• One lowercase<br>• One number"></i>
+                    </label>
+                    <input type="password" class="form-control" id="passwordField" placeholder="Enter password">
+                  </div>
+                  <div class="mb-3">
+                    <label for="apiKeyField" class="form-label">
+                      API Key
+                      <i class="bi bi-question-circle text-muted" data-bs-toggle="tooltip" data-bs-title="Find your API key in Settings > Developer > API Keys"></i>
+                    </label>
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="apiKeyField" placeholder="sk_live_...">
+                      <button class="btn btn-outline-secondary" type="button" data-bs-toggle="tooltip" data-bs-title="Generate new key">
+                        <i class="bi bi-arrow-repeat"></i>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Validation Tooltips -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Validation Tooltips</h5>
+                <p class="card-subtitle">Bootstrap validation with tooltip feedback</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3 position-relative">
+                    <label for="validationTooltip01" class="form-label">First name</label>
+                    <input type="text" class="form-control" id="validationTooltip01" value="John" required>
+                    <div class="valid-tooltip">Looks good!</div>
+                  </div>
+                  <div class="mb-3 position-relative">
+                    <label for="validationTooltip02" class="form-label">Last name</label>
+                    <input type="text" class="form-control" id="validationTooltip02" value="Doe" required>
+                    <div class="valid-tooltip">Looks good!</div>
+                  </div>
+                  <div class="mb-3 position-relative">
+                    <label for="validationTooltipUsername" class="form-label">Username</label>
+                    <div class="input-group has-validation">
+                      <span class="input-group-text">@</span>
+                      <input type="text" class="form-control" id="validationTooltipUsername" required>
+                      <div class="invalid-tooltip">Please choose a unique username.</div>
+                    </div>
+                  </div>
+                  <div class="mb-3 position-relative">
+                    <label for="validationTooltip03" class="form-label">City</label>
+                    <input type="text" class="form-control" id="validationTooltip03" required>
+                    <div class="invalid-tooltip">Please provide a valid city.</div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Validate Form</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Real-World Examples -->
+      <section class="section">
+        <h5 class="section-title mb-3">Real-World Examples</h5>
+        <div class="row g-4">
+          <!-- Toolbar -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Editor Toolbar</h5>
+                <p class="card-subtitle">Text editor with tooltip-enabled buttons</p>
+              </div>
+              <div class="card-body">
+                <div class="border rounded">
+                  <div class="d-flex flex-wrap gap-1 p-2 border-bottom bg-light">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Bold (Ctrl+B)">
+                      <i class="bi bi-type-bold"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Italic (Ctrl+I)">
+                      <i class="bi bi-type-italic"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Underline (Ctrl+U)">
+                      <i class="bi bi-type-underline"></i>
+                    </button>
+                    <div class="vr mx-1"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Align Left">
+                      <i class="bi bi-text-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Align Center">
+                      <i class="bi bi-text-center"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Align Right">
+                      <i class="bi bi-text-right"></i>
+                    </button>
+                    <div class="vr mx-1"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Bulleted List">
+                      <i class="bi bi-list-ul"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Numbered List">
+                      <i class="bi bi-list-ol"></i>
+                    </button>
+                    <div class="vr mx-1"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Insert Link (Ctrl+K)">
+                      <i class="bi bi-link-45deg"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Insert Image">
+                      <i class="bi bi-image"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Insert Code">
+                      <i class="bi bi-code-slash"></i>
+                    </button>
+                  </div>
+                  <div class="p-3" style="min-height: 100px;">
+                    <p class="text-muted mb-0">Start typing here...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Table -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">User Table with Actions</h5>
+                <p class="card-subtitle">Tooltips on table action buttons</p>
+              </div>
+              <div class="card-body">
+                <table class="table table-hover mb-0">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Status</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <img src="assets/img/avatars/avatar-1.webp" class="rounded-circle" width="32" height="32" alt="User">
+                          <div>
+                            <div class="fw-medium">John Doe</div>
+                            <small class="text-muted">john@example.com</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge bg-success" data-bs-toggle="tooltip" data-bs-title="Last active 2 minutes ago">Active</span>
+                      </td>
+                      <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="View Profile">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Edit User">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" data-bs-title="Delete User">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <img src="assets/img/avatars/avatar-2.webp" class="rounded-circle" width="32" height="32" alt="User">
+                          <div>
+                            <div class="fw-medium">Sarah Smith</div>
+                            <small class="text-muted">sarah@example.com</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge bg-warning" data-bs-toggle="tooltip" data-bs-title="Last active 3 hours ago">Away</span>
+                      </td>
+                      <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="View Profile">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Edit User">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" data-bs-title="Delete User">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <img src="assets/img/avatars/avatar-3.webp" class="rounded-circle" width="32" height="32" alt="User">
+                          <div>
+                            <div class="fw-medium">Mike Johnson</div>
+                            <small class="text-muted">mike@example.com</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge bg-secondary" data-bs-toggle="tooltip" data-bs-title="Last active 2 days ago">Offline</span>
+                      </td>
+                      <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="View Profile">
+                          <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Edit User">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" data-bs-title="Delete User">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats Cards -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Stats with Tooltips</h5>
+                <p class="card-subtitle">Dashboard stats with explanatory tooltips</p>
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-6">
+                    <div class="border rounded p-3">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small">Total Revenue</span>
+                        <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" data-bs-title="Total revenue before taxes and refunds"></i>
+                      </div>
+                      <h4 class="mb-0">$48,294</h4>
+                      <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> 12.5%
+                        <span class="text-muted" data-bs-toggle="tooltip" data-bs-title="Compared to previous period">vs last month</span>
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="border rounded p-3">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small">Conversion Rate</span>
+                        <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" data-bs-title="Percentage of visitors who made a purchase"></i>
+                      </div>
+                      <h4 class="mb-0">3.24%</h4>
+                      <small class="text-danger">
+                        <i class="bi bi-arrow-down"></i> 2.1%
+                        <span class="text-muted" data-bs-toggle="tooltip" data-bs-title="Compared to previous period">vs last month</span>
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="border rounded p-3">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small">Avg. Order Value</span>
+                        <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" data-bs-title="Average amount spent per order"></i>
+                      </div>
+                      <h4 class="mb-0">$127.50</h4>
+                      <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> 5.3%
+                        <span class="text-muted" data-bs-toggle="tooltip" data-bs-title="Compared to previous period">vs last month</span>
+                      </small>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="border rounded p-3">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small">Active Users</span>
+                        <i class="bi bi-info-circle text-muted" data-bs-toggle="tooltip" data-bs-title="Users active in the last 30 days"></i>
+                      </div>
+                      <h4 class="mb-0">8,420</h4>
+                      <small class="text-success">
+                        <i class="bi bi-arrow-up"></i> 18.2%
+                        <span class="text-muted" data-bs-toggle="tooltip" data-bs-title="Compared to previous period">vs last month</span>
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Navigation with Tooltips</h5>
+                <p class="card-subtitle">Compact navigation with icon tooltips</p>
+              </div>
+              <div class="card-body">
+                <p class="text-muted small mb-3">Icon-only navigation (compact sidebar style):</p>
+                <div class="d-flex flex-column gap-2 p-3 bg-dark rounded" style="width: fit-content;">
+                  <button class="btn btn-dark" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard">
+                    <i class="bi bi-grid text-white"></i>
+                  </button>
+                  <button class="btn btn-primary" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Analytics">
+                    <i class="bi bi-bar-chart"></i>
+                  </button>
+                  <button class="btn btn-dark" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Messages">
+                    <i class="bi bi-chat-dots text-white"></i>
+                  </button>
+                  <button class="btn btn-dark" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Calendar">
+                    <i class="bi bi-calendar3 text-white"></i>
+                  </button>
+                  <button class="btn btn-dark" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Files">
+                    <i class="bi bi-folder text-white"></i>
+                  </button>
+                  <hr class="border-secondary my-1">
+                  <button class="btn btn-dark" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+                    <i class="bi bi-gear text-white"></i>
+                  </button>
+                  <button class="btn btn-dark" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Help & Support">
+                    <i class="bi bi-question-circle text-white"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Social Sharing -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Social Sharing Buttons</h5>
+                <p class="card-subtitle">Share buttons with platform names in tooltips</p>
+              </div>
+              <div class="card-body">
+                <p class="text-muted small mb-3">Share this article:</p>
+                <div class="d-flex flex-wrap gap-2">
+                  <button class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-title="Share on Facebook">
+                    <i class="bi bi-facebook"></i>
+                  </button>
+                  <button class="btn btn-outline-info" data-bs-toggle="tooltip" data-bs-title="Share on Twitter">
+                    <i class="bi bi-twitter-x"></i>
+                  </button>
+                  <button class="btn btn-outline-primary" data-bs-toggle="tooltip" data-bs-title="Share on LinkedIn">
+                    <i class="bi bi-linkedin"></i>
+                  </button>
+                  <button class="btn btn-outline-danger" data-bs-toggle="tooltip" data-bs-title="Share on Pinterest">
+                    <i class="bi bi-pinterest"></i>
+                  </button>
+                  <button class="btn btn-outline-success" data-bs-toggle="tooltip" data-bs-title="Share via WhatsApp">
+                    <i class="bi bi-whatsapp"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Share via Email">
+                    <i class="bi bi-envelope"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" data-bs-toggle="tooltip" data-bs-title="Copy Link">
+                    <i class="bi bi-link-45deg"></i>
+                  </button>
+                </div>
+                <hr>
+                <p class="text-muted small mb-3">Colored buttons variant:</p>
+                <div class="d-flex flex-wrap gap-2">
+                  <button class="btn btn-primary" style="background-color: #1877f2; border-color: #1877f2;" data-bs-toggle="tooltip" data-bs-title="Share on Facebook">
+                    <i class="bi bi-facebook"></i>
+                  </button>
+                  <button class="btn btn-dark" data-bs-toggle="tooltip" data-bs-title="Share on Twitter">
+                    <i class="bi bi-twitter-x"></i>
+                  </button>
+                  <button class="btn btn-primary" style="background-color: #0a66c2; border-color: #0a66c2;" data-bs-toggle="tooltip" data-bs-title="Share on LinkedIn">
+                    <i class="bi bi-linkedin"></i>
+                  </button>
+                  <button class="btn btn-danger" style="background-color: #e60023; border-color: #e60023;" data-bs-toggle="tooltip" data-bs-title="Share on Pinterest">
+                    <i class="bi bi-pinterest"></i>
+                  </button>
+                  <button class="btn btn-success" style="background-color: #25d366; border-color: #25d366;" data-bs-toggle="tooltip" data-bs-title="Share via WhatsApp">
+                    <i class="bi bi-whatsapp"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Truncated Text -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Truncated Text with Tooltips</h5>
+                <p class="card-subtitle">Show full content on hover for truncated text</p>
+              </div>
+              <div class="card-body">
+                <ul class="list-group">
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-truncate me-3" style="max-width: 250px;" data-bs-toggle="tooltip" data-bs-title="This is a very long file name that gets truncated in the UI display.pdf">
+                      This is a very long file name that gets truncated in the UI display.pdf
+                    </span>
+                    <span class="badge bg-primary">2.4 MB</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-truncate me-3" style="max-width: 250px;" data-bs-toggle="tooltip" data-bs-title="Annual_Financial_Report_2024_Q4_Final_Version_Approved.xlsx">
+                      Annual_Financial_Report_2024_Q4_Final_Version_Approved.xlsx
+                    </span>
+                    <span class="badge bg-success">1.8 MB</span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span class="text-truncate me-3" style="max-width: 250px;" data-bs-toggle="tooltip" data-bs-title="Project_Documentation_and_Technical_Specifications_v3.2.docx">
+                      Project_Documentation_and_Technical_Specifications_v3.2.docx
+                    </span>
+                    <span class="badge bg-info">856 KB</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    // Initialize all tooltips
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    // Form validation example
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+      form.addEventListener('submit', event => {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  </script>
+</body>
+
+</html>

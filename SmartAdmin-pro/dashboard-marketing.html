@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marketing Dashboard - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item active" data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section active" data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link active" href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Marketing Dashboard</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Dashboards</a>
+          <span class="breadcrumb-item active">Marketing</span>
+        </nav>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="dashboard-grid dashboard-grid-4">
+        <!-- Active Campaigns -->
+        <div class="card widget-stat">
+          <div class="widget-stat-header">
+            <div>
+              <div class="widget-stat-value">12</div>
+              <div class="widget-stat-label">Active Campaigns</div>
+            </div>
+            <div class="widget-stat-icon primary">
+              <i class="bi bi-megaphone"></i>
+            </div>
+          </div>
+          <div class="widget-stat-change positive">
+            <i class="bi bi-arrow-up"></i> 3 new this month
+          </div>
+        </div>
+
+        <!-- Email Open Rate -->
+        <div class="card widget-stat">
+          <div class="widget-stat-header">
+            <div>
+              <div class="widget-stat-value">24.8%</div>
+              <div class="widget-stat-label">Email Open Rate</div>
+            </div>
+            <div class="widget-stat-icon success">
+              <i class="bi bi-envelope-check"></i>
+            </div>
+          </div>
+          <div class="widget-stat-change positive">
+            <i class="bi bi-arrow-up"></i> 2.3% vs last month
+          </div>
+        </div>
+
+        <!-- Click-through Rate -->
+        <div class="card widget-stat">
+          <div class="widget-stat-header">
+            <div>
+              <div class="widget-stat-value">4.2%</div>
+              <div class="widget-stat-label">Click-through Rate</div>
+            </div>
+            <div class="widget-stat-icon warning">
+              <i class="bi bi-cursor"></i>
+            </div>
+          </div>
+          <div class="widget-stat-change negative">
+            <i class="bi bi-arrow-down"></i> 0.5% vs last month
+          </div>
+        </div>
+
+        <!-- Marketing ROI -->
+        <div class="card widget-stat">
+          <div class="widget-stat-header">
+            <div>
+              <div class="widget-stat-value">287%</div>
+              <div class="widget-stat-label">Marketing ROI</div>
+            </div>
+            <div class="widget-stat-icon info">
+              <i class="bi bi-currency-dollar"></i>
+            </div>
+          </div>
+          <div class="widget-stat-change positive">
+            <i class="bi bi-arrow-up"></i> 18% vs last month
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaign Performance & Channel Distribution -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-8">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Campaign Performance</h5>
+              <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-secondary active">Impressions</button>
+                <button type="button" class="btn btn-outline-secondary">Clicks</button>
+                <button type="button" class="btn btn-outline-secondary">Conversions</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="campaignPerformanceChart" style="height: 320px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-4">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Channel Distribution</h5>
+            </div>
+            <div class="card-body">
+              <div id="channelDistributionChart"></div>
+              <div class="chart-legend mt-3">
+                <div class="legend-item">
+                  <span class="legend-dot" style="background-color: var(--accent-color);"></span>
+                  <span class="legend-label">Social Media</span>
+                  <span class="legend-value">42%</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background-color: var(--success-color);"></span>
+                  <span class="legend-label">Email</span>
+                  <span class="legend-value">28%</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background-color: var(--warning-color);"></span>
+                  <span class="legend-label">PPC</span>
+                  <span class="legend-value">18%</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-dot" style="background-color: var(--info-color);"></span>
+                  <span class="legend-label">Content</span>
+                  <span class="legend-value">12%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Media Stats & Active Campaigns -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-4">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Social Media</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="social-stats-list">
+                <div class="social-stats-item">
+                  <div class="social-icon facebook">
+                    <i class="bi bi-facebook"></i>
+                  </div>
+                  <div class="social-info">
+                    <div class="social-name">Facebook</div>
+                    <div class="social-followers">125.4K followers</div>
+                  </div>
+                  <div class="social-engagement">
+                    <span class="engagement-value">4.2%</span>
+                    <span class="engagement-label">Engagement</span>
+                  </div>
+                </div>
+                <div class="social-stats-item">
+                  <div class="social-icon twitter">
+                    <i class="bi bi-twitter-x"></i>
+                  </div>
+                  <div class="social-info">
+                    <div class="social-name">Twitter / X</div>
+                    <div class="social-followers">89.2K followers</div>
+                  </div>
+                  <div class="social-engagement">
+                    <span class="engagement-value">3.8%</span>
+                    <span class="engagement-label">Engagement</span>
+                  </div>
+                </div>
+                <div class="social-stats-item">
+                  <div class="social-icon instagram">
+                    <i class="bi bi-instagram"></i>
+                  </div>
+                  <div class="social-info">
+                    <div class="social-name">Instagram</div>
+                    <div class="social-followers">234.8K followers</div>
+                  </div>
+                  <div class="social-engagement">
+                    <span class="engagement-value">5.6%</span>
+                    <span class="engagement-label">Engagement</span>
+                  </div>
+                </div>
+                <div class="social-stats-item">
+                  <div class="social-icon linkedin">
+                    <i class="bi bi-linkedin"></i>
+                  </div>
+                  <div class="social-info">
+                    <div class="social-name">LinkedIn</div>
+                    <div class="social-followers">45.6K followers</div>
+                  </div>
+                  <div class="social-engagement">
+                    <span class="engagement-value">2.9%</span>
+                    <span class="engagement-label">Engagement</span>
+                  </div>
+                </div>
+                <div class="social-stats-item">
+                  <div class="social-icon youtube">
+                    <i class="bi bi-youtube"></i>
+                  </div>
+                  <div class="social-info">
+                    <div class="social-name">YouTube</div>
+                    <div class="social-followers">78.3K subscribers</div>
+                  </div>
+                  <div class="social-engagement">
+                    <span class="engagement-value">6.1%</span>
+                    <span class="engagement-label">Engagement</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-8">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Active Campaigns</h5>
+              <a href="#" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus"></i> New Campaign
+              </a>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Campaign</th>
+                      <th>Channel</th>
+                      <th>Budget</th>
+                      <th>Spent</th>
+                      <th>Progress</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="fw-medium">Summer Sale 2024</div>
+                        <small class="text-muted">Jan 15 - Feb 28</small>
+                      </td>
+                      <td><span class="badge bg-primary-subtle text-primary">Social</span></td>
+                      <td>$15,000</td>
+                      <td>$8,450</td>
+                      <td style="width: 150px;">
+                        <div class="progress" style="height: 6px;">
+                          <div class="progress-bar" style="width: 56%;"></div>
+                        </div>
+                      </td>
+                      <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="fw-medium">Product Launch</div>
+                        <small class="text-muted">Jan 20 - Mar 15</small>
+                      </td>
+                      <td><span class="badge bg-info-subtle text-info">Email</span></td>
+                      <td>$8,000</td>
+                      <td>$3,200</td>
+                      <td style="width: 150px;">
+                        <div class="progress" style="height: 6px;">
+                          <div class="progress-bar bg-info" style="width: 40%;"></div>
+                        </div>
+                      </td>
+                      <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="fw-medium">Brand Awareness</div>
+                        <small class="text-muted">Jan 1 - Dec 31</small>
+                      </td>
+                      <td><span class="badge bg-warning-subtle text-warning">PPC</span></td>
+                      <td>$50,000</td>
+                      <td>$12,800</td>
+                      <td style="width: 150px;">
+                        <div class="progress" style="height: 6px;">
+                          <div class="progress-bar bg-warning" style="width: 26%;"></div>
+                        </div>
+                      </td>
+                      <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="fw-medium">Webinar Promotion</div>
+                        <small class="text-muted">Feb 1 - Feb 15</small>
+                      </td>
+                      <td><span class="badge bg-success-subtle text-success">Content</span></td>
+                      <td>$3,500</td>
+                      <td>$0</td>
+                      <td style="width: 150px;">
+                        <div class="progress" style="height: 6px;">
+                          <div class="progress-bar bg-secondary" style="width: 0%;"></div>
+                        </div>
+                      </td>
+                      <td><span class="badge bg-warning">Scheduled</span></td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="fw-medium">Retargeting Campaign</div>
+                        <small class="text-muted">Ongoing</small>
+                      </td>
+                      <td><span class="badge bg-primary-subtle text-primary">Social</span></td>
+                      <td>$5,000/mo</td>
+                      <td>$2,150</td>
+                      <td style="width: 150px;">
+                        <div class="progress" style="height: 6px;">
+                          <div class="progress-bar" style="width: 43%;"></div>
+                        </div>
+                      </td>
+                      <td><span class="badge bg-success">Active</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Stats & Top Content -->
+      <div class="row g-4 mb-4">
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Email Performance</h5>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-light" data-bs-toggle="dropdown">
+                  Last 7 days <i class="bi bi-chevron-down ms-1"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item active" href="#">Last 7 days</a></li>
+                  <li><a class="dropdown-item" href="#">Last 30 days</a></li>
+                  <li><a class="dropdown-item" href="#">Last 90 days</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="emailPerformanceChart" style="height: 280px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Top Performing Content</h5>
+              <a href="#" class="btn btn-sm btn-link">View All</a>
+            </div>
+            <div class="card-body p-0">
+              <div class="content-list">
+                <div class="content-item">
+                  <div class="content-rank">1</div>
+                  <div class="content-info">
+                    <div class="content-title">10 Tips for Better Productivity</div>
+                    <div class="content-meta">Blog Post • Jan 15, 2024</div>
+                  </div>
+                  <div class="content-stats">
+                    <span class="content-views"><i class="bi bi-eye"></i> 12.4K</span>
+                    <span class="content-shares"><i class="bi bi-share"></i> 856</span>
+                  </div>
+                </div>
+                <div class="content-item">
+                  <div class="content-rank">2</div>
+                  <div class="content-info">
+                    <div class="content-title">Product Demo Video</div>
+                    <div class="content-meta">Video • Jan 12, 2024</div>
+                  </div>
+                  <div class="content-stats">
+                    <span class="content-views"><i class="bi bi-eye"></i> 8.9K</span>
+                    <span class="content-shares"><i class="bi bi-share"></i> 423</span>
+                  </div>
+                </div>
+                <div class="content-item">
+                  <div class="content-rank">3</div>
+                  <div class="content-info">
+                    <div class="content-title">Industry Report 2024</div>
+                    <div class="content-meta">Whitepaper • Jan 10, 2024</div>
+                  </div>
+                  <div class="content-stats">
+                    <span class="content-views"><i class="bi bi-eye"></i> 6.2K</span>
+                    <span class="content-shares"><i class="bi bi-share"></i> 312</span>
+                  </div>
+                </div>
+                <div class="content-item">
+                  <div class="content-rank">4</div>
+                  <div class="content-info">
+                    <div class="content-title">Customer Success Story</div>
+                    <div class="content-meta">Case Study • Jan 8, 2024</div>
+                  </div>
+                  <div class="content-stats">
+                    <span class="content-views"><i class="bi bi-eye"></i> 4.8K</span>
+                    <span class="content-shares"><i class="bi bi-share"></i> 189</span>
+                  </div>
+                </div>
+                <div class="content-item">
+                  <div class="content-rank">5</div>
+                  <div class="content-info">
+                    <div class="content-title">Weekly Newsletter #42</div>
+                    <div class="content-meta">Email • Jan 14, 2024</div>
+                  </div>
+                  <div class="content-stats">
+                    <span class="content-views"><i class="bi bi-eye"></i> 3.5K</span>
+                    <span class="content-shares"><i class="bi bi-share"></i> 98</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lead Generation & Conversion Funnel -->
+      <div class="row g-4">
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Lead Generation</h5>
+            </div>
+            <div class="card-body">
+              <div id="leadGenerationChart" style="height: 280px;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-xl-6">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="card-title mb-0">Conversion Funnel</h5>
+            </div>
+            <div class="card-body">
+              <div class="funnel-chart">
+                <div class="funnel-stage" style="--funnel-width: 100%;">
+                  <div class="funnel-bar primary"></div>
+                  <div class="funnel-info">
+                    <span class="funnel-name">Visitors</span>
+                    <span class="funnel-value">45,280</span>
+                  </div>
+                </div>
+                <div class="funnel-stage" style="--funnel-width: 65%;">
+                  <div class="funnel-bar info"></div>
+                  <div class="funnel-info">
+                    <span class="funnel-name">Leads</span>
+                    <span class="funnel-value">29,432</span>
+                    <span class="funnel-rate">65%</span>
+                  </div>
+                </div>
+                <div class="funnel-stage" style="--funnel-width: 35%;">
+                  <div class="funnel-bar warning"></div>
+                  <div class="funnel-info">
+                    <span class="funnel-name">MQL</span>
+                    <span class="funnel-value">15,848</span>
+                    <span class="funnel-rate">54%</span>
+                  </div>
+                </div>
+                <div class="funnel-stage" style="--funnel-width: 18%;">
+                  <div class="funnel-bar success"></div>
+                  <div class="funnel-info">
+                    <span class="funnel-name">SQL</span>
+                    <span class="funnel-value">8,150</span>
+                    <span class="funnel-rate">51%</span>
+                  </div>
+                </div>
+                <div class="funnel-stage" style="--funnel-width: 8%;">
+                  <div class="funnel-bar danger"></div>
+                  <div class="funnel-info">
+                    <span class="funnel-name">Customers</span>
+                    <span class="funnel-value">3,622</span>
+                    <span class="funnel-rate">44%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get CSS custom properties
+      const style = getComputedStyle(document.documentElement);
+      const accentColor = style.getPropertyValue('--accent-color').trim();
+      const successColor = style.getPropertyValue('--success-color').trim();
+      const warningColor = style.getPropertyValue('--warning-color').trim();
+      const infoColor = style.getPropertyValue('--info-color').trim();
+      const dangerColor = style.getPropertyValue('--danger-color').trim();
+      const mutedColor = style.getPropertyValue('--muted-color').trim();
+      const borderColor = style.getPropertyValue('--border-color').trim();
+      // Campaign Performance Chart
+      const campaignPerformanceOptions = {
+        series: [{
+          name: 'Impressions',
+          data: [31000, 40000, 28000, 51000, 42000, 109000, 100000, 91000, 72000, 85000, 69000, 98000]
+        }, {
+          name: 'Clicks',
+          data: [1100, 3200, 4500, 3200, 3400, 5200, 4100, 3700, 2900, 3100, 2800, 3600]
+        }],
+        chart: {
+          type: 'area',
+          height: 320,
+          toolbar: {
+            show: false
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        stroke: {
+          curve: 'smooth',
+          width: 2
+        },
+        colors: [accentColor, successColor],
+        fill: {
+          type: 'gradient',
+          gradient: {
+            shadeIntensity: 1,
+            opacityFrom: 0.4,
+            opacityTo: 0.1,
+            stops: [0, 90, 100]
+          }
+        },
+        xaxis: {
+          categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        yaxis: [{
+          title: {
+            text: 'Impressions',
+            style: {
+              color: mutedColor
+            }
+          },
+          labels: {
+            formatter: function(val) {
+              return (val / 1000) + 'K';
+            },
+            style: {
+              colors: mutedColor
+            }
+          }
+        }, {
+          opposite: true,
+          title: {
+            text: 'Clicks',
+            style: {
+              color: mutedColor
+            }
+          },
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        }],
+        grid: {
+          borderColor: borderColor,
+          strokeDashArray: 4
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'right'
+        },
+        tooltip: {
+          y: {
+            formatter: function(val) {
+              return val.toLocaleString();
+            }
+          }
+        }
+      };
+      const campaignPerformanceChart = new ApexCharts(document.querySelector('#campaignPerformanceChart'), campaignPerformanceOptions);
+      campaignPerformanceChart.render();
+      // Channel Distribution Chart
+      const channelDistributionOptions = {
+        series: [42, 28, 18, 12],
+        chart: {
+          type: 'donut',
+          height: 240
+        },
+        labels: ['Social Media', 'Email', 'PPC', 'Content'],
+        colors: [accentColor, successColor, warningColor, infoColor],
+        plotOptions: {
+          pie: {
+            donut: {
+              size: '70%',
+              labels: {
+                show: true,
+                total: {
+                  show: true,
+                  label: 'Total Budget',
+                  formatter: function() {
+                    return '$76.5K';
+                  }
+                }
+              }
+            }
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        legend: {
+          show: false
+        },
+        stroke: {
+          width: 0
+        }
+      };
+      const channelDistributionChart = new ApexCharts(document.querySelector('#channelDistributionChart'), channelDistributionOptions);
+      channelDistributionChart.render();
+      // Email Performance Chart
+      const emailPerformanceOptions = {
+        series: [{
+          name: 'Sent',
+          data: [4400, 5500, 4100, 6700, 5200, 4300, 5100]
+        }, {
+          name: 'Opened',
+          data: [1100, 1400, 1000, 1700, 1300, 1100, 1300]
+        }, {
+          name: 'Clicked',
+          data: [200, 280, 180, 340, 260, 200, 260]
+        }],
+        chart: {
+          type: 'bar',
+          height: 280,
+          toolbar: {
+            show: false
+          }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            columnWidth: '55%',
+            borderRadius: 4
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        colors: [accentColor, infoColor, successColor],
+        xaxis: {
+          categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        yaxis: {
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        grid: {
+          borderColor: borderColor,
+          strokeDashArray: 4
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'right'
+        }
+      };
+      const emailPerformanceChart = new ApexCharts(document.querySelector('#emailPerformanceChart'), emailPerformanceOptions);
+      emailPerformanceChart.render();
+      // Lead Generation Chart
+      const leadGenerationOptions = {
+        series: [{
+          name: 'Organic',
+          data: [44, 55, 57, 56, 61, 58, 63, 60, 66]
+        }, {
+          name: 'Paid',
+          data: [76, 85, 101, 98, 87, 105, 91, 114, 94]
+        }, {
+          name: 'Referral',
+          data: [35, 41, 36, 26, 45, 48, 52, 53, 41]
+        }],
+        chart: {
+          type: 'bar',
+          height: 280,
+          stacked: true,
+          toolbar: {
+            show: false
+          }
+        },
+        plotOptions: {
+          bar: {
+            horizontal: false,
+            borderRadius: 4,
+            columnWidth: '60%'
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        colors: [accentColor, warningColor, infoColor],
+        xaxis: {
+          categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6', 'Week 7', 'Week 8', 'Week 9'],
+          axisBorder: {
+            show: false
+          },
+          axisTicks: {
+            show: false
+          },
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        yaxis: {
+          labels: {
+            style: {
+              colors: mutedColor
+            }
+          }
+        },
+        grid: {
+          borderColor: borderColor,
+          strokeDashArray: 4
+        },
+        legend: {
+          position: 'top',
+          horizontalAlign: 'right'
+        }
+      };
+      const leadGenerationChart = new ApexCharts(document.querySelector('#leadGenerationChart'), leadGenerationOptions);
+      leadGenerationChart.render();
+    });
+  </script>
+</body>
+
+</html>

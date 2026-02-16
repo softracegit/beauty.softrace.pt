@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Font Awesome Icons - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section active" data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link active" href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Font Awesome Icons</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Icons</a>
+          <span class="breadcrumb-item active">Font Awesome</span>
+        </nav>
+      </div>
+
+      <section class="section">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">Font Awesome Free 7.1</h5>
+            <p class="text-muted mb-0 mt-1">2,049 icons available. Click any icon to copy its class name.</p>
+          </div>
+          <div class="card-body">
+            <!-- Filter Controls -->
+            <div class="row g-3 mb-4">
+              <div class="col-md-4">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+                  <input type="text" class="form-control" id="iconSearch" placeholder="Search icons...">
+                </div>
+              </div>
+              <div class="col-md-4">
+                <select class="form-select" id="categoryFilter">
+                  <option value="all">All Categories</option>
+                  <option value="arrows">Arrows & Direction</option>
+                  <option value="brands">Brands & Logos</option>
+                  <option value="buildings">Buildings & Maps</option>
+                  <option value="business">Business & Finance</option>
+                  <option value="charts">Charts & Data</option>
+                  <option value="communication">Communication</option>
+                  <option value="devices">Devices & Hardware</option>
+                  <option value="editing">Editing & Design</option>
+                  <option value="files">Files & Documents</option>
+                  <option value="media">Media & Player</option>
+                  <option value="nature">Nature & Weather</option>
+                  <option value="people">People & Users</option>
+                  <option value="security">Security & Lock</option>
+                  <option value="shapes">Shapes & Objects</option>
+                  <option value="social">Social Media</option>
+                  <option value="status">Status & Alerts</option>
+                  <option value="transport">Transport & Vehicles</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <select class="form-select" id="styleFilter">
+                  <option value="all">All Styles</option>
+                  <option value="solid">Solid (fa-solid)</option>
+                  <option value="brands">Brands (fa-brands)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Icons Count -->
+            <div class="mb-3">
+              <span class="text-muted">Showing <span id="iconCount">2049</span> icons</span>
+            </div>
+
+            <!-- Icons Grid -->
+            <div class="icons-grid" id="iconsGrid">
+              <!-- Icons will be populated by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Copy Toast -->
+      <div class="copy-toast" id="copyToast">
+        <i class="fa-solid fa-check me-2"></i>
+        <span id="toastMessage">Copied!</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Font Awesome icons list (filtered to actual icons only)
+      const icons = [
+        'a', 'address-book', 'address-card', 'align-center', 'align-justify', 'align-left', 'align-right',
+        'anchor', 'anchor-circle-check', 'anchor-circle-exclamation', 'anchor-circle-xmark', 'anchor-lock',
+        'angle-down', 'angle-left', 'angle-right', 'angle-up', 'angles-down', 'angles-left', 'angles-right', 'angles-up',
+        'ankh', 'apple-whole', 'archive', 'archway', 'arrow-down', 'arrow-down-1-9', 'arrow-down-9-1',
+        'arrow-down-a-z', 'arrow-down-long', 'arrow-down-short-wide', 'arrow-down-up-across-line',
+        'arrow-down-up-lock', 'arrow-down-wide-short', 'arrow-down-z-a', 'arrow-left', 'arrow-left-long',
+        'arrow-pointer', 'arrow-right', 'arrow-right-arrow-left', 'arrow-right-from-bracket',
+        'arrow-right-long', 'arrow-right-to-bracket', 'arrow-right-to-city', 'arrow-rotate-left',
+        'arrow-rotate-right', 'arrow-trend-down', 'arrow-trend-up', 'arrow-turn-down', 'arrow-turn-up',
+        'arrow-up', 'arrow-up-1-9', 'arrow-up-9-1', 'arrow-up-a-z', 'arrow-up-from-bracket',
+        'arrow-up-from-ground-water', 'arrow-up-from-water-pump', 'arrow-up-long', 'arrow-up-right-dots',
+        'arrow-up-right-from-square', 'arrow-up-short-wide', 'arrow-up-wide-short', 'arrow-up-z-a',
+        'arrows-down-to-line', 'arrows-down-to-people', 'arrows-left-right', 'arrows-left-right-to-line',
+        'arrows-rotate', 'arrows-spin', 'arrows-split-up-and-left', 'arrows-to-circle', 'arrows-to-dot',
+        'arrows-to-eye', 'arrows-turn-right', 'arrows-turn-to-dots', 'arrows-up-down', 'arrows-up-down-left-right',
+        'arrows-up-to-line', 'asterisk', 'at', 'atom', 'audio-description', 'austral-sign', 'award',
+        'b', 'baby', 'baby-carriage', 'backward', 'backward-fast', 'backward-step', 'bacon', 'bacteria',
+        'bacterium', 'bag-shopping', 'bahai', 'baht-sign', 'ban', 'ban-smoking', 'bandage', 'bangladeshi-taka-sign',
+        'barcode', 'bars', 'bars-progress', 'bars-staggered', 'baseball', 'baseball-bat-ball', 'basket-shopping',
+        'basketball', 'bath', 'battery-empty', 'battery-full', 'battery-half', 'battery-quarter',
+        'battery-three-quarters', 'bed', 'bed-pulse', 'beer-mug-empty', 'bell', 'bell-concierge', 'bell-slash',
+        'bezier-curve', 'bicycle', 'binoculars', 'biohazard', 'blender', 'blender-phone', 'blog', 'bold',
+        'bolt', 'bolt-lightning', 'bomb', 'bone', 'bong', 'book', 'book-atlas', 'book-bible', 'book-bookmark',
+        'book-journal-whills', 'book-medical', 'book-open', 'book-open-reader', 'book-quran', 'book-skull',
+        'book-tanakh', 'bookmark', 'border-all', 'border-none', 'border-top-left', 'bore-hole', 'bottle-droplet',
+        'bottle-water', 'bowl-food', 'bowl-rice', 'bowling-ball', 'box', 'box-archive', 'box-open', 'box-tissue',
+        'boxes-packing', 'boxes-stacked', 'braille', 'brain', 'brazilian-real-sign', 'bread-slice', 'bridge',
+        'bridge-circle-check', 'bridge-circle-exclamation', 'bridge-circle-xmark', 'bridge-lock', 'bridge-water',
+        'briefcase', 'briefcase-medical', 'broom', 'broom-ball', 'brush', 'bucket', 'bug', 'bug-slash', 'bugs',
+        'building', 'building-circle-arrow-right', 'building-circle-check', 'building-circle-exclamation',
+        'building-circle-xmark', 'building-columns', 'building-flag', 'building-lock', 'building-ngo',
+        'building-shield', 'building-un', 'building-user', 'building-wheat', 'bullhorn', 'bullseye', 'burger',
+        'burst', 'bus', 'bus-simple', 'business-time', 'c', 'cable-car', 'cake-candles', 'calculator', 'calendar',
+        'calendar-check', 'calendar-day', 'calendar-days', 'calendar-minus', 'calendar-plus', 'calendar-week',
+        'calendar-xmark', 'camera', 'camera-retro', 'camera-rotate', 'campground', 'candy-cane', 'cannabis',
+        'capsules', 'car', 'car-battery', 'car-burst', 'car-on', 'car-rear', 'car-side', 'car-tunnel', 'caravan',
+        'caret-down', 'caret-left', 'caret-right', 'caret-up', 'carrot', 'cart-arrow-down', 'cart-flatbed',
+        'cart-flatbed-suitcase', 'cart-plus', 'cart-shopping', 'cash-register', 'cat', 'cedi-sign', 'cent-sign',
+        'certificate', 'chair', 'chalkboard', 'chalkboard-user', 'champagne-glasses', 'charging-station',
+        'chart-area', 'chart-bar', 'chart-column', 'chart-gantt', 'chart-line', 'chart-pie', 'chart-simple',
+        'check', 'check-double', 'check-to-slot', 'cheese', 'chess', 'chess-bishop', 'chess-board', 'chess-king',
+        'chess-knight', 'chess-pawn', 'chess-queen', 'chess-rook', 'chevron-down', 'chevron-left', 'chevron-right',
+        'chevron-up', 'child', 'child-combatant', 'child-dress', 'child-reaching', 'children', 'church', 'circle',
+        'circle-arrow-down', 'circle-arrow-left', 'circle-arrow-right', 'circle-arrow-up', 'circle-check',
+        'circle-chevron-down', 'circle-chevron-left', 'circle-chevron-right', 'circle-chevron-up',
+        'circle-dollar-to-slot', 'circle-dot', 'circle-down', 'circle-exclamation', 'circle-h', 'circle-half-stroke',
+        'circle-info', 'circle-left', 'circle-minus', 'circle-nodes', 'circle-notch', 'circle-pause', 'circle-play',
+        'circle-plus', 'circle-question', 'circle-radiation', 'circle-right', 'circle-stop', 'circle-up',
+        'circle-user', 'circle-xmark', 'city', 'clapperboard', 'clipboard', 'clipboard-check', 'clipboard-list',
+        'clipboard-question', 'clipboard-user', 'clock', 'clock-rotate-left', 'clone', 'closed-captioning',
+        'cloud', 'cloud-arrow-down', 'cloud-arrow-up', 'cloud-bolt', 'cloud-meatball', 'cloud-moon',
+        'cloud-moon-rain', 'cloud-rain', 'cloud-showers-heavy', 'cloud-showers-water', 'cloud-sun',
+        'cloud-sun-rain', 'clover', 'code', 'code-branch', 'code-commit', 'code-compare', 'code-fork',
+        'code-merge', 'code-pull-request', 'coins', 'colon-sign', 'comment', 'comment-dollar', 'comment-dots',
+        'comment-medical', 'comment-slash', 'comment-sms', 'comments', 'comments-dollar', 'compact-disc',
+        'compass', 'compass-drafting', 'compress', 'computer', 'computer-mouse', 'cookie', 'cookie-bite', 'copy',
+        'copyright', 'couch', 'cow', 'credit-card', 'crop', 'crop-simple', 'cross', 'crosshairs', 'crow', 'crown',
+        'crutch', 'cruzeiro-sign', 'cube', 'cubes', 'cubes-stacked', 'd', 'database', 'delete-left', 'democrat',
+        'desktop', 'dharmachakra', 'diagram-next', 'diagram-predecessor', 'diagram-project', 'diagram-successor',
+        'diamond', 'diamond-turn-right', 'dice', 'dice-d20', 'dice-d6', 'dice-five', 'dice-four', 'dice-one',
+        'dice-six', 'dice-three', 'dice-two', 'disease', 'display', 'divide', 'dna', 'dog', 'dollar-sign', 'dolly',
+        'dong-sign', 'door-closed', 'door-open', 'dove', 'down-left-and-up-right-to-center', 'down-long',
+        'download', 'dragon', 'draw-polygon', 'droplet', 'droplet-slash', 'drum', 'drum-steelpan', 'drumstick-bite',
+        'dumbbell', 'dumpster', 'dumpster-fire', 'dungeon', 'e', 'ear-deaf', 'ear-listen', 'earth-africa',
+        'earth-americas', 'earth-asia', 'earth-europe', 'earth-oceania', 'egg', 'eject', 'elevator', 'ellipsis',
+        'ellipsis-vertical', 'envelope', 'envelope-circle-check', 'envelope-open', 'envelope-open-text',
+        'envelopes-bulk', 'equals', 'eraser', 'ethernet', 'euro-sign', 'exclamation', 'expand', 'explosion',
+        'eye', 'eye-dropper', 'eye-low-vision', 'eye-slash', 'f', 'face-angry', 'face-dizzy', 'face-flushed',
+        'face-frown', 'face-frown-open', 'face-grimace', 'face-grin', 'face-grin-beam', 'face-grin-beam-sweat',
+        'face-grin-hearts', 'face-grin-squint', 'face-grin-squint-tears', 'face-grin-stars', 'face-grin-tears',
+        'face-grin-tongue', 'face-grin-tongue-squint', 'face-grin-tongue-wink', 'face-grin-wide', 'face-grin-wink',
+        'face-kiss', 'face-kiss-beam', 'face-kiss-wink-heart', 'face-laugh', 'face-laugh-beam', 'face-laugh-squint',
+        'face-laugh-wink', 'face-meh', 'face-meh-blank', 'face-rolling-eyes', 'face-sad-cry', 'face-sad-tear',
+        'face-smile', 'face-smile-beam', 'face-smile-wink', 'face-surprise', 'face-tired', 'fan', 'faucet',
+        'faucet-drip', 'fax', 'feather', 'feather-pointed', 'ferry', 'file', 'file-arrow-down', 'file-arrow-up',
+        'file-audio', 'file-circle-check', 'file-circle-exclamation', 'file-circle-minus', 'file-circle-plus',
+        'file-circle-question', 'file-circle-xmark', 'file-code', 'file-contract', 'file-csv', 'file-excel',
+        'file-export', 'file-image', 'file-import', 'file-invoice', 'file-invoice-dollar', 'file-lines',
+        'file-medical', 'file-pdf', 'file-pen', 'file-powerpoint', 'file-prescription', 'file-shield',
+        'file-signature', 'file-video', 'file-waveform', 'file-word', 'file-zipper', 'fill', 'fill-drip', 'film',
+        'filter', 'filter-circle-dollar', 'filter-circle-xmark', 'fingerprint', 'fire', 'fire-burner',
+        'fire-extinguisher', 'fire-flame-curved', 'fire-flame-simple', 'fish', 'fish-fins', 'flag',
+        'flag-checkered', 'flag-usa', 'flask', 'flask-vial', 'floppy-disk', 'florin-sign', 'folder', 'folder-closed',
+        'folder-minus', 'folder-open', 'folder-plus', 'folder-tree', 'font', 'font-awesome', 'football', 'forward',
+        'forward-fast', 'forward-step', 'franc-sign', 'frog', 'futbol', 'g', 'gamepad', 'gas-pump', 'gauge',
+        'gauge-high', 'gauge-simple', 'gauge-simple-high', 'gavel', 'gear', 'gears', 'gem', 'genderless', 'ghost',
+        'gift', 'gifts', 'glass-water', 'glass-water-droplet', 'glasses', 'globe', 'golf-ball-tee', 'gopuram',
+        'graduation-cap', 'greater-than', 'greater-than-equal', 'grip', 'grip-lines', 'grip-lines-vertical',
+        'grip-vertical', 'group-arrows-rotate', 'guarani-sign', 'guitar', 'gun', 'h', 'hammer', 'hamsa', 'hand',
+        'hand-back-fist', 'hand-dots', 'hand-fist', 'hand-holding', 'hand-holding-dollar', 'hand-holding-droplet',
+        'hand-holding-hand', 'hand-holding-heart', 'hand-holding-medical', 'hand-lizard', 'hand-middle-finger',
+        'hand-peace', 'hand-point-down', 'hand-point-left', 'hand-point-right', 'hand-point-up', 'hand-pointer',
+        'hand-scissors', 'hand-sparkles', 'hand-spock', 'handcuffs', 'hands', 'hands-asl-interpreting',
+        'hands-bound', 'hands-bubbles', 'hands-clapping', 'hands-holding', 'hands-holding-child',
+        'hands-holding-circle', 'hands-praying', 'handshake', 'handshake-angle', 'handshake-simple',
+        'handshake-simple-slash', 'handshake-slash', 'hanukiah', 'hard-drive', 'hashtag', 'hat-cowboy',
+        'hat-cowboy-side', 'hat-wizard', 'head-side-cough', 'head-side-cough-slash', 'head-side-mask',
+        'head-side-virus', 'heading', 'headphones', 'headphones-simple', 'headset', 'heart', 'heart-circle-bolt',
+        'heart-circle-check', 'heart-circle-exclamation', 'heart-circle-minus', 'heart-circle-plus',
+        'heart-circle-xmark', 'heart-crack', 'heart-pulse', 'helicopter', 'helicopter-symbol', 'helmet-safety',
+        'helmet-un', 'highlighter', 'hill-avalanche', 'hill-rockslide', 'hippo', 'hockey-puck', 'holly-berry',
+        'horse', 'horse-head', 'hospital', 'hospital-user', 'hot-tub-person', 'hotdog', 'hotel', 'hourglass',
+        'hourglass-end', 'hourglass-half', 'hourglass-start', 'house', 'house-chimney', 'house-chimney-crack',
+        'house-chimney-medical', 'house-chimney-user', 'house-chimney-window', 'house-circle-check',
+        'house-circle-exclamation', 'house-circle-xmark', 'house-crack', 'house-fire', 'house-flag',
+        'house-flood-water', 'house-flood-water-circle-arrow-right', 'house-laptop', 'house-lock', 'house-medical',
+        'house-medical-circle-check', 'house-medical-circle-exclamation', 'house-medical-circle-xmark',
+        'house-medical-flag', 'house-signal', 'house-tsunami', 'house-user', 'hryvnia-sign', 'hurricane', 'i',
+        'i-cursor', 'ice-cream', 'icicles', 'icons', 'id-badge', 'id-card', 'id-card-clip', 'igloo', 'image',
+        'image-portrait', 'images', 'inbox', 'indent', 'indian-rupee-sign', 'industry', 'infinity', 'info',
+        'italic', 'j', 'jar', 'jar-wheat', 'jedi', 'jet-fighter', 'jet-fighter-up', 'joint', 'jug-detergent',
+        'k', 'kaaba', 'key', 'keyboard', 'khanda', 'kip-sign', 'kit-medical', 'kitchen-set', 'kiwi-bird', 'l',
+        'land-mine-on', 'landmark', 'landmark-dome', 'landmark-flag', 'language', 'laptop', 'laptop-code',
+        'laptop-file', 'laptop-medical', 'lari-sign', 'layer-group', 'leaf', 'left-long', 'left-right', 'lemon',
+        'less-than', 'less-than-equal', 'life-ring', 'lightbulb', 'lines-leaning', 'link', 'link-slash',
+        'lira-sign', 'list', 'list-check', 'list-ol', 'list-ul', 'litecoin-sign', 'location-arrow',
+        'location-crosshairs', 'location-dot', 'location-pin', 'location-pin-lock', 'lock', 'lock-open', 'locust',
+        'lungs', 'lungs-virus', 'm', 'magnet', 'magnifying-glass', 'magnifying-glass-arrow-right',
+        'magnifying-glass-chart', 'magnifying-glass-dollar', 'magnifying-glass-location', 'magnifying-glass-minus',
+        'magnifying-glass-plus', 'manat-sign', 'map', 'map-location', 'map-location-dot', 'map-pin', 'marker',
+        'mars', 'mars-and-venus', 'mars-and-venus-burst', 'mars-double', 'mars-stroke', 'mars-stroke-right',
+        'mars-stroke-up', 'martini-glass', 'martini-glass-citrus', 'martini-glass-empty', 'mask', 'mask-face',
+        'mask-ventilator', 'masks-theater', 'mattress-pillow', 'maximize', 'medal', 'memory', 'menorah', 'mercury',
+        'message', 'meteor', 'microchip', 'microphone', 'microphone-lines', 'microphone-lines-slash',
+        'microphone-slash', 'microscope', 'mill-sign', 'minimize', 'minus', 'mitten', 'mobile', 'mobile-button',
+        'mobile-retro', 'mobile-screen', 'mobile-screen-button', 'money-bill', 'money-bill-1', 'money-bill-1-wave',
+        'money-bill-transfer', 'money-bill-trend-up', 'money-bill-wave', 'money-bill-wheat', 'money-bills',
+        'money-check', 'money-check-dollar', 'monument', 'moon', 'mortar-pestle', 'mosque', 'mosquito',
+        'mosquito-net', 'motorcycle', 'mound', 'mountain', 'mountain-city', 'mountain-sun', 'mug-hot', 'mug-saucer',
+        'music', 'n', 'naira-sign', 'network-wired', 'neuter', 'newspaper', 'not-equal', 'notdef', 'note-sticky',
+        'notes-medical', 'o', 'object-group', 'object-ungroup', 'oil-can', 'oil-well', 'om', 'otter', 'outdent',
+        'p', 'pager', 'paint-roller', 'paintbrush', 'palette', 'pallet', 'panorama', 'paper-plane', 'paperclip',
+        'parachute-box', 'paragraph', 'passport', 'paste', 'pause', 'paw', 'peace', 'pen', 'pen-clip', 'pen-fancy',
+        'pen-nib', 'pen-ruler', 'pen-to-square', 'pencil', 'people-arrows', 'people-carry-box', 'people-group',
+        'people-line', 'people-pulling', 'people-robbery', 'people-roof', 'pepper-hot', 'percent', 'person',
+        'person-arrow-down-to-line', 'person-arrow-up-from-line', 'person-biking', 'person-booth',
+        'person-breastfeeding', 'person-burst', 'person-cane', 'person-chalkboard', 'person-circle-check',
+        'person-circle-exclamation', 'person-circle-minus', 'person-circle-plus', 'person-circle-question',
+        'person-circle-xmark', 'person-digging', 'person-dots-from-line', 'person-dress', 'person-dress-burst',
+        'person-drowning', 'person-falling', 'person-falling-burst', 'person-half-dress', 'person-harassing',
+        'person-hiking', 'person-military-pointing', 'person-military-rifle', 'person-military-to-person',
+        'person-praying', 'person-pregnant', 'person-rays', 'person-rifle', 'person-running', 'person-shelter',
+        'person-skating', 'person-skiing', 'person-skiing-nordic', 'person-snowboarding', 'person-swimming',
+        'person-through-window', 'person-walking', 'person-walking-arrow-loop-left', 'person-walking-arrow-right',
+        'person-walking-dashed-line-arrow-right', 'person-walking-luggage', 'person-walking-with-cane',
+        'peseta-sign', 'peso-sign', 'phone', 'phone-flip', 'phone-slash', 'phone-volume', 'photo-film', 'piggy-bank',
+        'pills', 'pizza-slice', 'place-of-worship', 'plane', 'plane-arrival', 'plane-circle-check',
+        'plane-circle-exclamation', 'plane-circle-xmark', 'plane-departure', 'plane-lock', 'plane-slash',
+        'plane-up', 'plant-wilt', 'plate-wheat', 'play', 'plug', 'plug-circle-bolt', 'plug-circle-check',
+        'plug-circle-exclamation', 'plug-circle-minus', 'plug-circle-plus', 'plug-circle-xmark', 'plus',
+        'plus-minus', 'podcast', 'poo', 'poo-storm', 'poop', 'pound-sign', 'power-off', 'prescription',
+        'prescription-bottle', 'prescription-bottle-medical', 'print', 'pump-medical', 'pump-soap', 'puzzle-piece',
+        'q', 'qrcode', 'question', 'quote-left', 'quote-right', 'r', 'radiation', 'radio', 'rainbow', 'ranking-star',
+        'receipt', 'record-vinyl', 'rectangle-ad', 'rectangle-list', 'rectangle-xmark', 'recycle', 'registered',
+        'repeat', 'reply', 'reply-all', 'republican', 'restroom', 'retweet', 'ribbon', 'right-from-bracket',
+        'right-left', 'right-long', 'right-to-bracket', 'ring', 'road', 'road-barrier', 'road-bridge',
+        'road-circle-check', 'road-circle-exclamation', 'road-circle-xmark', 'road-lock', 'road-spikes', 'robot',
+        'rocket', 'rotate', 'rotate-left', 'rotate-right', 'route', 'rss', 'ruble-sign', 'rug', 'ruler',
+        'ruler-combined', 'ruler-horizontal', 'ruler-vertical', 'rupee-sign', 'rupiah-sign', 's', 'sack-dollar',
+        'sack-xmark', 'sailboat', 'satellite', 'satellite-dish', 'scale-balanced', 'scale-unbalanced',
+        'scale-unbalanced-flip', 'school', 'school-circle-check', 'school-circle-exclamation', 'school-circle-xmark',
+        'school-flag', 'school-lock', 'scissors', 'screwdriver', 'screwdriver-wrench', 'scroll', 'scroll-torah',
+        'sd-card', 'section', 'seedling', 'server', 'shapes', 'share', 'share-from-square', 'share-nodes',
+        'sheet-plastic', 'shekel-sign', 'shield', 'shield-cat', 'shield-dog', 'shield-halved', 'shield-heart',
+        'shield-virus', 'ship', 'shirt', 'shoe-prints', 'shop', 'shop-lock', 'shop-slash', 'shower', 'shrimp',
+        'shuffle', 'shuttle-space', 'sign-hanging', 'signal', 'signature', 'signs-post', 'sim-card', 'sink',
+        'sitemap', 'skull', 'skull-crossbones', 'slash', 'sleigh', 'sliders', 'smog', 'smoking', 'snowflake',
+        'snowman', 'snowplow', 'soap', 'socks', 'solar-panel', 'sort', 'sort-down', 'sort-up', 'spa', 'spell-check',
+        'spider', 'spinner', 'splotch', 'spoon', 'spray-can', 'spray-can-sparkles', 'square', 'square-arrow-up-right',
+        'square-caret-down', 'square-caret-left', 'square-caret-right', 'square-caret-up', 'square-check',
+        'square-envelope', 'square-full', 'square-h', 'square-minus', 'square-nfi', 'square-parking',
+        'square-pen', 'square-person-confined', 'square-phone', 'square-phone-flip', 'square-plus',
+        'square-poll-horizontal', 'square-poll-vertical', 'square-root-variable', 'square-rss', 'square-share-nodes',
+        'square-up-right', 'square-virus', 'square-xmark', 'staff-snake', 'stairs', 'stamp', 'stapler', 'star',
+        'star-and-crescent', 'star-half', 'star-half-stroke', 'star-of-david', 'star-of-life', 'sterling-sign',
+        'stethoscope', 'stop', 'stopwatch', 'stopwatch-20', 'store', 'store-slash', 'street-view', 'strikethrough',
+        'stroopwafel', 'subscript', 'suitcase', 'suitcase-medical', 'suitcase-rolling', 'sun', 'sun-plant-wilt',
+        'superscript', 'swatchbook', 'synagogue', 'syringe', 't', 'table', 'table-cells', 'table-cells-large',
+        'table-columns', 'table-list', 'table-tennis-paddle-ball', 'tablet', 'tablet-button', 'tablet-screen-button',
+        'tablets', 'tachograph-digital', 'tag', 'tags', 'tape', 'tarp', 'tarp-droplet', 'taxi', 'teeth', 'teeth-open',
+        'temperature-arrow-down', 'temperature-arrow-up', 'temperature-empty', 'temperature-full', 'temperature-half',
+        'temperature-high', 'temperature-low', 'temperature-quarter', 'temperature-three-quarters', 'tenge-sign',
+        'tent', 'tent-arrow-down-to-line', 'tent-arrow-left-right', 'tent-arrow-turn-left', 'tent-arrows-down',
+        'tents', 'terminal', 'text-height', 'text-slash', 'text-width', 'thermometer', 'thumbs-down', 'thumbs-up',
+        'thumbtack', 'ticket', 'ticket-simple', 'timeline', 'toggle-off', 'toggle-on', 'toilet', 'toilet-paper',
+        'toilet-paper-slash', 'toilet-portable', 'toilets-portable', 'toolbox', 'tooth', 'torii-gate', 'tornado',
+        'tower-broadcast', 'tower-cell', 'tower-observation', 'tractor', 'trademark', 'traffic-light', 'trailer',
+        'train', 'train-subway', 'train-tram', 'transgender', 'trash', 'trash-arrow-up', 'trash-can',
+        'trash-can-arrow-up', 'tree', 'tree-city', 'triangle-exclamation', 'trophy', 'trowel', 'trowel-bricks',
+        'truck', 'truck-arrow-right', 'truck-droplet', 'truck-fast', 'truck-field', 'truck-field-un', 'truck-front',
+        'truck-medical', 'truck-monster', 'truck-moving', 'truck-pickup', 'truck-plane', 'truck-ramp-box',
+        'tty', 'turkish-lira-sign', 'turn-down', 'turn-up', 'tv', 'u', 'umbrella', 'umbrella-beach', 'underline',
+        'universal-access', 'unlock', 'unlock-keyhole', 'up-down', 'up-down-left-right', 'up-long',
+        'up-right-and-down-left-from-center', 'up-right-from-square', 'upload', 'user', 'user-astronaut',
+        'user-check', 'user-clock', 'user-doctor', 'user-gear', 'user-graduate', 'user-group', 'user-injured',
+        'user-large', 'user-large-slash', 'user-lock', 'user-minus', 'user-ninja', 'user-nurse', 'user-pen',
+        'user-plus', 'user-secret', 'user-shield', 'user-slash', 'user-tag', 'user-tie', 'user-xmark', 'users',
+        'users-between-lines', 'users-gear', 'users-line', 'users-rays', 'users-rectangle', 'users-slash',
+        'users-viewfinder', 'utensils', 'v', 'van-shuttle', 'vault', 'vector-square', 'venus', 'venus-double',
+        'venus-mars', 'vest', 'vest-patches', 'vial', 'vial-circle-check', 'vial-virus', 'vials', 'video',
+        'video-slash', 'vihara', 'virus', 'virus-covid', 'virus-covid-slash', 'virus-slash', 'viruses', 'voicemail',
+        'volcano', 'volleyball', 'volume-high', 'volume-low', 'volume-off', 'volume-xmark', 'vr-cardboard', 'w',
+        'walkie-talkie', 'wallet', 'wand-magic', 'wand-magic-sparkles', 'wand-sparkles', 'warehouse', 'water',
+        'water-ladder', 'wave-square', 'weight-hanging', 'weight-scale', 'wheat-awn', 'wheat-awn-circle-exclamation',
+        'wheelchair', 'wheelchair-move', 'whiskey-glass', 'wifi', 'wind', 'window-maximize', 'window-minimize',
+        'window-restore', 'wine-bottle', 'wine-glass', 'wine-glass-empty', 'won-sign', 'worm', 'wrench', 'x',
+        'x-ray', 'xmark', 'xmarks-lines', 'y', 'yen-sign', 'yin-yang', 'z'
+      ];
+      // Brand icons (require fa-brands class)
+      const brandIcons = [
+        '42-group', '500px', 'accessible-icon', 'accusoft', 'adn', 'adversal', 'affiliatetheme', 'airbnb',
+        'algolia', 'alipay', 'amazon', 'amazon-pay', 'amilia', 'android', 'angellist', 'angrycreative', 'angular',
+        'app-store', 'app-store-ios', 'apper', 'apple', 'apple-pay', 'artstation', 'asymmetrik', 'atlassian',
+        'audible', 'autoprefixer', 'avianex', 'aviato', 'aws', 'bandcamp', 'battle-net', 'behance', 'bilibili',
+        'bimobject', 'bitbucket', 'bitcoin', 'bity', 'black-tie', 'blackberry', 'blogger', 'blogger-b', 'bluesky',
+        'bluetooth', 'bluetooth-b', 'bootstrap', 'bots', 'brave', 'brave-reverse', 'btc', 'buffer', 'buromobelexperte',
+        'buy-n-large', 'buysellads', 'canadian-maple-leaf', 'cc-amazon-pay', 'cc-amex', 'cc-apple-pay',
+        'cc-diners-club', 'cc-discover', 'cc-jcb', 'cc-mastercard', 'cc-paypal', 'cc-stripe', 'cc-visa',
+        'centercode', 'centos', 'chrome', 'chromecast', 'cloudflare', 'cloudscale', 'cloudsmith', 'cloudversify',
+        'cmplid', 'codepen', 'codiepie', 'confluence', 'connectdevelop', 'contao', 'cotton-bureau', 'cpanel',
+        'creative-commons', 'creative-commons-by', 'creative-commons-nc', 'creative-commons-nc-eu',
+        'creative-commons-nc-jp', 'creative-commons-nd', 'creative-commons-pd', 'creative-commons-pd-alt',
+        'creative-commons-remix', 'creative-commons-sa', 'creative-commons-sampling', 'creative-commons-sampling-plus',
+        'creative-commons-share', 'creative-commons-zero', 'critical-role', 'css3', 'css3-alt', 'cuttlefish',
+        'd-and-d', 'd-and-d-beyond', 'dailymotion', 'dart-lang', 'dashcube', 'debian', 'deezer', 'delicious',
+        'deploydog', 'deskpro', 'dev', 'deviantart', 'dhl', 'diaspora', 'digg', 'digital-ocean', 'discord',
+        'discourse', 'dochub', 'docker', 'draft2digital', 'dribbble', 'dropbox', 'drupal', 'duolingo', 'dyalog',
+        'earlybirds', 'ebay', 'edge', 'edge-legacy', 'elementor', 'eleventy', 'ello', 'ember', 'empire', 'envira',
+        'erlang', 'ethereum', 'etsy', 'evernote', 'expeditedssl', 'facebook', 'facebook-f', 'facebook-messenger',
+        'fantasy-flight-games', 'fedex', 'fedora', 'figma', 'firefox', 'firefox-browser', 'first-order',
+        'first-order-alt', 'firstdraft', 'flickr', 'flipboard', 'flutter', 'fly', 'font-awesome', 'fonticons',
+        'fonticons-fi', 'fort-awesome', 'fort-awesome-alt', 'forumbee', 'foursquare', 'free-code-camp', 'freebsd',
+        'fulcrum', 'galactic-republic', 'galactic-senate', 'get-pocket', 'gg', 'gg-circle', 'git', 'git-alt',
+        'github', 'github-alt', 'gitkraken', 'gitlab', 'gitter', 'glide', 'glide-g', 'gofore', 'golang',
+        'goodreads', 'goodreads-g', 'google', 'google-drive', 'google-pay', 'google-play', 'google-plus',
+        'google-plus-g', 'google-scholar', 'google-wallet', 'gratipay', 'grav', 'gripfire', 'grunt', 'guilded',
+        'gulp', 'hacker-news', 'hackerrank', 'hashnode', 'hips', 'hire-a-helper', 'hive', 'hooli', 'hornbill',
+        'hotjar', 'houzz', 'html5', 'hubspot', 'ideal', 'imdb', 'innosoft', 'instagram', 'instalod', 'intercom',
+        'internet-explorer', 'invision', 'ioxhost', 'itch-io', 'itunes', 'itunes-note', 'java', 'jedi-order',
+        'jenkins', 'jira', 'joget', 'joomla', 'js', 'jsfiddle', 'jxl', 'kaggle', 'keybase', 'keycdn', 'kickstarter',
+        'kickstarter-k', 'korvue', 'laravel', 'lastfm', 'leanpub', 'less', 'letterboxd', 'line', 'linkedin',
+        'linkedin-in', 'linktree', 'linode', 'linux', 'lyft', 'magento', 'mailchimp', 'mandalorian', 'markdown',
+        'mastodon', 'maxcdn', 'mdb', 'medapps', 'medium', 'medrt', 'meetup', 'megaport', 'mendeley', 'meta',
+        'microblog', 'microsoft', 'mintbit', 'mix', 'mixcloud', 'mixer', 'mizuni', 'modx', 'monero', 'napster',
+        'neos', 'nfc-directional', 'nfc-symbol', 'nimblr', 'node', 'node-js', 'notion', 'npm', 'ns8', 'nutritionix',
+        'octopus-deploy', 'odnoklassniki', 'odysee', 'old-republic', 'openai', 'opencart', 'openid', 'opensuse',
+        'opera', 'optin-monster', 'orcid', 'osi', 'padlet', 'page4', 'pagelines', 'palfed', 'pandora', 'patreon',
+        'paypal', 'perbyte', 'periscope', 'phabricator', 'phoenix-framework', 'phoenix-squadron', 'php',
+        'pied-piper', 'pied-piper-alt', 'pied-piper-hat', 'pied-piper-pp', 'pinterest', 'pinterest-p', 'pix',
+        'pixelfed', 'pixiv', 'playstation', 'product-hunt', 'pushed', 'python', 'qq', 'quinscape', 'quora',
+        'r-project', 'raspberry-pi', 'ravelry', 'react', 'reacteurope', 'readme', 'rebel', 'red-river', 'reddit',
+        'reddit-alien', 'redhat', 'rendact', 'renren', 'replyd', 'researchgate', 'resolving', 'rev', 'rocketchat',
+        'rockrms', 'rust', 'safari', 'salesforce', 'sass', 'schlix', 'screenpal', 'scribd', 'searchengin',
+        'sellcast', 'sellsy', 'servicestack', 'shirtsinbulk', 'shoelace', 'shopify', 'shopware', 'signal-messenger',
+        'simplybuilt', 'sistrix', 'sith', 'sitrox', 'sketch', 'skyatlas', 'skype', 'slack', 'slideshare',
+        'snapchat', 'soundcloud', 'sourcetree', 'space-awesome', 'speakap', 'speaker-deck', 'spotify',
+        'square-behance', 'square-bluesky', 'square-dribbble', 'square-facebook', 'square-figma',
+        'square-font-awesome', 'square-font-awesome-stroke', 'square-git', 'square-github', 'square-gitlab',
+        'square-google-plus', 'square-hacker-news', 'square-instagram', 'square-js', 'square-kickstarter',
+        'square-lastfm', 'square-letterboxd', 'square-linkedin', 'square-odnoklassniki', 'square-pied-piper',
+        'square-pinterest', 'square-reddit', 'square-snapchat', 'square-steam', 'square-threads', 'square-tumblr',
+        'square-twitter', 'square-upwork', 'square-viadeo', 'square-vimeo', 'square-web-awesome',
+        'square-web-awesome-stroke', 'square-whatsapp', 'square-x-twitter', 'square-xing', 'square-youtube',
+        'squarespace', 'stack-exchange', 'stack-overflow', 'stackpath', 'staylinked', 'steam', 'steam-symbol',
+        'sticker-mule', 'strava', 'stripe', 'stripe-s', 'stubber', 'studiovinari', 'stumbleupon',
+        'stumbleupon-circle', 'superpowers', 'supple', 'suse', 'swift', 'symfony', 'teamspeak', 'telegram',
+        'tencent-weibo', 'the-red-yeti', 'themeco', 'themeisle', 'think-peaks', 'threads', 'tidal', 'tiktok',
+        'trade-federation', 'trello', 'tumblr', 'twitch', 'twitter', 'typo3', 'uber', 'ubuntu', 'uikit', 'umbraco',
+        'uncharted', 'uniregistry', 'unity', 'unsplash', 'untappd', 'ups', 'upwork', 'usb', 'usps', 'ussunnah',
+        'vaadin', 'viacoin', 'viadeo', 'viber', 'vimeo', 'vimeo-v', 'vine', 'vk', 'vnv', 'vsco', 'vuejs',
+        'watchman-monitoring', 'waze', 'web-awesome', 'webflow', 'weebly', 'weibo', 'weixin', 'whatsapp', 'whmcs',
+        'wikipedia-w', 'windows', 'wirsindhandwerk', 'wix', 'wizards-of-the-coast', 'wodu', 'wolf-pack-battalion',
+        'wordpress', 'wordpress-simple', 'wpbeginner', 'wpexplorer', 'wpforms', 'wpressr', 'x-twitter', 'xbox',
+        'xing', 'y-combinator', 'yahoo', 'yammer', 'yandex', 'yandex-international', 'yarn', 'yelp', 'yoast',
+        'youtube', 'zhihu'
+      ];
+      // All icons combined
+      const allIcons = [...icons, ...brandIcons];
+      // Category mappings
+      const categories = {
+        arrows: ['arrow', 'angle', 'chevron', 'caret', 'sort', 'up-', 'down-', 'left-', 'right-', 'expand', 'compress', 'maximize', 'minimize'],
+        brands: brandIcons,
+        buildings: ['building', 'house', 'home', 'hotel', 'hospital', 'school', 'church', 'mosque', 'synagogue', 'landmark', 'city', 'store', 'shop', 'warehouse', 'industry', 'bridge', 'tower', 'igloo', 'tent', 'campground'],
+        business: ['briefcase', 'money', 'dollar', 'euro', 'pound', 'yen', 'rupee', 'coin', 'wallet', 'credit-card', 'receipt', 'chart', 'handshake', 'suitcase', 'piggy-bank', 'cash', 'bank', 'vault', 'scale', 'calculator'],
+        charts: ['chart', 'diagram', 'graph', 'pie', 'bars', 'line-chart', 'poll', 'signal'],
+        communication: ['envelope', 'mail', 'message', 'comment', 'phone', 'fax', 'inbox', 'paper-plane', 'at', 'hashtag', 'podcast', 'broadcast', 'rss', 'wifi', 'satellite'],
+        devices: ['desktop', 'laptop', 'mobile', 'tablet', 'computer', 'keyboard', 'mouse', 'display', 'tv', 'camera', 'video', 'microphone', 'headphone', 'headset', 'gamepad', 'sim-card', 'sd-card', 'memory', 'microchip', 'server', 'database', 'hard-drive', 'plug', 'battery', 'usb'],
+        editing: ['pen', 'pencil', 'edit', 'highlighter', 'marker', 'paintbrush', 'brush', 'palette', 'fill', 'eraser', 'crop', 'wand', 'magic', 'clone', 'copy', 'paste', 'cut', 'scissors', 'ruler', 'compass'],
+        files: ['file', 'folder', 'archive', 'clipboard', 'note', 'book', 'newspaper', 'copy', 'paste'],
+        media: ['play', 'pause', 'stop', 'forward', 'backward', 'volume', 'music', 'film', 'image', 'photo', 'camera', 'video', 'record', 'compact-disc', 'headphones'],
+        nature: ['sun', 'moon', 'cloud', 'rain', 'snow', 'wind', 'temperature', 'thermometer', 'water', 'fire', 'leaf', 'tree', 'seedling', 'flower', 'mountain', 'volcano', 'hurricane', 'tornado', 'rainbow', 'snowflake', 'icicle', 'bolt', 'meteor'],
+        people: ['user', 'person', 'people', 'child', 'baby', 'face', 'head', 'hand', 'wheelchair', 'walking', 'running', 'hiking', 'biking', 'swimming', 'skating', 'skiing'],
+        security: ['lock', 'unlock', 'key', 'shield', 'fingerprint', 'id-card', 'id-badge', 'passport', 'mask', 'eye-slash', 'user-secret', 'user-shield'],
+        shapes: ['circle', 'square', 'triangle', 'rectangle', 'diamond', 'star', 'heart', 'hexagon', 'octagon', 'cube', 'shapes'],
+        social: ['facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok', 'snapchat', 'pinterest', 'reddit', 'discord', 'slack', 'whatsapp', 'telegram', 'github', 'gitlab', 'dribbble', 'behance'],
+        status: ['check', 'xmark', 'exclamation', 'question', 'info', 'circle-check', 'circle-xmark', 'circle-exclamation', 'circle-info', 'triangle-exclamation', 'ban', 'bell', 'flag'],
+        transport: ['car', 'bus', 'truck', 'taxi', 'train', 'plane', 'helicopter', 'rocket', 'ship', 'boat', 'ferry', 'motorcycle', 'bicycle', 'van', 'ambulance', 'shuttle', 'tractor', 'caravan']
+      };
+      const iconsGrid = document.getElementById('iconsGrid');
+      const iconSearch = document.getElementById('iconSearch');
+      const categoryFilter = document.getElementById('categoryFilter');
+      const styleFilter = document.getElementById('styleFilter');
+      const iconCount = document.getElementById('iconCount');
+      const copyToast = document.getElementById('copyToast');
+      const toastMessage = document.getElementById('toastMessage');
+
+      function getIconClass(iconName) {
+        if (brandIcons.includes(iconName)) {
+          return 'fa-brands';
+        }
+        return 'fa-solid';
+      }
+
+      function getCategory(iconName) {
+        for (const [category, keywords] of Object.entries(categories)) {
+          if (category === 'brands' && brandIcons.includes(iconName)) {
+            return 'brands';
+          }
+          if (category !== 'brands') {
+            for (const keyword of keywords) {
+              if (iconName.includes(keyword)) {
+                return category;
+              }
+            }
+          }
+        }
+        return 'other';
+      }
+
+      function renderIcons() {
+        const searchTerm = iconSearch.value.toLowerCase();
+        const selectedCategory = categoryFilter.value;
+        const selectedStyle = styleFilter.value;
+        let filteredIcons = allIcons.filter(icon => {
+          // Search filter
+          if (searchTerm && !icon.includes(searchTerm)) {
+            return false;
+          }
+          // Category filter
+          if (selectedCategory !== 'all') {
+            const iconCategory = getCategory(icon);
+            if (iconCategory !== selectedCategory) {
+              return false;
+            }
+          }
+          // Style filter (Font Awesome Free only has solid and brands)
+          if (selectedStyle !== 'all') {
+            const isBrand = brandIcons.includes(icon);
+            if (selectedStyle === 'brands' && !isBrand) return false;
+            if (selectedStyle === 'solid' && isBrand) return false;
+          }
+          return true;
+        });
+        iconCount.textContent = filteredIcons.length;
+        iconsGrid.innerHTML = filteredIcons.map(icon => {
+          const iconClass = getIconClass(icon);
+          const fullClass = `${iconClass} fa-${icon}`;
+          return `
+        <div class="icon-item" data-icon="${fullClass}" title="${fullClass}">
+          <i class="${fullClass}"></i>
+          <span class="icon-name">${icon}</span>
+        </div>
+      `;
+        }).join('');
+        // Add click handlers
+        document.querySelectorAll('.icon-item').forEach(item => {
+          item.addEventListener('click', function() {
+            const iconClass = this.dataset.icon;
+            navigator.clipboard.writeText(iconClass).then(() => {
+              this.classList.add('copied');
+              toastMessage.textContent = `Copied: ${iconClass}`;
+              copyToast.classList.add('show');
+              setTimeout(() => {
+                this.classList.remove('copied');
+                copyToast.classList.remove('show');
+              }, 2000);
+            });
+          });
+        });
+      }
+      // Event listeners
+      iconSearch.addEventListener('input', renderIcons);
+      categoryFilter.addEventListener('change', renderIcons);
+      styleFilter.addEventListener('change', renderIcons);
+      // Initial render
+      renderIcons();
+    });
+  </script>
+</body>
+
+</html>

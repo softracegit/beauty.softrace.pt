@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Wizard - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section active" data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link active" href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Form Wizard</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Forms</a>
+          <span class="breadcrumb-item active">Wizard</span>
+        </nav>
+      </div>
+
+      <!-- Basic Horizontal Wizard -->
+      <section class="section">
+        <div class="row g-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Horizontal Wizard</h5>
+                <p class="card-subtitle">Multi-step form with horizontal progress indicator</p>
+              </div>
+              <div class="card-body">
+                <!-- Wizard Steps -->
+                <div class="wizard-steps mb-4">
+                  <div class="wizard-step active" data-step="1">
+                    <div class="wizard-step-icon">
+                      <span class="wizard-step-number">1</span>
+                      <i class="bi bi-check-lg wizard-step-check"></i>
+                    </div>
+                    <div class="wizard-step-label">Account</div>
+                  </div>
+                  <div class="wizard-step" data-step="2">
+                    <div class="wizard-step-icon">
+                      <span class="wizard-step-number">2</span>
+                      <i class="bi bi-check-lg wizard-step-check"></i>
+                    </div>
+                    <div class="wizard-step-label">Personal</div>
+                  </div>
+                  <div class="wizard-step" data-step="3">
+                    <div class="wizard-step-icon">
+                      <span class="wizard-step-number">3</span>
+                      <i class="bi bi-check-lg wizard-step-check"></i>
+                    </div>
+                    <div class="wizard-step-label">Address</div>
+                  </div>
+                  <div class="wizard-step" data-step="4">
+                    <div class="wizard-step-icon">
+                      <span class="wizard-step-number">4</span>
+                      <i class="bi bi-check-lg wizard-step-check"></i>
+                    </div>
+                    <div class="wizard-step-label">Finish</div>
+                  </div>
+                </div>
+
+                <!-- Wizard Content -->
+                <form id="horizontalWizard">
+                  <!-- Step 1: Account -->
+                  <div class="wizard-content active" data-step="1">
+                    <h5 class="mb-4">Account Information</h5>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label for="hw1Email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="hw1Email" placeholder="name@example.com" required>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="hw1Username" class="form-label">Username <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="hw1Username" placeholder="Choose a username" required>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="hw1Password" class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="hw1Password" placeholder="Create a password" required>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="hw1ConfirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="hw1ConfirmPassword" placeholder="Confirm your password" required>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 2: Personal -->
+                  <div class="wizard-content" data-step="2">
+                    <h5 class="mb-4">Personal Details</h5>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label for="hw2FirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="hw2FirstName" placeholder="Enter first name" required>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="hw2LastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="hw2LastName" placeholder="Enter last name" required>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="hw2Phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="hw2Phone" placeholder="+1 (555) 123-4567">
+                      </div>
+                      <div class="col-md-6">
+                        <label for="hw2DOB" class="form-label">Date of Birth</label>
+                        <input type="date" class="form-control" id="hw2DOB">
+                      </div>
+                      <div class="col-12">
+                        <label for="hw2Bio" class="form-label">Bio</label>
+                        <textarea class="form-control" id="hw2Bio" rows="3" placeholder="Tell us about yourself"></textarea>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 3: Address -->
+                  <div class="wizard-content" data-step="3">
+                    <h5 class="mb-4">Address Information</h5>
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label for="hw3Address" class="form-label">Street Address <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="hw3Address" placeholder="123 Main Street" required>
+                      </div>
+                      <div class="col-12">
+                        <label for="hw3Address2" class="form-label">Address Line 2</label>
+                        <input type="text" class="form-control" id="hw3Address2" placeholder="Apartment, suite, etc.">
+                      </div>
+                      <div class="col-md-5">
+                        <label for="hw3City" class="form-label">City <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="hw3City" placeholder="City" required>
+                      </div>
+                      <div class="col-md-4">
+                        <label for="hw3State" class="form-label">State <span class="text-danger">*</span></label>
+                        <select class="form-select" id="hw3State" required>
+                          <option value="">Select state...</option>
+                          <option>California</option>
+                          <option>New York</option>
+                          <option>Texas</option>
+                          <option>Florida</option>
+                          <option>Illinois</option>
+                        </select>
+                      </div>
+                      <div class="col-md-3">
+                        <label for="hw3Zip" class="form-label">Zip Code <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="hw3Zip" placeholder="12345" required>
+                      </div>
+                      <div class="col-md-6">
+                        <label for="hw3Country" class="form-label">Country</label>
+                        <select class="form-select" id="hw3Country">
+                          <option selected>United States</option>
+                          <option>Canada</option>
+                          <option>United Kingdom</option>
+                          <option>Australia</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 4: Finish -->
+                  <div class="wizard-content" data-step="4">
+                    <div class="text-center py-4">
+                      <div class="mb-4">
+                        <div class="wizard-finish-icon">
+                          <i class="bi bi-check-circle"></i>
+                        </div>
+                      </div>
+                      <h4 class="mb-2">You're All Set!</h4>
+                      <p class="text-muted mb-4">Review your information before submitting.</p>
+                      <div class="form-check d-flex justify-content-center mb-3">
+                        <input class="form-check-input me-2" type="checkbox" id="hw4Terms" required>
+                        <label class="form-check-label" for="hw4Terms">
+                          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                        </label>
+                      </div>
+                      <div class="form-check d-flex justify-content-center">
+                        <input class="form-check-input me-2" type="checkbox" id="hw4Newsletter">
+                        <label class="form-check-label" for="hw4Newsletter">
+                          Subscribe to our newsletter for updates
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Wizard Actions -->
+                  <div class="wizard-actions">
+                    <button type="button" class="btn btn-outline-secondary wizard-prev" disabled>
+                      <i class="bi bi-arrow-left me-1"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-primary wizard-next">
+                      Next <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                    <button type="submit" class="btn btn-success wizard-submit" style="display: none;">
+                      <i class="bi bi-check-lg me-1"></i> Submit
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Vertical Wizard -->
+      <section class="section">
+        <h5 class="section-title mb-3">Vertical Wizard</h5>
+        <div class="row g-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Vertical Step Wizard</h5>
+                <p class="card-subtitle">Steps displayed vertically on the left side</p>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <!-- Vertical Steps -->
+                  <div class="col-lg-3">
+                    <div class="wizard-steps-vertical">
+                      <div class="wizard-step-v active" data-step="1">
+                        <div class="wizard-step-v-icon">
+                          <span>1</span>
+                        </div>
+                        <div class="wizard-step-v-content">
+                          <div class="wizard-step-v-title">Select Plan</div>
+                          <div class="wizard-step-v-desc">Choose your subscription</div>
+                        </div>
+                      </div>
+                      <div class="wizard-step-v" data-step="2">
+                        <div class="wizard-step-v-icon">
+                          <span>2</span>
+                        </div>
+                        <div class="wizard-step-v-content">
+                          <div class="wizard-step-v-title">Billing Info</div>
+                          <div class="wizard-step-v-desc">Enter payment details</div>
+                        </div>
+                      </div>
+                      <div class="wizard-step-v" data-step="3">
+                        <div class="wizard-step-v-icon">
+                          <span>3</span>
+                        </div>
+                        <div class="wizard-step-v-content">
+                          <div class="wizard-step-v-title">Confirmation</div>
+                          <div class="wizard-step-v-desc">Review and confirm</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Vertical Wizard Content -->
+                  <div class="col-lg-9">
+                    <form id="verticalWizard">
+                      <!-- Step 1: Select Plan -->
+                      <div class="wizard-content-v active" data-step="1">
+                        <h5 class="mb-4">Select Your Plan</h5>
+                        <div class="row g-3">
+                          <div class="col-md-4">
+                            <div class="plan-card">
+                              <input type="radio" class="btn-check" name="plan" id="planBasic" value="basic">
+                              <label class="plan-card-label" for="planBasic">
+                                <div class="plan-card-header">
+                                  <h6>Basic</h6>
+                                  <div class="plan-price">$9<small>/mo</small></div>
+                                </div>
+                                <ul class="plan-features">
+                                  <li><i class="bi bi-check text-success"></i> 5 Projects</li>
+                                  <li><i class="bi bi-check text-success"></i> 10GB Storage</li>
+                                  <li><i class="bi bi-check text-success"></i> Email Support</li>
+                                  <li class="text-muted"><i class="bi bi-x"></i> API Access</li>
+                                </ul>
+                              </label>
+                            </div>
+                          </div>
+                          <div class="col-md-4">
+                            <div class="plan-card">
+                              <input type="radio" class="btn-check" name="plan" id="planPro" value="pro" checked>
+                              <label class="plan-card-label featured" for="planPro">
+                                <span class="plan-badge">Popular</span>
+                                <div class="plan-card-header">
+                                  <h6>Professional</h6>
+                                  <div class="plan-price">$29<small>/mo</small></div>
+                                </div>
+                                <ul class="plan-features">
+                                  <li><i class="bi bi-check text-success"></i> 25 Projects</li>
+                                  <li><i class="bi bi-check text-success"></i> 100GB Storage</li>
+                                  <li><i class="bi bi-check text-success"></i> Priority Support</li>
+                                  <li><i class="bi bi-check text-success"></i> API Access</li>
+                                </ul>
+                              </label>
+                            </div>
+                          </div>
+                          <div class="col-md-4">
+                            <div class="plan-card">
+                              <input type="radio" class="btn-check" name="plan" id="planEnterprise" value="enterprise">
+                              <label class="plan-card-label" for="planEnterprise">
+                                <div class="plan-card-header">
+                                  <h6>Enterprise</h6>
+                                  <div class="plan-price">$99<small>/mo</small></div>
+                                </div>
+                                <ul class="plan-features">
+                                  <li><i class="bi bi-check text-success"></i> Unlimited Projects</li>
+                                  <li><i class="bi bi-check text-success"></i> 1TB Storage</li>
+                                  <li><i class="bi bi-check text-success"></i> 24/7 Support</li>
+                                  <li><i class="bi bi-check text-success"></i> Custom Integrations</li>
+                                </ul>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="mt-3">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="yearlyBilling">
+                            <label class="form-check-label" for="yearlyBilling">
+                              Pay yearly and save 20%
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Step 2: Billing -->
+                      <div class="wizard-content-v" data-step="2">
+                        <h5 class="mb-4">Billing Information</h5>
+                        <div class="row g-3">
+                          <div class="col-12">
+                            <label for="vw2CardName" class="form-label">Name on Card</label>
+                            <input type="text" class="form-control" id="vw2CardName" placeholder="John Doe">
+                          </div>
+                          <div class="col-12">
+                            <label for="vw2CardNumber" class="form-label">Card Number</label>
+                            <div class="input-group">
+                              <input type="text" class="form-control" id="vw2CardNumber" placeholder="1234 5678 9012 3456">
+                              <span class="input-group-text">
+                                <i class="bi bi-credit-card"></i>
+                              </span>
+                            </div>
+                          </div>
+                          <div class="col-md-6">
+                            <label for="vw2Expiry" class="form-label">Expiry Date</label>
+                            <input type="text" class="form-control" id="vw2Expiry" placeholder="MM/YY">
+                          </div>
+                          <div class="col-md-6">
+                            <label for="vw2CVV" class="form-label">CVV</label>
+                            <input type="text" class="form-control" id="vw2CVV" placeholder="123">
+                          </div>
+                          <div class="col-12">
+                            <label for="vw2BillingAddress" class="form-label">Billing Address</label>
+                            <input type="text" class="form-control" id="vw2BillingAddress" placeholder="123 Main Street">
+                          </div>
+                          <div class="col-md-6">
+                            <label for="vw2BillingCity" class="form-label">City</label>
+                            <input type="text" class="form-control" id="vw2BillingCity">
+                          </div>
+                          <div class="col-md-6">
+                            <label for="vw2BillingZip" class="form-label">Zip Code</label>
+                            <input type="text" class="form-control" id="vw2BillingZip">
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Step 3: Confirmation -->
+                      <div class="wizard-content-v" data-step="3">
+                        <h5 class="mb-4">Review Your Order</h5>
+                        <div class="order-summary">
+                          <div class="order-summary-item">
+                            <span>Plan</span>
+                            <span class="fw-semibold" id="summaryPlan">Professional</span>
+                          </div>
+                          <div class="order-summary-item">
+                            <span>Billing Cycle</span>
+                            <span id="summaryBilling">Monthly</span>
+                          </div>
+                          <hr>
+                          <div class="order-summary-item">
+                            <span>Subtotal</span>
+                            <span>$29.00</span>
+                          </div>
+                          <div class="order-summary-item">
+                            <span>Tax</span>
+                            <span>$2.90</span>
+                          </div>
+                          <hr>
+                          <div class="order-summary-item order-total">
+                            <span>Total</span>
+                            <span class="fs-4 fw-bold text-primary">$31.90</span>
+                          </div>
+                        </div>
+                        <div class="alert alert-info mt-4" role="alert">
+                          <i class="bi bi-info-circle me-2"></i>
+                          Your card will be charged immediately upon confirmation.
+                        </div>
+                      </div>
+
+                      <!-- Actions -->
+                      <div class="wizard-actions mt-4">
+                        <button type="button" class="btn btn-outline-secondary wizard-prev-v" disabled>
+                          <i class="bi bi-arrow-left me-1"></i> Back
+                        </button>
+                        <button type="button" class="btn btn-primary wizard-next-v">
+                          Continue <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                        <button type="submit" class="btn btn-success wizard-submit-v" style="display: none;">
+                          <i class="bi bi-lock me-1"></i> Confirm Payment
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Progress Bar Wizard -->
+      <section class="section">
+        <h5 class="section-title mb-3">Progress Bar Wizard</h5>
+        <div class="row g-4">
+          <div class="col-lg-8 mx-auto">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Account Setup</h5>
+                <p class="card-subtitle">Complete these steps to set up your account</p>
+              </div>
+              <div class="card-body">
+                <!-- Progress Bar -->
+                <div class="wizard-progress mb-4">
+                  <div class="progress" style="height: 8px;">
+                    <div class="progress-bar" id="wizardProgressBar" role="progressbar" style="width: 25%"></div>
+                  </div>
+                  <div class="d-flex justify-content-between mt-2">
+                    <small class="text-muted">Step <span id="currentStepNum">1</span> of 4</small>
+                    <small class="text-muted"><span id="progressPercent">25</span>% Complete</small>
+                  </div>
+                </div>
+
+                <form id="progressWizard">
+                  <!-- Step 1 -->
+                  <div class="wizard-content-p active" data-step="1">
+                    <h5 class="mb-3"><i class="bi bi-person-circle me-2"></i>Basic Information</h5>
+                    <div class="mb-3">
+                      <label for="pw1Name" class="form-label">Full Name</label>
+                      <input type="text" class="form-control" id="pw1Name" placeholder="Enter your full name">
+                    </div>
+                    <div class="mb-3">
+                      <label for="pw1Email" class="form-label">Email Address</label>
+                      <input type="email" class="form-control" id="pw1Email" placeholder="Enter your email">
+                    </div>
+                  </div>
+
+                  <!-- Step 2 -->
+                  <div class="wizard-content-p" data-step="2">
+                    <h5 class="mb-3"><i class="bi bi-shield-lock me-2"></i>Security</h5>
+                    <div class="mb-3">
+                      <label for="pw2Password" class="form-label">Create Password</label>
+                      <input type="password" class="form-control" id="pw2Password" placeholder="Create a strong password">
+                    </div>
+                    <div class="mb-3">
+                      <label for="pw2Confirm" class="form-label">Confirm Password</label>
+                      <input type="password" class="form-control" id="pw2Confirm" placeholder="Confirm your password">
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="pw2TwoFactor">
+                      <label class="form-check-label" for="pw2TwoFactor">Enable two-factor authentication</label>
+                    </div>
+                  </div>
+
+                  <!-- Step 3 -->
+                  <div class="wizard-content-p" data-step="3">
+                    <h5 class="mb-3"><i class="bi bi-gear me-2"></i>Preferences</h5>
+                    <div class="mb-3">
+                      <label class="form-label">Notification Preferences</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="pw3EmailNotif" checked>
+                        <label class="form-check-label" for="pw3EmailNotif">Email notifications</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="pw3PushNotif" checked>
+                        <label class="form-check-label" for="pw3PushNotif">Push notifications</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="pw3SMSNotif">
+                        <label class="form-check-label" for="pw3SMSNotif">SMS notifications</label>
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label for="pw3Timezone" class="form-label">Timezone</label>
+                      <select class="form-select" id="pw3Timezone">
+                        <option>Pacific Time (PT)</option>
+                        <option>Mountain Time (MT)</option>
+                        <option>Central Time (CT)</option>
+                        <option selected>Eastern Time (ET)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Step 4 -->
+                  <div class="wizard-content-p" data-step="4">
+                    <h5 class="mb-3"><i class="bi bi-check-circle me-2"></i>Complete</h5>
+                    <div class="text-center py-3">
+                      <div class="wizard-finish-icon success mb-3">
+                        <i class="bi bi-check-lg"></i>
+                      </div>
+                      <h5>Account Created Successfully!</h5>
+                      <p class="text-muted">Your account has been set up. You can now start using the platform.</p>
+                      <div class="d-flex justify-content-center gap-2 mt-4">
+                        <a href="index.html" class="btn btn-primary">Go to Dashboard</a>
+                        <a href="settings.html" class="btn btn-outline-secondary">Edit Settings</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="wizard-actions" id="progressWizardActions">
+                    <button type="button" class="btn btn-outline-secondary wizard-prev-p" disabled>
+                      <i class="bi bi-arrow-left me-1"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-primary wizard-next-p">
+                      Next <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Numbered Pills Wizard -->
+      <section class="section">
+        <h5 class="section-title mb-3">Numbered Pills Wizard</h5>
+        <div class="row g-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Checkout Process</h5>
+                <p class="card-subtitle">Pills-style step indicator</p>
+              </div>
+              <div class="card-body">
+                <!-- Pills Navigation -->
+                <ul class="nav nav-pills wizard-pills mb-4" id="checkoutTabs" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="cart-tab" data-bs-toggle="pill" data-bs-target="#cartPane" type="button" role="tab">
+                      <span class="wizard-pill-number">1</span>
+                      <span class="wizard-pill-text">Cart</span>
+                    </button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="shipping-tab" data-bs-toggle="pill" data-bs-target="#shippingPane" type="button" role="tab" disabled>
+                      <span class="wizard-pill-number">2</span>
+                      <span class="wizard-pill-text">Shipping</span>
+                    </button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="payment-tab" data-bs-toggle="pill" data-bs-target="#paymentPane" type="button" role="tab" disabled>
+                      <span class="wizard-pill-number">3</span>
+                      <span class="wizard-pill-text">Payment</span>
+                    </button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="complete-tab" data-bs-toggle="pill" data-bs-target="#completePane" type="button" role="tab" disabled>
+                      <span class="wizard-pill-number">4</span>
+                      <span class="wizard-pill-text">Complete</span>
+                    </button>
+                  </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="checkoutTabContent">
+                  <!-- Cart -->
+                  <div class="tab-pane fade show active" id="cartPane" role="tabpanel">
+                    <h5 class="mb-3">Shopping Cart</h5>
+                    <div class="table-responsive">
+                      <table class="table">
+                        <thead>
+                          <tr>
+                            <th>Product</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th class="text-end">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td>
+                              <div class="d-flex align-items-center gap-3">
+                                <div class="bg-light rounded p-2" style="width: 48px; height: 48px;"></div>
+                                <div>
+                                  <div class="fw-medium">Wireless Headphones</div>
+                                  <small class="text-muted">Color: Black</small>
+                                </div>
+                              </div>
+                            </td>
+                            <td>$149.00</td>
+                            <td>
+                              <input type="number" class="form-control form-control-sm" value="1" style="width: 60px;">
+                            </td>
+                            <td class="text-end fw-medium">$149.00</td>
+                          </tr>
+                          <tr>
+                            <td>
+                              <div class="d-flex align-items-center gap-3">
+                                <div class="bg-light rounded p-2" style="width: 48px; height: 48px;"></div>
+                                <div>
+                                  <div class="fw-medium">USB-C Cable (2-pack)</div>
+                                  <small class="text-muted">Length: 6ft</small>
+                                </div>
+                              </div>
+                            </td>
+                            <td>$24.99</td>
+                            <td>
+                              <input type="number" class="form-control form-control-sm" value="2" style="width: 60px;">
+                            </td>
+                            <td class="text-end fw-medium">$49.98</td>
+                          </tr>
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td colspan="3" class="text-end fw-medium">Subtotal:</td>
+                            <td class="text-end fw-bold">$198.98</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                    <div class="text-end mt-3">
+                      <button type="button" class="btn btn-primary" onclick="nextTab('shipping-tab')">
+                        Proceed to Shipping <i class="bi bi-arrow-right ms-1"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Shipping -->
+                  <div class="tab-pane fade" id="shippingPane" role="tabpanel">
+                    <h5 class="mb-3">Shipping Information</h5>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Address</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">City</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">State</label>
+                        <select class="form-select">
+                          <option>California</option>
+                          <option>New York</option>
+                          <option>Texas</option>
+                        </select>
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label">Zip</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Shipping Method</label>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="shipping" id="shippingStandard" checked>
+                          <label class="form-check-label" for="shippingStandard">
+                            <strong>Standard Shipping</strong> - Free (5-7 business days)
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="shipping" id="shippingExpress">
+                          <label class="form-check-label" for="shippingExpress">
+                            <strong>Express Shipping</strong> - $12.99 (2-3 business days)
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-4">
+                      <button type="button" class="btn btn-outline-secondary" onclick="prevTab('cart-tab')">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Cart
+                      </button>
+                      <button type="button" class="btn btn-primary" onclick="nextTab('payment-tab')">
+                        Continue to Payment <i class="bi bi-arrow-right ms-1"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Payment -->
+                  <div class="tab-pane fade" id="paymentPane" role="tabpanel">
+                    <h5 class="mb-3">Payment Details</h5>
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label">Card Number</label>
+                        <input type="text" class="form-control" placeholder="1234 5678 9012 3456">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Expiration Date</label>
+                        <input type="text" class="form-control" placeholder="MM/YY">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Security Code (CVV)</label>
+                        <input type="text" class="form-control" placeholder="123">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Name on Card</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-12">
+                        <div class="form-check">
+                          <input class="form-check-input" type="checkbox" id="saveCard">
+                          <label class="form-check-label" for="saveCard">Save card for future purchases</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-4">
+                      <button type="button" class="btn btn-outline-secondary" onclick="prevTab('shipping-tab')">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Shipping
+                      </button>
+                      <button type="button" class="btn btn-success" onclick="nextTab('complete-tab')">
+                        <i class="bi bi-lock me-1"></i> Place Order - $198.98
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Complete -->
+                  <div class="tab-pane fade" id="completePane" role="tabpanel">
+                    <div class="text-center py-5">
+                      <div class="wizard-finish-icon success mb-4">
+                        <i class="bi bi-bag-check"></i>
+                      </div>
+                      <h4>Thank You for Your Order!</h4>
+                      <p class="text-muted mb-4">Order #ORD-2024-7842 has been placed successfully.</p>
+                      <p class="mb-4">A confirmation email has been sent to <strong>john@example.com</strong></p>
+                      <div class="d-flex justify-content-center gap-2">
+                        <a href="#" class="btn btn-outline-primary">Track Order</a>
+                        <a href="#" class="btn btn-primary">Continue Shopping</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Icon Steps Wizard -->
+      <section class="section">
+        <h5 class="section-title mb-3">Icon Steps Wizard</h5>
+        <div class="row g-4">
+          <div class="col-lg-10 mx-auto">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Job Application</h5>
+                <p class="card-subtitle">Wizard with icon-based step indicators</p>
+              </div>
+              <div class="card-body">
+                <!-- Icon Steps -->
+                <div class="wizard-icon-steps mb-4">
+                  <div class="wizard-icon-step active" data-step="1">
+                    <div class="wizard-icon-step-icon">
+                      <i class="bi bi-person"></i>
+                    </div>
+                    <div class="wizard-icon-step-label">Personal Info</div>
+                  </div>
+                  <div class="wizard-icon-step" data-step="2">
+                    <div class="wizard-icon-step-icon">
+                      <i class="bi bi-briefcase"></i>
+                    </div>
+                    <div class="wizard-icon-step-label">Experience</div>
+                  </div>
+                  <div class="wizard-icon-step" data-step="3">
+                    <div class="wizard-icon-step-icon">
+                      <i class="bi bi-mortarboard"></i>
+                    </div>
+                    <div class="wizard-icon-step-label">Education</div>
+                  </div>
+                  <div class="wizard-icon-step" data-step="4">
+                    <div class="wizard-icon-step-icon">
+                      <i class="bi bi-upload"></i>
+                    </div>
+                    <div class="wizard-icon-step-label">Documents</div>
+                  </div>
+                  <div class="wizard-icon-step" data-step="5">
+                    <div class="wizard-icon-step-icon">
+                      <i class="bi bi-send"></i>
+                    </div>
+                    <div class="wizard-icon-step-label">Submit</div>
+                  </div>
+                </div>
+
+                <form id="iconWizard">
+                  <!-- Step 1: Personal -->
+                  <div class="wizard-content-i active" data-step="1">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">First Name</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Last Name</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" class="form-control">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">LinkedIn Profile</label>
+                        <input type="url" class="form-control" placeholder="https://linkedin.com/in/yourprofile">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 2: Experience -->
+                  <div class="wizard-content-i" data-step="2">
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label">Current/Most Recent Job Title</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Company</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Years of Experience</label>
+                        <select class="form-select">
+                          <option>0-1 years</option>
+                          <option>1-3 years</option>
+                          <option>3-5 years</option>
+                          <option>5-10 years</option>
+                          <option>10+ years</option>
+                        </select>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Key Responsibilities</label>
+                        <textarea class="form-control" rows="3"></textarea>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 3: Education -->
+                  <div class="wizard-content-i" data-step="3">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Highest Degree</label>
+                        <select class="form-select">
+                          <option>High School</option>
+                          <option>Associate's</option>
+                          <option selected>Bachelor's</option>
+                          <option>Master's</option>
+                          <option>Doctorate</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Field of Study</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Institution</label>
+                        <input type="text" class="form-control">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Graduation Year</label>
+                        <input type="number" class="form-control" min="1950" max="2030">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Certifications</label>
+                        <textarea class="form-control" rows="2" placeholder="List any relevant certifications"></textarea>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 4: Documents -->
+                  <div class="wizard-content-i" data-step="4">
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label">Resume/CV</label>
+                        <input type="file" class="form-control" accept=".pdf,.doc,.docx">
+                        <div class="form-text">PDF, DOC, or DOCX (Max 5MB)</div>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Cover Letter (Optional)</label>
+                        <input type="file" class="form-control" accept=".pdf,.doc,.docx">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Portfolio/Work Samples (Optional)</label>
+                        <input type="file" class="form-control" multiple accept=".pdf,.jpg,.png,.zip">
+                        <div class="form-text">You can upload multiple files</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Step 5: Submit -->
+                  <div class="wizard-content-i" data-step="5">
+                    <div class="text-center py-4">
+                      <h5 class="mb-3">Review & Submit</h5>
+                      <p class="text-muted mb-4">Please review all the information you've provided before submitting your application.</p>
+                      <div class="form-check d-flex justify-content-center mb-3">
+                        <input class="form-check-input me-2" type="checkbox" id="iconTerms">
+                        <label class="form-check-label" for="iconTerms">
+                          I certify that all information provided is accurate
+                        </label>
+                      </div>
+                      <div class="form-check d-flex justify-content-center mb-4">
+                        <input class="form-check-input me-2" type="checkbox" id="iconPrivacy">
+                        <label class="form-check-label" for="iconPrivacy">
+                          I agree to the <a href="#">Privacy Policy</a>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="wizard-actions">
+                    <button type="button" class="btn btn-outline-secondary wizard-prev-i" disabled>
+                      <i class="bi bi-arrow-left me-1"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-primary wizard-next-i">
+                      Next <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                    <button type="submit" class="btn btn-success wizard-submit-i" style="display: none;">
+                      <i class="bi bi-send me-1"></i> Submit Application
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    // Horizontal Wizard
+    (function() {
+      const wizard = document.getElementById('horizontalWizard');
+      const steps = wizard.querySelectorAll('.wizard-step');
+      const contents = wizard.querySelectorAll('.wizard-content');
+      const prevBtn = wizard.querySelector('.wizard-prev');
+      const nextBtn = wizard.querySelector('.wizard-next');
+      const submitBtn = wizard.querySelector('.wizard-submit');
+      let currentStep = 1;
+      const totalSteps = steps.length;
+
+      function updateWizard() {
+        // Update steps
+        steps.forEach((step, index) => {
+          const stepNum = index + 1;
+          step.classList.remove('active', 'completed');
+          if (stepNum === currentStep) {
+            step.classList.add('active');
+          } else if (stepNum < currentStep) {
+            step.classList.add('completed');
+          }
+        });
+        // Update content
+        contents.forEach(content => {
+          content.classList.remove('active');
+          if (parseInt(content.dataset.step) === currentStep) {
+            content.classList.add('active');
+          }
+        });
+        // Update buttons
+        prevBtn.disabled = currentStep === 1;
+        if (currentStep === totalSteps) {
+          nextBtn.style.display = 'none';
+          submitBtn.style.display = 'inline-block';
+        } else {
+          nextBtn.style.display = 'inline-block';
+          submitBtn.style.display = 'none';
+        }
+      }
+      prevBtn.addEventListener('click', () => {
+        if (currentStep > 1) {
+          currentStep--;
+          updateWizard();
+        }
+      });
+      nextBtn.addEventListener('click', () => {
+        if (currentStep < totalSteps) {
+          currentStep++;
+          updateWizard();
+        }
+      });
+      wizard.addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('Form submitted successfully!');
+      });
+    })();
+    // Vertical Wizard
+    (function() {
+      const wizard = document.getElementById('verticalWizard');
+      const steps = document.querySelectorAll('.wizard-step-v');
+      const contents = wizard.querySelectorAll('.wizard-content-v');
+      const prevBtn = wizard.querySelector('.wizard-prev-v');
+      const nextBtn = wizard.querySelector('.wizard-next-v');
+      const submitBtn = wizard.querySelector('.wizard-submit-v');
+      let currentStep = 1;
+      const totalSteps = steps.length;
+
+      function updateWizard() {
+        steps.forEach((step, index) => {
+          const stepNum = index + 1;
+          step.classList.remove('active', 'completed');
+          if (stepNum === currentStep) {
+            step.classList.add('active');
+          } else if (stepNum < currentStep) {
+            step.classList.add('completed');
+          }
+        });
+        contents.forEach(content => {
+          content.classList.remove('active');
+          if (parseInt(content.dataset.step) === currentStep) {
+            content.classList.add('active');
+          }
+        });
+        prevBtn.disabled = currentStep === 1;
+        if (currentStep === totalSteps) {
+          nextBtn.style.display = 'none';
+          submitBtn.style.display = 'inline-block';
+        } else {
+          nextBtn.style.display = 'inline-block';
+          submitBtn.style.display = 'none';
+        }
+      }
+      prevBtn.addEventListener('click', () => {
+        if (currentStep > 1) {
+          currentStep--;
+          updateWizard();
+        }
+      });
+      nextBtn.addEventListener('click', () => {
+        if (currentStep < totalSteps) {
+          currentStep++;
+          updateWizard();
+        }
+      });
+      wizard.addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('Payment confirmed!');
+      });
+    })();
+    // Progress Bar Wizard
+    (function() {
+      const wizard = document.getElementById('progressWizard');
+      const contents = wizard.querySelectorAll('.wizard-content-p');
+      const prevBtn = wizard.querySelector('.wizard-prev-p');
+      const nextBtn = wizard.querySelector('.wizard-next-p');
+      const actionsDiv = document.getElementById('progressWizardActions');
+      const progressBar = document.getElementById('wizardProgressBar');
+      const currentStepNum = document.getElementById('currentStepNum');
+      const progressPercent = document.getElementById('progressPercent');
+      let currentStep = 1;
+      const totalSteps = contents.length;
+
+      function updateWizard() {
+        contents.forEach(content => {
+          content.classList.remove('active');
+          if (parseInt(content.dataset.step) === currentStep) {
+            content.classList.add('active');
+          }
+        });
+        const percent = (currentStep / totalSteps) * 100;
+        progressBar.style.width = percent + '%';
+        currentStepNum.textContent = currentStep;
+        progressPercent.textContent = Math.round(percent);
+        prevBtn.disabled = currentStep === 1;
+        if (currentStep === totalSteps) {
+          actionsDiv.style.display = 'none';
+        } else {
+          actionsDiv.style.display = 'flex';
+        }
+      }
+      prevBtn.addEventListener('click', () => {
+        if (currentStep > 1) {
+          currentStep--;
+          updateWizard();
+        }
+      });
+      nextBtn.addEventListener('click', () => {
+        if (currentStep < totalSteps) {
+          currentStep++;
+          updateWizard();
+        }
+      });
+    })();
+    // Pills Wizard (Tab-based)
+    function nextTab(tabId) {
+      const tab = document.getElementById(tabId);
+      tab.disabled = false;
+      new bootstrap.Tab(tab).show();
+      // Mark previous tabs as completed
+      const tabs = document.querySelectorAll('#checkoutTabs .nav-link');
+      let found = false;
+      tabs.forEach(t => {
+        if (t.id === tabId) {
+          found = true;
+        }
+        if (!found) {
+          t.classList.add('completed');
+        }
+      });
+    }
+
+    function prevTab(tabId) {
+      const tab = document.getElementById(tabId);
+      new bootstrap.Tab(tab).show();
+    }
+    // Icon Steps Wizard
+    (function() {
+      const wizard = document.getElementById('iconWizard');
+      const steps = document.querySelectorAll('.wizard-icon-step');
+      const contents = wizard.querySelectorAll('.wizard-content-i');
+      const prevBtn = wizard.querySelector('.wizard-prev-i');
+      const nextBtn = wizard.querySelector('.wizard-next-i');
+      const submitBtn = wizard.querySelector('.wizard-submit-i');
+      let currentStep = 1;
+      const totalSteps = steps.length;
+
+      function updateWizard() {
+        steps.forEach((step, index) => {
+          const stepNum = index + 1;
+          step.classList.remove('active', 'completed');
+          if (stepNum === currentStep) {
+            step.classList.add('active');
+          } else if (stepNum < currentStep) {
+            step.classList.add('completed');
+          }
+        });
+        contents.forEach(content => {
+          content.classList.remove('active');
+          if (parseInt(content.dataset.step) === currentStep) {
+            content.classList.add('active');
+          }
+        });
+        prevBtn.disabled = currentStep === 1;
+        if (currentStep === totalSteps) {
+          nextBtn.style.display = 'none';
+          submitBtn.style.display = 'inline-block';
+        } else {
+          nextBtn.style.display = 'inline-block';
+          submitBtn.style.display = 'none';
+        }
+      }
+      prevBtn.addEventListener('click', () => {
+        if (currentStep > 1) {
+          currentStep--;
+          updateWizard();
+        }
+      });
+      nextBtn.addEventListener('click', () => {
+        if (currentStep < totalSteps) {
+          currentStep++;
+          updateWizard();
+        }
+      });
+      wizard.addEventListener('submit', (e) => {
+        e.preventDefault();
+        alert('Application submitted successfully!');
+      });
+    })();
+  </script>
+</body>
+
+</html>

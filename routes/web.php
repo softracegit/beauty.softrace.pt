@@ -31,9 +31,10 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
         return redirect()->route('dashboard');
     });
     
-    Route::get('/dashboard', function () {
-        return view('index');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/imoveis', [DashboardController::class, 'imoveis'])->name('dashboard.imoveis');
+    Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
+    Route::get('/dashboard/clientes', [DashboardController::class, 'clientes'])->name('dashboard.clientes');
     
     Route::resource('clientes', ClientController::class);
     Route::post('clientes/{cliente}/notes', [ClientController::class, 'storeNote'])->name('clientes.storeNote');
@@ -92,5 +93,5 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
     
     // Rotas do template (protegidas)
-    Route::get('{page}', [DashboardController::class, 'index'])->where('page', '[A-Za-z0-9\-]+');
+    Route::get('{page}', [DashboardController::class, 'page'])->where('page', '[A-Za-z0-9\-]+');
 });

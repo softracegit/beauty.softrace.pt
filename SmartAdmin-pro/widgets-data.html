@@ -1,0 +1,2323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Widgets - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section active" data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group open">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="true">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav show">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link active" href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Data Widgets</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Widgets</a>
+          <span class="breadcrumb-item active">Data</span>
+        </nav>
+      </div>
+
+      <!-- Stat Cards with Progress -->
+      <section class="section">
+        <h5 class="section-title mb-3">Stat Cards with Progress</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-stat-progress">
+              <div class="card-body">
+                <div class="widget-stat-icon warning">
+                  <i class="bi bi-graph-up-arrow"></i>
+                </div>
+                <div class="widget-stat-content">
+                  <span class="widget-stat-value">+384</span>
+                  <span class="widget-stat-label">Revenue Growth</span>
+                </div>
+                <div class="widget-stat-bar warning"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-stat-progress">
+              <div class="card-body">
+                <div class="widget-stat-icon primary">
+                  <i class="bi bi-wallet2"></i>
+                </div>
+                <div class="widget-stat-content">
+                  <span class="widget-stat-value">$925</span>
+                  <span class="widget-stat-label">Weekly Earnings</span>
+                </div>
+                <div class="widget-stat-bar primary"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-stat-progress">
+              <div class="card-body">
+                <div class="widget-stat-icon danger">
+                  <i class="bi bi-people"></i>
+                </div>
+                <div class="widget-stat-content">
+                  <span class="widget-stat-value">+8.2K</span>
+                  <span class="widget-stat-label">New Subscribers</span>
+                </div>
+                <div class="widget-stat-bar danger"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-stat-progress">
+              <div class="card-body">
+                <div class="widget-stat-icon info">
+                  <i class="bi bi-bell"></i>
+                </div>
+                <div class="widget-stat-content">
+                  <span class="widget-stat-value">214</span>
+                  <span class="widget-stat-label">Active Alerts</span>
+                </div>
+                <div class="widget-stat-bar info"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-stat-progress">
+              <div class="card-body">
+                <div class="widget-stat-icon success">
+                  <i class="bi bi-chat-dots"></i>
+                </div>
+                <div class="widget-stat-content">
+                  <span class="widget-stat-value">23+</span>
+                  <span class="widget-stat-label">Unread Messages</span>
+                </div>
+                <div class="widget-stat-bar success"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-stat-progress">
+              <div class="card-body">
+                <div class="widget-stat-icon secondary">
+                  <i class="bi bi-download"></i>
+                </div>
+                <div class="widget-stat-content">
+                  <span class="widget-stat-value">2,340</span>
+                  <span class="widget-stat-label">Pending Downloads</span>
+                </div>
+                <div class="widget-stat-bar secondary"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Icon Stat Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Icon Stat Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-stat">
+              <div class="card-body">
+                <div class="widget-icon-stat-icon success">
+                  <i class="bi bi-file-text"></i>
+                </div>
+                <div class="widget-icon-stat-content">
+                  <span class="widget-icon-stat-value">156</span>
+                  <span class="widget-icon-stat-label">Reports</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-stat">
+              <div class="card-body">
+                <div class="widget-icon-stat-icon primary">
+                  <i class="bi bi-receipt"></i>
+                </div>
+                <div class="widget-icon-stat-content">
+                  <span class="widget-icon-stat-value">189</span>
+                  <span class="widget-icon-stat-label">Invoices</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-stat">
+              <div class="card-body">
+                <div class="widget-icon-stat-icon warning">
+                  <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div class="widget-icon-stat-content">
+                  <span class="widget-icon-stat-value">$580</span>
+                  <span class="widget-icon-stat-label">Revenue</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-stat">
+              <div class="card-body">
+                <div class="widget-icon-stat-icon danger">
+                  <i class="bi bi-bag-check"></i>
+                </div>
+                <div class="widget-icon-stat-content">
+                  <span class="widget-icon-stat-value">142</span>
+                  <span class="widget-icon-stat-label">Orders</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Icon Left Stat Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Icon Left Stat Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon primary">
+                  <i class="bi bi-person-lines-fill"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">348</span>
+                  <span class="widget-icon-left-label">Customers</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon info">
+                  <i class="bi bi-envelope"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">156</span>
+                  <span class="widget-icon-left-label">Messages</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon warning">
+                  <i class="bi bi-bell"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">742</span>
+                  <span class="widget-icon-left-label">Notifications</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon success">
+                  <i class="bi bi-folder"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">315</span>
+                  <span class="widget-icon-left-label">Projects</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon danger">
+                  <i class="bi bi-geo-alt"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">156</span>
+                  <span class="widget-icon-left-label">Locations</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon secondary">
+                  <i class="bi bi-bar-chart"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">267</span>
+                  <span class="widget-icon-left-label">Activity Pages</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon info">
+                  <i class="bi bi-graph-up"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">178</span>
+                  <span class="widget-icon-left-label">Sales</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon warning">
+                  <i class="bi bi-rss"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">198</span>
+                  <span class="widget-icon-left-label">Feeds</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon primary">
+                  <i class="bi bi-router"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">420</span>
+                  <span class="widget-icon-left-label">Devices</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon success">
+                  <i class="bi bi-cash-stack"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">156</span>
+                  <span class="widget-icon-left-label">Net Income</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon info">
+                  <i class="bi bi-speedometer2"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">528</span>
+                  <span class="widget-icon-left-label">Performance</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-icon-left-stat">
+              <div class="card-body">
+                <div class="widget-icon-left-icon danger">
+                  <i class="bi bi-clipboard-data"></i>
+                </div>
+                <div class="widget-icon-left-content">
+                  <span class="widget-icon-left-value">189</span>
+                  <span class="widget-icon-left-label">Monthly Sales</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Weather Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Weather Cards</h5>
+        <div class="row g-4">
+          <!-- Weather Card with Image -->
+          <div class="col-lg-4">
+            <div class="card widget-weather-image-card">
+              <div class="widget-weather-image-bg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="widget-weather-image-content">
+                  <div class="widget-weather-location">Portland, Oregon</div>
+                  <div class="widget-weather-temp-large">
+                    <i class="bi bi-cloud-sun"></i>
+                    <span>18°<small>C / 9°C</small></span>
+                  </div>
+                  <div class="widget-weather-day">Saturday</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Weather Card Simple -->
+          <div class="col-lg-4">
+            <div class="card widget-weather-simple">
+              <div class="card-body">
+                <div class="widget-weather-simple-header">
+                  <div>
+                    <h3 class="widget-weather-simple-temp">24° C</h3>
+                    <p class="widget-weather-simple-location">Seattle, Washington</p>
+                  </div>
+                  <div class="widget-weather-simple-icon">
+                    <i class="bi bi-cloud-drizzle"></i>
+                  </div>
+                </div>
+                <div class="widget-weather-simple-date">18.01.2026</div>
+              </div>
+            </div>
+          </div>
+          <!-- Weather Card Compact -->
+          <div class="col-lg-4">
+            <div class="row g-4">
+              <div class="col-6">
+                <div class="card widget-weather-compact">
+                  <div class="card-body">
+                    <div class="widget-weather-compact-icon">
+                      <i class="bi bi-cloud-haze"></i>
+                    </div>
+                    <div class="widget-weather-compact-temp">16°<small>C / 8°C</small></div>
+                    <div class="widget-weather-compact-date">18 Jan 2026</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="card widget-weather-compact">
+                  <div class="card-body">
+                    <div class="widget-weather-compact-info">
+                      <span><i class="bi bi-wind"></i> 18kmph</span>
+                      <span>48%</span>
+                    </div>
+                    <div class="widget-weather-compact-temp">5°<small>C / 2°C</small> <i class="bi bi-cloud"></i></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Weather Week Forecast -->
+        <div class="row g-4 mt-2">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body p-0">
+                <div class="widget-weather-week">
+                  <div class="widget-weather-week-item">
+                    <span class="day">MON</span>
+                    <i class="bi bi-cloud"></i>
+                    <span class="temp">22° C</span>
+                  </div>
+                  <div class="widget-weather-week-item">
+                    <span class="day">TUE</span>
+                    <i class="bi bi-cloud-sun"></i>
+                    <span class="temp">19° C</span>
+                  </div>
+                  <div class="widget-weather-week-item active">
+                    <span class="day">WED</span>
+                    <i class="bi bi-sun"></i>
+                    <span class="temp">24° C</span>
+                  </div>
+                  <div class="widget-weather-week-item">
+                    <span class="day">THU</span>
+                    <i class="bi bi-cloud"></i>
+                    <span class="temp">18° C</span>
+                  </div>
+                  <div class="widget-weather-week-item">
+                    <span class="day">FRI</span>
+                    <i class="bi bi-cloud-rain"></i>
+                    <span class="temp">16° C</span>
+                  </div>
+                  <div class="widget-weather-week-item">
+                    <span class="day">SAT</span>
+                    <i class="bi bi-cloud-drizzle"></i>
+                    <span class="temp">14° C</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Crypto Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Crypto Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-crypto-card ethereum">
+              <div class="card-body">
+                <div class="widget-crypto-icon">
+                  <i class="bi bi-currency-exchange"></i>
+                </div>
+                <div class="widget-crypto-info">
+                  <span class="widget-crypto-name">Ethereum</span>
+                  <span class="widget-crypto-value">$4,280.50k</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-crypto-card dash">
+              <div class="card-body">
+                <div class="widget-crypto-icon">
+                  <i class="bi bi-diamond"></i>
+                </div>
+                <div class="widget-crypto-info">
+                  <span class="widget-crypto-name">Dash</span>
+                  <span class="widget-crypto-value">$1,120.00k</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-crypto-card bitcoin">
+              <div class="card-body">
+                <div class="widget-crypto-icon">
+                  <i class="bi bi-currency-bitcoin"></i>
+                </div>
+                <div class="widget-crypto-info">
+                  <span class="widget-crypto-name">Bitcoin</span>
+                  <span class="widget-crypto-value">$312.75k</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-crypto-card ripple">
+              <div class="card-body">
+                <div class="widget-crypto-icon">
+                  <i class="bi bi-droplet"></i>
+                </div>
+                <div class="widget-crypto-info">
+                  <span class="widget-crypto-name">Ripple</span>
+                  <span class="widget-crypto-value">$780.40k</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Crypto Stats Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Crypto Stats Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-crypto-stats primary">
+              <div class="card-body">
+                <div class="widget-crypto-stats-header">
+                  <div class="widget-crypto-stats-icon">
+                    <i class="bi bi-currency-bitcoin"></i>
+                  </div>
+                  <div class="widget-crypto-stats-info">
+                    <span class="widget-crypto-stats-name">Bitcoin</span>
+                    <span class="widget-crypto-stats-category">Real Estate</span>
+                  </div>
+                </div>
+                <div class="widget-crypto-stats-grid">
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 1h</span>
+                    <span class="value up">↑ 0.12</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 24h</span>
+                    <span class="value down">↓ 1.28</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 7d</span>
+                    <span class="value up">↑ 18.50</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-crypto-stats success">
+              <div class="card-body">
+                <div class="widget-crypto-stats-header">
+                  <div class="widget-crypto-stats-icon">
+                    <i class="bi bi-currency-euro"></i>
+                  </div>
+                  <div class="widget-crypto-stats-info">
+                    <span class="widget-crypto-stats-name">EOS</span>
+                    <span class="widget-crypto-stats-category">Banking</span>
+                  </div>
+                </div>
+                <div class="widget-crypto-stats-grid">
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 1h</span>
+                    <span class="value up">↑ 0.22</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 24h</span>
+                    <span class="value down">↓ 4.85</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 7d</span>
+                    <span class="value up">↑ 0.15</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-crypto-stats danger">
+              <div class="card-body">
+                <div class="widget-crypto-stats-header">
+                  <div class="widget-crypto-stats-icon">
+                    <i class="bi bi-currency-exchange"></i>
+                  </div>
+                  <div class="widget-crypto-stats-info">
+                    <span class="widget-crypto-stats-name">Ethereum</span>
+                    <span class="widget-crypto-stats-category">Exchange</span>
+                  </div>
+                </div>
+                <div class="widget-crypto-stats-grid">
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 1h</span>
+                    <span class="value up">↑ 1.24</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 24h</span>
+                    <span class="value down">↓ 4.92</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 7d</span>
+                    <span class="value up">↑ 18.75</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-crypto-stats info">
+              <div class="card-body">
+                <div class="widget-crypto-stats-header">
+                  <div class="widget-crypto-stats-icon">
+                    <i class="bi bi-bank"></i>
+                  </div>
+                  <div class="widget-crypto-stats-info">
+                    <span class="widget-crypto-stats-name">Bitmark</span>
+                    <span class="widget-crypto-stats-category">Advertising</span>
+                  </div>
+                </div>
+                <div class="widget-crypto-stats-grid">
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 1h</span>
+                    <span class="value up">↑ 0.24</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 24h</span>
+                    <span class="value down">↓ 2.18</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 7d</span>
+                    <span class="value up">↑ 1.25</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-crypto-stats warning">
+              <div class="card-body">
+                <div class="widget-crypto-stats-header">
+                  <div class="widget-crypto-stats-icon">
+                    <i class="bi bi-diamond"></i>
+                  </div>
+                  <div class="widget-crypto-stats-info">
+                    <span class="widget-crypto-stats-name">Dash</span>
+                    <span class="widget-crypto-stats-category">Trading</span>
+                  </div>
+                </div>
+                <div class="widget-crypto-stats-grid">
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 1h</span>
+                    <span class="value up">↑ 1.24</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 24h</span>
+                    <span class="value down">↓ 1.18</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 7d</span>
+                    <span class="value up">↑ 0.28</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-crypto-stats secondary">
+              <div class="card-body">
+                <div class="widget-crypto-stats-header">
+                  <div class="widget-crypto-stats-icon">
+                    <i class="bi bi-gem"></i>
+                  </div>
+                  <div class="widget-crypto-stats-info">
+                    <span class="widget-crypto-stats-name">GetGems</span>
+                    <span class="widget-crypto-stats-category">Exchange</span>
+                  </div>
+                </div>
+                <div class="widget-crypto-stats-grid">
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 1h</span>
+                    <span class="value up">↑ 1.24</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 24h</span>
+                    <span class="value down">↓ 1.18</span>
+                  </div>
+                  <div class="widget-crypto-stat-item">
+                    <span class="label">% 7d</span>
+                    <span class="value up">↑ 1.18</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Simple Stat Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Simple Stat Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-simple-stat">
+              <div class="card-body">
+                <div class="widget-simple-stat-icon success">
+                  <i class="bi bi-cash-coin"></i>
+                </div>
+                <div class="widget-simple-stat-content">
+                  <span class="widget-simple-stat-label">Total Income</span>
+                  <span class="widget-simple-stat-sublabel">Income</span>
+                </div>
+                <span class="widget-simple-stat-value">$3,480</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-simple-stat">
+              <div class="card-body">
+                <div class="widget-simple-stat-icon primary">
+                  <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="widget-simple-stat-content">
+                  <span class="widget-simple-stat-label">Total Products</span>
+                  <span class="widget-simple-stat-sublabel">Users</span>
+                </div>
+                <span class="widget-simple-stat-value">$3,120</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-simple-stat">
+              <div class="card-body">
+                <div class="widget-simple-stat-icon danger">
+                  <i class="bi bi-people"></i>
+                </div>
+                <div class="widget-simple-stat-content">
+                  <span class="widget-simple-stat-label">Total Members</span>
+                  <span class="widget-simple-stat-sublabel">My birthday</span>
+                </div>
+                <span class="widget-simple-stat-value">18 March</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-simple-stat">
+              <div class="card-body">
+                <div class="widget-simple-stat-icon warning">
+                  <i class="bi bi-list-task"></i>
+                </div>
+                <div class="widget-simple-stat-content">
+                  <span class="widget-simple-stat-label">Total Tasks</span>
+                  <span class="widget-simple-stat-sublabel">pending</span>
+                </div>
+                <span class="widget-simple-stat-value">7,840</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Colored Stat Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Colored Stat Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-colored-stat success">
+              <div class="card-body">
+                <div class="widget-colored-stat-icon">
+                  <i class="bi bi-cash-coin"></i>
+                </div>
+                <div class="widget-colored-stat-content">
+                  <span class="widget-colored-stat-label">Total Income</span>
+                  <span class="widget-colored-stat-sublabel">Income</span>
+                </div>
+                <span class="widget-colored-stat-value">$3,480</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-colored-stat primary">
+              <div class="card-body">
+                <div class="widget-colored-stat-icon">
+                  <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="widget-colored-stat-content">
+                  <span class="widget-colored-stat-label">Total Products</span>
+                  <span class="widget-colored-stat-sublabel">Users</span>
+                </div>
+                <span class="widget-colored-stat-value">$3,120</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-colored-stat info">
+              <div class="card-body">
+                <div class="widget-colored-stat-icon">
+                  <i class="bi bi-people"></i>
+                </div>
+                <div class="widget-colored-stat-content">
+                  <span class="widget-colored-stat-label">Total Members</span>
+                  <span class="widget-colored-stat-sublabel">My birthday</span>
+                </div>
+                <span class="widget-colored-stat-value">18 March</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-colored-stat danger">
+              <div class="card-body">
+                <div class="widget-colored-stat-icon">
+                  <i class="bi bi-list-task"></i>
+                </div>
+                <div class="widget-colored-stat-content">
+                  <span class="widget-colored-stat-label">Total Tasks</span>
+                  <span class="widget-colored-stat-sublabel">pending</span>
+                </div>
+                <span class="widget-colored-stat-value">7,840</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Product Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Product Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-product-item">
+              <div class="card-body">
+                <div class="widget-product-item-image">
+                  <img src="assets/img/products/product-5.webp" alt="Product">
+                </div>
+                <div class="widget-product-item-content">
+                  <h6 class="widget-product-item-title">35% off on Premium Watch</h6>
+                  <p class="widget-product-item-author">By Marcus Chen</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-product-item">
+              <div class="card-body">
+                <div class="widget-product-item-image">
+                  <img src="assets/img/products/product-6.webp" alt="Product">
+                </div>
+                <div class="widget-product-item-content">
+                  <h6 class="widget-product-item-title">Travel Backpack Set</h6>
+                  <p class="widget-product-item-author">By Elena Rodriguez</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-product-item">
+              <div class="card-body">
+                <div class="widget-product-item-image">
+                  <img src="assets/img/products/product-7.webp" alt="Product">
+                </div>
+                <div class="widget-product-item-content">
+                  <h6 class="widget-product-item-title">Running Shoes Limited</h6>
+                  <p class="widget-product-item-author">By Kevin Park</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-product-item">
+              <div class="card-body">
+                <div class="widget-product-item-image">
+                  <img src="assets/img/products/product-1.webp" alt="Product">
+                </div>
+                <div class="widget-product-item-content">
+                  <h6 class="widget-product-item-title">Wireless Headphones Pro</h6>
+                  <p class="widget-product-item-author">Yellow, Over Ear</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-product-item">
+              <div class="card-body">
+                <div class="widget-product-item-image">
+                  <img src="assets/img/products/product-8.webp" alt="Product">
+                </div>
+                <div class="widget-product-item-content">
+                  <h6 class="widget-product-item-title">Skincare Essential Kit</h6>
+                  <p class="widget-product-item-author">By Sarah Mitchell</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-product-item">
+              <div class="card-body">
+                <div class="widget-product-item-image">
+                  <img src="assets/img/products/product-9.webp" alt="Product">
+                </div>
+                <div class="widget-product-item-content">
+                  <h6 class="widget-product-item-title">Sport Sneakers Classic</h6>
+                  <p class="widget-product-item-author">Ultimate Comfort</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Icon Stats with Info -->
+      <section class="section">
+        <h5 class="section-title mb-3">Icon Stats with Info</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-info-stat">
+              <div class="card-body">
+                <div class="widget-info-stat-icon success">
+                  <i class="bi bi-cash-stack"></i>
+                </div>
+                <div class="widget-info-stat-content">
+                  <span class="widget-info-stat-value">$21,450</span>
+                  <span class="widget-info-stat-label">Income</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-info-stat">
+              <div class="card-body">
+                <div class="widget-info-stat-icon primary">
+                  <i class="bi bi-people"></i>
+                </div>
+                <div class="widget-info-stat-content">
+                  <span class="widget-info-stat-value">3,180</span>
+                  <span class="widget-info-stat-label">Users</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-info-stat">
+              <div class="card-body">
+                <div class="widget-info-stat-icon danger">
+                  <i class="bi bi-calendar-event"></i>
+                </div>
+                <div class="widget-info-stat-content">
+                  <span class="widget-info-stat-value">18 march</span>
+                  <span class="widget-info-stat-label">My birthday</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-info-stat">
+              <div class="card-body">
+                <div class="widget-info-stat-icon warning">
+                  <i class="bi bi-gear"></i>
+                </div>
+                <div class="widget-info-stat-content">
+                  <span class="widget-info-stat-value">7,920</span>
+                  <span class="widget-info-stat-label">Manage notifications</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Progress Stat Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Progress Stat Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-progress-stat">
+              <div class="card-body">
+                <div class="widget-progress-stat-header">
+                  <span class="widget-progress-stat-value">78%</span>
+                  <div class="widget-progress-stat-icon success">
+                    <i class="bi bi-box-seam"></i>
+                  </div>
+                </div>
+                <span class="widget-progress-stat-label">Total Product</span>
+                <div class="progress widget-progress-bar" style="height: 4px;">
+                  <div class="progress-bar bg-success" style="width: 78%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-progress-stat">
+              <div class="card-body">
+                <div class="widget-progress-stat-header">
+                  <span class="widget-progress-stat-value">45%</span>
+                  <div class="widget-progress-stat-icon primary">
+                    <i class="bi bi-hourglass-split"></i>
+                  </div>
+                </div>
+                <span class="widget-progress-stat-label">Pending Product</span>
+                <div class="progress widget-progress-bar" style="height: 4px;">
+                  <div class="progress-bar bg-primary" style="width: 45%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-progress-stat">
+              <div class="card-body">
+                <div class="widget-progress-stat-header">
+                  <span class="widget-progress-stat-value">62%</span>
+                  <div class="widget-progress-stat-icon info">
+                    <i class="bi bi-cart-check"></i>
+                  </div>
+                </div>
+                <span class="widget-progress-stat-label">Selling</span>
+                <div class="progress widget-progress-bar" style="height: 4px;">
+                  <div class="progress-bar bg-info" style="width: 62%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-progress-stat">
+              <div class="card-body">
+                <div class="widget-progress-stat-header">
+                  <span class="widget-progress-stat-value">31%</span>
+                  <div class="widget-progress-stat-icon danger">
+                    <i class="bi bi-bag"></i>
+                  </div>
+                </div>
+                <span class="widget-progress-stat-label">Buying</span>
+                <div class="progress widget-progress-bar" style="height: 4px;">
+                  <div class="progress-bar bg-danger" style="width: 31%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Featured Cards -->
+      <section class="section">
+        <h5 class="section-title mb-3">Featured Cards</h5>
+        <div class="row g-4">
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-featured-card">
+              <div class="widget-featured-image">
+                <img src="assets/img/blog/blog-1.webp" alt="Featured">
+              </div>
+              <div class="card-body">
+                <div class="widget-featured-meta">
+                  <span><i class="bi bi-calendar"></i> 18 Jan 2026</span>
+                  <span><i class="bi bi-chat"></i> 8 Comments</span>
+                </div>
+                <h6 class="widget-featured-title">Modern Dashboard Design Trends for SaaS Applications</h6>
+                <p class="widget-featured-desc">Explore the latest design patterns and user experience improvements in enterprise software.</p>
+                <button class="btn btn-primary btn-sm">Read More</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-featured-card">
+              <div class="widget-featured-image">
+                <img src="assets/img/blog/blog-2.webp" alt="Featured">
+              </div>
+              <div class="card-body">
+                <div class="widget-featured-meta">
+                  <span><i class="bi bi-calendar"></i> 15 Jan 2026</span>
+                  <span><i class="bi bi-chat"></i> 24 Comments</span>
+                </div>
+                <h6 class="widget-featured-title">Building Scalable APIs with Modern Architecture</h6>
+                <p class="widget-featured-desc">Learn best practices for creating robust and maintainable backend services.</p>
+                <button class="btn btn-primary btn-sm">Read More</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="card widget-featured-card">
+              <div class="widget-featured-image">
+                <img src="assets/img/blog/blog-3.webp" alt="Featured">
+              </div>
+              <div class="card-body">
+                <div class="widget-featured-meta">
+                  <span><i class="bi bi-calendar"></i> 12 Jan 2026</span>
+                  <span><i class="bi bi-chat"></i> 19 Comments</span>
+                </div>
+                <h6 class="widget-featured-title">Optimizing Performance in React Applications</h6>
+                <p class="widget-featured-desc">Discover techniques to improve rendering speed and reduce bundle sizes.</p>
+                <button class="btn btn-primary btn-sm">Read More</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Progress Stats -->
+      <section class="section">
+        <h5 class="section-title mb-3">Bottom Progress Stats</h5>
+        <div class="row g-4">
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-bottom-progress">
+              <div class="card-body">
+                <span class="widget-bottom-progress-value">32%</span>
+                <span class="widget-bottom-progress-label">Total Product</span>
+                <div class="progress" style="height: 4px;">
+                  <div class="progress-bar bg-success" style="width: 32%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-bottom-progress">
+              <div class="card-body">
+                <span class="widget-bottom-progress-value">68%</span>
+                <span class="widget-bottom-progress-label">Pending Product</span>
+                <div class="progress" style="height: 4px;">
+                  <div class="progress-bar bg-primary" style="width: 68%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-bottom-progress">
+              <div class="card-body">
+                <span class="widget-bottom-progress-value">71%</span>
+                <span class="widget-bottom-progress-label">Selling Products</span>
+                <div class="progress" style="height: 4px;">
+                  <div class="progress-bar bg-danger" style="width: 71%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <div class="card widget-bottom-progress">
+              <div class="card-body">
+                <span class="widget-bottom-progress-value">35%</span>
+                <span class="widget-bottom-progress-label">Buying Products</span>
+                <div class="progress" style="height: 4px;">
+                  <div class="progress-bar bg-secondary" style="width: 35%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stat Widgets with Change Indicator -->
+      <section class="section">
+        <h5 class="section-title mb-3">Stat Widgets with Change</h5>
+        <div class="dashboard-grid dashboard-grid-4">
+          <!-- Stat Widget - Primary -->
+          <div class="card widget-stat">
+            <div class="widget-stat-header">
+              <div>
+                <div class="widget-stat-value">$48,562</div>
+                <div class="widget-stat-label">Total Revenue</div>
+              </div>
+              <div class="widget-stat-icon primary">
+                <i class="bi bi-currency-dollar"></i>
+              </div>
+            </div>
+            <div class="widget-stat-change positive">
+              <i class="bi bi-arrow-up"></i> 12.5% vs last month
+            </div>
+          </div>
+
+          <!-- Stat Widget - Success -->
+          <div class="card widget-stat">
+            <div class="widget-stat-header">
+              <div>
+                <div class="widget-stat-value">2,845</div>
+                <div class="widget-stat-label">New Orders</div>
+              </div>
+              <div class="widget-stat-icon success">
+                <i class="bi bi-bag-check"></i>
+              </div>
+            </div>
+            <div class="widget-stat-change positive">
+              <i class="bi bi-arrow-up"></i> 8.2% vs last month
+            </div>
+          </div>
+
+          <!-- Stat Widget - Warning -->
+          <div class="card widget-stat">
+            <div class="widget-stat-header">
+              <div>
+                <div class="widget-stat-value">1,423</div>
+                <div class="widget-stat-label">New Customers</div>
+              </div>
+              <div class="widget-stat-icon warning">
+                <i class="bi bi-people"></i>
+              </div>
+            </div>
+            <div class="widget-stat-change negative">
+              <i class="bi bi-arrow-down"></i> 3.1% vs last month
+            </div>
+          </div>
+
+          <!-- Stat Widget - Danger -->
+          <div class="card widget-stat">
+            <div class="widget-stat-header">
+              <div>
+                <div class="widget-stat-value">32.4%</div>
+                <div class="widget-stat-label">Bounce Rate</div>
+              </div>
+              <div class="widget-stat-icon danger">
+                <i class="bi bi-arrow-return-left"></i>
+              </div>
+            </div>
+            <div class="widget-stat-change positive">
+              <i class="bi bi-arrow-down"></i> 5.2% improvement
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Traffic & Device Widgets -->
+      <section class="section">
+        <h5 class="section-title mb-3">Traffic & Device Stats</h5>
+        <div class="row g-4">
+          <!-- Traffic Sources Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Traffic Sources</h5>
+                <div class="card-actions">
+                  <span class="text-muted small">Last 30 days</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="traffic-source-item">
+                  <div class="traffic-source-icon" style="background: rgba(66, 133, 244, 0.1); color: #4285f4;">
+                    <i class="bi bi-google"></i>
+                  </div>
+                  <div class="traffic-source-info">
+                    <div class="traffic-source-name">Google</div>
+                    <div class="traffic-source-value">45,820 visitors</div>
+                  </div>
+                  <div class="traffic-source-percent text-success">42.5%</div>
+                </div>
+                <div class="traffic-source-item">
+                  <div class="traffic-source-icon" style="background: rgba(24, 119, 242, 0.1); color: #1877f2;">
+                    <i class="bi bi-facebook"></i>
+                  </div>
+                  <div class="traffic-source-info">
+                    <div class="traffic-source-name">Facebook</div>
+                    <div class="traffic-source-value">24,150 visitors</div>
+                  </div>
+                  <div class="traffic-source-percent text-primary">22.4%</div>
+                </div>
+                <div class="traffic-source-item">
+                  <div class="traffic-source-icon" style="background: rgba(0, 0, 0, 0.1); color: #000;">
+                    <i class="bi bi-twitter-x"></i>
+                  </div>
+                  <div class="traffic-source-info">
+                    <div class="traffic-source-name">X (Twitter)</div>
+                    <div class="traffic-source-value">18,420 visitors</div>
+                  </div>
+                  <div class="traffic-source-percent text-info">17.1%</div>
+                </div>
+                <div class="traffic-source-item">
+                  <div class="traffic-source-icon" style="background: rgba(255, 0, 0, 0.1); color: #ff0000;">
+                    <i class="bi bi-youtube"></i>
+                  </div>
+                  <div class="traffic-source-info">
+                    <div class="traffic-source-name">YouTube</div>
+                    <div class="traffic-source-value">12,350 visitors</div>
+                  </div>
+                  <div class="traffic-source-percent text-danger">11.5%</div>
+                </div>
+                <div class="traffic-source-item">
+                  <div class="traffic-source-icon" style="background: rgba(100, 100, 100, 0.1); color: var(--muted-color);">
+                    <i class="bi bi-link-45deg"></i>
+                  </div>
+                  <div class="traffic-source-info">
+                    <div class="traffic-source-name">Direct</div>
+                    <div class="traffic-source-value">7,020 visitors</div>
+                  </div>
+                  <div class="traffic-source-percent text-muted">6.5%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Device Stats Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Device Breakdown</h5>
+              </div>
+              <div class="card-body">
+                <div class="device-list">
+                  <div class="device-item">
+                    <div class="device-icon">
+                      <i class="bi bi-laptop"></i>
+                    </div>
+                    <div class="device-info">
+                      <div class="device-name">Desktop</div>
+                      <div class="progress device-progress">
+                        <div class="progress-bar" role="progressbar" style="width: 58%"></div>
+                      </div>
+                    </div>
+                    <div class="device-stats">
+                      <div class="device-percent">58%</div>
+                      <div class="device-count">142,845</div>
+                    </div>
+                  </div>
+                  <div class="device-item">
+                    <div class="device-icon">
+                      <i class="bi bi-phone"></i>
+                    </div>
+                    <div class="device-info">
+                      <div class="device-name">Mobile</div>
+                      <div class="progress device-progress">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 32%"></div>
+                      </div>
+                    </div>
+                    <div class="device-stats">
+                      <div class="device-percent">32%</div>
+                      <div class="device-count">78,920</div>
+                    </div>
+                  </div>
+                  <div class="device-item">
+                    <div class="device-icon">
+                      <i class="bi bi-tablet"></i>
+                    </div>
+                    <div class="device-info">
+                      <div class="device-name">Tablet</div>
+                      <div class="progress device-progress">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: 10%"></div>
+                      </div>
+                    </div>
+                    <div class="device-stats">
+                      <div class="device-percent">10%</div>
+                      <div class="device-count">24,680</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Social & Realtime Widgets -->
+      <section class="section">
+        <h5 class="section-title mb-3">Social & Realtime Stats</h5>
+        <div class="row g-4">
+          <!-- Social Stats Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Social Media Stats</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="social-stats-list">
+                  <div class="social-stats-item">
+                    <div class="social-icon facebook">
+                      <i class="bi bi-facebook"></i>
+                    </div>
+                    <div class="social-info">
+                      <div class="social-name">Facebook</div>
+                      <div class="social-followers">24.5K followers</div>
+                    </div>
+                    <div class="social-engagement">
+                      <div class="engagement-value">+12.4%</div>
+                      <div class="engagement-label">Engagement</div>
+                    </div>
+                  </div>
+                  <div class="social-stats-item">
+                    <div class="social-icon twitter">
+                      <i class="bi bi-twitter-x"></i>
+                    </div>
+                    <div class="social-info">
+                      <div class="social-name">X (Twitter)</div>
+                      <div class="social-followers">18.2K followers</div>
+                    </div>
+                    <div class="social-engagement">
+                      <div class="engagement-value">+8.7%</div>
+                      <div class="engagement-label">Engagement</div>
+                    </div>
+                  </div>
+                  <div class="social-stats-item">
+                    <div class="social-icon instagram">
+                      <i class="bi bi-instagram"></i>
+                    </div>
+                    <div class="social-info">
+                      <div class="social-name">Instagram</div>
+                      <div class="social-followers">32.1K followers</div>
+                    </div>
+                    <div class="social-engagement">
+                      <div class="engagement-value">+15.2%</div>
+                      <div class="engagement-label">Engagement</div>
+                    </div>
+                  </div>
+                  <div class="social-stats-item">
+                    <div class="social-icon linkedin">
+                      <i class="bi bi-linkedin"></i>
+                    </div>
+                    <div class="social-info">
+                      <div class="social-name">LinkedIn</div>
+                      <div class="social-followers">12.8K followers</div>
+                    </div>
+                    <div class="social-engagement">
+                      <div class="engagement-value">+6.3%</div>
+                      <div class="engagement-label">Engagement</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-time Stats Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title"><span class="realtime-dot"></span>Real-time Stats</h5>
+              </div>
+              <div class="card-body">
+                <div class="realtime-stats">
+                  <div class="realtime-stat">
+                    <div class="realtime-value">847</div>
+                    <div class="realtime-label">Active Users</div>
+                  </div>
+                  <div class="realtime-stat">
+                    <div class="realtime-value">1.2K</div>
+                    <div class="realtime-label">Page Views</div>
+                  </div>
+                  <div class="realtime-stat">
+                    <div class="realtime-value">32</div>
+                    <div class="realtime-label">Orders</div>
+                  </div>
+                  <div class="realtime-stat">
+                    <div class="realtime-value">$4.8K</div>
+                    <div class="realtime-label">Revenue</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Region & Pipeline Widgets -->
+      <section class="section">
+        <h5 class="section-title mb-3">Region & Pipeline Stats</h5>
+        <div class="row g-4">
+          <!-- Region Stats Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Sales by Region</h5>
+              </div>
+              <div class="card-body">
+                <div class="region-list">
+                  <div class="region-item">
+                    <div class="region-info">
+                      <span class="region-flag">🇺🇸</span>
+                      <span class="region-name">United States</span>
+                    </div>
+                    <div class="region-stats">
+                      <span class="region-value">$45,820</span>
+                      <div class="progress region-progress flex-grow-1">
+                        <div class="progress-bar" style="width: 65%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="region-item">
+                    <div class="region-info">
+                      <span class="region-flag">🇬🇧</span>
+                      <span class="region-name">United Kingdom</span>
+                    </div>
+                    <div class="region-stats">
+                      <span class="region-value">$28,450</span>
+                      <div class="progress region-progress flex-grow-1">
+                        <div class="progress-bar bg-success" style="width: 45%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="region-item">
+                    <div class="region-info">
+                      <span class="region-flag">🇩🇪</span>
+                      <span class="region-name">Germany</span>
+                    </div>
+                    <div class="region-stats">
+                      <span class="region-value">$21,380</span>
+                      <div class="progress region-progress flex-grow-1">
+                        <div class="progress-bar bg-warning" style="width: 35%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="region-item">
+                    <div class="region-info">
+                      <span class="region-flag">🇫🇷</span>
+                      <span class="region-name">France</span>
+                    </div>
+                    <div class="region-stats">
+                      <span class="region-value">$18,240</span>
+                      <div class="progress region-progress flex-grow-1">
+                        <div class="progress-bar bg-info" style="width: 28%"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="region-item">
+                    <div class="region-info">
+                      <span class="region-flag">🇯🇵</span>
+                      <span class="region-name">Japan</span>
+                    </div>
+                    <div class="region-stats">
+                      <span class="region-value">$12,650</span>
+                      <div class="progress region-progress flex-grow-1">
+                        <div class="progress-bar bg-danger" style="width: 20%"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pipeline Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Sales Pipeline</h5>
+              </div>
+              <div class="card-body">
+                <div class="pipeline-stages">
+                  <div class="pipeline-stage">
+                    <div class="pipeline-stage-header">
+                      <span class="pipeline-stage-name">Lead</span>
+                      <span class="pipeline-stage-count">24 deals</span>
+                    </div>
+                    <div class="pipeline-stage-bar" style="--stage-width: 100%; --stage-color: var(--accent-color);"></div>
+                    <span class="pipeline-stage-value">$124,500</span>
+                  </div>
+                  <div class="pipeline-stage">
+                    <div class="pipeline-stage-header">
+                      <span class="pipeline-stage-name">Qualified</span>
+                      <span class="pipeline-stage-count">18 deals</span>
+                    </div>
+                    <div class="pipeline-stage-bar" style="--stage-width: 75%; --stage-color: var(--info-color);"></div>
+                    <span class="pipeline-stage-value">$98,200</span>
+                  </div>
+                  <div class="pipeline-stage">
+                    <div class="pipeline-stage-header">
+                      <span class="pipeline-stage-name">Proposal</span>
+                      <span class="pipeline-stage-count">12 deals</span>
+                    </div>
+                    <div class="pipeline-stage-bar" style="--stage-width: 55%; --stage-color: var(--warning-color);"></div>
+                    <span class="pipeline-stage-value">$72,800</span>
+                  </div>
+                  <div class="pipeline-stage">
+                    <div class="pipeline-stage-header">
+                      <span class="pipeline-stage-name">Negotiation</span>
+                      <span class="pipeline-stage-count">8 deals</span>
+                    </div>
+                    <div class="pipeline-stage-bar" style="--stage-width: 35%; --stage-color: var(--success-color);"></div>
+                    <span class="pipeline-stage-value">$48,500</span>
+                  </div>
+                  <div class="pipeline-stage">
+                    <div class="pipeline-stage-header">
+                      <span class="pipeline-stage-name">Closed Won</span>
+                      <span class="pipeline-stage-count">5 deals</span>
+                    </div>
+                    <div class="pipeline-stage-bar" style="--stage-width: 20%; --stage-color: var(--success-color);"></div>
+                    <span class="pipeline-stage-value">$32,000</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Top Products Widget -->
+      <section class="section">
+        <h5 class="section-title mb-3">Top Products</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Best Sellers</h5>
+                <div class="card-actions">
+                  <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="widget-sales-item px-3">
+                  <div class="widget-sales-product">
+                    <div class="widget-sales-image d-flex align-items-center justify-content-center bg-light rounded">
+                      <i class="bi bi-laptop text-muted"></i>
+                    </div>
+                    <div>
+                      <div class="widget-sales-name">MacBook Pro 14"</div>
+                      <div class="widget-sales-category">Electronics</div>
+                    </div>
+                  </div>
+                  <div class="widget-sales-amount">$2,499.00</div>
+                </div>
+                <div class="widget-sales-item px-3">
+                  <div class="widget-sales-product">
+                    <div class="widget-sales-image d-flex align-items-center justify-content-center bg-light rounded">
+                      <i class="bi bi-headphones text-muted"></i>
+                    </div>
+                    <div>
+                      <div class="widget-sales-name">AirPods Max</div>
+                      <div class="widget-sales-category">Audio</div>
+                    </div>
+                  </div>
+                  <div class="widget-sales-amount">$549.00</div>
+                </div>
+                <div class="widget-sales-item px-3">
+                  <div class="widget-sales-product">
+                    <div class="widget-sales-image d-flex align-items-center justify-content-center bg-light rounded">
+                      <i class="bi bi-watch text-muted"></i>
+                    </div>
+                    <div>
+                      <div class="widget-sales-name">Apple Watch Ultra</div>
+                      <div class="widget-sales-category">Wearables</div>
+                    </div>
+                  </div>
+                  <div class="widget-sales-amount">$799.00</div>
+                </div>
+                <div class="widget-sales-item px-3">
+                  <div class="widget-sales-product">
+                    <div class="widget-sales-image d-flex align-items-center justify-content-center bg-light rounded">
+                      <i class="bi bi-phone text-muted"></i>
+                    </div>
+                    <div>
+                      <div class="widget-sales-name">iPhone 15 Pro</div>
+                      <div class="widget-sales-category">Smartphones</div>
+                    </div>
+                  </div>
+                  <div class="widget-sales-amount">$1,199.00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Browser Stats Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Browser Usage</h5>
+              </div>
+              <div class="card-body">
+                <div class="browser-list">
+                  <div class="browser-item">
+                    <div class="browser-info">
+                      <i class="bi bi-browser-chrome" style="color: #4285f4;"></i>
+                      <span class="browser-name">Chrome</span>
+                    </div>
+                    <div class="browser-stats">
+                      <span class="browser-percent">64.2%</span>
+                    </div>
+                  </div>
+                  <div class="browser-item">
+                    <div class="browser-info">
+                      <i class="bi bi-browser-safari" style="color: #5ac8fa;"></i>
+                      <span class="browser-name">Safari</span>
+                    </div>
+                    <div class="browser-stats">
+                      <span class="browser-percent">18.5%</span>
+                    </div>
+                  </div>
+                  <div class="browser-item">
+                    <div class="browser-info">
+                      <i class="bi bi-browser-firefox" style="color: #ff7139;"></i>
+                      <span class="browser-name">Firefox</span>
+                    </div>
+                    <div class="browser-stats">
+                      <span class="browser-percent">10.8%</span>
+                    </div>
+                  </div>
+                  <div class="browser-item">
+                    <div class="browser-info">
+                      <i class="bi bi-browser-edge" style="color: #0078d7;"></i>
+                      <span class="browser-name">Edge</span>
+                    </div>
+                    <div class="browser-stats">
+                      <span class="browser-percent">5.2%</span>
+                    </div>
+                  </div>
+                  <div class="browser-item">
+                    <div class="browser-info">
+                      <i class="bi bi-globe" style="color: var(--muted-color);"></i>
+                      <span class="browser-name">Other</span>
+                    </div>
+                    <div class="browser-stats">
+                      <span class="browser-percent">1.3%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+</body>
+
+</html>

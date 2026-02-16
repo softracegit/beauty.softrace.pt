@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section active" data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link active" href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Chat</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Apps</a>
+          <span class="breadcrumb-item active">Chat</span>
+        </nav>
+      </div>
+
+      <!-- Chat Container -->
+      <div class="chat-container">
+        <!-- Mobile Sidebar Overlay -->
+        <div class="chat-sidebar-overlay" id="chatSidebarOverlay"></div>
+
+        <!-- Chat Sidebar -->
+        <div class="chat-sidebar" id="chatSidebar">
+          <!-- Mobile Close Button -->
+          <button class="chat-sidebar-close" id="chatSidebarClose" aria-label="Close sidebar">
+            <i class="bi bi-x-lg"></i>
+          </button>
+
+          <div class="chat-sidebar-header">
+            <h2 class="chat-sidebar-title">Messages</h2>
+            <div class="chat-search">
+              <i class="bi bi-search chat-search-icon"></i>
+              <input type="text" class="form-control" placeholder="Search conversations...">
+            </div>
+          </div>
+
+          <div class="chat-tabs">
+            <button class="chat-tab active">All</button>
+            <button class="chat-tab">Unread <span class="badge bg-primary">3</span></button>
+            <button class="chat-tab">Groups</button>
+          </div>
+
+          <div class="chat-list">
+            <!-- Chat Item 1 - Active -->
+            <div class="chat-item active" data-chat="1">
+              <div class="chat-item-avatar">
+                <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+                <span class="chat-item-status online"></span>
+              </div>
+              <div class="chat-item-content">
+                <div class="chat-item-header">
+                  <span class="chat-item-name">Sarah Wilson</span>
+                  <span class="chat-item-time">2m ago</span>
+                </div>
+                <div class="chat-item-message">
+                  <span class="chat-item-message-text">Sure, I'll send the files right away!</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Item 2 -->
+            <div class="chat-item" data-chat="2">
+              <div class="chat-item-avatar">
+                <img src="assets/img/avatars/avatar-2.webp" alt="Mike Johnson">
+                <span class="chat-item-status away"></span>
+              </div>
+              <div class="chat-item-content">
+                <div class="chat-item-header">
+                  <span class="chat-item-name">Mike Johnson</span>
+                  <span class="chat-item-time">15m ago</span>
+                </div>
+                <div class="chat-item-message">
+                  <span class="chat-item-message-text">The meeting has been rescheduled to 3 PM</span>
+                  <span class="chat-item-unread">2</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Item 3 -->
+            <div class="chat-item" data-chat="3">
+              <div class="chat-item-avatar">
+                <img src="assets/img/avatars/avatar-3.webp" alt="Emily Davis">
+                <span class="chat-item-status online"></span>
+              </div>
+              <div class="chat-item-content">
+                <div class="chat-item-header">
+                  <span class="chat-item-name">Emily Davis</span>
+                  <span class="chat-item-time">1h ago</span>
+                </div>
+                <div class="chat-item-message">
+                  <span class="chat-item-message-text">Did you see the latest design updates?</span>
+                  <span class="chat-item-unread">1</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Item 4 -->
+            <div class="chat-item" data-chat="4">
+              <div class="chat-item-avatar">
+                <img src="assets/img/avatars/avatar-4.webp" alt="Design Team">
+                <span class="chat-item-status online"></span>
+              </div>
+              <div class="chat-item-content">
+                <div class="chat-item-header">
+                  <span class="chat-item-name">Design Team</span>
+                  <span class="chat-item-time">2h ago</span>
+                </div>
+                <div class="chat-item-message">
+                  <span class="chat-item-message-text">Alex: Great work on the mockups everyone!</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Item 5 -->
+            <div class="chat-item" data-chat="5">
+              <div class="chat-item-avatar">
+                <img src="assets/img/avatars/avatar-5.webp" alt="David Brown">
+                <span class="chat-item-status offline"></span>
+              </div>
+              <div class="chat-item-content">
+                <div class="chat-item-header">
+                  <span class="chat-item-name">David Brown</span>
+                  <span class="chat-item-time">Yesterday</span>
+                </div>
+                <div class="chat-item-message">
+                  <span class="chat-item-message-text">Thanks for your help with the project!</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Item 6 -->
+            <div class="chat-item" data-chat="6">
+              <div class="chat-item-avatar">
+                <img src="assets/img/avatars/avatar-6.webp" alt="Lisa Anderson">
+                <span class="chat-item-status busy"></span>
+              </div>
+              <div class="chat-item-content">
+                <div class="chat-item-header">
+                  <span class="chat-item-name">Lisa Anderson</span>
+                  <span class="chat-item-time">Yesterday</span>
+                </div>
+                <div class="chat-item-message">
+                  <span class="chat-item-message-text">I'll review the document and get back to you</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Item 7 -->
+            <div class="chat-item" data-chat="7">
+              <div class="chat-item-avatar">
+                <img src="assets/img/avatars/avatar-7.webp" alt="Product Team">
+                <span class="chat-item-status online"></span>
+              </div>
+              <div class="chat-item-content">
+                <div class="chat-item-header">
+                  <span class="chat-item-name">Product Team</span>
+                  <span class="chat-item-time">2 days ago</span>
+                </div>
+                <div class="chat-item-message">
+                  <span class="chat-item-message-text">Sprint planning starts at 10 AM tomorrow</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Item 8 -->
+            <div class="chat-item" data-chat="8">
+              <div class="chat-item-avatar">
+                <img src="assets/img/avatars/avatar-8.webp" alt="James Wilson">
+                <span class="chat-item-status offline"></span>
+              </div>
+              <div class="chat-item-content">
+                <div class="chat-item-header">
+                  <span class="chat-item-name">James Wilson</span>
+                  <span class="chat-item-time">3 days ago</span>
+                </div>
+                <div class="chat-item-message">
+                  <span class="chat-item-message-text">Let me know when you're free for a call</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Main -->
+        <div class="chat-main" id="chatMain">
+          <!-- Chat Header -->
+          <div class="chat-header">
+            <!-- Mobile Sidebar Toggle -->
+            <button class="chat-sidebar-toggle" id="chatSidebarToggle" aria-label="Open conversations">
+              <i class="bi bi-chat-left-text"></i>
+            </button>
+
+            <div class="chat-header-user">
+              <div class="chat-header-avatar">
+                <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+              </div>
+              <div class="chat-header-info">
+                <h5>Sarah Wilson</h5>
+                <span><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i> Online</span>
+              </div>
+            </div>
+            <div class="chat-header-actions">
+              <button class="chat-header-btn" title="Voice Call">
+                <i class="bi bi-telephone"></i>
+              </button>
+              <button class="chat-header-btn" title="Video Call">
+                <i class="bi bi-camera-video"></i>
+              </button>
+              <button class="chat-header-btn" title="User Info" id="toggleInfoBtn">
+                <i class="bi bi-info-circle"></i>
+              </button>
+              <div class="dropdown">
+                <button class="chat-header-btn" data-bs-toggle="dropdown" data-bs-strategy="fixed">
+                  <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-search me-2"></i> Search Messages</a></li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-bell-slash me-2"></i> Mute Notifications</a></li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-pin me-2"></i> Pin Conversation</a></li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li><a class="dropdown-item" href="#"><i class="bi bi-archive me-2"></i> Archive Chat</a></li>
+                  <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i> Delete Chat</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Messages -->
+          <div class="chat-messages" id="chatMessages">
+            <!-- Date Divider -->
+            <div class="message-date-divider">
+              <span>Today</span>
+            </div>
+
+            <!-- Received Message -->
+            <div class="message-group received">
+              <div class="message-avatar">
+                <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+              </div>
+              <div class="message-content">
+                <div class="message-bubble">Hi there! How's the project going?</div>
+                <span class="message-time">9:30 AM</span>
+              </div>
+            </div>
+
+            <!-- Sent Message -->
+            <div class="message-group sent">
+              <div class="message-content">
+                <div class="message-bubble">Hey Sarah! It's going well. Just finished the dashboard design.</div>
+                <span class="message-status seen"><i class="bi bi-check2-all"></i> Seen</span>
+              </div>
+            </div>
+
+            <!-- Received Message -->
+            <div class="message-group received">
+              <div class="message-avatar">
+                <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+              </div>
+              <div class="message-content">
+                <div class="message-bubble">That's great! Can you share the latest mockups?</div>
+                <span class="message-time">9:35 AM</span>
+              </div>
+            </div>
+
+            <!-- Sent Message with File -->
+            <div class="message-group sent">
+              <div class="message-content">
+                <div class="message-bubble">Sure thing! Here are the files:</div>
+                <div class="message-file">
+                  <div class="message-file-icon">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                  </div>
+                  <div class="message-file-info">
+                    <div class="message-file-name">Dashboard-Design-v2.pdf</div>
+                    <div class="message-file-size">2.4 MB</div>
+                  </div>
+                  <button class="message-file-download">
+                    <i class="bi bi-download"></i>
+                  </button>
+                </div>
+                <span class="message-status seen"><i class="bi bi-check2-all"></i> Seen</span>
+              </div>
+            </div>
+
+            <!-- Received Message -->
+            <div class="message-group received">
+              <div class="message-avatar">
+                <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+              </div>
+              <div class="message-content">
+                <div class="message-bubble">Perfect! Let me take a look at these.</div>
+                <span class="message-time">9:42 AM</span>
+              </div>
+            </div>
+
+            <!-- Received Message with multiple bubbles -->
+            <div class="message-group received">
+              <div class="message-avatar">
+                <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+              </div>
+              <div class="message-content">
+                <div class="message-bubble">The design looks amazing! I love the new color scheme.</div>
+                <div class="message-bubble">Just a few minor suggestions:</div>
+                <div class="message-bubble">1. Could we make the sidebar a bit narrower?<br>2. The charts could use more contrast<br>3. Maybe add some icons to the navigation</div>
+                <span class="message-time">10:15 AM</span>
+              </div>
+            </div>
+
+            <!-- Sent Message -->
+            <div class="message-group sent">
+              <div class="message-content">
+                <div class="message-bubble">Great feedback! I'll work on those changes today.</div>
+                <span class="message-status seen"><i class="bi bi-check2-all"></i> Seen</span>
+              </div>
+            </div>
+
+            <!-- Received Message -->
+            <div class="message-group received">
+              <div class="message-avatar">
+                <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+              </div>
+              <div class="message-content">
+                <div class="message-bubble">Sure, I'll send the files right away!</div>
+                <span class="message-time">10:28 AM</span>
+              </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+              <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+              <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Input -->
+          <div class="chat-input">
+            <div class="chat-input-wrapper">
+              <div class="chat-input-actions">
+                <button class="chat-input-btn" title="Attach File">
+                  <i class="bi bi-paperclip"></i>
+                </button>
+                <button class="chat-input-btn" title="Send Image">
+                  <i class="bi bi-image"></i>
+                </button>
+              </div>
+              <div class="chat-input-field">
+                <textarea id="messageInput" rows="1" placeholder="Type a message..."></textarea>
+              </div>
+              <div class="chat-input-actions">
+                <button class="chat-input-btn" title="Emoji">
+                  <i class="bi bi-emoji-smile"></i>
+                </button>
+              </div>
+              <button class="chat-send-btn" id="sendBtn" title="Send Message">
+                <i class="bi bi-send"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Info Panel -->
+        <div class="chat-info" id="chatInfo">
+          <div class="chat-info-header">
+            <h6>Contact Info</h6>
+            <button class="chat-info-close" id="closeInfoBtn">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="chat-info-body">
+            <div class="chat-info-profile">
+              <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+              <h5>Sarah Wilson</h5>
+              <span>UI/UX Designer</span>
+            </div>
+
+            <div class="chat-info-section">
+              <div class="chat-info-section-title">Contact Details</div>
+              <div class="chat-info-item">
+                <i class="bi bi-envelope"></i>
+                <span>sarah.wilson@example.com</span>
+              </div>
+              <div class="chat-info-item">
+                <i class="bi bi-telephone"></i>
+                <span>+1 (555) 123-4567</span>
+              </div>
+              <div class="chat-info-item">
+                <i class="bi bi-geo-alt"></i>
+                <span>San Francisco, CA</span>
+              </div>
+            </div>
+
+            <div class="chat-info-section">
+              <div class="chat-info-section-title">Shared Media</div>
+              <div class="chat-info-media">
+                <img src="assets/img/gallery/gallery-thumb-1.webp" alt="Shared media">
+                <img src="assets/img/gallery/gallery-thumb-2.webp" alt="Shared media">
+                <img src="assets/img/gallery/gallery-thumb-3.webp" alt="Shared media">
+                <img src="assets/img/gallery/gallery-thumb-4.webp" alt="Shared media">
+                <img src="assets/img/gallery/gallery-thumb-5.webp" alt="Shared media">
+                <img src="assets/img/gallery/gallery-thumb-6.webp" alt="Shared media">
+              </div>
+            </div>
+
+            <div class="chat-info-section">
+              <div class="chat-info-section-title">Shared Files</div>
+              <div class="message-file">
+                <div class="message-file-icon">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </div>
+                <div class="message-file-info">
+                  <div class="message-file-name">Dashboard-Design.pdf</div>
+                  <div class="message-file-size">2.4 MB</div>
+                </div>
+                <button class="message-file-download">
+                  <i class="bi bi-download"></i>
+                </button>
+              </div>
+              <div class="message-file mt-2">
+                <div class="message-file-icon">
+                  <i class="bi bi-file-earmark-zip"></i>
+                </div>
+                <div class="message-file-info">
+                  <div class="message-file-name">Assets.zip</div>
+                  <div class="message-file-size">15.8 MB</div>
+                </div>
+                <button class="message-file-download">
+                  <i class="bi bi-download"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const chatItems = document.querySelectorAll('.chat-item');
+      const messageInput = document.getElementById('messageInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const chatMessages = document.getElementById('chatMessages');
+      const toggleInfoBtn = document.getElementById('toggleInfoBtn');
+      const closeInfoBtn = document.getElementById('closeInfoBtn');
+      const chatInfo = document.getElementById('chatInfo');
+      const typingIndicator = document.getElementById('typingIndicator');
+      // Chat item click handler
+      chatItems.forEach(item => {
+        item.addEventListener('click', function() {
+          chatItems.forEach(i => i.classList.remove('active'));
+          this.classList.add('active');
+          // Remove unread badge
+          const unreadBadge = this.querySelector('.chat-item-unread');
+          if (unreadBadge) {
+            unreadBadge.remove();
+          }
+        });
+      });
+      // Auto-resize textarea
+      messageInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        // Enable/disable send button
+        sendBtn.disabled = !this.value.trim();
+      });
+      // Send message
+      function sendMessage() {
+        const message = messageInput.value.trim();
+        if (!message) return;
+        // Create message element
+        const messageGroup = document.createElement('div');
+        messageGroup.className = 'message-group sent';
+        messageGroup.innerHTML = `
+      <div class="message-content">
+        <div class="message-bubble">${escapeHtml(message)}</div>
+        <span class="message-status"><i class="bi bi-check2"></i> Sent</span>
+      </div>
+    `;
+        // Insert before typing indicator or at end
+        if (typingIndicator.style.display !== 'none') {
+          chatMessages.insertBefore(messageGroup, typingIndicator);
+        } else {
+          chatMessages.appendChild(messageGroup);
+        }
+        // Clear input
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        sendBtn.disabled = true;
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Simulate typing response
+        setTimeout(() => {
+          typingIndicator.style.display = 'flex';
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          // Simulate received message after typing
+          setTimeout(() => {
+            typingIndicator.style.display = 'none';
+            const responses = [
+              "Got it! I'll take a look.",
+              "Thanks for the update!",
+              "Sounds good to me.",
+              "I'll get back to you shortly.",
+              "Perfect, thanks for letting me know!"
+            ];
+            const responseGroup = document.createElement('div');
+            responseGroup.className = 'message-group received';
+            responseGroup.innerHTML = `
+          <div class="message-avatar">
+            <img src="assets/img/avatars/avatar-1.webp" alt="Sarah Wilson">
+          </div>
+          <div class="message-content">
+            <div class="message-bubble">${responses[Math.floor(Math.random() * responses.length)]}</div>
+            <span class="message-time">Just now</span>
+          </div>
+        `;
+            chatMessages.appendChild(responseGroup);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // Update message status to seen
+            const lastSent = chatMessages.querySelector('.message-group.sent:last-of-type .message-status');
+            if (lastSent) {
+              lastSent.innerHTML = '<i class="bi bi-check2-all"></i> Seen';
+              lastSent.classList.add('seen');
+            }
+          }, 1500 + Math.random() * 1000);
+        }, 500);
+      }
+      // Send button click
+      sendBtn.addEventListener('click', sendMessage);
+      // Enter key to send
+      messageInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+      // Toggle info panel
+      toggleInfoBtn.addEventListener('click', function() {
+        chatInfo.classList.toggle('show');
+      });
+      closeInfoBtn.addEventListener('click', function() {
+        chatInfo.classList.remove('show');
+      });
+      // Tab switching
+      const chatTabs = document.querySelectorAll('.chat-tab');
+      chatTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          chatTabs.forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+      // Scroll to bottom on load
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+      // Helper function to escape HTML
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,1984 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Widgets - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section active" data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group open">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="true">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav show">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link active" href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section " data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link " href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">App Widgets</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Widgets</a>
+          <span class="breadcrumb-item active">Apps</span>
+        </nav>
+      </div>
+
+      <!-- Row 1: Comments, Todo List, Projects -->
+      <section class="section">
+        <div class="row g-4">
+          <!-- Recent Comments Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Recent Comments</h5>
+              </div>
+              <div class="card-body">
+                <div class="widget-comment-item">
+                  <img src="assets/img/avatars/avatar-1.webp" alt="User" class="widget-comment-avatar">
+                  <div class="widget-comment-content">
+                    <h6 class="widget-comment-author">Sarah Mitchell</h6>
+                    <p class="widget-comment-text">The new dashboard layout looks fantastic. Great work on the responsive design implementation.</p>
+                    <span class="badge badge-soft-warning">Pending</span>
+                  </div>
+                  <span class="widget-comment-date">Jan 18, 2026</span>
+                </div>
+                <div class="widget-comment-item">
+                  <img src="assets/img/avatars/avatar-2.webp" alt="User" class="widget-comment-avatar">
+                  <div class="widget-comment-content">
+                    <h6 class="widget-comment-author">David Chen</h6>
+                    <p class="widget-comment-text">Could we add dark mode support for the analytics section? Users have been requesting this feature.</p>
+                    <div class="widget-comment-actions">
+                      <span class="badge badge-soft-success">Approved</span>
+                      <button class="btn btn-sm btn-link p-0"><i class="bi bi-pencil"></i></button>
+                      <button class="btn btn-sm btn-link p-0"><i class="bi bi-chat"></i></button>
+                      <button class="btn btn-sm btn-link p-0"><i class="bi bi-heart"></i></button>
+                    </div>
+                  </div>
+                  <span class="widget-comment-date">Jan 18, 2026</span>
+                </div>
+                <div class="widget-comment-item">
+                  <img src="assets/img/avatars/avatar-3.webp" alt="User" class="widget-comment-avatar">
+                  <div class="widget-comment-content">
+                    <h6 class="widget-comment-author">Emily Rodriguez</h6>
+                    <p class="widget-comment-text">I've reviewed the API documentation and found some inconsistencies in the endpoint naming.</p>
+                    <span class="badge badge-soft-danger">Rejected</span>
+                  </div>
+                  <span class="widget-comment-date">Jan 17, 2026</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- To Do List Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">To Do List</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="widget-todo-list">
+                  <div class="widget-todo-item">
+                    <div class="widget-todo-check">
+                      <input type="checkbox" class="form-check-input" id="todo1">
+                    </div>
+                    <div class="widget-todo-content">
+                      <label for="todo1" class="widget-todo-title">Review quarterly report</label>
+                      <span class="widget-todo-date">15 January 2026</span>
+                    </div>
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                  <div class="widget-todo-item">
+                    <div class="widget-todo-check">
+                      <input type="checkbox" class="form-check-input" id="todo2">
+                    </div>
+                    <div class="widget-todo-content">
+                      <label for="todo2" class="widget-todo-title">Schedule team standup</label>
+                      <span class="widget-todo-date">16 January 2026</span>
+                    </div>
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                  <div class="widget-todo-item">
+                    <div class="widget-todo-check">
+                      <input type="checkbox" class="form-check-input" id="todo3">
+                    </div>
+                    <div class="widget-todo-content">
+                      <label for="todo3" class="widget-todo-title">Update billing information</label>
+                      <span class="widget-todo-date">18 January 2026</span>
+                    </div>
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                  <div class="widget-todo-item">
+                    <div class="widget-todo-check">
+                      <input type="checkbox" class="form-check-input" id="todo4">
+                    </div>
+                    <div class="widget-todo-content">
+                      <label for="todo4" class="widget-todo-title">Prepare client presentation</label>
+                      <span class="widget-todo-date">19 January 2026</span>
+                    </div>
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                  <div class="widget-todo-item">
+                    <div class="widget-todo-check">
+                      <input type="checkbox" class="form-check-input" id="todo5">
+                    </div>
+                    <div class="widget-todo-content">
+                      <label for="todo5" class="widget-todo-title">Complete code review</label>
+                      <span class="widget-todo-date">22 January 2026</span>
+                    </div>
+                    <button class="btn btn-sm btn-light"><i class="bi bi-three-dots"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Projects of the Month Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Projects of the Month</h5>
+                <div class="card-actions">
+                  <select class="form-select form-select-sm" style="width: auto;">
+                    <option>January</option>
+                    <option>February</option>
+                    <option>March</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <table class="table widget-projects-table mb-0">
+                  <thead>
+                    <tr>
+                      <th>Assigned</th>
+                      <th>Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>
+                        <div class="widget-project-assignee">
+                          <span class="widget-project-initial bg-primary">R</span>
+                          <div>
+                            <div class="widget-project-name">Rachel Kim</div>
+                            <div class="widget-project-role">Lead Designer</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="widget-project-client">Vertex Systems</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="widget-project-assignee">
+                          <span class="widget-project-initial bg-info">A</span>
+                          <div>
+                            <div class="widget-project-name">Alex Turner</div>
+                            <div class="widget-project-role">Project Manager</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="widget-project-client">Nova Industries</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="widget-project-assignee">
+                          <span class="widget-project-initial bg-warning">B</span>
+                          <div>
+                            <div class="widget-project-name">Brian Patel</div>
+                            <div class="widget-project-role">Developer</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="widget-project-client">MediPro Solutions</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="widget-project-assignee">
+                          <span class="widget-project-initial bg-success">N</span>
+                          <div>
+                            <div class="widget-project-name">Nina Vasquez</div>
+                            <div class="widget-project-role">Frontend Dev</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="widget-project-client">Quantum Labs</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="widget-project-assignee">
+                          <span class="widget-project-initial bg-danger">M</span>
+                          <div>
+                            <div class="widget-project-name">Marcus Chen</div>
+                            <div class="widget-project-role">Content Writer</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="widget-project-client">Stellar Agency</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <div class="widget-project-assignee">
+                          <span class="widget-project-initial bg-secondary">J</span>
+                          <div>
+                            <div class="widget-project-name">Julia Santos</div>
+                            <div class="widget-project-role">Graphic</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="widget-project-client">Horizon Digital</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Row 2: Weather, User Profile, Task List -->
+      <section class="section">
+        <div class="row g-4">
+          <!-- Weather Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Weather Report</h5>
+                <div class="card-actions">
+                  <select class="form-select form-select-sm" style="width: auto;">
+                    <option>Today</option>
+                    <option>Tomorrow</option>
+                    <option>This Week</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="widget-weather-main">
+                  <div class="widget-weather-icon">
+                    <i class="bi bi-cloud-sun"></i>
+                  </div>
+                  <div class="widget-weather-temp">
+                    <span class="widget-weather-degree">68</span>
+                    <span class="widget-weather-unit">°</span>
+                  </div>
+                  <div class="widget-weather-info">
+                    <h5>Friday</h5>
+                    <p>San Francisco, CA</p>
+                  </div>
+                </div>
+                <div class="widget-weather-details">
+                  <div class="widget-weather-detail">
+                    <span class="label">Wind</span>
+                    <span class="value">NE 12 mph</span>
+                  </div>
+                  <div class="widget-weather-detail">
+                    <span class="label">Humidity</span>
+                    <span class="value">72%</span>
+                  </div>
+                  <div class="widget-weather-detail">
+                    <span class="label">Pressure</span>
+                    <span class="value">30.12 in</span>
+                  </div>
+                  <div class="widget-weather-detail">
+                    <span class="label">Cloud Cover</span>
+                    <span class="value">65%</span>
+                  </div>
+                  <div class="widget-weather-detail">
+                    <span class="label">Visibility</span>
+                    <span class="value">8 miles</span>
+                  </div>
+                </div>
+                <div class="widget-weather-forecast">
+                  <div class="widget-weather-forecast-item">
+                    <span class="time">08:00</span>
+                    <i class="bi bi-cloud-fog"></i>
+                    <span class="temp">62°</span>
+                  </div>
+                  <div class="widget-weather-forecast-item">
+                    <span class="time">11:00</span>
+                    <i class="bi bi-cloud-sun"></i>
+                    <span class="temp">67°</span>
+                  </div>
+                  <div class="widget-weather-forecast-item">
+                    <span class="time">14:00</span>
+                    <i class="bi bi-sun"></i>
+                    <span class="temp">71°</span>
+                  </div>
+                  <div class="widget-weather-forecast-item">
+                    <span class="time">17:00</span>
+                    <i class="bi bi-cloud-sun"></i>
+                    <span class="temp">68°</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Profile Card Widget -->
+          <div class="col-lg-4">
+            <div class="card widget-user-profile-full">
+              <div class="card-body text-center">
+                <img src="assets/img/avatars/avatar-1.webp" alt="User" class="widget-user-profile-avatar">
+                <h5 class="widget-user-profile-name">Rebecca Torres</h5>
+                <p class="widget-user-profile-email">rtorres@company.io</p>
+                <div class="widget-user-profile-tags">
+                  <span class="badge badge-soft-primary">Dashboard</span>
+                  <span class="badge badge-soft-info">UI</span>
+                  <span class="badge badge-soft-warning">UX</span>
+                  <span class="badge badge-soft-success">73</span>
+                </div>
+                <div class="widget-user-profile-actions">
+                  <button class="btn btn-outline-primary btn-sm"><i class="bi bi-chat-dots"></i> Message</button>
+                  <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-folder"></i> Portfolio</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Messages Widget -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="card-title">Recent Messages</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="widget-message-list">
+                  <div class="widget-message-item">
+                    <img src="assets/img/avatars/avatar-2.webp" alt="User" class="widget-message-avatar">
+                    <div class="widget-message-content">
+                      <h6 class="widget-message-name">Nathan Brooks</h6>
+                      <p class="widget-message-email">nbrooks@startup.io</p>
+                    </div>
+                  </div>
+                  <div class="widget-message-item">
+                    <img src="assets/img/avatars/avatar-3.webp" alt="User" class="widget-message-avatar">
+                    <div class="widget-message-content">
+                      <h6 class="widget-message-name">Olivia Martinez</h6>
+                      <p class="widget-message-email">omartinez@design.co</p>
+                    </div>
+                  </div>
+                  <div class="widget-message-item">
+                    <img src="assets/img/avatars/avatar-4.webp" alt="User" class="widget-message-avatar">
+                    <div class="widget-message-content">
+                      <h6 class="widget-message-name">Kevin Park</h6>
+                      <p class="widget-message-email">kpark@agency.net</p>
+                    </div>
+                  </div>
+                  <div class="widget-message-item">
+                    <img src="assets/img/avatars/avatar-5.webp" alt="User" class="widget-message-avatar">
+                    <div class="widget-message-content">
+                      <h6 class="widget-message-name">Lisa Chen</h6>
+                      <p class="widget-message-email">lchen@corp.com</p>
+                    </div>
+                  </div>
+                  <div class="widget-message-item">
+                    <img src="assets/img/avatars/avatar-6.webp" alt="User" class="widget-message-avatar">
+                    <div class="widget-message-content">
+                      <h6 class="widget-message-name">Daniel Wright</h6>
+                      <p class="widget-message-email">dwright@tech.io</p>
+                    </div>
+                  </div>
+                  <div class="widget-message-item">
+                    <img src="assets/img/avatars/avatar-7.webp" alt="User" class="widget-message-avatar">
+                    <div class="widget-message-content">
+                      <h6 class="widget-message-name">Amanda Foster</h6>
+                      <p class="widget-message-email">afoster@media.co</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Task List with Progress -->
+          <div class="col-lg-4">
+            <!-- User Stats Card -->
+            <div class="card widget-user-stats-card">
+              <div class="card-body text-center">
+                <img src="assets/img/avatars/avatar-8.webp" alt="User" class="widget-user-stats-avatar">
+                <h5 class="widget-user-stats-name">Rebecca Torres</h5>
+                <p class="widget-user-stats-role">UI/UX Designer</p>
+                <button class="btn btn-primary btn-sm mb-3">+ Follow</button>
+                <div class="widget-user-stats-grid">
+                  <div class="widget-user-stat">
+                    <span class="widget-user-stat-value">28</span>
+                    <span class="widget-user-stat-label">Photos</span>
+                  </div>
+                  <div class="widget-user-stat">
+                    <span class="widget-user-stat-value">73</span>
+                    <span class="widget-user-stat-label">Videos</span>
+                  </div>
+                  <div class="widget-user-stat">
+                    <span class="widget-user-stat-value">194</span>
+                    <span class="widget-user-stat-label">Tasks</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Description Card -->
+            <div class="card mt-4">
+              <div class="card-body">
+                <p class="widget-description-text">Creative designer with 8+ years of experience in building user-centric digital products. Passionate about clean interfaces, micro-interactions, and seamless user experiences across web and mobile platforms.</p>
+                <div class="widget-description-actions">
+                  <button class="btn btn-light btn-sm"><i class="bi bi-hand-thumbs-up"></i></button>
+                  <button class="btn btn-light btn-sm"><i class="bi bi-chat"></i></button>
+                  <button class="btn btn-light btn-sm"><i class="bi bi-mic"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Browser Stats -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="card-title">Browser Stats</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="widget-browser-list">
+                  <div class="widget-browser-item">
+                    <div class="widget-browser-icon chrome">
+                      <i class="bi bi-browser-chrome"></i>
+                    </div>
+                    <span class="widget-browser-name">Google Chrome</span>
+                    <span class="widget-browser-percent">31%</span>
+                  </div>
+                  <div class="widget-browser-item">
+                    <div class="widget-browser-icon firefox">
+                      <i class="bi bi-browser-firefox"></i>
+                    </div>
+                    <span class="widget-browser-name">Mozilla Firefox</span>
+                    <span class="widget-browser-percent">19%</span>
+                  </div>
+                  <div class="widget-browser-item">
+                    <div class="widget-browser-icon safari">
+                      <i class="bi bi-browser-safari"></i>
+                    </div>
+                    <span class="widget-browser-name">Apple Safari</span>
+                    <span class="widget-browser-percent">12%</span>
+                  </div>
+                  <div class="widget-browser-item">
+                    <div class="widget-browser-icon edge">
+                      <i class="bi bi-browser-edge"></i>
+                    </div>
+                    <span class="widget-browser-name">Microsoft Edge</span>
+                    <span class="widget-browser-percent">9%</span>
+                  </div>
+                  <div class="widget-browser-item">
+                    <div class="widget-browser-icon opera">
+                      <i class="bi bi-globe"></i>
+                    </div>
+                    <span class="widget-browser-name">Opera</span>
+                    <span class="widget-browser-percent">17%</span>
+                  </div>
+                  <div class="widget-browser-item">
+                    <div class="widget-browser-icon other">
+                      <i class="bi bi-window"></i>
+                    </div>
+                    <span class="widget-browser-name">Other Browsers</span>
+                    <span class="widget-browser-percent">12%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Row 3: People, Subscribe, Social Profile -->
+      <section class="section">
+        <div class="row g-4">
+          <!-- People You May Know -->
+          <div class="col-lg-4">
+            <div class="card widget-people-card">
+              <div class="card-header bg-primary text-white">
+                <h5 class="card-title text-white mb-0">People you may know</h5>
+                <button class="btn btn-sm btn-link text-white"><i class="bi bi-three-dots"></i></button>
+              </div>
+              <div class="card-body">
+                <div class="widget-people-search">
+                  <div class="input-group">
+                    <input type="text" class="form-control" placeholder="Search by Email">
+                    <button class="btn btn-primary"><i class="bi bi-search"></i></button>
+                  </div>
+                </div>
+                <div class="widget-people-list">
+                  <div class="widget-people-item">
+                    <img src="assets/img/avatars/avatar-1.webp" alt="User" class="widget-people-avatar">
+                    <span class="widget-people-name">Nathan Brooks</span>
+                    <button class="btn btn-sm btn-outline-primary">Connect</button>
+                  </div>
+                  <div class="widget-people-item">
+                    <img src="assets/img/avatars/avatar-2.webp" alt="User" class="widget-people-avatar">
+                    <span class="widget-people-name">Olivia Martinez</span>
+                    <button class="btn btn-sm btn-outline-primary">Connect</button>
+                  </div>
+                  <div class="widget-people-item">
+                    <img src="assets/img/avatars/avatar-3.webp" alt="User" class="widget-people-avatar">
+                    <span class="widget-people-name">Kevin Park</span>
+                    <button class="btn btn-sm btn-outline-primary">Connect</button>
+                  </div>
+                </div>
+                <div class="widget-people-actions">
+                  <button class="btn btn-info w-100 mb-2"><i class="bi bi-twitter me-2"></i>Invite from Twitter</button>
+                  <button class="btn btn-outline-primary w-100"><i class="bi bi-facebook me-2"></i>Invite from Facebook</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Currency Exchange -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="card-title">Currency Exchange</h5>
+                <span class="text-muted small">exchange currency from here</span>
+              </div>
+              <div class="card-body">
+                <div class="widget-currency-input">
+                  <input type="text" class="form-control" value="1,500.00">
+                  <select class="form-select">
+                    <option>EUR</option>
+                    <option>USD</option>
+                    <option>GBP</option>
+                  </select>
+                </div>
+                <div class="widget-currency-swap">
+                  <button class="btn btn-light btn-sm rounded-circle"><i class="bi bi-arrow-down-up"></i></button>
+                </div>
+                <div class="widget-currency-input">
+                  <input type="text" class="form-control" value="1,623.45" readonly>
+                  <select class="form-select">
+                    <option>USD</option>
+                    <option>EUR</option>
+                    <option>GBP</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary w-100 mt-3">Exchange Now</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subscribe & Social Profile -->
+          <div class="col-lg-4">
+            <!-- Subscribe Widget -->
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Subscribe</h5>
+              </div>
+              <div class="card-body">
+                <input type="text" class="form-control mb-3" placeholder="Enter Name">
+                <input type="email" class="form-control mb-3" placeholder="Enter email">
+                <button class="btn btn-primary w-100">Submit</button>
+              </div>
+            </div>
+
+            <!-- Social Profile Widget -->
+            <div class="card mt-4 widget-social-profile">
+              <div class="card-body text-center">
+                <img src="assets/img/avatars/avatar-4.webp" alt="User" class="widget-social-avatar">
+                <h5 class="widget-social-name">Nathan Brooks</h5>
+                <div class="widget-social-stats">
+                  <div class="widget-social-stat">
+                    <span class="value">15K</span>
+                    <span class="label">Followers</span>
+                  </div>
+                  <div class="widget-social-stat">
+                    <span class="value">580</span>
+                    <span class="label">Following</span>
+                  </div>
+                  <div class="widget-social-stat">
+                    <span class="value">156</span>
+                    <span class="label">Tweets</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reviews Widget -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="card-title">Reviews</h5>
+                <span class="text-muted small">Overview of Review</span>
+              </div>
+              <div class="card-body">
+                <div class="widget-reviews-summary">
+                  <h2 class="widget-reviews-count">18,742</h2>
+                  <p class="text-muted">This month we got 492 New Reviews</p>
+                  <button class="btn btn-primary btn-sm">Checkout All Reviews</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order & Poll Widgets -->
+          <div class="col-lg-4">
+            <!-- Place Order Widget -->
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Place your Order</h5>
+                <div class="card-actions">
+                  <span class="text-muted small">Buy and Sell Crypto as you like</span>
+                  <select class="form-select form-select-sm ms-2" style="width: auto;">
+                    <option>Bitcoin</option>
+                    <option>Ethereum</option>
+                    <option>Litecoin</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="widget-order-tabs">
+                  <button class="widget-order-tab active">Buy</button>
+                  <button class="widget-order-tab">Sell</button>
+                </div>
+                <div class="widget-order-form">
+                  <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="bi bi-currency-bitcoin"></i></span>
+                    <input type="text" class="form-control" placeholder="Amount">
+                  </div>
+                  <div class="input-group mb-3">
+                    <span class="input-group-text"><i class="bi bi-currency-dollar"></i></span>
+                    <input type="text" class="form-control" placeholder="Price">
+                  </div>
+                  <button class="btn btn-primary w-100">Buy Bitcoin</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Poll Widget -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="card-title">Poll of the week</h5>
+                <span class="text-muted small">Here is the latest poll</span>
+              </div>
+              <div class="card-body">
+                <p class="widget-poll-question">What is your preferred work schedule?</p>
+                <div class="widget-poll-options">
+                  <div class="widget-poll-option">
+                    <input type="radio" name="poll" id="poll1" class="form-check-input">
+                    <label for="poll1">A. Fully Remote</label>
+                  </div>
+                  <div class="widget-poll-option selected">
+                    <input type="radio" name="poll" id="poll2" class="form-check-input" checked>
+                    <label for="poll2">B. Hybrid (3 days office)</label>
+                  </div>
+                  <div class="widget-poll-option">
+                    <input type="radio" name="poll" id="poll3" class="form-check-input">
+                    <label for="poll3">C. Fully On-site</label>
+                  </div>
+                  <div class="widget-poll-option">
+                    <input type="radio" name="poll" id="poll4" class="form-check-input">
+                    <label for="poll4">D. Flexible Schedule</label>
+                  </div>
+                </div>
+                <button class="btn btn-warning btn-sm mt-3">Submit Answer</button>
+              </div>
+            </div>
+
+            <!-- Feeds Widget -->
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="card-title">Feeds</h5>
+              </div>
+              <div class="card-body p-0">
+                <div class="widget-feeds-list">
+                  <div class="widget-feed-item">
+                    <div class="widget-feed-icon warning">
+                      <i class="bi bi-bell"></i>
+                    </div>
+                    <div class="widget-feed-content">
+                      <p class="widget-feed-text">You have 6 pending tasks.</p>
+                    </div>
+                    <span class="widget-feed-time">Just Now</span>
+                  </div>
+                  <div class="widget-feed-item">
+                    <div class="widget-feed-icon danger">
+                      <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div class="widget-feed-content">
+                      <p class="widget-feed-text">Server #3 overloaded</p>
+                    </div>
+                    <span class="widget-feed-time">3 hr ago</span>
+                  </div>
+                  <div class="widget-feed-item">
+                    <div class="widget-feed-icon success">
+                      <i class="bi bi-cart-check"></i>
+                    </div>
+                    <div class="widget-feed-content">
+                      <p class="widget-feed-text">New order received.</p>
+                    </div>
+                    <span class="widget-feed-time">28 May</span>
+                  </div>
+                  <div class="widget-feed-item">
+                    <div class="widget-feed-icon info">
+                      <i class="bi bi-person-plus"></i>
+                    </div>
+                    <div class="widget-feed-content">
+                      <p class="widget-feed-text">New user registered.</p>
+                    </div>
+                    <span class="widget-feed-time">28 May</span>
+                  </div>
+                  <div class="widget-feed-item">
+                    <div class="widget-feed-icon primary">
+                      <i class="bi bi-box-seam"></i>
+                    </div>
+                    <div class="widget-feed-content">
+                      <p class="widget-feed-text">New Version just arrived.</p>
+                    </div>
+                    <span class="widget-feed-time">25 May</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Row 4: Poll Results, Visits, Earnings -->
+      <section class="section">
+        <div class="row g-4">
+          <!-- Poll Results Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Result of Poll</h5>
+                <span class="text-muted small">Here is the result for the latest poll</span>
+              </div>
+              <div class="card-body">
+                <p class="widget-poll-question">What is your preferred work schedule?</p>
+                <div class="widget-poll-results">
+                  <div class="widget-poll-result">
+                    <div class="widget-poll-result-header">
+                      <span>A. Fully Remote</span>
+                      <span>48%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-bar bg-primary" style="width: 48%"></div>
+                    </div>
+                  </div>
+                  <div class="widget-poll-result">
+                    <div class="widget-poll-result-header">
+                      <span>B. Hybrid (3 days office)</span>
+                      <span>27%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-bar bg-info" style="width: 27%"></div>
+                    </div>
+                  </div>
+                  <div class="widget-poll-result">
+                    <div class="widget-poll-result-header">
+                      <span>C. Fully On-site</span>
+                      <span>12%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-bar bg-warning" style="width: 12%"></div>
+                    </div>
+                  </div>
+                  <div class="widget-poll-result">
+                    <div class="widget-poll-result-header">
+                      <span>D. Flexible Schedule</span>
+                      <span>13%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                      <div class="progress-bar bg-danger" style="width: 13%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Visits by Country Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Visits around the countries</h5>
+              </div>
+              <div class="card-body">
+                <div class="widget-visits-list">
+                  <div class="widget-visit-item">
+                    <div class="widget-visit-info">
+                      <h4 class="widget-visit-count">8,240</h4>
+                      <span class="widget-visit-country">from Germany</span>
+                    </div>
+                    <div class="widget-visit-bar">
+                      <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-primary" style="width: 52%"></div>
+                      </div>
+                      <span class="widget-visit-percent">52%</span>
+                    </div>
+                  </div>
+                  <div class="widget-visit-item">
+                    <div class="widget-visit-info">
+                      <h4 class="widget-visit-count">4,120</h4>
+                      <span class="widget-visit-country">from United Kingdom</span>
+                    </div>
+                    <div class="widget-visit-bar">
+                      <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: 89%"></div>
+                      </div>
+                      <span class="widget-visit-percent">89%</span>
+                    </div>
+                  </div>
+                  <div class="widget-visit-item">
+                    <div class="widget-visit-info">
+                      <h4 class="widget-visit-count">1,890</h4>
+                      <span class="widget-visit-country">from Canada</span>
+                    </div>
+                    <div class="widget-visit-bar">
+                      <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-warning" style="width: 68%"></div>
+                      </div>
+                      <span class="widget-visit-percent">68%</span>
+                    </div>
+                  </div>
+                  <div class="widget-visit-item">
+                    <div class="widget-visit-info">
+                      <h4 class="widget-visit-count">1,540</h4>
+                      <span class="widget-visit-country">from Japan</span>
+                    </div>
+                    <div class="widget-visit-bar">
+                      <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-danger" style="width: 41%"></div>
+                      </div>
+                      <span class="widget-visit-percent">41%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Earnings Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Total Earning</h5>
+                <div class="card-actions">
+                  <select class="form-select form-select-sm" style="width: auto;">
+                    <option>Today</option>
+                    <option>This Week</option>
+                    <option>This Month</option>
+                  </select>
+                </div>
+              </div>
+              <div class="card-body">
+                <h3 class="widget-earning-total">$742</h3>
+                <div class="widget-earning-users">
+                  <div class="widget-earning-user">
+                    <img src="assets/img/avatars/avatar-1.webp" alt="User" class="widget-earning-avatar">
+                    <span class="widget-earning-name">Sarah Mitchell</span>
+                    <span class="badge bg-primary">$2,840</span>
+                  </div>
+                  <div class="widget-earning-user">
+                    <img src="assets/img/avatars/avatar-2.webp" alt="User" class="widget-earning-avatar">
+                    <span class="widget-earning-name">David Chen</span>
+                    <span class="badge bg-success">$3,920</span>
+                  </div>
+                  <div class="widget-earning-user">
+                    <img src="assets/img/avatars/avatar-3.webp" alt="User" class="widget-earning-avatar">
+                    <span class="widget-earning-name">Emily Rodriguez</span>
+                    <span class="badge bg-info">$4,150</span>
+                  </div>
+                  <div class="widget-earning-user">
+                    <img src="assets/img/avatars/avatar-4.webp" alt="User" class="widget-earning-avatar">
+                    <span class="widget-earning-name">Nathan Brooks</span>
+                    <span class="badge bg-warning">$2,680</span>
+                  </div>
+                  <div class="widget-earning-user">
+                    <img src="assets/img/avatars/avatar-5.webp" alt="User" class="widget-earning-avatar">
+                    <span class="widget-earning-name">Olivia Martinez</span>
+                    <span class="badge bg-danger">$5,230</span>
+                  </div>
+                  <div class="widget-earning-user">
+                    <img src="assets/img/avatars/avatar-6.webp" alt="User" class="widget-earning-avatar">
+                    <span class="widget-earning-name">Kevin Park</span>
+                    <span class="badge bg-secondary">$8,450</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Activity & Tasks Widgets -->
+      <section class="section">
+        <h5 class="section-title mb-3">Activity & Tasks</h5>
+        <div class="row g-4">
+          <!-- Activity Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Recent Activity</h5>
+                <div class="card-actions">
+                  <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+              </div>
+              <div class="card-body widget-activity">
+                <div class="activity-item">
+                  <div class="activity-icon primary">
+                    <i class="bi bi-person-plus"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title"><a href="#">Sarah Johnson</a> joined the team</div>
+                    <div class="activity-text">New team member added to the Marketing department</div>
+                    <div class="activity-time">2 minutes ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon success">
+                    <i class="bi bi-check-circle"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">Project <a href="#">Website Redesign</a> completed</div>
+                    <div class="activity-text">All tasks have been marked as done</div>
+                    <div class="activity-time">1 hour ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">Server load warning</div>
+                    <div class="activity-text">CPU usage exceeded 80% threshold</div>
+                    <div class="activity-time">3 hours ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon danger">
+                    <i class="bi bi-bug"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">Bug reported in <a href="#">Payment Module</a></div>
+                    <div class="activity-text">Transaction failed for order #12485</div>
+                    <div class="activity-time">5 hours ago</div>
+                  </div>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-icon info">
+                    <i class="bi bi-info-circle"></i>
+                  </div>
+                  <div class="activity-content">
+                    <div class="activity-title">System update available</div>
+                    <div class="activity-text">Version 2.4.0 is ready for installation</div>
+                    <div class="activity-time">Yesterday</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Task List Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Tasks</h5>
+                <div class="card-actions">
+                  <button class="btn btn-sm btn-primary"><i class="bi bi-plus me-1"></i>Add Task</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="task-list">
+                  <div class="task-item">
+                    <div class="task-checkbox">
+                      <input type="checkbox" id="task1">
+                      <label for="task1"></label>
+                    </div>
+                    <div class="task-info">
+                      <div class="task-title">Review dashboard design mockups</div>
+                      <div class="task-meta">
+                        <span class="task-due"><i class="bi bi-calendar"></i> Today</span>
+                        <span class="badge badge-soft-danger">High</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="task-item">
+                    <div class="task-checkbox">
+                      <input type="checkbox" id="task2" checked>
+                      <label for="task2"></label>
+                    </div>
+                    <div class="task-info">
+                      <div class="task-title">Team standup meeting at 10 AM</div>
+                      <div class="task-meta">
+                        <span class="task-due"><i class="bi bi-clock"></i> 10:00 AM</span>
+                        <span class="badge badge-soft-warning">Medium</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="task-item">
+                    <div class="task-checkbox">
+                      <input type="checkbox" id="task3">
+                      <label for="task3"></label>
+                    </div>
+                    <div class="task-info">
+                      <div class="task-title">Prepare quarterly report</div>
+                      <div class="task-meta">
+                        <span class="task-due"><i class="bi bi-calendar"></i> Tomorrow</span>
+                        <span class="badge badge-soft-primary">Normal</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="task-item">
+                    <div class="task-checkbox">
+                      <input type="checkbox" id="task4">
+                      <label for="task4"></label>
+                    </div>
+                    <div class="task-info">
+                      <div class="task-title">Update user documentation</div>
+                      <div class="task-meta">
+                        <span class="task-due"><i class="bi bi-calendar"></i> Jan 25</span>
+                        <span class="badge badge-soft-success">Low</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="task-item">
+                    <div class="task-checkbox">
+                      <input type="checkbox" id="task5" checked>
+                      <label for="task5"></label>
+                    </div>
+                    <div class="task-info">
+                      <div class="task-title">Fix authentication bug</div>
+                      <div class="task-meta">
+                        <span class="task-due"><i class="bi bi-check-circle text-success"></i> Completed</span>
+                        <span class="badge badge-soft-danger">High</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Transaction & News Widgets -->
+      <section class="section">
+        <h5 class="section-title mb-3">Transactions & News</h5>
+        <div class="row g-4">
+          <!-- Transaction List Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Recent Transactions</h5>
+                <div class="card-actions">
+                  <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="transaction-list">
+                  <div class="transaction-item">
+                    <div class="transaction-icon success">
+                      <i class="bi bi-arrow-down-left"></i>
+                    </div>
+                    <div class="transaction-details">
+                      <div class="transaction-title">Payment from John Doe</div>
+                      <div class="transaction-meta">Jan 20, 2026 • 2:45 PM</div>
+                    </div>
+                    <div class="transaction-amount positive">+$1,250.00</div>
+                  </div>
+                  <div class="transaction-item">
+                    <div class="transaction-icon danger">
+                      <i class="bi bi-arrow-up-right"></i>
+                    </div>
+                    <div class="transaction-details">
+                      <div class="transaction-title">Server Hosting Fee</div>
+                      <div class="transaction-meta">Jan 19, 2026 • 10:30 AM</div>
+                    </div>
+                    <div class="transaction-amount negative">-$299.00</div>
+                  </div>
+                  <div class="transaction-item">
+                    <div class="transaction-icon success">
+                      <i class="bi bi-arrow-down-left"></i>
+                    </div>
+                    <div class="transaction-details">
+                      <div class="transaction-title">Subscription Renewal</div>
+                      <div class="transaction-meta">Jan 18, 2026 • 4:15 PM</div>
+                    </div>
+                    <div class="transaction-amount positive">+$89.00</div>
+                  </div>
+                  <div class="transaction-item">
+                    <div class="transaction-icon danger">
+                      <i class="bi bi-arrow-up-right"></i>
+                    </div>
+                    <div class="transaction-details">
+                      <div class="transaction-title">Software License</div>
+                      <div class="transaction-meta">Jan 17, 2026 • 9:00 AM</div>
+                    </div>
+                    <div class="transaction-amount negative">-$450.00</div>
+                  </div>
+                  <div class="transaction-item">
+                    <div class="transaction-icon success">
+                      <i class="bi bi-arrow-down-left"></i>
+                    </div>
+                    <div class="transaction-details">
+                      <div class="transaction-title">Client Payment - ABC Corp</div>
+                      <div class="transaction-meta">Jan 16, 2026 • 11:20 AM</div>
+                    </div>
+                    <div class="transaction-amount positive">+$3,500.00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- News Widget -->
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Latest News</h5>
+                <div class="card-actions">
+                  <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="widget-news-item px-3">
+                  <div class="widget-news-image bg-light d-flex align-items-center justify-content-center rounded">
+                    <i class="bi bi-newspaper text-muted"></i>
+                  </div>
+                  <div class="widget-news-content">
+                    <div class="widget-news-title"><a href="#">New Feature Release: Dark Mode Support Now Available</a></div>
+                    <div class="widget-news-meta">Jan 20, 2026 • 5 min read</div>
+                  </div>
+                </div>
+                <div class="widget-news-item px-3">
+                  <div class="widget-news-image bg-light d-flex align-items-center justify-content-center rounded">
+                    <i class="bi bi-graph-up text-muted"></i>
+                  </div>
+                  <div class="widget-news-content">
+                    <div class="widget-news-title"><a href="#">Q4 2025 Performance Report Shows Record Growth</a></div>
+                    <div class="widget-news-meta">Jan 18, 2026 • 8 min read</div>
+                  </div>
+                </div>
+                <div class="widget-news-item px-3">
+                  <div class="widget-news-image bg-light d-flex align-items-center justify-content-center rounded">
+                    <i class="bi bi-people text-muted"></i>
+                  </div>
+                  <div class="widget-news-content">
+                    <div class="widget-news-title"><a href="#">Team Expansion: Welcome Our New Engineering Team</a></div>
+                    <div class="widget-news-meta">Jan 15, 2026 • 3 min read</div>
+                  </div>
+                </div>
+                <div class="widget-news-item px-3">
+                  <div class="widget-news-image bg-light d-flex align-items-center justify-content-center rounded">
+                    <i class="bi bi-award text-muted"></i>
+                  </div>
+                  <div class="widget-news-content">
+                    <div class="widget-news-title"><a href="#">Company Wins Best SaaS Product Award 2025</a></div>
+                    <div class="widget-news-meta">Jan 12, 2026 • 4 min read</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Calendar & Quick Actions Widgets -->
+      <section class="section">
+        <h5 class="section-title mb-3">Calendar & Quick Actions</h5>
+        <div class="row g-4">
+          <!-- Mini Calendar Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Calendar</h5>
+              </div>
+              <div class="card-body">
+                <div class="widget-calendar-header">
+                  <span class="widget-calendar-month">January 2026</span>
+                  <div class="widget-calendar-nav">
+                    <button class="btn btn-sm"><i class="bi bi-chevron-left"></i></button>
+                    <button class="btn btn-sm"><i class="bi bi-chevron-right"></i></button>
+                  </div>
+                </div>
+                <div class="widget-calendar-grid">
+                  <div class="widget-calendar-day-header">Sun</div>
+                  <div class="widget-calendar-day-header">Mon</div>
+                  <div class="widget-calendar-day-header">Tue</div>
+                  <div class="widget-calendar-day-header">Wed</div>
+                  <div class="widget-calendar-day-header">Thu</div>
+                  <div class="widget-calendar-day-header">Fri</div>
+                  <div class="widget-calendar-day-header">Sat</div>
+                  <div class="widget-calendar-day other-month">28</div>
+                  <div class="widget-calendar-day other-month">29</div>
+                  <div class="widget-calendar-day other-month">30</div>
+                  <div class="widget-calendar-day other-month">31</div>
+                  <div class="widget-calendar-day">1</div>
+                  <div class="widget-calendar-day">2</div>
+                  <div class="widget-calendar-day">3</div>
+                  <div class="widget-calendar-day">4</div>
+                  <div class="widget-calendar-day">5</div>
+                  <div class="widget-calendar-day">6</div>
+                  <div class="widget-calendar-day">7</div>
+                  <div class="widget-calendar-day">8</div>
+                  <div class="widget-calendar-day">9</div>
+                  <div class="widget-calendar-day">10</div>
+                  <div class="widget-calendar-day">11</div>
+                  <div class="widget-calendar-day">12</div>
+                  <div class="widget-calendar-day">13</div>
+                  <div class="widget-calendar-day">14</div>
+                  <div class="widget-calendar-day">15</div>
+                  <div class="widget-calendar-day">16</div>
+                  <div class="widget-calendar-day">17</div>
+                  <div class="widget-calendar-day">18</div>
+                  <div class="widget-calendar-day">19</div>
+                  <div class="widget-calendar-day today">20</div>
+                  <div class="widget-calendar-day">21</div>
+                  <div class="widget-calendar-day">22</div>
+                  <div class="widget-calendar-day">23</div>
+                  <div class="widget-calendar-day">24</div>
+                  <div class="widget-calendar-day">25</div>
+                  <div class="widget-calendar-day">26</div>
+                  <div class="widget-calendar-day">27</div>
+                  <div class="widget-calendar-day">28</div>
+                  <div class="widget-calendar-day">29</div>
+                  <div class="widget-calendar-day">30</div>
+                  <div class="widget-calendar-day">31</div>
+                  <div class="widget-calendar-day other-month">1</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Quick Actions</h5>
+              </div>
+              <div class="card-body">
+                <div class="quick-actions-grid">
+                  <div class="quick-action-item">
+                    <div class="quick-action-icon" style="background: color-mix(in srgb, var(--accent-color), transparent 90%); color: var(--accent-color);">
+                      <i class="bi bi-plus-circle"></i>
+                    </div>
+                    <span class="quick-action-label">New Task</span>
+                  </div>
+                  <div class="quick-action-item">
+                    <div class="quick-action-icon" style="background: var(--success-color-light); color: var(--success-color);">
+                      <i class="bi bi-person-plus"></i>
+                    </div>
+                    <span class="quick-action-label">Add User</span>
+                  </div>
+                  <div class="quick-action-item">
+                    <div class="quick-action-icon" style="background: var(--warning-color-light); color: var(--warning-color);">
+                      <i class="bi bi-file-earmark-plus"></i>
+                    </div>
+                    <span class="quick-action-label">New Invoice</span>
+                  </div>
+                  <div class="quick-action-item">
+                    <div class="quick-action-icon" style="background: var(--info-color-light); color: var(--info-color);">
+                      <i class="bi bi-calendar-plus"></i>
+                    </div>
+                    <span class="quick-action-label">Schedule</span>
+                  </div>
+                  <div class="quick-action-item">
+                    <div class="quick-action-icon" style="background: var(--danger-color-light); color: var(--danger-color);">
+                      <i class="bi bi-envelope-plus"></i>
+                    </div>
+                    <span class="quick-action-label">New Email</span>
+                  </div>
+                  <div class="quick-action-item">
+                    <div class="quick-action-icon" style="background: color-mix(in srgb, var(--heading-color), transparent 90%); color: var(--heading-color);">
+                      <i class="bi bi-gear"></i>
+                    </div>
+                    <span class="quick-action-label">Settings</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact List Widget -->
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Recent Contacts</h5>
+                <div class="card-actions">
+                  <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="contact-list">
+                  <div class="contact-item">
+                    <img src="assets/img/avatars/avatar-1.webp" alt="John Smith" class="contact-avatar">
+                    <div class="contact-info">
+                      <div class="contact-name">John Smith</div>
+                      <div class="contact-company">Acme Corporation</div>
+                    </div>
+                    <div class="contact-stats">
+                      <div class="contact-deals">3 deals</div>
+                      <div class="contact-value">$24,500</div>
+                    </div>
+                  </div>
+                  <div class="contact-item">
+                    <img src="assets/img/avatars/avatar-2.webp" alt="Sarah Johnson" class="contact-avatar">
+                    <div class="contact-info">
+                      <div class="contact-name">Sarah Johnson</div>
+                      <div class="contact-company">Tech Solutions Inc</div>
+                    </div>
+                    <div class="contact-stats">
+                      <div class="contact-deals">5 deals</div>
+                      <div class="contact-value">$42,800</div>
+                    </div>
+                  </div>
+                  <div class="contact-item">
+                    <img src="assets/img/avatars/avatar-3.webp" alt="Michael Brown" class="contact-avatar">
+                    <div class="contact-info">
+                      <div class="contact-name">Michael Brown</div>
+                      <div class="contact-company">Global Industries</div>
+                    </div>
+                    <div class="contact-stats">
+                      <div class="contact-deals">2 deals</div>
+                      <div class="contact-value">$18,200</div>
+                    </div>
+                  </div>
+                  <div class="contact-item">
+                    <img src="assets/img/avatars/avatar-4.webp" alt="Emily Davis" class="contact-avatar">
+                    <div class="contact-info">
+                      <div class="contact-name">Emily Davis</div>
+                      <div class="contact-company">StartUp Hub</div>
+                    </div>
+                    <div class="contact-stats">
+                      <div class="contact-deals">1 deal</div>
+                      <div class="contact-value">$8,500</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+</body>
+
+</html>

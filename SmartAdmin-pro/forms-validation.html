@@ -1,0 +1,1649 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Validation - SmartAdmin</title>
+  <meta name="description" content="SmartAdmin - Bootstrap Admin Template">
+  <meta name="keywords" content="admin, dashboard, bootstrap">
+
+  <!-- Favicons -->
+  <link href="assets/img/favicon.png" rel="icon">
+  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+
+  <!-- Google Fonts - Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
+  <link href="assets/vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+  <link href="assets/vendor/phosphor-icons/phosphor-icons.css" rel="stylesheet">
+  <link href="assets/vendor/lucide-icons/lucide.css" rel="stylesheet">
+  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
+  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
+  <link href="assets/vendor/choices.js/choices.min.css" rel="stylesheet">
+  <link href="assets/vendor/flatpickr/flatpickr.min.css" rel="stylesheet">
+
+  <!-- Template Main CSS File -->
+  <link href="assets/css/main.css" rel="stylesheet">
+
+  <!-- =======================================================
+    * Template Name: SmartAdmin - Bootstrap Admin Template
+    * Template URL: https://bootstrapmade.com/smart-admin-clean-bootstrap-admin-template/
+    * Updated: Jan 31 2026 with Bootstrap v5.3.8
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+
+<body>
+  <!-- Header -->
+  <header class="header">
+    <!-- Header Left -->
+    <div class="header-left">
+      <a href="index.html" class="header-logo">
+        <img src="assets/img/logo.webp" alt="SmartAdmin">
+        <span>SmartAdmin</span>
+      </a>
+      <button class="sidebar-toggle" title="Toggle Sidebar">
+        <i class="bi bi-list"></i>
+      </button>
+      <!-- Quick Access -->
+      <div class="header-action dropdown quickaccess-dropdown">
+        <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+          <i class="bi bi-grid"></i>
+        </button>
+        <div class="dropdown-menu">
+          <div class="quickaccess-header">
+            <h6>Quick Access</h6>
+            <span class="quickaccess-subtitle">Frequently used</span>
+          </div>
+          <div class="quickaccess-grid">
+            <a href="index.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+                <i class="bi bi-speedometer2"></i>
+              </span>
+              <span class="quickaccess-label">Dashboard</span>
+            </a>
+            <a href="apps-kanban.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
+                <i class="bi bi-kanban"></i>
+              </span>
+              <span class="quickaccess-label">Kanban</span>
+            </a>
+            <a href="apps-chat.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
+                <i class="bi bi-chat-dots"></i>
+              </span>
+              <span class="quickaccess-label">Messages</span>
+            </a>
+            <a href="apps-email.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--warning-color)">
+                <i class="bi bi-envelope"></i>
+              </span>
+              <span class="quickaccess-label">Email</span>
+            </a>
+            <a href="apps-contacts.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
+                <i class="bi bi-people"></i>
+              </span>
+              <span class="quickaccess-label">Contacts</span>
+            </a>
+            <a href="apps-file-manager.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
+                <i class="bi bi-folder2-open"></i>
+              </span>
+              <span class="quickaccess-label">Files</span>
+            </a>
+            <a href="apps-calendar.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: #ec4899">
+                <i class="bi bi-calendar3"></i>
+              </span>
+              <span class="quickaccess-label">Calendar</span>
+            </a>
+            <a href="settings.html" class="quickaccess-item">
+              <span class="quickaccess-icon" style="--qa-color: var(--muted-color)">
+                <i class="bi bi-gear"></i>
+              </span>
+              <span class="quickaccess-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Search -->
+    <div class="header-search">
+      <form class="search-form" action="search-results.html" method="GET">
+        <i class="bi bi-search search-icon"></i>
+        <input type="search" name="q" placeholder="Search here..." autocomplete="off">
+        <kbd class="search-shortcut">/</kbd>
+      </form>
+    </div>
+
+    <!-- Header Right -->
+    <div class="header-right">
+      <!-- Desktop Actions -->
+      <div class="header-actions-desktop">
+        <!-- Notifications -->
+        <div class="header-action dropdown notification-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            <span class="badge">3</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="notification-header">
+              <div class="notification-header-left">
+                <h6>Notifications</h6>
+                <span class="notification-count">3 new</span>
+              </div>
+              <a href="#" class="notification-mark-read" data-notification-action="mark-all-read">
+                <i class="bi bi-check2-all"></i> Mark all read
+              </a>
+            </div>
+            <div class="notification-list">
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon success">
+                  <i class="bi bi-check-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Order Completed</div>
+                  <div class="notification-text">Your order #12345 has been delivered successfully</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 min ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">Low Storage</div>
+                  <div class="notification-text">Server storage is running low (85% used)</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 1 hour ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item unread">
+                <div class="notification-icon info">
+                  <i class="bi bi-info-circle"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New Feature Available</div>
+                  <div class="notification-text">Dark mode is now available in settings</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 2 hours ago</div>
+                </div>
+                <span class="notification-dot"></span>
+              </a>
+              <a href="#" class="notification-item">
+                <div class="notification-icon">
+                  <i class="bi bi-person-plus"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">New User Registered</div>
+                  <div class="notification-text">Sarah Johnson joined the platform</div>
+                  <div class="notification-time"><i class="bi bi-clock"></i> 5 hours ago</div>
+                </div>
+              </a>
+            </div>
+            <div class="notification-footer">
+              <a href="notifications.html">
+                View all notifications <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="header-action theme-toggle" title="Toggle Theme">
+          <i class="ph ph-moon theme-icon-dark"></i>
+          <i class="ph ph-sun theme-icon-light"></i>
+        </button>
+
+        <!-- User Dropdown -->
+        <div class="header-action dropdown user-dropdown">
+          <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <img src="assets/img/profile-img.webp" alt="User" class="avatar">
+            <span class="avatar-status"></span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end">
+            <div class="user-dropdown-header">
+              <img src="assets/img/profile-img.webp" alt="User" class="user-dropdown-avatar">
+              <div class="user-dropdown-info">
+                <h6>John Doe</h6>
+                <span>john.doe@example.com</span>
+              </div>
+            </div>
+            <div class="user-dropdown-body">
+              <a class="dropdown-item" href="profile.html">
+                <i class="bi bi-person"></i> My Profile
+              </a>
+              <a class="dropdown-item" href="settings.html">
+                <i class="bi bi-gear"></i> Settings
+              </a>
+              <a class="dropdown-item" href="activity.html">
+                <i class="bi bi-activity"></i> Activity Log
+              </a>
+            </div>
+            <div class="user-dropdown-footer">
+              <a class="dropdown-item dropdown-item-danger" href="auth-login.html">
+                <i class="bi bi-box-arrow-right"></i> Sign Out
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Actions -->
+      <div class="header-actions-mobile">
+        <button class="header-action search-toggle" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button class="header-action mobile-menu-toggle" title="More">
+          <i class="bi bi-three-dots-vertical"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Search -->
+  <div class="mobile-search">
+    <form class="search-form" action="search-results.html" method="GET">
+      <i class="bi bi-search search-icon"></i>
+      <input type="search" name="q" placeholder="Search..." autocomplete="off">
+    </form>
+  </div>
+
+  <!-- Mobile Header Menu -->
+  <div class="mobile-header-menu">
+    <div class="mobile-header-menu-content">
+      <button class="mobile-menu-item theme-toggle" title="Toggle Theme">
+        <i class="ph ph-moon theme-icon-dark"></i>
+        <i class="ph ph-sun theme-icon-light"></i>
+        <span class="mobile-menu-label">Theme</span>
+      </button>
+      <a href="notifications.html" class="mobile-menu-item">
+        <i class="bi bi-bell"></i>
+        <span class="badge">3</span>
+        <span class="mobile-menu-label">Notifications</span>
+      </a>
+      <a href="profile.html" class="mobile-menu-item">
+        <i class="bi bi-person"></i>
+        <span class="mobile-menu-label">Profile</span>
+      </a>
+      <a href="settings.html" class="mobile-menu-item">
+        <i class="bi bi-gear"></i>
+        <span class="mobile-menu-label">Settings</span>
+      </a>
+      <a href="auth-login.html" class="mobile-menu-item mobile-menu-item-danger">
+        <i class="bi bi-box-arrow-right"></i>
+        <span class="mobile-menu-label">Sign Out</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Icon Bar (Left narrow panel) -->
+    <div class="sidebar-iconbar">
+      <!-- Logo -->
+      <div class="sidebar-iconbar-logo">
+        <a href="index.html">
+          <img src="assets/img/logo.webp" alt="SmartAdmin">
+        </a>
+      </div>
+
+      <!-- Icon Navigation -->
+      <nav class="sidebar-iconbar-nav">
+        <ul class="iconbar-menu">
+          <li>
+            <button class="iconbar-item " data-panel="dashboards" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboards">
+              <i class="ph-duotone ph-house"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="apps" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Apps">
+              <i class="ph-duotone ph-squares-four"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="components" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Components">
+              <i class="ph-duotone ph-puzzle-piece"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item active" data-panel="forms" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Forms">
+              <i class="ph-duotone ph-textbox"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="tables" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Tables">
+              <i class="ph-duotone ph-table"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="charts" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Charts">
+              <i class="ph-duotone ph-chart-bar"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="icons" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Icons">
+              <i class="ph-duotone ph-diamond"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="users" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Users">
+              <i class="ph-duotone ph-users-three"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="auth" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Authentication">
+              <i class="ph-duotone ph-shield-check"></i>
+            </button>
+          </li>
+          <li>
+            <button class="iconbar-item " data-panel="pages" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Pages">
+              <i class="ph-duotone ph-files"></i>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Icon Bar Bottom -->
+      <div class="sidebar-iconbar-bottom">
+        <a href="settings.html" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Settings">
+          <i class="ph-duotone ph-gear"></i>
+        </a>
+        <a href="profile.html" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Profile">
+          <img src="assets/img/profile-img.webp" alt="User">
+        </a>
+      </div>
+    </div>
+
+    <!-- Nav Panel (Right text panel) -->
+    <div class="sidebar-panel">
+      <!-- Panel: Dashboards -->
+      <div class="sidebar-panel-section " data-section="dashboards">
+        <div class="sidebar-panel-header">
+          <h6>Dashboards</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="index.html">Home</a></li>
+          <li><a class="panel-link " href="dashboard-sales.html">Sales</a></li>
+          <li><a class="panel-link " href="dashboard-analytics.html">Analytics</a></li>
+          <li><a class="panel-link " href="dashboard-crm.html">CRM</a></li>
+          <li><a class="panel-link " href="dashboard-marketing.html">Marketing</a></li>
+          <li><a class="panel-link " href="dashboard-projects.html">Projects</a></li>
+          <li><a class="panel-link " href="dashboard-finance.html">Finance</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Apps -->
+      <div class="sidebar-panel-section " data-section="apps">
+        <div class="sidebar-panel-header">
+          <h6>Apps</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="apps-calendar.html">Calendar</a></li>
+          <li><a class="panel-link " href="apps-kanban.html">Kanban Board</a></li>
+          <li><a class="panel-link " href="apps-chat.html">Chat</a></li>
+          <li><a class="panel-link " href="apps-contacts.html">Contacts</a></li>
+          <li><a class="panel-link " href="apps-file-manager.html">File Manager</a></li>
+          <li><a class="panel-link " href="apps-email.html">Email</a></li>
+          <li><a class="panel-link " href="apps-todo.html">Todo List</a></li>
+          <li><a class="panel-link " href="apps-support.html">Support Center</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Components -->
+      <div class="sidebar-panel-section " data-section="components">
+        <div class="sidebar-panel-header">
+          <h6>Components</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <!-- Basic UI - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Basic UI
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="components-alerts.html">Alerts</a></li>
+              <li><a class="panel-link " href="components-accordion.html">Accordion</a></li>
+              <li><a class="panel-link " href="components-badges.html">Badges</a></li>
+              <li><a class="panel-link " href="components-breadcrumbs.html">Breadcrumbs</a></li>
+              <li><a class="panel-link " href="components-buttons.html">Buttons</a></li>
+              <li><a class="panel-link " href="components-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="components-carousel.html">Carousel</a></li>
+              <li><a class="panel-link " href="components-dropdowns.html">Dropdowns</a></li>
+              <li><a class="panel-link " href="components-list-group.html">List Group</a></li>
+              <li><a class="panel-link " href="components-modal.html">Modal</a></li>
+              <li><a class="panel-link " href="components-nav-tabs.html">Navs & Tabs</a></li>
+              <li><a class="panel-link " href="components-offcanvas.html">Offcanvas</a></li>
+              <li><a class="panel-link " href="components-pagination.html">Pagination</a></li>
+              <li><a class="panel-link " href="components-popovers.html">Popovers</a></li>
+              <li><a class="panel-link " href="components-progress.html">Progress</a></li>
+              <li><a class="panel-link " href="components-spinners.html">Spinners</a></li>
+              <li><a class="panel-link " href="components-toasts.html">Toasts</a></li>
+              <li><a class="panel-link " href="components-tooltips.html">Tooltips</a></li>
+            </ul>
+          </li>
+          <!-- Widgets - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Widgets
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="widgets.html">Overview</a></li>
+              <li><a class="panel-link " href="widgets-cards.html">Cards</a></li>
+              <li><a class="panel-link " href="widgets-banners.html">Banners</a></li>
+              <li><a class="panel-link " href="widgets-charts.html">Charts</a></li>
+              <li><a class="panel-link " href="widgets-apps.html">Apps</a></li>
+              <li><a class="panel-link " href="widgets-data.html">Data</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Panel: Forms -->
+      <div class="sidebar-panel-section active" data-section="forms">
+        <div class="sidebar-panel-header">
+          <h6>Forms</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="forms-elements.html">Form Elements</a></li>
+          <li><a class="panel-link " href="forms-layouts.html">Form Layouts</a></li>
+          <li><a class="panel-link active" href="forms-validation.html">Validation</a></li>
+          <li><a class="panel-link " href="forms-wizard.html">Wizard</a></li>
+          <li><a class="panel-link " href="forms-editors.html">Rich Editors</a></li>
+          <li><a class="panel-link " href="forms-pickers.html">Date/Time Pickers</a></li>
+          <li><a class="panel-link " href="forms-select.html">Advanced Select</a></li>
+          <li><a class="panel-link " href="forms-upload.html">File Upload</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Tables -->
+      <div class="sidebar-panel-section " data-section="tables">
+        <div class="sidebar-panel-header">
+          <h6>Tables</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="tables-basic.html">Basic Tables</a></li>
+          <li><a class="panel-link " href="tables-datatables.html">DataTables</a></li>
+          <li><a class="panel-link " href="tables-responsive.html">Responsive Tables</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Charts -->
+      <div class="sidebar-panel-section " data-section="charts">
+        <div class="sidebar-panel-header">
+          <h6>Charts</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="charts-apexcharts.html">ApexCharts</a></li>
+          <li><a class="panel-link " href="charts-chartjs.html">Chart.js</a></li>
+          <li><a class="panel-link " href="charts-echarts.html">ECharts</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Icons -->
+      <div class="sidebar-panel-section " data-section="icons">
+        <div class="sidebar-panel-header">
+          <h6>Icons</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="icons-bootstrap.html">Bootstrap Icons</a></li>
+          <li><a class="panel-link " href="icons-remixicon.html">Remix Icons</a></li>
+          <li><a class="panel-link " href="icons-fontawesome.html">Font Awesome</a></li>
+          <li><a class="panel-link " href="icons-phosphor.html">Phosphor Icons</a></li>
+          <li><a class="panel-link " href="icons-lucide.html">Lucide Icons</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Users -->
+      <div class="sidebar-panel-section " data-section="users">
+        <div class="sidebar-panel-header">
+          <h6>Users</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="users.html">Users List</a></li>
+          <li><a class="panel-link " href="users-view.html">User View</a></li>
+          <li><a class="panel-link " href="users-edit.html">User Edit</a></li>
+          <li><a class="panel-link " href="profile.html">Profile</a></li>
+          <!-- 3rd Level - Settings -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Settings
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="settings.html">Account</a></li>
+              <li><a class="panel-link " href="notifications.html">Notifications</a></li>
+              <li><a class="panel-link " href="activity.html">Activity</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="roles.html">Roles & Permissions</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Authentication -->
+      <div class="sidebar-panel-section " data-section="auth">
+        <div class="sidebar-panel-header">
+          <h6>Authentication</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="auth-login.html">Login</a></li>
+          <li><a class="panel-link " href="auth-register.html">Register</a></li>
+          <li><a class="panel-link " href="auth-forgot-password.html">Forgot Password</a></li>
+          <li><a class="panel-link " href="auth-reset-password.html">Reset Password</a></li>
+          <li><a class="panel-link " href="auth-verify-email.html">Email Verification</a></li>
+          <li><a class="panel-link " href="auth-two-factor.html">Two Factor Auth</a></li>
+          <li><a class="panel-link " href="auth-lock-screen.html">Lock Screen</a></li>
+        </ul>
+      </div>
+
+      <!-- Panel: Pages -->
+      <div class="sidebar-panel-section " data-section="pages">
+        <div class="sidebar-panel-header">
+          <h6>Pages</h6>
+          <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+        </div>
+        <ul class="panel-nav">
+          <li><a class="panel-link " href="contact.html">Contact</a></li>
+          <!-- Invoices - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Invoices
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="invoice-list.html">Invoice List</a></li>
+              <li><a class="panel-link " href="invoice.html">Invoice View</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="pricing.html">Pricing</a></li>
+          <li><a class="panel-link " href="faq.html">FAQ</a></li>
+          <!-- Error Pages - collapsible -->
+          <li class="panel-nav-group ">
+            <a class="panel-link panel-group-toggle" href="#" aria-expanded="false">
+              Error Pages
+              <i class="bi bi-chevron-down panel-arrow"></i>
+            </a>
+            <ul class="panel-subnav ">
+              <li><a class="panel-link " href="error-404.html">404 Not Found</a></li>
+              <li><a class="panel-link " href="error-403.html">403 Forbidden</a></li>
+              <li><a class="panel-link " href="error-500.html">500 Server Error</a></li>
+              <li><a class="panel-link " href="error-maintenance.html">Maintenance</a></li>
+              <li><a class="panel-link " href="error-coming-soon.html">Coming Soon</a></li>
+            </ul>
+          </li>
+          <li><a class="panel-link " href="timeline.html">Timeline</a></li>
+          <li><a class="panel-link " href="search-results.html">Search Results</a></li>
+          <li><a class="panel-link " href="blank.html">Blank Page</a></li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar Overlay (Mobile) -->
+  <div class="sidebar-overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="main-content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 class="page-title">Form Validation</h1>
+        <nav class="breadcrumb">
+          <a href="index.html" class="breadcrumb-item">Home</a>
+          <a href="#" class="breadcrumb-item">Forms</a>
+          <span class="breadcrumb-item active">Validation</span>
+        </nav>
+      </div>
+
+      <!-- Bootstrap Validation -->
+      <section class="section">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Bootstrap Validation</h5>
+                <p class="card-subtitle">Default Bootstrap validation with <code>.needs-validation</code></p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label for="bsValidation1" class="form-label">First Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="bsValidation1" required>
+                    <div class="valid-feedback">Looks good!</div>
+                    <div class="invalid-feedback">Please enter your first name.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="bsValidation2" class="form-label">Last Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="bsValidation2" required>
+                    <div class="valid-feedback">Looks good!</div>
+                    <div class="invalid-feedback">Please enter your last name.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="bsValidation3" class="form-label">Username <span class="text-danger">*</span></label>
+                    <div class="input-group has-validation">
+                      <span class="input-group-text">@</span>
+                      <input type="text" class="form-control" id="bsValidation3" required>
+                      <div class="invalid-feedback">Please choose a username.</div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="bsValidation4" class="form-label">Email <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="bsValidation4" required>
+                    <div class="invalid-feedback">Please enter a valid email address.</div>
+                  </div>
+                  <div class="mb-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="bsValidationCheck" required>
+                      <label class="form-check-label" for="bsValidationCheck">Agree to terms and conditions</label>
+                      <div class="invalid-feedback">You must agree before submitting.</div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Submit Form</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Server-Side Validation Style</h5>
+                <p class="card-subtitle">Pre-applied validation states (no JavaScript required)</p>
+              </div>
+              <div class="card-body">
+                <form>
+                  <div class="mb-3">
+                    <label for="serverValid1" class="form-label">First Name</label>
+                    <input type="text" class="form-control is-valid" id="serverValid1" value="John">
+                    <div class="valid-feedback">Looks good!</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="serverValid2" class="form-label">Last Name</label>
+                    <input type="text" class="form-control is-valid" id="serverValid2" value="Doe">
+                    <div class="valid-feedback">Looks good!</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="serverInvalid1" class="form-label">Username</label>
+                    <div class="input-group has-validation">
+                      <span class="input-group-text">@</span>
+                      <input type="text" class="form-control is-invalid" id="serverInvalid1" value="john">
+                      <div class="invalid-feedback">Username is already taken.</div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="serverInvalid2" class="form-label">Email</label>
+                    <input type="email" class="form-control is-invalid" id="serverInvalid2" value="invalid-email">
+                    <div class="invalid-feedback">Please enter a valid email address.</div>
+                  </div>
+                  <div class="mb-3">
+                    <div class="form-check">
+                      <input class="form-check-input is-invalid" type="checkbox" id="serverCheck">
+                      <label class="form-check-label" for="serverCheck">Agree to terms and conditions</label>
+                      <div class="invalid-feedback">You must agree before submitting.</div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Submit Form</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Validation with Tooltips -->
+      <section class="section">
+        <h5 class="section-title mb-3">Validation with Tooltips</h5>
+        <div class="row g-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Tooltip Feedback</h5>
+                <p class="card-subtitle">Validation messages displayed as tooltips using <code>.valid-tooltip</code> and <code>.invalid-tooltip</code></p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation-tooltip row g-3" novalidate>
+                  <div class="col-md-4 position-relative">
+                    <label for="tooltipValidation1" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="tooltipValidation1" value="John" required>
+                    <div class="valid-tooltip">Looks good!</div>
+                    <div class="invalid-tooltip">Please enter your first name.</div>
+                  </div>
+                  <div class="col-md-4 position-relative">
+                    <label for="tooltipValidation2" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="tooltipValidation2" value="Doe" required>
+                    <div class="valid-tooltip">Looks good!</div>
+                    <div class="invalid-tooltip">Please enter your last name.</div>
+                  </div>
+                  <div class="col-md-4 position-relative">
+                    <label for="tooltipValidation3" class="form-label">Username</label>
+                    <div class="input-group has-validation">
+                      <span class="input-group-text">@</span>
+                      <input type="text" class="form-control" id="tooltipValidation3" required>
+                      <div class="invalid-tooltip">Please choose a unique username.</div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 position-relative">
+                    <label for="tooltipValidation4" class="form-label">City</label>
+                    <input type="text" class="form-control" id="tooltipValidation4" required>
+                    <div class="invalid-tooltip">Please provide a valid city.</div>
+                  </div>
+                  <div class="col-md-3 position-relative">
+                    <label for="tooltipValidation5" class="form-label">State</label>
+                    <select class="form-select" id="tooltipValidation5" required>
+                      <option selected disabled value="">Choose...</option>
+                      <option>California</option>
+                      <option>New York</option>
+                      <option>Texas</option>
+                    </select>
+                    <div class="invalid-tooltip">Please select a valid state.</div>
+                  </div>
+                  <div class="col-md-3 position-relative">
+                    <label for="tooltipValidation6" class="form-label">Zip</label>
+                    <input type="text" class="form-control" id="tooltipValidation6" required>
+                    <div class="invalid-tooltip">Please provide a valid zip code.</div>
+                  </div>
+                  <div class="col-12">
+                    <button class="btn btn-primary" type="submit">Submit Form</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- HTML5 Validation -->
+      <section class="section">
+        <h5 class="section-title mb-3">HTML5 Built-in Validation</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">HTML5 Input Types</h5>
+                <p class="card-subtitle">Browser-native validation using HTML5 attributes</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label for="html5Email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="html5Email" placeholder="name@example.com" required>
+                    <div class="form-text">Must be a valid email format.</div>
+                    <div class="invalid-feedback">Please enter a valid email address.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="html5Url" class="form-label">Website URL</label>
+                    <input type="url" class="form-control" id="html5Url" placeholder="https://example.com" required>
+                    <div class="form-text">Must include http:// or https://</div>
+                    <div class="invalid-feedback">Please enter a valid URL.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="html5Tel" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="html5Tel" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" placeholder="123-456-7890" required>
+                    <div class="form-text">Format: 123-456-7890</div>
+                    <div class="invalid-feedback">Please enter a valid phone number.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="html5Number" class="form-label">Age</label>
+                    <input type="number" class="form-control" id="html5Number" min="18" max="120" required>
+                    <div class="form-text">Must be between 18 and 120.</div>
+                    <div class="invalid-feedback">Please enter a valid age (18-120).</div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Validate</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Pattern Validation</h5>
+                <p class="card-subtitle">Custom patterns using the <code>pattern</code> attribute</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label for="patternZip" class="form-label">US Zip Code</label>
+                    <input type="text" class="form-control" id="patternZip" pattern="[0-9]{5}(-[0-9]{4})?" placeholder="12345 or 12345-6789" required>
+                    <div class="form-text">5 digits, optionally followed by -4 digits.</div>
+                    <div class="invalid-feedback">Please enter a valid US zip code.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="patternSSN" class="form-label">Social Security Number</label>
+                    <input type="text" class="form-control" id="patternSSN" pattern="[0-9]{3}-[0-9]{2}-[0-9]{4}" placeholder="123-45-6789" required>
+                    <div class="form-text">Format: XXX-XX-XXXX</div>
+                    <div class="invalid-feedback">Please enter a valid SSN format.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="patternCard" class="form-label">Credit Card Number</label>
+                    <input type="text" class="form-control" id="patternCard" pattern="[0-9]{4}\s?[0-9]{4}\s?[0-9]{4}\s?[0-9]{4}" placeholder="1234 5678 9012 3456" required>
+                    <div class="form-text">16 digits, spaces optional.</div>
+                    <div class="invalid-feedback">Please enter a valid credit card number.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="patternAlpha" class="form-label">Letters Only</label>
+                    <input type="text" class="form-control" id="patternAlpha" pattern="[A-Za-z]+" placeholder="Alphabetic characters only" required>
+                    <div class="form-text">Only letters (no numbers or special characters).</div>
+                    <div class="invalid-feedback">Please enter letters only.</div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Validate</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Length Validation -->
+      <section class="section">
+        <h5 class="section-title mb-3">Length Validation</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Min/Max Length</h5>
+                <p class="card-subtitle">Using <code>minlength</code> and <code>maxlength</code> attributes</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label for="lengthUsername" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="lengthUsername" minlength="3" maxlength="20" required>
+                    <div class="form-text">Must be 3-20 characters long.</div>
+                    <div class="invalid-feedback">Username must be 3-20 characters.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="lengthPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="lengthPassword" minlength="8" required>
+                    <div class="form-text">Minimum 8 characters.</div>
+                    <div class="invalid-feedback">Password must be at least 8 characters.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="lengthBio" class="form-label">Bio</label>
+                    <textarea class="form-control" id="lengthBio" rows="3" maxlength="500"></textarea>
+                    <div class="d-flex justify-content-between">
+                      <div class="form-text">Maximum 500 characters.</div>
+                      <div class="form-text"><span id="bioCounter">0</span>/500</div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="lengthPin" class="form-label">PIN Code</label>
+                    <input type="text" class="form-control" id="lengthPin" minlength="4" maxlength="4" pattern="[0-9]{4}" required>
+                    <div class="form-text">Exactly 4 digits.</div>
+                    <div class="invalid-feedback">PIN must be exactly 4 digits.</div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Validate</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Range Validation</h5>
+                <p class="card-subtitle">Using <code>min</code>, <code>max</code>, and <code>step</code> for numbers</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label for="rangeQuantity" class="form-label">Quantity</label>
+                    <input type="number" class="form-control" id="rangeQuantity" min="1" max="100" value="1" required>
+                    <div class="form-text">Between 1 and 100.</div>
+                    <div class="invalid-feedback">Quantity must be between 1 and 100.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="rangePrice" class="form-label">Price ($)</label>
+                    <input type="number" class="form-control" id="rangePrice" min="0" max="10000" step="0.01" placeholder="0.00" required>
+                    <div class="form-text">$0 - $10,000, increments of $0.01.</div>
+                    <div class="invalid-feedback">Please enter a valid price.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="rangePercent" class="form-label">Discount (%)</label>
+                    <input type="number" class="form-control" id="rangePercent" min="0" max="100" step="5" value="0" required>
+                    <div class="form-text">0-100%, increments of 5%.</div>
+                    <div class="invalid-feedback">Discount must be 0-100%.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="rangeDate" class="form-label">Appointment Date</label>
+                    <input type="date" class="form-control" id="rangeDate" required>
+                    <div class="form-text">Must be a future date.</div>
+                    <div class="invalid-feedback">Please select a valid future date.</div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Validate</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Password Validation -->
+      <section class="section">
+        <h5 class="section-title mb-3">Password Validation</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Password Strength</h5>
+                <p class="card-subtitle">Visual password strength indicator</p>
+              </div>
+              <div class="card-body">
+                <form>
+                  <div class="mb-3">
+                    <label for="pwStrength" class="form-label">New Password</label>
+                    <div class="input-group">
+                      <input type="password" class="form-control" id="pwStrength" placeholder="Enter password">
+                      <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
+                    <div class="progress mt-2" style="height: 4px;">
+                      <div class="progress-bar" id="pwStrengthBar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-1">
+                      <small class="text-muted" id="pwStrengthText">Enter a password</small>
+                      <small class="text-muted"><span id="pwLength">0</span> characters</small>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Password Requirements</label>
+                    <ul class="list-unstyled small">
+                      <li id="reqLength" class="text-muted"><i class="bi bi-circle me-2"></i>At least 8 characters</li>
+                      <li id="reqUpper" class="text-muted"><i class="bi bi-circle me-2"></i>One uppercase letter</li>
+                      <li id="reqLower" class="text-muted"><i class="bi bi-circle me-2"></i>One lowercase letter</li>
+                      <li id="reqNumber" class="text-muted"><i class="bi bi-circle me-2"></i>One number</li>
+                      <li id="reqSpecial" class="text-muted"><i class="bi bi-circle me-2"></i>One special character (!@#$%^&*)</li>
+                    </ul>
+                  </div>
+                  <div class="mb-3">
+                    <label for="pwConfirm" class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control" id="pwConfirm" placeholder="Confirm password">
+                    <div class="invalid-feedback">Passwords do not match.</div>
+                    <div class="valid-feedback">Passwords match!</div>
+                  </div>
+                  <button class="btn btn-primary" type="submit" id="pwSubmit" disabled>Set Password</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Password Match Validation</h5>
+                <p class="card-subtitle">Real-time password confirmation</p>
+              </div>
+              <div class="card-body">
+                <form class="password-match-form">
+                  <div class="mb-3">
+                    <label for="pwMatch1" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="pwMatch1" placeholder="Enter password" required minlength="8">
+                    <div class="invalid-feedback">Password must be at least 8 characters.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="pwMatch2" class="form-label">Confirm Password</label>
+                    <input type="password" class="form-control" id="pwMatch2" placeholder="Confirm password" required>
+                    <div class="invalid-feedback" id="pwMatchError">Passwords do not match.</div>
+                    <div class="valid-feedback">Passwords match!</div>
+                  </div>
+                  <div class="alert alert-info small" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    This example validates passwords match in real-time as you type.
+                  </div>
+                  <button class="btn btn-primary" type="submit">Update Password</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Custom Validation -->
+      <section class="section">
+        <h5 class="section-title mb-3">Custom Validation Messages</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Inline Error Messages</h5>
+                <p class="card-subtitle">Custom styled validation feedback</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label for="customEmail" class="form-label">Email Address</label>
+                    <input type="email" class="form-control" id="customEmail" required>
+                    <div class="invalid-feedback d-flex align-items-center gap-1">
+                      <i class="bi bi-exclamation-circle"></i>
+                      <span>Please enter a valid email address.</span>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="customPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="customPassword" required minlength="8">
+                    <div class="invalid-feedback d-flex align-items-center gap-1">
+                      <i class="bi bi-exclamation-circle"></i>
+                      <span>Password must be at least 8 characters long.</span>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="customSelect" class="form-label">Country</label>
+                    <select class="form-select" id="customSelect" required>
+                      <option value="">Select a country...</option>
+                      <option value="us">United States</option>
+                      <option value="uk">United Kingdom</option>
+                      <option value="ca">Canada</option>
+                      <option value="au">Australia</option>
+                    </select>
+                    <div class="invalid-feedback d-flex align-items-center gap-1">
+                      <i class="bi bi-exclamation-circle"></i>
+                      <span>Please select your country.</span>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Continue</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Alert-Style Errors</h5>
+                <p class="card-subtitle">Form errors displayed as an alert summary</p>
+              </div>
+              <div class="card-body">
+                <div class="alert alert-danger alert-dismissible" role="alert" id="errorAlert">
+                  <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Please fix the following errors:</h6>
+                  <ul class="mb-0 ps-3">
+                    <li>First name is required</li>
+                    <li>Email address is invalid</li>
+                    <li>Phone number format is incorrect</li>
+                  </ul>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <form>
+                  <div class="mb-3">
+                    <label for="alertFirst" class="form-label">First Name</label>
+                    <input type="text" class="form-control is-invalid" id="alertFirst">
+                  </div>
+                  <div class="mb-3">
+                    <label for="alertEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control is-invalid" id="alertEmail" value="invalid-email">
+                  </div>
+                  <div class="mb-3">
+                    <label for="alertPhone" class="form-label">Phone</label>
+                    <input type="tel" class="form-control is-invalid" id="alertPhone" value="12345">
+                  </div>
+                  <div class="mb-3">
+                    <label for="alertMessage" class="form-label">Message</label>
+                    <textarea class="form-control is-valid" id="alertMessage" rows="2">This field is valid.</textarea>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Submit</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Checkbox & Radio Validation -->
+      <section class="section">
+        <h5 class="section-title mb-3">Checkbox &amp; Radio Validation</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Required Checkbox</h5>
+                <p class="card-subtitle">At least one checkbox must be selected</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label class="form-label">Select your interests (at least one)</label>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="interests" id="interest1" required>
+                      <label class="form-check-label" for="interest1">Technology</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="interests" id="interest2">
+                      <label class="form-check-label" for="interest2">Design</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="interests" id="interest3">
+                      <label class="form-check-label" for="interest3">Business</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" name="interests" id="interest4">
+                      <label class="form-check-label" for="interest4">Marketing</label>
+                      <div class="invalid-feedback">Please select at least one interest.</div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                      <label class="form-check-label" for="termsCheck">
+                        I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+                      </label>
+                      <div class="invalid-feedback">You must agree to the terms to continue.</div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Continue</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">Required Radio Selection</h5>
+                <p class="card-subtitle">One option must be selected</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label class="form-label">Select a plan</label>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="plan" id="planFree" value="free" required>
+                      <label class="form-check-label" for="planFree">
+                        <strong>Free</strong> - Basic features
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="plan" id="planPro" value="pro">
+                      <label class="form-check-label" for="planPro">
+                        <strong>Pro</strong> - $9.99/month
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="plan" id="planEnterprise" value="enterprise">
+                      <label class="form-check-label" for="planEnterprise">
+                        <strong>Enterprise</strong> - Custom pricing
+                      </label>
+                      <div class="invalid-feedback">Please select a plan.</div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Payment Method</label>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="payment" id="payCard" value="card" required>
+                      <label class="form-check-label" for="payCard">
+                        <i class="bi bi-credit-card me-1"></i> Credit Card
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="payment" id="payPaypal" value="paypal">
+                      <label class="form-check-label" for="payPaypal">
+                        <i class="bi bi-paypal me-1"></i> PayPal
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="payment" id="payBank" value="bank">
+                      <label class="form-check-label" for="payBank">
+                        <i class="bi bi-bank me-1"></i> Bank Transfer
+                      </label>
+                      <div class="invalid-feedback">Please select a payment method.</div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Continue to Payment</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- File Validation -->
+      <section class="section">
+        <h5 class="section-title mb-3">File Upload Validation</h5>
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">File Type Validation</h5>
+                <p class="card-subtitle">Restrict file uploads by type</p>
+              </div>
+              <div class="card-body">
+                <form class="needs-validation" novalidate>
+                  <div class="mb-3">
+                    <label for="fileImage" class="form-label">Profile Image</label>
+                    <input class="form-control" type="file" id="fileImage" accept="image/png, image/jpeg, image/gif" required>
+                    <div class="form-text">Allowed: JPG, PNG, GIF</div>
+                    <div class="invalid-feedback">Please upload a valid image file.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="fileDocument" class="form-label">Resume/CV</label>
+                    <input class="form-control" type="file" id="fileDocument" accept=".pdf,.doc,.docx" required>
+                    <div class="form-text">Allowed: PDF, DOC, DOCX</div>
+                    <div class="invalid-feedback">Please upload a valid document.</div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="fileSpreadsheet" class="form-label">Data File</label>
+                    <input class="form-control" type="file" id="fileSpreadsheet" accept=".csv,.xlsx,.xls">
+                    <div class="form-text">Allowed: CSV, XLS, XLSX (optional)</div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Upload Files</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="card-title">File Size Validation</h5>
+                <p class="card-subtitle">JavaScript-based file size checking</p>
+              </div>
+              <div class="card-body">
+                <form id="fileSizeForm">
+                  <div class="mb-3">
+                    <label for="fileSizeInput" class="form-label">Upload File (Max 2MB)</label>
+                    <input class="form-control" type="file" id="fileSizeInput">
+                    <div class="form-text">Maximum file size: 2MB</div>
+                    <div class="invalid-feedback" id="fileSizeError">File size exceeds 2MB limit.</div>
+                  </div>
+                  <div class="mb-3" id="fileInfo" style="display: none;">
+                    <div class="alert alert-info small mb-0">
+                      <div><strong>File:</strong> <span id="fileName"></span></div>
+                      <div><strong>Size:</strong> <span id="fileSize"></span></div>
+                      <div><strong>Type:</strong> <span id="fileType"></span></div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label for="multiFileInput" class="form-label">Multiple Files (Max 5 files, 1MB each)</label>
+                    <input class="form-control" type="file" id="multiFileInput" multiple>
+                    <div class="form-text">Maximum 5 files, 1MB each</div>
+                    <div class="invalid-feedback" id="multiFileError"></div>
+                  </div>
+                  <button class="btn btn-primary" type="submit">Upload</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Real-time Validation -->
+      <section class="section">
+        <h5 class="section-title mb-3">Real-time Validation</h5>
+        <div class="row g-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">Live Validation Form</h5>
+                <p class="card-subtitle">Validates as you type with immediate feedback</p>
+              </div>
+              <div class="card-body">
+                <form id="realtimeForm" class="row g-3">
+                  <div class="col-md-6">
+                    <label for="rtUsername" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="rtUsername" placeholder="Choose a username">
+                    <div class="form-text" id="rtUsernameHelp">3-20 characters, letters and numbers only</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="rtEmail" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="rtEmail" placeholder="Enter your email">
+                    <div class="form-text" id="rtEmailHelp">We'll never share your email</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="rtPhone" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="rtPhone" placeholder="(555) 123-4567">
+                    <div class="form-text" id="rtPhoneHelp">US phone format</div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="rtWebsite" class="form-label">Website (optional)</label>
+                    <input type="url" class="form-control" id="rtWebsite" placeholder="https://yourwebsite.com">
+                    <div class="form-text" id="rtWebsiteHelp">Include https://</div>
+                  </div>
+                  <div class="col-12">
+                    <label for="rtMessage" class="form-label">Message</label>
+                    <textarea class="form-control" id="rtMessage" rows="3" placeholder="Enter your message (10-500 characters)"></textarea>
+                    <div class="d-flex justify-content-between">
+                      <div class="form-text" id="rtMessageHelp">Minimum 10 characters</div>
+                      <div class="form-text"><span id="rtMessageCount">0</span>/500</div>
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <button class="btn btn-primary" type="submit">Submit Form</button>
+                    <button class="btn btn-outline-secondary ms-2" type="reset">Reset</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="footer-copyright">
+        &copy; <a href="#">SmartAdmin</a>. All Rights Reserved.
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <a href="#" class="back-to-top">
+    <i class="bi bi-arrow-up"></i>
+  </a>
+
+  <!-- Vendor JS Files -->
+  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
+  <script src="assets/vendor/chart.js/chart.umd.js"></script>
+  <script src="assets/vendor/echarts/echarts.min.js"></script>
+  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
+  <script src="assets/vendor/quill/quill.js"></script>
+  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
+  <script src="assets/vendor/choices.js/choices.min.js"></script>
+  <script src="assets/vendor/flatpickr/flatpickr.min.js"></script>
+  <script src="assets/vendor/php-email-form/validate.js"></script>
+
+  <!-- Template Main JS Files -->
+  <script src="assets/js/theme.js"></script>
+  <script src="assets/js/main.js"></script>
+
+  <!-- App Sidebar Toggle (for app pages with sidebars) -->
+  <script src="assets/js/apps-sidebar-toggle.js"></script>
+
+  <script>
+    // Bootstrap validation
+    (function() {
+      'use strict';
+      // Fetch all forms that need validation
+      var forms = document.querySelectorAll('.needs-validation');
+      Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+      // Tooltip validation forms
+      var tooltipForms = document.querySelectorAll('.needs-validation-tooltip');
+      Array.prototype.slice.call(tooltipForms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
+      });
+    })();
+    // Bio character counter
+    document.getElementById('lengthBio').addEventListener('input', function() {
+      document.getElementById('bioCounter').textContent = this.value.length;
+    });
+    // Set min date to today for appointment
+    document.getElementById('rangeDate').min = new Date().toISOString().split('T')[0];
+    // Password strength checker
+    const pwInput = document.getElementById('pwStrength');
+    const pwConfirm = document.getElementById('pwConfirm');
+    const pwStrengthBar = document.getElementById('pwStrengthBar');
+    const pwStrengthText = document.getElementById('pwStrengthText');
+    const pwLength = document.getElementById('pwLength');
+    const pwSubmit = document.getElementById('pwSubmit');
+    const togglePassword = document.getElementById('togglePassword');
+    const requirements = {
+      length: document.getElementById('reqLength'),
+      upper: document.getElementById('reqUpper'),
+      lower: document.getElementById('reqLower'),
+      number: document.getElementById('reqNumber'),
+      special: document.getElementById('reqSpecial')
+    };
+
+    function checkRequirement(el, met) {
+      if (met) {
+        el.classList.remove('text-muted');
+        el.classList.add('text-success');
+        el.querySelector('i').className = 'bi bi-check-circle-fill me-2';
+      } else {
+        el.classList.remove('text-success');
+        el.classList.add('text-muted');
+        el.querySelector('i').className = 'bi bi-circle me-2';
+      }
+    }
+
+    function checkPasswordStrength(password) {
+      let strength = 0;
+      const checks = {
+        length: password.length >= 8,
+        upper: /[A-Z]/.test(password),
+        lower: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+      };
+      Object.keys(checks).forEach(key => {
+        checkRequirement(requirements[key], checks[key]);
+        if (checks[key]) strength++;
+      });
+      pwLength.textContent = password.length;
+      // Update strength bar
+      const percent = (strength / 5) * 100;
+      pwStrengthBar.style.width = percent + '%';
+      if (strength === 0) {
+        pwStrengthBar.className = 'progress-bar';
+        pwStrengthText.textContent = 'Enter a password';
+      } else if (strength <= 2) {
+        pwStrengthBar.className = 'progress-bar bg-danger';
+        pwStrengthText.textContent = 'Weak';
+      } else if (strength <= 3) {
+        pwStrengthBar.className = 'progress-bar bg-warning';
+        pwStrengthText.textContent = 'Fair';
+      } else if (strength <= 4) {
+        pwStrengthBar.className = 'progress-bar bg-info';
+        pwStrengthText.textContent = 'Good';
+      } else {
+        pwStrengthBar.className = 'progress-bar bg-success';
+        pwStrengthText.textContent = 'Strong';
+      }
+      return strength === 5;
+    }
+
+    function checkPasswordMatch() {
+      const match = pwInput.value === pwConfirm.value && pwConfirm.value !== '';
+      if (pwConfirm.value === '') {
+        pwConfirm.classList.remove('is-valid', 'is-invalid');
+      } else if (match) {
+        pwConfirm.classList.remove('is-invalid');
+        pwConfirm.classList.add('is-valid');
+      } else {
+        pwConfirm.classList.remove('is-valid');
+        pwConfirm.classList.add('is-invalid');
+      }
+      return match;
+    }
+
+    function updateSubmitButton() {
+      const strongEnough = checkPasswordStrength(pwInput.value);
+      const matches = checkPasswordMatch();
+      pwSubmit.disabled = !(strongEnough && matches);
+    }
+    pwInput.addEventListener('input', updateSubmitButton);
+    pwConfirm.addEventListener('input', updateSubmitButton);
+    togglePassword.addEventListener('click', function() {
+      const type = pwInput.type === 'password' ? 'text' : 'password';
+      pwInput.type = type;
+      this.querySelector('i').className = type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    });
+    // Password match form
+    const pwMatch1 = document.getElementById('pwMatch1');
+    const pwMatch2 = document.getElementById('pwMatch2');
+
+    function checkMatch() {
+      if (pwMatch2.value === '') {
+        pwMatch2.classList.remove('is-valid', 'is-invalid');
+        return;
+      }
+      if (pwMatch1.value === pwMatch2.value) {
+        pwMatch2.classList.remove('is-invalid');
+        pwMatch2.classList.add('is-valid');
+      } else {
+        pwMatch2.classList.remove('is-valid');
+        pwMatch2.classList.add('is-invalid');
+      }
+    }
+    pwMatch1.addEventListener('input', checkMatch);
+    pwMatch2.addEventListener('input', checkMatch);
+    // File size validation
+    const fileSizeInput = document.getElementById('fileSizeInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileSizeError = document.getElementById('fileSizeError');
+    fileSizeInput.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        const maxSize = 2 * 1024 * 1024; // 2MB
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = formatFileSize(file.size);
+        document.getElementById('fileType').textContent = file.type || 'Unknown';
+        fileInfo.style.display = 'block';
+        if (file.size > maxSize) {
+          this.classList.add('is-invalid');
+          fileSizeError.style.display = 'block';
+        } else {
+          this.classList.remove('is-invalid');
+          this.classList.add('is-valid');
+          fileSizeError.style.display = 'none';
+        }
+      }
+    });
+    // Multiple file validation
+    const multiFileInput = document.getElementById('multiFileInput');
+    const multiFileError = document.getElementById('multiFileError');
+    multiFileInput.addEventListener('change', function() {
+      const files = this.files;
+      const maxFiles = 5;
+      const maxSize = 1 * 1024 * 1024; // 1MB
+      let errors = [];
+      if (files.length > maxFiles) {
+        errors.push(`Maximum ${maxFiles} files allowed (you selected ${files.length})`);
+      }
+      Array.from(files).forEach(file => {
+        if (file.size > maxSize) {
+          errors.push(`${file.name} exceeds 1MB limit`);
+        }
+      });
+      if (errors.length > 0) {
+        this.classList.add('is-invalid');
+        multiFileError.innerHTML = errors.join('<br>');
+      } else {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+        multiFileError.innerHTML = '';
+      }
+    });
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    // Real-time validation
+    const rtUsername = document.getElementById('rtUsername');
+    const rtEmail = document.getElementById('rtEmail');
+    const rtPhone = document.getElementById('rtPhone');
+    const rtWebsite = document.getElementById('rtWebsite');
+    const rtMessage = document.getElementById('rtMessage');
+    const rtMessageCount = document.getElementById('rtMessageCount');
+
+    function validateField(input, isValid, helpId) {
+      const helpEl = document.getElementById(helpId);
+      if (input.value === '') {
+        input.classList.remove('is-valid', 'is-invalid');
+        if (helpEl) helpEl.classList.remove('text-success', 'text-danger');
+      } else if (isValid) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+        if (helpEl) {
+          helpEl.classList.remove('text-danger');
+          helpEl.classList.add('text-success');
+        }
+      } else {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+        if (helpEl) {
+          helpEl.classList.remove('text-success');
+          helpEl.classList.add('text-danger');
+        }
+      }
+    }
+    rtUsername.addEventListener('input', function() {
+      const valid = /^[a-zA-Z0-9]{3,20}$/.test(this.value);
+      validateField(this, valid, 'rtUsernameHelp');
+    });
+    rtEmail.addEventListener('input', function() {
+      const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.value);
+      validateField(this, valid, 'rtEmailHelp');
+    });
+    rtPhone.addEventListener('input', function() {
+      // Allow various phone formats
+      const cleaned = this.value.replace(/\D/g, '');
+      const valid = cleaned.length === 10;
+      validateField(this, valid, 'rtPhoneHelp');
+    });
+    rtWebsite.addEventListener('input', function() {
+      if (this.value === '') {
+        this.classList.remove('is-valid', 'is-invalid');
+        return;
+      }
+      const valid = /^https?:\/\/.+\..+/.test(this.value);
+      validateField(this, valid, 'rtWebsiteHelp');
+    });
+    rtMessage.addEventListener('input', function() {
+      const len = this.value.length;
+      rtMessageCount.textContent = len;
+      const valid = len >= 10 && len <= 500;
+      validateField(this, valid, 'rtMessageHelp');
+    });
+    // Reset form clears validation
+    document.getElementById('realtimeForm').addEventListener('reset', function() {
+      setTimeout(() => {
+        this.querySelectorAll('.form-control').forEach(el => {
+          el.classList.remove('is-valid', 'is-invalid');
+        });
+        this.querySelectorAll('.form-text').forEach(el => {
+          el.classList.remove('text-success', 'text-danger');
+        });
+        rtMessageCount.textContent = '0';
+      }, 0);
+    });
+  </script>
+</body>
+
+</html>

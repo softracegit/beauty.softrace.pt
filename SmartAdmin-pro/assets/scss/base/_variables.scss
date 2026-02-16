@@ -1,0 +1,274 @@
+/*--------------------------------------------------------------
+# CSS Custom Properties - Color System
+# Single accent color theming with comprehensive palette
+--------------------------------------------------------------*/
+
+/* Fonts */
+:root {
+  --default-font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --heading-font: "Plus Jakarta Sans", sans-serif;
+  --nav-font: "Plus Jakarta Sans", sans-serif;
+  --mono-font: "Fira Code", "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace;
+}
+
+/* Spacing Scale */
+:root {
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+}
+
+/* Border Radius */
+:root {
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-full: 9999px;
+}
+
+/* Shadows */
+:root {
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+}
+
+/* Transitions */
+:root {
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* Layout Dimensions */
+:root {
+  --header-height: 60px;
+  --sidebar-icon-width: 72px;
+  --sidebar-panel-width: 240px;
+  --sidebar-width: calc(var(--sidebar-icon-width) + var(--sidebar-panel-width));
+  --sidebar-collapsed-width: var(--sidebar-icon-width);
+  --footer-height: 60px;
+}
+
+/*--------------------------------------------------------------
+# Global Colors - Light Mode
+--------------------------------------------------------------*/
+:root {
+  /* Core palette */
+  --background-color: #f5f7fa;
+  --default-color: #2d3748;
+  --heading-color: #1a202c;
+  --accent-color: #5b8def;
+  --surface-color: #ffffff;
+  --contrast-color: #ffffff;
+
+  /* Extended text colors */
+  --muted-color: #718096;
+  --light-color: #a0aec0;
+
+  /* Borders */
+  --border-color: #e2e8f0;
+  --border-color-light: #edf2f7;
+  --border-color-dark: #cbd5e0;
+
+  /* Status colors */
+  --success-color: #0a863e;
+  --success-color-light: #caf9d7;
+  --warning-color: #ecc94b;
+  --warning-color-light: #fefcbf;
+  --danger-color: #f56565;
+  --danger-color-light: #fee2e2;
+  --info-color: #4fd1c5;
+  --info-color-light: #e6fffa;
+
+  /* Navigation colors */
+  --nav-color: var(--default-color);
+  --nav-hover-color: var(--accent-color);
+  --nav-mobile-background-color: var(--surface-color);
+  --nav-dropdown-background-color: var(--surface-color);
+  --nav-dropdown-color: var(--default-color);
+  --nav-dropdown-hover-color: var(--accent-color);
+
+  /* Header */
+  --header-bg: #ffffff;
+  --header-shadow: none;
+  --header-border: var(--border-color);
+
+  /* Sidebar */
+  --sidebar-bg: #ffffff;
+  --sidebar-icon-bg: #f8fafc;
+  --sidebar-border: var(--border-color);
+  --sidebar-color: var(--default-color);
+  --sidebar-muted-color: var(--muted-color);
+  --sidebar-hover-bg: #edf2f7;
+  --sidebar-active-bg: color-mix(in srgb, var(--accent-color), transparent 88%);
+  --sidebar-active-color: var(--accent-color);
+  --sidebar-icon-active-bg: color-mix(in srgb, var(--accent-color), transparent 85%);
+
+  /* Cards */
+  --card-bg: #ffffff;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+  --card-border: var(--border-color);
+
+  /* Tables */
+  --table-header-bg: #f7fafc;
+  --table-hover-bg: #edf2f7;
+  --table-stripe-bg: #fafbfc;
+
+  /* Forms */
+  --input-bg: #ffffff;
+  --input-border: var(--border-color);
+  --input-focus-border: var(--accent-color);
+  --input-focus-ring: rgb(91 141 239 / 0.25);
+}
+
+/*--------------------------------------------------------------
+# Dark Mode Palette
+--------------------------------------------------------------*/
+[data-theme="dark"] {
+  /* Core palette */
+  --background-color: #0f172a;
+  --default-color: #e2e8f0;
+  --heading-color: #f1f5f9;
+  --accent-color: #7ba4f7;
+  --surface-color: #1e293b;
+  --contrast-color: #ffffff;
+
+  /* Extended text colors */
+  --muted-color: #94a3b8;
+  --light-color: #64748b;
+
+  /* Borders */
+  --border-color: #2d3a4e;
+  --border-color-light: #1e293b;
+  --border-color-dark: #475569;
+
+  /* Status colors (adjusted for dark mode) */
+  --success-color: #68d391;
+  --success-color-light: rgba(104, 211, 145, 0.15);
+  --warning-color: #f6e05e;
+  --warning-color-light: rgba(246, 224, 94, 0.15);
+  --danger-color: #fc8181;
+  --danger-color-light: rgba(252, 129, 129, 0.15);
+  --info-color: #76e4d4;
+  --info-color-light: rgba(118, 228, 212, 0.15);
+
+  /* Navigation colors */
+  --nav-color: var(--default-color);
+  --nav-hover-color: var(--accent-color);
+  --nav-mobile-background-color: var(--surface-color);
+  --nav-dropdown-background-color: var(--surface-color);
+  --nav-dropdown-color: var(--default-color);
+  --nav-dropdown-hover-color: var(--accent-color);
+
+  /* Header */
+  --header-bg: #1e293b;
+  --header-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --header-border: var(--border-color);
+
+  /* Sidebar */
+  --sidebar-bg: #1e293b;
+  --sidebar-icon-bg: #172033;
+  --sidebar-border: var(--border-color);
+  --sidebar-color: var(--default-color);
+  --sidebar-muted-color: var(--muted-color);
+  --sidebar-hover-bg: #2d3a4e;
+  --sidebar-active-bg: rgba(123, 164, 247, 0.15);
+  --sidebar-active-color: var(--accent-color);
+  --sidebar-icon-active-bg: rgba(123, 164, 247, 0.18);
+
+  /* Cards */
+  --card-bg: #1e293b;
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
+  --card-border: var(--border-color);
+
+  /* Tables */
+  --table-header-bg: #172033;
+  --table-hover-bg: #2d3a4e;
+  --table-stripe-bg: #1a2535;
+
+  /* Forms */
+  --input-bg: #172033;
+  --input-border: var(--border-color);
+  --input-focus-border: var(--accent-color);
+  --input-focus-ring: rgb(123 164 247 / 0.25);
+
+  /* Bootstrap overrides */
+  --bs-body-color: var(--default-color);
+  --bs-body-bg: var(--background-color);
+}
+
+/*--------------------------------------------------------------
+# Color Utility Classes
+# Override Bootstrap's color utilities with CSS custom properties
+# for proper dark mode support
+--------------------------------------------------------------*/
+
+/* Text Colors */
+.text-primary { color: var(--accent-color) !important; }
+.text-secondary { color: var(--muted-color) !important; }
+.text-success { color: var(--success-color) !important; }
+.text-warning { color: var(--warning-color) !important; }
+.text-danger { color: var(--danger-color) !important; }
+.text-info { color: var(--info-color) !important; }
+.text-muted { color: var(--muted-color) !important; }
+.text-body { color: var(--default-color) !important; }
+
+/* Background Colors */
+.bg-primary { background-color: var(--accent-color) !important; }
+.bg-success { background-color: var(--success-color) !important; }
+.bg-warning { background-color: var(--warning-color) !important; }
+.bg-danger { background-color: var(--danger-color) !important; }
+.bg-info { background-color: var(--info-color) !important; }
+.bg-light { background-color: var(--background-color) !important; }
+.bg-body { background-color: var(--background-color) !important; }
+.bg-surface { background-color: var(--surface-color) !important; }
+
+/* Soft/Light Background Colors */
+.bg-primary-light { background-color: color-mix(in srgb, var(--accent-color), transparent 90%) !important; }
+.bg-success-light { background-color: var(--success-color-light) !important; }
+.bg-warning-light { background-color: var(--warning-color-light) !important; }
+.bg-danger-light { background-color: var(--danger-color-light) !important; }
+.bg-info-light { background-color: var(--info-color-light) !important; }
+
+/* Border Colors */
+.border-primary { border-color: var(--accent-color) !important; }
+.border-success { border-color: var(--success-color) !important; }
+.border-warning { border-color: var(--warning-color) !important; }
+.border-danger { border-color: var(--danger-color) !important; }
+.border-info { border-color: var(--info-color) !important; }
+
+/* Gradient Backgrounds */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--accent-color), color-mix(in srgb, var(--accent-color), black 15%)) !important;
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, var(--success-color), #16a34a) !important;
+}
+
+.bg-gradient-warning {
+  background: linear-gradient(135deg, var(--warning-color), #d97706) !important;
+}
+
+.bg-gradient-danger {
+  background: linear-gradient(135deg, var(--danger-color), #dc2626) !important;
+}
+
+.bg-gradient-info {
+  background: linear-gradient(135deg, var(--info-color), #0891b2) !important;
+}
+
+/* Icon Colors */
+.icon-primary { color: var(--accent-color); }
+.icon-success { color: var(--success-color); }
+.icon-warning { color: var(--warning-color); }
+.icon-danger { color: var(--danger-color); }
+.icon-info { color: var(--info-color); }
+.icon-muted { color: var(--muted-color); }

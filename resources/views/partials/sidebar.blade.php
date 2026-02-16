@@ -11,7 +11,7 @@
     <nav class="sidebar-iconbar-nav">
       <ul class="iconbar-menu">
         <li>
-          <a href="#!" class="iconbar-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
+          <a href="{{ route('dashboard') }}" class="iconbar-item {{ request()->routeIs('dashboard*') ? 'active' : '' }}" data-panel="dashboard" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
             <i class="ph-duotone ph-house"></i>
           </a>
         </li>
@@ -47,15 +47,31 @@
 
   <!-- Nav Panel -->
   <div class="sidebar-panel">
-    <div class="sidebar-panel-section" data-section="catalogue">
+
+    <div class="sidebar-panel-section {{ request()->routeIs('dashboard*') ? 'active' : '' }}" data-section="dashboard">
       <div class="sidebar-panel-header">
-        <h6>Catálogo</h6>
+        <h6>Dashboard</h6>
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-            Serviços
+          <a class="panel-link {{ request()->routeIs('dashboard') && !request()->routeIs('dashboard.*') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+            Resumo Geral
+          </a>
+        </li>
+        <!--<li>
+          <a class="panel-link {{ request()->routeIs('dashboard.imoveis') ? 'active' : '' }}" href="{{ route('dashboard.imoveis') }}">
+            Imóveis
+          </a>
+        </li-->
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard.negocios') ? 'active' : '' }}" href="{{ route('dashboard.negocios') }}">
+            Negócios
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard.clientes') ? 'active' : '' }}" href="{{ route('dashboard.clientes') }}">
+            Clientes
           </a>
         </li>
       </ul>
@@ -94,6 +110,20 @@
         <li>
           <a class="panel-link {{ request()->routeIs('clientes.create') ? 'active' : '' }}" href="{{ route('clientes.create') }}">
             Novo cliente
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="sidebar-panel-section" data-section="catalogue">
+      <div class="sidebar-panel-header">
+        <h6>Catálogo</h6>
+        <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+      </div>
+      <ul class="panel-nav">
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+            Serviços
           </a>
         </li>
       </ul>

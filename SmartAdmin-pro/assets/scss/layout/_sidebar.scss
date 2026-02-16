@@ -1,0 +1,398 @@
+/*--------------------------------------------------------------
+# Sidebar - Two Panel Layout
+# Left: Icon bar (narrow) | Right: Nav panel (text links)
+--------------------------------------------------------------*/
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  z-index: 1001;
+  transition: transform var(--transition-base);
+}
+
+/*--------------------------------------------------------------
+# Icon Bar (Left narrow panel)
+--------------------------------------------------------------*/
+
+.sidebar-iconbar {
+  width: var(--sidebar-icon-width);
+  background: var(--sidebar-icon-bg);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+/* Logo */
+.sidebar-iconbar-logo {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.sidebar-iconbar-logo a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-iconbar-logo img {
+  max-width: 46px;
+  max-height: 34px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Icon Navigation */
+.sidebar-iconbar-nav {
+  flex: 1;
+  padding: var(--spacing-sm) 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-iconbar-nav::-webkit-scrollbar {
+  width: 0;
+}
+
+.iconbar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Icon Bar Button */
+.iconbar-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  border: none;
+  color: var(--sidebar-muted-color);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  text-decoration: none;
+}
+
+.iconbar-item i {
+  font-size: 1.375rem;
+}
+
+.iconbar-item:hover {
+  background-color: var(--sidebar-hover-bg);
+  color: var(--sidebar-color);
+}
+
+.iconbar-item.active {
+  background-color: var(--sidebar-icon-active-bg);
+  color: var(--sidebar-active-color);
+}
+
+/* Icon Bar Bottom */
+.sidebar-iconbar-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--spacing-sm) 0;
+  border-top: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+}
+
+.iconbar-bottom-item {
+  width: 40px;
+  height: 40px;
+}
+
+.iconbar-bottom-item i {
+  font-size: 1.25rem;
+}
+
+.iconbar-bottom-avatar {
+  display: flex;
+  text-decoration: none;
+}
+
+.iconbar-bottom-avatar img {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 2px solid var(--border-color);
+  transition: border-color var(--transition-fast);
+}
+
+.iconbar-bottom-avatar:hover img {
+  border-color: var(--accent-color);
+}
+
+.iconbar-logout:hover {
+  background-color: var(--danger-color-light);
+  color: var(--danger-color);
+}
+
+/*--------------------------------------------------------------
+# Nav Panel (Right text panel)
+--------------------------------------------------------------*/
+
+.sidebar-panel {
+  width: var(--sidebar-panel-width);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width var(--transition-base), opacity var(--transition-fast);
+}
+
+.sidebar-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-panel::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.sidebar-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Panel Sections - only active one is visible */
+.sidebar-panel-section {
+  display: none;
+  padding: 0 0 var(--spacing-lg);
+}
+
+.sidebar-panel-section.active {
+  display: block;
+}
+
+/* Panel Header */
+.sidebar-panel-header {
+  position: sticky;
+  top: 0;
+  background: var(--sidebar-bg);
+  padding: 0 var(--spacing-lg);
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--sidebar-border);
+  z-index: 1;
+}
+
+/* Panel close button - only visible under 1280px */
+.sidebar-panel-close {
+  display: none;
+  font-size: 0.65rem;
+  opacity: 0.5;
+  transition: opacity var(--transition-fast);
+}
+
+.sidebar-panel-close:hover {
+  opacity: 1;
+}
+
+.sidebar-panel-close:focus,
+.sidebar-panel-close:focus-visible,
+.sidebar-panel-close.btn-close:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+@media (max-width: 1279px) {
+  .sidebar-panel-close {
+    display: flex;
+  }
+}
+
+.sidebar-panel-header h6 {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--heading-color);
+}
+
+/* Panel Navigation */
+.panel-nav {
+  list-style: none;
+  padding: var(--spacing-sm) var(--spacing-sm);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.panel-link {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--sidebar-color);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.panel-link:hover {
+  color: var(--accent-color);
+}
+
+.panel-link.active {
+  background-color: var(--sidebar-active-bg);
+  color: var(--sidebar-active-color);
+  font-weight: 500;
+}
+
+/*--------------------------------------------------------------
+# Panel Nav Groups (Accordion / 3rd level)
+--------------------------------------------------------------*/
+
+.panel-nav-group {
+  position: relative;
+}
+
+.panel-group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 500;
+}
+
+.panel-arrow {
+  font-size: 0.625rem;
+  transition: transform var(--transition-fast);
+  opacity: 0.6;
+}
+
+.panel-group-toggle[aria-expanded="true"] > .panel-arrow,
+.panel-nav-group.open > .panel-group-toggle > .panel-arrow {
+  transform: rotate(180deg);
+}
+
+/* Sub-navigation (collapsed by default) */
+.panel-subnav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-base);
+}
+
+.panel-nav-group.open > .panel-subnav,
+.panel-subnav.show {
+  max-height: none;
+}
+
+.panel-subnav .panel-link {
+  padding-left: 24px;
+  font-size: 0.8125rem;
+  color: var(--sidebar-muted-color);
+}
+
+.panel-subnav .panel-link:hover {
+  color: var(--accent-color);
+}
+
+.panel-subnav .panel-link.active {
+  color: var(--sidebar-active-color);
+  background-color: var(--sidebar-active-bg);
+}
+
+/*--------------------------------------------------------------
+# Panel Collapsed State
+# 768px - 1279px: icon bar visible, panel hidden
+# On toggle: panel slides in/out
+--------------------------------------------------------------*/
+
+/* Default: panel open on >= 1280px */
+@media (min-width: 1280px) {
+  .sidebar-panel-collapsed .sidebar-panel {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+}
+
+/* 768px - 1279px: icon bar visible, panel hidden by default */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .sidebar-panel {
+    width: 0;
+    opacity: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-panel-open .sidebar-panel {
+    width: var(--sidebar-panel-width);
+    opacity: 1;
+    overflow-y: auto;
+  }
+}
+
+/*--------------------------------------------------------------
+# Mobile: Everything hidden below 768px
+--------------------------------------------------------------*/
+
+@media (max-width: 767px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-open .sidebar {
+    transform: translateX(0);
+  }
+}
+
+/* Between 768px and 1279px, icon bar is always visible */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .sidebar {
+    transform: none;
+  }
+}
+
+/*--------------------------------------------------------------
+# Sidebar Overlay (Mobile)
+--------------------------------------------------------------*/
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-base), visibility var(--transition-base);
+}
+
+.sidebar-open .sidebar-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+@media (min-width: 768px) {
+  .sidebar-overlay {
+    display: none;
+  }
+}
