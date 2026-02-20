@@ -1,7 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', 'Agentes | Imobiliária')
-@section('page-heading-title', 'Agentes')
-@section('page-heading-sub-title', 'Real Estate')
+@section('title', 'Equipa | Beauty CRM')
 @section('content')
 
 @if (session('success'))
@@ -24,7 +22,7 @@
         <div class="users-stat-icon primary"><i class="ph-duotone ph-users-three"></i></div>
         <div class="users-stat-body">
             <div class="users-stat-value">{{ $totalAgentes }}</div>
-            <div class="users-stat-label">Total Agentes</div>
+            <div class="users-stat-label">Total Membros</div>
         </div>
     </div>
     <div class="users-stat-card">
@@ -54,18 +52,18 @@
 <div class="card">
     <div class="users-toolbar">
         <div class="users-toolbar-left">
-            <form action="{{ route('agentes.index') }}" method="GET" class="d-flex align-items-center gap-2 flex-wrap">
+            <form action="{{ route('equipa.index') }}" method="GET" class="d-flex align-items-center gap-2 flex-wrap">
                 <div class="users-search">
                     <i class="ph ph-magnifying-glass"></i>
-                    <input type="text" name="search" placeholder="Pesquisar agentes..." value="{{ request('search') }}">
+                    <input type="text" name="search" placeholder="Pesquisar membros..." value="{{ request('search') }}">
                 </div>
                 <button type="submit" class="btn btn-outline-secondary btn-sm">
                     <i class="ph ph-magnifying-glass me-1"></i> Pesquisar
                 </button>
             </form>
         </div>
-        <a href="{{ route('agentes.create') }}" class="btn btn-primary">
-            <i class="ph ph-plus me-1"></i> Adicionar Agente
+        <a href="{{ route('equipa.create') }}" class="btn btn-primary">
+            <i class="ph ph-plus me-1"></i> Adicionar Membro
         </a>
     </div>
 
@@ -73,7 +71,7 @@
         <table class="users-table">
             <thead>
                 <tr>
-                    <th>Agente</th>
+                    <th>Membro</th>
                     <th>Contacto</th>
                     <th>Especialização</th>
                     <th>Comissão</th>
@@ -100,7 +98,7 @@
                             <div class="users-cell-user">
                                 <img src="{{ $avatarSrc }}" alt="{{ $agent->name }}">
                                 <div>
-                                    <a href="{{ route('agentes.show', $agent) }}" class="users-cell-name">{{ $agent->name }}</a>
+                                    <a href="{{ route('equipa.show', $agent) }}" class="users-cell-name">{{ $agent->name }}</a>
                                     <div class="users-cell-email">{{ $agent->user->email ?? '—' }}</div>
                                 </div>
                             </div>
@@ -138,9 +136,9 @@
                         </td>
                         <td>
                             <div class="users-actions">
-                                <a href="{{ route('agentes.show', $agent) }}" class="users-action-btn" title="Ver"><i class="ph ph-eye"></i></a>
-                                <a href="{{ route('agentes.edit', $agent) }}" class="users-action-btn" title="Editar"><i class="ph ph-pencil-simple"></i></a>
-                                <form action="{{ route('agentes.destroy', $agent) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem a certeza que deseja remover este agente?');">
+                                <a href="{{ route('equipa.show', $agent) }}" class="users-action-btn" title="Ver"><i class="ph ph-eye"></i></a>
+                                <a href="{{ route('equipa.edit', $agent) }}" class="users-action-btn" title="Editar"><i class="ph ph-pencil-simple"></i></a>
+                                <form action="{{ route('equipa.destroy', $agent) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem a certeza que deseja remover este membro?');">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="users-action-btn danger" title="Eliminar"><i class="ph ph-trash"></i></button>
@@ -152,9 +150,9 @@
                     <tr>
                         <td colspan="7" class="text-center py-5">
                             <i class="ph ph-user-circle display-4 text-muted"></i>
-                            <h6 class="mt-3">Nenhum agente encontrado</h6>
-                            <p class="text-muted mb-3">Comece por adicionar o primeiro agente.</p>
-                            <a href="{{ route('agentes.create') }}" class="btn btn-primary btn-sm"><i class="ph ph-plus me-1"></i> Adicionar Agente</a>
+                            <h6 class="mt-3">Nenhum membro encontrado</h6>
+                            <p class="text-muted mb-3">Comece por adicionar o primeiro membro.</p>
+                            <a href="{{ route('equipa.create') }}" class="btn btn-primary btn-sm"><i class="ph ph-plus me-1"></i> Adicionar Membro</a>
                         </td>
                     </tr>
                 @endforelse
@@ -166,7 +164,7 @@
     <!-- Pagination (based on users-pagination) -->
     <div class="users-pagination">
         <div class="users-pagination-info">
-            A mostrar <strong>{{ $agents->firstItem() ?? 0 }}-{{ $agents->lastItem() ?? 0 }}</strong> de <strong>{{ $agents->total() }}</strong> agentes
+            A mostrar <strong>{{ $agents->firstItem() ?? 0 }}-{{ $agents->lastItem() ?? 0 }}</strong> de <strong>{{ $agents->total() }}</strong> membros
         </div>
         <div class="users-pagination-nav">
             @if ($agents->onFirstPage())

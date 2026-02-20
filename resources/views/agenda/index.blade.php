@@ -1,7 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', 'Agenda | Imobiliária')
-@section('page-heading-title', 'Agenda')
-@section('page-heading-sub-title', 'Calendário')
+@section('title', 'Agenda | Beauty CRM')
 @section('css')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css">
     <style>

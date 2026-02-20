@@ -12,6 +12,8 @@ use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ServiceController;
 
 // Rotas de autenticação (públicas)
 Route::middleware('guest')->group(function () {
@@ -39,8 +41,8 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::resource('clientes', ClientController::class);
     Route::post('clientes/{cliente}/notes', [ClientController::class, 'storeNote'])->name('clientes.storeNote');
     
-    Route::resource('agentes', AgentController::class);
-    Route::post('agentes/{agente}/notes', [AgentController::class, 'storeNote'])->name('agentes.storeNote');
+    Route::resource('equipa', AgentController::class)->parameters(['equipa' => 'agente']);
+    Route::post('equipa/{agente}/notes', [AgentController::class, 'storeNote'])->name('equipa.storeNote');
     
     // Rotas de Leads
     Route::get('leads/kanban', [LeadController::class, 'kanban'])->name('leads.kanban');
@@ -91,6 +93,22 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::post('agenda/events/{calendarEvent}/update', [CalendarController::class, 'update'])->name('agenda.events.update.post');
     Route::post('agenda/events/{calendarEvent}/status', [CalendarController::class, 'updateStatus'])->name('agenda.events.status');
     Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
+    
+    // Serviços e Categorias
+    Route::get('services', [CategoryController::class, 'index'])->name('services.index');
+    Route::get('categories', [CategoryController::class, 'index'])->name('categories.index'); // lista em JSON para AJAX (badges)
+    Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
+    Route::get('categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
+    Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
+    Route::match(['post', 'put'], 'categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+    Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::get('categories/all/services', [ServiceController::class, 'allGrouped'])->name('services.allGrouped');
+    Route::get('categories/{category}/services', [ServiceController::class, 'index'])->name('services.byCategory')->where('category', '[0-9]+');
+    Route::get('services/{service}', [ServiceController::class, 'show'])->name('services.show');
+    Route::post('services', [ServiceController::class, 'store'])->name('services.store');
+    Route::match(['post', 'put'], 'services/{service}', [ServiceController::class, 'update'])->name('services.update');
+    Route::delete('services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+    Route::post('categories/{category}/services/reorder', [ServiceController::class, 'reorder'])->name('services.reorder');
     
     // Rotas do template (protegidas)
     Route::get('{page}', [DashboardController::class, 'page'])->where('page', '[A-Za-z0-9\-]+');

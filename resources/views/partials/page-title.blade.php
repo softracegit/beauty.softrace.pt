@@ -17,7 +17,7 @@
         ];
         
         if (in_array($currentRoute, ['leads.show', 'leads.edit'])) {
-            $lead = isset($lead) ? $lead : (isset($agente) ? null : null);
+            $lead = isset($lead) ? $lead : null;
             if (isset($lead) && $lead) {
                 $breadcrumbs[] = [
                     'label' => $lead->name,
@@ -43,14 +43,14 @@
                 ];
             }
         }
-    } elseif (str_contains($currentRoute, 'agentes')) {
+    } elseif (str_contains($currentRoute, 'equipa')) {
         $breadcrumbs[] = [
-            'label' => 'Agentes',
-            'url' => route('agentes.index'),
-            'active' => in_array($currentRoute, ['agentes.index', 'agentes.create'])
+            'label' => 'Equipa',
+            'url' => route('equipa.index'),
+            'active' => in_array($currentRoute, ['equipa.index', 'equipa.create'])
         ];
         
-        if (in_array($currentRoute, ['agentes.show', 'agentes.edit'])) {
+        if (in_array($currentRoute, ['equipa.show', 'equipa.edit'])) {
             $agente = isset($agente) ? $agente : null;
             if ($agente) {
                 $breadcrumbs[] = [
@@ -112,32 +112,12 @@
             }
         }
     } else {
-        $pageTitle = view()->yieldContent('page-heading-title');
         $breadcrumbs[] = [
-            'label' => $pageTitle ?: 'Dashboard',
+            'label' => 'Dashboard',
             'url' => null,
             'active' => true
         ];
     }
 @endphp
 
-@if(!request()->routeIs('agenda.*'))
-<div class="page-header">
-  <div>
-    <h1 class="page-title">@yield('page-heading-title')</h1>
-    <nav aria-label="breadcrumb">
-      <ol class="breadcrumb">
-        @foreach($breadcrumbs as $index => $breadcrumb)
-          @if($index === 0)
-            <li class="breadcrumb-item"><a href="{{ $breadcrumb['url'] }}">Home</a></li>
-          @elseif(isset($breadcrumb['active']) && $breadcrumb['active'])
-            <li class="breadcrumb-item active" aria-current="page">{{ $breadcrumb['label'] }}</li>
-          @else
-            <li class="breadcrumb-item"><a href="{{ $breadcrumb['url'] }}">{{ $breadcrumb['label'] }}</a></li>
-          @endif
-        @endforeach
-      </ol>
-    </nav>
-  </div>
-</div>
-@endif
+{{-- Page header removido --}}

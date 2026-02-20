@@ -1,7 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', 'Dashboard - Negócios | Imobiliária')
-@section('page-heading-title', 'Dashboard - Negócios')
-@section('page-heading-sub-title', 'Análise de Negócios')
+@section('title', 'Dashboard - Negócios | Beauty CRM')
 @section('content')
 
 @if (session('success'))

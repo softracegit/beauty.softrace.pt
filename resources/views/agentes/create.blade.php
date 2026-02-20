@@ -1,17 +1,15 @@
 @extends('partials.layouts.main')
-@section('title', 'Novo Agente | Imobiliária')
-@section('page-heading-title', 'Novo Agente')
-@section('page-heading-sub-title', 'Real Estate')
+@section('title', 'Novo Membro | Beauty CRM')
 @section('content')
 
 <div class="row">
     <div class="col-12 col-xl-8">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title">Dados do Agente</h5>
+                <h5 class="card-title">Dados do Membro</h5>
             </div>
             <div class="card-body">
-                <form action="{{ route('agentes.store') }}" method="POST">
+                <form action="{{ route('equipa.store') }}" method="POST">
                     @csrf
                     <div class="row g-3">
                         <div class="col-12">
@@ -187,7 +185,7 @@
                         </div>
                         <div class="col-12">
                             <label for="notes" class="form-label">Notas</label>
-                            <textarea name="notes" id="notes" rows="3" class="form-control @error('notes') is-invalid @enderror" placeholder="Observações sobre o agente...">{{ old('notes') }}</textarea>
+                            <textarea name="notes" id="notes" rows="3" class="form-control @error('notes') is-invalid @enderror" placeholder="Observações sobre o membro...">{{ old('notes') }}</textarea>
                             @error('notes')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -195,7 +193,7 @@
                     </div>
 
                     <div class="mt-4 d-flex gap-2 justify-content-end">
-                        <a href="{{ route('agentes.index') }}" class="btn btn-light">Cancelar</a>
+                        <a href="{{ route('equipa.index') }}" class="btn btn-light">Cancelar</a>
                         <button type="submit" class="btn btn-primary"><i class="ph ph-floppy-disk me-1"></i> Guardar</button>
                     </div>
                 </form>

@@ -31,9 +31,9 @@
           </a>
         </li>
         <li>
-          <button class="iconbar-item" data-panel="catalogue" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
+          <a href="{{ route('services.index') }}" class="iconbar-item {{ request()->routeIs('services.*') || request()->routeIs('categories.*') ? 'active' : '' }}" data-panel="catalogue" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
             <i class="ph ph-book-open"></i>
-          </button>
+          </a>
         </li>
         <li>
           <button class="iconbar-item" data-panel="marketing" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Marketing" aria-label="Marketing">
@@ -41,7 +41,7 @@
           </button>
         </li>
         <li>
-          <a href="{{ route('agentes.index') }}" class="iconbar-item {{ request()->routeIs('agentes.*') ? 'active' : '' }}" data-panel="agentes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
+          <a href="{{ route('equipa.index') }}" class="iconbar-item {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-panel="agentes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
             <i class="ph ph-users"></i>
           </a>
         </li>
@@ -138,6 +138,40 @@
       </ul>
     </div>
 
+    <div class="sidebar-panel-section {{ request()->routeIs('services.*') || request()->routeIs('categories.*') ? 'active' : '' }}" data-section="catalogue">
+      <div class="sidebar-panel-header">
+        <h6>Catálogo</h6>
+        <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+      </div>
+      <ul class="panel-nav">
+        <li>
+          <a class="panel-link {{ request()->routeIs('services.index') ? 'active' : '' }}" href="{{ route('services.index') }}">
+            Serviços
+          </a>
+        </li>
+        <li>
+          <a class="panel-link" href="#!">
+            Pacotes
+          </a>
+        </li>
+        <li>
+          <a class="panel-link" href="#!">
+            Extras / Add-ons
+          </a>
+        </li>
+        <li>
+          <a class="panel-link" href="#!">
+            Recursos
+          </a>
+        </li>
+        <li>
+          <a class="panel-link" href="#!">
+            Profissionais
+          </a>
+        </li>
+      </ul>
+    </div>
+
     <div class="sidebar-panel-section {{ request()->routeIs('clientes.*') ? 'active' : '' }}" data-section="clientes">
       <div class="sidebar-panel-header">
         <h6>Clientes</h6>
@@ -146,26 +180,12 @@
       <ul class="panel-nav">
         <li>
           <a class="panel-link {{ request()->routeIs('clientes.index') ? 'active' : '' }}" href="{{ route('clientes.index') }}">
-            Ver clientes
+            Lista de clientes
           </a>
         </li>
         <li>
           <a class="panel-link {{ request()->routeIs('clientes.create') ? 'active' : '' }}" href="{{ route('clientes.create') }}">
             Novo cliente
-          </a>
-        </li>
-      </ul>
-    </div>
-
-    <div class="sidebar-panel-section" data-section="catalogue">
-      <div class="sidebar-panel-header">
-        <h6>Catálogo</h6>
-        <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
-      </div>
-      <ul class="panel-nav">
-        <li>
-          <a class="panel-link" href="#!">
-            Serviços
           </a>
         </li>
       </ul>
@@ -190,25 +210,30 @@
       </ul>
     </div>
 
-    <div class="sidebar-panel-section {{ request()->routeIs('agentes.*') ? 'active' : '' }}" data-section="agentes">
+    <div class="sidebar-panel-section {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-section="agentes">
       <div class="sidebar-panel-header">
         <h6>Equipa</h6>
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link {{ request()->routeIs('agentes.index') ? 'active' : '' }}" href="{{ route('agentes.index') }}">
-            Ver equipa
+          <a class="panel-link {{ request()->routeIs('equipa.index') ? 'active' : '' }}" href="{{ route('equipa.index') }}">
+            Membros
           </a>
         </li>
         <li>
-          <a class="panel-link {{ request()->routeIs('agentes.create') ? 'active' : '' }}" href="{{ route('agentes.create') }}">
+          <a class="panel-link {{ request()->routeIs('equipa.create') ? 'active' : '' }}" href="{{ route('equipa.create') }}">
             Novo membro
           </a>
         </li>
         <li>
           <a class="panel-link" href="#!">
-            Horários
+            Folhas de ponto
+          </a>
+        </li>
+        <li>
+          <a class="panel-link" href="#!">
+            Pagamentos
           </a>
         </li>
       </ul>

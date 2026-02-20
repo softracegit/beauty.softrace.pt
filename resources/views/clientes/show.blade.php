@@ -1,7 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', $cliente->name . ' | Imobiliária')
-@section('page-heading-title', 'Cliente')
-@section('page-heading-sub-title', 'Real Estate')
+@section('title', $cliente->name . ' | Beauty CRM')
 @section('content')
 
 @php

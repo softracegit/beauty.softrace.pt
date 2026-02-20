@@ -80,8 +80,8 @@ class AgentController extends Controller
 
         Agent::create($validated);
 
-        return redirect()->route('agentes.index')
-            ->with('success', 'Agente criado com sucesso.');
+        return redirect()->route('equipa.index')
+            ->with('success', 'Membro criado com sucesso.');
     }
 
     /**
@@ -193,8 +193,8 @@ class AgentController extends Controller
             $agente->user->update($userData);
         }
 
-        return redirect()->route('agentes.show', $agente)
-            ->with('success', 'Agente atualizado com sucesso.');
+        return redirect()->route('equipa.show', $agente)
+            ->with('success', 'Membro atualizado com sucesso.');
     }
 
     /**
@@ -207,7 +207,7 @@ class AgentController extends Controller
         // O user será removido automaticamente devido ao cascadeOnDelete
         $agente->delete();
 
-        return redirect()->route('agentes.index')
-            ->with('success', 'Agente removido com sucesso.');
+        return redirect()->route('equipa.index')
+            ->with('success', 'Membro removido com sucesso.');
     }
 }

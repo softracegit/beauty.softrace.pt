@@ -1,7 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', 'Editar Cliente | Imobiliária')
-@section('page-heading-title', 'Editar Cliente')
-@section('page-heading-sub-title', 'Real Estate')
+@section('title', 'Editar Cliente | Beauty CRM')
 @section('content')
 
 <div class="row">

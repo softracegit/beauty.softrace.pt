@@ -1,7 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', 'Oportunidades | Imobiliária')
-@section('page-heading-title', 'Oportunidades')
-@section('page-heading-sub-title', 'Real Estate')
+@section('title', 'Oportunidades | Beauty CRM')
 @section('content')
 
 @if (session('success'))

@@ -1,7 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', 'Oportunidades - Kanban | Imobiliária')
-@section('page-heading-title', 'Oportunidades - Kanban')
-@section('page-heading-sub-title', 'Real Estate')
+@section('title', 'Oportunidades - Kanban | Beauty CRM')
 @section('css')
     <!-- Dragula Css -->
     <link rel="stylesheet" href="{{ asset('template/vendor/dragula/dragula.min.css') }}">

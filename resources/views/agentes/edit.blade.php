@@ -1,10 +1,8 @@
 @extends('partials.layouts.main')
-@section('title', 'Editar Agente | Imobiliária')
-@section('page-heading-title', 'Editar Agente')
-@section('page-heading-sub-title', 'Real Estate')
+@section('title', 'Editar Membro | Beauty CRM')
 @section('content')
 
-<form action="{{ route('agentes.update', $agente) }}" method="POST" enctype="multipart/form-data">
+<form action="{{ route('equipa.update', $agente) }}" method="POST" enctype="multipart/form-data">
     @csrf
     @method('PUT')
     
@@ -58,9 +56,9 @@
                     <i class="ph ph-warning me-1"></i> Zona de Perigo
                 </div>
                 <div class="uedit-danger-body">
-                    <p class="text-muted small mb-3">Uma vez eliminado um agente, não há volta atrás. Por favor, tenha a certeza.</p>
+                    <p class="text-muted small mb-3">Uma vez eliminado um membro, não há volta atrás. Por favor, tenha a certeza.</p>
                     <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteAgentModal">
-                        <i class="ph ph-trash me-1"></i> Eliminar Agente
+                        <i class="ph ph-trash me-1"></i> Eliminar Membro
                     </button>
                 </div>
             </div>
@@ -242,7 +240,7 @@
                             </div>
                             <div class="col-12 mb-3">
                                 <label class="form-label">Notas</label>
-                                <textarea name="notes" rows="3" class="form-control @error('notes') is-invalid @enderror" placeholder="Observações sobre o agente...">{{ old('notes', $agente->notes) }}</textarea>
+                                <textarea name="notes" rows="3" class="form-control @error('notes') is-invalid @enderror" placeholder="Observações sobre o membro...">{{ old('notes', $agente->notes) }}</textarea>
                                 @error('notes')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -280,7 +278,7 @@
 
             <!-- Form Actions -->
             <div class="uedit-form-actions">
-                <a href="{{ route('agentes.index') }}" class="btn btn-secondary">Cancelar</a>
+                <a href="{{ route('equipa.index') }}" class="btn btn-secondary">Cancelar</a>
                 <button type="submit" class="btn btn-primary">
                     <i class="ph ph-check me-1"></i> Guardar Alterações
                 </button>
@@ -294,19 +292,19 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header border-0">
-                <h5 class="modal-title text-danger"><i class="ph ph-warning me-2"></i>Eliminar Agente</h5>
+                <h5 class="modal-title text-danger"><i class="ph ph-warning me-2"></i>Eliminar Membro</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>Tem a certeza que deseja eliminar <strong>{{ $agente->name }}</strong>?</p>
-                <p class="text-muted mb-0">Esta ação não pode ser desfeita. Todos os dados do agente serão permanentemente removidos do sistema.</p>
+                <p class="text-muted mb-0">Esta ação não pode ser desfeita. Todos os dados do membro serão permanentemente removidos do sistema.</p>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form action="{{ route('agentes.destroy', $agente) }}" method="POST" class="d-inline">
+                <form action="{{ route('equipa.destroy', $agente) }}" method="POST" class="d-inline">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Eliminar Agente</button>
+                    <button type="submit" class="btn btn-danger">Eliminar Membro</button>
                 </form>
             </div>
         </div>
