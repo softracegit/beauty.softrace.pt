@@ -15,10 +15,13 @@ class CalendarController extends Controller
     public function index()
     {
         $eventTypes = CalendarEvent::eventTypes();
-        // Mostrar apenas users que têm agent associado (agentes ativos)
+        // Mostrar apenas users com agent ativo; excluir Administradores da agenda (select de membros)
         $users = User::whereHas('agent', function ($query) {
             $query->where('status', Agent::STATUS_ACTIVE);
-        })->orderBy('name')->get();
+        })
+            ->whereNotIn('role', [User::ROLE_ADMIN])
+            ->orderBy('name')
+            ->get();
 
         return view('agenda.index', compact('eventTypes', 'users'));
     }
@@ -28,8 +31,9 @@ class CalendarController extends Controller
      */
     public function resources(Request $request)
     {
-        // Mostrar apenas agents ativos como recursos
+        // Mostrar apenas agents ativos como recursos; excluir Administradores da vista Por Consultor
         $agents = Agent::where('status', Agent::STATUS_ACTIVE)
+            ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
             ->with('user')
             ->orderBy('name')
             ->get();
@@ -61,7 +65,7 @@ class CalendarController extends Controller
         $end = $request->get('end');
         $forResources = $request->boolean('for_resources');
 
-        $query = CalendarEvent::query()->with(['user', 'eventable']);
+        $query = CalendarEvent::query()->with(['user', 'service', 'eventable']);
 
         // Verificar se o utilizador pode ver todos os eventos (admin ou diretor)
         $canViewAll = auth()->user()->canManageAgents();
@@ -73,8 +77,9 @@ class CalendarController extends Controller
                 $query->where('user_id', auth()->id());
             }
         } else {
-            // Na vista de consultor, só mostrar eventos com consultor atribuído (user com agent ativo)
+            // Na vista de consultor, só mostrar eventos com consultor atribuído (excluir Administradores)
             $activeAgentUserIds = Agent::where('status', Agent::STATUS_ACTIVE)
+                ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
                 ->pluck('user_id')
                 ->filter()
                 ->toArray();
@@ -90,9 +95,10 @@ class CalendarController extends Controller
 
         $events = $query->get();
 
-        // Na vista de recursos, apenas users com agents ativos são válidos
+        // Na vista de recursos, apenas users com agents ativos são válidos (excluir Administradores)
         $validUserIds = $forResources 
             ? Agent::where('status', Agent::STATUS_ACTIVE)
+                ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
                 ->pluck('user_id')
                 ->filter()
                 ->map(fn ($id) => (string) $id)
@@ -119,6 +125,8 @@ class CalendarController extends Controller
                     'status_icon' => $event->status_icon,
                     'user_id' => $event->user_id,
                     'user_name' => $event->user?->name,
+                    'service_id' => $event->service_id,
+                    'service_name' => $event->service?->name,
                     'is_source_editable' => $event->isSourceEditable(),
                     'is_deletable' => $event->isDeletableFromCalendar(),
                     'is_time_editable' => $event->isTimeEditable(),
@@ -145,13 +153,42 @@ class CalendarController extends Controller
     }
 
     /**
+     * Get services for a member (user with agent), grouped by category (for event type "Marcação").
+     */
+    public function memberServices(User $user)
+    {
+        $agent = $user->agent;
+        if (!$agent) {
+            return response()->json(['categories' => []]);
+        }
+
+        $services = $agent->services()->with('category')->orderBy('name')->get();
+        $byCategory = $services->groupBy(function ($s) {
+            return $s->category_id ?: 0;
+        });
+
+        $categoryNames = \App\Models\Category::whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('name', 'id');
+
+        $categories = [];
+        foreach ($byCategory as $categoryId => $items) {
+            $categories[] = [
+                'id' => $categoryId ?: null,
+                'name' => $categoryId ? ($categoryNames[$categoryId] ?? 'Outros') : 'Sem categoria',
+                'services' => $items->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values()->all(),
+            ];
+        }
+
+        return response()->json(['categories' => $categories]);
+    }
+
+    /**
      * Show a single event (for modal/details).
      * In resource view the user may view events of other consultants (permission check can be added).
      */
     public function show(CalendarEvent $calendarEvent)
     {
         try {
-            $calendarEvent->load(['user', 'eventable']);
+            $calendarEvent->load(['user', 'service', 'eventable']);
             
             $userAvatarUrl = null;
             try {
@@ -184,6 +221,8 @@ class CalendarController extends Controller
                 'user_id' => $calendarEvent->user_id,
                 'user_name' => $calendarEvent->user?->name,
                 'user_avatar_url' => $userAvatarUrl,
+                'service_id' => $calendarEvent->service_id,
+                'service_name' => $calendarEvent->service?->name,
                 'is_source_editable' => $calendarEvent->isSourceEditable(),
                 'is_deletable' => $calendarEvent->isDeletableFromCalendar(),
                 'is_time_editable' => $calendarEvent->isTimeEditable(),
@@ -241,16 +280,31 @@ class CalendarController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $rules = [
             'title' => ['required', 'string', 'max:255'],
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after_or_equal:start_at'],
             'description' => ['nullable', 'string'],
-            'event_type' => ['required', 'in:manual,outro'],
+            'event_type' => ['required', 'in:manual,outro,marcacao,tempo_pessoal'],
             'user_id' => ['nullable', 'exists:users,id'],
-        ]);
+            'service_id' => ['nullable', 'exists:services,id'],
+        ];
+        $validated = $request->validate($rules);
+
+        if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
+            $request->validate(['service_id' => ['required', 'exists:services,id']]);
+            $validated['service_id'] = $request->input('service_id');
+        } else {
+            $validated['service_id'] = null;
+        }
 
         $validated['user_id'] = $validated['user_id'] ?? auth()->id();
+        if ($validated['user_id'] && User::find($validated['user_id'])?->role === User::ROLE_ADMIN) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não é possível atribuir o evento a um Administrador.',
+            ], 422);
+        }
         $validated['status'] = $validated['status'] ?? CalendarEvent::STATUS_AGENDADO;
 
         $event = CalendarEvent::create($validated);
@@ -277,10 +331,18 @@ class CalendarController extends Controller
         if ($calendarEvent->isSourceEditable()) {
             $rules['title'] = ['sometimes', 'string', 'max:255'];
             $rules['description'] = ['nullable', 'string'];
-            $rules['event_type'] = ['sometimes', 'in:manual,outro'];
+            $rules['event_type'] = ['sometimes', 'in:manual,outro,marcacao,tempo_pessoal'];
+            $rules['service_id'] = ['nullable', 'exists:services,id'];
         }
 
         $validated = $request->validate($rules);
+
+        if (isset($validated['event_type']) && $validated['event_type'] === CalendarEvent::TYPE_MARCACAO && $calendarEvent->isSourceEditable()) {
+            $request->validate(['service_id' => ['required', 'exists:services,id']]);
+            $validated['service_id'] = $request->input('service_id');
+        } elseif (isset($validated['event_type']) && $validated['event_type'] !== CalendarEvent::TYPE_MARCACAO) {
+            $validated['service_id'] = null;
+        }
 
         if ($calendarEvent->isTimeEditable() && (isset($validated['start_at']) || isset($validated['end_at']))) {
             $updates = [];
@@ -307,12 +369,19 @@ class CalendarController extends Controller
         }
 
         if (array_key_exists('user_id', $validated)) {
-            $calendarEvent->user_id = $validated['user_id'] ?: null;
+            $newUserId = $validated['user_id'] ?: null;
+            if ($newUserId && User::find($newUserId)?->role === User::ROLE_ADMIN) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não é possível atribuir o evento a um Administrador.',
+                ], 422);
+            }
+            $calendarEvent->user_id = $newUserId;
             $calendarEvent->save();
         }
 
         if ($calendarEvent->isSourceEditable()) {
-            $calendarEvent->update(array_filter($validated, fn ($k) => in_array($k, ['title', 'description', 'event_type'], true), ARRAY_FILTER_USE_KEY));
+            $calendarEvent->update(array_filter($validated, fn ($k) => in_array($k, ['title', 'description', 'event_type', 'service_id'], true), ARRAY_FILTER_USE_KEY));
         }
 
         return response()->json([
@@ -395,6 +464,8 @@ class CalendarController extends Controller
                 'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
                 'user_id' => $event->user_id,
                 'user_name' => $event->user?->name,
+                'service_id' => $event->service_id,
+                'service_name' => $event->service?->name,
                 'is_source_editable' => $event->isSourceEditable(),
                 'is_deletable' => $event->isDeletableFromCalendar(),
                 'is_time_editable' => $event->isTimeEditable(),

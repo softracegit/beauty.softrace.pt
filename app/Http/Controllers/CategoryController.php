@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Agent;
+use App\Models\User;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use Illuminate\Http\Request;
@@ -27,7 +28,10 @@ class CategoryController extends Controller
             ->with(['services' => fn ($q) => $q->with('agents')->orderBy('sort_order')])
             ->withCount('services')
             ->get();
-        $agents = Agent::orderBy('name')->get();
+        // Apenas Prestador(a) de Serviços e Técnico(a) nas checkboxes de membros associados
+        $agents = Agent::whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
+            ->orderBy('name')
+            ->get();
 
         return view('services.index', [
             'categories' => $categories,

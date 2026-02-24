@@ -47,17 +47,21 @@ class User extends Authenticatable
         ];
     }
 
-    // Roles
-    public const ROLE_CONSULTOR = 'consultor';
-    public const ROLE_DIRETOR = 'diretor';
+    // Roles (Tipo de Membro - focado em serviços: nails, barbeiros, pets, etc.)
     public const ROLE_ADMIN = 'admin';
+    public const ROLE_GERENTE = 'gerente';
+    public const ROLE_RECECAO = 'rececao';
+    public const ROLE_PRESTADOR = 'prestador';
+    public const ROLE_TECNICO = 'tecnico';
 
     public static function roles(): array
     {
         return [
-            self::ROLE_CONSULTOR => 'Consultor',
-            self::ROLE_DIRETOR => 'Diretor',
             self::ROLE_ADMIN => 'Administrador',
+            self::ROLE_GERENTE => 'Gerente',
+            self::ROLE_RECECAO => 'Receção',
+            self::ROLE_PRESTADOR => 'Prestador(a) de Serviços',
+            self::ROLE_TECNICO => 'Técnico(a)',
         ];
     }
 
@@ -86,18 +90,26 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is diretor
+     * Check if user is gerente (manager)
      */
-    public function isDiretor(): bool
+    public function isGerente(): bool
     {
-        return $this->hasRole(self::ROLE_DIRETOR);
+        return $this->hasRole(self::ROLE_GERENTE);
     }
 
     /**
-     * Check if user can manage agents
+     * Check if user is diretor (legacy alias: gerente)
+     */
+    public function isDiretor(): bool
+    {
+        return $this->isGerente();
+    }
+
+    /**
+     * Check if user can manage agents/members
      */
     public function canManageAgents(): bool
     {
-        return $this->isAdmin() || $this->isDiretor();
+        return $this->isAdmin() || $this->isGerente();
     }
 }

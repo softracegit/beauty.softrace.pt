@@ -14,8 +14,8 @@ class Agent extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'name',
-        'email',
         'phone',
         'nif',
         'birth_date',
@@ -32,7 +32,6 @@ class Agent extends Model
         'commission_rate',
         'status',
         'avatar',
-        'notes',
     ];
 
     protected $casts = [

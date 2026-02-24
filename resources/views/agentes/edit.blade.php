@@ -66,11 +66,11 @@
 
         <!-- Right Main Area -->
         <div>
-            <!-- Dados de Acesso ao Sistema -->
+            <!-- Dados gerais -->
             <div class="card">
                 <div class="card-body">
                     <div class="uedit-section">
-                        <div class="uedit-section-title">Dados de Acesso ao Sistema</div>
+                        <div class="uedit-section-title">Dados gerais</div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Nome completo <span class="text-danger">*</span></label>
@@ -87,13 +87,27 @@
                                 @enderror
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Tipo de Utilizador <span class="text-danger">*</span></label>
+                                <label class="form-label">Tipo de Membro <span class="text-danger">*</span></label>
                                 <select name="role" class="form-select @error('role') is-invalid @enderror" required>
                                     @foreach(\App\Models\User::roles() as $value => $label)
-                                        <option value="{{ $value }}" {{ old('role', $agente->user->role ?? 'consultor') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                                        <option value="{{ $value }}" {{ old('role', $agente->user->role ?? 'prestador') == $value ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
                                 @error('role')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Especialização</label>
+                                <input type="text" name="specialization" class="form-control @error('specialization') is-invalid @enderror" value="{{ old('specialization', $agente->specialization) }}" placeholder="Ex: Manicure, Barbeiro, Tratamento Pets">
+                                @error('specialization')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Taxa de Comissão (%)</label>
+                                <input type="number" name="commission_rate" class="form-control @error('commission_rate') is-invalid @enderror" value="{{ old('commission_rate', $agente->commission_rate) }}" placeholder="Ex: 5.00" step="0.01" min="0" max="100">
+                                @error('commission_rate')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -210,38 +224,6 @@
                                 <label class="form-label">Localidade</label>
                                 <input type="text" name="locality" class="form-control @error('locality') is-invalid @enderror" value="{{ old('locality', $agente->locality) }}" placeholder="Ex: Aveiro">
                                 @error('locality')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dados Profissionais -->
-            <div class="card">
-                <div class="card-body">
-                    <div class="uedit-section">
-                        <div class="uedit-section-title">Dados Profissionais</div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Especialização</label>
-                                <input type="text" name="specialization" class="form-control @error('specialization') is-invalid @enderror" value="{{ old('specialization', $agente->specialization) }}" placeholder="Ex: Apartamentos, Moradias">
-                                @error('specialization')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Taxa de Comissão (%)</label>
-                                <input type="number" name="commission_rate" class="form-control @error('commission_rate') is-invalid @enderror" value="{{ old('commission_rate', $agente->commission_rate) }}" placeholder="Ex: 5.00" step="0.01" min="0" max="100">
-                                @error('commission_rate')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="col-12 mb-3">
-                                <label class="form-label">Notas</label>
-                                <textarea name="notes" rows="3" class="form-control @error('notes') is-invalid @enderror" placeholder="Observações sobre o membro...">{{ old('notes', $agente->notes) }}</textarea>
-                                @error('notes')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>

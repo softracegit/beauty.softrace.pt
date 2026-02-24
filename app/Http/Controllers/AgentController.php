@@ -56,10 +56,12 @@ class AgentController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', Agent::class);
-        
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'role' => ['required', Rule::in(array_keys(User::roles()))],
             'phone' => ['nullable', 'string', 'max:50'],
             'nif' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date', 'before:today'],
@@ -75,10 +77,24 @@ class AgentController extends Controller
             'specialization' => ['nullable', 'string', 'max:255'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
-            'notes' => ['nullable', 'string'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ]);
 
-        Agent::create($validated);
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+        ]);
+
+        $agentData = collect($validated)->except(['email', 'password', 'password_confirmation', 'role', 'avatar'])->all();
+        $agentData['user_id'] = $user->id;
+
+        if ($request->hasFile('avatar')) {
+            $agentData['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        Agent::create($agentData);
 
         return redirect()->route('equipa.index')
             ->with('success', 'Membro criado com sucesso.');
@@ -159,7 +175,6 @@ class AgentController extends Controller
             'specialization' => ['nullable', 'string', 'max:255'],
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
-            'notes' => ['nullable', 'string'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ]);
 

@@ -156,15 +156,6 @@
                     </div>
                     @endif
 
-                    @if($agente->notes)
-                    <div class="uview-detail-group">
-                        <div class="uview-detail-title">Notas Gerais</div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-value">{{ $agente->notes }}</div>
-                        </div>
-                    </div>
-                    @endif
-
                     <div class="uview-detail-group">
                         <div class="uview-detail-title">Informação da Conta</div>
                         <div class="uview-detail-row">
@@ -173,7 +164,7 @@
                         </div>
                         @if($agente->user)
                         <div class="uview-detail-row">
-                            <div class="uview-detail-label">Tipo de Utilizador</div>
+                            <div class="uview-detail-label">Tipo de Membro</div>
                             <div class="uview-detail-value">{{ \App\Models\User::roles()[$agente->user->role] ?? $agente->user->role }}</div>
                         </div>
                         @endif
@@ -264,7 +255,7 @@
                     </div>
                     @if($agente->user)
                     <div class="uview-status-item">
-                        <span class="uview-status-label">Tipo de Utilizador</span>
+                        <span class="uview-status-label">Tipo de Membro</span>
                         <span class="uview-status-value">{{ \App\Models\User::roles()[$agente->user->role] ?? $agente->user->role }}</span>
                     </div>
                     @endif

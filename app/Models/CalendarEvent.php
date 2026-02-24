@@ -9,9 +9,11 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class CalendarEvent extends Model
 {
     public const TYPE_MANUAL = 'manual';
+    public const TYPE_OUTRO = 'outro';
+    public const TYPE_MARCACAO = 'marcacao';
+    public const TYPE_TEMPO_PESSOAL = 'tempo_pessoal';
     public const TYPE_VISITA = 'visita';
     public const TYPE_LEAD = 'lead';
-    public const TYPE_OUTRO = 'outro';
 
     public const STATUS_AGENDADO = 'agendado';
     public const STATUS_CONFIRMADO = 'confirmado';
@@ -26,6 +28,7 @@ class CalendarEvent extends Model
         'end_at',
         'description',
         'user_id',
+        'service_id',
         'event_type',
         'status',
         'eventable_type',
@@ -46,6 +49,8 @@ class CalendarEvent extends Model
     public static function eventTypes(): array
     {
         return [
+            self::TYPE_MARCACAO => 'Marcação',
+            self::TYPE_TEMPO_PESSOAL => 'Tempo pessoal',
             self::TYPE_MANUAL => 'Manual',
             self::TYPE_VISITA => 'Visita',
             self::TYPE_LEAD => 'Lead',
@@ -56,6 +61,8 @@ class CalendarEvent extends Model
     public static function typeClassMap(): array
     {
         return [
+            self::TYPE_MARCACAO => 'bg-primary',
+            self::TYPE_TEMPO_PESSOAL => 'bg-secondary',
             self::TYPE_MANUAL => 'bg-primary',
             self::TYPE_VISITA => 'bg-success',
             self::TYPE_LEAD => 'bg-info',
@@ -68,6 +75,11 @@ class CalendarEvent extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
+    }
+
     public function eventable(): MorphTo
     {
         return $this->morphTo();
@@ -75,7 +87,12 @@ class CalendarEvent extends Model
 
     public function isSourceEditable(): bool
     {
-        return $this->event_type === self::TYPE_MANUAL || $this->event_type === self::TYPE_OUTRO;
+        return in_array($this->event_type, [
+            self::TYPE_MANUAL,
+            self::TYPE_OUTRO,
+            self::TYPE_MARCACAO,
+            self::TYPE_TEMPO_PESSOAL,
+        ], true);
     }
 
     public function isDeletableFromCalendar(): bool

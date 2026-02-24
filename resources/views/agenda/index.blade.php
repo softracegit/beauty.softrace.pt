@@ -570,8 +570,29 @@
                     <div class="mb-3">
                         <label for="eventType" class="form-label">Tipo</label>
                         <select class="form-select" id="eventType" name="event_type">
-                            <option value="manual">Manual</option>
-                            <option value="outro">Outro</option>
+                            <option value="marcacao">Marcação</option>
+                            <option value="tempo_pessoal">Tempo pessoal</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventUser" class="form-label">Membro</label>
+                        <select class="form-select" id="eventUser" name="user_id">
+                            @if(auth()->user()->role === \App\Models\User::ROLE_ADMIN)
+                                <option value="">— Selecionar membro —</option>
+                            @else
+                                <option value="">Eu ({{ auth()->user()->name }})</option>
+                            @endif
+                            @foreach($users as $u)
+                                @if($u->id !== auth()->id() && $u->role !== \App\Models\User::ROLE_ADMIN)
+                                    <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3 d-none" id="eventServiceWrap">
+                        <label for="eventService" class="form-label">Serviço <span class="text-danger">*</span></label>
+                        <select class="form-select" id="eventService" name="service_id">
+                            <option value="">Selecione o membro primeiro</option>
                         </select>
                     </div>
                     <div class="row g-2 mb-3">
@@ -587,17 +608,6 @@
                     <div class="mb-3">
                         <label for="eventDescription" class="form-label">Descrição / Observações</label>
                         <textarea class="form-control" id="eventDescription" name="description" rows="3" placeholder="Descrição ou observações..."></textarea>
-                    </div>
-                    <div class="mb-0">
-                        <label for="eventUser" class="form-label">Responsável</label>
-                        <select class="form-select" id="eventUser" name="user_id">
-                            <option value="">Eu ({{ auth()->user()->name }})</option>
-                            @foreach($users as $u)
-                                @if($u->id !== auth()->id())
-                                    <option value="{{ $u->id }}">{{ $u->name }}</option>
-                                @endif
-                            @endforeach
-                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -652,7 +662,7 @@
                     </select>
                 </div>
                 
-                <!-- Responsável -->
+                <!-- Membro -->
                 <div class="mb-3">
                     <div class="d-flex align-items-center">
                         <i class="ph-duotone ph-user text-muted me-2"></i>
@@ -660,6 +670,14 @@
                             <img id="detailUserAvatarSimple" src="" alt="" class="rounded-circle me-2 d-none" style="width: 20px; height: 20px; object-fit: cover;">
                             <span class="small text-muted" id="detailUserSimple">—</span>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Serviço (apenas tipo Marcação) -->
+                <div id="detailServiceWrapSimple" class="mb-3 d-none">
+                    <div class="d-flex align-items-center">
+                        <i class="ph-duotone ph-scissors text-muted me-2"></i>
+                        <span class="small text-muted" id="detailServiceSimple">—</span>
                     </div>
                 </div>
                 
@@ -727,7 +745,7 @@
                             </select>
                         </div>
                         
-                        <!-- Responsável -->
+                        <!-- Membro -->
                         <div class="mb-3">
                             <div class="d-flex align-items-center">
                                 <i class="ph-duotone ph-user text-muted me-2"></i>
@@ -735,6 +753,14 @@
                                     <img id="detailUserAvatar" src="" alt="" class="rounded-circle me-2 d-none" style="width: 20px; height: 20px; object-fit: cover;">
                                     <span class="small text-muted" id="detailUser">—</span>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Serviço (apenas tipo Marcação) -->
+                        <div id="detailServiceWrap" class="mb-3 d-none">
+                            <div class="d-flex align-items-center">
+                                <i class="ph-duotone ph-scissors text-muted me-2"></i>
+                                <span class="small text-muted" id="detailService">—</span>
                             </div>
                         </div>
                         
@@ -820,6 +846,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const eventsUrl = '{{ route('agenda.events') }}';
     const resourcesUrl = '{{ route('agenda.resources') }}';
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
+    const currentUserIsAdmin = {{ json_encode(auth()->user()->role === \App\Models\User::ROLE_ADMIN) }};
 
     let allResources = [];
     let consultantFilterIds = [];
@@ -887,7 +914,64 @@ document.addEventListener('DOMContentLoaded', function() {
         if (initialStart) document.getElementById('eventStart').value = initialStart;
         if (initialEnd) document.getElementById('eventEnd').value = initialEnd;
         bootstrap.Modal.getOrCreateInstance(document.getElementById('createEventModal')).show();
+        // Sincronizar visibilidade do bloco Serviço com o tipo
+        toggleEventServiceBlock();
     }
+
+    var agendaMembersServicesUrl = '{{ url("agenda/members") }}';
+
+    function toggleEventServiceBlock() {
+        var type = document.getElementById('eventType').value;
+        var wrap = document.getElementById('eventServiceWrap');
+        var sel = document.getElementById('eventService');
+        if (type === 'marcacao') {
+            wrap.classList.remove('d-none');
+            var memberId = document.getElementById('eventUser').value || '{{ auth()->id() }}';
+            loadMemberServices(memberId, null);
+        } else {
+            wrap.classList.add('d-none');
+            sel.innerHTML = '<option value="">Selecione o membro primeiro</option>';
+        }
+    }
+
+    function loadMemberServices(userId, thenSelectServiceId) {
+        var sel = document.getElementById('eventService');
+        sel.innerHTML = '<option value="">A carregar...</option>';
+        if (!userId) {
+            sel.innerHTML = '<option value="">Selecione o membro primeiro</option>';
+            return;
+        }
+        fetch(agendaMembersServicesUrl + '/' + userId + '/services', { headers: { 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                sel.innerHTML = '<option value="">— Selecionar serviço —</option>';
+                (data.categories || []).forEach(function(cat) {
+                    var optgroup = document.createElement('optgroup');
+                    optgroup.label = cat.name || 'Outros';
+                    (cat.services || []).forEach(function(s) {
+                        var opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = s.name;
+                        optgroup.appendChild(opt);
+                    });
+                    sel.appendChild(optgroup);
+                });
+                if (thenSelectServiceId) {
+                    sel.value = String(thenSelectServiceId);
+                }
+            })
+            .catch(function() {
+                sel.innerHTML = '<option value="">Erro ao carregar serviços</option>';
+            });
+    }
+
+    document.getElementById('eventType').addEventListener('change', toggleEventServiceBlock);
+    document.getElementById('eventUser').addEventListener('change', function() {
+        if (document.getElementById('eventType').value === 'marcacao') {
+            var memberId = this.value || '{{ auth()->id() }}';
+            loadMemberServices(memberId, null);
+        }
+    });
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'resourceTimeGridDay',
@@ -1126,8 +1210,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         typeBadge.classList.add('bg-info');
                     } else if (data.event_type === 'visita' || data.event_type === 'visit') {
                         typeBadge.classList.add('bg-success');
+                    } else if (data.event_type === 'tempo_pessoal') {
+                        typeBadge.classList.add('bg-secondary');
                     } else {
                         typeBadge.classList.add('bg-primary');
+                    }
+                    const detailServiceWrap = document.getElementById('detailServiceWrap');
+                    const detailService = document.getElementById('detailService');
+                    if (detailServiceWrap && detailService) {
+                        if (data.event_type === 'marcacao' && data.service_name) {
+                            detailService.textContent = data.service_name;
+                            detailServiceWrap.classList.remove('d-none');
+                        } else {
+                            detailServiceWrap.classList.add('d-none');
+                        }
                     }
                     const userAvatarEl = document.getElementById('detailUserAvatar');
                     const userNameEl = document.getElementById('detailUser');
@@ -1204,8 +1300,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         typeBadgeSimple.classList.add('bg-info');
                     } else if (data.event_type === 'visita' || data.event_type === 'visit') {
                         typeBadgeSimple.classList.add('bg-success');
+                    } else if (data.event_type === 'tempo_pessoal') {
+                        typeBadgeSimple.classList.add('bg-secondary');
                     } else {
                         typeBadgeSimple.classList.add('bg-primary');
+                    }
+                    const detailServiceWrapSimple = document.getElementById('detailServiceWrapSimple');
+                    const detailServiceSimple = document.getElementById('detailServiceSimple');
+                    if (detailServiceWrapSimple && detailServiceSimple) {
+                        if (data.event_type === 'marcacao' && data.service_name) {
+                            detailServiceSimple.textContent = data.service_name;
+                            detailServiceWrapSimple.classList.remove('d-none');
+                        } else {
+                            detailServiceWrapSimple.classList.add('d-none');
+                        }
                     }
                     const userAvatarElSimple = document.getElementById('detailUserAvatarSimple');
                     const userNameElSimple = document.getElementById('detailUserSimple');
@@ -1731,6 +1839,7 @@ document.addEventListener('DOMContentLoaded', function() {
         dropdown.appendChild(allOption);
         
         @foreach($users as $u)
+            @if($u->role !== \App\Models\User::ROLE_ADMIN)
             const opt{{ $u->id }} = document.createElement('a');
             opt{{ $u->id }}.className = 'dropdown-item';
             opt{{ $u->id }}.href = '#';
@@ -1745,6 +1854,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateDropdownActive();
             });
             dropdown.appendChild(opt{{ $u->id }});
+            @endif
         @endforeach
         
         btnParent.appendChild(dropdown);
@@ -1812,17 +1922,26 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const submitBtn = document.getElementById('createEventSubmitBtn');
         const originalBtnHtml = submitBtn.innerHTML;
+        const eventUserVal = document.getElementById('eventUser').value;
+        if (currentUserIsAdmin && !eventUserVal) {
+            alert('Selecione um membro.');
+            return;
+        }
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> A guardar...';
         const id = document.getElementById('eventId').value;
+        const eventType = document.getElementById('eventType').value;
         const payload = {
             title: document.getElementById('eventTitle').value.trim(),
-            event_type: document.getElementById('eventType').value,
+            event_type: eventType,
             start_at: document.getElementById('eventStart').value.replace('T', ' ') + ':00',
             end_at: document.getElementById('eventEnd').value.replace('T', ' ') + ':00',
             description: document.getElementById('eventDescription').value.trim() || null,
-            user_id: document.getElementById('eventUser').value ? document.getElementById('eventUser').value : '{{ auth()->id() }}'
+            user_id: currentUserIsAdmin ? (eventUserVal || null) : (eventUserVal || '{{ auth()->id() }}')
         };
+        if (eventType === 'marcacao') {
+            payload.service_id = document.getElementById('eventService').value || null;
+        }
         const url = id ? '{{ url('agenda/events') }}/' + id + '/update' : '{{ route('agenda.events.store') }}';
         const method = id ? 'POST' : 'POST';
         function resetSubmitBtn() {
@@ -1906,12 +2025,20 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => r.json())
         .then(function(data) {
             document.getElementById('eventTitle').value = data.title || '';
-            document.getElementById('eventType').value = data.event_type || 'manual';
+            document.getElementById('eventType').value = (data.event_type === 'marcacao') ? 'marcacao' : 'tempo_pessoal';
             document.getElementById('eventDescription').value = data.description || '';
             if (data.user_id && String(data.user_id) !== '{{ auth()->id() }}') {
                 document.getElementById('eventUser').value = String(data.user_id);
             } else {
                 document.getElementById('eventUser').value = '';
+            }
+            var wrap = document.getElementById('eventServiceWrap');
+            if (data.event_type === 'marcacao') {
+                wrap.classList.remove('d-none');
+                loadMemberServices(data.user_id || '{{ auth()->id() }}', data.service_id);
+            } else {
+                wrap.classList.add('d-none');
+                document.getElementById('eventService').innerHTML = '<option value="">Selecione o membro primeiro</option>';
             }
             if (data.start_at) {
                 const d = new Date(data.start_at);
@@ -1956,12 +2083,20 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => r.json())
         .then(function(data) {
             document.getElementById('eventTitle').value = data.title || '';
-            document.getElementById('eventType').value = data.event_type || 'manual';
+            document.getElementById('eventType').value = (data.event_type === 'marcacao') ? 'marcacao' : 'tempo_pessoal';
             document.getElementById('eventDescription').value = data.description || '';
             if (data.user_id && String(data.user_id) !== '{{ auth()->id() }}') {
                 document.getElementById('eventUser').value = String(data.user_id);
             } else {
                 document.getElementById('eventUser').value = '';
+            }
+            var wrap = document.getElementById('eventServiceWrap');
+            if (data.event_type === 'marcacao') {
+                wrap.classList.remove('d-none');
+                loadMemberServices(data.user_id || '{{ auth()->id() }}', data.service_id);
+            } else {
+                wrap.classList.add('d-none');
+                document.getElementById('eventService').innerHTML = '<option value="">Selecione o membro primeiro</option>';
             }
             if (data.start_at) {
                 const d = new Date(data.start_at);
@@ -1979,6 +2114,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('createEventForm').reset();
         document.getElementById('eventId').value = '';
         document.getElementById('createEventModalLabel').textContent = 'Novo evento';
+        document.getElementById('eventService').innerHTML = '<option value="">Selecione o membro primeiro</option>';
+        document.getElementById('eventServiceWrap').classList.add('d-none');
     });
 
     // Sidebar "Novo evento": abrir modal de criar evento
