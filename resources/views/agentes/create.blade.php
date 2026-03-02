@@ -223,6 +223,16 @@
                 </div>
             </div>
 
+            <!-- Serviços associados -->
+            <div class="card">
+                <div class="card-body">
+                    @include('agentes.partials.services-by-category', [
+                        'categories' => $categories,
+                        'selectedServiceIds' => old('service_ids', []),
+                    ])
+                </div>
+            </div>
+
             <!-- Form Actions -->
             <div class="uedit-form-actions">
                 <a href="{{ route('equipa.index') }}" class="btn btn-secondary">Cancelar</a>

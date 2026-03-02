@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class CalendarEvent extends Model
@@ -28,9 +29,11 @@ class CalendarEvent extends Model
         'end_at',
         'description',
         'user_id',
+        'client_id',
         'service_id',
         'event_type',
         'status',
+        'cancellation_reason',
         'eventable_type',
         'eventable_id',
     ];
@@ -75,9 +78,25 @@ class CalendarEvent extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Client::class);
+    }
+
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    /**
+     * Serviços associados à marcação (muitos-para-muitos com preço/duração customizados).
+     */
+    public function eventServices(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'calendar_event_services')
+            ->withPivot('duration', 'price', 'sort_order')
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
     }
 
     public function eventable(): MorphTo
@@ -118,18 +137,18 @@ class CalendarEvent extends Model
     }
 
     /**
-     * Get the icon class for the current status.
+     * Get the icon class for the current status (Phosphor Icons).
      */
     public function getStatusIconAttribute(): ?string
     {
         $status = $this->status ?? self::STATUS_AGENDADO;
         return match ($status) {
             self::STATUS_AGENDADO => null, // Sem ícone
-            self::STATUS_CONFIRMADO => 'ri-check-line',
-            self::STATUS_CHEGOU => 'ri-map-pin-line',
-            self::STATUS_INICIADO => 'ri-play-line',
-            self::STATUS_FALTOU => 'ri-close-circle-line',
-            self::STATUS_CANCELADO => 'ri-forbid-line',
+            self::STATUS_CONFIRMADO => 'ph ph-check-circle',
+            self::STATUS_CHEGOU => 'ph ph-map-pin',
+            self::STATUS_INICIADO => 'ph ph-play-circle',
+            self::STATUS_FALTOU => 'ph ph-x-circle',
+            self::STATUS_CANCELADO => 'ph ph-prohibit',
             default => null,
         };
     }

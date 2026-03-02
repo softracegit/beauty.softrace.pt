@@ -87,6 +87,7 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::get('agenda', [CalendarController::class, 'index'])->name('agenda.index');
     Route::get('agenda/resources', [CalendarController::class, 'resources'])->name('agenda.resources');
     Route::get('agenda/members/{user}/services', [CalendarController::class, 'memberServices'])->name('agenda.members.services');
+    Route::get('agenda/clients', [CalendarController::class, 'clients'])->name('agenda.clients');
     Route::get('agenda/events', [CalendarController::class, 'events'])->name('agenda.events');
     Route::get('agenda/events/{calendarEvent}', [CalendarController::class, 'show'])->name('agenda.events.show');
     Route::post('agenda/events', [CalendarController::class, 'store'])->name('agenda.events.store');

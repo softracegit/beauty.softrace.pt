@@ -3,7 +3,7 @@
   <!-- Header Left -->
   <div class="header-left">
     <a href="{{ route('dashboard') }}" class="header-logo">
-      <img src="{{ asset('template/img/logo.webp') }}" alt="{{ config('app.name') }}">
+      <img src="{{ asset('template/img/logo-color-icon.png') }}" alt="{{ config('app.name') }}">
       <span>{{ config('app.name') }}</span>
     </a>
     <button class="sidebar-toggle" title="Toggle Sidebar">

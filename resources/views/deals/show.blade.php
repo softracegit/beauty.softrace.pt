@@ -167,16 +167,16 @@
         .then(data => {
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('reabrirDealModal')).hide();
-                alert('Negócio reaberto com sucesso.');
+                showToast('Negócio reaberto com sucesso.', 'success');
                 window.location.href = '{{ route('opportunities.show', $deal->opportunity) }}';
             } else {
-                alert('Erro: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="ph ph-arrow-clockwise me-1"></i> Reabrir Negócio';
             }
         })
         .catch(() => {
-            alert('Erro ao reabrir negócio');
+            showToast('Erro ao reabrir negócio', 'error');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="ph ph-arrow-clockwise me-1"></i> Reabrir Negócio';
         });

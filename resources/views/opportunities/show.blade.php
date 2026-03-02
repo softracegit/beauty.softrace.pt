@@ -1233,12 +1233,12 @@
         });
 
         if (agentCommissions.length === 0) {
-            alert('É necessário pelo menos um agente.');
+            showToast('É necessário pelo menos um agente.', 'warning');
             return;
         }
 
         if (total > maxCommission) {
-            alert('O total das comissões dos consultores (' + total.toFixed(2).replace('.', ',') + ' €) não pode ultrapassar a comissão do imóvel (' + maxCommission.toFixed(2).replace('.', ',') + ' €).');
+            showToast('O total das comissões dos consultores (' + total.toFixed(2).replace('.', ',') + ' €) não pode ultrapassar a comissão do imóvel (' + maxCommission.toFixed(2).replace('.', ',') + ' €).', 'warning');
             return;
         }
 
@@ -1266,17 +1266,17 @@
         .then(data => {
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('finalizeDealModal')).hide();
-                alert('Negócio fechado com sucesso!');
+                showToast('Negócio fechado com sucesso!', 'success');
                 location.reload();
             } else {
-                alert('Erro: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="ph-duotone ph-check-circle me-1"></i> Confirmar e Fechar Negócio';
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao fechar negócio');
+            showToast('Erro ao fechar negócio', 'error');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="ph-duotone ph-check-circle me-1"></i> Confirmar e Fechar Negócio';
         });
@@ -1313,16 +1313,16 @@
         .then(data => {
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('reabrirDealModal')).hide();
-                alert('Negócio reaberto com sucesso.');
+                showToast('Negócio reaberto com sucesso.', 'success');
                 location.reload();
             } else {
-                alert('Erro: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="ph ph-arrow-clockwise me-1"></i> Reabrir Negócio';
             }
         })
         .catch(() => {
-            alert('Erro ao reabrir negócio');
+            showToast('Erro ao reabrir negócio', 'error');
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i class="ph ph-arrow-clockwise me-1"></i> Reabrir Negócio';
         });
@@ -1383,12 +1383,12 @@
                 bootstrap.Modal.getInstance(document.getElementById('scheduleVisitModal')).hide();
                 location.reload();
             } else {
-                alert('Erro ao agendar visita: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao agendar visita: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao agendar visita');
+            showToast('Erro ao agendar visita', 'error');
         });
     });
 
@@ -1418,12 +1418,12 @@
                 bootstrap.Modal.getInstance(document.getElementById('editVisitModal')).hide();
                 location.reload();
             } else {
-                alert('Erro ao atualizar visita: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao atualizar visita: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao atualizar visita');
+            showToast('Erro ao atualizar visita', 'error');
         });
     });
 
@@ -1472,9 +1472,9 @@
         .then(r => r.json())
         .then(data => {
             if (data.success) location.reload();
-            else alert('Erro: ' + (data.message || 'Erro desconhecido'));
+            else showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
         })
-        .catch(() => alert('Erro ao enviar proposta'));
+        .catch(() => showToast('Erro ao enviar proposta', 'error'));
     }
 
     function approveProposal(proposalId) {
@@ -1489,9 +1489,9 @@
         .then(r => r.json())
         .then(data => {
             if (data.success) location.reload();
-            else alert('Erro: ' + (data.message || 'Erro desconhecido'));
+            else showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
         })
-        .catch(() => alert('Erro ao aprovar proposta'));
+        .catch(() => showToast('Erro ao aprovar proposta', 'error'));
     }
 
     document.getElementById('createProposalForm')?.addEventListener('submit', function(e) {
@@ -1515,9 +1515,9 @@
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('createProposalModal')).hide();
                 location.reload();
-            } else alert('Erro: ' + (data.message || 'Erro desconhecido'));
+            } else showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
         })
-        .catch(() => alert('Erro ao criar proposta'));
+        .catch(() => showToast('Erro ao criar proposta', 'error'));
     });
 
     document.getElementById('editProposalForm')?.addEventListener('submit', function(e) {
@@ -1541,9 +1541,9 @@
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('editProposalModal')).hide();
                 location.reload();
-            } else alert('Erro: ' + (data.message || 'Erro desconhecido'));
+            } else showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
         })
-        .catch(() => alert('Erro ao atualizar proposta'));
+        .catch(() => showToast('Erro ao atualizar proposta', 'error'));
     });
 
     document.getElementById('rejectProposalForm')?.addEventListener('submit', function(e) {
@@ -1566,9 +1566,9 @@
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('rejectProposalModal')).hide();
                 location.reload();
-            } else alert('Erro: ' + (data.message || 'Erro desconhecido'));
+            } else showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
         })
-        .catch(() => alert('Erro ao rejeitar proposta'));
+        .catch(() => showToast('Erro ao rejeitar proposta', 'error'));
     });
 
     document.getElementById('counterProposalForm')?.addEventListener('submit', function(e) {
@@ -1592,9 +1592,9 @@
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('counterProposalModal')).hide();
                 location.reload();
-            } else alert('Erro: ' + (data.message || 'Erro desconhecido'));
+            } else showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
         })
-        .catch(() => alert('Erro ao criar contraproposta'));
+        .catch(() => showToast('Erro ao criar contraproposta', 'error'));
     });
 
     function attachProperty(propertyId) {
@@ -1625,12 +1625,12 @@
                 bootstrap.Modal.getInstance(document.getElementById('attachPropertyModal')).hide();
                 location.reload();
             } else {
-                alert('Erro ao associar imóvel: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao associar imóvel: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao associar imóvel');
+            showToast('Erro ao associar imóvel', 'error');
         });
     });
 
@@ -1659,12 +1659,12 @@
                 bootstrap.Modal.getInstance(document.getElementById('detachPropertyModal')).hide();
                 location.reload();
             } else {
-                alert('Erro ao desassociar imóvel: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao desassociar imóvel: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao desassociar imóvel');
+            showToast('Erro ao desassociar imóvel', 'error');
         });
     });
 
@@ -1690,12 +1690,12 @@
                 bootstrap.Modal.getInstance(document.getElementById('archiveOpportunityModal')).hide();
                 location.reload();
             } else {
-                alert('Erro ao arquivar oportunidade: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao arquivar oportunidade: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao arquivar oportunidade');
+            showToast('Erro ao arquivar oportunidade', 'error');
         });
     });
 
@@ -1721,12 +1721,12 @@
                 bootstrap.Modal.getInstance(document.getElementById('unarchiveOpportunityModal')).hide();
                 location.reload();
             } else {
-                alert('Erro ao desarquivar oportunidade: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao desarquivar oportunidade: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao desarquivar oportunidade');
+            showToast('Erro ao desarquivar oportunidade', 'error');
         });
     });
 </script>

@@ -1,0 +1,1026 @@
+/**
+ * Agenda - estilos da página de agenda e modais
+ * Extraído de resources/views/agenda/index.blade.php
+ */
+
+/* main-content sem padding na agenda */
+body .main-content {
+    padding: 0 !important;
+}
+
+/* Esconder breadcrumbs na agenda */
+body .main-breadcrumb,
+body .main-breadcrumb * {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* Remover padding do app-wrapper na agenda */
+body .app-wrapper {
+    padding: 0 !important;
+}
+
+/* Remover margens e padding dos containers da agenda */
+body .app-wrapper .container-fluid {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Remover margens e padding do row e col */
+.row.g-0,
+.row.g-0 > .col-12 {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* Remover margens e padding do card */
+.card.border-0.shadow-none,
+.card.border-0.shadow-none .card-body {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+#calendar {
+    width: 100%;
+    height: calc(100vh - 60px);
+    margin: 0;
+    padding: 0;
+}
+
+/* Pequeno padding apenas na toolbar do FullCalendar */
+.fc-header-toolbar {
+    padding: 1rem 1rem 0.5rem 1rem;
+    margin: 0;
+}
+
+.fc-license-message {
+    display: none !important;
+}
+
+/* Margin-bottom na toolbar do FullCalendar */
+.fc .fc-toolbar.fc-header-toolbar {
+    margin-bottom: 0.5em;
+}
+
+/* Esconder "Todo o dia" */
+.fc-all-day {
+    display: none !important;
+}
+
+/* Linha vermelha indicando a hora atual */
+.fc-timegrid-now-indicator-line {
+    border-color: #dc3545 !important;
+    border-width: 1px !important;
+}
+
+.fc-timegrid-now-indicator-arrow {
+    border-left-color: #dc3545 !important;
+    border-right-color: #dc3545 !important;
+}
+
+/* Coluna das horas (esquerda) sem linhas horizontais */
+.fc-timegrid-slot-label,
+.fc-timegrid-axis,
+.fc-timegrid-axis .fc-scrollgrid-sync-inner,
+.fc-timegrid .fc-timegrid-axis td,
+.fc-timegrid .fc-timegrid-axis th {
+    border-top: none !important;
+    border-bottom: none !important;
+}
+.fc-timegrid-slot-label-frame {
+    border: none !important;
+}
+.fc .fc-timegrid .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+    color: #0d6efd !important;
+}
+
+/* Eventos ocupam toda a largura da célula, com 1px de offset (como o overlay) */
+.fc .fc-timegrid-event-harness {
+    left: -1px !important;
+    right: 0px !important;
+    width: 102.5% !important;
+}
+.fc .fc-timegrid-event {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.fc-event {
+    cursor: pointer;
+    color: #fff !important;
+    font-size: 0.75rem !important;
+    font-weight: 400 !important;
+    padding: 0px !important;
+    text-align: left !important;
+    border-radius: 4px !important;
+}
+.fc-event .fc-event-main,
+.fc-event-main,
+.fc-event .fc-event-title,
+.fc-event-title {
+    color: #fff !important;
+    white-space: normal !important;
+}
+.fc-event-time {
+    font-weight: 500;
+    margin-right: 0.25rem;
+}
+.fc-event-client {
+    font-weight: 600;
+    color: inherit;
+}
+.fc-event-service-line {
+    display: block;
+    margin-top: 0.15rem;
+    font-weight: 400;
+    font-size: 0.75rem !important;
+}
+/* Em eventos short: ocultar apenas a linha do serviço para não sobrepor a célula de baixo */
+.fc-timegrid-event-short .fc-event-service-line {
+    display: none !important;
+}
+.fc-event-content-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+.fc-event-status-icon {
+    position: absolute;
+    top: -1px;
+    right: -2px;
+    font-size: 1.15rem;
+    opacity: 1;
+    z-index: 10;
+    font-weight: 600;
+}
+.fc-daygrid-event,
+.fc-daygrid-event-harness {
+    min-height: auto !important;
+}
+.fc-timegrid-event-short .fc-event-main, .fc-timegrid-event .fc-event-main {
+    font-size: 0.85rem !important;
+    padding: 0.2rem 0.30rem !important;
+    line-height: 1.15 !important;
+}
+.fc-timegrid-event-short .fc-event-time::after {
+    content: "";
+}
+
+.fc-toolbar-chunk:last-child {
+    display: flex !important;
+    align-items: center;
+    gap: 0 !important;
+}
+.fc-header-toolbar .fc-toolbar-chunk {
+    display: flex;
+    align-items: center;
+}
+
+/* Primeiro chunk - gap para espaçamento entre botões */
+.fc-header-toolbar .fc-toolbar-chunk:first-child {
+    gap: 0.5rem !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+
+/* Toolbar: botões e dropdowns sem margens */
+.fc-toolbar-chunk .dropdown,
+.fc-toolbar-chunk > .dropdown,
+.fc-header-toolbar .dropdown {
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.fc .fc-button,
+.fc-viewSelector-button,
+.fc-consultantFilter-button,
+.fc-newEvent-button,
+.fc-today-button,
+.fc-prev-button,
+.fc-next-button {
+    margin: 0 !important;
+}
+
+.fc-toolbar-chunk {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:first-child,
+.fc-toolbar-chunk:first-child {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    gap: 0.5rem !important;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:last-child,
+.fc-toolbar-chunk:last-child {
+    gap: 0 !important;
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+}
+
+.fc-header-toolbar {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+.fc-toolbar-chunk:first-child > *:first-child,
+.fc-header-toolbar .fc-toolbar-chunk:first-child > *:first-child,
+.fc-toolbar-chunk:first-child > button:first-child,
+.fc-header-toolbar .fc-toolbar-chunk:first-child > button:first-child {
+    margin-left: 0 !important;
+    margin: 0 !important;
+}
+
+.fc-toolbar-chunk:first-child > * {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.fc-today-button,
+.fc .fc-today-button,
+.fc-today-button:not(:disabled),
+.fc .fc-today-button:not(:disabled) {
+    margin-left: 0 !important;
+    background-color: #ffffff !important;
+    border-color: #dee2e6 !important;
+    color: #212529 !important;
+    font-weight: 400 !important;
+    border-width: 1px !important;
+    border-style: solid !important;
+    line-height: 22px !important;
+}
+
+.fc-today-button:hover:not(:disabled),
+.fc .fc-today-button:hover:not(:disabled) {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #212529 !important;
+}
+
+.fc-today-button:focus:not(:disabled),
+.fc .fc-today-button:focus:not(:disabled) {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #212529 !important;
+    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.fc-toolbar-chunk:first-child .fc-today-button {
+    margin-left: 0 !important;
+    margin: 0 !important;
+}
+
+.fc-toolbar-title,
+.fc-header-toolbar .fc-toolbar-chunk:nth-child(2) {
+    display: none !important;
+}
+
+.fc-currentDate-button {
+    pointer-events: none;
+    cursor: default;
+    font-weight: 500;
+    background: transparent !important;
+    border: none !important;
+    color: #212529 !important;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    opacity: 1 !important;
+}
+.fc-currentDate-button:hover {
+    background: transparent !important;
+    color: #212529 !important;
+}
+
+.fc .fc-button-primary,
+.fc .fc-button-primary:not(:disabled),
+.fc .fc-button-primary:not(:disabled):active,
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc button.fc-today-button,
+.fc button.fc-today-button:not(:disabled),
+.fc button.fc-today-button:not(:disabled):active,
+.fc .fc-today-button,
+.fc .fc-today-button:not(:disabled),
+.fc .fc-today-button:not(:disabled):active,
+.fc .fc-prev-button,
+.fc .fc-next-button,
+.fc .fc-viewSelector-button,
+.fc .fc-consultantFilter-button,
+.fc .fc-newEvent-button,
+.fc .fc-button-group .fc-button-primary {
+    background-color: #ffffff !important;
+    border-color: #dee2e6 !important;
+    color: #212529 !important;
+    font-weight: 400;
+}
+
+.fc .fc-button-primary:hover:not(:disabled),
+.fc button.fc-today-button:hover:not(:disabled),
+.fc .fc-today-button:hover:not(:disabled),
+.fc .fc-prev-button:hover:not(:disabled),
+.fc .fc-next-button:hover:not(:disabled),
+.fc .fc-viewSelector-button:hover:not(:disabled),
+.fc .fc-consultantFilter-button:hover:not(:disabled),
+.fc .fc-newEvent-button:hover:not(:disabled),
+.fc .fc-button-group .fc-button-primary:hover:not(:disabled) {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #212529 !important;
+}
+
+.fc .fc-button-primary:focus:not(:disabled),
+.fc button.fc-today-button:focus:not(:disabled),
+.fc .fc-today-button:focus:not(:disabled),
+.fc .fc-prev-button:focus:not(:disabled),
+.fc .fc-next-button:focus:not(:disabled),
+.fc .fc-viewSelector-button:focus:not(:disabled),
+.fc .fc-consultantFilter-button:focus:not(:disabled),
+.fc .fc-newEvent-button:focus:not(:disabled),
+.fc .fc-button-group .fc-button-primary:focus:not(:disabled) {
+    background-color: #f8f9fa !important;
+    border-color: #dee2e6 !important;
+    color: #212529 !important;
+    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1) !important;
+}
+
+.fc .fc-button-primary:not(:disabled):active,
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc button.fc-today-button:not(:disabled):active,
+.fc .fc-today-button:not(:disabled):active,
+.fc .fc-prev-button:not(:disabled):active,
+.fc .fc-next-button:not(:disabled):active,
+.fc .fc-viewSelector-button:not(:disabled):active,
+.fc .fc-consultantFilter-button:not(:disabled):active,
+.fc .fc-newEvent-button:not(:disabled):active,
+.fc .fc-button-group .fc-button-primary:not(:disabled):active,
+.fc .fc-button-group .fc-button-primary:not(:disabled).fc-button-active {
+    background-color: #e9ecef !important;
+    border-color: #dee2e6 !important;
+    color: #212529 !important;
+}
+
+.fc-prev-button .fc-icon,
+.fc-next-button .fc-icon {
+    color: #212529 !important;
+}
+
+.fc-viewSelector-button.dropdown-toggle::after,
+.fc-consultantFilter-button.dropdown-toggle::after {
+    border-top-color: #212529 !important;
+}
+
+.fc-col-header-cell,
+.fc-day-header {
+    visibility: visible !important;
+}
+
+.fc-col-header-cell-cushion,
+.fc-day-header-cushion {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    padding: 8px 8px 1px 8px !important;
+}
+
+.fc-dayGridMonth .fc-col-header-cell-cushion,
+.fc-dayGridMonth .fc-day-header-cushion {
+    text-align: left !important;
+    padding-left: 0.5rem !important;
+}
+.fc-timegrid-slot-label-cushion {
+    font-size: 0.70rem !important;
+}
+
+.fc-daygrid-day-number {
+    text-align: left !important;
+    padding-left: 0.5rem !important;
+}
+
+.fc .fc-day-today {
+    background-color: #ffffff !important;
+}
+
+.fc-dayGridMonth-view .fc-scrollgrid-sync-table {
+    height: 100%;
+}
+.fc-dayGridMonth-view .fc-daygrid-day-frame {
+    min-height: 7rem;
+}
+.fc-dayGridMonth-view .fc-daygrid-day {
+    min-height: 7rem;
+}
+.fc-dayGridMonth-view .fc-daygrid-week {
+    min-height: 7rem;
+}
+
+.fc-dayGridMonth-view .fc-day-today .fc-daygrid-day-number {
+    color: #0d6efd !important;
+    display: inline-flex !important;
+    font-weight: 600 !important;
+    padding: 0 0 0 6px !important;
+}
+
+.fc-resource-consultant-label {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+.fc-resource-consultant-avatar {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    flex-shrink: 0 !important;
+}
+.fc-resource-consultant-name {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+.fc-resourceTimeGridDay-view .fc-col-header-cell {
+    padding-bottom: 0 !important;
+}
+
+.fc th {
+    text-align: left !important;
+}
+
+.fc .fc-daygrid-day-top {
+    flex-direction: unset !important;
+    display: block !important;
+}
+
+.fc-daygrid-event-dot {
+    display: none !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
+.fc-daygrid-day-frame:hover,
+.fc-daygrid-day:hover .fc-daygrid-day-frame {
+    background-color: #f0f4f8 !important;
+}
+
+/* Modal de detalhes do evento completo */
+#eventDetailModal .modal-dialog {
+    max-width: 800px;
+}
+#eventDetailModal .modal-header {
+    padding-bottom: 0.5rem;
+    padding-top: 1rem;
+    align-items: flex-start;
+}
+#eventDetailModal .modal-header .modal-title {
+    flex: 1;
+    padding-right: 0.5rem;
+}
+#eventDetailModal .modal-body {
+    padding-top: 0;
+}
+#eventDetailModal h4 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+}
+#eventDetailModal .badge {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.7rem;
+    font-weight: 500;
+}
+#eventDetailModal i {
+    font-size: 1.1rem;
+}
+#eventDetailModal .text-uppercase {
+    letter-spacing: 0.5px;
+    font-size: 0.75rem;
+}
+@media (max-width: 991.98px) {
+    #eventDetailModal .col-lg-6 {
+        border-start: none !important;
+        border-top: 1px solid #dee2e6;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem !important;
+        padding-left: 0 !important;
+    }
+}
+
+/* Modal de detalhes do evento simples */
+#eventDetailModalSimple .modal-dialog {
+    max-width: 500px;
+}
+#eventDetailModalSimple .modal-header {
+    padding-bottom: 0.5rem;
+    padding-top: 1rem;
+    align-items: flex-start;
+}
+#eventDetailModalSimple .modal-header .modal-title {
+    flex: 1;
+    padding-right: 0.5rem;
+}
+#eventDetailModalSimple .modal-body {
+    padding-top: 0;
+}
+#eventDetailModalSimple h4 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+}
+#eventDetailModalSimple .badge {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.7rem;
+    font-weight: 500;
+}
+#eventDetailModalSimple i {
+    font-size: 1.1rem;
+}
+
+/* Modal de criar/editar evento */
+#createEventModal .modal-dialog {
+    min-height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);
+}
+#createEventModal .modal-content {
+    min-height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);
+    display: flex;
+    flex-direction: column;
+}
+#createEventModal .modal-header {
+    border-bottom: 1px solid #eee !important;
+    border-top: none;
+    flex-shrink: 0;
+}
+#createEventModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+#createEventModal .modal-footer {
+    flex-shrink: 0;
+}
+#createEventModal .modal-header {
+    padding-bottom: 0.5rem;
+    padding-top: 1rem;
+    align-items: flex-start;
+}
+#createEventModal .modal-header .modal-title {
+    flex: 1;
+    padding-right: 0.5rem;
+}
+#createEventModal .modal-body {
+    padding-top: 0;
+}
+#createEventModal h4 {
+    font-size: 1.5rem;
+    line-height: 1.3;
+}
+
+/* Quick menu popup */
+#agendaQuickMenu {
+    display: none;
+    position: fixed;
+    z-index: 1060;
+    min-width: 250px;
+    width: 320px;
+    padding: 0;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl, 0.75rem);
+    box-shadow: var(--shadow-lg, 0 0.5rem 1rem rgba(0, 0, 0, 0.15));
+    overflow: hidden;
+    margin: 0;
+}
+#agendaQuickMenu.is-open {
+    display: block;
+}
+#agendaQuickMenu .quickaccess-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm, 0.5rem);
+    padding: 1rem 0.9rem 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+#agendaQuickMenu .quickaccess-header h6 {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--heading-color, #1e293b);
+    flex: 1;
+}
+#agendaQuickMenu .quickaccess-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--light-color, #94a3b8);
+    cursor: pointer;
+    border-radius: var(--radius-lg, 0.5rem);
+    font-size: 1.1rem;
+    transition: color 0.15s, background-color 0.15s;
+    flex-shrink: 0;
+}
+#agendaQuickMenu .quickaccess-close:hover {
+    color: var(--heading-color, #1e293b);
+    background: var(--background-color, #f1f5f9);
+}
+#agendaQuickMenu .quickaccess-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px;
+    padding: var(--spacing-md, 0.75rem);
+}
+#agendaQuickMenu .quickaccess-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: var(--spacing-md, 0.75rem) var(--spacing-xs, 0.5rem);
+    border-radius: var(--radius-lg, 0.5rem);
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    font: inherit;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+#agendaQuickMenu .quickaccess-item:hover {
+    background-color: var(--background-color, #f8f9fa);
+    transform: translateY(-1px);
+}
+#agendaQuickMenu .quickaccess-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-lg, 0.5rem);
+    background: color-mix(in srgb, var(--qa-color, var(--accent-color, #0d6efd)), transparent 88%);
+    color: var(--qa-color, var(--accent-color, #0d6efd));
+    font-size: 1.25rem;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+}
+#agendaQuickMenu .quickaccess-item:hover .quickaccess-icon {
+    background: color-mix(in srgb, var(--qa-color, var(--accent-color, #0d6efd)), transparent 80%);
+    transform: scale(1.05);
+}
+#agendaQuickMenu .quickaccess-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--default-color, #64748b);
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* Quick menu: Editar opções do serviço */
+#novaMarcacaoEditServiceQuickMenu {
+    display: none;
+    position: fixed;
+    z-index: 1065;
+    min-width: 260px;
+    width: 280px;
+    padding: 0;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl, 0.75rem);
+    box-shadow: var(--shadow-lg, 0 0.5rem 1rem rgba(0, 0, 0, 0.15));
+    overflow: hidden;
+    margin: 0;
+}
+#novaMarcacaoEditServiceQuickMenu.is-open {
+    display: block;
+}
+#novaMarcacaoEditServiceQuickMenu .edit-service-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+#novaMarcacaoEditServiceQuickMenu .edit-service-header h6 {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+#novaMarcacaoEditServiceQuickMenu .edit-service-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--light-color, #94a3b8);
+    cursor: pointer;
+    border-radius: var(--radius-lg, 0.5rem);
+}
+#novaMarcacaoEditServiceQuickMenu .edit-service-close:hover {
+    color: var(--heading-color, #1e293b);
+    background: var(--background-color, #f1f5f9);
+}
+#novaMarcacaoEditServiceQuickMenu .edit-service-body {
+    padding: 1rem 1.2rem;
+}
+#novaMarcacaoEditServiceQuickMenu .edit-service-body .form-label {
+    font-size: 0.75rem;
+}
+#novaMarcacaoEditServiceQuickMenu .edit-service-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem 1.2rem;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+
+/* Célula destacada ao clicar */
+.fc .agenda-cell-highlight {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    outline: 1px solid #0d6efd;
+    outline-offset: -2px;
+    background: rgba(13, 110, 253, 0.06);
+    border-radius: var(--radius-sm, 0.375rem);
+    z-index: 1;
+    pointer-events: none;
+}
+.fc .agenda-cell-highlight .agenda-cell-time-overlay {
+    position: absolute;
+    bottom: 2px;
+    left: 6px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: #0d6efd;
+    white-space: nowrap;
+    z-index: 2;
+}
+.fc .agenda-cell-highlighted {
+    outline: 2px solid #0d6efd !important;
+    outline-offset: -2px;
+    position: relative;
+}
+.fc .agenda-cell-highlight-hover {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    outline: 1px solid rgba(59, 130, 246, 0.6);
+    outline-offset: -2px;
+    background: rgba(59, 130, 246, 0.04);
+    border-radius: var(--radius-sm, 0.375rem);
+    z-index: 0;
+    pointer-events: none;
+}
+.fc .agenda-cell-highlight-hover .agenda-cell-time-overlay {
+    position: absolute;
+    bottom: 2px;
+    left: 6px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: rgba(59, 130, 246, 0.9);
+    white-space: nowrap;
+    z-index: 1;
+}
+
+/* Nova marcação - serviços e sidebar */
+.nova-marcacao-services-category {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #000;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+}
+.nova-marcacao-services-category:first-child {
+    margin-top: 0;
+}
+.nova-marcacao-service-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.35rem;
+    border-radius: var(--bs-border-radius, 0.375rem);
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    border: 1px solid var(--fc-border-color, var(--bs-border-color, #e9ecef));
+    border-left: 4px solid #6c757d;
+}
+.nova-marcacao-service-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.nova-marcacao-service-selected-card {
+    box-shadow: none;
+}
+.nova-marcacao-service-selected-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.nova-marcacao-service-item-left {
+    flex: 1;
+    min-width: 0;
+}
+.nova-marcacao-service-item-name {
+    font-weight: 600;
+}
+.nova-marcacao-service-item-duration {
+    font-size: 0.8rem;
+    color: var(--bs-secondary);
+}
+.nova-marcacao-service-item-price {
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 0.5rem;
+}
+.nova-marcacao-sidebar {
+    background: var(--bg-gray-200, rgb(248, 248, 248));
+    border-radius: var(--bs-border-radius-lg, 0.5rem);
+    padding: 1.25rem;
+}
+.nova-marcacao-section {
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-color, #dee2e6);
+}
+.nova-marcacao-section:last-child {
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: none;
+}
+.nova-marcacao-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-color, #6c757d);
+    margin-bottom: 0.75rem;
+    display: block;
+}
+.nova-marcacao-person {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.nova-marcacao-person strong {
+    display: block;
+    font-size: 0.875rem;
+}
+.nova-marcacao-person .small {
+    font-size: 0.75rem;
+}
+.nova-marcacao-avatar-fallback {
+    background: var(--bs-secondary-bg, #e9ecef);
+    color: var(--bs-secondary);
+}
+.nova-marcacao-detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.35rem 0;
+    font-size: 0.875rem;
+}
+.nova-marcacao-detail-item .label {
+    color: var(--bs-secondary, #6c757d);
+}
+.nova-marcacao-detail-item .value {
+    font-weight: 500;
+}
+.nova-marcacao-client-results {
+    max-height: 160px;
+    overflow-y: auto;
+}
+.nova-marcacao-client-item {
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    border-radius: var(--bs-border-radius-sm);
+    transition: background 0.15s;
+}
+.nova-marcacao-client-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* Modal Nova Marcação */
+#novaMarcacaoModal .modal-dialog {
+    min-height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);
+}
+#novaMarcacaoModal .modal-content {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);
+}
+#novaMarcacaoModal .modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #eee !important;
+}
+#novaMarcacaoModal #novaMarcacaoForm {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#novaMarcacaoModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+#novaMarcacaoModal .modal-footer {
+    flex-shrink: 0;
+    border-top: 1px solid #eee;
+}
+
+/* Modal Ver/Editar Evento */
+#eventDetailEditModal .modal-dialog {
+    min-height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);
+}
+#eventDetailEditModal .modal-content {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);
+}
+#eventDetailEditModal .modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #eee !important;
+}
+#eventDetailEditModal #eventDetailEditForm {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#eventDetailEditModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+#eventDetailEditModal .modal-footer {
+    flex-shrink: 0;
+    border-top: 1px solid #eee;
+}
+
+.nova-marcacao-services-selected-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #000;
+    margin-bottom: 0.5rem;
+}
+.nova-marcacao-observacoes-toggle {
+    cursor: pointer;
+}
+.nova-marcacao-observacoes-toggle:hover {
+    opacity: 0.8;
+}
+.nova-marcacao-observacoes-toggle.show .nova-marcacao-observacoes-chevron {
+    transform: rotate(180deg);
+}
+
+/* Time toggle dropdown */
+.event-detail-time-toggle {
+    color: var(--accent-color, #0d6efd);
+    cursor: pointer;
+}
+.event-detail-time-toggle:hover {
+    text-decoration: underline;
+}
+
+/* Classes para estilos anteriormente inline */
+.agenda-time-options-scroll {
+    max-height: 200px;
+    overflow-y: auto;
+}
+.agenda-avatar-img {
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.agenda-avatar-fallback {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+}
+.agenda-observacoes-chevron {
+    font-size: 0.8rem;
+    transition: transform 0.2s;
+}

@@ -4,7 +4,7 @@
   <div class="sidebar-iconbar">
     <div class="sidebar-iconbar-logo">
       <a href="{{ route('dashboard') }}">
-        <img src="{{ asset('template/img/logo.webp') }}" alt="{{ config('app.name') }}">
+        <img src="{{ asset('template/img/logo-color-icon.png') }}" alt="{{ config('app.name') }}">
       </a>
     </div>
 

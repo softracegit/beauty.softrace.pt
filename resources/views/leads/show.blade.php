@@ -728,12 +728,12 @@
             if (data.success) {
                 location.reload();
             } else {
-                alert('Erro ao atualizar estado: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao atualizar estado: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao atualizar estado');
+            showToast('Erro ao atualizar estado', 'error');
         });
     }
 
@@ -858,14 +858,14 @@
                 if (data.success) {
                     window.location.href = data.redirect;
                 } else {
-                    alert('Erro: ' + (data.message || 'Erro desconhecido'));
+                    showToast('Erro: ' + (data.message || 'Erro desconhecido'), 'error');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Erro ao converter lead');
+                showToast('Erro ao converter lead', 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;
             });
@@ -942,12 +942,12 @@
             if (data.success) {
                 location.reload();
             } else {
-                alert('Erro ao arquivar lead: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao arquivar lead: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao arquivar lead');
+            showToast('Erro ao arquivar lead', 'error');
         });
     }
 
@@ -974,12 +974,12 @@
             if (data.success) {
                 location.reload();
             } else {
-                alert('Erro ao desarquivar lead: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao desarquivar lead: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao desarquivar lead');
+            showToast('Erro ao desarquivar lead', 'error');
         });
     }
 
@@ -1000,12 +1000,12 @@
             if (data.success) {
                 location.reload();
             } else {
-                alert('Erro ao recuperar lead: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao recuperar lead: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao recuperar lead');
+            showToast('Erro ao recuperar lead', 'error');
         });
     }
 </script>

@@ -65,7 +65,7 @@ class CalendarController extends Controller
         $end = $request->get('end');
         $forResources = $request->boolean('for_resources');
 
-        $query = CalendarEvent::query()->with(['user', 'service', 'eventable']);
+        $query = CalendarEvent::query()->with(['user', 'service', 'client', 'eventServices', 'eventable']);
 
         // Verificar se o utilizador pode ver todos os eventos (admin ou diretor)
         $canViewAll = auth()->user()->canManageAgents();
@@ -117,6 +117,7 @@ class CalendarController extends Controller
                 'end' => $event->end_at->toIso8601String(),
                 'className' => $className,
                 'extendedProps' => [
+                    'client_name' => $event->client?->name,
                     'description' => $event->description,
                     'event_type' => $event->event_type,
                     'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
@@ -126,7 +127,17 @@ class CalendarController extends Controller
                     'user_id' => $event->user_id,
                     'user_name' => $event->user?->name,
                     'service_id' => $event->service_id,
-                    'service_name' => $event->service?->name,
+                    'service_name' => $event->eventServices->isNotEmpty()
+                        ? $event->eventServices->pluck('name')->join(', ')
+                        : ($event->service?->name ?? null),
+                    'event_services' => $event->eventServices->map(fn ($s) => [
+                        'id' => $s->id,
+                        'name' => $s->name,
+                        'duration' => $dur = ($s->pivot->duration ?? $s->duration),
+                        'price' => (float) ($s->pivot->price ?? $s->price),
+                        'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
+                        'formatted_duration' => $this->formatDurationMinutes((int) $dur),
+                    ])->values()->all(),
                     'is_source_editable' => $event->isSourceEditable(),
                     'is_deletable' => $event->isDeletableFromCalendar(),
                     'is_time_editable' => $event->isTimeEditable(),
@@ -168,17 +179,51 @@ class CalendarController extends Controller
         });
 
         $categoryNames = \App\Models\Category::whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('name', 'id');
+        $categoryColors = \App\Models\Category::whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('color', 'id');
 
         $categories = [];
         foreach ($byCategory as $categoryId => $items) {
             $categories[] = [
                 'id' => $categoryId ?: null,
                 'name' => $categoryId ? ($categoryNames[$categoryId] ?? 'Outros') : 'Sem categoria',
-                'services' => $items->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values()->all(),
+                'color' => $categoryId ? ($categoryColors[$categoryId] ?? '#6c757d') : '#6c757d',
+                'services' => $items->map(fn ($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'duration' => $s->duration,
+                    'formatted_duration' => $s->formatted_duration,
+                    'price' => (float) $s->price,
+                    'formatted_price' => $s->formatted_price,
+                ])->values()->all(),
             ];
         }
 
         return response()->json(['categories' => $categories]);
+    }
+
+    /**
+     * Search clients for Nova Marcação modal (JSON).
+     */
+    public function clients(\Illuminate\Http\Request $request)
+    {
+        $search = $request->get('q', '');
+        $query = \App\Models\Client::query()->orderBy('name')->limit(50);
+
+        if (strlen($search) >= 1) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        $clients = $query->get(['id', 'name', 'email', 'phone', 'avatar']);
+        $result = $clients->map(function ($c) {
+            $arr = $c->only(['id', 'name', 'email', 'phone']);
+            $arr['avatar_url'] = $c->avatar ? asset('storage/' . $c->avatar) : null;
+            return $arr;
+        });
+        return response()->json($result);
     }
 
     /**
@@ -188,7 +233,7 @@ class CalendarController extends Controller
     public function show(CalendarEvent $calendarEvent)
     {
         try {
-            $calendarEvent->load(['user', 'service', 'eventable']);
+            $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventable']);
             
             $userAvatarUrl = null;
             try {
@@ -218,11 +263,31 @@ class CalendarController extends Controller
                 'status' => $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO,
                 'status_label' => CalendarEvent::statuses()[$calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado',
                 'status_icon' => $calendarEvent->status_icon,
+                'cancellation_reason' => $calendarEvent->cancellation_reason,
                 'user_id' => $calendarEvent->user_id,
                 'user_name' => $calendarEvent->user?->name,
                 'user_avatar_url' => $userAvatarUrl,
                 'service_id' => $calendarEvent->service_id,
                 'service_name' => $calendarEvent->service?->name,
+                'client_id' => $calendarEvent->client_id,
+                'client_name' => $calendarEvent->client?->name,
+                'client_email' => $calendarEvent->client?->email,
+                'client_avatar_url' => $calendarEvent->client?->avatar ? asset('storage/' . $calendarEvent->client->avatar) : null,
+                'event_services' => $calendarEvent->eventServices->map(function ($s) {
+                    $cat = $s->category;
+                    $color = $cat?->color ?? '#6c757d';
+                    $duration = $s->pivot->duration ?? $s->duration;
+                    $price = (float) ($s->pivot->price ?? $s->price);
+                    return [
+                        'id' => $s->id,
+                        'name' => $s->name,
+                        'duration' => $duration,
+                        'price' => $price,
+                        'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
+                        'formatted_duration' => $this->formatDurationMinutes((int) $duration),
+                        'color' => $color,
+                    ];
+                })->values()->all(),
                 'is_source_editable' => $calendarEvent->isSourceEditable(),
                 'is_deletable' => $calendarEvent->isDeletableFromCalendar(),
                 'is_time_editable' => $calendarEvent->isTimeEditable(),
@@ -287,18 +352,29 @@ class CalendarController extends Controller
             'description' => ['nullable', 'string'],
             'event_type' => ['required', 'in:manual,outro,marcacao,tempo_pessoal'],
             'user_id' => ['nullable', 'exists:users,id'],
+            'client_id' => ['nullable', 'exists:clients,id'],
             'service_id' => ['nullable', 'exists:services,id'],
+            'services' => ['nullable', 'array'],
+            'services.*.service_id' => ['required_with:services', 'exists:services,id'],
+            'services.*.duration' => ['nullable', 'integer', 'min:1'],
+            'services.*.price' => ['nullable', 'numeric', 'min:0'],
         ];
         $validated = $request->validate($rules);
 
+        $servicesPayload = $request->input('services', []);
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
-            $request->validate(['service_id' => ['required', 'exists:services,id']]);
-            $validated['service_id'] = $request->input('service_id');
+            if (!empty($servicesPayload)) {
+                $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
+            } else {
+                $request->validate(['service_id' => ['required', 'exists:services,id']]);
+                $validated['service_id'] = $request->input('service_id');
+            }
         } else {
             $validated['service_id'] = null;
         }
 
         $validated['user_id'] = $validated['user_id'] ?? auth()->id();
+        $validated['client_id'] = $request->input('client_id');
         if ($validated['user_id'] && User::find($validated['user_id'])?->role === User::ROLE_ADMIN) {
             return response()->json([
                 'success' => false,
@@ -308,6 +384,17 @@ class CalendarController extends Controller
         $validated['status'] = $validated['status'] ?? CalendarEvent::STATUS_AGENDADO;
 
         $event = CalendarEvent::create($validated);
+
+        if (!empty($servicesPayload)) {
+            foreach ($servicesPayload as $i => $item) {
+                $event->eventServices()->attach((int) $item['service_id'], [
+                    'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
+                    'price' => isset($item['price']) ? (float) $item['price'] : null,
+                    'sort_order' => $i,
+                ]);
+            }
+            $event->load('eventServices');
+        }
 
         return response()->json([
             'success' => true,
@@ -326,6 +413,13 @@ class CalendarController extends Controller
             'start_at' => ['sometimes', 'date'],
             'end_at' => ['sometimes', 'date'],
             'user_id' => ['nullable', 'exists:users,id'],
+            'status' => ['sometimes', 'string', 'in:agendado,confirmado,chegou,iniciado,faltou,cancelado'],
+            'cancellation_reason' => ['nullable', 'string'],
+            'client_id' => ['nullable', 'exists:clients,id'],
+            'services' => ['nullable', 'array'],
+            'services.*.service_id' => ['required_with:services', 'exists:services,id'],
+            'services.*.duration' => ['nullable', 'integer', 'min:1'],
+            'services.*.price' => ['nullable', 'numeric', 'min:0'],
         ];
 
         if ($calendarEvent->isSourceEditable()) {
@@ -337,9 +431,15 @@ class CalendarController extends Controller
 
         $validated = $request->validate($rules);
 
+        $servicesPayload = $request->input('services', []);
+
         if (isset($validated['event_type']) && $validated['event_type'] === CalendarEvent::TYPE_MARCACAO && $calendarEvent->isSourceEditable()) {
-            $request->validate(['service_id' => ['required', 'exists:services,id']]);
-            $validated['service_id'] = $request->input('service_id');
+            if (!empty($servicesPayload)) {
+                $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
+            } elseif (!array_key_exists('service_id', $validated)) {
+                $request->validate(['service_id' => ['required', 'exists:services,id']]);
+                $validated['service_id'] = $request->input('service_id');
+            }
         } elseif (isset($validated['event_type']) && $validated['event_type'] !== CalendarEvent::TYPE_MARCACAO) {
             $validated['service_id'] = null;
         }
@@ -380,14 +480,39 @@ class CalendarController extends Controller
             $calendarEvent->save();
         }
 
+        if (isset($validated['status'])) {
+            $update = ['status' => $validated['status']];
+            if (isset($validated['cancellation_reason'])) {
+                $update['cancellation_reason'] = $validated['status'] === 'cancelado' ? $validated['cancellation_reason'] : null;
+            } elseif ($validated['status'] !== 'cancelado') {
+                $update['cancellation_reason'] = null;
+            }
+            $calendarEvent->update($update);
+        }
+
         if ($calendarEvent->isSourceEditable()) {
-            $calendarEvent->update(array_filter($validated, fn ($k) => in_array($k, ['title', 'description', 'event_type', 'service_id'], true), ARRAY_FILTER_USE_KEY));
+            $allowed = ['title', 'description', 'event_type', 'service_id', 'client_id'];
+            $toUpdate = array_filter($validated, fn ($k) => in_array($k, $allowed, true), ARRAY_FILTER_USE_KEY);
+            if (!empty($toUpdate)) {
+                $calendarEvent->update($toUpdate);
+            }
+
+            if (!empty($servicesPayload)) {
+                $calendarEvent->eventServices()->detach();
+                foreach ($servicesPayload as $i => $item) {
+                    $calendarEvent->eventServices()->attach((int) $item['service_id'], [
+                        'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
+                        'price' => isset($item['price']) ? (float) $item['price'] : null,
+                        'sort_order' => $i,
+                    ]);
+                }
+            }
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Evento atualizado com sucesso.',
-            'event' => $this->formatEventForCalendar($calendarEvent->fresh()),
+            'event' => $this->formatEventForCalendar($calendarEvent->fresh(['eventServices'])),
         ]);
     }
 
@@ -452,6 +577,21 @@ class CalendarController extends Controller
         $classMap = CalendarEvent::typeClassMap();
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
+        $event->loadMissing('eventServices');
+        $eventServicesData = $event->eventServices->isNotEmpty()
+            ? $event->eventServices->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'duration' => $dur = ($s->pivot->duration ?? $s->duration),
+                'price' => (float) ($s->pivot->price ?? $s->price),
+                'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
+                'formatted_duration' => $this->formatDurationMinutes((int) $dur),
+            ])->values()->all()
+            : [];
+        $serviceName = $event->eventServices->isNotEmpty()
+            ? $event->eventServices->pluck('name')->join(', ')
+            : ($event->service?->name ?? null);
+
         $arr = [
             'id' => (string) $event->id,
             'title' => $event->title,
@@ -462,10 +602,14 @@ class CalendarController extends Controller
                 'description' => $event->description,
                 'event_type' => $event->event_type,
                 'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
+                'status' => $event->status ?? CalendarEvent::STATUS_AGENDADO,
+                'status_label' => CalendarEvent::statuses()[$event->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado',
+                'status_icon' => $event->status_icon,
                 'user_id' => $event->user_id,
                 'user_name' => $event->user?->name,
                 'service_id' => $event->service_id,
-                'service_name' => $event->service?->name,
+                'service_name' => $serviceName,
+                'event_services' => $eventServicesData,
                 'is_source_editable' => $event->isSourceEditable(),
                 'is_deletable' => $event->isDeletableFromCalendar(),
                 'is_time_editable' => $event->isTimeEditable(),
@@ -475,5 +619,18 @@ class CalendarController extends Controller
             $arr['resourceId'] = $event->user_id ? (string) $event->user_id : 'unassigned';
         }
         return $arr;
+    }
+
+    private function formatDurationMinutes(int $minutes): string
+    {
+        $hours = floor($minutes / 60);
+        $mins = $minutes % 60;
+        if ($hours > 0 && $mins > 0) {
+            return $hours . 'h ' . $mins . 'min';
+        }
+        if ($hours > 0) {
+            return $hours . 'h';
+        }
+        return $mins . 'min';
     }
 }

@@ -22,8 +22,7 @@
     <div class="auth-brand-panel">
       <div class="auth-brand-content">
         <a href="{{ route('dashboard') }}" class="auth-brand-logo">
-          <img src="{{ asset('template/img/logo.webp') }}" alt="{{ config('app.name') }}">
-          <span>{{ config('app.name') }}</span>
+          <img src="{{ asset('template/img/logo-color-white.png') }}" alt="{{ config('app.name') }}">
         </a>
         <div class="auth-brand-text">
           <h2>Soluções inteligentes para equipas modernas</h2>
@@ -51,8 +50,7 @@
       <div class="auth-container">
         <!-- Mobile Logo (hidden on desktop) -->
         <a href="{{ route('dashboard') }}" class="auth-logo">
-          <img src="{{ asset('template/img/logo.webp') }}" alt="{{ config('app.name') }}">
-          <span>{{ config('app.name') }}</span>
+          <img src="{{ asset('template/img/logo-color-icon.png') }}" alt="{{ config('app.name') }}">
         </a>
 
         @yield('content')

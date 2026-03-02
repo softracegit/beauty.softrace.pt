@@ -232,6 +232,16 @@
                 </div>
             </div>
 
+            <!-- Serviços associados -->
+            <div class="card">
+                <div class="card-body">
+                    @include('agentes.partials.services-by-category', [
+                        'categories' => $categories,
+                        'selectedServiceIds' => old('service_ids', $agente->services->pluck('id')->toArray()),
+                    ])
+                </div>
+            </div>
+
             <!-- Change Password -->
             <div class="card">
                 <div class="card-body">

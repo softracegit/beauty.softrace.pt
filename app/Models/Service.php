@@ -42,6 +42,16 @@ class Service extends Model
     }
 
     /**
+     * Get calendar events that include this service
+     */
+    public function calendarEvents(): BelongsToMany
+    {
+        return $this->belongsToMany(\App\Models\CalendarEvent::class, 'calendar_event_services')
+            ->withPivot('duration', 'price', 'sort_order')
+            ->withTimestamps();
+    }
+
+    /**
      * Get formatted price
      */
     public function getFormattedPriceAttribute(): string

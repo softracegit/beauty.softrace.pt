@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\Category;
 use App\Models\Note;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -47,7 +48,10 @@ class AgentController extends Controller
     public function create()
     {
         $this->authorize('create', Agent::class);
-        return view('agentes.create');
+        $categories = Category::orderBy('sort_order')
+            ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
+            ->get();
+        return view('agentes.create', compact('categories'));
     }
 
     /**
@@ -78,6 +82,8 @@ class AgentController extends Controller
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'service_ids' => ['nullable', 'array'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
         ]);
 
         $user = User::create([
@@ -87,14 +93,15 @@ class AgentController extends Controller
             'role' => $validated['role'],
         ]);
 
-        $agentData = collect($validated)->except(['email', 'password', 'password_confirmation', 'role', 'avatar'])->all();
+        $agentData = collect($validated)->except(['email', 'password', 'password_confirmation', 'role', 'avatar', 'service_ids'])->all();
         $agentData['user_id'] = $user->id;
 
         if ($request->hasFile('avatar')) {
             $agentData['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
 
-        Agent::create($agentData);
+        $agent = Agent::create($agentData);
+        $agent->services()->sync($request->input('service_ids', []));
 
         return redirect()->route('equipa.index')
             ->with('success', 'Membro criado com sucesso.');
@@ -144,8 +151,11 @@ class AgentController extends Controller
     public function edit(Agent $agente)
     {
         $this->authorize('update', $agente);
-        
-        return view('agentes.edit', compact('agente'));
+        $agente->load('services');
+        $categories = Category::orderBy('sort_order')
+            ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
+            ->get();
+        return view('agentes.edit', compact('agente', 'categories'));
     }
 
     /**
@@ -176,6 +186,8 @@ class AgentController extends Controller
             'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'service_ids' => ['nullable', 'array'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
         ]);
 
         // Handle avatar upload
@@ -207,6 +219,8 @@ class AgentController extends Controller
             
             $agente->user->update($userData);
         }
+
+        $agente->services()->sync($request->input('service_ids', []));
 
         return redirect()->route('equipa.show', $agente)
             ->with('success', 'Membro atualizado com sucesso.');

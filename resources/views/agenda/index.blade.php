@@ -2,544 +2,7 @@
 @section('title', 'Agenda | Beauty CRM')
 @section('css')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css">
-    <style>
-        /* main-content sem padding na agenda */
-        body .main-content {
-            padding: 0 !important;
-        }
-        
-        /* Esconder breadcrumbs na agenda */
-        body .main-breadcrumb,
-        body .main-breadcrumb * {
-            display: none !important;
-            visibility: hidden !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-        }
-        
-        /* Remover padding do app-wrapper na agenda */
-        body .app-wrapper {
-            padding: 0 !important;
-        }
-        
-        /* Remover margens e padding dos containers da agenda */
-        body .app-wrapper .container-fluid {
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
-        
-        /* Remover margens e padding do row e col */
-        .row.g-0,
-        .row.g-0 > .col-12 {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-        
-        /* Remover margens e padding do card */
-        .card.border-0.shadow-none,
-        .card.border-0.shadow-none .card-body {
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-        }
-        
-        #calendar { 
-            width: 100%;
-            height: calc(100vh - 60px);
-            margin: 0;
-            padding: 0;
-        }
-        
-        /* Pequeno padding apenas na toolbar do FullCalendar */
-        .fc-header-toolbar {
-            padding: 1rem 1rem 0.5rem 1rem;
-            margin: 0;
-        }
-
-        .fc-license-message {
-            display: none !important;
-        }
-        
-        /* Margin-bottom na toolbar do FullCalendar */
-        .fc .fc-toolbar.fc-header-toolbar {
-            margin-bottom: 0.5em;
-        }
-        
-        /* Esconder "Todo o dia" */
-        .fc-all-day {
-            display: none !important;
-        }
-        
-        /* Linha vermelha indicando a hora atual */
-        .fc-timegrid-now-indicator-line {
-            border-color: #dc3545 !important;
-            border-width: 1px !important;
-        }
-        
-        .fc-timegrid-now-indicator-arrow {
-            border-left-color: #dc3545 !important;
-            border-right-color: #dc3545 !important;
-        }
-        
-        /* Coluna das horas (esquerda) sem linhas horizontais */
-        .fc-timegrid-slot-label,
-        .fc-timegrid-axis,
-        .fc-timegrid-axis .fc-scrollgrid-sync-inner,
-        .fc-timegrid .fc-timegrid-axis td,
-        .fc-timegrid .fc-timegrid-axis th {
-            border-top: none !important;
-            border-bottom: none !important;
-        }
-        .fc-timegrid-slot-label-frame {
-            border: none !important;
-        }
-        .fc .fc-timegrid .fc-col-header-cell.fc-day-today 
-        .fc-col-header-cell-cushion {
-            color: #0d6efd !important;
-        }
-        
-        .fc-event { cursor: pointer; color: #fff !important; font-size: 0.75rem !important; font-weight: 400 !important; padding: 2px 5px !important; text-align: left !important; border-radius: 3px !important; }
-        .fc-event .fc-event-main,
-        .fc-event-main,
-        .fc-event .fc-event-title,
-        .fc-event-title { color: #fff !important; white-space: normal !important; }
-        .fc-event-time { font-weight: 500; margin-right: 0.25rem; }
-        .fc-event-content-wrapper { position: relative; width: 100%; height: 100%; }
-        .fc-event-status-icon { 
-            position: absolute; 
-            top: 0px; 
-            right: -2px; 
-            font-size: 0.75rem; 
-            opacity: 1; 
-            z-index: 10;
-            font-weight: 600;
-        }
-        .fc-daygrid-event,
-        .fc-daygrid-event-harness { min-height: auto !important; }
-        .fc-daygrid-event .fc-event-main { padding: 0.15rem 0.35rem !important; font-size: 0.75rem !important; line-height: 1.2 !important; min-height: auto !important; }
-        .fc-timegrid-event .fc-event-main { padding: 0.15rem 0.35rem !important; font-size: 0.75rem !important; line-height: 1.2 !important; }
-        .fc-timegrid-event-short .fc-event-main { padding: 0.15rem 0.35rem !important; }
-        .fc-toolbar-chunk:last-child {
-            display: flex !important;
-            align-items: center;
-            gap: 0 !important;
-        }
-        .fc-header-toolbar .fc-toolbar-chunk {
-            display: flex;
-            align-items: center;
-        }
-        
-        /* Primeiro chunk - gap para espaçamento entre botões, sem margem/padding esquerdo */
-        .fc-header-toolbar .fc-toolbar-chunk:first-child {
-            gap: 0.5rem !important;
-            margin-left: 0 !important;
-            padding-left: 0 !important;
-        }
-        
-        /* Toolbar: botões e dropdowns sem margens; dropdowns inline-block */
-        .fc-toolbar-chunk .dropdown,
-        .fc-toolbar-chunk > .dropdown,
-        .fc-header-toolbar .dropdown {
-            display: inline-block;
-            vertical-align: middle;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .fc .fc-button,
-        .fc-viewSelector-button,
-        .fc-consultantFilter-button,
-        .fc-newEvent-button,
-        .fc-today-button,
-        .fc-prev-button,
-        .fc-next-button {
-            margin: 0 !important;
-        }
-        
-        /* Remover margens e padding dos toolbar-chunks */
-        .fc-toolbar-chunk {
-            margin: 0 !important;
-            padding: 0 !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            margin-top: 0 !important;
-            margin-bottom: 0 !important;
-            padding-left: 0 !important;
-            padding-right: 0 !important;
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
-        
-        /* Primeiro chunk (left) - gap para espaçamento entre botões, sem margem/padding esquerdo */
-        .fc-header-toolbar .fc-toolbar-chunk:first-child,
-        .fc-toolbar-chunk:first-child {
-            margin-left: 0 !important;
-            padding-left: 0 !important;
-            gap: 0.5rem !important;
-        }
-        
-        /* Último chunk (right) - sem gap para evitar espaço extra antes do primeiro elemento */
-        .fc-header-toolbar .fc-toolbar-chunk:last-child,
-        .fc-toolbar-chunk:last-child {
-            gap: 0 !important;
-            margin-right: 0 !important;
-            padding-right: 0 !important;
-        }
-        
-        /* Garantir que o header toolbar não adiciona espaçamento */
-        .fc-header-toolbar {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-        }
-        
-        /* Primeiro elemento dentro do primeiro chunk não deve ter margem esquerda */
-        .fc-toolbar-chunk:first-child > *:first-child,
-        .fc-header-toolbar .fc-toolbar-chunk:first-child > *:first-child,
-        .fc-toolbar-chunk:first-child > button:first-child,
-        .fc-header-toolbar .fc-toolbar-chunk:first-child > button:first-child {
-            margin-left: 0 !important;
-            margin: 0 !important;
-        }
-        
-        /* Garantir que os botões individuais não têm margens (o gap do container cria o espaçamento) */
-        .fc-toolbar-chunk:first-child > * {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-        }
-        
-        /* Garantir que o botão "Hoje" especificamente não tem margem esquerda e segue o mesmo estilo */
-        .fc-today-button,
-        .fc .fc-today-button,
-        .fc-today-button:not(:disabled),
-        .fc .fc-today-button:not(:disabled) {
-            margin-left: 0 !important;
-            background-color: #ffffff !important;
-            border-color: #dee2e6 !important;
-            color: #212529 !important;
-            font-weight: 400 !important;
-            border-width: 1px !important;
-            border-style: solid !important;
-            line-height: 22px !important;
-        }
-        
-        .fc-today-button:hover:not(:disabled),
-        .fc .fc-today-button:hover:not(:disabled) {
-            background-color: #f8f9fa !important;
-            border-color: #dee2e6 !important;
-            color: #212529 !important;
-        }
-        
-        .fc-today-button:focus:not(:disabled),
-        .fc .fc-today-button:focus:not(:disabled) {
-            background-color: #f8f9fa !important;
-            border-color: #dee2e6 !important;
-            color: #212529 !important;
-            box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1) !important;
-        }
-        
-        .fc-toolbar-chunk:first-child .fc-today-button {
-            margin-left: 0 !important;
-            margin: 0 !important;
-        }
-        
-        .fc-toolbar-title,
-        .fc-header-toolbar .fc-toolbar-chunk:nth-child(2) {
-            display: none !important;
-        }
-        
-        /* Botão de data atual - visível com estilo */
-        .fc-currentDate-button {
-            pointer-events: none;
-            cursor: default;
-            font-weight: 500;
-            background: transparent !important;
-            border: none !important;
-            color: #212529 !important;
-            padding: 0.375rem 0.75rem;
-            font-size: 0.875rem;
-            opacity: 1 !important;
-        }
-        .fc-currentDate-button:hover {
-            background: transparent !important;
-            color: #212529 !important;
-        }
-        
-        /* Estilo consistente para todos os botões do FullCalendar */
-        .fc .fc-button-primary,
-        .fc .fc-button-primary:not(:disabled),
-        .fc .fc-button-primary:not(:disabled):active,
-        .fc .fc-button-primary:not(:disabled).fc-button-active,
-        .fc button.fc-today-button,
-        .fc button.fc-today-button:not(:disabled),
-        .fc button.fc-today-button:not(:disabled):active,
-        .fc .fc-today-button,
-        .fc .fc-today-button:not(:disabled),
-        .fc .fc-today-button:not(:disabled):active,
-        .fc .fc-prev-button,
-        .fc .fc-next-button,
-        .fc .fc-viewSelector-button,
-        .fc .fc-consultantFilter-button,
-        .fc .fc-newEvent-button,
-        .fc .fc-button-group .fc-button-primary {
-            background-color: #ffffff !important;
-            border-color: #dee2e6 !important;
-            color: #212529 !important;
-            font-weight: 400;
-        }
-        
-        .fc .fc-button-primary:hover:not(:disabled),
-        .fc button.fc-today-button:hover:not(:disabled),
-        .fc .fc-today-button:hover:not(:disabled),
-        .fc .fc-prev-button:hover:not(:disabled),
-        .fc .fc-next-button:hover:not(:disabled),
-        .fc .fc-viewSelector-button:hover:not(:disabled),
-        .fc .fc-consultantFilter-button:hover:not(:disabled),
-        .fc .fc-newEvent-button:hover:not(:disabled),
-        .fc .fc-button-group .fc-button-primary:hover:not(:disabled) {
-            background-color: #f8f9fa !important;
-            border-color: #dee2e6 !important;
-            color: #212529 !important;
-        }
-        
-        .fc .fc-button-primary:focus:not(:disabled),
-        .fc button.fc-today-button:focus:not(:disabled),
-        .fc .fc-today-button:focus:not(:disabled),
-        .fc .fc-prev-button:focus:not(:disabled),
-        .fc .fc-next-button:focus:not(:disabled),
-        .fc .fc-viewSelector-button:focus:not(:disabled),
-        .fc .fc-consultantFilter-button:focus:not(:disabled),
-        .fc .fc-newEvent-button:focus:not(:disabled),
-        .fc .fc-button-group .fc-button-primary:focus:not(:disabled) {
-            background-color: #f8f9fa !important;
-            border-color: #dee2e6 !important;
-            color: #212529 !important;
-            box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1) !important;
-        }
-        
-        .fc .fc-button-primary:not(:disabled):active,
-        .fc .fc-button-primary:not(:disabled).fc-button-active,
-        .fc button.fc-today-button:not(:disabled):active,
-        .fc .fc-today-button:not(:disabled):active,
-        .fc .fc-prev-button:not(:disabled):active,
-        .fc .fc-next-button:not(:disabled):active,
-        .fc .fc-viewSelector-button:not(:disabled):active,
-        .fc .fc-consultantFilter-button:not(:disabled):active,
-        .fc .fc-newEvent-button:not(:disabled):active,
-        .fc .fc-button-group .fc-button-primary:not(:disabled):active,
-        .fc .fc-button-group .fc-button-primary:not(:disabled).fc-button-active {
-            background-color: #e9ecef !important;
-            border-color: #dee2e6 !important;
-            color: #212529 !important;
-        }
-        
-        /* Ícones dos botões prev/next - cor escura */
-        .fc-prev-button .fc-icon,
-        .fc-next-button .fc-icon {
-            color: #212529 !important;
-        }
-        
-        /* Dropdown toggle - estilo consistente */
-        .fc-viewSelector-button.dropdown-toggle::after,
-        .fc-consultantFilter-button.dropdown-toggle::after {
-            border-top-color: #212529 !important;
-        }
-        
-        /* Garantir que os cabeçalhos dos dias estão visíveis */
-        .fc-col-header-cell,
-        .fc-day-header {
-            visibility: visible !important;
-        }
-        
-        .fc-col-header-cell-cushion,
-        .fc-day-header-cushion {
-            display: inline-block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        /* Alinhar cabeçalhos à esquerda apenas na vista mensal */
-        .fc-dayGridMonth .fc-col-header-cell-cushion,
-        .fc-dayGridMonth .fc-day-header-cushion {
-            text-align: left !important;
-            padding-left: 0.5rem !important;
-        }
-        
-        /* Alinhar números das células à esquerda */
-        .fc-daygrid-day-number {
-            text-align: left !important;
-            padding-left: 0.5rem !important;
-        }
-
-        .fc .fc-day-today {
-            background-color: #ffffff !important;
-        }
-        
-        /* Células do mês com altura uniforme */
-        .fc-dayGridMonth-view .fc-scrollgrid-sync-table {
-            height: 100%;
-        }
-        .fc-dayGridMonth-view .fc-daygrid-day-frame {
-            min-height: 7rem;
-        }
-        .fc-dayGridMonth-view .fc-daygrid-day {
-            min-height: 7rem;
-        }
-        .fc-dayGridMonth-view .fc-daygrid-week {
-            min-height: 7rem;
-        }
-        
-        /* Dia atual - círculo azul com número branco (apenas na vista mensal) */
-        .fc-dayGridMonth-view .fc-day-today .fc-daygrid-day-number {
-            color: #0d6efd !important;
-            display: inline-flex !important;
-            font-weight: 600 !important;
-            padding: 0 0 0 6px !important;
-        }
-        
-
-        /* Cabeçalho do recurso (por consultor): foto à esquerda do nome */
-        .fc-resource-consultant-label {
-            display: inline-flex !important;
-            align-items: center !important;
-            gap: 0.5rem !important;
-        }
-        .fc-resource-consultant-avatar {
-            width: 20px !important;
-            height: 20px !important;
-            border-radius: 50% !important;
-            object-fit: cover !important;
-            flex-shrink: 0 !important;
-        }
-        .fc-resource-consultant-name {
-            white-space: nowrap !important;
-            overflow: hidden !important;
-            text-overflow: ellipsis !important;
-        }
-        /* Menos padding inferior no header da vista por consultor */
-        .fc-resourceTimeGridDay-view .fc-col-header-cell {
-            padding-bottom: 0rem !important;
-        }
-        
-        /* Alinhar th à esquerda */
-        .fc th {
-            text-align: left !important;
-        }
-        
-        /* Remover flex-direction de fc-daygrid-day-top */
-        .fc .fc-daygrid-day-top {
-            flex-direction: unset !important;
-            display: block !important;
-        }
-        
-        /* Ocultar o dot dos eventos (todas as vistas) */
-        .fc-daygrid-event-dot {
-            display: none !important;
-            width: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-        }
-        
-        /* === 1) Hover nas células do calendário (apenas na área vazia, não sobre eventos) === */
-        /* Vista mensal: hover no frame do dia */
-        .fc-daygrid-day-frame:hover,
-        .fc-daygrid-day:hover .fc-daygrid-day-frame {
-            background-color: #f0f4f8 !important;
-        }
-        
-        /* Modal de detalhes do evento completo - layout moderno */
-        #eventDetailModal .modal-dialog {
-            max-width: 800px;
-        }
-        #eventDetailModal .modal-header {
-            padding-bottom: 0.5rem;
-            padding-top: 1rem;
-            align-items: flex-start;
-        }
-        #eventDetailModal .modal-header .modal-title {
-            flex: 1;
-            padding-right: 0.5rem;
-        }
-        #eventDetailModal .modal-body {
-            padding-top: 0;
-        }
-        #eventDetailModal h4 {
-            font-size: 1.5rem;
-            line-height: 1.3;
-        }
-        #eventDetailModal .badge {
-            font-size: 0.875rem;
-            padding: 0.4rem 0.7rem;
-            font-weight: 500;
-        }
-        #eventDetailModal i {
-            font-size: 1.1rem;
-        }
-        #eventDetailModal .text-uppercase {
-            letter-spacing: 0.5px;
-            font-size: 0.75rem;
-        }
-        @media (max-width: 991.98px) {
-            #eventDetailModal .col-lg-6 {
-                border-start: none !important;
-                border-top: 1px solid #dee2e6;
-                margin-top: 1.5rem;
-                padding-top: 1.5rem !important;
-                padding-left: 0 !important;
-            }
-        }
-        
-        /* Modal de detalhes do evento simples - layout compacto */
-        #eventDetailModalSimple .modal-dialog {
-            max-width: 500px;
-        }
-        #eventDetailModalSimple .modal-header {
-            padding-bottom: 0.5rem;
-            padding-top: 1rem;
-            align-items: flex-start;
-        }
-        #eventDetailModalSimple .modal-header .modal-title {
-            flex: 1;
-            padding-right: 0.5rem;
-        }
-        #eventDetailModalSimple .modal-body {
-            padding-top: 0;
-        }
-        #eventDetailModalSimple h4 {
-            font-size: 1.5rem;
-            line-height: 1.3;
-        }
-        #eventDetailModalSimple .badge {
-            font-size: 0.875rem;
-            padding: 0.4rem 0.7rem;
-            font-weight: 500;
-        }
-        #eventDetailModalSimple i {
-            font-size: 1.1rem;
-        }
-        
-        /* Modal de criar/editar evento - mesmo estilo de header */
-        #createEventModal .modal-header {
-            padding-bottom: 0.5rem;
-            padding-top: 1rem;
-            align-items: flex-start;
-        }
-        #createEventModal .modal-header .modal-title {
-            flex: 1;
-            padding-right: 0.5rem;
-        }
-        #createEventModal .modal-body {
-            padding-top: 0;
-        }
-        #createEventModal h4 {
-            font-size: 1.5rem;
-            line-height: 1.3;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('template/css/agenda.css') }}">
 @endsection
 @section('content')
 <div class="row g-0">
@@ -552,11 +15,116 @@
     </div>
 </div>
 
+<!-- Quick menu popup (ao clicar numa célula) - mesmo aspeto do quick access da navbar -->
+<div id="agendaQuickMenu" role="menu" aria-label="Opções"></div>
+
+<!-- Modal: Nova marcação (inspirado em apps-support ticket detail) -->
+<div class="modal fade" id="novaMarcacaoModal" tabindex="-1" aria-labelledby="novaMarcacaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header pb-3 d-flex align-items-center justify-content-between">
+                <h4 class="modal-title mb-0 fw-semibold d-flex flex-wrap align-items-center gap-1">
+                    <span id="novaMarcacaoEditTitleDay">—</span>
+                    <span class="dropdown">
+                        <span class="event-detail-time-toggle dropdown-toggle" id="novaMarcacaoTimeToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button">—</span>
+                        <div class="dropdown-menu dropdown-menu-start p-0" id="novaMarcacaoTimeDropdownMenu">
+                            <div class="px-3 py-2 border-bottom"><label class="form-label small mb-0">Alterar hora de início</label></div>
+                            <div class="nova-marcacao-time-options agenda-time-options-scroll"></div>
+                        </div>
+                    </span>
+                </h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <form id="novaMarcacaoForm">
+                <input type="hidden" id="novaMarcacaoAgentId" name="user_id">
+                <input type="hidden" id="novaMarcacaoStart" name="start_at">
+                <input type="hidden" id="novaMarcacaoEnd" name="end_at">
+                <div class="modal-body">
+                    <div class="row g-4">
+                        <div class="col-lg-5">
+                            <div class="nova-marcacao-sidebar">
+                                <div class="nova-marcacao-section">
+                                    <h6 class="nova-marcacao-section-title">Prestador do Serviço</h6>
+                                    <div class="nova-marcacao-person" id="novaMarcacaoAgentBlock">
+                                        <img id="novaMarcacaoAgentAvatar" src="" alt="" class="rounded-circle agenda-avatar-img" width="40" height="40">
+                                        <div class="flex-grow-1 min-w-0">
+                                            <strong id="novaMarcacaoAgentName">—</strong>
+                                            <span id="novaMarcacaoAgentEmail" class="d-block small text-muted">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="nova-marcacao-section">
+                                    <h6 class="nova-marcacao-section-title">Cliente</h6>
+                                    <div id="novaMarcacaoClientSearchWrap" class="mb-2">
+                                        <div class="d-flex gap-2 align-items-center mb-2">
+                                            <input type="text" id="novaMarcacaoClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Pesquisar cliente..." autocomplete="off">
+                                            <button type="button" class="btn btn-light btn-sm d-none" id="novaMarcacaoClientCancelBtn">Cancelar</button>
+                                        </div>
+                                    </div>
+                                    <div id="novaMarcacaoClientResults" class="nova-marcacao-client-results mb-2">
+                                    </div>
+                                    <div id="novaMarcacaoClientSelected" class="nova-marcacao-person d-none">
+                                        <img id="novaMarcacaoClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="40" height="40">
+                                        <div id="novaMarcacaoClientAvatarFallback" class="nova-marcacao-avatar-fallback agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center small fw-semibold d-none">—</div>
+                                        <div class="flex-grow-1 min-w-0">
+                                            <strong id="novaMarcacaoClientSelectedName">—</strong>
+                                            <span id="novaMarcacaoClientSelectedEmail" class="d-block small text-muted">—</span>
+                                        </div>
+                                        <button type="button" class="btn btn-link btn-sm p-0 align-self-start" id="novaMarcacaoClientClear">Alterar</button>
+                                    </div>
+                                </div>
+                                <div class="nova-marcacao-section">
+                                    <button type="button" class="nova-marcacao-observacoes-toggle nova-marcacao-section-title border-0 bg-transparent p-0 text-start d-flex align-items-center justify-content-between w-100" id="novaMarcacaoObservacoesToggle">
+                                        Observações
+                                        <i class="ph ph-caret-down nova-marcacao-observacoes-chevron agenda-observacoes-chevron"></i>
+                                    </button>
+                                    <div class="nova-marcacao-observacoes-wrap collapse" id="novaMarcacaoObservacoesWrap">
+                                        <textarea class="form-control form-control-sm mt-2" id="novaMarcacaoObservacoes" name="description" rows="2" placeholder="Observações..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-7">
+                            <h6 class="mb-3 fw-semibold" id="novaMarcacaoServicesTitle">Serviços</h6>
+                            <div id="novaMarcacaoServicesListCancelWrap" class="d-none mb-3">
+                                <button type="button" class="btn btn-light btn-sm" id="novaMarcacaoCancelAddServicesBtn"><i class="ph ph-arrow-left me-1"></i>Voltar</button>
+                            </div>
+                            <div id="novaMarcacaoServicesList" class="nova-marcacao-services-list">
+                                <div class="text-muted small">A carregar serviços...</div>
+                            </div>
+                            <div id="novaMarcacaoServiceSelected" class="d-none">
+                                <div class="nova-marcacao-services-selected-title">Serviços selecionados</div>
+                                <div id="novaMarcacaoSelectedServicesList"></div>
+                                <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="novaMarcacaoAddMoreServicesBtn">
+                                    <i class="ph ph-plus me-1"></i>Adicionar mais serviços
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer pt-3 pb-3 d-flex justify-content-between align-items-center">
+                    <div class="me-auto">
+                        <span class="text-black fs-6 fw-bold">Total:</span>
+                        <span class="fw-semibold ms-1" id="novaMarcacaoTotalPrice">0,00 €</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary ms-2" id="novaMarcacaoSubmitBtn">Criar marcação</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick menu: Editar opções do serviço (duração, preço) -->
+<div id="novaMarcacaoEditServiceQuickMenu" role="dialog" aria-label="Alterar opções do serviço"></div>
+
 <!-- Modal: Criar / Editar evento (apenas manual/outro) -->
 <div class="modal fade" id="createEventModal" tabindex="-1" aria-labelledby="createEventModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header border-0 pb-2 d-flex align-items-start justify-content-between">
+            <div class="modal-header pb-2 d-flex align-items-start justify-content-between">
                 <h4 class="modal-title mb-0 fw-semibold" id="createEventModalLabel">Novo evento</h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
@@ -619,219 +187,125 @@
     </div>
 </div>
 
-<!-- Modal: Detalhes do evento simples (sem leads/visitas) -->
-<div class="modal fade" id="eventDetailModalSimple" tabindex="-1" aria-labelledby="eventDetailModalSimpleLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- Modal: Ver/Editar Evento (layout Nova Marcação, unificado) -->
+<div class="modal fade" id="eventDetailEditModal" tabindex="-1" aria-labelledby="eventDetailEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
-            <div class="modal-header border-0 pb-2 d-flex align-items-start justify-content-between">
-                <h4 class="modal-title mb-0 fw-semibold" id="detailTitleSimple">—</h4>
+            <div class="modal-header pb-3 d-flex align-items-center justify-content-between">
+                <h4 class="modal-title mb-0 fw-semibold d-flex flex-wrap align-items-center gap-1">
+                    <span id="eventDetailEditTitleDay">—</span>
+                    <span class="dropdown">
+                        <span class="event-detail-time-toggle dropdown-toggle" id="eventDetailTimeToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button">—</span>
+                        <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailTimeDropdownMenu">
+                            <div class="px-3 py-2 border-bottom"><label class="form-label small mb-0">Alterar hora de início</label></div>
+                            <div class="event-detail-time-options agenda-time-options-scroll">
+                                <!-- Opções 00:00 - 23:30 geradas em JS -->
+                            </div>
+                        </div>
+                    </span>
+                </h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <div class="modal-body pt-5">
-                
-                <!-- Data e hora -->
-                <div class="mb-3">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="ph-duotone ph-calendar text-muted me-2"></i>
-                        <span class="small text-muted" id="detailDateSimple">—</span>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <i class="ph-duotone ph-clock text-muted me-2"></i>
-                        <span class="small text-muted" id="detailTimeSimple">—</span>
-                    </div>
-                </div>
-                
-                <!-- Tipo de evento -->
-                <div class="mb-3">
-                    <div class="d-flex align-items-center">
-                        <i class="ph-duotone ph-tag text-muted me-2"></i>
-                        <span class="badge bg-primary" id="detailTypeBadgeSimple">—</span>
-                    </div>
-                </div>
-                
-                <!-- Estado do evento -->
-                <div class="mb-3">
-                    <label for="detailStatusSimple" class="form-label small text-muted mb-1">Estado</label>
-                    <select class="form-select form-select-sm" id="detailStatusSimple">
-                        <option value="agendado">Agendado</option>
-                        <option value="confirmado">Confirmado</option>
-                        <option value="chegou">Chegou</option>
-                        <option value="iniciado">Iniciado</option>
-                        <option value="faltou">Faltou</option>
-                        <option value="cancelado">Cancelado</option>
-                    </select>
-                </div>
-                
-                <!-- Membro -->
-                <div class="mb-3">
-                    <div class="d-flex align-items-center">
-                        <i class="ph-duotone ph-user text-muted me-2"></i>
-                        <div class="d-flex align-items-center">
-                            <img id="detailUserAvatarSimple" src="" alt="" class="rounded-circle me-2 d-none" style="width: 20px; height: 20px; object-fit: cover;">
-                            <span class="small text-muted" id="detailUserSimple">—</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Serviço (apenas tipo Marcação) -->
-                <div id="detailServiceWrapSimple" class="mb-3 d-none">
-                    <div class="d-flex align-items-center">
-                        <i class="ph-duotone ph-scissors text-muted me-2"></i>
-                        <span class="small text-muted" id="detailServiceSimple">—</span>
-                    </div>
-                </div>
-                
-                <!-- Descrição -->
-                <div id="detailDescriptionWrapSimple" class="mb-0 d-none">
-                    <p class="mb-0 text-muted" id="detailDescriptionSimple">—</p>
-                </div>
-            </div>
-            <div class="modal-footer border-top">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
-                <button type="button" class="btn btn-primary d-none" id="btnEditEventSimple">
-                    <i class="ph ph-pencil-simple me-1"></i> Editar
-                </button>
-                <button type="button" class="btn btn-danger d-none" id="btnDeleteEventSimple">
-                    <i class="ph ph-trash me-1"></i> Eliminar
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Detalhes do evento completo (com leads/visitas) -->
-<div class="modal fade" id="eventDetailModal" tabindex="-1" aria-labelledby="eventDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-2 d-flex align-items-start justify-content-between">
-                <h4 class="modal-title mb-0 fw-semibold" id="detailTitle">—</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <div class="modal-body pt-5">
-                <div class="row g-0">
-                    <!-- Coluna esquerda: Informações do evento (igual ao modal simples) -->
-                    <div class="col-lg-6 pe-lg-4">
-                        
-                        <!-- Data e hora -->
-                        <div class="mb-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="ph-duotone ph-calendar text-muted me-2"></i>
-                                <span class="small text-muted" id="detailDate">—</span>
-                            </div>
-                            <div class="d-flex align-items-center">
-                                <i class="ph-duotone ph-clock text-muted me-2"></i>
-                                <span class="small text-muted" id="detailTime">—</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Tipo de evento -->
-                        <div class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="ph-duotone ph-tag text-muted me-2"></i>
-                                <span class="badge bg-primary" id="detailTypeBadge">—</span>
-                            </div>
-                        </div>
-                        
-                        <!-- Estado do evento -->
-                        <div class="mb-3">
-                            <label for="detailStatus" class="form-label small text-muted mb-1">Estado</label>
-                            <select class="form-select form-select-sm" id="detailStatus">
-                                <option value="agendado">Agendado</option>
-                                <option value="confirmado">Confirmado</option>
-                                <option value="chegou">Chegou</option>
-                                <option value="iniciado">Iniciado</option>
-                                <option value="faltou">Faltou</option>
-                                <option value="cancelado">Cancelado</option>
-                            </select>
-                        </div>
-                        
-                        <!-- Membro -->
-                        <div class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="ph-duotone ph-user text-muted me-2"></i>
-                                <div class="d-flex align-items-center">
-                                    <img id="detailUserAvatar" src="" alt="" class="rounded-circle me-2 d-none" style="width: 20px; height: 20px; object-fit: cover;">
-                                    <span class="small text-muted" id="detailUser">—</span>
+            <form id="eventDetailEditForm">
+                <input type="hidden" id="eventDetailEditId" name="event_id">
+                <input type="hidden" id="eventDetailEditUserId" name="user_id">
+                <input type="hidden" id="eventDetailEditStart" name="start_at">
+                <input type="hidden" id="eventDetailEditEnd" name="end_at">
+                <div class="modal-body">
+                    <div class="row g-4">
+                        <div class="col-lg-5">
+                            <div class="nova-marcacao-sidebar">
+                                <div class="nova-marcacao-section d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                    <div class="dropdown" id="eventDetailStatusDropdownWrap">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" id="eventDetailStatusDropdownBtn">
+                                            <span id="eventDetailStatusLabel">Agendado</span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" id="eventDetailStatusMenu">
+                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="agendado">Agendado</a></li>
+                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="confirmado">Confirmado</a></li>
+                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="chegou">Chegou</a></li>
+                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="iniciado">Iniciado</a></li>
+                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="faltou">Faltou</a></li>
+                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="cancelado">Cancelado</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div id="eventDetailCancelReasonWrap" class="d-none mb-3">
+                                    <label for="eventDetailCancelReason" class="form-label small">Razão do cancelamento</label>
+                                    <textarea class="form-control form-control-sm" id="eventDetailCancelReason" name="cancellation_reason" rows="2" placeholder="Indique o motivo do cancelamento..."></textarea>
+                                </div>
+                                <div class="nova-marcacao-section">
+                                    <h6 class="nova-marcacao-section-title">Prestador do Serviço</h6>
+                                    <div class="nova-marcacao-person" id="eventDetailAgentBlock">
+                                        <img id="eventDetailAgentAvatar" src="" alt="" class="rounded-circle agenda-avatar-img" width="40" height="40">
+                                        <div class="flex-grow-1 min-w-0">
+                                            <strong id="eventDetailAgentName">—</strong>
+                                            <span id="eventDetailAgentEmail" class="d-block small text-muted">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="nova-marcacao-section" id="eventDetailClientSection">
+                                    <h6 class="nova-marcacao-section-title">Cliente</h6>
+                                    <div id="eventDetailClientSearchWrap" class="mb-0">
+                                        <div class="d-flex gap-2 align-items-center mb-2">
+                                            <input type="text" id="eventDetailClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Pesquisar cliente..." autocomplete="off">
+                                            <button type="button" class="btn btn-light btn-sm d-none" id="eventDetailClientCancelBtn">Cancelar</button>
+                                        </div>
+                                    </div>
+                                    <div id="eventDetailClientResults" class="nova-marcacao-client-results mb-0">
+                                    </div>
+                                    <div id="eventDetailClientSelected" class="nova-marcacao-person d-none">
+                                        <img id="eventDetailClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="40" height="40">
+                                        <div id="eventDetailClientAvatarFallback" class="nova-marcacao-avatar-fallback agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center small fw-semibold d-none">—</div>
+                                        <div class="flex-grow-1 min-w-0">
+                                            <strong id="eventDetailClientSelectedName">—</strong>
+                                            <span id="eventDetailClientSelectedEmail" class="d-block small text-muted">—</span>
+                                        </div>
+                                        <button type="button" class="btn btn-link btn-sm p-0 align-self-start" id="eventDetailClientClear">Alterar</button>
+                                    </div>
+                                    <div id="eventDetailVisitLeadBlock" class="d-none"></div>
+                                </div>
+                                <input type="hidden" id="eventDetailStatus" name="status" value="agendado">
+                                <div class="nova-marcacao-section">
+                                    <button type="button" class="nova-marcacao-observacoes-toggle nova-marcacao-section-title border-0 bg-transparent p-0 text-start d-flex align-items-center justify-content-between w-100" id="eventDetailObservacoesToggle">
+                                        Observações
+                                        <i class="ph ph-caret-down nova-marcacao-observacoes-chevron agenda-observacoes-chevron"></i>
+                                    </button>
+                                    <div class="nova-marcacao-observacoes-wrap collapse" id="eventDetailObservacoesWrap">
+                                        <textarea class="form-control form-control-sm mt-2" id="eventDetailObservacoes" name="description" rows="2" placeholder="Observações..."></textarea>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Serviço (apenas tipo Marcação) -->
-                        <div id="detailServiceWrap" class="mb-3 d-none">
-                            <div class="d-flex align-items-center">
-                                <i class="ph-duotone ph-scissors text-muted me-2"></i>
-                                <span class="small text-muted" id="detailService">—</span>
+                        <div class="col-lg-7" id="eventDetailServicesCol">
+                            <h6 class="mb-3 fw-semibold">Serviços</h6>
+                            <div id="eventDetailServicesListCancelWrap" class="d-none mb-2">
+                                <button type="button" class="btn btn-light btn-sm" id="eventDetailCancelAddServicesBtn"><i class="ph ph-arrow-left me-1"></i>Cancelar</button>
                             </div>
-                        </div>
-                        
-                        <!-- Descrição -->
-                        <div id="detailDescriptionWrap" class="mb-0 d-none">
-                            <p class="mb-0 text-muted" id="detailDescription">—</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Coluna direita: Detalhes da lead/visita -->
-                    <div class="col-lg-6 ps-lg-4 border-start">
-                        <div id="detailVisit" class="d-none">
-                            <h6 class="text-muted text-uppercase small fw-semibold mb-3">
-                                <i class="ph-duotone ph-house me-1"></i> Detalhes da visita
-                            </h6>
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="ph-duotone ph-user text-muted me-2"></i>
-                                    <span class="small text-muted" id="detailClient">—</span>
-                                </div>
+                            <div id="eventDetailServicesList" class="nova-marcacao-services-list">
+                                <div class="text-muted small">A carregar serviços...</div>
                             </div>
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="ph-duotone ph-house text-muted me-2"></i>
-                                    <span class="small text-muted" id="detailProperty">—</span>
-                                </div>
-                            </div>
-                            <div class="d-flex flex-wrap gap-2 mt-4">
-                                <a id="linkOpportunity" href="#" class="btn btn-sm btn-outline-primary">
-                                    <i class="ph-duotone ph-briefcase me-1"></i> Ficha da Oportunidade
-                                </a>
-                                <a id="linkProperty" href="#" class="btn btn-sm btn-outline-secondary">
-                                    <i class="ph-duotone ph-house me-1"></i> Ficha do Imóvel
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <div id="detailLead" class="d-none">
-                            <h6 class="text-muted text-uppercase small fw-semibold mb-3">
-                                <i class="ph-duotone ph-file-text me-1"></i> Detalhes da lead
-                            </h6>
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="ph-duotone ph-user text-muted me-2"></i>
-                                    <span class="small text-muted" id="detailLeadName">—</span>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <i class="ph-duotone ph-phone text-muted me-2"></i>
-                                    <span class="small text-muted" id="detailLeadContact">—</span>
-                                </div>
-                            </div>
-                            <div class="mt-4">
-                                <a id="linkLead" href="#" class="btn btn-sm btn-outline-primary">
-                                    <i class="ph-duotone ph-file-text me-1"></i> Ficha da Lead
-                                </a>
+                            <div id="eventDetailServiceSelected" class="d-none">
+                                <div class="nova-marcacao-services-selected-title">Serviços selecionados</div>
+                                <div id="eventDetailSelectedServicesList"></div>
+                                <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="eventDetailAddMoreServicesBtn">
+                                    <i class="ph ph-plus me-1"></i>Adicionar mais serviços
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer border-top">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
-                <button type="button" class="btn btn-primary d-none" id="btnEditEvent">
-                    <i class="ph ph-pencil-simple me-1"></i> Editar
-                </button>
-                <button type="button" class="btn btn-danger d-none" id="btnDeleteEvent">
-                    <i class="ph ph-trash me-1"></i> Eliminar
-                </button>
-            </div>
+                <div class="modal-footer pt-3 pb-3 d-flex justify-content-between align-items-center">
+                    <div class="me-auto">
+                        <span class="text-black fs-6 fw-bold">Total:</span>
+                        <span class="fw-semibold ms-1" id="eventDetailTotalPrice">0,00 €</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
+                        <button type="submit" class="btn btn-primary ms-2" id="eventDetailSaveBtn">Guardar</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -906,19 +380,1182 @@ document.addEventListener('DOMContentLoaded', function() {
         return formatDateShort(start);
     }
 
+    var _agendaHighlight = { wrapper: null };
+    var _agendaHoverHighlight = null;
+
+    function clearAgendaHoverHighlight() {
+        if (_agendaHoverHighlight) {
+            _agendaHoverHighlight.remove();
+            _agendaHoverHighlight = null;
+        }
+    }
+
+    function clearAgendaCellHighlight() {
+        var w = _agendaHighlight.wrapper;
+        if (!w) return;
+        if (w._isDayGrid && w._parent) {
+            w._parent.classList.remove('agenda-cell-highlighted');
+        } else if (w._isFullRow && w.parentElement) {
+            w.parentElement.classList.remove('agenda-cell-highlighted');
+            w.remove();
+        } else if (w.remove) {
+            w.remove();
+        }
+        _agendaHighlight.wrapper = null;
+    }
+
+    function createCellHighlightForColumn(slotTd, resourceId, timeLabel, clickClientX) {
+        if (!slotTd) return null;
+        var colEl = document.querySelector('.fc-timegrid-col[data-resource-id="' + resourceId + '"]') ||
+            document.querySelector('[data-resource-id="' + resourceId + '"]');
+        if (!colEl && clickClientX != null) {
+            var cols = document.querySelectorAll('.fc-timegrid-col');
+            for (var i = 0; i < cols.length; i++) {
+                var r = cols[i].getBoundingClientRect();
+                if (clickClientX >= r.left && clickClientX <= r.right) { colEl = cols[i]; break; }
+            }
+        }
+        if (!colEl) return null;
+        var tdRect = slotTd.getBoundingClientRect();
+        var colRect = colEl.getBoundingClientRect();
+        var left = colRect.left - tdRect.left;
+        var width = colRect.width;
+        if (left < 0 || width <= 0) return null;
+        var wrapper = document.createElement('div');
+        wrapper.className = 'agenda-cell-highlight';
+        wrapper.style.left = left + 'px';
+        wrapper.style.width = width + 'px';
+        var timeSpan = document.createElement('span');
+        timeSpan.className = 'agenda-cell-time-overlay';
+        timeSpan.textContent = timeLabel;
+        wrapper.appendChild(timeSpan);
+        slotTd.style.position = slotTd.style.position || 'relative';
+        slotTd.appendChild(wrapper);
+        return wrapper;
+    }
+
+    /**
+     * Mostra o menu rápido (popup) na posição do rato com as opções dadas.
+     * @param {number} clientX - posição X do rato (ex: info.jsEvent.clientX)
+     * @param {number} clientY - posição Y do rato (ex: info.jsEvent.clientY)
+     * @param {string} [headingText] - texto do primeiro li (data/hora); bold, fundo cinza; opcional
+     * @param {Array<{label: string, action: function}>} options - lista de { label, action }
+     */
+    function showQuickMenu(clientX, clientY, headingText, options) {
+        if (typeof headingText === 'object' && !Array.isArray(headingText) && headingText !== null) {
+            options = headingText;
+            headingText = null;
+        }
+        var menu = document.getElementById('agendaQuickMenu');
+        if (!menu || !options || options.length === 0) return;
+
+        function hideQuickMenu() {
+            menu.classList.remove('is-open');
+            document.removeEventListener('click', closeHandler);
+            window.removeEventListener('scroll', scrollHandler, true);
+            document.removeEventListener('keydown', escHandler);
+            clearAgendaCellHighlight();
+        }
+
+        function escHandler(e) {
+            if (e.key === 'Escape') hideQuickMenu();
+        }
+
+        function scrollHandler() {
+            hideQuickMenu();
+        }
+
+        function closeHandler(e) {
+            if (menu.contains(e.target)) return;
+            hideQuickMenu();
+        }
+
+        menu.innerHTML = '';
+        var header = document.createElement('div');
+        header.className = 'quickaccess-header';
+        var h6 = document.createElement('h6');
+        h6.textContent = headingText || '';
+        header.appendChild(h6);
+        var closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'quickaccess-close';
+        closeBtn.setAttribute('aria-label', 'Fechar');
+        closeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            hideQuickMenu();
+        });
+        header.appendChild(closeBtn);
+        menu.appendChild(header);
+        var grid = document.createElement('div');
+        grid.className = 'quickaccess-grid';
+        options.forEach(function(opt) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'quickaccess-item';
+            btn.setAttribute('role', 'menuitem');
+            var iconSpan = document.createElement('span');
+            iconSpan.className = 'quickaccess-icon';
+            var qaColor = opt.iconColor || 'var(--accent-color, #0d6efd)';
+            iconSpan.style.setProperty('--qa-color', qaColor);
+            var iconClass = opt.icon || 'bi bi-plus-circle';
+            var icon = document.createElement('i');
+            icon.className = iconClass;
+            iconSpan.appendChild(icon);
+            var labelSpan = document.createElement('span');
+            labelSpan.className = 'quickaccess-label';
+            labelSpan.textContent = opt.label;
+            btn.appendChild(iconSpan);
+            btn.appendChild(labelSpan);
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                hideQuickMenu();
+                if (typeof opt.action === 'function') opt.action();
+            });
+            grid.appendChild(btn);
+        });
+        menu.appendChild(grid);
+
+        var offset = 8;
+        menu.style.left = (clientX + offset) + 'px';
+        menu.style.top = (clientY + offset) + 'px';
+
+        // Manter dentro da viewport
+        requestAnimationFrame(function() {
+            var rect = menu.getBoundingClientRect();
+            var vw = window.innerWidth;
+            var vh = window.innerHeight;
+            var left = parseFloat(menu.style.left);
+            var top = parseFloat(menu.style.top);
+            if (left + rect.width > vw) menu.style.left = (vw - rect.width - 8) + 'px';
+            if (top + rect.height > vh) menu.style.top = (vh - rect.height - 8) + 'px';
+            if (top < 8) menu.style.top = '8px';
+            if (left < 8) menu.style.left = '8px';
+        });
+
+        menu.classList.add('is-open');
+        setTimeout(function() {
+            document.addEventListener('click', closeHandler);
+            window.addEventListener('scroll', scrollHandler, true);
+            document.addEventListener('keydown', escHandler);
+        }, 0);
+    }
+
     /**
      * Abre o modal de criar evento (reutilizado pelo botão e pelo clique na célula).
-     * Opcionalmente preenche início e fim no formato datetime-local (YYYY-MM-DDTHH:mm).
+     * Opcionalmente preenche início, fim, membro e tipo (marcacao | tempo_pessoal).
      */
-    function openCreateEventModal(initialStart, initialEnd) {
+    function openCreateEventModal(initialStart, initialEnd, initialMemberId, initialEventType) {
         if (initialStart) document.getElementById('eventStart').value = initialStart;
         if (initialEnd) document.getElementById('eventEnd').value = initialEnd;
+        if (initialMemberId) {
+            document.getElementById('eventUser').value = String(initialMemberId);
+        }
+        if (initialEventType) {
+            document.getElementById('eventType').value = initialEventType;
+        }
         bootstrap.Modal.getOrCreateInstance(document.getElementById('createEventModal')).show();
-        // Sincronizar visibilidade do bloco Serviço com o tipo
         toggleEventServiceBlock();
     }
 
     var agendaMembersServicesUrl = '{{ url("agenda/members") }}';
+    var agendaClientsUrl = '{{ url("agenda/clients") }}';
+    var novaMarcacaoServicesData = null;
+    var novaMarcacaoSelectedClient = null;
+    var novaMarcacaoSelectedServices = [];
+    var novaMarcacaoEditServiceIndex = -1;
+    var eventDetailSelectedServices = [];
+    var eventDetailCurrentData = null;
+
+    function novaMarcacaoRenderSelectedServices() {
+        var container = document.getElementById('novaMarcacaoSelectedServicesList');
+        var titleEl = document.querySelector('#novaMarcacaoServiceSelected .nova-marcacao-services-selected-title');
+        if (!container) return;
+        if (novaMarcacaoSelectedServices.length === 0) {
+            container.innerHTML = '';
+            if (titleEl) titleEl.textContent = 'Serviços selecionados';
+            return;
+        }
+        if (titleEl) titleEl.textContent = novaMarcacaoSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
+        var html = novaMarcacaoSelectedServices.map(function(item, idx) {
+            return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card d-flex justify-content-between align-items-center mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + '">' +
+                '<div class="nova-marcacao-service-item-left">' +
+                '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
+                '<div class="nova-marcacao-service-item-duration"><i class="ph ph-clock me-1"></i>' + (item.formatted_duration || item.duration + ' min') + '</div>' +
+                '</div>' +
+                '<div class="d-flex align-items-center gap-2 justify-content-end">' +
+                '<div class="d-flex gap-1">' +
+                '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoEditServiceBtn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
+                '<button type="button" class="btn btn-outline-danger btn-icon btn-sm novaMarcacaoDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
+                '</div>' +
+                '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>' +
+                '</div></div></div>';
+        }).join('');
+        container.innerHTML = html;
+        container.querySelectorAll('.novaMarcacaoEditServiceBtn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) { e.stopPropagation(); novaMarcacaoOpenEditQuickMenu(e, parseInt(this.dataset.idx, 10)); });
+        });
+        container.querySelectorAll('.novaMarcacaoDeleteServiceBtn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) { e.stopPropagation(); novaMarcacaoDeleteService(parseInt(this.dataset.idx, 10)); });
+        });
+    }
+
+    function novaMarcacaoApplyNewStartTime(newTimeStr) {
+        var startStr = document.getElementById('novaMarcacaoStart').value;
+        if (!startStr) return;
+        var start = new Date(startStr);
+        var parts = (newTimeStr || '').match(/^(\d{1,2}):(\d{2})/);
+        if (!parts) return;
+        start.setHours(parseInt(parts[1], 10), parseInt(parts[2], 10), 0, 0);
+        var totalDur = novaMarcacaoSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        if (totalDur < 1) totalDur = 60;
+        var end = new Date(start.getTime() + totalDur * 60 * 1000);
+        var startIso = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0') + 'T' + String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
+        var endIso = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+        document.getElementById('novaMarcacaoStart').value = startIso;
+        document.getElementById('novaMarcacaoEnd').value = endIso;
+        var daysPt = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        var monthsPtShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        document.getElementById('novaMarcacaoEditTitleDay').textContent = daysPt[start.getDay()] + ', ' + start.getDate() + ' ' + monthsPtShort[start.getMonth()] + ' · ';
+        document.getElementById('novaMarcacaoTimeToggle').textContent = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
+        novaMarcacaoUpdateEndTimeAndTotal();
+        var dd = document.getElementById('novaMarcacaoTimeToggle');
+        if (dd && bootstrap.Dropdown) {
+            var inst = bootstrap.Dropdown.getInstance(dd);
+            if (inst) inst.hide();
+        }
+    }
+
+    function novaMarcacaoPopulateTimeOptions(selectedTime) {
+        var container = document.querySelector('.nova-marcacao-time-options');
+        if (!container) return;
+        container.innerHTML = '';
+        for (var h = 0; h < 24; h++) {
+            for (var m = 0; m < 60; m += 30) {
+                var ts = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+                var a = document.createElement('a');
+                a.href = '#';
+                a.className = 'dropdown-item nova-marcacao-time-opt' + (ts === selectedTime ? ' active' : '');
+                a.dataset.time = ts;
+                a.textContent = ts;
+                a.addEventListener('click', function(e) { e.preventDefault(); novaMarcacaoApplyNewStartTime(this.dataset.time); });
+                container.appendChild(a);
+            }
+        }
+    }
+
+    function novaMarcacaoUpdateEndTimeAndTotal() {
+        var startStr = document.getElementById('novaMarcacaoStart').value;
+        if (!startStr) return;
+        var totalDur = novaMarcacaoSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        var start = new Date(startStr);
+        var end = new Date(start.getTime() + totalDur * 60 * 1000);
+        var endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+        document.getElementById('novaMarcacaoEnd').value = endStr;
+        var totalPrice = novaMarcacaoSelectedServices.reduce(function(sum, s) { return sum + (parseFloat(s.price) || 0); }, 0);
+        document.getElementById('novaMarcacaoTotalPrice').textContent = totalPrice.toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function novaMarcacaoOpenEditQuickMenu(evt, idx) {
+        novaMarcacaoEditServiceIndex = idx;
+        var item = novaMarcacaoSelectedServices[idx];
+        if (!item) return;
+        var popup = document.getElementById('novaMarcacaoEditServiceQuickMenu');
+        if (!popup) return;
+        var modalContent = document.getElementById('novaMarcacaoModal')?.querySelector('.modal-content');
+        if (modalContent) modalContent.appendChild(popup);
+
+        function hideEditQuickMenu() {
+            popup.classList.remove('is-open');
+            popup.innerHTML = '';
+            document.removeEventListener('click', closeHandler);
+            document.removeEventListener('keydown', escHandler);
+            window._hideEditServiceQuickMenu = null;
+        }
+        window._hideEditServiceQuickMenu = hideEditQuickMenu;
+        function closeHandler(e) {
+            if (popup.contains(e.target)) return;
+            hideEditQuickMenu();
+        }
+        function escHandler(e) {
+            if (e.key === 'Escape') { e.stopPropagation(); hideEditQuickMenu(); }
+        }
+
+        popup.innerHTML = '<div class="edit-service-header">' +
+            '<h6>Alterar opções do serviço</h6>' +
+            '<button type="button" class="edit-service-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>' +
+            '</div>' +
+            '<div class="edit-service-body">' +
+            '<div class="mb-2"><label class="form-label small">Duração (minutos)</label>' +
+            '<input type="number" class="form-control form-control-sm novaMarcacaoEditDuration" min="1" step="1" placeholder="Ex: 60" value="' + (item.duration || '') + '"></div>' +
+            '<div class="mb-0"><label class="form-label small">Preço (€)</label>' +
+            '<input type="number" class="form-control form-control-sm novaMarcacaoEditPrice" min="0" step="0.01" placeholder="Ex: 25" value="' + (item.price != null && item.price !== '' ? item.price : '') + '"></div>' +
+            '</div>' +
+            '<div class="edit-service-footer">' +
+            '<button type="button" class="btn btn-light btn-sm novaMarcacaoEditCancel">Cancelar</button>' +
+            '<button type="button" class="btn btn-primary btn-sm novaMarcacaoEditSave">Guardar</button>' +
+            '</div>';
+
+        var header = popup.querySelector('.edit-service-header');
+        header.querySelector('.edit-service-close').addEventListener('click', hideEditQuickMenu);
+
+        popup.querySelector('.novaMarcacaoEditCancel').addEventListener('click', hideEditQuickMenu);
+
+        popup.querySelector('.novaMarcacaoEditSave').addEventListener('click', function() {
+            var durInput = popup.querySelector('.novaMarcacaoEditDuration');
+            var priceInput = popup.querySelector('.novaMarcacaoEditPrice');
+            var dur = parseInt(durInput.value, 10);
+            var price = parseFloat(priceInput.value);
+            var i = novaMarcacaoEditServiceIndex;
+            if (i >= 0 && novaMarcacaoSelectedServices[i]) {
+                if (!isNaN(dur) && dur > 0) novaMarcacaoSelectedServices[i].duration = dur;
+                if (!isNaN(price) && price >= 0) {
+                    novaMarcacaoSelectedServices[i].price = price;
+                    novaMarcacaoSelectedServices[i].formatted_price = price.toFixed(2).replace('.', ',') + ' €';
+                }
+                novaMarcacaoSelectedServices[i].formatted_duration = (novaMarcacaoSelectedServices[i].duration || 0) + ' min';
+                novaMarcacaoRenderSelectedServices();
+                novaMarcacaoUpdateEndTimeAndTotal();
+            }
+            hideEditQuickMenu();
+        });
+
+        var rect = evt.target.closest('button')?.getBoundingClientRect() || { left: evt.clientX, bottom: evt.clientY };
+        var offset = 8;
+        requestAnimationFrame(function() {
+            popup.classList.add('is-open');
+            var popupRect = popup.getBoundingClientRect();
+            var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
+            var left, top;
+            if (container) {
+                left = (rect.left || evt.clientX) - container.left;
+                top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset - container.top;
+            } else {
+                left = rect.left || evt.clientX;
+                top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset;
+            }
+            var vw = container ? container.width : window.innerWidth;
+            var vh = container ? container.height : window.innerHeight;
+            var maxLeft = vw - popupRect.width - offset;
+            var maxTop = vh - popupRect.height - offset;
+            left = Math.max(offset, Math.min(left, maxLeft));
+            top = Math.max(offset, Math.min(top, maxTop));
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+        });
+        setTimeout(function() {
+            document.addEventListener('click', closeHandler);
+            document.addEventListener('keydown', escHandler);
+        }, 0);
+    }
+
+    function novaMarcacaoDeleteService(idx) {
+        if (typeof window._hideEditServiceQuickMenu === 'function') { window._hideEditServiceQuickMenu(); window._hideEditServiceQuickMenu = null; }
+        novaMarcacaoSelectedServices.splice(idx, 1);
+        novaMarcacaoRenderSelectedServices();
+        novaMarcacaoUpdateEndTimeAndTotal();
+        if (novaMarcacaoSelectedServices.length === 0) {
+            document.getElementById('novaMarcacaoServiceSelected').classList.add('d-none');
+            document.getElementById('novaMarcacaoServicesList').classList.remove('d-none');
+        }
+    }
+
+    var eventDetailOriginalStartAt = null;
+    var eventDetailOriginalEndAt = null;
+    var eventDetailWasSaved = false;
+    function populateEventDetailEditModal(data) {
+        eventDetailCurrentData = data;
+        eventDetailOriginalStartAt = data.start_at || null;
+        eventDetailOriginalEndAt = data.end_at || null;
+        eventDetailSelectedServices = [];
+        var id = data.id;
+        document.getElementById('eventDetailEditId').value = id;
+        document.getElementById('eventDetailEditUserId').value = data.user_id || '';
+        document.getElementById('eventDetailEditStart').value = data.start_at || '';
+        document.getElementById('eventDetailEditEnd').value = data.end_at || '';
+        var startDate = data.start_at ? new Date(data.start_at) : null;
+        var endDate = data.end_at ? new Date(data.end_at) : null;
+        var daysPt = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        var monthsPtShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        if (startDate) {
+            var dayStr = daysPt[startDate.getDay()] + ', ' + startDate.getDate() + ' ' + monthsPtShort[startDate.getMonth()];
+            var timeStr = String(startDate.getHours()).padStart(2, '0') + ':' + String(startDate.getMinutes()).padStart(2, '0');
+            var m = startDate.getMinutes() < 30 ? 0 : 30;
+            var timeSlotForDropdown = String(startDate.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+            document.getElementById('eventDetailEditTitleDay').textContent = dayStr + ' · ';
+            document.getElementById('eventDetailTimeToggle').textContent = timeStr;
+            eventDetailPopulateTimeOptions(timeSlotForDropdown);
+        } else {
+            document.getElementById('eventDetailEditTitleDay').textContent = '—';
+            document.getElementById('eventDetailTimeToggle').textContent = '—';
+            eventDetailPopulateTimeOptions('');
+        }
+        var agentInfo = agendaAgentInfo[String(data.user_id)] || { name: data.user_name || '—', email: '', avatarUrl: data.user_avatar_url || '' };
+        document.getElementById('eventDetailAgentName').textContent = agentInfo.name || '—';
+        document.getElementById('eventDetailAgentEmail').textContent = agentInfo.email || '—';
+        if (agentInfo.avatarUrl) {
+            document.getElementById('eventDetailAgentAvatar').src = agentInfo.avatarUrl;
+            document.getElementById('eventDetailAgentAvatar').style.display = 'block';
+        } else {
+            document.getElementById('eventDetailAgentAvatar').style.display = 'none';
+        }
+        var statusVal = data.status || 'agendado';
+        document.getElementById('eventDetailStatus').value = statusVal;
+        var statusLabels = { agendado: 'Agendado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', faltou: 'Faltou', cancelado: 'Cancelado' };
+        document.getElementById('eventDetailStatusLabel').textContent = statusLabels[statusVal] || statusVal;
+        document.getElementById('eventDetailCancelReason').value = data.cancellation_reason || '';
+        document.getElementById('eventDetailCancelReasonWrap').classList.toggle('d-none', statusVal !== 'cancelado');
+        document.getElementById('eventDetailObservacoes').value = data.description || '';
+        var hasVisitLead = !!(data.visit || data.lead);
+        var hasClient = data.client_id && data.client_name;
+        document.getElementById('eventDetailClientSearchWrap').classList.toggle('d-none', hasVisitLead || hasClient);
+        document.getElementById('eventDetailClientResults').classList.toggle('d-none', hasVisitLead || hasClient);
+        document.getElementById('eventDetailClientSelected').classList.add('d-none');
+        document.getElementById('eventDetailVisitLeadBlock').classList.add('d-none');
+        if (hasVisitLead) {
+            var block = document.getElementById('eventDetailVisitLeadBlock');
+            block.classList.remove('d-none');
+            block.innerHTML = '';
+            if (data.visit) {
+                block.innerHTML = '<h6 class="nova-marcacao-section-title">Cliente (Visita)</h6><div class="nova-marcacao-person"><div><strong>' + (data.visit.client_name || '—') + '</strong></div></div>' +
+                    '<div class="mt-2"><a href="' + (data.visit.opportunity_id ? '{{ url("opportunities") }}/' + data.visit.opportunity_id : '#') + '" class="btn btn-sm btn-outline-primary"><i class="ph ph-briefcase me-1"></i>Ficha da Oportunidade</a></div>';
+            } else if (data.lead) {
+                block.innerHTML = '<h6 class="nova-marcacao-section-title">Lead</h6><div class="nova-marcacao-person"><div><strong>' + (data.lead.name || '—') + '</strong><span class="d-block small text-muted">' + [data.lead.email, data.lead.phone].filter(Boolean).join(' · ') + '</span></div></div>' +
+                    '<div class="mt-2"><a href="{{ url("leads") }}/' + data.lead.id + '" class="btn btn-sm btn-outline-primary"><i class="ph ph-file-text me-1"></i>Ficha da Lead</a></div>';
+            }
+        } else if (data.client_id && data.client_name) {
+            eventDetailSelectedClient = { id: data.client_id, name: data.client_name, email: data.client_email || '', avatar_url: data.client_avatar_url || '' };
+            document.getElementById('eventDetailClientSelectedName').textContent = data.client_name;
+            document.getElementById('eventDetailClientSelectedEmail').textContent = data.client_email || '—';
+            if (data.client_avatar_url) {
+                document.getElementById('eventDetailClientAvatar').src = data.client_avatar_url;
+                document.getElementById('eventDetailClientAvatar').classList.remove('d-none');
+                document.getElementById('eventDetailClientAvatarFallback').classList.add('d-none');
+            } else {
+                var initials = (data.client_name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+                document.getElementById('eventDetailClientAvatarFallback').textContent = initials;
+                document.getElementById('eventDetailClientAvatarFallback').classList.remove('d-none');
+                document.getElementById('eventDetailClientAvatar').classList.add('d-none');
+            }
+            document.getElementById('eventDetailClientSelected').classList.remove('d-none');
+        } else {
+            eventDetailSelectedClient = null;
+        }
+        document.getElementById('eventDetailServicesCol').classList.toggle('d-none', data.event_type !== 'marcacao');
+        if (data.event_type === 'marcacao') {
+            (data.event_services || []).forEach(function(s) {
+                var dur = s.duration || 60;
+                var pr = parseFloat(s.price) || 0;
+                eventDetailSelectedServices.push({
+                    service_id: s.id,
+                    name: s.name,
+                    duration: dur,
+                    price: pr,
+                    formatted_duration: (s.formatted_duration || dur + ' min'),
+                    formatted_price: s.formatted_price || (pr.toFixed(2).replace('.', ',') + ' €'),
+                    color: s.color || '#6c757d'
+                });
+            });
+            eventDetailRenderSelectedServices();
+            eventDetailUpdateTotal();
+            eventDetailUpdateEndTime();
+            document.getElementById('eventDetailServicesList').innerHTML = '<div class="text-muted small">A carregar...</div>';
+            fetch(agendaMembersServicesUrl + '/' + (data.user_id || '{{ auth()->id() }}') + '/services', { headers: { 'Accept': 'application/json' } })
+                .then(function(r) { return r.json(); })
+                .then(function(svcData) {
+                    eventDetailServicesData = svcData;
+                    var html = '';
+                    (svcData.categories || []).forEach(function(cat) {
+                        html += '<div class="nova-marcacao-services-category">' + (cat.name || 'Outros') + '</div>';
+                        var color = cat.color || '#6c757d';
+                        (cat.services || []).forEach(function(s) {
+                            var sFormattedDur = s.formatted_duration || (s.duration || 60) + ' min';
+                            var sFormattedPrice = s.formatted_price || '';
+                            var sPrice = (s.price != null && s.price !== '') ? parseFloat(s.price) : 0;
+                            html += '<div class="nova-marcacao-service-item event-detail-service-item" data-service-id="' + s.id + '" data-duration="' + (s.duration || 60) + '" data-name="' + (s.name || '').replace(/"/g, '&quot;') + '" data-price="' + sPrice + '" data-formatted-duration="' + (sFormattedDur || '').replace(/"/g, '&quot;') + '" data-formatted-price="' + (sFormattedPrice || '').replace(/"/g, '&quot;') + '" data-color="' + (color || '#6c757d').replace(/"/g, '&quot;') + '" style="border-left-color:' + color + '">';
+                            html += '<div class="nova-marcacao-service-item-left"><div class="nova-marcacao-service-item-name">' + (s.name || '') + '</div><div class="nova-marcacao-service-item-duration"><i class="ph ph-clock me-1"></i>' + sFormattedDur + '</div></div>';
+                            html += '<div class="nova-marcacao-service-item-price">' + sFormattedPrice + '</div></div>';
+                        });
+                    });
+                    document.getElementById('eventDetailServicesList').innerHTML = html || '<div class="text-muted small">Nenhum serviço disponível.</div>';
+                    document.getElementById('eventDetailServicesList').querySelectorAll('.event-detail-service-item').forEach(function(el) {
+                        el.addEventListener('click', function() {
+                            var sid = this.dataset.serviceId;
+                            if (eventDetailSelectedServices.some(function(s) { return String(s.service_id) === sid; })) return;
+                            var dur = parseInt(this.dataset.duration, 10) || 60;
+                            var priceNum = parseFloat(this.dataset.price) || 0;
+                            eventDetailSelectedServices.push({
+                                service_id: sid, name: this.dataset.name || '', duration: dur, price: priceNum,
+                                formatted_duration: this.dataset.formattedDuration || dur + ' min',
+                                formatted_price: this.dataset.formattedPrice || (priceNum.toFixed(2).replace('.', ',') + ' €'),
+                                color: this.dataset.color || '#6c757d'
+                            });
+                            eventDetailRenderSelectedServices();
+                            eventDetailUpdateTotal();
+                            eventDetailUpdateEndTime();
+                            document.getElementById('eventDetailServicesList').classList.add('d-none');
+                            document.getElementById('eventDetailServicesListCancelWrap').classList.add('d-none');
+                            document.getElementById('eventDetailServiceSelected').classList.remove('d-none');
+                        });
+                    });
+                    if (eventDetailSelectedServices.length > 0) {
+                        document.getElementById('eventDetailServicesList').classList.add('d-none');
+                        document.getElementById('eventDetailServicesListCancelWrap').classList.add('d-none');
+                        document.getElementById('eventDetailServiceSelected').classList.remove('d-none');
+                    }
+                })
+                .catch(function() {
+                    document.getElementById('eventDetailServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
+                });
+        }
+    }
+
+    var eventDetailSelectedClient = null;
+    var eventDetailServicesData = null;
+
+    function eventDetailRenderSelectedServices() {
+        var container = document.getElementById('eventDetailSelectedServicesList');
+        if (!container) return;
+        var titleEl = document.querySelector('#eventDetailServiceSelected .nova-marcacao-services-selected-title');
+        if (eventDetailSelectedServices.length === 0) {
+            container.innerHTML = '';
+            if (titleEl) titleEl.textContent = 'Serviços selecionados';
+            return;
+        }
+        if (titleEl) titleEl.textContent = eventDetailSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
+        var html = eventDetailSelectedServices.map(function(item, idx) {
+            return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card d-flex justify-content-between align-items-center mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + '">' +
+                '<div class="nova-marcacao-service-item-left">' +
+                '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
+                '<div class="nova-marcacao-service-item-duration"><i class="ph ph-clock me-1"></i>' + (item.formatted_duration || item.duration + ' min') + '</div>' +
+                '</div>' +
+                '<div class="d-flex align-items-center gap-2 justify-content-end">' +
+                '<div class="d-flex gap-1">' +
+                '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailEditServiceBtn" data-idx="' + idx + '" title="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
+                '<button type="button" class="btn btn-outline-danger btn-icon btn-sm eventDetailDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar"><i class="ph ph-trash"></i></button>' +
+                '</div>' +
+                '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>' +
+                '</div></div></div>';
+        }).join('');
+        container.innerHTML = html;
+        container.querySelectorAll('.eventDetailEditServiceBtn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) { e.stopPropagation(); eventDetailOpenEditQuickMenu(e, parseInt(this.dataset.idx, 10)); });
+        });
+        container.querySelectorAll('.eventDetailDeleteServiceBtn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) { e.stopPropagation(); eventDetailDeleteService(parseInt(this.dataset.idx, 10)); });
+        });
+    }
+
+    function eventDetailUpdateTotal() {
+        var total = eventDetailSelectedServices.reduce(function(sum, s) { return sum + (parseFloat(s.price) || 0); }, 0);
+        document.getElementById('eventDetailTotalPrice').textContent = total.toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function eventDetailUpdateEndTime() {
+        var startStr = document.getElementById('eventDetailEditStart').value;
+        if (!startStr) return;
+        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        var start = new Date(startStr);
+        var end = new Date(start.getTime() + totalDur * 60 * 1000);
+        var endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+        document.getElementById('eventDetailEditEnd').value = endStr;
+    }
+
+    function eventDetailApplyNewStartTime(newTimeStr) {
+        var startStr = document.getElementById('eventDetailEditStart').value;
+        var endStr = document.getElementById('eventDetailEditEnd').value;
+        if (!startStr) return;
+        var start = new Date(startStr);
+        var parts = (newTimeStr || '').match(/^(\d{1,2}):(\d{2})/);
+        if (!parts) return;
+        start.setHours(parseInt(parts[1], 10), parseInt(parts[2], 10), 0, 0);
+        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        if (totalDur === 0 && endStr) {
+            var oldStart = new Date(startStr);
+            var oldEnd = new Date(endStr);
+            totalDur = (oldEnd.getTime() - oldStart.getTime()) / 60000;
+        }
+        if (totalDur < 1) totalDur = 60;
+        var end = new Date(start.getTime() + totalDur * 60 * 1000);
+        var startIso = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0') + 'T' + String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
+        var endIso = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+        document.getElementById('eventDetailEditStart').value = startIso;
+        document.getElementById('eventDetailEditEnd').value = endIso;
+        var daysPt = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        var monthsPtShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        document.getElementById('eventDetailEditTitleDay').textContent = daysPt[start.getDay()] + ', ' + start.getDate() + ' ' + monthsPtShort[start.getMonth()] + ' · ';
+        document.getElementById('eventDetailTimeToggle').textContent = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
+        if (eventDetailCurrentData) {
+            eventDetailCurrentData.start_at = startIso;
+            eventDetailCurrentData.end_at = endIso;
+        }
+        var evId = document.getElementById('eventDetailEditId').value;
+        if (evId && typeof calendar !== 'undefined') {
+            var ev = calendar.getEventById(evId);
+            if (ev) {
+                ev.setStart(start);
+                ev.setEnd(end);
+            }
+        }
+        var dd = document.getElementById('eventDetailTimeToggle');
+        if (dd && bootstrap.Dropdown) {
+            var inst = bootstrap.Dropdown.getInstance(dd);
+            if (inst) inst.hide();
+        }
+    }
+
+    var eventDetailEditServiceIndex = -1;
+    function eventDetailOpenEditQuickMenu(evt, idx) {
+        eventDetailEditServiceIndex = idx;
+        var item = eventDetailSelectedServices[idx];
+        if (!item) return;
+        var popup = document.getElementById('novaMarcacaoEditServiceQuickMenu');
+        if (!popup) return;
+        function hide() { popup.classList.remove('is-open'); popup.innerHTML = ''; document.removeEventListener('click', ch); document.removeEventListener('keydown', eh); window._hideEditServiceQuickMenu = null; }
+        window._hideEditServiceQuickMenu = hide;
+        function ch(e) { if (popup.contains(e.target)) return; hide(); }
+        function eh(e) { if (e.key === 'Escape') { e.stopPropagation(); hide(); } }
+        var modalContent = document.getElementById('eventDetailEditModal')?.querySelector('.modal-content');
+        if (modalContent) modalContent.appendChild(popup);
+        popup.innerHTML = '<div class="edit-service-header"><h6>Alterar opções do serviço</h6><button type="button" class="edit-service-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div>' +
+            '<div class="edit-service-body"><div class="mb-2"><label class="form-label small">Duração (minutos)</label><input type="number" class="form-control form-control-sm edDur" min="1" value="' + (item.duration || '') + '"></div>' +
+            '<div class="mb-0"><label class="form-label small">Preço (€)</label><input type="number" class="form-control form-control-sm edPrice" min="0" step="0.01" value="' + (item.price != null ? item.price : '') + '"></div></div>' +
+            '<div class="edit-service-footer"><button type="button" class="btn btn-light btn-sm edCancel">Cancelar</button><button type="button" class="btn btn-primary btn-sm edSave">Guardar</button></div>';
+        popup.querySelector('.edit-service-close').addEventListener('click', hide);
+        popup.querySelector('.edCancel').addEventListener('click', hide);
+        popup.querySelector('.edSave').addEventListener('click', function() {
+            var d = parseInt(popup.querySelector('.edDur').value, 10);
+            var p = parseFloat(popup.querySelector('.edPrice').value);
+            if (eventDetailSelectedServices[idx]) {
+                if (!isNaN(d) && d > 0) eventDetailSelectedServices[idx].duration = d;
+                if (!isNaN(p) && p >= 0) { eventDetailSelectedServices[idx].price = p; eventDetailSelectedServices[idx].formatted_price = p.toFixed(2).replace('.', ',') + ' €'; }
+                eventDetailSelectedServices[idx].formatted_duration = (eventDetailSelectedServices[idx].duration || 0) + ' min';
+                eventDetailRenderSelectedServices();
+                eventDetailUpdateTotal();
+                eventDetailUpdateEndTime();
+            }
+            hide();
+        });
+        var rect = evt.target.closest('button')?.getBoundingClientRect() || { left: evt.clientX, bottom: evt.clientY };
+        var offset = 8;
+        requestAnimationFrame(function() {
+            popup.classList.add('is-open');
+            var popupRect = popup.getBoundingClientRect();
+            var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
+            var left, top;
+            if (container) {
+                left = (rect.left || evt.clientX) - container.left;
+                top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset - container.top;
+            } else {
+                left = rect.left || evt.clientX;
+                top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset;
+            }
+            var vw = container ? container.width : window.innerWidth;
+            var vh = container ? container.height : window.innerHeight;
+            var maxLeft = vw - popupRect.width - offset;
+            var maxTop = vh - popupRect.height - offset;
+            left = Math.max(offset, Math.min(left, maxLeft));
+            top = Math.max(offset, Math.min(top, maxTop));
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+        });
+        setTimeout(function() { document.addEventListener('click', ch); document.addEventListener('keydown', eh); }, 0);
+    }
+
+    function eventDetailDeleteService(idx) {
+        if (typeof window._hideEditServiceQuickMenu === 'function') { window._hideEditServiceQuickMenu(); window._hideEditServiceQuickMenu = null; }
+        eventDetailSelectedServices.splice(idx, 1);
+        eventDetailRenderSelectedServices();
+        eventDetailUpdateTotal();
+        eventDetailUpdateEndTime();
+        if (eventDetailSelectedServices.length === 0) {
+            document.getElementById('eventDetailServiceSelected').classList.add('d-none');
+            document.getElementById('eventDetailServicesList').classList.remove('d-none');
+        }
+    }
+
+    @php
+        $agentInfoMap = collect($users ?? [])->mapWithKeys(function($u) {
+            $a = $u->agent ?? null;
+            $avatarNum = $a ? (($a->id ?? 1) % 9) + 1 : 1;
+            $avatarUrl = $a && $a->avatar ? asset('storage/' . $a->avatar) : asset('assets/images/avatar/avatar-' . $avatarNum . '.jpg');
+            return ['' . $u->id => ['name' => $u->name, 'email' => $u->email ?? '', 'avatarUrl' => $avatarUrl]];
+        });
+        $me = auth()->user();
+        if ($me && !$agentInfoMap->has('' . $me->id)) {
+            $a = $me->agent ?? null;
+            $avatarNum = $a ? (($a->id ?? 1) % 9) + 1 : 1;
+            $avatarUrl = $a && $a->avatar ? asset('storage/' . $a->avatar) : asset('assets/images/avatar/avatar-' . $avatarNum . '.jpg');
+            $agentInfoMap->put('' . $me->id, ['name' => $me->name, 'email' => $me->email ?? '', 'avatarUrl' => $avatarUrl]);
+        }
+    @endphp
+    var agendaAgentInfo = @json($agentInfoMap->all());
+
+    function openNovaMarcacaoModal(startStr, endStr, resourceId) {
+        var agentId = resourceId || '{{ auth()->id() }}';
+        document.getElementById('novaMarcacaoAgentId').value = agentId;
+        document.getElementById('novaMarcacaoStart').value = startStr;
+        document.getElementById('novaMarcacaoEnd').value = endStr;
+        document.getElementById('novaMarcacaoObservacoes').value = '';
+        novaMarcacaoSelectedClient = null;
+        document.getElementById('novaMarcacaoClientSelected').classList.add('d-none');
+        document.getElementById('novaMarcacaoClientSearch').value = '';
+        document.getElementById('novaMarcacaoClientResults').innerHTML = '';
+        var agentInfo = agendaAgentInfo[String(agentId)] || { name: '—', email: '', avatarUrl: '' };
+        if (!agentInfo.name || agentInfo.name === '—') {
+            var resources = calendar.getResources();
+            for (var i = 0; i < resources.length; i++) {
+                if (String(resources[i].id) === String(agentId)) {
+                    agentInfo.name = resources[i].title || '—';
+                    agentInfo.avatarUrl = resources[i].extendedProps?.avatarUrl || agentInfo.avatarUrl;
+                    break;
+                }
+            }
+        }
+        if (agentInfo.name === '—' && agentId === '{{ auth()->id() }}') {
+            agentInfo = { name: '{{ auth()->user()->name ?? "Eu" }}', email: '{{ auth()->user()->email ?? "" }}', avatarUrl: agentInfo.avatarUrl || '' };
+        }
+        document.getElementById('novaMarcacaoAgentName').textContent = agentInfo.name || '—';
+        document.getElementById('novaMarcacaoAgentEmail').textContent = agentInfo.email || '—';
+        if (agentInfo.avatarUrl) {
+            document.getElementById('novaMarcacaoAgentAvatar').src = agentInfo.avatarUrl;
+            document.getElementById('novaMarcacaoAgentAvatar').style.display = 'block';
+        } else {
+            document.getElementById('novaMarcacaoAgentAvatar').style.display = 'none';
+        }
+        var startD = new Date(startStr);
+        var endD = new Date(endStr);
+        var daysPt = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        var monthsPtShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        var timeStr = String(startD.getHours()).padStart(2, '0') + ':' + String(startD.getMinutes()).padStart(2, '0');
+        var m = startD.getMinutes() < 30 ? 0 : 30;
+        var timeSlotForDropdown = String(startD.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        document.getElementById('novaMarcacaoEditTitleDay').textContent = daysPt[startD.getDay()] + ', ' + startD.getDate() + ' ' + monthsPtShort[startD.getMonth()] + ' · ';
+        document.getElementById('novaMarcacaoTimeToggle').textContent = timeStr;
+        novaMarcacaoPopulateTimeOptions(timeSlotForDropdown);
+        document.getElementById('novaMarcacaoServicesList').innerHTML = '<div class="text-muted small">A carregar serviços...</div>';
+        document.getElementById('novaMarcacaoServicesList').classList.remove('d-none');
+        document.getElementById('novaMarcacaoServiceSelected').classList.add('d-none');
+        novaMarcacaoServicesData = null;
+        novaMarcacaoSelectedServices = [];
+        fetch(agendaMembersServicesUrl + '/' + agentId + '/services', { headers: { 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                novaMarcacaoServicesData = data;
+                var html = '';
+                (data.categories || []).forEach(function(cat) {
+                    html += '<div class="nova-marcacao-services-category">' + (cat.name || 'Outros') + '</div>';
+                    var color = cat.color || '#6c757d';
+                    (cat.services || []).forEach(function(s) {
+                        var sFormattedDur = s.formatted_duration || (s.duration || 60) + ' min';
+                        var sFormattedPrice = s.formatted_price || '';
+                        var sPrice = (s.price != null && s.price !== '') ? parseFloat(s.price) : 0;
+                        html += '<div class="nova-marcacao-service-item" data-service-id="' + s.id + '" data-duration="' + (s.duration || 60) + '" data-name="' + (s.name || '').replace(/"/g, '&quot;') + '" data-price="' + sPrice + '" data-formatted-duration="' + (sFormattedDur || '').replace(/"/g, '&quot;') + '" data-formatted-price="' + (sFormattedPrice || '').replace(/"/g, '&quot;') + '" data-color="' + (color || '#6c757d').replace(/"/g, '&quot;') + '" style="border-left-color:' + color + '">';
+                        html += '<div class="nova-marcacao-service-item-left"><div class="nova-marcacao-service-item-name">' + (s.name || '') + '</div><div class="nova-marcacao-service-item-duration"><i class="ph ph-clock me-1"></i>' + sFormattedDur + '</div></div>';
+                        html += '<div class="nova-marcacao-service-item-price">' + sFormattedPrice + '</div></div>';
+                    });
+                });
+                document.getElementById('novaMarcacaoServicesList').innerHTML = html || '<div class="text-muted small">Nenhum serviço disponível.</div>';
+                document.getElementById('novaMarcacaoServicesList').querySelectorAll('.nova-marcacao-service-item').forEach(function(el) {
+                    el.addEventListener('click', function() {
+                        var sid = this.dataset.serviceId;
+                        if (novaMarcacaoSelectedServices.some(function(s) { return String(s.service_id) === sid; })) return;
+                        var dur = parseInt(this.dataset.duration, 10) || 60;
+                        var priceNum = parseFloat(this.dataset.price) || 0;
+                        novaMarcacaoSelectedServices.push({
+                            service_id: sid,
+                            name: this.dataset.name || '',
+                            duration: dur,
+                            price: priceNum,
+                            formatted_duration: this.dataset.formattedDuration || dur + ' min',
+                            formatted_price: this.dataset.formattedPrice || (priceNum.toFixed(2).replace('.', ',') + ' €'),
+                            color: this.dataset.color || '#6c757d'
+                        });
+                        novaMarcacaoRenderSelectedServices();
+                        novaMarcacaoUpdateEndTimeAndTotal();
+                        document.getElementById('novaMarcacaoServicesList').classList.add('d-none');
+                        document.getElementById('novaMarcacaoServicesListCancelWrap').classList.add('d-none');
+                        document.getElementById('novaMarcacaoServiceSelected').classList.remove('d-none');
+                    });
+                });
+            })
+            .catch(function() {
+                document.getElementById('novaMarcacaoServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
+            });
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('novaMarcacaoModal')).show();
+    }
+
+    document.getElementById('novaMarcacaoClientSearch').addEventListener('input', (function() {
+        var t;
+        return function() {
+            clearTimeout(t);
+            var q = this.value.trim();
+            if (q.length < 1) {
+                document.getElementById('novaMarcacaoClientResults').innerHTML = '';
+                return;
+            }
+            t = setTimeout(function() {
+                document.getElementById('novaMarcacaoClientResults').innerHTML = '<div class="text-muted small">A pesquisar...</div>';
+                fetch(agendaClientsUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(clients) {
+                        if (!clients.length) {
+                            document.getElementById('novaMarcacaoClientResults').innerHTML = '<div class="text-muted small">Nenhum cliente encontrado.</div>';
+                            return;
+                        }
+                        var html = clients.map(function(c) {
+                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-email="' + (c.email || '').replace(/"/g, '&quot;') + '" data-avatar="' + (c.avatar_url || '').replace(/"/g, '&quot;') + '"';
+                            return '<div class="nova-marcacao-client-item" ' + dataAttrs + '>' + (c.name || '') + (c.email ? ' <small class="text-muted">' + c.email + '</small>' : '') + '</div>';
+                        }).join('');
+                        document.getElementById('novaMarcacaoClientResults').innerHTML = html;
+                        document.getElementById('novaMarcacaoClientResults').querySelectorAll('.nova-marcacao-client-item').forEach(function(el) {
+                            el.addEventListener('click', function() {
+                                var name = this.dataset.name || '';
+                                var email = this.dataset.email || '';
+                                var avatarUrl = this.dataset.avatar || '';
+                                novaMarcacaoSelectedClient = { id: this.dataset.id, name: name, email: email, avatar_url: avatarUrl };
+                                document.getElementById('novaMarcacaoClientSelectedName').textContent = name;
+                                document.getElementById('novaMarcacaoClientSelectedEmail').textContent = email || '—';
+                                if (avatarUrl) {
+                                    document.getElementById('novaMarcacaoClientAvatar').src = avatarUrl;
+                                    document.getElementById('novaMarcacaoClientAvatar').classList.remove('d-none');
+                                    document.getElementById('novaMarcacaoClientAvatarFallback').classList.add('d-none');
+                                } else {
+                                    document.getElementById('novaMarcacaoClientAvatar').classList.add('d-none');
+                                    var initials = (name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+                                    document.getElementById('novaMarcacaoClientAvatarFallback').textContent = initials;
+                                    document.getElementById('novaMarcacaoClientAvatarFallback').classList.remove('d-none');
+                                }
+                                document.getElementById('novaMarcacaoClientSelected').classList.remove('d-none');
+                                document.getElementById('novaMarcacaoClientSearchWrap').classList.add('d-none');
+                                document.getElementById('novaMarcacaoClientResults').innerHTML = '';
+                                document.getElementById('novaMarcacaoClientSearch').value = '';
+                                document.getElementById('novaMarcacaoClientCancelBtn').classList.add('d-none');
+                                window._novaMarcacaoPreviousClient = null;
+                            });
+                        });
+                    })
+                    .catch(function() {
+                        document.getElementById('novaMarcacaoClientResults').innerHTML = '<div class="text-danger small">Erro ao pesquisar.</div>';
+                    });
+            }, 300);
+        };
+    })());
+
+    document.getElementById('novaMarcacaoClientClear').addEventListener('click', function() {
+        var prev = novaMarcacaoSelectedClient ? { id: novaMarcacaoSelectedClient.id, name: novaMarcacaoSelectedClient.name, email: novaMarcacaoSelectedClient.email || '', avatar_url: novaMarcacaoSelectedClient.avatar_url || '' } : null;
+        novaMarcacaoSelectedClient = null;
+        document.getElementById('novaMarcacaoClientSelected').classList.add('d-none');
+        document.getElementById('novaMarcacaoClientSearchWrap').classList.remove('d-none');
+        document.getElementById('novaMarcacaoClientResults').innerHTML = '';
+        if (prev) {
+            window._novaMarcacaoPreviousClient = prev;
+            document.getElementById('novaMarcacaoClientCancelBtn').classList.remove('d-none');
+        }
+    });
+    document.getElementById('novaMarcacaoClientCancelBtn').addEventListener('click', function() {
+        var prev = window._novaMarcacaoPreviousClient;
+        if (prev) {
+            novaMarcacaoSelectedClient = prev;
+            document.getElementById('novaMarcacaoClientSelectedName').textContent = prev.name;
+            document.getElementById('novaMarcacaoClientSelectedEmail').textContent = prev.email || '—';
+            if (prev.avatar_url) {
+                document.getElementById('novaMarcacaoClientAvatar').src = prev.avatar_url;
+                document.getElementById('novaMarcacaoClientAvatar').classList.remove('d-none');
+                document.getElementById('novaMarcacaoClientAvatarFallback').classList.add('d-none');
+            } else {
+                document.getElementById('novaMarcacaoClientAvatar').classList.add('d-none');
+                var initials = (prev.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+                document.getElementById('novaMarcacaoClientAvatarFallback').textContent = initials;
+                document.getElementById('novaMarcacaoClientAvatarFallback').classList.remove('d-none');
+            }
+            document.getElementById('novaMarcacaoClientSelected').classList.remove('d-none');
+            document.getElementById('novaMarcacaoClientSearchWrap').classList.add('d-none');
+            document.getElementById('novaMarcacaoClientResults').innerHTML = '';
+            document.getElementById('novaMarcacaoClientSearch').value = '';
+            this.classList.add('d-none');
+            window._novaMarcacaoPreviousClient = null;
+        }
+    });
+
+    document.getElementById('novaMarcacaoAddMoreServicesBtn').addEventListener('click', function() {
+        document.getElementById('novaMarcacaoServiceSelected').classList.add('d-none');
+        document.getElementById('novaMarcacaoServicesListCancelWrap').classList.remove('d-none');
+        document.getElementById('novaMarcacaoServicesList').classList.remove('d-none');
+    });
+
+    document.getElementById('novaMarcacaoCancelAddServicesBtn').addEventListener('click', function() {
+        document.getElementById('novaMarcacaoServicesList').classList.add('d-none');
+        document.getElementById('novaMarcacaoServicesListCancelWrap').classList.add('d-none');
+        document.getElementById('novaMarcacaoServiceSelected').classList.remove('d-none');
+    });
+
+    document.getElementById('novaMarcacaoObservacoesToggle').addEventListener('click', function() {
+        var wrap = document.getElementById('novaMarcacaoObservacoesWrap');
+        wrap.classList.toggle('show');
+        this.classList.toggle('show');
+    });
+
+    document.getElementById('eventDetailObservacoesToggle').addEventListener('click', function() {
+        var wrap = document.getElementById('eventDetailObservacoesWrap');
+        wrap.classList.toggle('show');
+        this.classList.toggle('show');
+    });
+
+    document.getElementById('eventDetailAddMoreServicesBtn').addEventListener('click', function() {
+        document.getElementById('eventDetailServiceSelected').classList.add('d-none');
+        document.getElementById('eventDetailServicesListCancelWrap').classList.remove('d-none');
+        document.getElementById('eventDetailServicesList').classList.remove('d-none');
+    });
+
+    document.getElementById('eventDetailCancelAddServicesBtn').addEventListener('click', function() {
+        document.getElementById('eventDetailServicesList').classList.add('d-none');
+        document.getElementById('eventDetailServicesListCancelWrap').classList.add('d-none');
+        document.getElementById('eventDetailServiceSelected').classList.remove('d-none');
+    });
+
+    document.getElementById('eventDetailClientClear').addEventListener('click', function() {
+        var prev = eventDetailSelectedClient ? { id: eventDetailSelectedClient.id, name: eventDetailSelectedClient.name, email: eventDetailSelectedClient.email || '', avatar_url: eventDetailSelectedClient.avatar_url || '' } : null;
+        eventDetailSelectedClient = null;
+        document.getElementById('eventDetailClientSelected').classList.add('d-none');
+        document.getElementById('eventDetailClientSearchWrap').classList.remove('d-none');
+        document.getElementById('eventDetailClientResults').classList.remove('d-none');
+        document.getElementById('eventDetailClientSearch').value = '';
+        document.getElementById('eventDetailClientSearch').focus();
+        document.getElementById('eventDetailClientResults').innerHTML = '';
+        if (prev) {
+            window._eventDetailPreviousClient = prev;
+            document.getElementById('eventDetailClientCancelBtn').classList.remove('d-none');
+        }
+    });
+    document.getElementById('eventDetailClientCancelBtn').addEventListener('click', function() {
+        var prev = window._eventDetailPreviousClient;
+        if (prev) {
+            eventDetailSelectedClient = prev;
+            document.getElementById('eventDetailClientSelectedName').textContent = prev.name;
+            document.getElementById('eventDetailClientSelectedEmail').textContent = prev.email || '—';
+            if (prev.avatar_url) {
+                document.getElementById('eventDetailClientAvatar').src = prev.avatar_url;
+                document.getElementById('eventDetailClientAvatar').classList.remove('d-none');
+                document.getElementById('eventDetailClientAvatarFallback').classList.add('d-none');
+            } else {
+                document.getElementById('eventDetailClientAvatar').classList.add('d-none');
+                var initials = (prev.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+                document.getElementById('eventDetailClientAvatarFallback').textContent = initials;
+                document.getElementById('eventDetailClientAvatarFallback').classList.remove('d-none');
+            }
+            document.getElementById('eventDetailClientSelected').classList.remove('d-none');
+            document.getElementById('eventDetailClientSearchWrap').classList.add('d-none');
+            document.getElementById('eventDetailClientResults').classList.add('d-none');
+            document.getElementById('eventDetailClientSearch').value = '';
+            document.getElementById('eventDetailClientResults').innerHTML = '';
+            this.classList.add('d-none');
+            window._eventDetailPreviousClient = null;
+        }
+    });
+
+    document.getElementById('eventDetailClientSearch').addEventListener('input', (function() {
+        var t;
+        return function() {
+            clearTimeout(t);
+            var q = this.value.trim();
+            if (q.length < 1) {
+                document.getElementById('eventDetailClientResults').innerHTML = '';
+                return;
+            }
+            t = setTimeout(function() {
+                document.getElementById('eventDetailClientResults').innerHTML = '<div class="text-muted small">A pesquisar...</div>';
+                fetch(agendaClientsUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(clients) {
+                        if (!clients.length) {
+                            document.getElementById('eventDetailClientResults').innerHTML = '<div class="text-muted small">Nenhum cliente encontrado.</div>';
+                            return;
+                        }
+                        var html = clients.map(function(c) {
+                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-email="' + (c.email || '').replace(/"/g, '&quot;') + '" data-avatar="' + (c.avatar_url || '').replace(/"/g, '&quot;') + '"';
+                            return '<div class="nova-marcacao-client-item event-detail-client-item" ' + dataAttrs + '>' + (c.name || '') + (c.email ? ' <small class="text-muted">' + c.email + '</small>' : '') + '</div>';
+                        }).join('');
+                        document.getElementById('eventDetailClientResults').innerHTML = html;
+                        document.getElementById('eventDetailClientResults').querySelectorAll('.event-detail-client-item').forEach(function(el) {
+                            el.addEventListener('click', function() {
+                                var name = this.dataset.name || '', email = this.dataset.email || '', avatarUrl = this.dataset.avatar || '';
+                                eventDetailSelectedClient = { id: this.dataset.id, name: name, email: email, avatar_url: avatarUrl };
+                                document.getElementById('eventDetailClientSelectedName').textContent = name;
+                                document.getElementById('eventDetailClientSelectedEmail').textContent = email || '—';
+                                if (avatarUrl) {
+                                    document.getElementById('eventDetailClientAvatar').src = avatarUrl;
+                                    document.getElementById('eventDetailClientAvatar').classList.remove('d-none');
+                                    document.getElementById('eventDetailClientAvatarFallback').classList.add('d-none');
+                                } else {
+                                    document.getElementById('eventDetailClientAvatar').classList.add('d-none');
+                                    var initials = (name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+                                    document.getElementById('eventDetailClientAvatarFallback').textContent = initials;
+                                    document.getElementById('eventDetailClientAvatarFallback').classList.remove('d-none');
+                                }
+                                document.getElementById('eventDetailClientSelected').classList.remove('d-none');
+                                document.getElementById('eventDetailClientSearchWrap').classList.add('d-none');
+                                document.getElementById('eventDetailClientResults').innerHTML = '';
+                                document.getElementById('eventDetailClientSearch').value = '';
+                                document.getElementById('eventDetailClientCancelBtn').classList.add('d-none');
+                                window._eventDetailPreviousClient = null;
+                            });
+                        });
+                    });
+            }, 300);
+        };
+    })());
+
+    document.getElementById('eventDetailEditForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var id = document.getElementById('eventDetailEditId').value;
+        var title = eventDetailCurrentData?.title || '';
+        if (eventDetailCurrentData?.event_type === 'marcacao' && eventDetailSelectedServices.length > 0) {
+            var clientName = (eventDetailSelectedClient && eventDetailSelectedClient.name) || eventDetailCurrentData.client_name || '';
+            var serviceNames = eventDetailSelectedServices.map(function(s) { return s.name; }).join(', ');
+            title = (clientName || 'Cliente') + ' - ' + serviceNames;
+        }
+        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        var startStr = document.getElementById('eventDetailEditStart').value;
+        var endStr = startStr;
+        if (totalDur > 0 && startStr) {
+            var start = new Date(startStr);
+            var end = new Date(start.getTime() + totalDur * 60 * 1000);
+            endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+        }
+        var payload = {
+            title: title,
+            start_at: startStr,
+            end_at: endStr,
+            description: document.getElementById('eventDetailObservacoes').value,
+            status: document.getElementById('eventDetailStatus').value
+        };
+        if (payload.status === 'cancelado') {
+            payload.cancellation_reason = document.getElementById('eventDetailCancelReason').value;
+        }
+        if (eventDetailCurrentData?.event_type === 'marcacao') {
+            payload.client_id = eventDetailSelectedClient ? eventDetailSelectedClient.id : null;
+            payload.services = eventDetailSelectedServices.map(function(s) { return { service_id: s.service_id, duration: s.duration, price: s.price }; });
+        }
+        var btn = document.getElementById('eventDetailSaveBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar...';
+        fetch('{{ url("agenda/events") }}/' + id, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) {
+            return r.json().then(function(res) {
+                if (!r.ok) {
+                    var msg = res.message || (res.errors ? Object.values(res.errors).flat().join(' ') : null) || 'Erro ao guardar.';
+                    throw new Error(msg);
+                }
+                return res;
+            });
+        })
+        .then(function(res) {
+            btn.disabled = false;
+            btn.innerHTML = 'Guardar';
+            if (res.success && res.event) {
+                eventDetailWasSaved = true;
+                var ev = calendar.getEventById(id);
+                if (ev) {
+                    ev.setProp('title', res.event.title);
+                    ev.setStart(res.event.start);
+                    ev.setEnd(res.event.end);
+                    var ep = res.event.extendedProps || {};
+                    Object.keys(ep).forEach(function(k) { ev.setExtendedProp(k, ep[k]); });
+                }
+                bootstrap.Modal.getInstance(document.getElementById('eventDetailEditModal')).hide();
+            } else {
+                showToast(res.message || 'Erro ao guardar.', 'error');
+            }
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.innerHTML = 'Guardar';
+            var msg = (err && err.message && err.message.indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação. Verifique os logs do servidor se o problema persistir.';
+            showToast(msg, 'error');
+        });
+    });
+
+    document.getElementById('novaMarcacaoForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!novaMarcacaoSelectedServices.length) {
+            showToast('Selecione pelo menos um serviço.', 'error');
+            return;
+        }
+        if (!novaMarcacaoSelectedClient || !novaMarcacaoSelectedClient.name) {
+            showToast('Selecione um cliente.', 'error');
+            return;
+        }
+        var serviceNames = novaMarcacaoSelectedServices.map(function(s) { return s.name; }).join(', ');
+        var title = novaMarcacaoSelectedClient.name + ' - ' + serviceNames;
+        var btn = document.getElementById('novaMarcacaoSubmitBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar...';
+        var servicesPayload = novaMarcacaoSelectedServices.map(function(s) {
+            return { service_id: s.service_id, duration: s.duration, price: s.price };
+        });
+        var payload = {
+            title: title,
+            start_at: document.getElementById('novaMarcacaoStart').value,
+            end_at: document.getElementById('novaMarcacaoEnd').value,
+            description: document.getElementById('novaMarcacaoObservacoes').value,
+            event_type: 'marcacao',
+            user_id: document.getElementById('novaMarcacaoAgentId').value,
+            client_id: novaMarcacaoSelectedClient ? novaMarcacaoSelectedClient.id : null,
+            services: servicesPayload
+        };
+        var csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        fetch('{{ url("agenda/events") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(r) {
+            return r.json().then(function(res) {
+                if (!r.ok) {
+                    var msg = res.message || (res.errors ? Object.values(res.errors).flat().join(' ') : null) || 'Erro ao criar marcação.';
+                    throw new Error(msg);
+                }
+                return res;
+            });
+        })
+        .then(function(res) {
+            btn.disabled = false;
+            btn.textContent = 'Criar marcação';
+            if (res.success && res.event) {
+                if (currentViewMode === 'consultant' && res.event.extendedProps?.user_id) {
+                    res.event.resourceId = String(res.event.extendedProps.user_id);
+                }
+                calendar.addEvent(res.event);
+                bootstrap.Modal.getInstance(document.getElementById('novaMarcacaoModal')).hide();
+            } else {
+                showToast(res.message || 'Erro ao criar marcação.', 'error');
+            }
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.textContent = 'Criar marcação';
+            var msg = (err && err.message && err.message.indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação. Verifique os logs do servidor se o problema persistir.';
+            showToast(msg, 'error');
+        });
+    });
+
+    document.getElementById('novaMarcacaoModal').addEventListener('hidden.bs.modal', function() {
+        novaMarcacaoSelectedClient = null;
+        novaMarcacaoServicesData = null;
+        novaMarcacaoSelectedServices = [];
+        document.getElementById('novaMarcacaoTotalPrice').textContent = '0,00 €';
+        window._novaMarcacaoPreviousClient = null;
+        document.getElementById('novaMarcacaoClientCancelBtn').classList.add('d-none');
+        document.getElementById('novaMarcacaoClientSearchWrap').classList.remove('d-none');
+        document.getElementById('novaMarcacaoClientSelected').classList.add('d-none');
+    });
 
     function toggleEventServiceBlock() {
         var type = document.getElementById('eventType').value;
@@ -1023,25 +1660,40 @@ document.addEventListener('DOMContentLoaded', function() {
         scrollTime: new Date().toTimeString().slice(0, 5) + ':00',
         scrollTimeReset: false,
         slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        slotLaneDidMount: function(arg) {
+            if (arg.el && arg.date) arg.el.setAttribute('data-slot-date', arg.date.toISOString());
+        },
         dayMaxEvents: 2,
         dayMaxEventRows: 2,
         eventContent: function(arg) {
             const start = arg.event.start;
             const end = arg.event.end;
             const fmt = function(d) { return d ? (String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) : ''; };
-            const viewType = arg.view && arg.view.type ? arg.view.type : '';
-            const isTimeView = viewType === 'timeGridWeek' || viewType === 'resourceTimeGridDay';
             const startStr = fmt(start);
             const endStr = fmt(end);
-            const timeStr = isTimeView && startStr && endStr ? (startStr + ' - ' + endStr) : startStr;
-            const title = (arg.event.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const timeStr = (startStr && endStr) ? (startStr + ' - ' + endStr) : (startStr || '');
+            const timeHtml = (startStr && endStr)
+                ? ('<span class="fc-event-time-start">' + startStr + '</span><span class="fc-event-time-range"> - ' + endStr + '</span>')
+                : ('<span class="fc-event-time-start">' + (startStr || '') + '</span>');
             const extProps = arg.event.extendedProps || {};
             const statusIcon = extProps.status_icon || null;
+            const clientName = (extProps.client_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const serviceName = (extProps.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const fallbackTitle = (arg.event.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             let iconHtml = '';
             if (statusIcon) {
                 iconHtml = '<i class="' + statusIcon + ' fc-event-status-icon"></i>';
             }
-            return { html: '<div class="fc-event-content-wrapper"><span class="fc-event-time">' + timeStr + '</span> <span class="fc-event-title">' + title + '</span>' + iconHtml + '</div>' };
+            let contentHtml = '';
+            if (clientName || serviceName) {
+                contentHtml = '<span class="fc-event-time">' + timeHtml + '</span> <strong class="fc-event-client">' + (clientName || '—') + '</strong>';
+                if (serviceName) {
+                    contentHtml += '<span class="fc-event-service-line">' + serviceName + '</span>';
+                }
+            } else {
+                contentHtml = '<span class="fc-event-time">' + timeHtml + '</span> <span class="fc-event-title">' + fallbackTitle + '</span>';
+            }
+            return { html: '<div class="fc-event-content-wrapper">' + contentHtml + iconHtml + '</div>' };
         },
         dayHeaderFormat: function(arg) {
             const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -1093,7 +1745,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return '';
         },
-        /* === 2) Criar evento ao clicar numa célula: abre o mesmo modal com data/hora da célula === */
+        /* === 2) Clique numa célula: mostrar menu rápido; "Criar evento" abre o modal === */
         dateClick: function(info) {
             function toLocalDateTimeStr(d) {
                 const y = d.getFullYear();
@@ -1111,7 +1763,62 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
             }
-            openCreateEventModal(toLocalDateTimeStr(startDate), toLocalDateTimeStr(endDate));
+            var resourceId = info.resource ? info.resource.id : null;
+            var startStr = toLocalDateTimeStr(startDate);
+            var endStr = toLocalDateTimeStr(endDate);
+
+            var daysPt = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            var monthsPt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            var d = startDate;
+            var headingLabel = daysPt[d.getDay()] + ', ' + d.getDate() + ' ' + monthsPt[d.getMonth()] + ' · ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            var timeLabel = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+
+            clearAgendaCellHighlight();
+            var target = info.jsEvent.target;
+            var slotTd = target.closest('td');
+            if (slotTd && (slotTd.closest('.fc-timegrid-axis') || slotTd.classList.contains('fc-timegrid-slot-label'))) slotTd = null;
+            if (slotTd && (resourceId || info.jsEvent.clientX != null)) {
+                var wrapper = createCellHighlightForColumn(slotTd, resourceId, timeLabel, info.jsEvent.clientX);
+                if (wrapper) _agendaHighlight.wrapper = wrapper;
+            }
+            if (!_agendaHighlight.wrapper && slotTd) {
+                var dayCell = target.closest('.fc-daygrid-day');
+                if (dayCell) {
+                    dayCell.classList.add('agenda-cell-highlighted');
+                    _agendaHighlight.wrapper = { remove: function() {}, _isDayGrid: true };
+                    _agendaHighlight.wrapper._parent = dayCell;
+                } else {
+                    slotTd.classList.add('agenda-cell-highlighted');
+                    slotTd.style.position = slotTd.style.position || 'relative';
+                    var span = document.createElement('span');
+                    span.className = 'agenda-cell-time-overlay';
+                    span.textContent = timeLabel;
+                    slotTd.appendChild(span);
+                    _agendaHighlight.wrapper = span;
+                    _agendaHighlight.wrapper._isFullRow = true;
+                }
+            }
+
+            var options = [
+                {
+                    label: 'Nova marcação',
+                    icon: 'bi bi-calendar-check',
+                    iconColor: 'var(--accent-color, #0d6efd)',
+                    action: function() {
+                        openNovaMarcacaoModal(startStr, endStr, resourceId);
+                    }
+                },
+                {
+                    label: 'Novo tempo pessoal',
+                    icon: 'bi bi-person',
+                    iconColor: 'var(--bs-secondary, #6c757d)',
+                    action: function() {
+                        openCreateEventModal(startStr, endStr, resourceId, 'tempo_pessoal');
+                    }
+                }
+            ];
+            clearAgendaHoverHighlight();
+            showQuickMenu(info.jsEvent.clientX, info.jsEvent.clientY, headingLabel, options);
         },
         resources: function(fetchInfo, successCallback, failureCallback) {
             fetch(resourcesUrl, { headers: { 'Accept': 'application/json' } })
@@ -1173,184 +1880,14 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(r => r.json())
             .then(function(data) {
-                const hasAssociations = !!(data.visit || data.lead);
-                const modalEl = hasAssociations ? document.getElementById('eventDetailModal') : document.getElementById('eventDetailModalSimple');
-                if (modalEl.classList.contains('show')) {
-                    eventDetailModalLoading = false;
-                    return;
-                }
-                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                
-                if (hasAssociations) {
-                    // Modal completo (com leads/visitas)
-                    document.getElementById('detailTitle').textContent = data.title || '—';
-                    const startDate = data.start_at ? new Date(data.start_at) : null;
-                    const endDate = data.end_at ? new Date(data.end_at) : null;
-                    const days = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-                    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-                    if (startDate) {
-                        const dateStr = days[startDate.getDay()] + ', ' + startDate.getDate() + ' de ' + months[startDate.getMonth()] + ' de ' + startDate.getFullYear();
-                        document.getElementById('detailDate').textContent = dateStr;
-                        const timeStr = String(startDate.getHours()).padStart(2, '0') + ':' + String(startDate.getMinutes()).padStart(2, '0');
-                        if (endDate && endDate.getTime() !== startDate.getTime()) {
-                            const endTimeStr = String(endDate.getHours()).padStart(2, '0') + ':' + String(endDate.getMinutes()).padStart(2, '0');
-                            document.getElementById('detailTime').textContent = timeStr + ' - ' + endTimeStr;
-                        } else {
-                            document.getElementById('detailTime').textContent = timeStr;
-                        }
-                    } else {
-                        document.getElementById('detailDate').textContent = '—';
-                        document.getElementById('detailTime').textContent = '—';
-                    }
-                    const typeLabel = data.event_type_label || data.event_type || '—';
-                    const typeBadge = document.getElementById('detailTypeBadge');
-                    typeBadge.textContent = typeLabel;
-                    typeBadge.className = 'badge';
-                    if (data.event_type === 'lead') {
-                        typeBadge.classList.add('bg-info');
-                    } else if (data.event_type === 'visita' || data.event_type === 'visit') {
-                        typeBadge.classList.add('bg-success');
-                    } else if (data.event_type === 'tempo_pessoal') {
-                        typeBadge.classList.add('bg-secondary');
-                    } else {
-                        typeBadge.classList.add('bg-primary');
-                    }
-                    const detailServiceWrap = document.getElementById('detailServiceWrap');
-                    const detailService = document.getElementById('detailService');
-                    if (detailServiceWrap && detailService) {
-                        if (data.event_type === 'marcacao' && data.service_name) {
-                            detailService.textContent = data.service_name;
-                            detailServiceWrap.classList.remove('d-none');
-                        } else {
-                            detailServiceWrap.classList.add('d-none');
-                        }
-                    }
-                    const userAvatarEl = document.getElementById('detailUserAvatar');
-                    const userNameEl = document.getElementById('detailUser');
-                    if (userAvatarEl && userNameEl) {
-                        if (data.user_avatar_url) {
-                            userAvatarEl.src = data.user_avatar_url;
-                            userAvatarEl.classList.remove('d-none');
-                        } else {
-                            userAvatarEl.classList.add('d-none');
-                        }
-                        userNameEl.textContent = data.user_name || '—';
-                    }
-                    const descWrap = document.getElementById('detailDescriptionWrap');
-                    const descEl = document.getElementById('detailDescription');
-                    if (data.description && data.description.trim()) {
-                        descEl.textContent = data.description;
-                        descWrap.classList.remove('d-none');
-                    } else {
-                        descWrap.classList.add('d-none');
-                    }
-                    document.getElementById('eventDetailModal').dataset.eventId = id;
-                    document.getElementById('eventDetailModal').dataset.eventDeletable = data.is_deletable ? '1' : '0';
-                    document.getElementById('eventDetailModal').dataset.eventTimeEditable = data.is_time_editable ? '1' : '0';
-                    document.getElementById('eventDetailModal').dataset.eventSourceEditable = data.is_source_editable ? '1' : '0';
-                    const statusSelect = document.getElementById('detailStatus');
-                    if (statusSelect) {
-                        statusSelect.value = data.status || 'agendado';
-                    }
-                    const visitEl = document.getElementById('detailVisit');
-                    const leadEl = document.getElementById('detailLead');
-                    visitEl.classList.add('d-none');
-                    leadEl.classList.add('d-none');
-                    if (data.visit) {
-                        visitEl.classList.remove('d-none');
-                        document.getElementById('detailClient').textContent = data.visit.client_name || '—';
-                        document.getElementById('detailProperty').textContent = (data.visit.property_title || '') + (data.visit.property_reference ? ' (' + data.visit.property_reference + ')' : '');
-                        document.getElementById('linkOpportunity').href = data.visit.opportunity_id ? '{{ url('opportunities') }}/' + data.visit.opportunity_id : '#';
-                        document.getElementById('linkProperty').href = data.visit.property_id ? '{{ url('properties') }}/' + data.visit.property_id : '#';
-                    }
-                    if (data.lead) {
-                        leadEl.classList.remove('d-none');
-                        document.getElementById('detailLeadName').textContent = data.lead.name || '—';
-                        document.getElementById('detailLeadContact').textContent = [data.lead.email, data.lead.phone].filter(Boolean).join(' · ') || '—';
-                        document.getElementById('linkLead').href = '{{ url('leads') }}/' + data.lead.id;
-                    }
-                    document.getElementById('btnEditEvent').classList.toggle('d-none', !data.is_source_editable);
-                    document.getElementById('btnDeleteEvent').classList.toggle('d-none', !data.is_deletable);
-                } else {
-                    // Modal simples (sem leads/visitas)
-                    document.getElementById('detailTitleSimple').textContent = data.title || '—';
-                    const startDate = data.start_at ? new Date(data.start_at) : null;
-                    const endDate = data.end_at ? new Date(data.end_at) : null;
-                    const days = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
-                    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-                    if (startDate) {
-                        const dateStr = days[startDate.getDay()] + ', ' + startDate.getDate() + ' de ' + months[startDate.getMonth()] + ' de ' + startDate.getFullYear();
-                        document.getElementById('detailDateSimple').textContent = dateStr;
-                        const timeStr = String(startDate.getHours()).padStart(2, '0') + ':' + String(startDate.getMinutes()).padStart(2, '0');
-                        if (endDate && endDate.getTime() !== startDate.getTime()) {
-                            const endTimeStr = String(endDate.getHours()).padStart(2, '0') + ':' + String(endDate.getMinutes()).padStart(2, '0');
-                            document.getElementById('detailTimeSimple').textContent = timeStr + ' - ' + endTimeStr;
-                        } else {
-                            document.getElementById('detailTimeSimple').textContent = timeStr;
-                        }
-                    } else {
-                        document.getElementById('detailDateSimple').textContent = '—';
-                        document.getElementById('detailTimeSimple').textContent = '—';
-                    }
-                    const typeLabel = data.event_type_label || data.event_type || '—';
-                    const typeBadgeSimple = document.getElementById('detailTypeBadgeSimple');
-                    typeBadgeSimple.textContent = typeLabel;
-                    typeBadgeSimple.className = 'badge';
-                    if (data.event_type === 'lead') {
-                        typeBadgeSimple.classList.add('bg-info');
-                    } else if (data.event_type === 'visita' || data.event_type === 'visit') {
-                        typeBadgeSimple.classList.add('bg-success');
-                    } else if (data.event_type === 'tempo_pessoal') {
-                        typeBadgeSimple.classList.add('bg-secondary');
-                    } else {
-                        typeBadgeSimple.classList.add('bg-primary');
-                    }
-                    const detailServiceWrapSimple = document.getElementById('detailServiceWrapSimple');
-                    const detailServiceSimple = document.getElementById('detailServiceSimple');
-                    if (detailServiceWrapSimple && detailServiceSimple) {
-                        if (data.event_type === 'marcacao' && data.service_name) {
-                            detailServiceSimple.textContent = data.service_name;
-                            detailServiceWrapSimple.classList.remove('d-none');
-                        } else {
-                            detailServiceWrapSimple.classList.add('d-none');
-                        }
-                    }
-                    const userAvatarElSimple = document.getElementById('detailUserAvatarSimple');
-                    const userNameElSimple = document.getElementById('detailUserSimple');
-                    if (userAvatarElSimple && userNameElSimple) {
-                        if (data.user_avatar_url) {
-                            userAvatarElSimple.src = data.user_avatar_url;
-                            userAvatarElSimple.classList.remove('d-none');
-                        } else {
-                            userAvatarElSimple.classList.add('d-none');
-                        }
-                        userNameElSimple.textContent = data.user_name || '—';
-                    }
-                    const descWrapSimple = document.getElementById('detailDescriptionWrapSimple');
-                    const descElSimple = document.getElementById('detailDescriptionSimple');
-                    if (data.description && data.description.trim()) {
-                        descElSimple.textContent = data.description;
-                        descWrapSimple.classList.remove('d-none');
-                    } else {
-                        descWrapSimple.classList.add('d-none');
-                    }
-                    document.getElementById('eventDetailModalSimple').dataset.eventId = id;
-                    document.getElementById('eventDetailModalSimple').dataset.eventDeletable = data.is_deletable ? '1' : '0';
-                    document.getElementById('eventDetailModalSimple').dataset.eventTimeEditable = data.is_time_editable ? '1' : '0';
-                    document.getElementById('eventDetailModalSimple').dataset.eventSourceEditable = data.is_source_editable ? '1' : '0';
-                    const statusSelectSimple = document.getElementById('detailStatusSimple');
-                    if (statusSelectSimple) {
-                        statusSelectSimple.value = data.status || 'agendado';
-                    }
-                    document.getElementById('btnEditEventSimple').classList.toggle('d-none', !data.is_source_editable);
-                    document.getElementById('btnDeleteEventSimple').classList.toggle('d-none', !data.is_deletable);
-                }
+                populateEventDetailEditModal(data);
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('eventDetailEditModal'));
                 modal.show();
                 eventDetailModalLoading = false;
             })
             .catch(function(error) {
                 console.error('Erro ao carregar detalhes do evento:', error);
-                alert('Erro ao carregar detalhes do evento.');
+                showToast('Erro ao carregar detalhes do evento.', 'error');
                 eventDetailModalLoading = false;
             });
         },
@@ -1384,7 +1921,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(function(res) {
                 if (!res.success) {
-                    alert(res.message || 'Erro ao atualizar.');
+                    showToast(res.message || 'Erro ao atualizar.', 'error');
                     info.revert();
                     return;
                 }
@@ -1419,7 +1956,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(function(res) {
                 if (!res.success) {
-                    alert(res.message || 'Erro ao atualizar.');
+                    showToast(res.message || 'Erro ao atualizar.', 'error');
                     info.revert();
                 }
             })
@@ -1514,7 +2051,60 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     calendar.render();
-    
+
+    (function setupSlotHoverHighlight() {
+        var calendarEl = document.getElementById('calendar');
+        function updateHoverOverlay(e) {
+            var target = e.target;
+            if (!calendarEl.contains(target)) return;
+            if (document.getElementById('agendaQuickMenu').classList.contains('is-open')) return;
+            var slotEl = target.closest('[data-slot-date]');
+            if (!slotEl) {
+                clearAgendaHoverHighlight();
+                return;
+            }
+            var slotTd = slotEl.closest('td');
+            if (!slotTd) {
+                clearAgendaHoverHighlight();
+                return;
+            }
+            var dateStr = slotEl.getAttribute('data-slot-date');
+            if (!dateStr) { clearAgendaHoverHighlight(); return; }
+            var d = new Date(dateStr);
+            var timeLabel = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            var clientX = e.clientX;
+            var colEl = null;
+            var cols = document.querySelectorAll('.fc-timegrid-col');
+            for (var i = 0; i < cols.length; i++) {
+                var r = cols[i].getBoundingClientRect();
+                if (clientX >= r.left && clientX <= r.right) { colEl = cols[i]; break; }
+            }
+            if (!colEl) { clearAgendaHoverHighlight(); return; }
+            clearAgendaHoverHighlight();
+            var tdRect = slotTd.getBoundingClientRect();
+            var colRect = colEl.getBoundingClientRect();
+            var left = colRect.left - tdRect.left;
+            var width = colRect.width;
+            if (left < 0 || width <= 0) return;
+            slotTd.style.position = slotTd.style.position || 'relative';
+            var wrapper = document.createElement('div');
+            wrapper.className = 'agenda-cell-highlight-hover';
+            wrapper.style.left = left + 'px';
+            wrapper.style.width = width + 'px';
+            var timeSpan = document.createElement('span');
+            timeSpan.className = 'agenda-cell-time-overlay';
+            timeSpan.textContent = timeLabel;
+            wrapper.appendChild(timeSpan);
+            slotTd.appendChild(wrapper);
+            _agendaHoverHighlight = wrapper;
+        }
+        function clearOnLeave(e) {
+            if (!calendarEl.contains(e.relatedTarget)) clearAgendaHoverHighlight();
+        }
+        calendarEl.addEventListener('mousemove', updateHoverOverlay, { passive: true });
+        calendarEl.addEventListener('mouseleave', clearOnLeave);
+    })();
+
     // Fazer scroll para a hora atual após render inicial
     setTimeout(function() {
         const now = new Date();
@@ -1924,7 +2514,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const originalBtnHtml = submitBtn.innerHTML;
         const eventUserVal = document.getElementById('eventUser').value;
         if (currentUserIsAdmin && !eventUserVal) {
-            alert('Selecione um membro.');
+            showToast('Selecione um membro.', 'error');
             return;
         }
         submitBtn.disabled = true;
@@ -1984,129 +2574,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('createEventForm').reset();
                 document.getElementById('eventId').value = '';
             } else {
-                alert(res.message || 'Erro ao guardar.');
+                showToast(res.message || 'Erro ao guardar.', 'error');
             }
             resetSubmitBtn();
         })
         .catch(function() {
-            alert('Erro de ligação.');
+            showToast('Erro de ligação.', 'error');
             resetSubmitBtn();
-        });
-    });
-
-    document.getElementById('btnDeleteEvent').addEventListener('click', function() {
-        const modal = document.getElementById('eventDetailModal');
-        const id = modal.dataset.eventId;
-        if (!id || modal.dataset.eventDeletable !== '1') return;
-        if (!confirm('Eliminar este evento?')) return;
-        fetch('{{ url('agenda/events') }}/' + id, {
-            method: 'DELETE',
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }
-        })
-        .then(r => r.json())
-        .then(function(res) {
-            if (res.success) {
-                calendar.getEventById(id)?.remove();
-                bootstrap.Modal.getInstance(modal).hide();
-            } else {
-                alert(res.message || 'Não foi possível eliminar.');
-            }
-        });
-    });
-
-    document.getElementById('btnEditEvent').addEventListener('click', function() {
-        const modal = document.getElementById('eventDetailModal');
-        const id = modal.dataset.eventId;
-        if (!id) return;
-        bootstrap.Modal.getInstance(modal).hide();
-        document.getElementById('eventId').value = id;
-        document.getElementById('createEventModalLabel').textContent = 'Editar evento';
-        fetch('{{ url('agenda/events') }}/' + id, { headers: { 'Accept': 'application/json' } })
-        .then(r => r.json())
-        .then(function(data) {
-            document.getElementById('eventTitle').value = data.title || '';
-            document.getElementById('eventType').value = (data.event_type === 'marcacao') ? 'marcacao' : 'tempo_pessoal';
-            document.getElementById('eventDescription').value = data.description || '';
-            if (data.user_id && String(data.user_id) !== '{{ auth()->id() }}') {
-                document.getElementById('eventUser').value = String(data.user_id);
-            } else {
-                document.getElementById('eventUser').value = '';
-            }
-            var wrap = document.getElementById('eventServiceWrap');
-            if (data.event_type === 'marcacao') {
-                wrap.classList.remove('d-none');
-                loadMemberServices(data.user_id || '{{ auth()->id() }}', data.service_id);
-            } else {
-                wrap.classList.add('d-none');
-                document.getElementById('eventService').innerHTML = '<option value="">Selecione o membro primeiro</option>';
-            }
-            if (data.start_at) {
-                const d = new Date(data.start_at);
-                document.getElementById('eventStart').value = d.toISOString().slice(0, 16);
-            }
-            if (data.end_at) {
-                const d = new Date(data.end_at);
-                document.getElementById('eventEnd').value = d.toISOString().slice(0, 16);
-            }
-            new bootstrap.Modal(document.getElementById('createEventModal')).show();
-        });
-    });
-
-    document.getElementById('btnDeleteEventSimple').addEventListener('click', function() {
-        const modal = document.getElementById('eventDetailModalSimple');
-        const id = modal.dataset.eventId;
-        if (!id || modal.dataset.eventDeletable !== '1') return;
-        if (!confirm('Eliminar este evento?')) return;
-        fetch('{{ url('agenda/events') }}/' + id, {
-            method: 'DELETE',
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }
-        })
-        .then(r => r.json())
-        .then(function(res) {
-            if (res.success) {
-                calendar.getEventById(id)?.remove();
-                bootstrap.Modal.getInstance(modal).hide();
-            } else {
-                alert(res.message || 'Não foi possível eliminar.');
-            }
-        });
-    });
-
-    document.getElementById('btnEditEventSimple').addEventListener('click', function() {
-        const modal = document.getElementById('eventDetailModalSimple');
-        const id = modal.dataset.eventId;
-        if (!id) return;
-        bootstrap.Modal.getInstance(modal).hide();
-        document.getElementById('eventId').value = id;
-        document.getElementById('createEventModalLabel').textContent = 'Editar evento';
-        fetch('{{ url('agenda/events') }}/' + id, { headers: { 'Accept': 'application/json' } })
-        .then(r => r.json())
-        .then(function(data) {
-            document.getElementById('eventTitle').value = data.title || '';
-            document.getElementById('eventType').value = (data.event_type === 'marcacao') ? 'marcacao' : 'tempo_pessoal';
-            document.getElementById('eventDescription').value = data.description || '';
-            if (data.user_id && String(data.user_id) !== '{{ auth()->id() }}') {
-                document.getElementById('eventUser').value = String(data.user_id);
-            } else {
-                document.getElementById('eventUser').value = '';
-            }
-            var wrap = document.getElementById('eventServiceWrap');
-            if (data.event_type === 'marcacao') {
-                wrap.classList.remove('d-none');
-                loadMemberServices(data.user_id || '{{ auth()->id() }}', data.service_id);
-            } else {
-                wrap.classList.add('d-none');
-                document.getElementById('eventService').innerHTML = '<option value="">Selecione o membro primeiro</option>';
-            }
-            if (data.start_at) {
-                const d = new Date(data.start_at);
-                document.getElementById('eventStart').value = d.toISOString().slice(0, 16);
-            }
-            if (data.end_at) {
-                const d = new Date(data.end_at);
-                document.getElementById('eventEnd').value = d.toISOString().slice(0, 16);
-            }
-            new bootstrap.Modal(document.getElementById('createEventModal')).show();
         });
     });
 
@@ -2124,142 +2598,95 @@ document.addEventListener('DOMContentLoaded', function() {
         openCreateEventModal();
     });
 
-    // Atualizar status do evento (modal completo)
-    const detailStatusEl = document.getElementById('detailStatus');
-    if (detailStatusEl) {
-        detailStatusEl.addEventListener('change', function() {
-            const modal = document.getElementById('eventDetailModal');
-            const eventId = modal.dataset.eventId;
-            const newStatus = this.value;
-            if (!eventId || !newStatus) return;
-            
-            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            fetch('{{ url('agenda/events') }}/' + eventId + '/status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrf
-                },
-                body: JSON.stringify({ status: newStatus })
-            })
-            .then(r => r.json())
-            .then(function(res) {
-                if (res.success) {
-                    // Atualizar evento no calendário
-                    const event = calendar.getEventById(eventId);
-                    if (event) {
-                        event.setExtendedProp('status', res.status);
-                        event.setExtendedProp('status_label', res.status_label);
-                        event.setExtendedProp('status_icon', res.status_icon);
-                        // Forçar re-render do evento para atualizar o ícone
-                        calendar.render();
-                    }
-                } else {
-                    alert(res.message || 'Não foi possível atualizar o estado.');
-                    // Reverter o valor do select
-                    const statusSelect = document.getElementById('detailStatus');
-                    if (statusSelect) {
-                        const event = calendar.getEventById(eventId);
-                        if (event) {
-                            statusSelect.value = event.extendedProps.status || 'agendado';
-                        }
-                    }
-                }
-            })
-            .catch(function(error) {
-                console.error('Erro ao atualizar estado:', error);
-                alert('Erro ao atualizar o estado do evento.');
-                // Reverter o valor do select
-                const statusSelect = document.getElementById('detailStatus');
-                if (statusSelect) {
-                    const event = calendar.getEventById(eventId);
-                    if (event) {
-                        statusSelect.value = event.extendedProps.status || 'agendado';
-                    }
-                }
-            });
-        });
-    }
+    // Status é guardado ao clicar Guardar no modal eventDetailEditModal
 
-    // Atualizar status do evento (modal simples)
-    const detailStatusSimpleEl = document.getElementById('detailStatusSimple');
-    if (detailStatusSimpleEl) {
-        detailStatusSimpleEl.addEventListener('change', function() {
-            const modal = document.getElementById('eventDetailModalSimple');
-            const eventId = modal.dataset.eventId;
-            const newStatus = this.value;
-            if (!eventId || !newStatus) return;
-            
-            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-            fetch('{{ url('agenda/events') }}/' + eventId + '/status', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': csrf
-                },
-                body: JSON.stringify({ status: newStatus })
-            })
-            .then(r => r.json())
-            .then(function(res) {
-                if (res.success) {
-                    // Atualizar evento no calendário
-                    const event = calendar.getEventById(eventId);
-                    if (event) {
-                        event.setExtendedProp('status', res.status);
-                        event.setExtendedProp('status_label', res.status_label);
-                        event.setExtendedProp('status_icon', res.status_icon);
-                        // Forçar re-render do evento para atualizar o ícone
-                        calendar.render();
-                    }
-                } else {
-                    alert(res.message || 'Não foi possível atualizar o estado.');
-                    // Reverter o valor do select
-                    const statusSelect = document.getElementById('detailStatusSimple');
-                    if (statusSelect) {
-                        const event = calendar.getEventById(eventId);
-                        if (event) {
-                            statusSelect.value = event.extendedProps.status || 'agendado';
-                        }
-                    }
-                }
-            })
-            .catch(function(error) {
-                console.error('Erro ao atualizar estado:', error);
-                alert('Erro ao atualizar o estado do evento.');
-                // Reverter o valor do select
-                const statusSelect = document.getElementById('detailStatusSimple');
-                if (statusSelect) {
-                    const event = calendar.getEventById(eventId);
-                    if (event) {
-                        statusSelect.value = event.extendedProps.status || 'agendado';
-                    }
-                }
-            });
-        });
-    }
-
-    document.getElementById('eventDetailModal').addEventListener('hidden.bs.modal', function() {
-        eventDetailModalLoading = false;
-        const backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) {
-            backdrop.remove();
+    function eventDetailPopulateTimeOptions(selectedTime) {
+        var container = document.querySelector('.event-detail-time-options');
+        if (!container) return;
+        container.innerHTML = '';
+        for (var h = 0; h < 24; h++) {
+            for (var m = 0; m < 60; m += 30) {
+                var ts = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+                var a = document.createElement('a');
+                a.href = '#';
+                a.className = 'dropdown-item event-detail-time-opt' + (ts === selectedTime ? ' active' : '');
+                a.dataset.time = ts;
+                a.textContent = ts;
+                a.addEventListener('click', function(e) { e.preventDefault(); eventDetailApplyNewStartTime(this.dataset.time); });
+                container.appendChild(a);
+            }
         }
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
+    }
+    document.getElementById('eventDetailTimeDropdownMenu')?.addEventListener('click', function(e) {
+        var opt = e.target.closest('.event-detail-time-opt');
+        if (opt) { e.preventDefault(); eventDetailApplyNewStartTime(opt.dataset.time); }
     });
-    
-    document.getElementById('eventDetailModalSimple').addEventListener('hidden.bs.modal', function() {
-        eventDetailModalLoading = false;
-        const backdrop = document.querySelector('.modal-backdrop');
-        if (backdrop) {
-            backdrop.remove();
+    document.getElementById('eventDetailTimeToggle')?.addEventListener('show.bs.dropdown', function() {
+        var startStr = document.getElementById('eventDetailEditStart')?.value;
+        var timeStr = '';
+        if (startStr) {
+            var d = new Date(startStr);
+            var m = d.getMinutes() < 30 ? 0 : 30;
+            timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
+        eventDetailPopulateTimeOptions(timeStr);
+    });
+    document.getElementById('eventDetailTimeToggle')?.addEventListener('shown.bs.dropdown', function() {
+        var active = document.querySelector('.event-detail-time-options .event-detail-time-opt.active');
+        if (active) {
+            active.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        }
+    });
+
+    document.getElementById('novaMarcacaoTimeToggle')?.addEventListener('show.bs.dropdown', function() {
+        var startStr = document.getElementById('novaMarcacaoStart')?.value;
+        var timeStr = '';
+        if (startStr) {
+            var d = new Date(startStr);
+            var m = d.getMinutes() < 30 ? 0 : 30;
+            timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        }
+        novaMarcacaoPopulateTimeOptions(timeStr);
+    });
+    document.getElementById('novaMarcacaoTimeToggle')?.addEventListener('shown.bs.dropdown', function() {
+        var active = document.querySelector('.nova-marcacao-time-options .nova-marcacao-time-opt.active');
+        if (active) {
+            active.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+        }
+    });
+
+    document.getElementById('eventDetailStatusMenu').querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
+        opt.addEventListener('click', function(e) {
+            e.preventDefault();
+            var status = this.dataset.status;
+            var labels = { agendado: 'Agendado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', faltou: 'Faltou', cancelado: 'Cancelado' };
+            document.getElementById('eventDetailStatus').value = status;
+            document.getElementById('eventDetailStatusLabel').textContent = labels[status] || status;
+            document.getElementById('eventDetailCancelReasonWrap').classList.toggle('d-none', status !== 'cancelado');
+            if (status !== 'cancelado') document.getElementById('eventDetailCancelReason').value = '';
+            bootstrap.Dropdown.getInstance(document.getElementById('eventDetailStatusDropdownBtn'))?.hide();
+        });
+    });
+
+    document.getElementById('eventDetailEditModal').addEventListener('hidden.bs.modal', function() {
+        if (!eventDetailWasSaved) {
+            var evId = document.getElementById('eventDetailEditId')?.value;
+            if (evId && eventDetailOriginalStartAt && eventDetailOriginalEndAt && typeof calendar !== 'undefined') {
+                var ev = calendar.getEventById(evId);
+                if (ev) {
+                    ev.setStart(new Date(eventDetailOriginalStartAt));
+                    ev.setEnd(new Date(eventDetailOriginalEndAt));
+                }
+            }
+        }
+        eventDetailWasSaved = false;
+        eventDetailModalLoading = false;
+        eventDetailSelectedClient = null;
+        eventDetailSelectedServices = [];
+        window._eventDetailPreviousClient = null;
+        document.getElementById('eventDetailClientCancelBtn').classList.add('d-none');
+        eventDetailOriginalStartAt = null;
+        eventDetailOriginalEndAt = null;
     });
 });
 </script>

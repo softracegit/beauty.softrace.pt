@@ -114,12 +114,12 @@
             if (data.success) {
                 location.reload();
             } else {
-                alert('Erro ao adicionar nota: ' + (data.message || 'Erro desconhecido'));
+                showToast('Erro ao adicionar nota: ' + (data.message || 'Erro desconhecido'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Erro ao adicionar nota');
+            showToast('Erro ao adicionar nota', 'error');
         });
     });
 </script>

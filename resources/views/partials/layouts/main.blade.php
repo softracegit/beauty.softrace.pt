@@ -35,6 +35,7 @@
   </a>
 
   @include('partials.vendor-scripts')
+  @include('partials.toast-container')
   @yield('js')
 </body>
 
