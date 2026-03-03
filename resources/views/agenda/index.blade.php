@@ -410,8 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!w) return;
         if (w._isDayGrid && w._parent) {
             w._parent.classList.remove('agenda-cell-highlighted');
-        } else if (w._isFullRow && w.parentElement) {
-            w.parentElement.classList.remove('agenda-cell-highlighted');
+        } else if (w._isFullRow) {
             w.remove();
         } else if (w.remove) {
             w.remove();
@@ -431,21 +430,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         if (!colEl) return null;
-        var tdRect = slotTd.getBoundingClientRect();
+        var slotRect = slotTd.getBoundingClientRect();
         var colRect = colEl.getBoundingClientRect();
-        var left = colRect.left - tdRect.left;
-        var width = colRect.width;
-        if (left < 0 || width <= 0) return null;
+        if (colRect.width <= 0 || slotRect.height <= 0) return null;
         var wrapper = document.createElement('div');
-        wrapper.className = 'agenda-cell-highlight';
-        wrapper.style.left = left + 'px';
-        wrapper.style.width = width + 'px';
+        wrapper.className = 'agenda-cell-highlight agenda-cell-highlight-active';
+        wrapper.style.position = 'fixed';
+        wrapper.style.top = slotRect.top + 'px';
+        wrapper.style.left = colRect.left + 'px';
+        wrapper.style.width = colRect.width + 'px';
+        wrapper.style.height = slotRect.height + 'px';
+        wrapper.style.zIndex = '9998';
+        wrapper.style.pointerEvents = 'none';
         var timeSpan = document.createElement('span');
         timeSpan.className = 'agenda-cell-time-overlay';
         timeSpan.textContent = timeLabel;
         wrapper.appendChild(timeSpan);
-        slotTd.style.position = slotTd.style.position || 'relative';
-        slotTd.appendChild(wrapper);
+        document.body.appendChild(wrapper);
         return wrapper;
     }
 
@@ -2208,13 +2209,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     _agendaHighlight.wrapper = { remove: function() {}, _isDayGrid: true };
                     _agendaHighlight.wrapper._parent = dayCell;
                 } else {
-                    slotTd.classList.add('agenda-cell-highlighted');
-                    slotTd.style.position = slotTd.style.position || 'relative';
+                    var slotRect = slotTd.getBoundingClientRect();
+                    var wrapper = document.createElement('div');
+                    wrapper.className = 'agenda-cell-highlight agenda-cell-highlight-active';
+                    wrapper.style.position = 'fixed';
+                    wrapper.style.top = slotRect.top + 'px';
+                    wrapper.style.left = slotRect.left + 'px';
+                    wrapper.style.width = slotRect.width + 'px';
+                    wrapper.style.height = slotRect.height + 'px';
+                    wrapper.style.zIndex = '9998';
+                    wrapper.style.pointerEvents = 'none';
                     var span = document.createElement('span');
                     span.className = 'agenda-cell-time-overlay';
                     span.textContent = timeLabel;
-                    slotTd.appendChild(span);
-                    _agendaHighlight.wrapper = span;
+                    wrapper.appendChild(span);
+                    document.body.appendChild(wrapper);
+                    _agendaHighlight.wrapper = wrapper;
                     _agendaHighlight.wrapper._isFullRow = true;
                 }
             }
@@ -2478,8 +2488,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 
+    /* TEST: overlay fora da tabela para evitar que as horas “mexam” na vertical; reverter este bloco se não correr bem */
     (function setupSlotHoverHighlight() {
         var calendarEl = document.getElementById('calendar');
+
         function updateHoverOverlay(e) {
             var target = e.target;
             if (!calendarEl.contains(target)) return;
@@ -2506,29 +2518,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (clientX >= r.left && clientX <= r.right) { colEl = cols[i]; break; }
             }
             if (!colEl) { clearAgendaHoverHighlight(); return; }
-            clearAgendaHoverHighlight();
-            var tdRect = slotTd.getBoundingClientRect();
+
+            var slotRect = slotTd.getBoundingClientRect();
             var colRect = colEl.getBoundingClientRect();
-            var left = colRect.left - tdRect.left;
-            var width = colRect.width;
-            if (left < 0 || width <= 0) return;
-            slotTd.style.position = slotTd.style.position || 'relative';
-            var wrapper = document.createElement('div');
-            wrapper.className = 'agenda-cell-highlight-hover';
-            wrapper.style.left = left + 'px';
-            wrapper.style.width = width + 'px';
-            var timeSpan = document.createElement('span');
-            timeSpan.className = 'agenda-cell-time-overlay';
-            timeSpan.textContent = timeLabel;
-            wrapper.appendChild(timeSpan);
-            slotTd.appendChild(wrapper);
-            _agendaHoverHighlight = wrapper;
+            if (colRect.width <= 0 || slotRect.height <= 0) return;
+
+            /* Overlay em position:fixed e coordenadas viewport para ficar exactamente sobre a célula e visível (z-index alto) */
+            if (!_agendaHoverHighlight) {
+                var wrapper = document.createElement('div');
+                wrapper.className = 'agenda-cell-highlight-hover';
+                wrapper.setAttribute('role', 'presentation');
+                wrapper.style.position = 'fixed';
+                wrapper.style.zIndex = '9999';
+                wrapper.style.pointerEvents = 'none';
+                var timeSpan = document.createElement('span');
+                timeSpan.className = 'agenda-cell-time-overlay';
+                wrapper.appendChild(timeSpan);
+                _agendaHoverHighlight = wrapper;
+            }
+            _agendaHoverHighlight.style.top = slotRect.top + 'px';
+            _agendaHoverHighlight.style.left = colRect.left + 'px';
+            _agendaHoverHighlight.style.width = colRect.width + 'px';
+            _agendaHoverHighlight.style.height = slotRect.height + 'px';
+            _agendaHoverHighlight.querySelector('.agenda-cell-time-overlay').textContent = timeLabel;
+            if (!_agendaHoverHighlight.parentNode) document.body.appendChild(_agendaHoverHighlight);
         }
         function clearOnLeave(e) {
             if (!calendarEl.contains(e.relatedTarget)) clearAgendaHoverHighlight();
         }
         calendarEl.addEventListener('mousemove', updateHoverOverlay, { passive: true });
         calendarEl.addEventListener('mouseleave', clearOnLeave);
+        /* Ao fazer scroll na grelha, remover o overlay para evitar desalinhamento; volta no próximo mousemove */
+        calendarEl.addEventListener('scroll', function() {
+            if (_agendaHoverHighlight) clearAgendaHoverHighlight();
+        }, true);
     })();
 
     // Fazer scroll para a hora atual após render inicial
