@@ -112,24 +112,22 @@ body .app-wrapper .container-fluid {
 .fc .fc-timegrid-event-harness {
     left: -1px !important;
     right: 0px !important;
-    width: 102.6% !important;
-}
-.fc .fc-timegrid-event {
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
+    width: 102.5% !important;
 }
 
 .fc-event {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
     cursor: pointer;
     color: #000 !important;
     font-size: 0.75rem !important;
     font-weight: 400 !important;
     padding: 0px !important;
     text-align: left !important;
-    border-radius: 4px !important;
+    border-radius: 8px !important;
     border: none !important;
+    margin: 2px 0 !important;
 }
 .fc-event .fc-event-main,
 .fc-event-main,
@@ -164,7 +162,7 @@ body .app-wrapper .container-fluid {
 .fc-event-status-icon {
     position: absolute;
     top: 0px;
-    right: 0px;
+    right: -1px;
     font-size: 1.25rem;
     opacity: 1;
     z-index: 10;

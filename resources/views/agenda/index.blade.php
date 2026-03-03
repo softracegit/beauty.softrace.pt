@@ -2300,6 +2300,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         eventDidMount: function(info) {
             info.el.style.setProperty('color', '#000', 'important');
+            info.el.style.setProperty('box-shadow', 'none', 'important');
             if (info.event.backgroundColor) {
                 info.el.style.setProperty('background-color', info.event.backgroundColor, 'important');
             }
