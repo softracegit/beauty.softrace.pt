@@ -20,4 +20,4 @@
 <link href="{{ asset('template/vendor/flatpickr/flatpickr.min.css') }}" rel="stylesheet">
 
 <!-- Template Main CSS File -->
-<link href="{{ asset('template/css/main.css') }}" rel="stylesheet">
+<link href="{{ asset('template/css/main.css') }}?v={{ file_exists(public_path('template/css/main.css')) ? filemtime(public_path('template/css/main.css')) : time() }}" rel="stylesheet">

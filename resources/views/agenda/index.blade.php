@@ -2,7 +2,7 @@
 @section('title', 'Agenda | Beauty CRM')
 @section('css')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css">
-    <link rel="stylesheet" href="{{ asset('template/css/agenda.css') }}">
+    <link rel="stylesheet" href="{{ asset('template/css/agenda.css') }}?v={{ file_exists(public_path('template/css/agenda.css')) ? filemtime(public_path('template/css/agenda.css')) : time() }}">
 @endsection
 @section('content')
 <div class="row g-0">
@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
         wrapper.style.left = colRect.left + 'px';
         wrapper.style.width = colRect.width + 'px';
         wrapper.style.height = slotRect.height + 'px';
-        wrapper.style.zIndex = '9998';
+        wrapper.style.zIndex = '999';
         wrapper.style.pointerEvents = 'none';
         var timeSpan = document.createElement('span');
         timeSpan.className = 'agenda-cell-time-overlay';
