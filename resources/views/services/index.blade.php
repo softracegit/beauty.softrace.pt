@@ -307,10 +307,24 @@
                         <label for="addCategoryColorSelect" class="form-label">Cor <span class="text-danger">*</span></label>
                         <select class="form-select" id="addCategoryColorSelect" name="color" required>
                             <option value="">Selecionar cor...</option>
-                            <option value="#ef4444">Vermelho</option>
-                            <option value="#22c55e">Verde</option>
-                            <option value="#3b82f6">Azul</option>
-                            <option value="#eab308">Amarelo</option>
+                            <option value="#bfdbfe">Azul Céu</option>
+                            <option value="#93c5fd">Azul Claro</option>
+                            <option value="#a5b4fc">Azul Índigo</option>
+                            <option value="#c7d2fe">Azul Lavanda</option>
+                            <option value="#ddd6fe">Lavanda</option>
+                            <option value="#e9d5ff">Lilás</option>
+                            <option value="#f3e8ff">Roxo Pastel</option>
+                            <option value="#fbcfe8">Rosa Pastel</option>
+                            <option value="#fecdd3">Rosa Claro</option>
+                            <option value="#fda4af">Coral Suave</option>
+                            <option value="#fed7aa">Laranja Pastel</option>
+                            <option value="#fde68a">Âmbar Claro</option>
+                            <option value="#fef9c3">Amarelo Pastel</option>
+                            <option value="#d9f99d">Verde Lima</option>
+                            <option value="#bbf7d0">Verde Menta</option>
+                            <option value="#99f6e4">Verde Água</option>
+                            <option value="#a5f3fc">Ciano Claro</option>
+                            <option value="#bae6fd">Azul Gelo</option>
                         </select>
                     </div>
                 </div>
@@ -348,10 +362,24 @@
                         <label for="editCategoryColorSelect" class="form-label">Cor <span class="text-danger">*</span></label>
                         <select class="form-select" id="editCategoryColorSelect" name="color" required>
                             <option value="">Selecionar cor...</option>
-                            <option value="#ef4444">Vermelho</option>
-                            <option value="#22c55e">Verde</option>
-                            <option value="#3b82f6">Azul</option>
-                            <option value="#eab308">Amarelo</option>
+                            <option value="#bfdbfe">Azul Céu</option>
+                            <option value="#93c5fd">Azul Claro</option>
+                            <option value="#a5b4fc">Azul Índigo</option>
+                            <option value="#c7d2fe">Azul Lavanda</option>
+                            <option value="#ddd6fe">Lavanda</option>
+                            <option value="#e9d5ff">Lilás</option>
+                            <option value="#f3e8ff">Roxo Pastel</option>
+                            <option value="#fbcfe8">Rosa Pastel</option>
+                            <option value="#fecdd3">Rosa Claro</option>
+                            <option value="#fda4af">Coral Suave</option>
+                            <option value="#fed7aa">Laranja Pastel</option>
+                            <option value="#fde68a">Âmbar Claro</option>
+                            <option value="#fef9c3">Amarelo Pastel</option>
+                            <option value="#d9f99d">Verde Lima</option>
+                            <option value="#bbf7d0">Verde Menta</option>
+                            <option value="#99f6e4">Verde Água</option>
+                            <option value="#a5f3fc">Ciano Claro</option>
+                            <option value="#bae6fd">Azul Gelo</option>
                         </select>
                     </div>
                 </div>
@@ -430,6 +458,15 @@
                             @endforelse
                         </div>
                     </div>
+                    @if(isset($extraCategories) && $extraCategories->isNotEmpty())
+                    <div class="mb-3">
+                        @include('services.partials.service-extras-association', [
+                            'extraCategories' => $extraCategories,
+                            'selectedExtraIds' => [],
+                            'inputIdPrefix' => 'addService',
+                        ])
+                    </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -477,7 +514,7 @@
                             <input type="number" class="form-control" name="duration" id="editServiceDuration" min="1" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Preço (€) <span class="text-danger">*</span></label>
+                            <label class="form-label">Preço (€) <span class="text-danger">*</span> <span id="editServicePriceOriginal" class="text-muted text-decoration-line-through small ms-1" style="display:none;"></span></label>
                             <input type="number" class="form-control" name="price" id="editServicePrice" step="0.01" min="0" required>
                         </div>
                         <div class="col-md-4 mb-3">
@@ -507,6 +544,15 @@
                             @endforelse
                         </div>
                     </div>
+                    @if(isset($extraCategories) && $extraCategories->isNotEmpty())
+                    <div class="mb-3" id="editServiceExtrasWrap">
+                        @include('services.partials.service-extras-association', [
+                            'extraCategories' => $extraCategories,
+                            'selectedExtraIds' => [],
+                            'inputIdPrefix' => 'editService',
+                        ])
+                    </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

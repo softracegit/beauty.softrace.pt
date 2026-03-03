@@ -45,23 +45,26 @@
                             <div class="nova-marcacao-sidebar">
                                 <div class="nova-marcacao-section">
                                     <h6 class="nova-marcacao-section-title">Prestador do Serviço</h6>
-                                    <div class="nova-marcacao-person" id="novaMarcacaoAgentBlock">
+                                    <a id="novaMarcacaoAgentLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body">
                                         <img id="novaMarcacaoAgentAvatar" src="" alt="" class="rounded-circle agenda-avatar-img" width="40" height="40">
                                         <div class="flex-grow-1 min-w-0">
                                             <strong id="novaMarcacaoAgentName">—</strong>
                                             <span id="novaMarcacaoAgentEmail" class="d-block small text-muted">—</span>
                                         </div>
-                                    </div>
+                                    </a>
                                 </div>
                                 <div class="nova-marcacao-section">
-                                    <h6 class="nova-marcacao-section-title">Cliente</h6>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <h6 class="nova-marcacao-section-title mb-0">Cliente</h6>
+                                        <a href="#" class="nova-marcacao-create-client-link" id="novaMarcacaoCreateClientBtn"><i class="ph ph-plus"></i> Novo cliente</a>
+                                    </div>
                                     <div id="novaMarcacaoClientSearchWrap" class="mb-2">
                                         <div class="d-flex gap-2 align-items-center mb-2">
                                             <input type="text" id="novaMarcacaoClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Pesquisar cliente..." autocomplete="off">
                                             <button type="button" class="btn btn-light btn-sm d-none" id="novaMarcacaoClientCancelBtn">Cancelar</button>
                                         </div>
                                     </div>
-                                    <div id="novaMarcacaoClientResults" class="nova-marcacao-client-results mb-2">
+                                    <div id="novaMarcacaoClientResults" class="nova-marcacao-client-results mb-0">
                                     </div>
                                     <div id="novaMarcacaoClientSelected" class="nova-marcacao-person d-none">
                                         <img id="novaMarcacaoClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="40" height="40">
@@ -119,6 +122,13 @@
 
 <!-- Quick menu: Editar opções do serviço (duração, preço) -->
 <div id="novaMarcacaoEditServiceQuickMenu" role="dialog" aria-label="Alterar opções do serviço"></div>
+<!-- Quick menu: Adicionar extra ao serviço -->
+<div id="novaMarcacaoAddExtrasQuickMenu" role="dialog" aria-label="Adicionar extra" class="nova-marcacao-quick-menu-extras"></div>
+<!-- Event detail: quick menu Adicionar extra (reutiliza estilos; posicionado no modal) -->
+<div id="eventDetailAddExtrasQuickMenu" role="dialog" aria-label="Adicionar extra" class="nova-marcacao-quick-menu-extras" style="position: absolute;"></div>
+
+<!-- Quick menu: Criar cliente -->
+<div id="agendaCreateClientQuickMenu" role="dialog" aria-label="Criar cliente"></div>
 
 <!-- Modal: Criar / Editar evento (apenas manual/outro) -->
 <div class="modal fade" id="createEventModal" tabindex="-1" aria-labelledby="createEventModalLabel" aria-hidden="true">
@@ -217,17 +227,19 @@
                             <div class="nova-marcacao-sidebar">
                                 <div class="nova-marcacao-section d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                                     <div class="dropdown" id="eventDetailStatusDropdownWrap">
-                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" id="eventDetailStatusDropdownBtn">
+                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" id="eventDetailStatusDropdownBtn">
+                                            <span id="eventDetailStatusIcon"><i class="me-2 ph ph-clock"></i></span>
                                             <span id="eventDetailStatusLabel">Agendado</span>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end" id="eventDetailStatusMenu">
-                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="agendado">Agendado</a></li>
-                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="confirmado">Confirmado</a></li>
-                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="chegou">Chegou</a></li>
-                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="iniciado">Iniciado</a></li>
-                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="faltou">Faltou</a></li>
-                                            <li><a class="dropdown-item event-detail-status-opt" href="#" data-status="cancelado">Cancelado</a></li>
-                                        </ul>
+                                        <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailStatusMenu">
+                                            <div class="px-3 py-2 border-bottom"><label class="form-label small mb-0">Estado</label></div>
+                                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="agendado"><i class="me-0 ph ph-clock"></i>Agendado</a>
+                                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ph ph-check"></i>Confirmado</a>
+                                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ph ph-map-pin"></i>Chegou</a>
+                                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ph ph-play"></i>Iniciado</a>
+                                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="faltou"><i class="me-0 ph ph-prohibit"></i>Faltou</a>
+                                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="cancelado"><i class="me-0 ph ph-x-circle"></i>Cancelado</a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div id="eventDetailCancelReasonWrap" class="d-none mb-3">
@@ -236,16 +248,19 @@
                                 </div>
                                 <div class="nova-marcacao-section">
                                     <h6 class="nova-marcacao-section-title">Prestador do Serviço</h6>
-                                    <div class="nova-marcacao-person" id="eventDetailAgentBlock">
+                                    <a id="eventDetailAgentLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body">
                                         <img id="eventDetailAgentAvatar" src="" alt="" class="rounded-circle agenda-avatar-img" width="40" height="40">
                                         <div class="flex-grow-1 min-w-0">
                                             <strong id="eventDetailAgentName">—</strong>
                                             <span id="eventDetailAgentEmail" class="d-block small text-muted">—</span>
                                         </div>
-                                    </div>
+                                    </a>
                                 </div>
                                 <div class="nova-marcacao-section" id="eventDetailClientSection">
-                                    <h6 class="nova-marcacao-section-title">Cliente</h6>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <h6 class="nova-marcacao-section-title mb-0">Cliente</h6>
+                                        <a href="#" class="nova-marcacao-create-client-link d-none" id="eventDetailCreateClientBtn"><i class="ph ph-plus"></i> Novo cliente</a>
+                                    </div>
                                     <div id="eventDetailClientSearchWrap" class="mb-0">
                                         <div class="d-flex gap-2 align-items-center mb-2">
                                             <input type="text" id="eventDetailClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Pesquisar cliente..." autocomplete="off">
@@ -562,6 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var agendaMembersServicesUrl = '{{ url("agenda/members") }}';
     var agendaClientsUrl = '{{ url("agenda/clients") }}';
+    var agendaEquipaBaseUrl = '{{ url("equipa") }}';
     var novaMarcacaoServicesData = null;
     var novaMarcacaoSelectedClient = null;
     var novaMarcacaoSelectedServices = [];
@@ -580,17 +596,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (titleEl) titleEl.textContent = novaMarcacaoSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
         var html = novaMarcacaoSelectedServices.map(function(item, idx) {
+            var extrasLine = (item.extras && item.extras.length)
+                ? '<div class="small text-muted mt-1 nova-marcacao-extras-line">' +
+                    item.extras.map(function(e, eIdx) {
+                        var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
+                        var durText = e.formatted_duration || ((e.duration || 0) + ' min');
+                        return '<span class="badge rounded-pill text-bg-light me-1">' +
+                            '+ ' + (e.name || '') + ' (' + priceText + ' · ' + durText + ')' +
+                            '<button type="button" class="btn btn-link btn-sm p-0 ms-1 novaMarcacaoRemoveExtraBtn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra"><i class="ph ph-x"></i></button>' +
+                            '</span>';
+                    }).join('') +
+                  '</div>'
+                : '';
+            var hasAvailableExtras = (item.available_extras && item.available_extras.length > 0);
+            var addExtrasBtn = hasAvailableExtras ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoAddExtrasBtn" data-idx="' + idx + '" title="Adicionar extras" aria-label="Adicionar extras"><i class="ph ph-plus-circle"></i></button>' : '';
+            var origP = item.original_price != null ? parseFloat(item.original_price) : NaN;
+            var currP = item.price != null ? parseFloat(item.price) : NaN;
+            var showStrikethrough = !isNaN(origP) && currP !== origP;
+            var priceBlock = showStrikethrough
+                ? '<span class="text-danger text-decoration-line-through small me-1">' + (origP.toFixed(2).replace('.', ',') + ' €') + '</span><span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>'
+                : '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>';
             return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card d-flex justify-content-between align-items-center mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + '">' +
                 '<div class="nova-marcacao-service-item-left">' +
                 '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
-                '<div class="nova-marcacao-service-item-duration"><i class="ph ph-clock me-1"></i>' + (item.formatted_duration || item.duration + ' min') + '</div>' +
+                '<div class="nova-marcacao-service-item-duration"><i class="ph ph-clock me-1"></i>' + (item.formatted_duration || item.duration + ' min') + '</div>' + extrasLine +
                 '</div>' +
                 '<div class="d-flex align-items-center gap-2 justify-content-end">' +
-                '<div class="d-flex gap-1">' +
+                '<div class="d-flex gap-1">' + addExtrasBtn +
                 '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoEditServiceBtn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
                 '<button type="button" class="btn btn-outline-danger btn-icon btn-sm novaMarcacaoDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
                 '</div>' +
-                '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>' +
+                priceBlock +
                 '</div></div></div>';
         }).join('');
         container.innerHTML = html;
@@ -600,6 +636,71 @@ document.addEventListener('DOMContentLoaded', function() {
         container.querySelectorAll('.novaMarcacaoDeleteServiceBtn').forEach(function(btn) {
             btn.addEventListener('click', function(e) { e.stopPropagation(); novaMarcacaoDeleteService(parseInt(this.dataset.idx, 10)); });
         });
+        container.querySelectorAll('.novaMarcacaoAddExtrasBtn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) { e.stopPropagation(); novaMarcacaoOpenAddExtrasQuickMenu(e, parseInt(this.dataset.idx, 10)); });
+        });
+        container.querySelectorAll('.novaMarcacaoRemoveExtraBtn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sIdx = parseInt(this.dataset.idx, 10);
+                var exIdx = parseInt(this.dataset.extraIndex, 10);
+                if (!isNaN(sIdx) && !isNaN(exIdx) && novaMarcacaoSelectedServices[sIdx] && Array.isArray(novaMarcacaoSelectedServices[sIdx].extras)) {
+                    novaMarcacaoSelectedServices[sIdx].extras.splice(exIdx, 1);
+                    novaMarcacaoRenderSelectedServices();
+                    novaMarcacaoUpdateEndTimeAndTotal();
+                }
+            });
+        });
+    }
+
+    function novaMarcacaoOpenAddExtrasQuickMenu(evt, idx) {
+        var item = novaMarcacaoSelectedServices[idx];
+        if (!item || !item.available_extras || !item.available_extras.length) return;
+        var addedIds = (item.extras || []).map(function(e) { return e.id; });
+        var toShow = item.available_extras.filter(function(e) { return addedIds.indexOf(e.id) === -1; });
+        if (!toShow.length) {
+            showToast('Não há mais extras disponíveis para este serviço.', 'info');
+            return;
+        }
+        var popup = document.getElementById('novaMarcacaoAddExtrasQuickMenu');
+        if (!popup) return;
+        var modalContent = document.getElementById('novaMarcacaoModal')?.querySelector('.modal-content');
+        if (modalContent) modalContent.appendChild(popup);
+        function hide() {
+            popup.classList.remove('is-open');
+            popup.innerHTML = '';
+            document.removeEventListener('click', ch);
+            document.removeEventListener('keydown', eh);
+        }
+        function ch(e) { if (popup.contains(e.target)) return; hide(); }
+        function eh(e) { if (e.key === 'Escape') { e.stopPropagation(); hide(); } }
+        popup.innerHTML = '<div class="edit-service-header"><h6>Adicionar extra</h6><button type="button" class="edit-service-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div><div class="edit-service-body"><div class="list-group list-group-flush" id="novaMarcacaoAddExtrasList"></div></div>';
+        popup.querySelector('.edit-service-close').addEventListener('click', hide);
+        var list = document.getElementById('novaMarcacaoAddExtrasList');
+        toShow.forEach(function(ex) {
+            var a = document.createElement('a');
+            a.href = '#';
+            a.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            a.innerHTML = '<span>' + (ex.name || '').replace(/</g, '&lt;') + '</span><span class="small text-muted">' + (ex.formatted_price || ex.price + ' €') + ' · ' + (ex.formatted_duration || ex.duration + ' min') + '</span>';
+            a.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!novaMarcacaoSelectedServices[idx].extras) novaMarcacaoSelectedServices[idx].extras = [];
+                novaMarcacaoSelectedServices[idx].extras.push({ id: ex.id, name: ex.name, duration: ex.duration || 0, price: ex.price || 0, formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min', formatted_price: ex.formatted_price || (ex.price || 0).toFixed(2).replace('.', ',') + ' €' });
+                hide();
+                novaMarcacaoRenderSelectedServices();
+                novaMarcacaoUpdateEndTimeAndTotal();
+            });
+            list.appendChild(a);
+        });
+        popup.classList.add('is-open');
+        var rect = evt.target.closest('button')?.getBoundingClientRect() || { left: evt.clientX, bottom: evt.clientY };
+        var offset = 8;
+        var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
+        var left = container ? (rect.left - container.left) : (rect.left || 0);
+        var top = container ? (rect.bottom + offset - container.top) : ((rect.bottom || 0) + offset);
+        popup.style.left = (left || 0) + 'px';
+        popup.style.top = (top || 0) + 'px';
+        setTimeout(function() { document.addEventListener('click', ch); document.addEventListener('keydown', eh); }, 0);
     }
 
     function novaMarcacaoApplyNewStartTime(newTimeStr) {
@@ -633,7 +734,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!container) return;
         container.innerHTML = '';
         for (var h = 0; h < 24; h++) {
-            for (var m = 0; m < 60; m += 30) {
+            for (var m = 0; m < 60; m += 15) {
                 var ts = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
                 var a = document.createElement('a');
                 a.href = '#';
@@ -649,12 +750,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function novaMarcacaoUpdateEndTimeAndTotal() {
         var startStr = document.getElementById('novaMarcacaoStart').value;
         if (!startStr) return;
-        var totalDur = novaMarcacaoSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        var totalDur = novaMarcacaoSelectedServices.reduce(function(sum, s) {
+            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
+            return sum + d;
+        }, 0);
         var start = new Date(startStr);
         var end = new Date(start.getTime() + totalDur * 60 * 1000);
         var endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
         document.getElementById('novaMarcacaoEnd').value = endStr;
-        var totalPrice = novaMarcacaoSelectedServices.reduce(function(sum, s) { return sum + (parseFloat(s.price) || 0); }, 0);
+        var totalPrice = novaMarcacaoSelectedServices.reduce(function(sum, s) {
+            var p = (parseFloat(s.price) || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (parseFloat(e.price) || 0); }, 0);
+            return sum + p;
+        }, 0);
         document.getElementById('novaMarcacaoTotalPrice').textContent = totalPrice.toFixed(2).replace('.', ',') + ' €';
     }
 
@@ -782,7 +889,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (startDate) {
             var dayStr = daysPt[startDate.getDay()] + ', ' + startDate.getDate() + ' ' + monthsPtShort[startDate.getMonth()];
             var timeStr = String(startDate.getHours()).padStart(2, '0') + ':' + String(startDate.getMinutes()).padStart(2, '0');
-            var m = startDate.getMinutes() < 30 ? 0 : 30;
+            var min = startDate.getMinutes();
+            var m = Math.round(min / 15) * 15;
+            if (m === 60) { m = 0; }
             var timeSlotForDropdown = String(startDate.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
             document.getElementById('eventDetailEditTitleDay').textContent = dayStr + ' · ';
             document.getElementById('eventDetailTimeToggle').textContent = timeStr;
@@ -795,6 +904,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var agentInfo = agendaAgentInfo[String(data.user_id)] || { name: data.user_name || '—', email: '', avatarUrl: data.user_avatar_url || '' };
         document.getElementById('eventDetailAgentName').textContent = agentInfo.name || '—';
         document.getElementById('eventDetailAgentEmail').textContent = agentInfo.email || '—';
+        document.getElementById('eventDetailAgentLink').href = (function() { var info = agendaAgentInfo[String(data.user_id || '')]; return (info && info.agentId) ? (agendaEquipaBaseUrl + '/' + info.agentId) : '#'; })();
         if (agentInfo.avatarUrl) {
             document.getElementById('eventDetailAgentAvatar').src = agentInfo.avatarUrl;
             document.getElementById('eventDetailAgentAvatar').style.display = 'block';
@@ -804,7 +914,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var statusVal = data.status || 'agendado';
         document.getElementById('eventDetailStatus').value = statusVal;
         var statusLabels = { agendado: 'Agendado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', faltou: 'Faltou', cancelado: 'Cancelado' };
+        var statusIcons = { agendado: 'ph-clock', confirmado: 'ph-check', chegou: 'ph-map-pin', iniciado: 'ph-play', faltou: 'ph-prohibit', cancelado: 'ph-x-circle' };
         document.getElementById('eventDetailStatusLabel').textContent = statusLabels[statusVal] || statusVal;
+        var iconEl = document.getElementById('eventDetailStatusIcon');
+        if (iconEl) {
+            var ic = iconEl.querySelector('i');
+            if (ic) ic.className = 'me-2 ph ' + (statusIcons[statusVal] || 'ph-clock');
+        }
         document.getElementById('eventDetailCancelReason').value = data.cancellation_reason || '';
         document.getElementById('eventDetailCancelReasonWrap').classList.toggle('d-none', statusVal !== 'cancelado');
         document.getElementById('eventDetailObservacoes').value = data.description || '';
@@ -814,6 +930,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('eventDetailClientResults').classList.toggle('d-none', hasVisitLead || hasClient);
         document.getElementById('eventDetailClientSelected').classList.add('d-none');
         document.getElementById('eventDetailVisitLeadBlock').classList.add('d-none');
+        document.getElementById('eventDetailCreateClientBtn').classList.toggle('d-none', hasVisitLead || hasClient);
         if (hasVisitLead) {
             var block = document.getElementById('eventDetailVisitLeadBlock');
             block.classList.remove('d-none');
@@ -840,6 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('eventDetailClientAvatar').classList.add('d-none');
             }
             document.getElementById('eventDetailClientSelected').classList.remove('d-none');
+            document.getElementById('eventDetailCreateClientBtn').classList.add('d-none');
         } else {
             eventDetailSelectedClient = null;
         }
@@ -848,14 +966,21 @@ document.addEventListener('DOMContentLoaded', function() {
             (data.event_services || []).forEach(function(s) {
                 var dur = s.duration || 60;
                 var pr = parseFloat(s.price) || 0;
+                var origPr = s.original_price != null ? parseFloat(s.original_price) : pr;
+                var extras = (s.extras || []).map(function(e) {
+                    return { id: e.extra_id, name: e.name, duration: e.duration || 0, price: e.price || 0, formatted_duration: e.formatted_duration || (e.duration || 0) + ' min', formatted_price: e.formatted_price || (e.price || 0).toFixed(2).replace('.', ',') + ' €' };
+                });
                 eventDetailSelectedServices.push({
                     service_id: s.id,
                     name: s.name,
                     duration: dur,
                     price: pr,
+                    original_price: origPr,
                     formatted_duration: (s.formatted_duration || dur + ' min'),
                     formatted_price: s.formatted_price || (pr.toFixed(2).replace('.', ',') + ' €'),
-                    color: s.color || '#6c757d'
+                    color: s.color || '#6c757d',
+                    available_extras: [],
+                    extras: extras
                 });
             });
             eventDetailRenderSelectedServices();
@@ -866,6 +991,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(function(r) { return r.json(); })
                 .then(function(svcData) {
                     eventDetailServicesData = svcData;
+                    eventDetailSelectedServices.forEach(function(item) {
+                        var availableExtras = [];
+                        (svcData.categories || []).forEach(function(cat) {
+                            (cat.services || []).forEach(function(svc) {
+                                if (String(svc.id) === String(item.service_id)) availableExtras = svc.extras || [];
+                            });
+                        });
+                        item.available_extras = availableExtras;
+                    });
+                    eventDetailRenderSelectedServices();
                     var html = '';
                     (svcData.categories || []).forEach(function(cat) {
                         html += '<div class="nova-marcacao-services-category">' + (cat.name || 'Outros') + '</div>';
@@ -886,11 +1021,20 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (eventDetailSelectedServices.some(function(s) { return String(s.service_id) === sid; })) return;
                             var dur = parseInt(this.dataset.duration, 10) || 60;
                             var priceNum = parseFloat(this.dataset.price) || 0;
+                            var availableExtras = [];
+                            (eventDetailServicesData.categories || []).forEach(function(cat) {
+                                (cat.services || []).forEach(function(svc) {
+                                    if (String(svc.id) === sid) availableExtras = svc.extras || [];
+                                });
+                            });
                             eventDetailSelectedServices.push({
                                 service_id: sid, name: this.dataset.name || '', duration: dur, price: priceNum,
+                                original_price: priceNum,
                                 formatted_duration: this.dataset.formattedDuration || dur + ' min',
                                 formatted_price: this.dataset.formattedPrice || (priceNum.toFixed(2).replace('.', ',') + ' €'),
-                                color: this.dataset.color || '#6c757d'
+                                color: this.dataset.color || '#6c757d',
+                                available_extras: availableExtras,
+                                extras: []
                             });
                             eventDetailRenderSelectedServices();
                             eventDetailUpdateTotal();
@@ -926,17 +1070,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (titleEl) titleEl.textContent = eventDetailSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
         var html = eventDetailSelectedServices.map(function(item, idx) {
+            var extrasLine = (item.extras && item.extras.length)
+                ? '<div class="small text-muted mt-1 event-detail-extras-line">' +
+                    item.extras.map(function(e, eIdx) {
+                        var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
+                        var durText = e.formatted_duration || ((e.duration || 0) + ' min');
+                        return '<span class="badge rounded-pill text-bg-light me-1">' +
+                            '+ ' + (e.name || '') + ' (' + priceText + ' · ' + durText + ')' +
+                            '<button type="button" class="btn btn-link btn-sm p-0 ms-1 eventDetailRemoveExtraBtn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra"><i class="ph ph-x"></i></button>' +
+                            '</span>';
+                    }).join('') +
+                  '</div>'
+                : '';
+            var hasAvailableExtras = (item.available_extras && item.available_extras.length > 0);
+            var addExtrasBtn = hasAvailableExtras ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailAddExtrasBtn" data-idx="' + idx + '" title="Adicionar extras"><i class="ph ph-plus-circle"></i></button>' : '';
+            var origP = item.original_price != null ? parseFloat(item.original_price) : NaN;
+            var currP = item.price != null ? parseFloat(item.price) : NaN;
+            var showStrikethrough = !isNaN(origP) && currP !== origP;
+            var priceBlock = showStrikethrough
+                ? '<span class="text-danger text-decoration-line-through small me-1">' + (origP.toFixed(2).replace('.', ',') + ' €') + '</span><span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>'
+                : '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>';
             return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card d-flex justify-content-between align-items-center mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + '">' +
                 '<div class="nova-marcacao-service-item-left">' +
                 '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
-                '<div class="nova-marcacao-service-item-duration"><i class="ph ph-clock me-1"></i>' + (item.formatted_duration || item.duration + ' min') + '</div>' +
+                '<div class="nova-marcacao-service-item-duration"><i class="ph ph-clock me-1"></i>' + (item.formatted_duration || item.duration + ' min') + '</div>' + extrasLine +
                 '</div>' +
                 '<div class="d-flex align-items-center gap-2 justify-content-end">' +
-                '<div class="d-flex gap-1">' +
+                '<div class="d-flex gap-1">' + addExtrasBtn +
                 '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailEditServiceBtn" data-idx="' + idx + '" title="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
                 '<button type="button" class="btn btn-outline-danger btn-icon btn-sm eventDetailDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar"><i class="ph ph-trash"></i></button>' +
                 '</div>' +
-                '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>' +
+                priceBlock +
                 '</div></div></div>';
         }).join('');
         container.innerHTML = html;
@@ -946,17 +1110,90 @@ document.addEventListener('DOMContentLoaded', function() {
         container.querySelectorAll('.eventDetailDeleteServiceBtn').forEach(function(btn) {
             btn.addEventListener('click', function(e) { e.stopPropagation(); eventDetailDeleteService(parseInt(this.dataset.idx, 10)); });
         });
+        container.querySelectorAll('.eventDetailAddExtrasBtn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) { e.stopPropagation(); eventDetailOpenAddExtrasQuickMenu(e, parseInt(this.dataset.idx, 10)); });
+        });
+        container.querySelectorAll('.eventDetailRemoveExtraBtn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sIdx = parseInt(this.dataset.idx, 10);
+                var exIdx = parseInt(this.dataset.extraIndex, 10);
+                if (!isNaN(sIdx) && !isNaN(exIdx) && eventDetailSelectedServices[sIdx] && Array.isArray(eventDetailSelectedServices[sIdx].extras)) {
+                    eventDetailSelectedServices[sIdx].extras.splice(exIdx, 1);
+                    eventDetailRenderSelectedServices();
+                    eventDetailUpdateTotal();
+                    eventDetailUpdateEndTime();
+                }
+            });
+        });
+    }
+
+    function eventDetailOpenAddExtrasQuickMenu(evt, idx) {
+        var item = eventDetailSelectedServices[idx];
+        if (!item || !item.available_extras || !item.available_extras.length) return;
+        var addedIds = (item.extras || []).map(function(e) { return e.id; });
+        var toShow = item.available_extras.filter(function(e) { return addedIds.indexOf(e.id) === -1; });
+        if (!toShow.length) {
+            showToast('Não há mais extras disponíveis para este serviço.', 'info');
+            return;
+        }
+        var popup = document.getElementById('eventDetailAddExtrasQuickMenu');
+        if (!popup) return;
+        var modalContent = document.getElementById('eventDetailEditModal')?.querySelector('.modal-content');
+        if (modalContent) modalContent.appendChild(popup);
+        function hide() {
+            popup.classList.remove('is-open');
+            popup.innerHTML = '';
+            document.removeEventListener('click', ch);
+            document.removeEventListener('keydown', eh);
+        }
+        function ch(e) { if (popup.contains(e.target)) return; hide(); }
+        function eh(e) { if (e.key === 'Escape') { e.stopPropagation(); hide(); } }
+        popup.innerHTML = '<div class="edit-service-header"><h6>Adicionar extra</h6><button type="button" class="edit-service-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div><div class="edit-service-body"><div class="list-group list-group-flush" id="eventDetailAddExtrasList"></div></div>';
+        popup.querySelector('.edit-service-close').addEventListener('click', hide);
+        var list = document.getElementById('eventDetailAddExtrasList');
+        toShow.forEach(function(ex) {
+            var a = document.createElement('a');
+            a.href = '#';
+            a.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
+            a.innerHTML = '<span>' + (ex.name || '').replace(/</g, '&lt;') + '</span><span class="small text-muted">' + (ex.formatted_price || ex.price + ' €') + ' · ' + (ex.formatted_duration || ex.duration + ' min') + '</span>';
+            a.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!eventDetailSelectedServices[idx].extras) eventDetailSelectedServices[idx].extras = [];
+                eventDetailSelectedServices[idx].extras.push({ id: ex.id, name: ex.name, duration: ex.duration || 0, price: ex.price || 0, formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min', formatted_price: ex.formatted_price || (ex.price || 0).toFixed(2).replace('.', ',') + ' €' });
+                hide();
+                eventDetailRenderSelectedServices();
+                eventDetailUpdateTotal();
+                eventDetailUpdateEndTime();
+            });
+            list.appendChild(a);
+        });
+        popup.classList.add('is-open');
+        var rect = evt.target.closest('button')?.getBoundingClientRect() || { left: evt.clientX, bottom: evt.clientY };
+        var offset = 8;
+        var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
+        var left = container ? (rect.left - container.left) : (rect.left || 0);
+        var top = container ? (rect.bottom + offset - container.top) : ((rect.bottom || 0) + offset);
+        popup.style.left = (left || 0) + 'px';
+        popup.style.top = (top || 0) + 'px';
+        setTimeout(function() { document.addEventListener('click', ch); document.addEventListener('keydown', eh); }, 0);
     }
 
     function eventDetailUpdateTotal() {
-        var total = eventDetailSelectedServices.reduce(function(sum, s) { return sum + (parseFloat(s.price) || 0); }, 0);
+        var total = eventDetailSelectedServices.reduce(function(sum, s) {
+            var p = (parseFloat(s.price) || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (parseFloat(e.price) || 0); }, 0);
+            return sum + p;
+        }, 0);
         document.getElementById('eventDetailTotalPrice').textContent = total.toFixed(2).replace('.', ',') + ' €';
     }
 
     function eventDetailUpdateEndTime() {
         var startStr = document.getElementById('eventDetailEditStart').value;
         if (!startStr) return;
-        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) {
+            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
+            return sum + d;
+        }, 0);
         var start = new Date(startStr);
         var end = new Date(start.getTime() + totalDur * 60 * 1000);
         var endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
@@ -971,7 +1208,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var parts = (newTimeStr || '').match(/^(\d{1,2}):(\d{2})/);
         if (!parts) return;
         start.setHours(parseInt(parts[1], 10), parseInt(parts[2], 10), 0, 0);
-        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) {
+            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
+            return sum + d;
+        }, 0);
         if (totalDur === 0 && endStr) {
             var oldStart = new Date(startStr);
             var oldEnd = new Date(endStr);
@@ -1080,15 +1320,15 @@ document.addEventListener('DOMContentLoaded', function() {
         $agentInfoMap = collect($users ?? [])->mapWithKeys(function($u) {
             $a = $u->agent ?? null;
             $avatarNum = $a ? (($a->id ?? 1) % 9) + 1 : 1;
-            $avatarUrl = $a && $a->avatar ? asset('storage/' . $a->avatar) : asset('assets/images/avatar/avatar-' . $avatarNum . '.jpg');
-            return ['' . $u->id => ['name' => $u->name, 'email' => $u->email ?? '', 'avatarUrl' => $avatarUrl]];
+            $avatarUrl = $a && $a->avatar ? asset('storage/' . $a->avatar) : asset('template/img/avatars/avatar-' . $avatarNum . '.webp');
+            return ['' . $u->id => ['name' => $u->name, 'email' => $u->email ?? '', 'avatarUrl' => $avatarUrl, 'agentId' => $a ? $a->id : null]];
         });
         $me = auth()->user();
         if ($me && !$agentInfoMap->has('' . $me->id)) {
             $a = $me->agent ?? null;
             $avatarNum = $a ? (($a->id ?? 1) % 9) + 1 : 1;
-            $avatarUrl = $a && $a->avatar ? asset('storage/' . $a->avatar) : asset('assets/images/avatar/avatar-' . $avatarNum . '.jpg');
-            $agentInfoMap->put('' . $me->id, ['name' => $me->name, 'email' => $me->email ?? '', 'avatarUrl' => $avatarUrl]);
+            $avatarUrl = $a && $a->avatar ? asset('storage/' . $a->avatar) : asset('template/img/avatars/avatar-' . $avatarNum . '.webp');
+            $agentInfoMap->put('' . $me->id, ['name' => $me->name, 'email' => $me->email ?? '', 'avatarUrl' => $avatarUrl, 'agentId' => $a ? $a->id : null]);
         }
     @endphp
     var agendaAgentInfo = @json($agentInfoMap->all());
@@ -1101,6 +1341,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('novaMarcacaoObservacoes').value = '';
         novaMarcacaoSelectedClient = null;
         document.getElementById('novaMarcacaoClientSelected').classList.add('d-none');
+        document.getElementById('novaMarcacaoClientSearchWrap').classList.remove('d-none');
+        document.getElementById('novaMarcacaoCreateClientBtn').classList.remove('d-none');
         document.getElementById('novaMarcacaoClientSearch').value = '';
         document.getElementById('novaMarcacaoClientResults').innerHTML = '';
         var agentInfo = agendaAgentInfo[String(agentId)] || { name: '—', email: '', avatarUrl: '' };
@@ -1119,6 +1361,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         document.getElementById('novaMarcacaoAgentName').textContent = agentInfo.name || '—';
         document.getElementById('novaMarcacaoAgentEmail').textContent = agentInfo.email || '—';
+        document.getElementById('novaMarcacaoAgentLink').href = (function() { var info = agendaAgentInfo[String(agentId)]; return (info && info.agentId) ? (agendaEquipaBaseUrl + '/' + info.agentId) : '#'; })();
         if (agentInfo.avatarUrl) {
             document.getElementById('novaMarcacaoAgentAvatar').src = agentInfo.avatarUrl;
             document.getElementById('novaMarcacaoAgentAvatar').style.display = 'block';
@@ -1130,7 +1373,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var daysPt = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
         var monthsPtShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
         var timeStr = String(startD.getHours()).padStart(2, '0') + ':' + String(startD.getMinutes()).padStart(2, '0');
-        var m = startD.getMinutes() < 30 ? 0 : 30;
+        var min = startD.getMinutes();
+        var m = Math.round(min / 15) * 15;
+        if (m === 60) { m = 0; }
         var timeSlotForDropdown = String(startD.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         document.getElementById('novaMarcacaoEditTitleDay').textContent = daysPt[startD.getDay()] + ', ' + startD.getDate() + ' ' + monthsPtShort[startD.getMonth()] + ' · ';
         document.getElementById('novaMarcacaoTimeToggle').textContent = timeStr;
@@ -1164,14 +1409,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (novaMarcacaoSelectedServices.some(function(s) { return String(s.service_id) === sid; })) return;
                         var dur = parseInt(this.dataset.duration, 10) || 60;
                         var priceNum = parseFloat(this.dataset.price) || 0;
+                        var availableExtras = [];
+                        (novaMarcacaoServicesData.categories || []).forEach(function(cat) {
+                            (cat.services || []).forEach(function(svc) {
+                                if (String(svc.id) === sid) availableExtras = svc.extras || [];
+                            });
+                        });
                         novaMarcacaoSelectedServices.push({
                             service_id: sid,
                             name: this.dataset.name || '',
                             duration: dur,
                             price: priceNum,
+                            original_price: priceNum,
                             formatted_duration: this.dataset.formattedDuration || dur + ' min',
                             formatted_price: this.dataset.formattedPrice || (priceNum.toFixed(2).replace('.', ',') + ' €'),
-                            color: this.dataset.color || '#6c757d'
+                            color: this.dataset.color || '#6c757d',
+                            available_extras: availableExtras,
+                            extras: []
                         });
                         novaMarcacaoRenderSelectedServices();
                         novaMarcacaoUpdateEndTimeAndTotal();
@@ -1233,6 +1487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 document.getElementById('novaMarcacaoClientResults').innerHTML = '';
                                 document.getElementById('novaMarcacaoClientSearch').value = '';
                                 document.getElementById('novaMarcacaoClientCancelBtn').classList.add('d-none');
+                                document.getElementById('novaMarcacaoCreateClientBtn').classList.add('d-none');
                                 window._novaMarcacaoPreviousClient = null;
                             });
                         });
@@ -1250,11 +1505,153 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('novaMarcacaoClientSelected').classList.add('d-none');
         document.getElementById('novaMarcacaoClientSearchWrap').classList.remove('d-none');
         document.getElementById('novaMarcacaoClientResults').innerHTML = '';
+        document.getElementById('novaMarcacaoCreateClientBtn').classList.remove('d-none');
         if (prev) {
             window._novaMarcacaoPreviousClient = prev;
             document.getElementById('novaMarcacaoClientCancelBtn').classList.remove('d-none');
         }
     });
+    function openCreateClientQuickMenu(context, evt) {
+        var popup = document.getElementById('agendaCreateClientQuickMenu');
+        if (!popup) return;
+        var modalEl = context === 'novaMarcacao' ? document.getElementById('novaMarcacaoModal') : document.getElementById('eventDetailEditModal');
+        var modalContent = modalEl?.querySelector('.modal-content');
+        if (modalContent) modalContent.appendChild(popup);
+        function hide() {
+            popup.classList.remove('is-open');
+            popup.innerHTML = '';
+            document.removeEventListener('click', ch);
+            document.removeEventListener('keydown', eh);
+        }
+        function ch(e) { if (popup.contains(e.target)) return; hide(); }
+        function eh(e) { if (e.key === 'Escape') { e.stopPropagation(); hide(); } }
+        popup.innerHTML = '<div class="create-client-header">' +
+            '<h6>Novo cliente</h6>' +
+            '<button type="button" class="create-client-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>' +
+            '</div>' +
+            '<div class="create-client-body">' +
+            '<div class="mb-2"><label class="form-label small">Nome <span class="text-danger">*</span></label>' +
+            '<input type="text" class="form-control form-control-sm create-client-name" placeholder="Nome do cliente" required></div>' +
+            '<div class="mb-2"><label class="form-label small">Email <span class="text-danger">*</span></label>' +
+            '<input type="email" class="form-control form-control-sm create-client-email" placeholder="email@exemplo.pt" required></div>' +
+            '<div class="mb-0"><label class="form-label small">Telefone</label>' +
+            '<input type="tel" class="form-control form-control-sm create-client-phone" placeholder="+351 912 345 678"></div>' +
+            '</div>' +
+            '<div class="create-client-footer">' +
+            '<button type="button" class="btn btn-light btn-sm create-client-cancel">Cancelar</button>' +
+            '<button type="button" class="btn btn-primary btn-sm create-client-submit">Criar</button>' +
+            '</div>';
+        popup.querySelector('.create-client-close').addEventListener('click', hide);
+        popup.querySelector('.create-client-cancel').addEventListener('click', hide);
+        popup.querySelector('.create-client-submit').addEventListener('click', function() {
+            var name = popup.querySelector('.create-client-name').value.trim();
+            var email = popup.querySelector('.create-client-email').value.trim();
+            var phone = popup.querySelector('.create-client-phone').value.trim();
+            if (!name || !email) {
+                showToast('Preencha nome e email.', 'error');
+                return;
+            }
+            var btn = popup.querySelector('.create-client-submit');
+            btn.disabled = true;
+            btn.textContent = 'A criar...';
+            fetch(agendaClientsUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify({ name: name, email: email, phone: phone || null })
+            })
+            .then(function(r) { return r.json().then(function(data) {
+                if (!r.ok) {
+                    var msg = 'Erro ao criar cliente.';
+                    if (data.errors && data.errors.email) msg = 'O email inserido já existe associado a um cliente.';
+                    else if (data.message) msg = data.message;
+                    throw new Error(msg);
+                }
+                return data;
+            }); })
+            .then(function(client) {
+                hide();
+                var c = { id: String(client.id), name: client.name || name, email: client.email || email, avatar_url: client.avatar_url || '' };
+                if (context === 'novaMarcacao') {
+                    novaMarcacaoSelectedClient = c;
+                    document.getElementById('novaMarcacaoClientSelectedName').textContent = c.name;
+                    document.getElementById('novaMarcacaoClientSelectedEmail').textContent = c.email || '—';
+                    document.getElementById('novaMarcacaoClientAvatar').classList.add('d-none');
+                    var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+                    document.getElementById('novaMarcacaoClientAvatarFallback').textContent = initials;
+                    document.getElementById('novaMarcacaoClientAvatarFallback').classList.remove('d-none');
+                    document.getElementById('novaMarcacaoClientSelected').classList.remove('d-none');
+                    document.getElementById('novaMarcacaoClientSearchWrap').classList.add('d-none');
+                    document.getElementById('novaMarcacaoClientResults').innerHTML = '';
+                    document.getElementById('novaMarcacaoClientSearch').value = '';
+                    document.getElementById('novaMarcacaoClientCancelBtn').classList.add('d-none');
+                    document.getElementById('novaMarcacaoCreateClientBtn').classList.add('d-none');
+                    window._novaMarcacaoPreviousClient = null;
+                } else {
+                    eventDetailSelectedClient = c;
+                    document.getElementById('eventDetailClientSelectedName').textContent = c.name;
+                    document.getElementById('eventDetailClientSelectedEmail').textContent = c.email || '—';
+                    if (c.avatar_url) {
+                        document.getElementById('eventDetailClientAvatar').src = c.avatar_url;
+                        document.getElementById('eventDetailClientAvatar').classList.remove('d-none');
+                        document.getElementById('eventDetailClientAvatarFallback').classList.add('d-none');
+                    } else {
+                        document.getElementById('eventDetailClientAvatar').classList.add('d-none');
+                        var inits = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+                        document.getElementById('eventDetailClientAvatarFallback').textContent = inits;
+                        document.getElementById('eventDetailClientAvatarFallback').classList.remove('d-none');
+                    }
+                    document.getElementById('eventDetailClientSelected').classList.remove('d-none');
+                    document.getElementById('eventDetailClientSearchWrap').classList.add('d-none');
+                    document.getElementById('eventDetailClientResults').innerHTML = '';
+                    document.getElementById('eventDetailClientSearch').value = '';
+                    document.getElementById('eventDetailClientCancelBtn').classList.add('d-none');
+                    window._eventDetailPreviousClient = null;
+                }
+                showToast('Cliente criado com sucesso.', 'success');
+            })
+            .catch(function(err) {
+                btn.disabled = false;
+                btn.textContent = 'Criar';
+                showToast(err.message || 'Erro ao criar cliente.', 'error');
+            });
+        });
+        requestAnimationFrame(function() {
+            popup.classList.add('is-open');
+            var btnEl = (evt && evt.target) ? evt.target.closest('button') : null;
+            var rect = btnEl ? btnEl.getBoundingClientRect() : { left: 200, bottom: 200 };
+            var offset = 8;
+            var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
+            var left, top;
+            if (container) {
+                left = (rect.left || 200) - container.left;
+                top = (rect.bottom !== undefined ? rect.bottom : 200) + offset - container.top;
+            } else {
+                left = rect.left || 200;
+                top = (rect.bottom !== undefined ? rect.bottom : 200) + offset;
+            }
+            var popupRect = popup.getBoundingClientRect();
+            var vw = container ? container.width : window.innerWidth;
+            var vh = container ? container.height : window.innerHeight;
+            var maxLeft = vw - popupRect.width - offset;
+            var maxTop = vh - popupRect.height - offset;
+            left = Math.max(offset, Math.min(left, maxLeft));
+            top = Math.max(offset, Math.min(top, maxTop));
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+            document.addEventListener('click', ch);
+            document.addEventListener('keydown', eh);
+            popup.querySelector('.create-client-name').focus();
+        });
+    }
+    document.getElementById('novaMarcacaoCreateClientBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        openCreateClientQuickMenu('novaMarcacao', e);
+    });
+    document.getElementById('eventDetailCreateClientBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        openCreateClientQuickMenu('eventDetail', e);
+    });
+
     document.getElementById('novaMarcacaoClientCancelBtn').addEventListener('click', function() {
         var prev = window._novaMarcacaoPreviousClient;
         if (prev) {
@@ -1275,6 +1672,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('novaMarcacaoClientSearchWrap').classList.add('d-none');
             document.getElementById('novaMarcacaoClientResults').innerHTML = '';
             document.getElementById('novaMarcacaoClientSearch').value = '';
+            document.getElementById('novaMarcacaoCreateClientBtn').classList.add('d-none');
             this.classList.add('d-none');
             window._novaMarcacaoPreviousClient = null;
         }
@@ -1325,6 +1723,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('eventDetailClientSearch').value = '';
         document.getElementById('eventDetailClientSearch').focus();
         document.getElementById('eventDetailClientResults').innerHTML = '';
+        document.getElementById('eventDetailCreateClientBtn').classList.remove('d-none');
         if (prev) {
             window._eventDetailPreviousClient = prev;
             document.getElementById('eventDetailClientCancelBtn').classList.remove('d-none');
@@ -1351,6 +1750,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('eventDetailClientResults').classList.add('d-none');
             document.getElementById('eventDetailClientSearch').value = '';
             document.getElementById('eventDetailClientResults').innerHTML = '';
+            document.getElementById('eventDetailCreateClientBtn').classList.add('d-none');
             this.classList.add('d-none');
             window._eventDetailPreviousClient = null;
         }
@@ -1400,6 +1800,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 document.getElementById('eventDetailClientResults').innerHTML = '';
                                 document.getElementById('eventDetailClientSearch').value = '';
                                 document.getElementById('eventDetailClientCancelBtn').classList.add('d-none');
+                                document.getElementById('eventDetailCreateClientBtn').classList.add('d-none');
                                 window._eventDetailPreviousClient = null;
                             });
                         });
@@ -1417,7 +1818,10 @@ document.addEventListener('DOMContentLoaded', function() {
             var serviceNames = eventDetailSelectedServices.map(function(s) { return s.name; }).join(', ');
             title = (clientName || 'Cliente') + ' - ' + serviceNames;
         }
-        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
+        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) {
+            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
+            return sum + d;
+        }, 0);
         var startStr = document.getElementById('eventDetailEditStart').value;
         var endStr = startStr;
         if (totalDur > 0 && startStr) {
@@ -1437,7 +1841,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (eventDetailCurrentData?.event_type === 'marcacao') {
             payload.client_id = eventDetailSelectedClient ? eventDetailSelectedClient.id : null;
-            payload.services = eventDetailSelectedServices.map(function(s) { return { service_id: s.service_id, duration: s.duration, price: s.price }; });
+            payload.services = eventDetailSelectedServices.map(function(s) {
+                return {
+                    service_id: s.service_id,
+                    duration: s.duration,
+                    price: s.price,
+                    original_price: s.original_price != null ? s.original_price : s.price,
+                    extras: (s.extras || []).map(function(e) { return { extra_id: e.id, duration: e.duration || 0, price: e.price || 0 }; })
+                };
+            });
         }
         var btn = document.getElementById('eventDetailSaveBtn');
         btn.disabled = true;
@@ -1498,7 +1910,13 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar...';
         var servicesPayload = novaMarcacaoSelectedServices.map(function(s) {
-            return { service_id: s.service_id, duration: s.duration, price: s.price };
+            return {
+                service_id: s.service_id,
+                duration: s.duration,
+                price: s.price,
+                original_price: s.original_price != null ? s.original_price : s.price,
+                extras: (s.extras || []).map(function(e) { return { extra_id: e.id, duration: e.duration || 0, price: e.price || 0 }; })
+            };
         });
         var payload = {
             title: title,
@@ -1655,6 +2073,8 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         slotMinTime: '00:00:00',
         slotMaxTime: '23:59:00',
+        slotDuration: '00:15:00',
+        slotLabelInterval: '01:00',
         allDaySlot: false,
         nowIndicator: true,
         scrollTime: new Date().toTimeString().slice(0, 5) + ':00',
@@ -1867,6 +2287,12 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(successCallback)
             .catch(failureCallback);
+        },
+        eventDidMount: function(info) {
+            info.el.style.setProperty('color', '#000', 'important');
+            if (info.event.backgroundColor) {
+                info.el.style.setProperty('background-color', info.event.backgroundColor, 'important');
+            }
         },
         eventClick: function(info) {
             info.jsEvent.preventDefault();
@@ -2605,7 +3031,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!container) return;
         container.innerHTML = '';
         for (var h = 0; h < 24; h++) {
-            for (var m = 0; m < 60; m += 30) {
+            for (var m = 0; m < 60; m += 15) {
                 var ts = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
                 var a = document.createElement('a');
                 a.href = '#';
@@ -2626,7 +3052,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var timeStr = '';
         if (startStr) {
             var d = new Date(startStr);
-            var m = d.getMinutes() < 30 ? 0 : 30;
+            var min = d.getMinutes();
+            var m = Math.round(min / 15) * 15;
+            if (m === 60) { m = 0; }
             timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
         eventDetailPopulateTimeOptions(timeStr);
@@ -2643,7 +3071,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var timeStr = '';
         if (startStr) {
             var d = new Date(startStr);
-            var m = d.getMinutes() < 30 ? 0 : 30;
+            var min = d.getMinutes();
+            var m = Math.round(min / 15) * 15;
+            if (m === 60) { m = 0; }
             timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
         novaMarcacaoPopulateTimeOptions(timeStr);
@@ -2660,8 +3090,14 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             var status = this.dataset.status;
             var labels = { agendado: 'Agendado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', faltou: 'Faltou', cancelado: 'Cancelado' };
+            var icons = { agendado: 'ph-clock', confirmado: 'ph-check', chegou: 'ph-map-pin', iniciado: 'ph-play', faltou: 'ph-prohibit', cancelado: 'ph-x-circle' };
             document.getElementById('eventDetailStatus').value = status;
             document.getElementById('eventDetailStatusLabel').textContent = labels[status] || status;
+            var iconEl = document.getElementById('eventDetailStatusIcon');
+            if (iconEl) {
+                var ic = iconEl.querySelector('i');
+                if (ic) ic.className = 'me-2 ph ' + (icons[status] || 'ph-clock');
+            }
             document.getElementById('eventDetailCancelReasonWrap').classList.toggle('d-none', status !== 'cancelado');
             if (status !== 'cancelado') document.getElementById('eventDetailCancelReason').value = '';
             bootstrap.Dropdown.getInstance(document.getElementById('eventDetailStatusDropdownBtn'))?.hide();

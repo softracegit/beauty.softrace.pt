@@ -94,7 +94,8 @@ class CalendarEvent extends Model
     public function eventServices(): BelongsToMany
     {
         return $this->belongsToMany(Service::class, 'calendar_event_services')
-            ->withPivot('duration', 'price', 'sort_order')
+            ->using(\App\Models\CalendarEventService::class)
+            ->withPivot('id', 'duration', 'price', 'original_price', 'sort_order')
             ->withTimestamps()
             ->orderByPivot('sort_order');
     }
@@ -143,12 +144,12 @@ class CalendarEvent extends Model
     {
         $status = $this->status ?? self::STATUS_AGENDADO;
         return match ($status) {
-            self::STATUS_AGENDADO => null, // Sem ícone
+            self::STATUS_AGENDADO => 'ph ph-clock',
             self::STATUS_CONFIRMADO => 'ph ph-check-circle',
             self::STATUS_CHEGOU => 'ph ph-map-pin',
             self::STATUS_INICIADO => 'ph ph-play-circle',
-            self::STATUS_FALTOU => 'ph ph-x-circle',
-            self::STATUS_CANCELADO => 'ph ph-prohibit',
+            self::STATUS_FALTOU => 'ph ph-prohibit',
+            self::STATUS_CANCELADO => 'ph ph-x-circle',
             default => null,
         };
     }

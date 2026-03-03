@@ -15,6 +15,9 @@
                     @if($service->promo_price)
                         <span class="text-success"><i class="ph ph-tag me-1"></i>{{ $service->formatted_promo_price }}</span>
                     @endif
+                    @if(($service->extras_count ?? $service->extras->count() ?? 0) > 0)
+                        <span><i class="ph ph-package me-1"></i>{{ $service->extras_count ?? $service->extras->count() }} extra(s)</span>
+                    @endif
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0 service-item-right">

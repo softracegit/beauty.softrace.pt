@@ -14,6 +14,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\ExtraController;
 
 // Rotas de autenticação (públicas)
 Route::middleware('guest')->group(function () {
@@ -88,6 +89,7 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::get('agenda/resources', [CalendarController::class, 'resources'])->name('agenda.resources');
     Route::get('agenda/members/{user}/services', [CalendarController::class, 'memberServices'])->name('agenda.members.services');
     Route::get('agenda/clients', [CalendarController::class, 'clients'])->name('agenda.clients');
+    Route::post('agenda/clients', [CalendarController::class, 'storeClient'])->name('agenda.clients.store');
     Route::get('agenda/events', [CalendarController::class, 'events'])->name('agenda.events');
     Route::get('agenda/events/{calendarEvent}', [CalendarController::class, 'show'])->name('agenda.events.show');
     Route::post('agenda/events', [CalendarController::class, 'store'])->name('agenda.events.store');
@@ -111,6 +113,20 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::match(['post', 'put'], 'services/{service}', [ServiceController::class, 'update'])->name('services.update');
     Route::delete('services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
     Route::post('categories/{category}/services/reorder', [ServiceController::class, 'reorder'])->name('services.reorder');
+
+    // Extras / Add-ons
+    Route::get('extras', [ExtraController::class, 'index'])->name('extras.index');
+    Route::get('extras/create', [ExtraController::class, 'create'])->name('extras.create');
+    Route::post('extras', [ExtraController::class, 'store'])->name('extras.store');
+    Route::get('extras/list', [ExtraController::class, 'list'])->name('extras.list');
+    Route::get('extras/{extra}', [ExtraController::class, 'show'])->name('extras.show');
+    Route::get('extras/{extra}/edit', [ExtraController::class, 'edit'])->name('extras.edit');
+    Route::match(['put', 'patch'], 'extras/{extra}', [ExtraController::class, 'update'])->name('extras.update');
+    Route::delete('extras/{extra}', [ExtraController::class, 'destroy'])->name('extras.destroy');
+    Route::get('extra-categories/{extraCategory}', [ExtraController::class, 'showCategory'])->name('extras.categories.show');
+    Route::post('extra-categories', [ExtraController::class, 'storeCategory'])->name('extras.categories.store');
+    Route::match(['put', 'patch'], 'extra-categories/{extraCategory}', [ExtraController::class, 'updateCategory'])->name('extras.categories.update');
+    Route::delete('extra-categories/{extraCategory}', [ExtraController::class, 'destroyCategory'])->name('extras.categories.destroy');
     
     // Rotas do template (protegidas)
     Route::get('{page}', [DashboardController::class, 'page'])->where('page', '[A-Za-z0-9\-]+');

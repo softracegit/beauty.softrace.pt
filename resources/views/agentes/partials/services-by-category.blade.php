@@ -4,7 +4,7 @@
     $totalServices = $categories->sum(fn ($c) => $c->services->count());
 @endphp
 <style>
-    .member-services-block .member-services-all-row { border-bottom: 1px solid rgba(0,0,0,.12); padding-bottom: 0.75rem; margin-bottom: 0.75rem; }
+    .member-services-block .member-services-all-row { border-bottom: 0px solid rgba(0,0,0,.12); padding-bottom: 0rem; margin-bottom: 0.75rem; }
     .member-services-block .member-category-block { border-top: 1px solid rgba(0,0,0,.2); padding-top: 1rem; margin-top: 1rem; }
     .member-services-block .member-category-block:first-child { border-top: none; padding-top: 0; margin-top: 0; }
     .member-services-block .member-category-header { font-weight: 700; font-size: 1.1rem; }

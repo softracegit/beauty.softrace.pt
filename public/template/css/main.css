@@ -2623,7 +2623,7 @@ a.header-action:hover {
 .panel-link.active {
   background-color: var(--sidebar-active-bg);
   color: var(--sidebar-active-color);
-  font-weight: 500;
+  font-weight: 400;
 }
 
 /*--------------------------------------------------------------

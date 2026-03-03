@@ -30,6 +30,8 @@ class UpdateServiceRequest extends FormRequest
             'promo_price' => ['nullable', 'numeric', 'min:0'],
             'agent_ids' => ['nullable', 'array'],
             'agent_ids.*' => ['exists:agents,id'],
+            'extra_ids' => ['nullable', 'array'],
+            'extra_ids.*' => ['exists:extras,id'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
     }

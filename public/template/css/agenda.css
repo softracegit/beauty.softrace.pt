@@ -95,6 +95,12 @@ body .app-wrapper .container-fluid {
     border-top: none !important;
     border-bottom: none !important;
 }
+.fc .fc-scrollgrid {
+    border-bottom-width: 0px;
+    border-collapse: separate;
+    border-right-width: 0px;
+    border-left-width: 0px;
+  }
 .fc-timegrid-slot-label-frame {
     border: none !important;
 }
@@ -106,7 +112,7 @@ body .app-wrapper .container-fluid {
 .fc .fc-timegrid-event-harness {
     left: -1px !important;
     right: 0px !important;
-    width: 102.5% !important;
+    width: 102.6% !important;
 }
 .fc .fc-timegrid-event {
     left: 0 !important;
@@ -117,18 +123,19 @@ body .app-wrapper .container-fluid {
 
 .fc-event {
     cursor: pointer;
-    color: #fff !important;
+    color: #000 !important;
     font-size: 0.75rem !important;
     font-weight: 400 !important;
     padding: 0px !important;
     text-align: left !important;
     border-radius: 4px !important;
+    border: none !important;
 }
 .fc-event .fc-event-main,
 .fc-event-main,
 .fc-event .fc-event-title,
 .fc-event-title {
-    color: #fff !important;
+    color: #000 !important;
     white-space: normal !important;
 }
 .fc-event-time {
@@ -143,7 +150,7 @@ body .app-wrapper .container-fluid {
     display: block;
     margin-top: 0.15rem;
     font-weight: 400;
-    font-size: 0.75rem !important;
+    font-size: 0.80rem !important;
 }
 /* Em eventos short: ocultar apenas a linha do serviço para não sobrepor a célula de baixo */
 .fc-timegrid-event-short .fc-event-service-line {
@@ -156,12 +163,15 @@ body .app-wrapper .container-fluid {
 }
 .fc-event-status-icon {
     position: absolute;
-    top: -1px;
-    right: -2px;
-    font-size: 1.15rem;
+    top: 0px;
+    right: 0px;
+    font-size: 1.25rem;
     opacity: 1;
     z-index: 10;
-    font-weight: 600;
+    font-weight: 700;
+}
+#eventDetailStatusIcon {
+    font-size: 0.9rem;
 }
 .fc-daygrid-event,
 .fc-daygrid-event-harness {
@@ -170,7 +180,7 @@ body .app-wrapper .container-fluid {
 .fc-timegrid-event-short .fc-event-main, .fc-timegrid-event .fc-event-main {
     font-size: 0.85rem !important;
     padding: 0.2rem 0.30rem !important;
-    line-height: 1.15 !important;
+    line-height: 1.25 !important;
 }
 .fc-timegrid-event-short .fc-event-time::after {
     content: "";
@@ -435,7 +445,9 @@ body .app-wrapper .container-fluid {
 .fc-resource-consultant-label {
     display: inline-flex !important;
     align-items: center !important;
+    justify-content: center !important;
     gap: 0.5rem !important;
+    margin-inline: auto !important;
 }
 .fc-resource-consultant-avatar {
     width: 20px !important;
@@ -451,6 +463,7 @@ body .app-wrapper .container-fluid {
 }
 .fc-resourceTimeGridDay-view .fc-col-header-cell {
     padding-bottom: 0 !important;
+    text-align: center !important;
 }
 
 .fc th {
@@ -750,6 +763,180 @@ body .app-wrapper .container-fluid {
     border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
 }
 
+/* Quick menu: Adicionar extra (mesmo estilo) */
+#novaMarcacaoAddExtrasQuickMenu {
+    display: none;
+    position: fixed;
+    z-index: 1065;
+    min-width: 260px;
+    width: 280px;
+    padding: 0;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl, 0.75rem);
+    box-shadow: var(--shadow-lg, 0 0.5rem 1rem rgba(0, 0, 0, 0.15));
+    overflow: hidden;
+    margin: 0;
+}
+#novaMarcacaoAddExtrasQuickMenu.is-open {
+    display: block;
+}
+#novaMarcacaoAddExtrasQuickMenu .edit-service-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+#novaMarcacaoAddExtrasQuickMenu .edit-service-header h6 {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+#novaMarcacaoAddExtrasQuickMenu .edit-service-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--light-color, #94a3b8);
+    cursor: pointer;
+    border-radius: var(--radius-lg, 0.5rem);
+}
+#novaMarcacaoAddExtrasQuickMenu .edit-service-close:hover {
+    color: var(--heading-color, #1e293b);
+    background: var(--background-color, #f1f5f9);
+}
+#novaMarcacaoAddExtrasQuickMenu .edit-service-body {
+    padding: 1rem 1.2rem;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+/* Event detail: quick menu Adicionar extra (mesmo estilo) */
+#eventDetailAddExtrasQuickMenu {
+    display: none;
+    position: absolute;
+    z-index: 1065;
+    min-width: 260px;
+    width: 280px;
+    padding: 0;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl, 0.75rem);
+    box-shadow: var(--shadow-lg, 0 0.5rem 1rem rgba(0, 0, 0, 0.15));
+    overflow: hidden;
+    margin: 0;
+}
+#eventDetailAddExtrasQuickMenu.is-open {
+    display: block;
+}
+#eventDetailAddExtrasQuickMenu .edit-service-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+#eventDetailAddExtrasQuickMenu .edit-service-header h6 {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+#eventDetailAddExtrasQuickMenu .edit-service-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--light-color, #94a3b8);
+    cursor: pointer;
+    border-radius: var(--radius-lg, 0.5rem);
+}
+#eventDetailAddExtrasQuickMenu .edit-service-close:hover {
+    color: var(--heading-color, #1e293b);
+    background: var(--background-color, #f1f5f9);
+}
+#eventDetailAddExtrasQuickMenu .edit-service-body {
+    padding: 1rem 1.2rem;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+/* Quick menu: Criar cliente (mesmo estilo) */
+#agendaCreateClientQuickMenu {
+    display: none;
+    position: fixed;
+    z-index: 1070;
+    min-width: 260px;
+    width: 320px;
+    padding: 0;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl, 0.75rem);
+    box-shadow: var(--shadow-lg, 0 0.5rem 1rem rgba(0, 0, 0, 0.15));
+    overflow: hidden;
+    margin: 0;
+}
+#agendaCreateClientQuickMenu.is-open {
+    display: block;
+}
+#agendaCreateClientQuickMenu .edit-service-header,
+#agendaCreateClientQuickMenu .create-client-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+#agendaCreateClientQuickMenu .edit-service-header h6,
+#agendaCreateClientQuickMenu .create-client-header h6 {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+#agendaCreateClientQuickMenu .edit-service-close,
+#agendaCreateClientQuickMenu .create-client-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--light-color, #94a3b8);
+    cursor: pointer;
+    border-radius: var(--radius-lg, 0.5rem);
+}
+#agendaCreateClientQuickMenu .edit-service-close:hover,
+#agendaCreateClientQuickMenu .create-client-close:hover {
+    color: var(--heading-color, #1e293b);
+    background: var(--background-color, #f1f5f9);
+}
+#agendaCreateClientQuickMenu .edit-service-body,
+#agendaCreateClientQuickMenu .create-client-body {
+    padding: 1rem 1.2rem;
+}
+#agendaCreateClientQuickMenu .edit-service-body .form-label,
+#agendaCreateClientQuickMenu .create-client-body .form-label {
+    font-size: 0.75rem;
+}
+#agendaCreateClientQuickMenu .edit-service-footer,
+#agendaCreateClientQuickMenu .create-client-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem 1.2rem;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+
 /* Célula destacada ao clicar */
 .fc .agenda-cell-highlight {
     position: absolute;
@@ -853,6 +1040,29 @@ body .app-wrapper .container-fluid {
     background: var(--bg-gray-200, rgb(248, 248, 248));
     border-radius: var(--bs-border-radius-lg, 0.5rem);
     padding: 1.25rem;
+    min-height: 100%;
+}
+
+/* Sidebar ocupa toda a altura do modal */
+#novaMarcacaoModal .modal-body,
+#eventDetailEditModal .modal-body {
+    display: flex;
+    flex-direction: column;
+}
+#novaMarcacaoModal .modal-body > .row.g-4,
+#eventDetailEditModal .modal-body > .row.g-4 {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+}
+#novaMarcacaoModal .modal-body .col-lg-5:first-child,
+#eventDetailEditModal .modal-body .col-lg-5:first-child {
+    display: flex;
+}
+#novaMarcacaoModal .nova-marcacao-sidebar,
+#eventDetailEditModal .nova-marcacao-sidebar {
+    flex: 1;
+    min-height: 0;
 }
 .nova-marcacao-section {
     padding-bottom: 1.25rem;
@@ -872,6 +1082,25 @@ body .app-wrapper .container-fluid {
     color: var(--muted-color, #6c757d);
     margin-bottom: 0.75rem;
     display: block;
+}
+.nova-marcacao-create-client-link {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--bs-primary, #0d6efd);
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1.2;
+    padding: 0;
+}
+.nova-marcacao-create-client-link:hover {
+    color: var(--bs-primary, #0d6efd);
+    text-decoration: underline;
+}
+.nova-marcacao-agent-link:hover {
+    color: inherit;
+}
+.nova-marcacao-agent-link:hover strong {
+    text-decoration: underline;
 }
 .nova-marcacao-person {
     display: flex;

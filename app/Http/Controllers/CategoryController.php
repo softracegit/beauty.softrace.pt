@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Agent;
 use App\Models\User;
+use App\Models\Extra;
+use App\Models\ExtraCategory;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
 use Illuminate\Http\Request;
@@ -25,18 +27,23 @@ class CategoryController extends Controller
 
         $selectedCategory = null; // por defeito: "Todas as categorias"
         $categories = Category::orderBy('sort_order')
-            ->with(['services' => fn ($q) => $q->with('agents')->orderBy('sort_order')])
+            ->with(['services' => fn ($q) => $q->with('agents', 'extras')->orderBy('sort_order')])
             ->withCount('services')
             ->get();
-        // Apenas Prestador(a) de Serviços e Técnico(a) nas checkboxes de membros associados
         $agents = Agent::whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
             ->orderBy('name')
+            ->get();
+        $extras = Extra::with('extraCategory')->orderBy('extra_category_id')->orderBy('sort_order')->get();
+        $extraCategories = ExtraCategory::orderBy('sort_order')
+            ->with(['extras' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
         return view('services.index', [
             'categories' => $categories,
             'selectedCategory' => $selectedCategory,
             'agents' => $agents,
+            'extras' => $extras,
+            'extraCategories' => $extraCategories,
         ]);
     }
 

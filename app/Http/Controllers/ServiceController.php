@@ -18,7 +18,7 @@ class ServiceController extends Controller
     public function allGrouped(Request $request): JsonResponse
     {
         $groups = Category::orderBy('sort_order')
-            ->with(['services' => fn ($q) => $q->with('agents')->orderBy('sort_order')])
+            ->with(['services' => fn ($q) => $q->with('agents')->withCount('extras')->orderBy('sort_order')])
             ->get()
             ->map(fn (Category $cat) => [
                 'category' => $cat,
@@ -36,7 +36,7 @@ class ServiceController extends Controller
             return response()->json(['services' => [], 'category' => null]);
         }
         
-        $services = $category->services()->with('agents')->orderBy('sort_order')->get();
+        $services = $category->services()->with('agents')->withCount('extras')->orderBy('sort_order')->get();
         
         return response()->json([
             'services' => $services,
@@ -50,7 +50,7 @@ class ServiceController extends Controller
     public function show(Service $service): JsonResponse
     {
         return response()->json([
-            'service' => $service->load(['category', 'agents']),
+            'service' => $service->load(['category', 'agents', 'extras']),
         ]);
     }
 
@@ -73,11 +73,14 @@ class ServiceController extends Controller
         if ($request->has('agent_ids')) {
             $service->agents()->sync($request->agent_ids);
         }
+        if ($request->has('extra_ids')) {
+            $service->extras()->sync($request->extra_ids);
+        }
         
         return response()->json([
             'success' => true,
             'message' => 'Serviço criado com sucesso.',
-            'service' => $service->load(['category', 'agents']),
+            'service' => $service->load(['category', 'agents', 'extras']),
         ]);
     }
 
@@ -94,14 +97,18 @@ class ServiceController extends Controller
         if ($request->has('agent_ids')) {
             $service->agents()->sync($request->agent_ids);
         } else {
-            // If no agent_ids provided, clear all associations
             $service->agents()->sync([]);
+        }
+        if ($request->has('extra_ids')) {
+            $service->extras()->sync($request->extra_ids);
+        } else {
+            $service->extras()->sync([]);
         }
         
         return response()->json([
             'success' => true,
             'message' => 'Serviço atualizado com sucesso.',
-            'service' => $service->fresh()->load(['category', 'agents']),
+            'service' => $service->fresh()->load(['category', 'agents', 'extras']),
         ]);
     }
 

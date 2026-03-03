@@ -31,6 +31,7 @@ class Agent extends Model
         'specialization',
         'commission_rate',
         'status',
+        'color',
         'avatar',
     ];
 

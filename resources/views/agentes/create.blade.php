@@ -1,5 +1,9 @@
 @extends('partials.layouts.main')
 @section('title', 'Novo Membro | Beauty CRM')
+@section('css')
+<link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
+<style>.category-color-choice .ri-circle-fill { font-size: 1rem; }</style>
+@endsection
 @section('content')
 
 <form action="{{ route('equipa.store') }}" method="POST" enctype="multipart/form-data">
@@ -37,6 +41,33 @@
                             @endforeach
                         </select>
                         @error('status')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="mb-0">
+                        <label for="agentColorSelect" class="form-label">Cor na agenda</label>
+                        <select class="form-select" id="agentColorSelect" name="color">
+                            <option value="">Selecionar cor...</option>
+                            <option value="#bfdbfe" {{ old('color') == '#bfdbfe' ? 'selected' : '' }}>Azul Céu</option>
+                            <option value="#93c5fd" {{ old('color') == '#93c5fd' ? 'selected' : '' }}>Azul Claro</option>
+                            <option value="#a5b4fc" {{ old('color') == '#a5b4fc' ? 'selected' : '' }}>Azul Índigo</option>
+                            <option value="#c7d2fe" {{ old('color') == '#c7d2fe' ? 'selected' : '' }}>Azul Lavanda</option>
+                            <option value="#ddd6fe" {{ old('color') == '#ddd6fe' ? 'selected' : '' }}>Lavanda</option>
+                            <option value="#e9d5ff" {{ old('color') == '#e9d5ff' ? 'selected' : '' }}>Lilás</option>
+                            <option value="#f3e8ff" {{ old('color') == '#f3e8ff' ? 'selected' : '' }}>Roxo Pastel</option>
+                            <option value="#fbcfe8" {{ old('color') == '#fbcfe8' ? 'selected' : '' }}>Rosa Pastel</option>
+                            <option value="#fecdd3" {{ old('color') == '#fecdd3' ? 'selected' : '' }}>Rosa Claro</option>
+                            <option value="#fda4af" {{ old('color') == '#fda4af' ? 'selected' : '' }}>Coral Suave</option>
+                            <option value="#fed7aa" {{ old('color') == '#fed7aa' ? 'selected' : '' }}>Laranja Pastel</option>
+                            <option value="#fde68a" {{ old('color') == '#fde68a' ? 'selected' : '' }}>Âmbar Claro</option>
+                            <option value="#fef9c3" {{ old('color') == '#fef9c3' ? 'selected' : '' }}>Amarelo Pastel</option>
+                            <option value="#d9f99d" {{ old('color') == '#d9f99d' ? 'selected' : '' }}>Verde Lima</option>
+                            <option value="#bbf7d0" {{ old('color') == '#bbf7d0' ? 'selected' : '' }}>Verde Menta</option>
+                            <option value="#99f6e4" {{ old('color') == '#99f6e4' ? 'selected' : '' }}>Verde Água</option>
+                            <option value="#a5f3fc" {{ old('color') == '#a5f3fc' ? 'selected' : '' }}>Ciano Claro</option>
+                            <option value="#bae6fd" {{ old('color') == '#bae6fd' ? 'selected' : '' }}>Azul Gelo</option>
+                        </select>
+                        @error('color')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -257,5 +288,62 @@
             reader.readAsDataURL(input.files[0]);
         }
     }
+    (function() {
+        if (typeof Choices === 'undefined') return;
+        function addClassesToElement(el, classes) {
+            var arr = Array.isArray(classes) ? classes : [classes];
+            arr.forEach(function(c) { if (c) el.classList.add(c); });
+        }
+        function categoryColorChoiceTemplate(templateOptions, data, itemSelectText, groupName) {
+            var cn = templateOptions.classNames;
+            var rawValue = typeof data.value === 'string' ? data.value : String(data.value || '');
+            var div = document.createElement('div');
+            div.id = data.elementId || '';
+            addClassesToElement(div, cn.item);
+            addClassesToElement(div, cn.itemChoice);
+            div.innerHTML = '<span class="category-color-choice d-inline-flex align-items-center gap-2"><i class="ri-circle-fill" style="color:' + rawValue.replace(/"/g, '&quot;') + '"></i> ' + (data.label || '').replace(/</g, '&lt;').replace(/&/g, '&amp;') + '</span>';
+            if (data.selected) addClassesToElement(div, cn.selectedState);
+            if (data.placeholder) addClassesToElement(div, cn.placeholder);
+            div.setAttribute('role', data.group ? 'treeitem' : 'option');
+            div.dataset.choice = '';
+            div.dataset.id = String(data.id != null ? data.id : '');
+            div.dataset.value = rawValue;
+            if (itemSelectText) div.dataset.selectText = itemSelectText;
+            if (data.group) div.dataset.groupId = String(data.group.id != null ? data.group.id : '');
+            if (data.disabled) {
+                addClassesToElement(div, cn.itemDisabled);
+                div.dataset.choiceDisabled = '';
+                div.setAttribute('aria-disabled', 'true');
+            } else {
+                addClassesToElement(div, cn.itemSelectable);
+                div.dataset.choiceSelectable = '';
+                div.setAttribute('aria-selected', data.selected ? 'true' : 'false');
+            }
+            return div;
+        }
+        function categoryColorItemTemplate(templateOptions, data, removeItemButton) {
+            var cn = templateOptions.classNames;
+            var rawValue = typeof data.value === 'string' ? data.value : String(data.value || '');
+            var div = document.createElement('div');
+            addClassesToElement(div, cn.item);
+            div.innerHTML = rawValue ? '<span class="category-color-choice d-inline-flex align-items-center gap-2"><i class="ri-circle-fill" style="color:' + rawValue.replace(/"/g, '&quot;') + '"></i> ' + (data.label || '').replace(/</g, '&lt;').replace(/&/g, '&amp;') + '</span>' : (templateOptions.placeholderValue || 'Selecionar cor...');
+            div.dataset.item = '';
+            div.dataset.id = String(data.id != null ? data.id : '');
+            div.dataset.value = rawValue;
+            if (this._isSelectElement) {
+                div.setAttribute('aria-selected', 'true');
+                div.setAttribute('role', 'option');
+            }
+            if (data.placeholder) {
+                div.classList.add(cn.placeholder);
+                div.dataset.placeholder = '';
+            }
+            addClassesToElement(div, data.highlighted ? cn.highlightedState : cn.itemSelectable);
+            return div;
+        }
+        var opts = { searchEnabled: false, itemSelectText: '', shouldSort: false, allowHTML: true, callbackOnCreateTemplates: function(t, e, c) { return { choice: categoryColorChoiceTemplate, item: categoryColorItemTemplate }; } };
+        var el = document.getElementById('agentColorSelect');
+        if (el && !el.closest('.choices')) new Choices(el, opts);
+    })();
 </script>
 @endsection

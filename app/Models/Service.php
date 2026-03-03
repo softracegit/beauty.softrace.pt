@@ -42,6 +42,14 @@ class Service extends Model
     }
 
     /**
+     * Get the extras that can be added to this service
+     */
+    public function extras(): BelongsToMany
+    {
+        return $this->belongsToMany(Extra::class, 'service_extra');
+    }
+
+    /**
      * Get calendar events that include this service
      */
     public function calendarEvents(): BelongsToMany

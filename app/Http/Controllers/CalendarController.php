@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Agent;
 use App\Models\CalendarEvent;
+use App\Models\Client;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -19,6 +20,7 @@ class CalendarController extends Controller
         $users = User::whereHas('agent', function ($query) {
             $query->where('status', Agent::STATUS_ACTIVE);
         })
+            ->with('agent')
             ->whereNotIn('role', [User::ROLE_ADMIN])
             ->orderBy('name')
             ->get();
@@ -42,7 +44,7 @@ class CalendarController extends Controller
             $avatarNum = ($agent->id % 9) + 1;
             $avatarUrl = $agent->avatar
                 ? asset('storage/' . $agent->avatar)
-                : asset("assets/images/avatar/avatar-{$avatarNum}.jpg");
+                : asset("template/img/avatars/avatar-{$avatarNum}.webp");
             return [
                 'id' => (string) $agent->user_id, // Usar user_id como ID do recurso
                 'title' => $agent->name,
@@ -65,7 +67,7 @@ class CalendarController extends Controller
         $end = $request->get('end');
         $forResources = $request->boolean('for_resources');
 
-        $query = CalendarEvent::query()->with(['user', 'service', 'client', 'eventServices', 'eventable']);
+        $query = CalendarEvent::query()->with(['user.agent', 'service', 'client', 'eventServices', 'eventable']);
 
         // Verificar se o utilizador pode ver todos os eventos (admin ou diretor)
         $canViewAll = auth()->user()->canManageAgents();
@@ -109,6 +111,7 @@ class CalendarController extends Controller
         $result = $events->map(function (CalendarEvent $event) use ($forResources, $validUserIds) {
             $classMap = CalendarEvent::typeClassMap();
             $className = $classMap[$event->event_type] ?? 'bg-secondary';
+            $agentColor = $event->user?->agent?->color;
 
             $item = [
                 'id' => (string) $event->id,
@@ -116,6 +119,7 @@ class CalendarController extends Controller
                 'start' => $event->start_at->toIso8601String(),
                 'end' => $event->end_at->toIso8601String(),
                 'className' => $className,
+                'backgroundColor' => $agentColor ?: null,
                 'extendedProps' => [
                     'client_name' => $event->client?->name,
                     'description' => $event->description,
@@ -135,6 +139,7 @@ class CalendarController extends Controller
                         'name' => $s->name,
                         'duration' => $dur = ($s->pivot->duration ?? $s->duration),
                         'price' => (float) ($s->pivot->price ?? $s->price),
+                        'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
                         'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
                         'formatted_duration' => $this->formatDurationMinutes((int) $dur),
                     ])->values()->all(),
@@ -173,7 +178,7 @@ class CalendarController extends Controller
             return response()->json(['categories' => []]);
         }
 
-        $services = $agent->services()->with('category')->orderBy('name')->get();
+        $services = $agent->services()->with('category', 'extras')->orderBy('name')->get();
         $byCategory = $services->groupBy(function ($s) {
             return $s->category_id ?: 0;
         });
@@ -194,6 +199,14 @@ class CalendarController extends Controller
                     'formatted_duration' => $s->formatted_duration,
                     'price' => (float) $s->price,
                     'formatted_price' => $s->formatted_price,
+                    'extras' => $s->extras->map(fn ($e) => [
+                        'id' => $e->id,
+                        'name' => $e->name,
+                        'duration' => $e->duration,
+                        'price' => (float) $e->price,
+                        'formatted_duration' => $e->formatted_duration,
+                        'formatted_price' => $e->formatted_price,
+                    ])->values()->all(),
                 ])->values()->all(),
             ];
         }
@@ -227,6 +240,36 @@ class CalendarController extends Controller
     }
 
     /**
+     * Create a new client from the agenda (quick create).
+     * Returns JSON in the same format as clients() search.
+     */
+    public function storeClient(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:clients,email'],
+            'phone' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $client = Client::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'] ?? null,
+            'status' => Client::STATUS_ACTIVE,
+        ]);
+
+        $result = [
+            'id' => (string) $client->id,
+            'name' => $client->name,
+            'email' => $client->email,
+            'phone' => $client->phone,
+            'avatar_url' => $client->avatar ? asset('storage/' . $client->avatar) : null,
+        ];
+
+        return response()->json($result);
+    }
+
+    /**
      * Show a single event (for modal/details).
      * In resource view the user may view events of other consultants (permission check can be added).
      */
@@ -234,6 +277,7 @@ class CalendarController extends Controller
     {
         try {
             $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventable']);
+            $calendarEvent->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
             
             $userAvatarUrl = null;
             try {
@@ -244,7 +288,7 @@ class CalendarController extends Controller
                         $avatarNum = ($agent->id % 9) + 1;
                         $userAvatarUrl = $agent->avatar
                             ? asset('storage/' . $agent->avatar)
-                            : asset("assets/images/avatar/avatar-{$avatarNum}.jpg");
+                            : asset("template/img/avatars/avatar-{$avatarNum}.webp");
                     }
                 }
             } catch (\Exception $e) {
@@ -278,14 +322,24 @@ class CalendarController extends Controller
                     $color = $cat?->color ?? '#6c757d';
                     $duration = $s->pivot->duration ?? $s->duration;
                     $price = (float) ($s->pivot->price ?? $s->price);
+                    $extras = $s->pivot->extras->map(fn ($pe) => [
+                        'extra_id' => $pe->extra_id,
+                        'name' => $pe->extra?->name ?? '',
+                        'duration' => $pe->duration ?? $pe->extra?->duration ?? 0,
+                        'price' => (float) ($pe->price ?? $pe->extra?->price ?? 0),
+                        'formatted_duration' => $this->formatDurationMinutes((int) ($pe->duration ?? $pe->extra?->duration ?? 0)),
+                        'formatted_price' => number_format((float) ($pe->price ?? $pe->extra?->price ?? 0), 2, ',', '.') . ' €',
+                    ])->values()->all();
                     return [
                         'id' => $s->id,
                         'name' => $s->name,
                         'duration' => $duration,
                         'price' => $price,
+                        'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : $price,
                         'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
                         'formatted_duration' => $this->formatDurationMinutes((int) $duration),
                         'color' => $color,
+                        'extras' => $extras,
                     ];
                 })->values()->all(),
                 'is_source_editable' => $calendarEvent->isSourceEditable(),
@@ -358,6 +412,11 @@ class CalendarController extends Controller
             'services.*.service_id' => ['required_with:services', 'exists:services,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
+            'services.*.original_price' => ['nullable', 'numeric', 'min:0'],
+            'services.*.extras' => ['nullable', 'array'],
+            'services.*.extras.*.extra_id' => ['nullable', 'exists:extras,id'],
+            'services.*.extras.*.duration' => ['nullable', 'integer', 'min:0'],
+            'services.*.extras.*.price' => ['nullable', 'numeric', 'min:0'],
         ];
         $validated = $request->validate($rules);
 
@@ -390,10 +449,24 @@ class CalendarController extends Controller
                 $event->eventServices()->attach((int) $item['service_id'], [
                     'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
                     'price' => isset($item['price']) ? (float) $item['price'] : null,
+                    'original_price' => isset($item['original_price']) ? (float) $item['original_price'] : (isset($item['price']) ? (float) $item['price'] : null),
                     'sort_order' => $i,
                 ]);
             }
             $event->load('eventServices');
+            $ordered = $event->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
+            foreach ($ordered as $i => $svc) {
+                $extras = $servicesPayload[$i]['extras'] ?? [];
+                foreach ($extras as $j => $ex) {
+                    \App\Models\CalendarEventServiceExtra::create([
+                        'calendar_event_service_id' => $svc->pivot->id,
+                        'extra_id' => (int) ($ex['extra_id'] ?? 0),
+                        'duration' => isset($ex['duration']) ? (int) $ex['duration'] : null,
+                        'price' => isset($ex['price']) ? (float) $ex['price'] : null,
+                        'sort_order' => $j,
+                    ]);
+                }
+            }
         }
 
         return response()->json([
@@ -420,6 +493,11 @@ class CalendarController extends Controller
             'services.*.service_id' => ['required_with:services', 'exists:services,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
+            'services.*.original_price' => ['nullable', 'numeric', 'min:0'],
+            'services.*.extras' => ['nullable', 'array'],
+            'services.*.extras.*.extra_id' => ['nullable', 'exists:extras,id'],
+            'services.*.extras.*.duration' => ['nullable', 'integer', 'min:0'],
+            'services.*.extras.*.price' => ['nullable', 'numeric', 'min:0'],
         ];
 
         if ($calendarEvent->isSourceEditable()) {
@@ -503,8 +581,23 @@ class CalendarController extends Controller
                     $calendarEvent->eventServices()->attach((int) $item['service_id'], [
                         'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
                         'price' => isset($item['price']) ? (float) $item['price'] : null,
+                        'original_price' => isset($item['original_price']) ? (float) $item['original_price'] : (isset($item['price']) ? (float) $item['price'] : null),
                         'sort_order' => $i,
                     ]);
+                }
+                $calendarEvent->load('eventServices');
+                $ordered = $calendarEvent->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
+                foreach ($ordered as $i => $svc) {
+                    $extras = $servicesPayload[$i]['extras'] ?? [];
+                    foreach ($extras as $j => $ex) {
+                        \App\Models\CalendarEventServiceExtra::create([
+                            'calendar_event_service_id' => $svc->pivot->id,
+                            'extra_id' => (int) ($ex['extra_id'] ?? 0),
+                            'duration' => isset($ex['duration']) ? (int) $ex['duration'] : null,
+                            'price' => isset($ex['price']) ? (float) $ex['price'] : null,
+                            'sort_order' => $j,
+                        ]);
+                    }
                 }
             }
         }
@@ -577,13 +670,15 @@ class CalendarController extends Controller
         $classMap = CalendarEvent::typeClassMap();
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
-        $event->loadMissing('eventServices');
+        $event->loadMissing(['eventServices', 'user.agent']);
+        $agentColor = $event->user?->agent?->color;
         $eventServicesData = $event->eventServices->isNotEmpty()
             ? $event->eventServices->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'duration' => $dur = ($s->pivot->duration ?? $s->duration),
                 'price' => (float) ($s->pivot->price ?? $s->price),
+                'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
                 'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
                 'formatted_duration' => $this->formatDurationMinutes((int) $dur),
             ])->values()->all()
@@ -598,7 +693,10 @@ class CalendarController extends Controller
             'start' => $event->start_at->toIso8601String(),
             'end' => $event->end_at->toIso8601String(),
             'className' => $className,
+            'backgroundColor' => $agentColor ?: null,
             'extendedProps' => [
+                'client_id' => $event->client_id,
+                'client_name' => $event->client?->name,
                 'description' => $event->description,
                 'event_type' => $event->event_type,
                 'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,

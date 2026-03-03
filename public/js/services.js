@@ -95,6 +95,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Ao alterar a cor no modal Editar Categoria: atualizar em tempo real a borda dos serviços e o ponto na sidebar
+    const editCategoryColorSelect = document.getElementById('editCategoryColorSelect');
+    if (editCategoryColorSelect) {
+        editCategoryColorSelect.addEventListener('change', function() {
+            const categoryId = document.getElementById('editCategoryId')?.value;
+            if (!categoryId) return;
+            const newColor = this.value || '#6c757d';
+            const container = document.getElementById('servicesListContainer');
+            if (container) {
+                container.querySelectorAll('[data-category-id="' + categoryId + '"] .service-item').forEach(function(el) {
+                    el.style.setProperty('--service-category-color', newColor);
+                });
+            }
+            const sidebarItem = document.querySelector('#categoriesList .contacts-group-item[data-category-id="' + categoryId + '"]');
+            if (sidebarItem) {
+                const dot = sidebarItem.querySelector('.contacts-group-dot');
+                if (dot) dot.style.background = newColor;
+                sidebarItem.setAttribute('data-category-color', newColor);
+            }
+        });
+    }
+
     // --- Modais: "Todos os membros" (Criar / Editar) ---
     document.getElementById('addServiceSelectAllAgents')?.addEventListener('change', function() {
         const checkboxes = document.querySelectorAll('#addServiceModal .service-agent-checkbox');
@@ -148,15 +170,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Category selection (apenas itens da sidebar; ignorar dropdown do header)
-    document.querySelectorAll('[data-category-id]').forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (e.target.closest('.dropdown') || e.target.closest('.services-category-header')) return;
-            e.preventDefault();
-            const categoryId = this.getAttribute('data-category-id');
-            selectCategory(categoryId);
+    // Category selection (apenas itens da sidebar; não os blocos de extras nos modais)
+    const categoriesList = document.getElementById('categoriesList');
+    if (categoriesList) {
+        categoriesList.querySelectorAll('.contacts-group-item[data-category-id]').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                const categoryId = this.getAttribute('data-category-id');
+                selectCategory(categoryId);
+            });
         });
-    });
+    }
 
     // Ações do cabeçalho da categoria (Editar / Adicionar serviço / Eliminar)
     const listContainer = document.getElementById('servicesListContainer');
@@ -229,13 +253,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function selectCategory(categoryId) {
         selectedCategoryId = categoryId;
         
-        // Update active state
-        document.querySelectorAll('[data-category-id]').forEach(item => {
-            item.classList.remove('active');
-            if (item.getAttribute('data-category-id') === categoryId) {
-                item.classList.add('active');
-            }
-        });
+        // Update active state (apenas itens da sidebar)
+        const list = document.getElementById('categoriesList');
+        if (list) {
+            list.querySelectorAll('.contacts-group-item[data-category-id]').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-category-id') === categoryId) {
+                    item.classList.add('active');
+                }
+            });
+        }
 
         if (categoryId === 'all') loadAllServices();
         else loadServices(categoryId);
@@ -401,6 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="d-flex flex-wrap gap-3 text-muted small service-item-duration">
                                 <span><i class="ph ph-clock me-1"></i>${formatDuration(service.duration)}</span>
                                 ${service.promo_price ? `<span class="text-success"><i class="ph ph-tag me-1"></i>${formatPrice(service.promo_price)}</span>` : ''}
+                                ${(service.extras_count || (service.extras && service.extras.length) || 0) > 0 ? `<span><i class="ph ph-package me-1"></i>${service.extras_count || (service.extras && service.extras.length) || 0} extra(s)</span>` : ''}
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-2 flex-shrink-0 service-item-right">
@@ -638,6 +666,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Adicionar agent_ids ao FormData
         const agentIds = Array.from(document.querySelectorAll('#addServiceModal .service-agent-checkbox:checked')).map(cb => cb.value);
         agentIds.forEach(id => formData.append('agent_ids[]', id));
+        const extraIds = Array.from(document.querySelectorAll('#addServiceModal input[name="extra_ids[]"]:checked')).map(cb => cb.value);
+        extraIds.forEach(id => formData.append('extra_ids[]', id));
         
         fetch('/services', {
             method: 'POST',
@@ -699,6 +729,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const agentIds = Array.from(document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit:checked')).map(cb => cb.value);
         formData.delete('agent_ids[]');
         agentIds.forEach(id => formData.append('agent_ids[]', id));
+        const extraIds = Array.from(document.querySelectorAll('#editServiceModal input[name="extra_ids[]"]:checked')).map(cb => cb.value);
+        formData.delete('extra_ids[]');
+        extraIds.forEach(id => formData.append('extra_ids[]', id));
         
         formData.set('_method', 'PUT');
         
@@ -767,6 +800,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Atualizar checkbox "Todos os membros"
                     const allAgentsChecked = Array.from(document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit')).every(c => c.checked);
                     document.getElementById('editServiceSelectAllAgents').checked = allAgentsChecked;
+                    // Preencher checkboxes de extras
+                    document.querySelectorAll('#editServiceModal input[name="extra_ids[]"]').forEach(cb => {
+                        cb.checked = service.extras && service.extras.some(extra => extra.id === parseInt(cb.value));
+                    });
                     
                     new bootstrap.Modal(document.getElementById('editServiceModal')).show();
                 })
