@@ -2037,23 +2037,23 @@ document.addEventListener('DOMContentLoaded', function() {
             currentDate: {
                 text: '',
                 click: function() {
-                    // Botão apenas informativo, não faz nada
+                    // Botão apenas informativo (título), não faz nada
                 }
             },
-            newEvent: {
-                text: 'Novo evento',
+            viewSelector: {
+                text: 'Dia',
                 click: function() {
-                    openCreateEventModal();
+                    // Dropdown será inicializado após render
                 }
             },
             consultantFilter: {
                 text: 'Toda a equipa',
                 click: function() {
-                    // Dropdown será inicializado após render
+                    // Dropdown será inicializado após render (só visível na vista Dia)
                 }
             },
-            viewSelector: {
-                text: 'Mês',
+            adicionarDropdown: {
+                text: 'Adicionar',
                 click: function() {
                     // Dropdown será inicializado após render
                 }
@@ -2061,16 +2061,23 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         headerToolbar: {
             left: 'today prev currentDate next',
-            center: 'title',
-            right: 'consultantFilter viewSelector newEvent'
+            center: '',
+            right: 'consultantFilter viewSelector adicionarDropdown'
         },
         buttonText: {
             today: 'Hoje',
             month: 'Mês',
             week: 'Semana',
-            resourceTimeGridDay: 'Por consultor',
+            resourceTimeGridDay: 'Dia',
+            timeGridThreeDay: '3 dias',
             prev: '',
             next: ''
+        },
+        views: {
+            timeGridThreeDay: {
+                type: 'timeGridWeek',
+                duration: { days: 3 }
+            }
         },
         slotMinTime: '00:00:00',
         slotMaxTime: '23:59:00',
@@ -2087,34 +2094,56 @@ document.addEventListener('DOMContentLoaded', function() {
         dayMaxEvents: 2,
         dayMaxEventRows: 2,
         eventContent: function(arg) {
-            const start = arg.event.start;
-            const end = arg.event.end;
-            const fmt = function(d) { return d ? (String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) : ''; };
-            const startStr = fmt(start);
-            const endStr = fmt(end);
-            const timeStr = (startStr && endStr) ? (startStr + ' - ' + endStr) : (startStr || '');
-            const timeHtml = (startStr && endStr)
-                ? ('<span class="fc-event-time-start">' + startStr + '</span><span class="fc-event-time-range"> - ' + endStr + '</span>')
-                : ('<span class="fc-event-time-start">' + (startStr || '') + '</span>');
             const extProps = arg.event.extendedProps || {};
             const statusIcon = extProps.status_icon || null;
             const clientName = (extProps.client_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const serviceName = (extProps.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const fallbackTitle = (arg.event.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            let iconHtml = '';
-            if (statusIcon) {
-                iconHtml = '<i class="' + statusIcon + ' fc-event-status-icon"></i>';
+
+            // Extras (nomes) a partir de event_services
+            var extrasParts = [];
+            (extProps.event_services || []).forEach(function(s) {
+                (s.extras || []).forEach(function(e) {
+                    var n = (e.name || '').trim();
+                    if (n) extrasParts.push(n.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+                });
+            });
+            const extrasStr = extrasParts.length ? extrasParts.join(', ') : '';
+
+            // Ícone de estado
+            const iconHtml = statusIcon ? '<i class="' + statusIcon + ' fc-event-status-icon"></i>' : '';
+
+            // Linha 1: ícone + cliente (ou título)
+            const line1 = iconHtml + '<strong class="fc-event-client">' + (clientName || fallbackTitle || '—') + '</strong>';
+
+            // Linha 2: serviço + extras
+            let line2 = serviceName || '';
+            if (extrasStr) line2 += (line2 ? ' · ' : '') + extrasStr;
+            const line2Html = line2 ? '<span class="fc-event-service-line">' + line2 + '</span>' : '';
+
+            // Linha 3: hora início - fim
+            const start = arg.event.start;
+            const end = arg.event.end;
+            const fmt = function(d) { return d ? (String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) : ''; };
+            const startStr = fmt(start);
+            const endStr = fmt(end);
+            let line3 = '';
+            if (startStr && endStr) {
+                line3 = startStr + ' - ' + endStr;
+            } else if (startStr) {
+                line3 = startStr;
             }
-            let contentHtml = '';
-            if (clientName || serviceName) {
-                contentHtml = '<span class="fc-event-time">' + timeHtml + '</span> <strong class="fc-event-client">' + (clientName || '—') + '</strong>';
-                if (serviceName) {
-                    contentHtml += '<span class="fc-event-service-line">' + serviceName + '</span>';
-                }
-            } else {
-                contentHtml = '<span class="fc-event-time">' + timeHtml + '</span> <span class="fc-event-title">' + fallbackTitle + '</span>';
+            const line3Html = line3 ? '<span class="fc-event-time-range">' + line3 + '</span>' : '';
+
+            let contentHtml = '<div class="fc-event-line fc-event-line-1">' + line1 + '</div>';
+            if (line2Html) {
+                contentHtml += '<div class="fc-event-line fc-event-line-2">' + line2Html + '</div>';
             }
-            return { html: '<div class="fc-event-content-wrapper">' + contentHtml + iconHtml + '</div>' };
+            if (line3Html) {
+                contentHtml += '<div class="fc-event-line fc-event-line-3">' + line3Html + '</div>';
+            }
+
+            return { html: '<div class="fc-event-content-wrapper">' + contentHtml + '</div>' };
         },
         dayHeaderFormat: function(arg) {
             const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -2299,8 +2328,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(failureCallback);
         },
         eventDidMount: function(info) {
+            info.el.dataset.eventId = info.event.id;
             info.el.style.setProperty('color', '#000', 'important');
-            info.el.style.setProperty('box-shadow', 'none', 'important');
+            //info.el.style.setProperty('box-shadow', 'none', 'important');
             if (info.event.backgroundColor) {
                 info.el.style.setProperty('background-color', info.event.backgroundColor, 'important');
             }
@@ -2365,6 +2395,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (res.event && payload.user_id !== undefined) {
                     info.event.setExtendedProp('user_id', payload.user_id);
                     if (res.event.extendedProps && res.event.extendedProps.user_name) info.event.setExtendedProp('user_name', res.event.extendedProps.user_name);
+                    var newColor = res.event.backgroundColor;
+                    if (newColor == null && info.newResource && allResources && allResources.length) {
+                        var resObj = allResources.find(function(r) { return String(r.id) === String(info.newResource.id); });
+                        newColor = resObj?.extendedProps?.color || null;
+                    }
+                    info.event.setProp('backgroundColor', newColor || null);
+                    if (newColor) {
+                        info.el.style.setProperty('background-color', newColor, 'important');
+                        setTimeout(function() {
+                            var el = document.querySelector('[data-event-id="' + info.event.id + '"]');
+                            if (el) el.style.setProperty('background-color', newColor, 'important');
+                        }, 0);
+                    } else {
+                        info.el.style.removeProperty('background-color');
+                        setTimeout(function() {
+                            var el = document.querySelector('[data-event-id="' + info.event.id + '"]');
+                            if (el) el.style.removeProperty('background-color');
+                        }, 0);
+                    }
                 }
             })
             .catch(function(err) {
@@ -2425,6 +2474,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     consultantBtn.dataset.initialized = '';
                     initConsultantDropdown();
                 }
+                var addBtn = calendarEl.querySelector('.fc-adicionarDropdown-button');
+                if (addBtn && addBtn.dataset.initialized !== '1') initAdicionarDropdown();
                 var viewType = calendar.view.type;
                 var startDate = viewType === 'dayGridMonth' ? calendar.view.currentStart : info.start;
                 if (currentDateBtn) {
@@ -2436,8 +2487,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     currentDateBtn.style.opacity = '1';
                 }
                 if (viewSelectorBtn && viewSelectorBtn.dataset.initialized === '1') {
-                    var viewLabels = { dayGridMonth: 'Mês', timeGridWeek: 'Semana', resourceTimeGridDay: 'Por consultor' };
-                    viewSelectorBtn.textContent = viewLabels[viewType] || 'Semana';
+                    var viewLabels = {
+                        timeGridWeek: 'Semana',
+                        timeGridThreeDay: '3 dias',
+                        resourceTimeGridDay: 'Dia'
+                    };
+                    viewSelectorBtn.textContent = viewLabels[viewType] || 'Dia';
                 }
                 if (consultantBtn && consultantBtn.dataset.initialized === '1' && currentViewMode === 'consultant') {
                     var res = selectedConsultantId && allResources.length ? allResources.find(function(r) { return r.id === selectedConsultantId; }) : null;
@@ -2466,14 +2521,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 initViewSelectorDropdown();
                 updateViewSelectorButton(info.view.type);
                 updateViewDropdownActive(info.view.type);
+                if (calendarEl.querySelector('.fc-adicionarDropdown-button')?.dataset.initialized !== '1') initAdicionarDropdown();
                 applyToolbarStyles();
             }, 0);
             
-            // Mostrar/esconder botão de filtro de consultor
+            // Mostrar/esconder botão de filtro de consultor (só na vista Dia)
             const consultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
             if (consultantBtn) {
                 consultantBtn.style.display = isConsultant ? 'inline-block' : 'none';
-                consultantBtn.parentElement.style.display = isConsultant ? 'inline-block' : 'none';
+                var parent = consultantBtn.parentElement;
+                if (parent && parent.classList.contains('dropdown')) {
+                    parent.style.display = isConsultant ? 'inline-block' : 'none';
+                }
             }
             
             if (isConsultant) {
@@ -2571,12 +2630,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!viewBtn) return;
         
         const viewLabels = {
-            'dayGridMonth': 'Mês',
             'timeGridWeek': 'Semana',
-            'resourceTimeGridDay': 'Por consultor'
+            'timeGridThreeDay': '3 dias',
+            'resourceTimeGridDay': 'Dia'
         };
         
-        viewBtn.textContent = viewLabels[viewType] || 'Mês';
+        viewBtn.textContent = viewLabels[viewType] || 'Dia';
     }
 
     // Inicializar dropdown de vistas
@@ -2590,14 +2649,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const dropdown = wrapper ? wrapper.querySelector('#viewSelectorDropdown') : null;
             if (wrapper && dropdown) {
                 // Estrutura existe, apenas garantir estilos com important
-                wrapper.style.setProperty('margin', '0', 'important');
-                wrapper.style.setProperty('margin-left', '0', 'important');
-                wrapper.style.setProperty('margin-right', '0', 'important');
                 wrapper.style.setProperty('padding', '0', 'important');
                 wrapper.style.setProperty('display', 'inline-block', 'important');
-                viewBtn.style.setProperty('margin', '0', 'important');
-                viewBtn.style.setProperty('margin-left', '0', 'important');
-                viewBtn.style.setProperty('margin-right', '0', 'important');
                 return;
             }
             // Estrutura perdida, re-inicializar
@@ -2617,29 +2670,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const wrapper = document.createElement('div');
             wrapper.className = 'dropdown';
             wrapper.style.setProperty('display', 'inline-block', 'important');
-            wrapper.style.setProperty('margin', '0', 'important');
-            wrapper.style.setProperty('margin-left', '0', 'important');
-            wrapper.style.setProperty('margin-right', '0', 'important');
             wrapper.style.setProperty('padding', '0', 'important');
             viewBtn.parentElement.insertBefore(wrapper, viewBtn);
             wrapper.appendChild(viewBtn);
             btnParent = wrapper;
         } else {
             btnParent.classList.add('dropdown');
-            btnParent.style.setProperty('margin', '0', 'important');
-            btnParent.style.setProperty('margin-left', '0', 'important');
-            btnParent.style.setProperty('margin-right', '0', 'important');
             btnParent.style.setProperty('padding', '0', 'important');
             btnParent.style.setProperty('display', 'inline-block', 'important');
         }
         
         viewBtn.classList.add('dropdown-toggle');
         viewBtn.setAttribute('data-bs-toggle', 'dropdown');
+        viewBtn.setAttribute('data-bs-target', '#viewSelectorDropdown');
         viewBtn.setAttribute('aria-expanded', 'false');
         viewBtn.setAttribute('id', 'viewSelectorBtn');
-        viewBtn.style.setProperty('margin', '0', 'important');
-        viewBtn.style.setProperty('margin-left', '0', 'important');
-        viewBtn.style.setProperty('margin-right', '0', 'important');
         
         // Remover dropdown existente se houver (mas não o consultantDropdown)
         const existingDropdown = btnParent.querySelector('#viewSelectorDropdown');
@@ -2653,9 +2698,9 @@ document.addEventListener('DOMContentLoaded', function() {
         dropdown.setAttribute('aria-labelledby', 'viewSelectorBtn');
         
         const views = [
-            { type: 'dayGridMonth', label: 'Mês' },
-            { type: 'timeGridWeek', label: 'Semana' },
-            { type: 'resourceTimeGridDay', label: 'Por consultor' }
+            { type: 'resourceTimeGridDay', label: 'Dia' },
+            { type: 'timeGridThreeDay', label: '3 dias' },
+            { type: 'timeGridWeek', label: 'Semana' }
         ];
         
         views.forEach(function(view) {
@@ -2696,39 +2741,85 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    /** Devolve início e fim no slot mais próximo da hora atual (arredondado a 15 min), formato YYYY-MM-DDTHH:mm. Fim = início + 1h */
+    function getClosestSlotToNow() {
+        var d = new Date();
+        var y = d.getFullYear();
+        var m = d.getMonth();
+        var day = d.getDate();
+        var h = d.getHours();
+        var min = d.getMinutes();
+        var slotMin = Math.floor(min / 15) * 15;
+        var startDate = new Date(y, m, day, h, slotMin, 0);
+        var endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+        var pad = function(n) { return String(n).padStart(2, '0'); };
+        var startStr = startDate.getFullYear() + '-' + pad(startDate.getMonth() + 1) + '-' + pad(startDate.getDate()) + 'T' + pad(startDate.getHours()) + ':' + pad(startDate.getMinutes());
+        var endStr = endDate.getFullYear() + '-' + pad(endDate.getMonth() + 1) + '-' + pad(endDate.getDate()) + 'T' + pad(endDate.getHours()) + ':' + pad(endDate.getMinutes());
+        return { startStr: startStr, endStr: endStr };
+    }
+
+    function initAdicionarDropdown() {
+        const addBtn = calendarEl.querySelector('.fc-adicionarDropdown-button');
+        if (!addBtn) return;
+        if (addBtn.dataset.initialized === '1') return;
+        addBtn.dataset.initialized = '1';
+        var btnParent = addBtn.parentElement;
+        var needWrapper = !btnParent.classList.contains('dropdown') ||
+            btnParent.querySelector('.fc-consultantFilter-button') ||
+            btnParent.querySelector('.fc-viewSelector-button');
+        if (needWrapper) {
+            var wrapper = document.createElement('div');
+            wrapper.className = 'dropdown';
+            wrapper.style.setProperty('display', 'inline-block', 'important');
+            addBtn.parentElement.insertBefore(wrapper, addBtn);
+            wrapper.appendChild(addBtn);
+            btnParent = wrapper;
+        }
+        addBtn.classList.add('dropdown-toggle');
+        addBtn.setAttribute('data-bs-toggle', 'dropdown');
+        addBtn.setAttribute('data-bs-target', '#adicionarDropdownMenu');
+        addBtn.setAttribute('aria-expanded', 'false');
+        addBtn.id = 'adicionarDropdownBtn';
+        var menu = document.createElement('div');
+        menu.id = 'adicionarDropdownMenu';
+        menu.className = 'dropdown-menu dropdown-menu-end';
+        menu.setAttribute('aria-labelledby', 'adicionarDropdownBtn');
+        var optMarcacao = document.createElement('a');
+        optMarcacao.className = 'dropdown-item';
+        optMarcacao.href = '#';
+        optMarcacao.innerHTML = '<i class="bi bi-calendar-check me-2"></i> Nova marcação';
+        optMarcacao.addEventListener('click', function(e) {
+            e.preventDefault();
+            var slot = getClosestSlotToNow();
+            var resourceId = (currentViewMode === 'consultant' && selectedConsultantId) ? selectedConsultantId : null;
+            openNovaMarcacaoModal(slot.startStr, slot.endStr, resourceId);
+            bootstrap.Dropdown.getInstance(addBtn)?.hide();
+        });
+        var optTempoPessoal = document.createElement('a');
+        optTempoPessoal.className = 'dropdown-item';
+        optTempoPessoal.href = '#';
+        optTempoPessoal.innerHTML = '<i class="bi bi-person me-2"></i> Novo tempo pessoal';
+        optTempoPessoal.addEventListener('click', function(e) {
+            e.preventDefault();
+            var slot = getClosestSlotToNow();
+            var resourceId = (currentViewMode === 'consultant' && selectedConsultantId) ? selectedConsultantId : null;
+            openCreateEventModal(slot.startStr, slot.endStr, resourceId, 'tempo_pessoal');
+            bootstrap.Dropdown.getInstance(addBtn)?.hide();
+        });
+        menu.appendChild(optMarcacao);
+        menu.appendChild(optTempoPessoal);
+        btnParent.appendChild(menu);
+    }
     
-    /** Aplica margens/estilos da toolbar uma única vez (botões, dropdowns, chunks). */
+    /** Aplica estilos estruturais da toolbar (cores vêm do CSS/theme: var(--surface-color), etc.). */
     function applyToolbarStyles() {
-        var sel = '.fc-button, .fc-viewSelector-button, .fc-consultantFilter-button, .fc-newEvent-button, .fc-today-button, .fc-prev-button, .fc-next-button, .fc-currentDate-button';
-        calendarEl.querySelectorAll(sel).forEach(function(btn) {
-            btn.style.setProperty('margin', '0', 'important');
-        });
-        calendarEl.querySelectorAll('.fc-toolbar-chunk .dropdown, .fc-header-toolbar .dropdown').forEach(function(d) {
-            d.style.setProperty('margin', '0', 'important');
-            d.style.setProperty('padding', '0', 'important');
-        });
-        var chunks = calendarEl.querySelectorAll('.fc-toolbar-chunk');
-        chunks.forEach(function(chunk, i) {
-            chunk.style.setProperty('margin', '0', 'important');
-            chunk.style.setProperty('padding', '0', 'important');
-            chunk.style.setProperty('gap', i === 0 ? '0.5rem' : '0', 'important');
-        });
         var todayBtn = calendarEl.querySelector('.fc-today-button');
         if (todayBtn) {
-            todayBtn.style.setProperty('background-color', '#ffffff', 'important');
-            todayBtn.style.setProperty('border-color', '#dee2e6', 'important');
             todayBtn.style.setProperty('border-width', '1px', 'important');
             todayBtn.style.setProperty('border-style', 'solid', 'important');
-            todayBtn.style.setProperty('color', '#212529', 'important');
-            todayBtn.style.setProperty('font-weight', '400', 'important');
         }
-        [calendarEl.querySelector('.fc-prev-button'), calendarEl.querySelector('.fc-next-button'), calendarEl.querySelector('.fc-viewSelector-button'), calendarEl.querySelector('.fc-consultantFilter-button'), calendarEl.querySelector('.fc-newEvent-button')].forEach(function(btn) {
-            if (btn) {
-                btn.style.setProperty('background-color', '#ffffff', 'important');
-                btn.style.setProperty('border-color', '#dee2e6', 'important');
-                btn.style.setProperty('color', '#212529', 'important');
-            }
-        });
+        /* Não aplicar cores aos botões: agenda.css usa variáveis de tema (dark/light). Adicionar fica com estilo primary. */
     }
     
     // Observer para garantir que os estilos são mantidos após mudanças no DOM
@@ -2846,6 +2937,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         consultantBtn.classList.add('dropdown-toggle');
         consultantBtn.setAttribute('data-bs-toggle', 'dropdown');
+        consultantBtn.setAttribute('data-bs-target', '#consultantDropdown');
         consultantBtn.setAttribute('aria-expanded', 'false');
         consultantBtn.setAttribute('id', 'consultantFilterBtn');
         consultantBtn.style.setProperty('margin', '0', 'important');
@@ -3040,12 +3132,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('createEventModalLabel').textContent = 'Novo evento';
         document.getElementById('eventService').innerHTML = '<option value="">Selecione o membro primeiro</option>';
         document.getElementById('eventServiceWrap').classList.add('d-none');
-    });
-
-    // Sidebar "Novo evento": abrir modal de criar evento
-    document.querySelector('.agenda-sidebar-novo-evento, [data-agenda-novo-evento]')?.addEventListener('click', function(e) {
-        e.preventDefault();
-        openCreateEventModal();
     });
 
     // Status é guardado ao clicar Guardar no modal eventDetailEditModal

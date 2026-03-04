@@ -50,6 +50,7 @@ class CalendarController extends Controller
                 'title' => $agent->name,
                 'extendedProps' => [
                     'avatarUrl' => $avatarUrl,
+                    'color' => $agent->color ?? '#6c757d',
                 ],
             ];
         })->values();
@@ -671,6 +672,7 @@ class CalendarController extends Controller
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
         $event->loadMissing(['eventServices', 'user.agent']);
+        $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
         $agentColor = $event->user?->agent?->color;
         $eventServicesData = $event->eventServices->isNotEmpty()
             ? $event->eventServices->map(fn ($s) => [
@@ -681,6 +683,7 @@ class CalendarController extends Controller
                 'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
                 'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
                 'formatted_duration' => $this->formatDurationMinutes((int) $dur),
+                'extras' => $s->pivot->extras->map(fn ($pe) => ['name' => $pe->extra?->name ?? ''])->values()->all(),
             ])->values()->all()
             : [];
         $serviceName = $event->eventServices->isNotEmpty()

@@ -145,9 +145,9 @@ class CalendarEvent extends Model
         $status = $this->status ?? self::STATUS_AGENDADO;
         return match ($status) {
             self::STATUS_AGENDADO => 'ph ph-clock',
-            self::STATUS_CONFIRMADO => 'ph ph-check-circle',
+            self::STATUS_CONFIRMADO => 'ph ph-check',
             self::STATUS_CHEGOU => 'ph ph-map-pin',
-            self::STATUS_INICIADO => 'ph ph-play-circle',
+            self::STATUS_INICIADO => 'ph ph-play',
             self::STATUS_FALTOU => 'ph ph-prohibit',
             self::STATUS_CANCELADO => 'ph ph-x-circle',
             default => null,

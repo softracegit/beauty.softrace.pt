@@ -130,11 +130,7 @@
             Ver agenda
           </a>
         </li>
-        <li>
-          <a class="panel-link agenda-sidebar-novo-evento" href="#" data-agenda-novo-evento>
-            Novo evento
-          </a>
-        </li>
+        <!-- Botão \"Novo evento\" removido da sidebar da agenda -->
       </ul>
     </div>
 

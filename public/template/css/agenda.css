@@ -1,4 +1,4 @@
-/**
+ /**
  * Agenda - estilos da página de agenda e modais
  * Extraído de resources/views/agenda/index.blade.php
  */
@@ -95,30 +95,36 @@ body .app-wrapper .container-fluid {
     border-top: none !important;
     border-bottom: none !important;
 }
+.fc-direction-ltr .fc-timegrid-col-events {
+    margin: 0px 3px 0px 2px !important;
+}
 .fc .fc-scrollgrid {
     border-bottom-width: 0px;
     border-collapse: separate;
     border-right-width: 0px;
     border-left-width: 0px;
-  }
+}
+/* Bordas da grelha do FullCalendar seguem o tema (dark/light) */
+.fc .fc-scrollgrid td,
+.fc .fc-scrollgrid th,
+.fc .fc-scrollgrid-section td,
+.fc .fc-scrollgrid-section th,
+.fc-theme-standard td,
+.fc-theme-standard th {
+    border-color: var(--border-color) !important;
+}
+.fc-theme-standard .fc-scrollgrid {
+    border: 1px solid var(--border-color) !important;
+}
 .fc-timegrid-slot-label-frame {
     border: none !important;
 }
 .fc .fc-timegrid .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
-    color: #0d6efd !important;
+    color: var(--accent-color) !important;
 }
 
-/* Eventos ocupam toda a largura da célula, com 1px de offset (como o overlay) */
-.fc .fc-timegrid-event-harness {
-    left: -1px !important;
-    right: 0px !important;
-    width: 102.5% !important;
-}
 
 .fc-event {
-    left: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
     cursor: pointer;
     color: #000 !important;
     font-size: 0.75rem !important;
@@ -128,29 +134,50 @@ body .app-wrapper .container-fluid {
     border-radius: 8px !important;
     border: none !important;
     margin: 2px 0 !important;
+    box-shadow: 0 0 2px 0 #999 !important;
 }
 .fc-event .fc-event-main,
 .fc-event-main,
 .fc-event .fc-event-title,
 .fc-event-title {
     color: #000 !important;
-    white-space: normal !important;
-}
-.fc-event-time {
-    font-weight: 500;
-    margin-right: 0.25rem;
+    white-space: normal !important; /* permitir várias linhas */
+    word-break: break-word;         /* evitar que palavras longas saiam fora */
 }
 .fc-event-client {
     font-weight: 600;
     color: inherit;
 }
-.fc-event-service-line {
-    display: block;
+.fc-event-line {
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fc-event-line-1 {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.fc-event-line-2 {
     margin-top: 0.15rem;
     font-weight: 400;
     font-size: 0.80rem !important;
 }
-/* Em eventos short: ocultar apenas a linha do serviço para não sobrepor a célula de baixo */
+.fc-event-line-3 {
+    margin-top: 0.10rem;
+    font-weight: 400;
+    font-size: 0.75rem !important;
+    opacity: 0.85;
+}
+.fc-event-service-line {
+    display: block;
+    font-weight: 400;
+    font-size: inherit !important;
+}
+/* Em eventos short: ocultar linhas adicionais para não sobrepor a célula de baixo */
+.fc-timegrid-event-short .fc-event-line-2,
+.fc-timegrid-event-short .fc-event-line-3,
 .fc-timegrid-event-short .fc-event-service-line {
     display: none !important;
 }
@@ -158,15 +185,12 @@ body .app-wrapper .container-fluid {
     position: relative;
     width: 100%;
     height: 100%;
+    overflow: hidden;               /* garantir que nada sai para fora do cartão */
 }
 .fc-event-status-icon {
-    position: absolute;
-    top: 0px;
-    right: -1px;
-    font-size: 1.25rem;
+    font-size: 1rem;
     opacity: 1;
-    z-index: 10;
-    font-weight: 700;
+    flex-shrink: 0;
 }
 #eventDetailStatusIcon {
     font-size: 0.9rem;
@@ -194,9 +218,11 @@ body .app-wrapper .container-fluid {
     align-items: center;
 }
 
-/* Primeiro chunk - gap para espaçamento entre botões */
+/* Primeiro chunk (esquerda: Hoje, Vista, Filtro) sempre visível */
 .fc-header-toolbar .fc-toolbar-chunk:first-child {
-    gap: 0.5rem !important;
+    display: flex !important;
+    align-items: center;
+    gap: 0rem !important;
     margin-left: 0 !important;
     padding-left: 0 !important;
 }
@@ -210,26 +236,10 @@ body .app-wrapper .container-fluid {
     margin: 0 !important;
     padding: 0 !important;
 }
-.fc .fc-button,
-.fc-viewSelector-button,
-.fc-consultantFilter-button,
-.fc-newEvent-button,
-.fc-today-button,
-.fc-prev-button,
-.fc-next-button {
-    margin: 0 !important;
-}
 
 .fc-toolbar-chunk {
     margin: 0 !important;
     padding: 0 !important;
-}
-
-.fc-header-toolbar .fc-toolbar-chunk:first-child,
-.fc-toolbar-chunk:first-child {
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-    gap: 0.5rem !important;
 }
 
 .fc-header-toolbar .fc-toolbar-chunk:last-child,
@@ -244,17 +254,10 @@ body .app-wrapper .container-fluid {
     padding-right: 1rem !important;
 }
 
-.fc-toolbar-chunk:first-child > *:first-child,
-.fc-header-toolbar .fc-toolbar-chunk:first-child > *:first-child,
-.fc-toolbar-chunk:first-child > button:first-child,
-.fc-header-toolbar .fc-toolbar-chunk:first-child > button:first-child {
-    margin-left: 0 !important;
-    margin: 0 !important;
-}
-
 .fc-toolbar-chunk:first-child > * {
     margin-left: 0 !important;
     margin-right: 0 !important;
+    gap: 0 !important;
 }
 
 .fc-today-button,
@@ -262,9 +265,10 @@ body .app-wrapper .container-fluid {
 .fc-today-button:not(:disabled),
 .fc .fc-today-button:not(:disabled) {
     margin-left: 0 !important;
-    background-color: #ffffff !important;
-    border-color: #dee2e6 !important;
-    color: #212529 !important;
+    margin-right: 0.5rem !important;
+    background-color: var(--surface-color) !important;
+    border-color: var(--border-color) !important;
+    color: var(--heading-color) !important;
     font-weight: 400 !important;
     border-width: 1px !important;
     border-style: solid !important;
@@ -273,120 +277,158 @@ body .app-wrapper .container-fluid {
 
 .fc-today-button:hover:not(:disabled),
 .fc .fc-today-button:hover:not(:disabled) {
-    background-color: #f8f9fa !important;
-    border-color: #dee2e6 !important;
-    color: #212529 !important;
+    background-color: var(--sidebar-hover-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--heading-color) !important;
 }
 
 .fc-today-button:focus:not(:disabled),
 .fc .fc-today-button:focus:not(:disabled) {
-    background-color: #f8f9fa !important;
-    border-color: #dee2e6 !important;
-    color: #212529 !important;
-    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1) !important;
+    background-color: var(--sidebar-hover-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--heading-color) !important;
+    box-shadow: 0 0 0 0.25rem var(--input-focus-ring) !important;
 }
 
-.fc-toolbar-chunk:first-child .fc-today-button {
-    margin-left: 0 !important;
-    margin: 0 !important;
-}
-
-.fc-toolbar-title,
+/* Centro: setas + título do dia/semana (prev, currentDate, next) sempre visível */
 .fc-header-toolbar .fc-toolbar-chunk:nth-child(2) {
     display: none !important;
 }
+/* Esconder título nativo do FC se existir (usamos currentDate) */
+.fc-toolbar-title {
+    display: none !important;
+}
 
+.fc-prev-button, .fc-next-button {
+    font-weight: 500;
+    background: var(--surface-color) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--heading-color) !important;
+    padding: 0.30rem 0.75rem !important;
+    font-size: 0.85rem;
+    opacity: 1 !important;
+}
+.fc-prev-button {
+    border-radius: 0.25em 0 0 0.25em !important;
+    border-right: none !important;
+}
+.fc-next-button {
+    border-radius: 0 0.25em 0.25em 0 !important;
+    border-left: none !important;
+}
 .fc-currentDate-button {
     pointer-events: none;
     cursor: default;
     font-weight: 500;
-    background: transparent !important;
-    border: none !important;
-    color: #212529 !important;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
+    background: var(--surface-color) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--heading-color) !important;
+    padding: 0.42rem 0rem !important;
+    font-size: 0.85rem !important;
     opacity: 1 !important;
+    width: 180px !important;
+    border-radius: 0 !important;
 }
 .fc-currentDate-button:hover {
-    background: transparent !important;
-    color: #212529 !important;
+    background: var(--surface-color) !important;
+    color: var(--heading-color) !important;
+}
+.fc-viewSelector-button {
+    margin-left: 0.55em !important;
 }
 
-.fc .fc-button-primary,
-.fc .fc-button-primary:not(:disabled),
-.fc .fc-button-primary:not(:disabled):active,
-.fc .fc-button-primary:not(:disabled).fc-button-active,
+/* Botões da toolbar (Hoje, setas, vista, filtro): cores do tema para suportar dark/light */
+.fc .fc-button-primary:not(.fc-adicionarDropdown-button),
+.fc .fc-button-primary:not(:disabled):not(.fc-adicionarDropdown-button),
 .fc button.fc-today-button,
 .fc button.fc-today-button:not(:disabled),
-.fc button.fc-today-button:not(:disabled):active,
 .fc .fc-today-button,
 .fc .fc-today-button:not(:disabled),
-.fc .fc-today-button:not(:disabled):active,
 .fc .fc-prev-button,
 .fc .fc-next-button,
 .fc .fc-viewSelector-button,
 .fc .fc-consultantFilter-button,
-.fc .fc-newEvent-button,
-.fc .fc-button-group .fc-button-primary {
-    background-color: #ffffff !important;
-    border-color: #dee2e6 !important;
-    color: #212529 !important;
+.fc .fc-button-group .fc-button-primary:not(.fc-adicionarDropdown-button) {
+    background-color: var(--surface-color) !important;
+    border-color: var(--border-color) !important;
+    color: var(--heading-color) !important;
     font-weight: 400;
 }
 
-.fc .fc-button-primary:hover:not(:disabled),
+.fc .fc-button-primary:hover:not(:disabled):not(.fc-adicionarDropdown-button),
 .fc button.fc-today-button:hover:not(:disabled),
 .fc .fc-today-button:hover:not(:disabled),
 .fc .fc-prev-button:hover:not(:disabled),
 .fc .fc-next-button:hover:not(:disabled),
 .fc .fc-viewSelector-button:hover:not(:disabled),
-.fc .fc-consultantFilter-button:hover:not(:disabled),
-.fc .fc-newEvent-button:hover:not(:disabled),
-.fc .fc-button-group .fc-button-primary:hover:not(:disabled) {
-    background-color: #f8f9fa !important;
-    border-color: #dee2e6 !important;
-    color: #212529 !important;
+.fc .fc-consultantFilter-button:hover:not(:disabled) {
+    background-color: var(--sidebar-hover-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--heading-color) !important;
 }
 
-.fc .fc-button-primary:focus:not(:disabled),
+.fc .fc-button-primary:focus:not(:disabled):not(.fc-adicionarDropdown-button),
 .fc button.fc-today-button:focus:not(:disabled),
 .fc .fc-today-button:focus:not(:disabled),
 .fc .fc-prev-button:focus:not(:disabled),
 .fc .fc-next-button:focus:not(:disabled),
 .fc .fc-viewSelector-button:focus:not(:disabled),
-.fc .fc-consultantFilter-button:focus:not(:disabled),
-.fc .fc-newEvent-button:focus:not(:disabled),
-.fc .fc-button-group .fc-button-primary:focus:not(:disabled) {
-    background-color: #f8f9fa !important;
-    border-color: #dee2e6 !important;
-    color: #212529 !important;
-    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1) !important;
+.fc .fc-consultantFilter-button:focus:not(:disabled) {
+    background-color: var(--sidebar-hover-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--heading-color) !important;
+    box-shadow: 0 0 0 0.25rem var(--input-focus-ring) !important;
 }
 
-.fc .fc-button-primary:not(:disabled):active,
-.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active:not(.fc-adicionarDropdown-button),
 .fc button.fc-today-button:not(:disabled):active,
 .fc .fc-today-button:not(:disabled):active,
 .fc .fc-prev-button:not(:disabled):active,
 .fc .fc-next-button:not(:disabled):active,
 .fc .fc-viewSelector-button:not(:disabled):active,
-.fc .fc-consultantFilter-button:not(:disabled):active,
-.fc .fc-newEvent-button:not(:disabled):active,
-.fc .fc-button-group .fc-button-primary:not(:disabled):active,
-.fc .fc-button-group .fc-button-primary:not(:disabled).fc-button-active {
-    background-color: #e9ecef !important;
-    border-color: #dee2e6 !important;
-    color: #212529 !important;
+.fc .fc-consultantFilter-button:not(:disabled):active {
+    background-color: var(--table-hover-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--heading-color) !important;
 }
 
 .fc-prev-button .fc-icon,
 .fc-next-button .fc-icon {
-    color: #212529 !important;
+    color: var(--heading-color) !important;
 }
 
 .fc-viewSelector-button.dropdown-toggle::after,
 .fc-consultantFilter-button.dropdown-toggle::after {
-    border-top-color: #212529 !important;
+    border-top-color: var(--heading-color) !important;
+}
+
+/* Botão Adicionar: estilo primary (SmartAdmin-pro) */
+.fc-adicionarDropdown-button,
+.fc .fc-adicionarDropdown-button {
+    margin-left: 0.55em !important;
+    background-color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+    color: #fff !important;
+    font-weight: 500 !important;
+}
+.fc-adicionarDropdown-button:hover:not(:disabled),
+.fc .fc-adicionarDropdown-button:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--accent-color), black 10%) !important;
+    border-color: color-mix(in srgb, var(--accent-color), black 10%) !important;
+    color: #fff !important;
+}
+.fc-adicionarDropdown-button:focus:not(:disabled),
+.fc .fc-adicionarDropdown-button:focus:not(:disabled) {
+    background-color: color-mix(in srgb, var(--accent-color), black 10%) !important;
+    border-color: color-mix(in srgb, var(--accent-color), black 10%) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 0.25rem var(--input-focus-ring) !important;
+}
+.fc-adicionarDropdown-button:not(:disabled):active,
+.fc .fc-adicionarDropdown-button:not(:disabled):active {
+    background-color: color-mix(in srgb, var(--accent-color), black 15%) !important;
+    border-color: color-mix(in srgb, var(--accent-color), black 15%) !important;
+    color: #fff !important;
 }
 
 .fc-col-header-cell,
@@ -400,6 +442,7 @@ body .app-wrapper .container-fluid {
     visibility: visible !important;
     opacity: 1 !important;
     padding: 8px 8px 1px 8px !important;
+    color: var(--heading-color) !important;
 }
 
 .fc-dayGridMonth .fc-col-header-cell-cushion,
@@ -411,15 +454,27 @@ body .app-wrapper .container-fluid {
     font-size: 0.75rem !important;
     font-weight: 600 !important;
     transform: translateY(-2.5px);
+    color: var(--heading-color) !important;
 }
 
 .fc-daygrid-day-number {
     text-align: left !important;
     padding-left: 0.5rem !important;
+    color: var(--heading-color) !important;
 }
 
-.fc .fc-day-today {
-    background-color: #ffffff !important;
+/* Células da grelha e dia atual seguem o tema (dark/light) */
+.fc .fc-daygrid-day-frame {
+    background-color: var(--surface-color) !important;
+}
+.fc .fc-day-today .fc-daygrid-day-frame {
+    background-color: var(--surface-color) !important;
+}
+.fc .fc-timegrid-slot {
+    background-color: var(--surface-color) !important;
+}
+.fc .fc-timegrid-col.fc-day-today {
+    background-color: var(--surface-color) !important;
 }
 
 .fc-dayGridMonth-view .fc-scrollgrid-sync-table {
@@ -436,7 +491,7 @@ body .app-wrapper .container-fluid {
 }
 
 .fc-dayGridMonth-view .fc-day-today .fc-daygrid-day-number {
-    color: #0d6efd !important;
+    color: var(--accent-color) !important;
     display: inline-flex !important;
     font-weight: 600 !important;
     padding: 0 0 0 6px !important;
@@ -450,8 +505,8 @@ body .app-wrapper .container-fluid {
     margin-inline: auto !important;
 }
 .fc-resource-consultant-avatar {
-    width: 20px !important;
-    height: 20px !important;
+    width: 25px !important;
+    height: 25px !important;
     border-radius: 50% !important;
     object-fit: cover !important;
     flex-shrink: 0 !important;
@@ -485,7 +540,7 @@ body .app-wrapper .container-fluid {
 
 .fc-daygrid-day-frame:hover,
 .fc-daygrid-day:hover .fc-daygrid-day-frame {
-    background-color: #f0f4f8 !important;
+    background-color: var(--sidebar-hover-bg) !important;
 }
 
 /* Modal de detalhes do evento completo */
@@ -523,7 +578,7 @@ body .app-wrapper .container-fluid {
 @media (max-width: 991.98px) {
     #eventDetailModal .col-lg-6 {
         border-start: none !important;
-        border-top: 1px solid #dee2e6;
+        border-top: 1px solid var(--border-color);
         margin-top: 1.5rem;
         padding-top: 1.5rem !important;
         padding-left: 0 !important;
@@ -571,7 +626,7 @@ body .app-wrapper .container-fluid {
     flex-direction: column;
 }
 #createEventModal .modal-header {
-    border-bottom: 1px solid #eee !important;
+    border-bottom: 1px solid var(--border-color) !important;
     border-top: none;
     flex-shrink: 0;
 }
@@ -942,9 +997,9 @@ body .app-wrapper .container-fluid {
     position: absolute;
     top: 0;
     bottom: 0;
-    outline: 1px solid #0d6efd;
+    outline: 1px solid var(--accent-color);
     outline-offset: -2px;
-    background: rgba(13, 110, 253, 0.06);
+    background: color-mix(in srgb, var(--accent-color) 8%, transparent);
     border-radius: var(--radius-sm, 0.375rem);
     z-index: 1;
     pointer-events: none;
@@ -955,12 +1010,12 @@ body .app-wrapper .container-fluid {
     left: 6px;
     font-size: 0.65rem;
     font-weight: 500;
-    color: #0d6efd;
+    color: var(--accent-color);
     white-space: nowrap;
     z-index: 2;
 }
 .fc .agenda-cell-highlighted {
-    outline: 2px solid #0d6efd !important;
+    outline: 2px solid var(--accent-color) !important;
     outline-offset: -2px;
     position: relative;
 }
@@ -968,9 +1023,9 @@ body .app-wrapper .container-fluid {
     position: absolute;
     top: 0;
     bottom: 0;
-    outline: 1px solid rgba(59, 130, 246, 0.6);
+    outline: 1px solid var(--accent-color);
     outline-offset: -2px;
-    background: rgba(59, 130, 246, 0.04);
+    background: color-mix(in srgb, var(--accent-color) 8%, transparent);
     border-radius: var(--radius-sm, 0.375rem);
     z-index: 0;
     pointer-events: none;
@@ -981,16 +1036,16 @@ body .app-wrapper .container-fluid {
     left: 6px;
     font-size: 0.65rem;
     font-weight: 500;
-    color: rgba(59, 130, 246, 0.9);
+    color: var(--accent-color);
     white-space: nowrap;
     z-index: 1;
 }
 /* Overlay ativo ao clicar (position:fixed em body): mesma lógica que hover, borda mais grossa */
 body > .agenda-cell-highlight-active,
 body > .agenda-cell-highlight.agenda-cell-highlight-active {
-    outline: 2px solid #0d6efd;
+    outline: 2px solid var(--accent-color);
     outline-offset: -2px;
-    background: rgba(13, 110, 253, 0.06);
+    background: color-mix(in srgb, var(--accent-color) 8%, transparent);
     border-radius: var(--radius-sm, 0.375rem);
     pointer-events: none;
 }
@@ -1001,16 +1056,16 @@ body > .agenda-cell-highlight.agenda-cell-highlight-active .agenda-cell-time-ove
     left: 6px;
     font-size: 0.65rem;
     font-weight: 500;
-    color: #0d6efd;
+    color: var(--accent-color);
     white-space: nowrap;
     z-index: 1;
 }
 
 /* Mesmo estilo quando o overlay está em body (position:fixed, fora da tabela) */
 body > .agenda-cell-highlight-hover {
-    outline: 1px solid rgba(59, 130, 246, 0.6);
+    outline: 1px solid var(--accent-color);
     outline-offset: -2px;
-    background: rgba(59, 130, 246, 0.04);
+    background: color-mix(in srgb, var(--accent-color) 6%, transparent);
     border-radius: var(--radius-sm, 0.375rem);
     pointer-events: none;
 }
@@ -1020,7 +1075,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     left: 6px;
     font-size: 0.65rem;
     font-weight: 500;
-    color: rgba(59, 130, 246, 0.9);
+    color: var(--accent-color);
     white-space: nowrap;
     z-index: 1;
 }
@@ -1031,7 +1086,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #000;
+    color: var(--heading-color);
     margin-top: 1rem;
     margin-bottom: 0.5rem;
 }
@@ -1076,7 +1131,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     margin-left: 0.5rem;
 }
 .nova-marcacao-sidebar {
-    background: var(--bg-gray-200, rgb(248, 248, 248));
+    background: var(--sidebar-hover-bg);
     border-radius: var(--bs-border-radius-lg, 0.5rem);
     padding: 1.25rem;
     min-height: 100%;
@@ -1154,8 +1209,8 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     font-size: 0.75rem;
 }
 .nova-marcacao-avatar-fallback {
-    background: var(--bs-secondary-bg, #e9ecef);
-    color: var(--bs-secondary);
+    background: var(--table-hover-bg);
+    color: var(--default-color);
 }
 .nova-marcacao-detail-item {
     display: flex;
@@ -1180,7 +1235,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     transition: background 0.15s;
 }
 .nova-marcacao-client-item:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--sidebar-hover-bg);
 }
 
 /* Modal Nova Marcação */
@@ -1196,7 +1251,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 }
 #novaMarcacaoModal .modal-header {
     flex-shrink: 0;
-    border-bottom: 1px solid #eee !important;
+    border-bottom: 1px solid var(--border-color) !important;
 }
 #novaMarcacaoModal #novaMarcacaoForm {
     flex: 1;
@@ -1212,7 +1267,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 }
 #novaMarcacaoModal .modal-footer {
     flex-shrink: 0;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
 }
 
 /* Modal Ver/Editar Evento */
@@ -1228,7 +1283,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 }
 #eventDetailEditModal .modal-header {
     flex-shrink: 0;
-    border-bottom: 1px solid #eee !important;
+    border-bottom: 1px solid var(--border-color) !important;
 }
 #eventDetailEditModal #eventDetailEditForm {
     flex: 1;
@@ -1244,7 +1299,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 }
 #eventDetailEditModal .modal-footer {
     flex-shrink: 0;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
 }
 
 .nova-marcacao-services-selected-title {
@@ -1252,7 +1307,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #000;
+    color: var(--heading-color);
     margin-bottom: 0.5rem;
 }
 .nova-marcacao-observacoes-toggle {
