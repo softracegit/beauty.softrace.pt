@@ -120,7 +120,7 @@ body .app-wrapper .container-fluid {
     border: none !important;
 }
 .fc .fc-timegrid .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
-    color: var(--accent-color) !important;
+    color: #0d6efd !important;
 }
 
 
@@ -465,16 +465,16 @@ body .app-wrapper .container-fluid {
 
 /* Células da grelha e dia atual seguem o tema (dark/light) */
 .fc .fc-daygrid-day-frame {
-    background-color: var(--surface-color) !important;
+    background-color: transparent !important;
 }
 .fc .fc-day-today .fc-daygrid-day-frame {
-    background-color: var(--surface-color) !important;
+    background-color: transparent !important;
 }
 .fc .fc-timegrid-slot {
-    background-color: var(--surface-color) !important;
+    background-color: transparent !important;
 }
 .fc .fc-timegrid-col.fc-day-today {
-    background-color: var(--surface-color) !important;
+    background-color: transparent !important;
 }
 
 .fc-dayGridMonth-view .fc-scrollgrid-sync-table {
