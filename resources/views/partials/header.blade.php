@@ -6,9 +6,9 @@
       <img src="{{ asset('template/img/logo-color-icon.png') }}" alt="{{ config('app.name') }}">
       <span>{{ config('app.name') }}</span>
     </a>
-    <!--<button class="sidebar-toggle" title="Toggle Sidebar">
+    <button class="sidebar-toggle" title="Toggle Sidebar">
       <i class="bi bi-list"></i>
-    </button>-->
+    </button>
     <!-- Quick Access -->
     <div class="header-action dropdown quickaccess-dropdown">
       <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
