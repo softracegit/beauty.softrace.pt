@@ -123,6 +123,7 @@ class CalendarController extends Controller
                 'backgroundColor' => $agentColor ?: null,
                 'extendedProps' => [
                     'client_name' => $event->client?->name,
+                    'client_avatar_url' => $event->client?->avatar ? asset('storage/' . $event->client->avatar) : null,
                     'description' => $event->description,
                     'event_type' => $event->event_type,
                     'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,

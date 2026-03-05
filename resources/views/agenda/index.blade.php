@@ -18,6 +18,9 @@
 <!-- Quick menu popup (ao clicar numa célula) - mesmo aspeto do quick access da navbar -->
 <div id="agendaQuickMenu" role="menu" aria-label="Opções"></div>
 
+<!-- Quickview do evento (ao passar o rato por cima do evento) -->
+<div id="agendaEventQuickview" role="tooltip" aria-label="Detalhe do evento" class="agenda-event-quickview"></div>
+
 <!-- Modal: Nova marcação (inspirado em apps-support ticket detail) -->
 <div class="modal fade" id="novaMarcacaoModal" tabindex="-1" aria-labelledby="novaMarcacaoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -354,6 +357,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Formatar data do botão currentDate conforme a vista
     function formatCurrentDateButton(viewType, startDate, endDate) {
         const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const daysLong = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
         const monthsShort = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
         const monthsLong = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
         
@@ -365,30 +369,42 @@ document.addEventListener('DOMContentLoaded', function() {
             return monthsLong[start.getMonth()] + ' ' + start.getFullYear();
         }
         
-        // Vista por consultor: "Qui 5 Fev" (nome do dia + dia + mês)
+        // Vista Dia: "Quinta, 5 Março 2026"
         if (viewType === 'resourceTimeGridDay') {
-            return days[start.getDay()] + ' ' + start.getDate() + ' ' + monthsShort[start.getMonth()];
+            return daysLong[start.getDay()] + ', ' + start.getDate() + ' ' + monthsLong[start.getMonth()] + ' ' + start.getFullYear();
         }
         
-        // Vista de semana: "2 Fev - 8 Fev, 2026"
+        // Vista de semana: "2 Fev - 8 Fev, 2026" (FullCalendar passa activeEnd exclusivo, último dia = end - 1)
         if (viewType === 'timeGridWeek') {
             if (end && start.getTime() !== end.getTime()) {
+                const lastDay = new Date(end);
+                lastDay.setDate(lastDay.getDate() - 1);
                 const startDay = start.getDate();
                 const startMonth = monthsShort[start.getMonth()];
-                const endDay = end.getDate();
-                const endMonth = monthsShort[end.getMonth()];
+                const endDay = lastDay.getDate();
+                const endMonth = monthsShort[lastDay.getMonth()];
                 const year = start.getFullYear();
                 
-                // Se for o mesmo mês
-                if (start.getMonth() === end.getMonth()) {
-                    return startDay + ' ' + startMonth + ' - ' + endDay + ' ' + endMonth + ', ' + year;
-                } else {
-                    return startDay + ' ' + startMonth + ' - ' + endDay + ' ' + endMonth + ', ' + year;
-                }
+                return startDay + ' ' + startMonth + ' - ' + endDay + ' ' + endMonth + ', ' + year;
             } else {
                 // Vista de dia único
                 return start.getDate() + ' ' + monthsShort[start.getMonth()] + ', ' + start.getFullYear();
             }
+        }
+        
+        // Vista 3 dias: "5 Mar - 7 Mar, 2026" (activeEnd exclusivo, último dia = end - 1)
+        if (viewType === 'timeGridThreeDay') {
+            if (end && start.getTime() !== end.getTime()) {
+                const lastDay = new Date(end);
+                lastDay.setDate(lastDay.getDate() - 1);
+                const startDay = start.getDate();
+                const startMonth = monthsShort[start.getMonth()];
+                const endDay = lastDay.getDate();
+                const endMonth = monthsShort[lastDay.getMonth()];
+                const year = start.getFullYear();
+                return startDay + ' ' + startMonth + ' - ' + endDay + ' ' + endMonth + ', ' + year;
+            }
+            return start.getDate() + ' ' + monthsShort[start.getMonth()] + ', ' + start.getFullYear();
         }
         
         // Fallback: usar formato curto
@@ -462,6 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
             options = headingText;
             headingText = null;
         }
+        hideEventQuickview();
         var menu = document.getElementById('agendaQuickMenu');
         if (!menu || !options || options.length === 0) return;
 
@@ -557,6 +574,201 @@ document.addEventListener('DOMContentLoaded', function() {
             window.addEventListener('scroll', scrollHandler, true);
             document.addEventListener('keydown', escHandler);
         }, 0);
+    }
+
+    var agendaEventQuickviewShowTimeout = null;
+    var agendaEventQuickviewHideTimeout = null;
+    var agendaEventQuickviewHoverId = null;
+
+    function hideEventQuickview() {
+        if (agendaEventQuickviewHideTimeout) {
+            clearTimeout(agendaEventQuickviewHideTimeout);
+            agendaEventQuickviewHideTimeout = null;
+        }
+        var qv = document.getElementById('agendaEventQuickview');
+        if (qv) {
+            qv.classList.remove('is-open');
+            qv.innerHTML = '';
+        }
+        agendaEventQuickviewHoverId = null;
+    }
+
+    /**
+     * Mostra o quickview do evento ao lado do elemento do evento (posição automática: direita, esquerda, baixo, cima).
+     * @param {Object} info - info do FullCalendar (info.event, info.el)
+     */
+    function showEventQuickview(info) {
+        var event = info.event;
+        var el = info.el;
+        var eventBlock = el.querySelector && el.querySelector('.fc-event-main');
+        var rectEl = eventBlock || el;
+        var ext = event.extendedProps || {};
+        var statusLabels = { agendado: 'Agendado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', faltou: 'Faltou', cancelado: 'Cancelado' };
+        var statusIcons = { agendado: 'ph ph-clock', confirmado: 'ph ph-check', chegou: 'ph ph-map-pin', iniciado: 'ph ph-play', faltou: 'ph ph-prohibit', cancelado: 'ph ph-x-circle' };
+        var status = ext.status || 'agendado';
+        var statusLabel = statusLabels[status] || status;
+        var statusIcon = statusIcons[status] || 'ph ph-clock';
+        var start = event.start;
+        var end = event.end;
+        var fmt = function(d) { return d ? (String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) : ''; };
+        var startStr = fmt(start);
+        var endStr = fmt(end);
+        var timeStr = startStr && endStr ? (startStr + ' - ' + endStr) : (startStr || '—');
+        var clientName = (ext.client_name || event.title || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var clientAvatarUrl = ext.client_avatar_url || '';
+        var userName = (ext.user_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var eventServices = ext.event_services || [];
+        var totalPrice = 0;
+        eventServices.forEach(function(s) { totalPrice += parseFloat(s.price) || 0; });
+        var totalPriceStr = totalPrice > 0 ? (totalPrice.toFixed(2).replace('.', ',') + ' €') : '';
+
+        var qv = document.getElementById('agendaEventQuickview');
+        if (!qv) return;
+        qv.innerHTML = '';
+
+        var header = document.createElement('div');
+        header.className = 'agenda-quickview-header';
+        var timeSpan = document.createElement('span');
+        timeSpan.className = 'agenda-quickview-time';
+        timeSpan.textContent = timeStr;
+        header.appendChild(timeSpan);
+        var statusSpan = document.createElement('span');
+        statusSpan.className = 'agenda-quickview-status';
+        statusSpan.innerHTML = '<i class="' + statusIcon + '"></i><span>' + statusLabel + '</span>';
+        header.appendChild(statusSpan);
+        qv.appendChild(header);
+
+        var body = document.createElement('div');
+        body.className = 'agenda-quickview-body';
+        var clientRow = document.createElement('div');
+        clientRow.className = 'agenda-quickview-client';
+        if (clientAvatarUrl) {
+            var img = document.createElement('img');
+            img.className = 'agenda-quickview-avatar';
+            img.src = clientAvatarUrl;
+            img.alt = '';
+            clientRow.appendChild(img);
+        } else {
+            var initials = (clientName || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+            var fallback = document.createElement('div');
+            fallback.className = 'agenda-quickview-avatar-fallback';
+            fallback.textContent = initials;
+            clientRow.appendChild(fallback);
+        }
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'agenda-quickview-client-name';
+        nameSpan.textContent = clientName;
+        clientRow.appendChild(nameSpan);
+        body.appendChild(clientRow);
+
+        if (eventServices.length > 0) {
+            eventServices.forEach(function(s) {
+                var row = document.createElement('div');
+                row.className = 'agenda-quickview-service-row';
+                var left = document.createElement('div');
+                left.className = 'agenda-quickview-service-left';
+                var nameEl = document.createElement('div');
+                nameEl.className = 'agenda-quickview-service-name';
+                nameEl.textContent = (s.name || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                left.appendChild(nameEl);
+                var meta = document.createElement('div');
+                meta.className = 'agenda-quickview-service-meta';
+                var metaParts = [];
+                if (userName) metaParts.push(userName);
+                metaParts.push(s.formatted_duration || (s.duration || 0) + ' min');
+                meta.textContent = metaParts.join(' · ');
+                left.appendChild(meta);
+                row.appendChild(left);
+                var priceEl = document.createElement('div');
+                priceEl.className = 'agenda-quickview-service-price';
+                priceEl.textContent = s.formatted_price || (parseFloat(s.price) || 0).toFixed(2).replace('.', ',') + ' €';
+                row.appendChild(priceEl);
+                body.appendChild(row);
+            });
+            if (eventServices.length > 1 && totalPriceStr) {
+                var totalRow = document.createElement('div');
+                totalRow.className = 'agenda-quickview-service-row';
+                totalRow.style.marginTop = '0.5rem';
+                totalRow.style.paddingTop = '0.5rem';
+                totalRow.style.borderTop = '1px solid var(--border-color, rgba(0,0,0,0.1))';
+                var totalLeft = document.createElement('div');
+                totalLeft.className = 'agenda-quickview-service-left';
+                totalLeft.textContent = 'Total';
+                totalRow.appendChild(totalLeft);
+                var totalPriceEl = document.createElement('div');
+                totalPriceEl.className = 'agenda-quickview-service-price';
+                totalPriceEl.textContent = totalPriceStr;
+                totalRow.appendChild(totalPriceEl);
+                body.appendChild(totalRow);
+            }
+        } else {
+            var serviceName = (ext.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            if (serviceName || userName) {
+                var row = document.createElement('div');
+                row.className = 'agenda-quickview-service-row';
+                var left = document.createElement('div');
+                left.className = 'agenda-quickview-service-left';
+                if (serviceName) {
+                    var nameEl = document.createElement('div');
+                    nameEl.className = 'agenda-quickview-service-name';
+                    nameEl.textContent = serviceName;
+                    left.appendChild(nameEl);
+                }
+                if (userName) {
+                    var meta = document.createElement('div');
+                    meta.className = 'agenda-quickview-service-meta';
+                    meta.textContent = userName;
+                    left.appendChild(meta);
+                }
+                row.appendChild(left);
+                if (totalPriceStr) {
+                    var priceEl = document.createElement('div');
+                    priceEl.className = 'agenda-quickview-service-price';
+                    priceEl.textContent = totalPriceStr;
+                    row.appendChild(priceEl);
+                }
+                body.appendChild(row);
+            }
+        }
+        qv.appendChild(body);
+
+        qv.classList.add('is-open');
+        var gap = 8;
+        var rect = rectEl.getBoundingClientRect();
+        var vw = window.innerWidth;
+        var vh = window.innerHeight;
+        var qvRect = qv.getBoundingClientRect();
+        var qvW = qvRect.width;
+        var qvH = qvRect.height;
+        var left = 0;
+        var top = 0;
+        var spaceRight = vw - rect.right;
+        var spaceLeft = rect.left;
+        var spaceBottom = vh - rect.bottom;
+        var spaceTop = rect.top;
+        if (spaceLeft >= qvW + gap) {
+            left = rect.left - qvW - gap;
+            top = rect.top + (rect.height / 2) - (qvH / 2);
+        } else if (spaceRight >= qvW + gap) {
+            left = rect.right + gap;
+            top = rect.top + (rect.height / 2) - (qvH / 2);
+        } else if (spaceBottom >= qvH + gap) {
+            left = rect.left + (rect.width / 2) - (qvW / 2);
+            top = rect.bottom + gap;
+        } else if (spaceTop >= qvH + gap) {
+            left = rect.left + (rect.width / 2) - (qvW / 2);
+            top = rect.top - qvH - gap;
+        } else {
+            left = rect.right + gap;
+            top = rect.top;
+        }
+        if (left + qvW > vw - 8) left = vw - qvW - 8;
+        if (left < 8) left = 8;
+        if (top + qvH > vh - 8) top = vh - qvH - 8;
+        if (top < 8) top = 8;
+        qv.style.left = left + 'px';
+        qv.style.top = top + 'px';
+        agendaEventQuickviewHoverId = event.id;
     }
 
     /**
@@ -2147,6 +2359,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         dayHeaderFormat: function(arg) {
             const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const daysLong = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
             let d = null;
             
             // FullCalendar v6 passa um objeto Date Formatter customizado
@@ -2187,10 +2400,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return '';
             }
             
-            // Nas outras vistas (semana, dia), mostrar nome + número
+            // Semana, 3 dias e Dia: nome completo do dia + número (ex: "Quinta 5")
             const dayNumber = d.getDate();
             if (dayIndex >= 0 && dayIndex <= 6 && dayNumber >= 1 && dayNumber <= 31) {
-                return days[dayIndex] + ' ' + dayNumber;
+                return daysLong[dayIndex] + ' ' + dayNumber;
             }
             
             return '';
@@ -2334,8 +2547,33 @@ document.addEventListener('DOMContentLoaded', function() {
             if (info.event.backgroundColor) {
                 info.el.style.setProperty('background-color', info.event.backgroundColor, 'important');
             }
+            var hoverDelay = 200;
+            info.el.addEventListener('mouseenter', function() {
+                if (document.getElementById('agendaQuickMenu').classList.contains('is-open')) return;
+                if (agendaEventQuickviewHideTimeout) {
+                    clearTimeout(agendaEventQuickviewHideTimeout);
+                    agendaEventQuickviewHideTimeout = null;
+                }
+                if (agendaEventQuickviewShowTimeout) clearTimeout(agendaEventQuickviewShowTimeout);
+                agendaEventQuickviewShowTimeout = setTimeout(function() {
+                    agendaEventQuickviewShowTimeout = null;
+                    showEventQuickview(info);
+                }, hoverDelay);
+            });
+            info.el.addEventListener('mouseleave', function() {
+                if (agendaEventQuickviewShowTimeout) {
+                    clearTimeout(agendaEventQuickviewShowTimeout);
+                    agendaEventQuickviewShowTimeout = null;
+                }
+                if (agendaEventQuickviewHideTimeout) clearTimeout(agendaEventQuickviewHideTimeout);
+                agendaEventQuickviewHideTimeout = setTimeout(function() {
+                    agendaEventQuickviewHideTimeout = null;
+                    hideEventQuickview();
+                }, 80);
+            });
         },
         eventClick: function(info) {
+            hideEventQuickview();
             info.jsEvent.preventDefault();
             const id = info.event.id;
             if (eventDetailModalLoading) {

@@ -119,8 +119,14 @@ body .app-wrapper .container-fluid {
 .fc-timegrid-slot-label-frame {
     border: none !important;
 }
+.fc-col-header-cell-cushion {
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+}
 .fc .fc-timegrid .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
     color: #0d6efd !important;
+    font-size: 0.90rem !important;
+    font-weight: 600 !important;
 }
 
 
@@ -441,7 +447,7 @@ body .app-wrapper .container-fluid {
     display: inline-block !important;
     visibility: visible !important;
     opacity: 1 !important;
-    padding: 8px 8px 1px 8px !important;
+    padding: 8px 8px 8px 8px !important;
     color: var(--heading-color) !important;
 }
 
@@ -505,8 +511,8 @@ body .app-wrapper .container-fluid {
     margin-inline: auto !important;
 }
 .fc-resource-consultant-avatar {
-    width: 25px !important;
-    height: 25px !important;
+    width: 30px !important;
+    height: 30px !important;
     border-radius: 50% !important;
     object-fit: cover !important;
     flex-shrink: 0 !important;
@@ -522,7 +528,7 @@ body .app-wrapper .container-fluid {
 }
 
 .fc th {
-    text-align: left !important;
+    text-align: center !important;
 }
 
 .fc .fc-daygrid-day-top {
@@ -755,6 +761,115 @@ body .app-wrapper .container-fluid {
     color: var(--default-color, #64748b);
     text-align: center;
     line-height: 1.2;
+}
+
+/* Quickview do evento (hover) */
+#agendaEventQuickview.agenda-event-quickview {
+    display: none;
+    position: fixed;
+    z-index: 1055;
+    min-width: 280px;
+    max-width: 320px;
+    padding: 0;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl, 0.75rem);
+    box-shadow: var(--shadow-lg, 0 0.5rem 1rem rgba(0, 0, 0, 0.15));
+    overflow: hidden;
+    margin: 0;
+    pointer-events: none;
+}
+#agendaEventQuickview.agenda-event-quickview.is-open {
+    display: block;
+}
+#agendaEventQuickview .agenda-quickview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-time {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--heading-color, #1e293b);
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-status {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--default-color, #64748b);
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-status i {
+    font-size: 1rem;
+    opacity: 0.9;
+}
+#agendaEventQuickview .agenda-quickview-body {
+    padding: 0.75rem 1rem;
+}
+#agendaEventQuickview .agenda-quickview-client {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+#agendaEventQuickview .agenda-quickview-client .agenda-quickview-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+#agendaEventQuickview .agenda-quickview-client .agenda-quickview-avatar-fallback {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--background-color, #f1f5f9);
+    color: var(--default-color, #64748b);
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+#agendaEventQuickview .agenda-quickview-client .agenda-quickview-client-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--heading-color, #1e293b);
+}
+#agendaEventQuickview .agenda-quickview-service-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    margin-top: 0.5rem;
+}
+#agendaEventQuickview .agenda-quickview-service-row:first-of-type {
+    margin-top: 0;
+}
+#agendaEventQuickview .agenda-quickview-service-left {
+    flex: 1;
+    min-width: 0;
+}
+#agendaEventQuickview .agenda-quickview-service-name {
+    font-weight: 500;
+    color: var(--heading-color, #1e293b);
+}
+#agendaEventQuickview .agenda-quickview-service-meta {
+    font-size: 0.75rem;
+    color: var(--default-color, #64748b);
+    margin-top: 0.15rem;
+}
+#agendaEventQuickview .agenda-quickview-service-price {
+    font-weight: 600;
+    color: var(--heading-color, #1e293b);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 /* Quick menu: Editar opções do serviço */
