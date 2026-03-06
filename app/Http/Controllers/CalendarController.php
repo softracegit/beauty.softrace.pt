@@ -222,6 +222,18 @@ class CalendarController extends Controller
     public function clients(\Illuminate\Http\Request $request)
     {
         $search = $request->get('q', '');
+        $clientId = $request->get('client_id');
+
+        if ($clientId) {
+            $client = \App\Models\Client::find($clientId);
+            if ($client) {
+                $arr = $client->only(['id', 'name', 'email', 'phone']);
+                $arr['avatar_url'] = $client->avatar ? asset('storage/' . $client->avatar) : null;
+                return response()->json([$arr]);
+            }
+            return response()->json([]);
+        }
+
         $query = \App\Models\Client::query()->orderBy('name')->limit(50);
 
         if (strlen($search) >= 1) {
@@ -257,7 +269,6 @@ class CalendarController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
-            'status' => Client::STATUS_ACTIVE,
         ]);
 
         $result = [

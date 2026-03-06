@@ -41,6 +41,11 @@
     color: var(--success-color);
   }
 
+  &.info {
+    background: color-mix(in srgb, var(--info-color), transparent 88%);
+    color: var(--info-color);
+  }
+
   &.warning {
     background: var(--warning-color-light);
     color: var(--warning-color);

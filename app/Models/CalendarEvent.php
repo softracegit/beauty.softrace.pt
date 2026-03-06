@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class CalendarEvent extends Model
@@ -98,6 +99,14 @@ class CalendarEvent extends Model
             ->withPivot('id', 'duration', 'price', 'original_price', 'sort_order')
             ->withTimestamps()
             ->orderByPivot('sort_order');
+    }
+
+    /**
+     * Itens de serviço (pivot) com service e extras - para eager loading.
+     */
+    public function eventServiceItems(): HasMany
+    {
+        return $this->hasMany(CalendarEventService::class, 'calendar_event_id')->orderBy('sort_order');
     }
 
     public function eventable(): MorphTo

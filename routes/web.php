@@ -38,7 +38,8 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::get('/dashboard/imoveis', [DashboardController::class, 'imoveis'])->name('dashboard.imoveis');
     Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
     Route::get('/dashboard/clientes', [DashboardController::class, 'clientes'])->name('dashboard.clientes');
-    
+    Route::get('/dashboard/ocupacao', [DashboardController::class, 'ocupacao'])->name('dashboard.ocupacao');
+
     Route::resource('clientes', ClientController::class);
     Route::post('clientes/{cliente}/notes', [ClientController::class, 'storeNote'])->name('clientes.storeNote');
     

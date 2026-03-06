@@ -490,7 +490,6 @@ class LeadController extends Controller
                     'email' => $request->client_email,
                     'phone' => $request->client_phone,
                     'type' => Client::TYPE_POTENCIAL_CLIENTE,
-                    'status' => Client::STATUS_ACTIVE,
                 ]);
             } else {
                 // Atualizar dados do cliente se necessário

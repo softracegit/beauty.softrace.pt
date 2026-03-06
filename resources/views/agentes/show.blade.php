@@ -49,7 +49,9 @@
         <div class="card">
             <div class="uview-tabs" role="tablist">
                 <button class="uview-tab nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#tab-details">Detalhes</button>
-                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-activity">Atividade</button>
+                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-marcacoes">Marcações</button>
+                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-vendas">Vendas</button>
+                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-activity">Notas</button>
             </div>
             <div class="card-body tab-content">
 
@@ -185,7 +187,100 @@
                     </div>
                 </div>
 
-                <!-- Activity Tab -->
+                <!-- Marcações Tab -->
+                <div class="tab-pane fade" id="tab-marcacoes">
+                    @if($marcacoes->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Serviços</th>
+                                        <th>Cliente</th>
+                                        <th>Estado</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($marcacoes as $ev)
+                                        @php
+                                            $isFutura = $ev->start_at->isFuture();
+                                            $badgeClass = $isFutura ? 'bg-success-light text-success' : 'bg-secondary-light text-secondary';
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $ev->start_at->format('d/m/Y H:i') }}</td>
+                                            <td>
+                                                @foreach($ev->eventServiceItems as $es)
+                                                    <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ $es->service?->name ?? '—' }}</span>
+                                                @endforeach
+                                            </td>
+                                            <td>
+                                                @if($ev->client)
+                                                    <a href="{{ route('clientes.show', $ev->client) }}">{{ $ev->client->name }}</a>
+                                                @else
+                                                    —
+                                                @endif
+                                            </td>
+                                            <td><span class="badge {{ $badgeClass }}">{{ \App\Models\CalendarEvent::statuses()[$ev->status] ?? $ev->status }}</span></td>
+                                            <td>
+                                                <a href="{{ route('agenda.index') }}?event={{ $ev->id }}" class="btn btn-sm btn-light" title="Ver na agenda"><i class="ph ph-calendar"></i></a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-muted text-center py-3">Nenhuma marcação registada.</p>
+                    @endif
+                </div>
+
+                <!-- Vendas Tab -->
+                <div class="tab-pane fade" id="tab-vendas">
+                    @if($vendas->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Cliente</th>
+                                        <th>Serviço</th>
+                                        <th class="text-center">Qtd</th>
+                                        <th class="text-end">Preço</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php $totalVendas = 0; @endphp
+                                    @foreach($vendas as $linha)
+                                        @php $totalVendas += $linha->preco * $linha->quantidade; @endphp
+                                        <tr>
+                                            <td>{{ $linha->data->format('d/m/Y H:i') }}</td>
+                                            <td>{{ $linha->cliente }}</td>
+                                            <td>
+                                                {{ $linha->servico }}
+                                                @if($linha->tipo === 'extra')
+                                                    <span class="badge bg-info-light text-info ms-1">Extra</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">{{ $linha->quantidade }}</td>
+                                            <td class="text-end">{{ number_format($linha->preco, 2, ',', ' ') }} €</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-light fw-semibold">
+                                        <td colspan="4" class="text-end">Total</td>
+                                        <td class="text-end">{{ number_format($totalVendas, 2, ',', ' ') }} €</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-muted text-center py-3">Nenhuma venda registada.</p>
+                    @endif
+                </div>
+
+                <!-- Notas Tab -->
                 <div class="tab-pane fade" id="tab-activity">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0">Notas</h6>
@@ -268,7 +363,15 @@
                         <span class="uview-status-value">{{ $agente->created_at->format('d/m/Y') }}</span>
                     </div>
                     <div class="uview-status-item">
-                        <span class="uview-status-label">Total de Notas</span>
+                        <span class="uview-status-label">Marcações</span>
+                        <span class="uview-status-value">{{ $marcacoes->count() }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Total Vendas</span>
+                        <span class="uview-status-value">{{ number_format($vendas->sum(fn($l) => $l->preco * $l->quantidade), 2, ',', ' ') }} €</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Notas</span>
                         <span class="uview-status-value">{{ $agentNotes->count() }}</span>
                     </div>
                 </div>
@@ -303,4 +406,33 @@
 
 @include('partials.note-form-modal', ['route' => route('equipa.storeNote', $agente), 'modelName' => 'agente'])
 
+@endsection
+
+@section('js')
+<script>
+(function() {
+    const hash = window.location.hash;
+    const validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-activity'];
+    const tabId = hash && validTabs.includes(hash.slice(1)) ? hash.slice(1) : null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabList = document.querySelector('.uview-tabs');
+        if (!tabList) return;
+
+        if (tabId) {
+            const trigger = document.querySelector('[data-bs-target="#' + tabId + '"]');
+            if (trigger && typeof bootstrap !== 'undefined') {
+                bootstrap.Tab.getOrCreateInstance(trigger).show();
+            }
+        }
+
+        tabList.addEventListener('shown.bs.tab', function(e) {
+            const target = e.target.getAttribute('data-bs-target');
+            if (target && target.startsWith('#')) {
+                history.replaceState(null, '', window.location.pathname + target);
+            }
+        });
+    });
+})();
+</script>
 @endsection

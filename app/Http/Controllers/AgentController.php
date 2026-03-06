@@ -114,9 +114,56 @@ class AgentController extends Controller
     public function show(Agent $agente)
     {
         $this->authorize('view', $agente);
-        
+
         $agente->load(['notes.user', 'user']);
-        return view('agentes.show', compact('agente'));
+
+        $marcacoes = collect();
+        $vendas = collect();
+
+        if ($agente->user_id) {
+            $marcacoes = \App\Models\CalendarEvent::where('user_id', $agente->user_id)
+                ->where('event_type', \App\Models\CalendarEvent::TYPE_MARCACAO)
+                ->where('status', '!=', \App\Models\CalendarEvent::STATUS_CANCELADO)
+                ->with(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra'])
+                ->orderByDesc('start_at')
+                ->limit(100)
+                ->get();
+
+            $today = now()->startOfDay();
+            $vendas = \App\Models\CalendarEvent::where('user_id', $agente->user_id)
+                ->where('event_type', \App\Models\CalendarEvent::TYPE_MARCACAO)
+                ->where('status', '!=', \App\Models\CalendarEvent::STATUS_CANCELADO)
+                ->where('start_at', '<', $today)
+                ->with(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra'])
+                ->orderByDesc('start_at')
+                ->get()
+                ->flatMap(function ($event) {
+                    $lines = [];
+                    foreach ($event->eventServiceItems as $es) {
+                        $lines[] = (object)[
+                            'data' => $event->start_at,
+                            'cliente' => $event->client?->name ?? '—',
+                            'servico' => $es->service?->name ?? '—',
+                            'quantidade' => 1,
+                            'preco' => (float) $es->price,
+                            'tipo' => 'servico',
+                        ];
+                        foreach ($es->extras ?? [] as $extra) {
+                            $lines[] = (object)[
+                                'data' => $event->start_at,
+                                'cliente' => $event->client?->name ?? '—',
+                                'servico' => $extra->extra?->name ?? '—',
+                                'quantidade' => 1,
+                                'preco' => (float) $extra->price,
+                                'tipo' => 'extra',
+                            ];
+                        }
+                    }
+                    return $lines;
+                });
+        }
+
+        return view('agentes.show', compact('agente', 'marcacoes', 'vendas'));
     }
 
     /**

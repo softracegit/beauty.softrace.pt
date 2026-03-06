@@ -74,22 +74,17 @@
       <ul class="panel-nav">
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard') && !request()->routeIs('dashboard.*') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-            Resumo Geral
-          </a>
-        </li>
-        <!--<li>
-          <a class="panel-link {{ request()->routeIs('dashboard.imoveis') ? 'active' : '' }}" href="{{ route('dashboard.imoveis') }}">
-            Imóveis
-          </a>
-        </li-->
-        <li>
-          <a class="panel-link {{ request()->routeIs('dashboard.negocios') ? 'active' : '' }}" href="{{ route('dashboard.negocios') }}">
-            Negócios
+            Marcações e Serviços
           </a>
         </li>
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard.clientes') ? 'active' : '' }}" href="{{ route('dashboard.clientes') }}">
             Clientes
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard.ocupacao') ? 'active' : '' }}" href="{{ route('dashboard.ocupacao') }}">
+            Ocupação
           </a>
         </li>
       </ul>
@@ -182,6 +177,11 @@
         <li>
           <a class="panel-link {{ request()->routeIs('clientes.create') ? 'active' : '' }}" href="{{ route('clientes.create') }}">
             Novo cliente
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard.clientes') ? 'active' : '' }}" href="{{ route('dashboard.clientes') }}">
+            Estatísticas
           </a>
         </li>
       </ul>

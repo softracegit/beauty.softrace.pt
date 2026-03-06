@@ -69,14 +69,16 @@
                                     </div>
                                     <div id="novaMarcacaoClientResults" class="nova-marcacao-client-results mb-0">
                                     </div>
-                                    <div id="novaMarcacaoClientSelected" class="nova-marcacao-person d-none">
-                                        <img id="novaMarcacaoClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="40" height="40">
-                                        <div id="novaMarcacaoClientAvatarFallback" class="nova-marcacao-avatar-fallback agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center small fw-semibold d-none">—</div>
-                                        <div class="flex-grow-1 min-w-0">
-                                            <strong id="novaMarcacaoClientSelectedName">—</strong>
-                                            <span id="novaMarcacaoClientSelectedEmail" class="d-block small text-muted">—</span>
-                                        </div>
-                                        <button type="button" class="btn btn-link btn-sm p-0 align-self-start" id="novaMarcacaoClientClear">Alterar</button>
+                                    <div id="novaMarcacaoClientSelected" class="d-flex align-items-start gap-2 d-none">
+                                        <a id="novaMarcacaoClientLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body flex-grow-1 min-w-0" title="Abrir ficha do cliente" target="_blank" rel="noopener">
+                                            <img id="novaMarcacaoClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="40" height="40">
+                                            <div id="novaMarcacaoClientAvatarFallback" class="nova-marcacao-avatar-fallback agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center small fw-semibold d-none">—</div>
+                                            <div class="flex-grow-1 min-w-0">
+                                                <strong id="novaMarcacaoClientSelectedName">—</strong>
+                                                <span id="novaMarcacaoClientSelectedEmail" class="d-block small text-muted">—</span>
+                                            </div>
+                                        </a>
+                                        <button type="button" class="btn btn-link btn-sm p-0 align-self-start flex-shrink-0" id="novaMarcacaoClientClear">Alterar</button>
                                     </div>
                                 </div>
                                 <div class="nova-marcacao-section">
@@ -272,14 +274,16 @@
                                     </div>
                                     <div id="eventDetailClientResults" class="nova-marcacao-client-results mb-0">
                                     </div>
-                                    <div id="eventDetailClientSelected" class="nova-marcacao-person d-none">
-                                        <img id="eventDetailClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="40" height="40">
-                                        <div id="eventDetailClientAvatarFallback" class="nova-marcacao-avatar-fallback agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center small fw-semibold d-none">—</div>
-                                        <div class="flex-grow-1 min-w-0">
-                                            <strong id="eventDetailClientSelectedName">—</strong>
-                                            <span id="eventDetailClientSelectedEmail" class="d-block small text-muted">—</span>
-                                        </div>
-                                        <button type="button" class="btn btn-link btn-sm p-0 align-self-start" id="eventDetailClientClear">Alterar</button>
+                                    <div id="eventDetailClientSelected" class="d-flex align-items-start gap-2 d-none">
+                                        <a id="eventDetailClientLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body flex-grow-1 min-w-0" title="Abrir ficha do cliente" target="_blank" rel="noopener">
+                                            <img id="eventDetailClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="40" height="40">
+                                            <div id="eventDetailClientAvatarFallback" class="nova-marcacao-avatar-fallback agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center small fw-semibold d-none">—</div>
+                                            <div class="flex-grow-1 min-w-0">
+                                                <strong id="eventDetailClientSelectedName">—</strong>
+                                                <span id="eventDetailClientSelectedEmail" class="d-block small text-muted">—</span>
+                                            </div>
+                                        </a>
+                                        <button type="button" class="btn btn-link btn-sm p-0 align-self-start flex-shrink-0" id="eventDetailClientClear">Alterar</button>
                                     </div>
                                     <div id="eventDetailVisitLeadBlock" class="d-none"></div>
                                 </div>
@@ -337,6 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
     const eventsUrl = '{{ route('agenda.events') }}';
     const resourcesUrl = '{{ route('agenda.resources') }}';
+    const clientesBaseUrl = '{{ url('clientes') }}';
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const currentUserIsAdmin = {{ json_encode(auth()->user()->role === \App\Models\User::ROLE_ADMIN) }};
 
@@ -1171,6 +1176,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             document.getElementById('eventDetailClientSelected').classList.remove('d-none');
             document.getElementById('eventDetailCreateClientBtn').classList.add('d-none');
+            var link = document.getElementById('eventDetailClientLink');
+            if (link) link.href = clientesBaseUrl + '/' + data.client_id;
         } else {
             eventDetailSelectedClient = null;
         }
@@ -1546,7 +1553,7 @@ document.addEventListener('DOMContentLoaded', function() {
     @endphp
     var agendaAgentInfo = @json($agentInfoMap->all());
 
-    function openNovaMarcacaoModal(startStr, endStr, resourceId) {
+    function openNovaMarcacaoModal(startStr, endStr, resourceId, preSelectedClientId) {
         var agentId = resourceId || '{{ auth()->id() }}';
         document.getElementById('novaMarcacaoAgentId').value = agentId;
         document.getElementById('novaMarcacaoStart').value = startStr;
@@ -1651,7 +1658,35 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(function() {
                 document.getElementById('novaMarcacaoServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
             });
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('novaMarcacaoModal')).show();
+        var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('novaMarcacaoModal'));
+        modal.show();
+        if (preSelectedClientId) {
+            fetch(agendaClientsUrl + '?client_id=' + encodeURIComponent(preSelectedClientId), { headers: { 'Accept': 'application/json' } })
+                .then(function(r) { return r.json(); })
+                .then(function(clients) {
+                    if (clients && clients[0]) {
+                        var c = clients[0];
+                        novaMarcacaoSelectedClient = { id: String(c.id), name: c.name || '', email: c.email || '', avatar_url: c.avatar_url || '' };
+                        document.getElementById('novaMarcacaoClientSelectedName').textContent = c.name || '';
+                        document.getElementById('novaMarcacaoClientSelectedEmail').textContent = c.email || '—';
+                        var link = document.getElementById('novaMarcacaoClientLink');
+                        if (link) link.href = clientesBaseUrl + '/' + c.id;
+                        if (c.avatar_url) {
+                            document.getElementById('novaMarcacaoClientAvatar').src = c.avatar_url;
+                            document.getElementById('novaMarcacaoClientAvatar').classList.remove('d-none');
+                            document.getElementById('novaMarcacaoClientAvatarFallback').classList.add('d-none');
+                        } else {
+                            document.getElementById('novaMarcacaoClientAvatar').classList.add('d-none');
+                            var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+                            document.getElementById('novaMarcacaoClientAvatarFallback').textContent = initials;
+                            document.getElementById('novaMarcacaoClientAvatarFallback').classList.remove('d-none');
+                        }
+                        document.getElementById('novaMarcacaoClientSelected').classList.remove('d-none');
+                        document.getElementById('novaMarcacaoClientSearchWrap').classList.add('d-none');
+                        document.getElementById('novaMarcacaoCreateClientBtn').classList.add('d-none');
+                    }
+                });
+        }
     }
 
     document.getElementById('novaMarcacaoClientSearch').addEventListener('input', (function() {
@@ -1685,6 +1720,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 novaMarcacaoSelectedClient = { id: this.dataset.id, name: name, email: email, avatar_url: avatarUrl };
                                 document.getElementById('novaMarcacaoClientSelectedName').textContent = name;
                                 document.getElementById('novaMarcacaoClientSelectedEmail').textContent = email || '—';
+                                var link = document.getElementById('novaMarcacaoClientLink');
+                                if (link) link.href = clientesBaseUrl + '/' + this.dataset.id;
                                 if (avatarUrl) {
                                     document.getElementById('novaMarcacaoClientAvatar').src = avatarUrl;
                                     document.getElementById('novaMarcacaoClientAvatar').classList.remove('d-none');
@@ -1788,6 +1825,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     novaMarcacaoSelectedClient = c;
                     document.getElementById('novaMarcacaoClientSelectedName').textContent = c.name;
                     document.getElementById('novaMarcacaoClientSelectedEmail').textContent = c.email || '—';
+                    var link = document.getElementById('novaMarcacaoClientLink');
+                    if (link) link.href = clientesBaseUrl + '/' + c.id;
                     document.getElementById('novaMarcacaoClientAvatar').classList.add('d-none');
                     var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
                     document.getElementById('novaMarcacaoClientAvatarFallback').textContent = initials;
@@ -1803,6 +1842,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     eventDetailSelectedClient = c;
                     document.getElementById('eventDetailClientSelectedName').textContent = c.name;
                     document.getElementById('eventDetailClientSelectedEmail').textContent = c.email || '—';
+                    var link = document.getElementById('eventDetailClientLink');
+                    if (link) link.href = clientesBaseUrl + '/' + c.id;
                     if (c.avatar_url) {
                         document.getElementById('eventDetailClientAvatar').src = c.avatar_url;
                         document.getElementById('eventDetailClientAvatar').classList.remove('d-none');
@@ -1871,6 +1912,8 @@ document.addEventListener('DOMContentLoaded', function() {
             novaMarcacaoSelectedClient = prev;
             document.getElementById('novaMarcacaoClientSelectedName').textContent = prev.name;
             document.getElementById('novaMarcacaoClientSelectedEmail').textContent = prev.email || '—';
+            var link = document.getElementById('novaMarcacaoClientLink');
+            if (link) link.href = clientesBaseUrl + '/' + prev.id;
             if (prev.avatar_url) {
                 document.getElementById('novaMarcacaoClientAvatar').src = prev.avatar_url;
                 document.getElementById('novaMarcacaoClientAvatar').classList.remove('d-none');
@@ -1948,6 +1991,8 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetailSelectedClient = prev;
             document.getElementById('eventDetailClientSelectedName').textContent = prev.name;
             document.getElementById('eventDetailClientSelectedEmail').textContent = prev.email || '—';
+            var link = document.getElementById('eventDetailClientLink');
+            if (link) link.href = clientesBaseUrl + '/' + prev.id;
             if (prev.avatar_url) {
                 document.getElementById('eventDetailClientAvatar').src = prev.avatar_url;
                 document.getElementById('eventDetailClientAvatar').classList.remove('d-none');
@@ -1998,6 +2043,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 eventDetailSelectedClient = { id: this.dataset.id, name: name, email: email, avatar_url: avatarUrl };
                                 document.getElementById('eventDetailClientSelectedName').textContent = name;
                                 document.getElementById('eventDetailClientSelectedEmail').textContent = email || '—';
+                                var link = document.getElementById('eventDetailClientLink');
+                                if (link) link.href = clientesBaseUrl + '/' + this.dataset.id;
                                 if (avatarUrl) {
                                     document.getElementById('eventDetailClientAvatar').src = avatarUrl;
                                     document.getElementById('eventDetailClientAvatar').classList.remove('d-none');
@@ -2852,16 +2899,71 @@ document.addEventListener('DOMContentLoaded', function() {
         }, true);
     })();
 
-    // Fazer scroll para a hora atual após render inicial
-    setTimeout(function() {
-        const now = new Date();
-        const currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':00';
-        if (calendar.view.type.includes('timeGrid') || calendar.view.type.includes('resourceTimeGrid')) {
-            calendar.scrollToTime(currentTime);
+    // Fazer scroll para a hora atual após render inicial (ou para a marcação se ?event=ID)
+    (function initScrollAndOpenEvent() {
+        const params = new URLSearchParams(window.location.search);
+        const eventId = params.get('event');
+        const novaMarcacao = params.get('novaMarcacao');
+        const clientId = params.get('client_id');
+        const userId = params.get('user_id');
+        if (eventId) {
+            eventDetailModalLoading = true;
+            fetch('{{ url('agenda/events') }}/' + eventId, { headers: { 'Accept': 'application/json' } })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('Evento não encontrado');
+                    return r.json();
+                })
+                .then(function(data) {
+                    if (data.start_at) {
+                        calendar.gotoDate(new Date(data.start_at));
+                        if (calendar.view.type.includes('timeGrid') || calendar.view.type.includes('resourceTimeGrid')) {
+                            var d = new Date(data.start_at);
+                            calendar.scrollToTime(String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':00');
+                        }
+                    }
+                    populateEventDetailEditModal(data);
+                    var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('eventDetailEditModal'));
+                    modal.show();
+                    if (history.replaceState) {
+                        history.replaceState({}, document.title, window.location.pathname);
+                    }
+                })
+                .catch(function() {
+                    showToast('Marcação não encontrada ou sem permissão para ver.', 'error');
+                    var now = new Date();
+                    var currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':00';
+                    if (calendar.view.type.includes('timeGrid') || calendar.view.type.includes('resourceTimeGrid')) {
+                        calendar.scrollToTime(currentTime);
+                    }
+                })
+                .finally(function() {
+                    eventDetailModalLoading = false;
+                });
+        } else if (novaMarcacao === '1' && clientId && userId) {
+            var now = new Date();
+            var min = now.getMinutes();
+            var roundedMin = Math.ceil(min / 15) * 15;
+            if (roundedMin >= 60) { now.setHours(now.getHours() + 1); roundedMin = 0; }
+            now.setMinutes(roundedMin);
+            now.setSeconds(0, 0);
+            var end = new Date(now.getTime() + 60 * 60 * 1000);
+            var startStr = now.toISOString().slice(0, 19).replace('T', ' ');
+            var endStr = end.toISOString().slice(0, 19).replace('T', ' ');
+            openNovaMarcacaoModal(startStr, endStr, userId, clientId);
+            if (history.replaceState) {
+                history.replaceState({}, document.title, window.location.pathname);
+            }
+        } else {
+            setTimeout(function() {
+                var now = new Date();
+                var currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':00';
+                if (calendar.view.type.includes('timeGrid') || calendar.view.type.includes('resourceTimeGrid')) {
+                    calendar.scrollToTime(currentTime);
+                }
+            }, 200);
         }
-    }, 200);
-    
-    
+    })();
+
     // Função para atualizar o texto do botão de seleção de vista
     function updateViewSelectorButton(viewType) {
         const viewBtn = calendarEl.querySelector('.fc-viewSelector-button');

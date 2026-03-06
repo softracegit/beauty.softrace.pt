@@ -9,41 +9,34 @@
     </div>
 @endif
 
-@php
-        $totalClientes = $clients->total();
-        $activeCount = \App\Models\Client::where('status', \App\Models\Client::STATUS_ACTIVE)->count();
-        $availableCount = \App\Models\Client::where('status', \App\Models\Client::STATUS_AVAILABLE)->count();
-        $unavailableCount = \App\Models\Client::where('status', \App\Models\Client::STATUS_UNAVAILABLE)->count();
-    @endphp
-
-    <!-- Clientes Stats Strip (based on users-stats) -->
+<!-- Clientes Stats Strip (igual ao Dashboard de Clientes) -->
     <div class="users-stats">
         <div class="users-stat-card">
             <div class="users-stat-icon primary"><i class="ph-duotone ph-users-three"></i></div>
             <div class="users-stat-body">
-                <div class="users-stat-value">{{ $totalClientes }}</div>
-                <div class="users-stat-label">Total Clientes</div>
+                <div class="users-stat-value">{{ $totalClientes ?? 0 }}</div>
+                <div class="users-stat-label">Total</div>
             </div>
         </div>
         <div class="users-stat-card">
-            <div class="users-stat-icon success"><i class="ph-duotone ph-user-check"></i></div>
+            <div class="users-stat-icon success"><i class="ph-duotone ph-calendar-check"></i></div>
             <div class="users-stat-body">
-                <div class="users-stat-value">{{ $activeCount }}</div>
-                <div class="users-stat-label">Ativos</div>
+                <div class="users-stat-value">{{ $totalClientesComMarcacao ?? 0 }}</div>
+                <div class="users-stat-label">Com marcações</div>
             </div>
         </div>
         <div class="users-stat-card">
-            <div class="users-stat-icon warning"><i class="ph-duotone ph-user-circle"></i></div>
+            <div class="users-stat-icon info"><i class="ph-duotone ph-user-plus"></i></div>
             <div class="users-stat-body">
-                <div class="users-stat-value">{{ $availableCount }}</div>
-                <div class="users-stat-label">Disponíveis</div>
+                <div class="users-stat-value">{{ $clientesEsteMes ?? 0 }}</div>
+                <div class="users-stat-label">Registados este mês</div>
             </div>
         </div>
         <div class="users-stat-card">
-            <div class="users-stat-icon danger"><i class="ph-duotone ph-user-minus"></i></div>
+            <div class="users-stat-icon warning"><i class="ph-duotone ph-repeat"></i></div>
             <div class="users-stat-body">
-                <div class="users-stat-value">{{ $unavailableCount }}</div>
-                <div class="users-stat-label">Indisponíveis</div>
+                <div class="users-stat-value">{{ $taxaRetencao ?? 0 }}%</div>
+                <div class="users-stat-label">Taxa de retenção</div>
             </div>
         </div>
     </div>
@@ -75,7 +68,6 @@
                         <th>Contacto</th>
                         <th>NIF</th>
                         <th>Localidade</th>
-                        <th>Estado</th>
                         <th class="users-th-actions">Ações</th>
                     </tr>
                 </thead>
@@ -83,14 +75,9 @@
                     @forelse ($clients as $client)
                         @php
                             $avatarNum = ($client->id % 9) + 1;
-                            $avatarSrc = asset("template/img/avatars/avatar-{$avatarNum}.webp");
-                            $statusClass = match($client->status) {
-                                'active' => 'active',
-                                'available' => 'pending',
-                                'unavailable' => 'inactive',
-                                default => 'inactive',
-                            };
-                            $statusLabel = \App\Models\Client::statusLabels()[$client->status] ?? $client->status;
+                            $avatarSrc = $client->avatar
+                                ? asset('storage/' . $client->avatar)
+                                : asset("template/img/avatars/avatar-{$avatarNum}.webp");
                         @endphp
                         <tr>
                             <td>
@@ -124,9 +111,6 @@
                                 @endif
                             </td>
                             <td>
-                                <span class="users-status {{ $statusClass }}"><span class="users-status-dot"></span> {{ $statusLabel }}</span>
-                            </td>
-                            <td>
                                 <div class="users-actions">
                                     <a href="{{ route('clientes.show', $client) }}" class="users-action-btn" title="Ver"><i class="ph ph-eye"></i></a>
                                     <a href="{{ route('clientes.edit', $client) }}" class="users-action-btn" title="Editar"><i class="ph ph-pencil-simple"></i></a>
@@ -140,7 +124,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5">
+                            <td colspan="5" class="text-center py-5">
                                 <i class="ph ph-user-circle display-4 text-muted"></i>
                                 <h6 class="mt-3">Nenhum cliente encontrado</h6>
                                 <p class="text-muted mb-3">Comece por adicionar o primeiro cliente.</p>
@@ -152,12 +136,27 @@
             </table>
         </div>
 
-        @if($clients->hasPages())
-        <!-- Pagination (based on users-pagination) -->
+        @if($clients->total() > 0)
+        <!-- Pagination + per-page (based on users-pagination) -->
         <div class="users-pagination">
-            <div class="users-pagination-info">
-                A mostrar <strong>{{ $clients->firstItem() ?? 0 }}-{{ $clients->lastItem() ?? 0 }}</strong> de <strong>{{ $clients->total() }}</strong> clientes
+            <div class="users-pagination-info d-flex align-items-center gap-3 flex-wrap">
+                <span>A mostrar <strong>{{ $clients->firstItem() ?? 0 }}-{{ $clients->lastItem() ?? 0 }}</strong> de <strong>{{ $clients->total() }}</strong> clientes</span>
+                <form method="GET" action="{{ route('clientes.index') }}" class="d-inline-flex align-items-center gap-2">
+                    @if(request('search'))
+                    <input type="hidden" name="search" value="{{ request('search') }}">
+                    @endif
+                    <label class="form-label mb-0 small text-muted">Mostrar</label>
+                    <select name="per_page" class="form-select form-select-sm" style="width: auto; min-width: 4.5rem;" onchange="this.form.submit()">
+                        <option value="9" {{ $clients->perPage() == 9 ? 'selected' : '' }}>9</option>
+                        <option value="18" {{ $clients->perPage() == 18 ? 'selected' : '' }}>18</option>
+                        <option value="27" {{ $clients->perPage() == 27 ? 'selected' : '' }}>27</option>
+                        <option value="36" {{ $clients->perPage() == 36 ? 'selected' : '' }}>36</option>
+                        <option value="50" {{ $clients->perPage() == 50 ? 'selected' : '' }}>50</option>
+                    </select>
+                    <span class="small text-muted">por página</span>
+                </form>
             </div>
+            @if($clients->hasPages())
             <div class="users-pagination-nav">
                 @if ($clients->onFirstPage())
                     <span class="users-page-btn" disabled><i class="ph ph-caret-left"></i></span>
@@ -183,6 +182,7 @@
                     <span class="users-page-btn" disabled><i class="ph ph-caret-right"></i></span>
                 @endif
             </div>
+            @endif
         </div>
         @endif
     </div>

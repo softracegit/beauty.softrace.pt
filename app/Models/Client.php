@@ -27,10 +27,10 @@ class Client extends Model
         'id_district',
         'id_city',
         'id_parish',
-        'status',
         'type',
         'avatar',
-        'notes',
+        'preferred_schedule',
+        'preferences_notes',
     ];
 
     protected $casts = [
@@ -39,22 +39,9 @@ class Client extends Model
         'updated_at' => 'datetime',
     ];
 
-    public const STATUS_AVAILABLE = 'available';
-    public const STATUS_UNAVAILABLE = 'unavailable';
-    public const STATUS_ACTIVE = 'active';
-
     // Tipos de cliente
     public const TYPE_POTENCIAL_CLIENTE = 'potencial_cliente';
     // Outros tipos serão adicionados no futuro
-
-    public static function statusLabels(): array
-    {
-        return [
-            self::STATUS_AVAILABLE => 'Available',
-            self::STATUS_UNAVAILABLE => 'Unavailable',
-            self::STATUS_ACTIVE => 'Active',
-        ];
-    }
 
     public static function types(): array
     {
@@ -88,6 +75,42 @@ class Client extends Model
     public function getClientIdAttribute(): string
     {
         return '#CL' . str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
+    }
+
+    public static function preferredSchedules(): array
+    {
+        return [
+            'manha' => 'Manhã',
+            'tarde' => 'Tarde',
+            'noite' => 'Noite',
+            'flexivel' => 'Flexível',
+        ];
+    }
+
+    public function getAgeAttribute(): ?int
+    {
+        return $this->birth_date?->age;
+    }
+
+    public function getDaysUntilBirthdayAttribute(): ?int
+    {
+        if (!$this->birth_date) {
+            return null;
+        }
+        $today = now()->startOfDay();
+        $nextBday = $this->birth_date->copy()->year($today->year);
+        if ($nextBday->lt($today)) {
+            $nextBday->addYear();
+        }
+        return (int) $today->diffInDays($nextBday, false);
+    }
+
+    /**
+     * Marcações (agendamentos de serviços) deste cliente.
+     */
+    public function calendarEvents(): HasMany
+    {
+        return $this->hasMany(CalendarEvent::class);
     }
 
     /**

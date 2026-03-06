@@ -10308,8 +10308,8 @@ textarea.form-control {
 .uview-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xl);
-  padding: var(--spacing-xl);
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent-color), transparent 92%), color-mix(in srgb, var(--accent-color), transparent 96%));
   border-radius: var(--radius-lg);
   border: 1px solid color-mix(in srgb, var(--accent-color), transparent 85%);
@@ -10317,8 +10317,8 @@ textarea.form-control {
 }
 
 .uview-avatar {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   border-radius: var(--radius-full);
   -o-object-fit: cover;
   object-fit: cover;
