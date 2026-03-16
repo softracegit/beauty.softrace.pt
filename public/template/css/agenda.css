@@ -1444,6 +1444,12 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     height: 80px;
 }
 
+/* Avatar do membro (prestador) nos modals da agenda: manter sempre quadrado */
+.nova-marcacao-agent-link .agenda-avatar-img {
+    width: 40px;
+    height: 40px;
+}
+
 /* Modal Nova Marcação */
 #novaMarcacaoModal .modal-dialog {
     min-height: calc(100vh - 3rem);

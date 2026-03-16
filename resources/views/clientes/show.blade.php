@@ -4,15 +4,24 @@
 
 @php
     $avatarNum = ($cliente->id % 9) + 1;
-    $avatarSrc = $cliente->avatar
+    $hasAvatar = (bool) $cliente->avatar;
+    $avatarSrc = $hasAvatar
         ? asset('storage/' . $cliente->avatar)
-        : asset("template/img/avatars/avatar-{$avatarNum}.webp");
+        : null;
+    $avatarInitial = mb_strtoupper(mb_substr($cliente->name ?? '—', 0, 1, 'UTF-8'), 'UTF-8');
     $clientNotes = $cliente->getRelationValue('notes') ?: $cliente->notes()->with('user')->get();
 @endphp
 
 <!-- User Profile Header -->
 <div class="uview-header">
-    <img src="{{ $avatarSrc }}" alt="{{ $cliente->name }}" class="uview-avatar">
+    @if($hasAvatar)
+        <img src="{{ $avatarSrc }}" alt="{{ $cliente->name }}" class="uview-avatar">
+    @else
+        <div class="uview-avatar d-flex align-items-center justify-content-center fw-semibold"
+             style="background-color: var(--accent-soft-color, #eef2ff); color: var(--accent-color, #4f46e5); font-size: 1.5rem;">
+            {{ $avatarInitial }}
+        </div>
+    @endif
     <div class="uview-info">
         <h2 class="uview-name">{{ $cliente->name }}</h2>
         <p class="uview-email">{{ $cliente->email }}</p>
