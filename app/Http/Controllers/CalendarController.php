@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Agent;
 use App\Models\CalendarEvent;
 use App\Models\Client;
+use App\Models\PersonalTimeType;
+use App\Models\Sale;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -16,6 +18,7 @@ class CalendarController extends Controller
     public function index()
     {
         $eventTypes = CalendarEvent::eventTypes();
+        $personalTimeTypes = PersonalTimeType::where('is_active', true)->orderBy('sort_order')->get();
         // Mostrar apenas users com agent ativo; excluir Administradores da agenda (select de membros)
         $users = User::whereHas('agent', function ($query) {
             $query->where('status', Agent::STATUS_ACTIVE);
@@ -25,7 +28,7 @@ class CalendarController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('agenda.index', compact('eventTypes', 'users'));
+        return view('agenda.index', compact('eventTypes', 'users', 'personalTimeTypes'));
     }
 
     /**
@@ -68,7 +71,12 @@ class CalendarController extends Controller
         $end = $request->get('end');
         $forResources = $request->boolean('for_resources');
 
-        $query = CalendarEvent::query()->with(['user.agent', 'service', 'client', 'eventServices', 'eventable']);
+        $query = CalendarEvent::query()
+            ->with(['user.agent', 'service', 'client', 'eventServices', 'eventable', 'personalTimeType', 'sale'])
+            ->where(function ($q) {
+                $q->whereNull('status')
+                    ->orWhereNotIn('status', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU]);
+            });
 
         // Verificar se o utilizador pode ver todos os eventos (admin ou diretor)
         $canViewAll = auth()->user()->canManageAgents();
@@ -112,7 +120,12 @@ class CalendarController extends Controller
         $result = $events->map(function (CalendarEvent $event) use ($forResources, $validUserIds) {
             $classMap = CalendarEvent::typeClassMap();
             $className = $classMap[$event->event_type] ?? 'bg-secondary';
-            $agentColor = $event->user?->agent?->color;
+            $agentColor = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL ? null : ($event->user?->agent?->color);
+
+            $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
+            $statusLabel = $isTempoPessoal ? 'Tempo pessoal' : (CalendarEvent::statuses()[$event->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado');
+            $statusIcon = $isTempoPessoal ? null : $event->status_icon;
+            $hasInvoice = $event->sale && $event->sale->status !== Sale::STATUS_ANULADO;
 
             $item = [
                 'id' => (string) $event->id,
@@ -120,7 +133,8 @@ class CalendarController extends Controller
                 'start' => $event->start_at->toIso8601String(),
                 'end' => $event->end_at->toIso8601String(),
                 'className' => $className,
-                'backgroundColor' => $agentColor ?: null,
+                'backgroundColor' => $agentColor ?: ($isTempoPessoal ? '#dee2e6' : null),
+                'editable' => !$hasInvoice,
                 'extendedProps' => [
                     'client_name' => $event->client?->name,
                     'client_avatar_url' => $event->client?->avatar ? asset('storage/' . $event->client->avatar) : null,
@@ -128,8 +142,8 @@ class CalendarController extends Controller
                     'event_type' => $event->event_type,
                     'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
                     'status' => $event->status ?? CalendarEvent::STATUS_AGENDADO,
-                    'status_label' => CalendarEvent::statuses()[$event->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado',
-                    'status_icon' => $event->status_icon,
+                    'status_label' => $statusLabel,
+                    'status_icon' => $statusIcon,
                     'user_id' => $event->user_id,
                     'user_name' => $event->user?->name,
                     'service_id' => $event->service_id,
@@ -150,6 +164,15 @@ class CalendarController extends Controller
                     'is_time_editable' => $event->isTimeEditable(),
                     'eventable_type' => $event->eventable_type,
                     'eventable_id' => $event->eventable_id,
+                    'personal_time_type_id' => $event->personal_time_type_id,
+                    'personal_time_type' => $event->personalTimeType ? [
+                        'id' => $event->personalTimeType->id,
+                        'name' => $event->personalTimeType->name,
+                        'icon' => $event->personalTimeType->icon,
+                        'duration' => $event->personalTimeType->duration,
+                        'formatted_duration' => $event->personalTimeType->formatted_duration,
+                    ] : null,
+                    'has_invoice' => $hasInvoice,
                 ],
             ];
             if ($forResources && $event->user_id) {
@@ -289,7 +312,7 @@ class CalendarController extends Controller
     public function show(CalendarEvent $calendarEvent)
     {
         try {
-            $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventable']);
+            $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventable', 'personalTimeType', 'sale']);
             $calendarEvent->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
             
             $userAvatarUrl = null;
@@ -309,6 +332,7 @@ class CalendarController extends Controller
                 $userAvatarUrl = null;
             }
 
+            $isTempoPessoal = ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL;
             $payload = [
                 'id' => $calendarEvent->id,
                 'title' => $calendarEvent->title ?? '',
@@ -318,8 +342,8 @@ class CalendarController extends Controller
                 'event_type' => $calendarEvent->event_type ?? 'manual',
                 'event_type_label' => CalendarEvent::eventTypes()[$calendarEvent->event_type] ?? ($calendarEvent->event_type ?? 'Manual'),
                 'status' => $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO,
-                'status_label' => CalendarEvent::statuses()[$calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado',
-                'status_icon' => $calendarEvent->status_icon,
+                'status_label' => $isTempoPessoal ? 'Tempo pessoal' : (CalendarEvent::statuses()[$calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado'),
+                'status_icon' => $isTempoPessoal ? null : $calendarEvent->status_icon,
                 'cancellation_reason' => $calendarEvent->cancellation_reason,
                 'user_id' => $calendarEvent->user_id,
                 'user_name' => $calendarEvent->user?->name,
@@ -358,7 +382,25 @@ class CalendarController extends Controller
                 'is_source_editable' => $calendarEvent->isSourceEditable(),
                 'is_deletable' => $calendarEvent->isDeletableFromCalendar(),
                 'is_time_editable' => $calendarEvent->isTimeEditable(),
+                'personal_time_type_id' => $calendarEvent->personal_time_type_id,
+                'personal_time_type' => $calendarEvent->personalTimeType ? [
+                    'id' => $calendarEvent->personalTimeType->id,
+                    'name' => $calendarEvent->personalTimeType->name,
+                    'icon' => $calendarEvent->personalTimeType->icon,
+                    'duration' => $calendarEvent->personalTimeType->duration,
+                    'formatted_duration' => $calendarEvent->personalTimeType->formatted_duration,
+                ] : null,
+                'existing_sale' => null,
             ];
+
+            $sale = $calendarEvent->sale;
+            if ($sale && $sale->status !== Sale::STATUS_ANULADO) {
+                $payload['existing_sale'] = [
+                    'id' => $sale->id,
+                    'numero_fatura' => $sale->numero_fatura,
+                    'pdf_url' => route('sales.pdf', $sale),
+                ];
+            }
 
             if ($calendarEvent->eventable_type === \App\Models\Visit::class && $calendarEvent->eventable_id && $calendarEvent->eventable) {
                 try {
@@ -413,7 +455,8 @@ class CalendarController extends Controller
     public function store(Request $request)
     {
         $rules = [
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['required_without:personal_time_type_id', 'nullable', 'string', 'max:255'],
+            'personal_time_type_id' => ['nullable', 'exists:personal_time_types,id'],
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after_or_equal:start_at'],
             'description' => ['nullable', 'string'],
@@ -432,6 +475,17 @@ class CalendarController extends Controller
             'services.*.extras.*.price' => ['nullable', 'numeric', 'min:0'],
         ];
         $validated = $request->validate($rules);
+
+        if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL) {
+            $personalTypeId = $validated['personal_time_type_id'] ?? null;
+            if ($personalTypeId) {
+                $type = PersonalTimeType::find($personalTypeId);
+                $validated['title'] = $type?->name ?? $validated['title'] ?? 'Tempo pessoal';
+                $validated['personal_time_type_id'] = (int) $personalTypeId;
+            } else {
+                $validated['title'] = $validated['title'] ?? 'Tempo pessoal';
+            }
+        }
 
         $servicesPayload = $request->input('services', []);
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
@@ -495,12 +549,23 @@ class CalendarController extends Controller
      */
     public function update(Request $request, CalendarEvent $calendarEvent)
     {
+        $sale = $calendarEvent->sale;
+        if ($sale && $sale->status !== Sale::STATUS_ANULADO) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Marcação faturada; reverta a venda para editar.',
+            ], 422);
+        }
+
         $rules = [
             'start_at' => ['sometimes', 'date'],
             'end_at' => ['sometimes', 'date'],
             'user_id' => ['nullable', 'exists:users,id'],
             'status' => ['sometimes', 'string', 'in:agendado,confirmado,chegou,iniciado,faltou,cancelado'],
-            'cancellation_reason' => ['nullable', 'string'],
+            'cancellation_reason' => ['nullable', 'string', 'max:1000'],
+            'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
+            'refund_reserva' => ['nullable', 'boolean'],
+            'avisou_dentro_prazo' => ['nullable', 'boolean'],
             'client_id' => ['nullable', 'exists:clients,id'],
             'services' => ['nullable', 'array'],
             'services.*.service_id' => ['required_with:services', 'exists:services,id'],
@@ -515,6 +580,7 @@ class CalendarController extends Controller
 
         if ($calendarEvent->isSourceEditable()) {
             $rules['title'] = ['sometimes', 'string', 'max:255'];
+            $rules['personal_time_type_id'] = ['nullable', 'exists:personal_time_types,id'];
             $rules['description'] = ['nullable', 'string'];
             $rules['event_type'] = ['sometimes', 'in:manual,outro,marcacao,tempo_pessoal'];
             $rules['service_id'] = ['nullable', 'exists:services,id'];
@@ -572,18 +638,31 @@ class CalendarController extends Controller
         }
 
         if (isset($validated['status'])) {
-            $update = ['status' => $validated['status']];
-            if (isset($validated['cancellation_reason'])) {
-                $update['cancellation_reason'] = $validated['status'] === 'cancelado' ? $validated['cancellation_reason'] : null;
-            } elseif ($validated['status'] !== 'cancelado') {
+            $newStatus = $validated['status'];
+            $update = ['status' => $newStatus];
+            if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO], true)) {
+                $update['cancellation_reason'] = isset($validated['cancellation_reason']) ? trim($validated['cancellation_reason']) ?: null : null;
+                $update['cancellation_type'] = $validated['cancellation_type'] ?? $newStatus;
+                $update['refund_reserva'] = array_key_exists('refund_reserva', $validated) ? (bool) $validated['refund_reserva'] : null;
+                $update['avisou_dentro_prazo'] = array_key_exists('avisou_dentro_prazo', $validated) ? (bool) $validated['avisou_dentro_prazo'] : null;
+            } else {
                 $update['cancellation_reason'] = null;
+                $update['cancellation_type'] = null;
+                $update['refund_reserva'] = null;
+                $update['avisou_dentro_prazo'] = null;
             }
             $calendarEvent->update($update);
         }
 
         if ($calendarEvent->isSourceEditable()) {
-            $allowed = ['title', 'description', 'event_type', 'service_id', 'client_id'];
+            $allowed = ['title', 'description', 'event_type', 'service_id', 'client_id', 'personal_time_type_id'];
             $toUpdate = array_filter($validated, fn ($k) => in_array($k, $allowed, true), ARRAY_FILTER_USE_KEY);
+            if (isset($toUpdate['personal_time_type_id']) && $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {
+                $type = PersonalTimeType::find($toUpdate['personal_time_type_id']);
+                if ($type) {
+                    $toUpdate['title'] = $type->name;
+                }
+            }
             if (!empty($toUpdate)) {
                 $calendarEvent->update($toUpdate);
             }
@@ -624,11 +703,13 @@ class CalendarController extends Controller
 
     /**
      * Delete an event. Only manual/outro events can be deleted from calendar.
-     * Only the responsible user can delete (permission check can be extended).
+     * Only the responsible user can delete, except for tempo_pessoal: admins can delete any.
      */
     public function destroy(CalendarEvent $calendarEvent)
     {
-        if ($calendarEvent->user_id !== null && $calendarEvent->user_id !== auth()->id()) {
+        $isOwner = $calendarEvent->user_id === null || $calendarEvent->user_id === auth()->id();
+        $adminCanDeleteTempoPessoal = $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL && auth()->user()->canManageAgents();
+        if (!$isOwner && !$adminCanDeleteTempoPessoal) {
             abort(403, 'Apenas o consultor responsável pode eliminar este evento.');
         }
         if (!$calendarEvent->isDeletableFromCalendar()) {
@@ -651,8 +732,20 @@ class CalendarController extends Controller
      */
     public function updateStatus(Request $request, CalendarEvent $calendarEvent)
     {
+        $sale = $calendarEvent->sale;
+        if ($sale && $sale->status !== Sale::STATUS_ANULADO) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Marcação faturada; reverta a venda para editar.',
+            ], 422);
+        }
+
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:agendado,confirmado,chegou,iniciado,faltou,cancelado'],
+            'status' => ['required', 'string', 'in:agendado,confirmado,chegou,iniciado,faltou,cancelado,completo'],
+            'cancellation_reason' => ['nullable', 'string', 'max:1000'],
+            'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
+            'refund_reserva' => ['nullable', 'boolean'],
+            'avisou_dentro_prazo' => ['nullable', 'boolean'],
         ]);
 
         $newStatus = $validated['status'];
@@ -666,7 +759,19 @@ class CalendarController extends Controller
             ], 422);
         }
 
-        $calendarEvent->update(['status' => $newStatus]);
+        $update = ['status' => $newStatus];
+        if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO], true)) {
+            $update['cancellation_reason'] = isset($validated['cancellation_reason']) ? trim($validated['cancellation_reason']) ?: null : null;
+            $update['cancellation_type'] = $validated['cancellation_type'] ?? $newStatus;
+            $update['refund_reserva'] = isset($validated['refund_reserva']) ? (bool) $validated['refund_reserva'] : null;
+            $update['avisou_dentro_prazo'] = isset($validated['avisou_dentro_prazo']) ? (bool) $validated['avisou_dentro_prazo'] : null;
+        } else {
+            $update['cancellation_reason'] = null;
+            $update['cancellation_type'] = null;
+            $update['refund_reserva'] = null;
+            $update['avisou_dentro_prazo'] = null;
+        }
+        $calendarEvent->update($update);
 
         return response()->json([
             'success' => true,
@@ -683,9 +788,10 @@ class CalendarController extends Controller
         $classMap = CalendarEvent::typeClassMap();
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
-        $event->loadMissing(['eventServices', 'user.agent']);
+        $event->loadMissing(['eventServices', 'user.agent', 'personalTimeType', 'sale']);
         $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
-        $agentColor = $event->user?->agent?->color;
+        $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
+        $agentColor = $isTempoPessoal ? null : ($event->user?->agent?->color);
         $eventServicesData = $event->eventServices->isNotEmpty()
             ? $event->eventServices->map(fn ($s) => [
                 'id' => $s->id,
@@ -702,13 +808,22 @@ class CalendarController extends Controller
             ? $event->eventServices->pluck('name')->join(', ')
             : ($event->service?->name ?? null);
 
+        $statusLabel = $isTempoPessoal ? 'Tempo pessoal' : (CalendarEvent::statuses()[$event->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado');
+        $statusIcon = $isTempoPessoal ? null : $event->status_icon;
+        $bgColor = $agentColor ?: ($isTempoPessoal ? '#dee2e6' : null);
+        if ($isTempoPessoal) {
+            $className = 'agenda-event-tempo-pessoal';
+        }
+
+        $hasInvoice = $event->sale && $event->sale->status !== Sale::STATUS_ANULADO;
         $arr = [
             'id' => (string) $event->id,
             'title' => $event->title,
             'start' => $event->start_at->toIso8601String(),
             'end' => $event->end_at->toIso8601String(),
             'className' => $className,
-            'backgroundColor' => $agentColor ?: null,
+            'backgroundColor' => $bgColor,
+            'editable' => !$hasInvoice,
             'extendedProps' => [
                 'client_id' => $event->client_id,
                 'client_name' => $event->client?->name,
@@ -716,8 +831,8 @@ class CalendarController extends Controller
                 'event_type' => $event->event_type,
                 'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
                 'status' => $event->status ?? CalendarEvent::STATUS_AGENDADO,
-                'status_label' => CalendarEvent::statuses()[$event->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado',
-                'status_icon' => $event->status_icon,
+                'status_label' => $statusLabel,
+                'status_icon' => $statusIcon,
                 'user_id' => $event->user_id,
                 'user_name' => $event->user?->name,
                 'service_id' => $event->service_id,
@@ -726,6 +841,18 @@ class CalendarController extends Controller
                 'is_source_editable' => $event->isSourceEditable(),
                 'is_deletable' => $event->isDeletableFromCalendar(),
                 'is_time_editable' => $event->isTimeEditable(),
+                'personal_time_type_id' => $event->personal_time_type_id,
+                'personal_time_type' => $event->personalTimeType ? [
+                    'id' => $event->personalTimeType->id,
+                    'name' => $event->personalTimeType->name,
+                    'icon' => $event->personalTimeType->icon,
+                    'duration' => $event->personalTimeType->duration,
+                    'formatted_duration' => $event->personalTimeType->formatted_duration,
+                ] : null,
+                'cancellation_type' => $event->cancellation_type,
+                'refund_reserva' => $event->refund_reserva,
+                'avisou_dentro_prazo' => $event->avisou_dentro_prazo,
+                'has_invoice' => $hasInvoice,
             ],
         ];
         if ($withResourceId) {

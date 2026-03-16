@@ -84,7 +84,9 @@
                 @forelse ($agents as $agent)
                     @php
                         $avatarNum = ($agent->id % 9) + 1;
-                        $avatarSrc = asset("template/img/avatars/avatar-{$avatarNum}.webp");
+                        $avatarSrc = $agent->avatar
+                            ? asset('storage/' . $agent->avatar)
+                            : asset("template/img/avatars/avatar-{$avatarNum}.webp");
                         $statusClass = match($agent->status) {
                             'active' => 'active',
                             'inactive' => 'inactive',

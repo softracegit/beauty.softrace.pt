@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class CalendarEvent extends Model
@@ -23,6 +24,7 @@ class CalendarEvent extends Model
     public const STATUS_INICIADO = 'iniciado';
     public const STATUS_FALTOU = 'faltou';
     public const STATUS_CANCELADO = 'cancelado';
+    public const STATUS_COMPLETO = 'completo';
 
     protected $fillable = [
         'title',
@@ -33,8 +35,12 @@ class CalendarEvent extends Model
         'client_id',
         'service_id',
         'event_type',
+        'personal_time_type_id',
         'status',
         'cancellation_reason',
+        'cancellation_type',
+        'refund_reserva',
+        'avisou_dentro_prazo',
         'eventable_type',
         'eventable_id',
     ];
@@ -44,6 +50,8 @@ class CalendarEvent extends Model
         'end_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'refund_reserva' => 'boolean',
+        'avisou_dentro_prazo' => 'boolean',
     ];
 
     protected $attributes = [
@@ -66,7 +74,7 @@ class CalendarEvent extends Model
     {
         return [
             self::TYPE_MARCACAO => 'bg-primary',
-            self::TYPE_TEMPO_PESSOAL => 'bg-secondary',
+            self::TYPE_TEMPO_PESSOAL => 'agenda-event-tempo-pessoal',
             self::TYPE_MANUAL => 'bg-primary',
             self::TYPE_VISITA => 'bg-success',
             self::TYPE_LEAD => 'bg-info',
@@ -87,6 +95,11 @@ class CalendarEvent extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function personalTimeType(): BelongsTo
+    {
+        return $this->belongsTo(PersonalTimeType::class);
     }
 
     /**
@@ -112,6 +125,12 @@ class CalendarEvent extends Model
     public function eventable(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function sale(): HasOne
+    {
+        // Usar sempre a venda mais recente associada a esta marcação
+        return $this->hasOne(Sale::class)->latest('id');
     }
 
     public function isSourceEditable(): bool
@@ -143,6 +162,7 @@ class CalendarEvent extends Model
             self::STATUS_INICIADO => 'Iniciado',
             self::STATUS_FALTOU => 'Faltou',
             self::STATUS_CANCELADO => 'Cancelado',
+            self::STATUS_COMPLETO => 'Concluído',
         ];
     }
 
@@ -159,6 +179,7 @@ class CalendarEvent extends Model
             self::STATUS_INICIADO => 'ph ph-play',
             self::STATUS_FALTOU => 'ph ph-prohibit',
             self::STATUS_CANCELADO => 'ph ph-x-circle',
+            self::STATUS_COMPLETO => 'ph ph-check-circle',
             default => null,
         };
     }

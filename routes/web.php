@@ -11,6 +11,7 @@ use App\Http\Controllers\VisitController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ServiceController;
@@ -97,8 +98,12 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::put('agenda/events/{calendarEvent}', [CalendarController::class, 'update'])->name('agenda.events.update');
     Route::post('agenda/events/{calendarEvent}/update', [CalendarController::class, 'update'])->name('agenda.events.update.post');
     Route::post('agenda/events/{calendarEvent}/status', [CalendarController::class, 'updateStatus'])->name('agenda.events.status');
-    Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
-    
+Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
+    Route::get('agenda/events/{calendarEvent}/checkout', [CheckoutController::class, 'checkout'])->name('agenda.checkout');
+    Route::post('agenda/checkout', [CheckoutController::class, 'store'])->name('agenda.checkout.store');
+    Route::get('sales/{sale}/pdf', [CheckoutController::class, 'pdf'])->name('sales.pdf');
+    Route::post('sales/{sale}/revert', [CheckoutController::class, 'revert'])->name('sales.revert');
+
     // Serviços e Categorias
     Route::get('services', [CategoryController::class, 'index'])->name('services.index');
     Route::get('categories', [CategoryController::class, 'index'])->name('categories.index'); // lista em JSON para AJAX (badges)

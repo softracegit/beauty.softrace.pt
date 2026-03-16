@@ -137,10 +137,10 @@ body .app-wrapper .container-fluid {
     font-weight: 400 !important;
     padding: 0px !important;
     text-align: left !important;
-    border-radius: 8px !important;
+    border-radius: 4px !important;
     border: none !important;
     margin: 2px 0 !important;
-    box-shadow: 0 0 2px 0 #999 !important;
+    box-shadow: 0 0 2px 0 #868686 !important;
 }
 .fc-event .fc-event-main,
 .fc-event-main,
@@ -193,13 +193,27 @@ body .app-wrapper .container-fluid {
     height: 100%;
     overflow: hidden;               /* garantir que nada sai para fora do cartão */
 }
+/* Eventos de tempo pessoal: cinza claro (apenas no fc-event, como os outros) */
+.fc-event.agenda-event-tempo-pessoal {
+    background-color: #dee2e6 !important;
+}
+
 .fc-event-status-icon {
     font-size: 1rem;
     opacity: 1;
     flex-shrink: 0;
 }
+.fc-event .fc-event-status-icon-completo {
+    color: #198754;
+}
+.agenda-event-status-icon-btn {
+    cursor: pointer;
+    display: inline-flex;
+    padding: 0.1rem;
+    margin: -0.1rem 0rem -0.1rem 0;
+}
 #eventDetailStatusIcon {
-    font-size: 0.9rem;
+    font-size: 1.125rem;
 }
 .fc-daygrid-event,
 .fc-daygrid-event-harness {
@@ -246,6 +260,33 @@ body .app-wrapper .container-fluid {
 .fc-toolbar-chunk {
     margin: 0 !important;
     padding: 0 !important;
+}
+
+/* Ícones dos dropdowns de estado (detalhe do evento e menu rápido) */
+.event-detail-status-opt i,
+.agenda-status-dropdown-item i {
+    color: #212529; /* preto/neutro */
+}
+
+.event-detail-status-opt:hover i,
+.agenda-status-dropdown-item:hover i {
+    color: #212529; /* manter preto no hover */
+}
+#novaMarcacaoCancelAddServicesBtn,#eventDetailCancelAddServicesBtn {
+    line-height: 0.5 !important;
+    gap: 0 !important;
+    margin-left: 0.75rem !important;
+}
+
+/* Opção Cancelar: ícone a vermelho (normal e hover) */
+.event-detail-status-opt.text-danger i,
+.agenda-status-dropdown-item.text-danger i {
+    color: #dc3545;
+}
+
+.event-detail-status-opt.text-danger:hover i,
+.agenda-status-dropdown-item.text-danger:hover i {
+    color: #dc3545;
 }
 
 .fc-header-toolbar .fc-toolbar-chunk:last-child,
@@ -447,7 +488,7 @@ body .app-wrapper .container-fluid {
     display: inline-block !important;
     visibility: visible !important;
     opacity: 1 !important;
-    padding: 8px 8px 8px 8px !important;
+    padding: 8px 8px 2px 8px !important;
     color: var(--heading-color) !important;
 }
 
@@ -511,8 +552,8 @@ body .app-wrapper .container-fluid {
     margin-inline: auto !important;
 }
 .fc-resource-consultant-avatar {
-    width: 30px !important;
-    height: 30px !important;
+    width: 20px !important;
+    height: 20px !important;
     border-radius: 50% !important;
     object-fit: cover !important;
     flex-shrink: 0 !important;
@@ -620,47 +661,6 @@ body .app-wrapper .container-fluid {
     font-size: 1.1rem;
 }
 
-/* Modal de criar/editar evento */
-#createEventModal .modal-dialog {
-    min-height: calc(100vh - 3rem);
-    max-height: calc(100vh - 3rem);
-}
-#createEventModal .modal-content {
-    min-height: calc(100vh - 3rem);
-    max-height: calc(100vh - 3rem);
-    display: flex;
-    flex-direction: column;
-}
-#createEventModal .modal-header {
-    border-bottom: 1px solid var(--border-color) !important;
-    border-top: none;
-    flex-shrink: 0;
-}
-#createEventModal .modal-body {
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
-}
-#createEventModal .modal-footer {
-    flex-shrink: 0;
-}
-#createEventModal .modal-header {
-    padding-bottom: 0.5rem;
-    padding-top: 1rem;
-    align-items: flex-start;
-}
-#createEventModal .modal-header .modal-title {
-    flex: 1;
-    padding-right: 0.5rem;
-}
-#createEventModal .modal-body {
-    padding-top: 0;
-}
-#createEventModal h4 {
-    font-size: 1.5rem;
-    line-height: 1.3;
-}
-
 /* Quick menu popup */
 #agendaQuickMenu {
     display: none;
@@ -761,6 +761,36 @@ body .app-wrapper .container-fluid {
     color: var(--default-color, #64748b);
     text-align: center;
     line-height: 1.2;
+}
+
+/* Variante: dropdown de estado (lista simples, ícone + texto) */
+#agendaQuickMenu.agenda-status-dropdown {
+    min-width: 0;
+    width: auto;
+    padding: 0.25rem 0;
+}
+#agendaQuickMenu.agenda-status-dropdown .agenda-status-dropdown-list {
+    display: flex;
+    flex-direction: column;
+    min-width: 160px;
+}
+#agendaQuickMenu.agenda-status-dropdown .agenda-status-dropdown-item {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    border-radius: 0;
+}
+#agendaQuickMenu.agenda-status-dropdown .agenda-status-dropdown-item:hover {
+    background-color: var(--bs-dropdown-link-hover-bg, rgba(0, 0, 0, 0.05));
+}
+#agendaQuickMenu.agenda-status-dropdown .agenda-status-dropdown-item i {
+    font-size: 1rem;
+    opacity: 0.9;
 }
 
 /* Quickview do evento (hover) */
@@ -1042,7 +1072,7 @@ body .app-wrapper .container-fluid {
 /* Quick menu: Criar cliente (mesmo estilo) */
 #agendaCreateClientQuickMenu {
     display: none;
-    position: fixed;
+    position: absolute;
     z-index: 1070;
     min-width: 260px;
     width: 320px;
@@ -1201,12 +1231,18 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--heading-color);
-    margin-top: 1rem;
+    color: #000 !important;
+    margin-top: 1.5rem;
     margin-bottom: 0.5rem;
 }
 .nova-marcacao-services-category:first-child {
-    margin-top: 0;
+    margin-top: 0.5rem;
+}
+.nova-marcacao-category-count {
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: var(--bs-secondary-bg, #e9ecef);
+    color: #000 !important;
 }
 .nova-marcacao-service-item {
     display: flex;
@@ -1235,6 +1271,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 }
 .nova-marcacao-service-item-name {
     font-weight: 600;
+    color: #666 !important;
 }
 .nova-marcacao-service-item-duration {
     font-size: 0.8rem;
@@ -1244,39 +1281,56 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     font-weight: 600;
     white-space: nowrap;
     margin-left: 0.5rem;
+    color: #666 !important;
+}
+.nova-marcacao-services-list {
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 .nova-marcacao-sidebar {
-    background: var(--sidebar-hover-bg);
-    border-radius: var(--bs-border-radius-lg, 0.5rem);
-    padding: 1.25rem;
-    min-height: 100%;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Sidebar ocupa toda a altura do modal */
+#novaMarcacaoServicesCol, #eventDetailServicesCol {
+    border-left: 1px solid var(--border-color, #dee2e6);
+    padding: var(--spacing-lg);
+}
 #novaMarcacaoModal .modal-body,
 #eventDetailEditModal .modal-body {
     display: flex;
     flex-direction: column;
 }
-#novaMarcacaoModal .modal-body > .row.g-4,
-#eventDetailEditModal .modal-body > .row.g-4 {
+#novaMarcacaoModal .modal-body > .row.g-0,
+#eventDetailEditModal .modal-body > .row.g-0 {
     flex: 1;
     min-height: 0;
     align-items: stretch;
 }
-#novaMarcacaoModal .modal-body .col-lg-5:first-child,
-#eventDetailEditModal .modal-body .col-lg-5:first-child {
+#novaMarcacaoModal .modal-body .row.g-0 > .col-lg-5,
+#eventDetailEditModal .modal-body .row.g-0 > .col-lg-5 {
     display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 1.25rem;
 }
 #novaMarcacaoModal .nova-marcacao-sidebar,
 #eventDetailEditModal .nova-marcacao-sidebar {
-    flex: 1;
-    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.nova-marcacao-agent-wrap {
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--border-color, #dee2e6);
 }
 .nova-marcacao-section {
-    padding-bottom: 1.25rem;
-    margin-bottom: 1.25rem;
-    border-bottom: 1px solid var(--border-color, #dee2e6);
+    padding-bottom: 1.5rem;
+    margin-bottom: 0;
+    border-bottom: 0;
 }
 .nova-marcacao-section:last-child {
     padding-bottom: 0;
@@ -1284,13 +1338,17 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     border-bottom: none;
 }
 .nova-marcacao-section-title {
-    font-size: 0.75rem;
+    font-size: 0.80rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--muted-color, #6c757d);
+    color: #000;
     margin-bottom: 0.75rem;
     display: block;
+}
+.nova-marcacao-agent-wrap .nova-marcacao-section-title {
+    font-size: 0.65rem;
+    color: #999;
 }
 .nova-marcacao-create-client-link {
     font-size: 0.75rem;
@@ -1353,10 +1411,47 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     background: var(--sidebar-hover-bg);
 }
 
+/* Cliente: estado "adicionar" e card destacado */
+.nova-marcacao-section-client .nova-marcacao-client-add-wrap {
+    padding: 0.3rem 0.5rem;
+    border: 0;
+    background: transparent;
+}
+.nova-marcacao-client-add-icon {
+    width: 80px;
+    height: 80px;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 50%;
+    background: var(--bs-light, #e9ecef);
+    color: var(--bs-secondary, #6c757d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+}
+.nova-marcacao-section-client .nova-marcacao-client-card {
+    padding: 0.3rem 0.5rem;
+}
+.nova-marcacao-client-card-avatar-wrap {
+    display: flex;
+    justify-content: center;
+}
+.nova-marcacao-client-card .agenda-avatar-img,
+.nova-marcacao-client-card .agenda-avatar-fallback {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+}
+
 /* Modal Nova Marcação */
 #novaMarcacaoModal .modal-dialog {
     min-height: calc(100vh - 3rem);
     max-height: calc(100vh - 3rem);
+}
+#novaMarcacaoModal .modal-dialog.modal-dialog-centered {
+    align-items: flex-start;
+    margin-top: 1.5rem;
 }
 #novaMarcacaoModal .modal-content {
     display: flex;
@@ -1390,6 +1485,10 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     min-height: calc(100vh - 3rem);
     max-height: calc(100vh - 3rem);
 }
+#eventDetailEditModal .modal-dialog.modal-dialog-centered {
+    align-items: flex-start;
+    margin-top: 1.5rem;
+}
 #eventDetailEditModal .modal-content {
     display: flex;
     flex-direction: column;
@@ -1422,7 +1521,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--heading-color);
+    color: #999;
     margin-bottom: 0.5rem;
 }
 .nova-marcacao-observacoes-toggle {
@@ -1435,6 +1534,17 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     transform: rotate(180deg);
 }
 
+/* Dropdowns da data e hora - pequeno afastamento do toggle */
+#eventDetailDateDropdownMenu,
+#eventDetailTimeDropdownMenu,
+#novaMarcacaoDateDropdownMenu,
+#novaMarcacaoTimeDropdownMenu,
+#tempoPessoalDateDropdownMenu,
+#tempoPessoalStartTimeDropdownMenu,
+#tempoPessoalEndTimeDropdownMenu {
+    margin-top: 0.375rem !important;
+}
+
 /* Time toggle dropdown */
 .event-detail-time-toggle {
     color: var(--accent-color, #0d6efd);
@@ -1442,6 +1552,14 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 }
 .event-detail-time-toggle:hover {
     text-decoration: underline;
+}
+
+.event-detail-status-toggle {
+    font-weight: 400;
+    color: #6c757d;
+}
+.event-detail-status-toggle i {
+    color: inherit;
 }
 
 /* Classes para estilos anteriormente inline */
@@ -1461,4 +1579,78 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 .agenda-observacoes-chevron {
     font-size: 0.8rem;
     transition: transform 0.2s;
+}
+
+.flatpickr-calendar.inline {
+  top: -1px !important;
+}
+
+/* Modal Tempo pessoal - header e footer fixos */
+#tempoPessoalModal .modal-dialog {
+    min-height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);
+}
+#tempoPessoalModal .modal-content {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 3rem);
+    max-height: calc(100vh - 3rem);
+}
+#tempoPessoalModal .modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-color) !important;
+}
+#tempoPessoalModal #tempoPessoalForm {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+#tempoPessoalModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+#tempoPessoalModal .modal-footer {
+    flex-shrink: 0;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Tipo de tempo pessoal - cards toggle (2x2 grid) */
+.tempo-pessoal-type-toggle-wrapper {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+.tempo-pessoal-type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.75rem 0.5rem;
+    min-height: 88px;
+    text-align: center;
+    transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+.tempo-pessoal-type-card-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+.tempo-pessoal-type-card-name {
+    font-size: 0.875rem;
+    line-height: 1.2;
+}
+.tempo-pessoal-type-card-duration {
+    font-size: 0.75rem;
+}
+.tempo-pessoal-type-card:hover {
+    border-color: var(--bs-primary) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+.tempo-pessoal-type-card.active {
+    border-color: var(--bs-primary) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.12);
+    box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), 0.25);
 }

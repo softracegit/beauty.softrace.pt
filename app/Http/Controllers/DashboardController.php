@@ -9,6 +9,8 @@ use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\CalendarEventServiceExtra;
 use App\Models\Service;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -69,14 +71,17 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $porServico = CalendarEventService::query()
-            ->whereHas('event', function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
-                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
-            })
-            ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
-            ->selectRaw('services.name as service_name, count(*) as total, sum(calendar_event_services.price) as receita')
+        // Receita por serviço: apenas vendas pagas de marcações concluídas
+        $porServico = SaleItem::query()
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
+            ->leftJoin('services', 'sale_items.service_id', '=', 'services.id')
+            ->where('sales.status', Sale::STATUS_PAGO)
+            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
+            ->where('calendar_events.status', CalendarEvent::STATUS_COMPLETO)
+            ->where('sale_items.tipo', SaleItem::TIPO_SERVICO)
             ->groupBy('services.id', 'services.name')
+            ->selectRaw('services.name as service_name, count(*) as total, sum(sale_items.subtotal) as receita')
             ->orderByDesc('total')
             ->limit(8)
             ->get();
@@ -90,14 +95,14 @@ class DashboardController extends Controller
             ->get()
             ->load('user');
 
-        $receitaPorTecnico = CalendarEventService::query()
-            ->whereHas('event', function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
-                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
-            })
-            ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
-            ->selectRaw('calendar_events.user_id, sum(calendar_event_services.price) as receita')
+        // Receita por técnico: apenas vendas pagas de marcações concluídas
+        $receitaPorTecnico = Sale::query()
+            ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
+            ->where('sales.status', Sale::STATUS_PAGO)
+            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
+            ->where('calendar_events.status', CalendarEvent::STATUS_COMPLETO)
             ->groupBy('calendar_events.user_id')
+            ->selectRaw('calendar_events.user_id, sum(sales.total) as receita')
             ->get()
             ->keyBy('user_id');
 
@@ -148,20 +153,18 @@ class DashboardController extends Controller
     }
 
     /**
-     * Receita total de marcações (serviços + extras) entre duas datas.
+     * Receita total entre duas datas baseada em vendas pagas de marcações concluídas.
      */
     private function receitaMarcacoesEntre(Carbon $start, Carbon $end): float
     {
-        $eventIds = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereBetween('start_at', [$start, $end])
-            ->pluck('id');
-
-        $servicos = CalendarEventService::whereIn('calendar_event_id', $eventIds)->sum('price');
-        $cesIds = CalendarEventService::whereIn('calendar_event_id', $eventIds)->pluck('id');
-        $extras = CalendarEventServiceExtra::whereIn('calendar_event_service_id', $cesIds)->sum('price');
-
-        return (float) $servicos + (float) $extras;
+        return (float) Sale::query()
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function ($q) use ($start, $end) {
+                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', CalendarEvent::STATUS_COMPLETO)
+                    ->whereBetween('start_at', [$start, $end]);
+            })
+            ->sum('total');
     }
 
     /**
@@ -298,34 +301,23 @@ class DashboardController extends Controller
     }
 
     /**
-     * Receita total por client_id (serviços + extras), apenas marcações não canceladas.
+     * Receita total por client_id baseada em vendas concluídas (pagas) de marcações completas.
      */
     private function receitaPorCliente()
     {
-        $servicos = CalendarEventService::query()
-            ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
-            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereNotNull('calendar_events.client_id')
-            ->groupBy('calendar_events.client_id')
-            ->selectRaw('calendar_events.client_id, sum(calendar_event_services.price) as total')
-            ->pluck('total', 'client_id');
-
-        $extras = CalendarEventServiceExtra::query()
-            ->join('calendar_event_services', 'calendar_event_service_extras.calendar_event_service_id', '=', 'calendar_event_services.id')
-            ->join('calendar_events', 'calendar_events.id', '=', 'calendar_event_services.calendar_event_id')
-            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereNotNull('calendar_events.client_id')
-            ->groupBy('calendar_events.client_id')
-            ->selectRaw('calendar_events.client_id, sum(calendar_event_service_extras.price) as total')
-            ->pluck('total', 'client_id');
-
-        $allIds = $servicos->keys()->merge($extras->keys())->unique();
-        return $allIds->mapWithKeys(function ($id) use ($servicos, $extras) {
-            $idInt = (int) $id;
-            return [$idInt => (float) ($servicos->get($id, 0) + $extras->get($id, 0))];
-        });
+        return Sale::query()
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereNotNull('client_id')
+            ->whereHas('calendarEvent', function ($q) {
+                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', CalendarEvent::STATUS_COMPLETO);
+            })
+            ->groupBy('client_id')
+            ->selectRaw('client_id, sum(total) as total')
+            ->pluck('total', 'client_id')
+            ->mapWithKeys(function ($total, $clientId) {
+                return [(int) $clientId => (float) $total];
+            });
     }
 
     /**

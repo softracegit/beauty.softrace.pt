@@ -116,16 +116,26 @@
 
       <!-- User Dropdown -->
       <div class="header-action dropdown user-dropdown">
+        @php
+          $authUser = auth()->user();
+          $authAgent = $authUser?->agent;
+          if ($authAgent && $authAgent->avatar) {
+              $userAvatar = asset('storage/' . $authAgent->avatar);
+          } else {
+              $avatarNum = $authUser ? (($authUser->id % 9) + 1) : 1;
+              $userAvatar = asset("template/img/avatars/avatar-{$avatarNum}.webp");
+          }
+        @endphp
         <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-          <img src="{{ asset('template/img/profile-img.webp') }}" alt="User" class="avatar">
+          <img src="{{ $userAvatar }}" alt="{{ $authUser->name ?? 'User' }}" class="avatar">
           <span class="avatar-status"></span>
         </button>
         <div class="dropdown-menu dropdown-menu-end">
           <div class="user-dropdown-header">
-            <img src="{{ asset('template/img/profile-img.webp') }}" alt="User" class="user-dropdown-avatar">
+            <img src="{{ $userAvatar }}" alt="{{ $authUser->name ?? 'User' }}" class="user-dropdown-avatar">
             <div class="user-dropdown-info">
-              <h6>{{ auth()->user()->name ?? 'User' }}</h6>
-              <span>{{ auth()->user()->email ?? '' }}</span>
+              <h6>{{ $authUser->name ?? 'User' }}</h6>
+              <span>{{ $authUser->email ?? '' }}</span>
             </div>
           </div>
           <div class="user-dropdown-body">

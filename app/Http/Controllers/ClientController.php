@@ -10,6 +10,7 @@ use App\Models\CalendarEventServiceExtra;
 use App\Models\Client;
 use App\Models\Local;
 use App\Models\Note;
+use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -133,51 +134,184 @@ class ClientController extends Controller
     /**
      * Display the specified client.
      */
-    public function show(Client $cliente)
+    public function show(Request $request, Client $cliente)
     {
         $cliente->load('notes.user');
 
         $today = now()->startOfDay();
-        $marcacoes = $cliente->calendarEvents()
-            ->where('event_type', \App\Models\CalendarEvent::TYPE_MARCACAO)
-            ->where('status', '!=', \App\Models\CalendarEvent::STATUS_CANCELADO)
+
+        // Filtros Marcações
+        $marcacoesDesde = $request->get('marcacoes_desde');
+        $marcacoesAte = $request->get('marcacoes_ate');
+        $marcacoesServico = $request->get('marcacoes_servico');
+        $marcacoesTecnico = $request->get('marcacoes_tecnico');
+
+        // Filtros Vendas
+        $vendasDesde = $request->get('vendas_desde');
+        $vendasAte = $request->get('vendas_ate');
+        $vendasServico = $request->get('vendas_servico');
+        $vendasTecnico = $request->get('vendas_tecnico');
+
+        // Base query marcações
+        $marcacoesQuery = $cliente->calendarEvents()
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
+
+        if ($marcacoesDesde) {
+            $marcacoesQuery->whereDate('start_at', '>=', $marcacoesDesde);
+        }
+        if ($marcacoesAte) {
+            $marcacoesQuery->whereDate('start_at', '<=', $marcacoesAte);
+        }
+
+        if ($marcacoesServico) {
+            $marcacoesQuery->whereHas('eventServiceItems', fn ($q) => $q->where('service_id', $marcacoesServico));
+        }
+        if ($marcacoesTecnico) {
+            $marcacoesQuery->where('user_id', $marcacoesTecnico);
+        }
+
+        $marcacoes = $marcacoesQuery
             ->with(['user', 'eventServiceItems.service', 'eventServiceItems.extras.extra'])
             ->orderByDesc('start_at')
-            ->limit(100)
+            ->limit(200)
             ->get();
 
-        // Vendas: linhas com data, serviço, quantidade, preço (de marcações realizadas)
-        $vendas = $cliente->calendarEvents()
-            ->where('event_type', \App\Models\CalendarEvent::TYPE_MARCACAO)
-            ->where('status', '!=', \App\Models\CalendarEvent::STATUS_CANCELADO)
-            ->where('start_at', '<', $today)
-            ->with(['eventServiceItems.service', 'eventServiceItems.extras.extra'])
-            ->orderByDesc('start_at')
+        // Base query vendas: apenas vendas concluídas (pagas) de marcações não canceladas
+        $vendasQuery = Sale::query()
+            ->where('client_id', $cliente->id)
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function ($q) {
+                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
+            });
+
+        if ($vendasDesde) {
+            // Filtrar por data de emissão da venda
+            $vendasQuery->whereDate('data_emissao', '>=', $vendasDesde);
+        }
+        if ($vendasAte) {
+            $vendasQuery->whereDate('data_emissao', '<=', $vendasAte);
+        }
+
+        if ($vendasServico) {
+            // Filtrar vendas que tenham pelo menos um item de serviço com este ID
+            $vendasQuery->whereHas('items', function ($q) use ($vendasServico) {
+                $q->where('tipo', 'servico')
+                    ->where('service_id', $vendasServico);
+            });
+        }
+        if ($vendasTecnico) {
+            $vendasQuery->whereHas('calendarEvent', function ($q) use ($vendasTecnico) {
+                $q->where('user_id', $vendasTecnico);
+            });
+        }
+
+        $vendas = $vendasQuery
+            ->with(['calendarEvent', 'items.service', 'items.extra'])
+            ->orderByDesc('data_emissao')
             ->get()
-            ->flatMap(function ($event) {
+            ->flatMap(function (Sale $sale) use ($vendasServico) {
                 $lines = [];
-                foreach ($event->eventServiceItems as $es) {
-                    $lines[] = (object)[
-                        'data' => $event->start_at,
-                        'servico' => $es->service?->name ?? '—',
-                        'quantidade' => 1,
-                        'preco' => (float) $es->price,
-                        'tipo' => 'servico',
-                    ];
-                    foreach ($es->extras ?? [] as $extra) {
-                        $lines[] = (object)[
-                            'data' => $event->start_at,
-                            'servico' => $extra->extra?->name ?? '—',
-                            'quantidade' => 1,
-                            'preco' => (float) $extra->price,
-                            'tipo' => 'extra',
-                        ];
-                    }
+
+                // Se houver filtro de serviço, mapear os calendar_event_service_id relevantes
+                $filteredCesIds = null;
+                if ($vendasServico) {
+                    $filteredCesIds = $sale->items
+                        ->where('tipo', 'servico')
+                        ->where('service_id', (int) $vendasServico)
+                        ->pluck('calendar_event_service_id')
+                        ->filter()
+                        ->all();
                 }
+
+                $firstItemId = optional($sale->items->first())->id;
+
+                foreach ($sale->items as $item) {
+                    // Aplicar filtro de serviço a nível de linha
+                    if ($vendasServico) {
+                        if ($item->tipo === 'servico' && (int) $item->service_id !== (int) $vendasServico) {
+                            continue;
+                        }
+                        if ($item->tipo === 'extra' && $filteredCesIds !== null && !in_array($item->calendar_event_service_id, $filteredCesIds, true)) {
+                            continue;
+                        }
+                    }
+
+                    $label = $item->descricao;
+                    if ($item->tipo === 'servico' && $item->service) {
+                        $label = $item->service->name;
+                    } elseif ($item->tipo === 'extra' && $item->extra) {
+                        $label = $item->extra->name;
+                    }
+
+                    $gorjetaLinha = 0.0;
+                    // A gorjeta é mostrada apenas na primeira linha da venda
+                    if ($firstItemId && $item->id === $firstItemId) {
+                        $gorjetaLinha = (float) ($sale->gorjeta ?? 0);
+                    }
+
+                    $lines[] = (object)[
+                        'data' => $sale->calendarEvent?->start_at ?? $sale->data_emissao,
+                        'servico' => $label ?? '—',
+                        'quantidade' => (int) $item->quantidade,
+                        'preco' => (float) $item->preco_unitario,
+                        'gorjeta' => $gorjetaLinha,
+                        'tipo' => $item->tipo,
+                    ];
+                }
+
                 return $lines;
             });
 
+        // Opções para dropdowns (serviços e técnicos presentes nos dados do cliente)
+        $servicosCliente = \App\Models\Service::query()
+            ->join('calendar_event_services', 'services.id', '=', 'calendar_event_services.service_id')
+            ->join('calendar_events', 'calendar_events.id', '=', 'calendar_event_services.calendar_event_id')
+            ->where('calendar_events.client_id', $cliente->id)
+            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
+            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
+            ->select('services.id', 'services.name')
+            ->distinct()
+            ->orderBy('services.name')
+            ->get();
+
+        $tecnicosCliente = \App\Models\User::query()
+            ->join('calendar_events', 'calendar_events.user_id', '=', 'users.id')
+            ->where('calendar_events.client_id', $cliente->id)
+            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
+            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
+            ->select('users.id', 'users.name')
+            ->distinct()
+            ->orderBy('users.name')
+            ->get();
+
         $stats = $this->buildClientStats($cliente);
+
+        // KPIs de receita: considerar apenas marcações com vendas concluídas (pagas)
+        $totalGasto = Sale::query()
+            ->where('client_id', $cliente->id)
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function ($q) {
+                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
+            })
+            ->sum('total');
+
+        $totalMarcacoesComVenda = Sale::query()
+            ->where('client_id', $cliente->id)
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function ($q) {
+                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
+            })
+            ->distinct('calendar_event_id')
+            ->count('calendar_event_id');
+
+        $ticketMedio = $totalMarcacoesComVenda > 0
+            ? (float) $totalGasto / $totalMarcacoesComVenda
+            : null;
+
         $agents = Agent::where('status', Agent::STATUS_ACTIVE)
             ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
             ->with('user')
@@ -189,7 +323,19 @@ class ClientController extends Controller
             'marcacoes',
             'vendas',
             'stats',
-            'agents'
+            'totalGasto',
+            'ticketMedio',
+            'agents',
+            'marcacoesDesde',
+            'marcacoesAte',
+            'marcacoesServico',
+            'marcacoesTecnico',
+            'vendasDesde',
+            'vendasAte',
+            'vendasServico',
+            'vendasTecnico',
+            'servicosCliente',
+            'tecnicosCliente'
         ));
     }
 
@@ -329,19 +475,21 @@ class ClientController extends Controller
             $date = now()->subMonths($i);
             $start = $date->copy()->startOfMonth();
             $end = $date->copy()->endOfMonth();
-            $eventIds = (clone $marcacoesBase)
-                ->whereBetween('start_at', [$start, $end])
-                ->pluck('id');
-            $receita = 0;
-            if ($eventIds->isNotEmpty()) {
-                $servicos = CalendarEventService::whereIn('calendar_event_id', $eventIds)->sum('price');
-                $cesIds = CalendarEventService::whereIn('calendar_event_id', $eventIds)->pluck('id');
-                $extras = CalendarEventServiceExtra::whereIn('calendar_event_service_id', $cesIds)->sum('price');
-                $receita = (float) $servicos + (float) $extras;
-            }
+
+            // Receita mensal: apenas marcações com vendas concluídas (pagas)
+            $receita = Sale::query()
+                ->where('client_id', $cliente->id)
+                ->where('status', Sale::STATUS_PAGO)
+                ->whereHas('calendarEvent', function ($q) use ($start, $end) {
+                    $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                        ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
+                        ->whereBetween('start_at', [$start, $end]);
+                })
+                ->sum('total');
+
             $receitaPorMes[] = [
                 'month' => $date->locale('pt_PT')->translatedFormat('M Y'),
-                'revenue' => round($receita, 2),
+                'revenue' => round((float) $receita, 2),
             ];
         }
 

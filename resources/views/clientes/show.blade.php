@@ -179,6 +179,44 @@
 
                 <!-- Marcações Tab -->
                 <div class="tab-pane fade" id="tab-marcacoes">
+                    <form method="GET" action="{{ route('clientes.show', $cliente) }}" class="d-flex flex-wrap align-items-end gap-2 mb-3" data-tab-target="tab-marcacoes">
+                        <input type="hidden" name="active_tab" value="tab-marcacoes">
+                        <input type="hidden" name="vendas_desde" value="{{ $vendasDesde ?? '' }}">
+                        <input type="hidden" name="vendas_ate" value="{{ $vendasAte ?? '' }}">
+                        <input type="hidden" name="vendas_servico" value="{{ $vendasServico ?? '' }}">
+                        <input type="hidden" name="vendas_tecnico" value="{{ $vendasTecnico ?? '' }}">
+                        <div class="mb-0">
+                            <label class="form-label small text-muted mb-0">Desde</label>
+                            <input type="date" name="marcacoes_desde" class="form-control form-control-sm" value="{{ $marcacoesDesde ?? '' }}">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small text-muted mb-0">Até</label>
+                            <input type="date" name="marcacoes_ate" class="form-control form-control-sm" value="{{ $marcacoesAte ?? '' }}">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small text-muted mb-0">Serviço</label>
+                            <select name="marcacoes_servico" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                @foreach($servicosCliente ?? [] as $svc)
+                                <option value="{{ $svc->id }}" {{ ($marcacoesServico ?? '') == $svc->id ? 'selected' : '' }}>{{ $svc->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small text-muted mb-0">Técnico</label>
+                            <select name="marcacoes_tecnico" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                @foreach($tecnicosCliente ?? [] as $tec)
+                                <option value="{{ $tec->id }}" {{ ($marcacoesTecnico ?? '') == $tec->id ? 'selected' : '' }}>{{ $tec->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ph ph-magnifying-glass"></i>
+                            </button>
+                        </div>
+                    </form>
                     @if($marcacoes->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-sm table-hover">
@@ -221,6 +259,44 @@
 
                 <!-- Vendas Tab -->
                 <div class="tab-pane fade" id="tab-vendas">
+                    <form method="GET" action="{{ route('clientes.show', $cliente) }}" class="d-flex flex-wrap align-items-end gap-2 mb-3" data-tab-target="tab-vendas">
+                        <input type="hidden" name="active_tab" value="tab-vendas">
+                        <input type="hidden" name="marcacoes_desde" value="{{ $marcacoesDesde ?? '' }}">
+                        <input type="hidden" name="marcacoes_ate" value="{{ $marcacoesAte ?? '' }}">
+                        <input type="hidden" name="marcacoes_servico" value="{{ $marcacoesServico ?? '' }}">
+                        <input type="hidden" name="marcacoes_tecnico" value="{{ $marcacoesTecnico ?? '' }}">
+                        <div class="mb-0">
+                            <label class="form-label small text-muted mb-0">Desde</label>
+                            <input type="date" name="vendas_desde" class="form-control form-control-sm" value="{{ $vendasDesde ?? '' }}">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small text-muted mb-0">Até</label>
+                            <input type="date" name="vendas_ate" class="form-control form-control-sm" value="{{ $vendasAte ?? '' }}">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small text-muted mb-0">Serviço</label>
+                            <select name="vendas_servico" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                @foreach($servicosCliente ?? [] as $svc)
+                                <option value="{{ $svc->id }}" {{ ($vendasServico ?? '') == $svc->id ? 'selected' : '' }}>{{ $svc->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small text-muted mb-0">Técnico</label>
+                            <select name="vendas_tecnico" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                @foreach($tecnicosCliente ?? [] as $tec)
+                                <option value="{{ $tec->id }}" {{ ($vendasTecnico ?? '') == $tec->id ? 'selected' : '' }}>{{ $tec->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-0">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ph ph-magnifying-glass"></i>
+                            </button>
+                        </div>
+                    </form>
                     @if($vendas->count() > 0)
                         <div class="table-responsive">
                             <table class="table table-sm table-hover">
@@ -229,13 +305,17 @@
                                         <th>Data</th>
                                         <th>Serviço</th>
                                         <th class="text-center">Qtd</th>
+                                        <th class="text-end">Gorjeta</th>
                                         <th class="text-end">Preço</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @php $totalVendas = 0; @endphp
                                     @foreach($vendas as $linha)
-                                        @php $totalVendas += $linha->preco * $linha->quantidade; @endphp
+                                        @php
+                                            $linhaTotal = ($linha->preco * $linha->quantidade) + ($linha->gorjeta ?? 0);
+                                            $totalVendas += $linhaTotal;
+                                        @endphp
                                         <tr>
                                             <td>{{ $linha->data->format('d/m/Y H:i') }}</td>
                                             <td>
@@ -245,13 +325,20 @@
                                                 @endif
                                             </td>
                                             <td class="text-center">{{ $linha->quantidade }}</td>
+                                            <td class="text-end">
+                                                @if(($linha->gorjeta ?? 0) > 0)
+                                                    {{ number_format($linha->gorjeta, 2, ',', ' ') }} €
+                                                @else
+                                                    —
+                                                @endif
+                                            </td>
                                             <td class="text-end">{{ number_format($linha->preco, 2, ',', ' ') }} €</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-light fw-semibold">
-                                        <td colspan="3" class="text-end">Total</td>
+                                        <td colspan="4" class="text-end">Total</td>
                                         <td class="text-end">{{ number_format($totalVendas, 2, ',', ' ') }} €</td>
                                     </tr>
                                 </tfoot>
@@ -411,9 +498,7 @@
     <!-- Sidebar -->
     <div>
         @php
-            $totalGasto = $vendas->sum(fn($l) => $l->preco * $l->quantidade);
             $s = $stats ?? null;
-            $ticketMedio = ($s && $s->totalMarcacoes > 0) ? ($totalGasto / $s->totalMarcacoes) : null;
         @endphp
         {{-- Resumo / KPIs --}}
         <div class="card mb-3">
@@ -436,7 +521,7 @@
                     </div>
                     <div class="uview-status-item">
                         <span class="uview-status-label">Total gasto</span>
-                        <span class="uview-status-value">{{ number_format($totalGasto, 2, ',', ' ') }} €</span>
+                        <span class="uview-status-value">{{ number_format($totalGasto ?? 0, 2, ',', ' ') }} €</span>
                     </div>
                     <div class="uview-status-item">
                         <span class="uview-status-label">Ticket médio</span>
@@ -476,8 +561,13 @@
 <script>
 (function() {
     const hash = window.location.hash;
+    const params = new URLSearchParams(window.location.search);
+    const activeTabParam = params.get('active_tab');
     const validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-notas'];
-    const tabId = hash && validTabs.includes(hash.slice(1)) ? hash.slice(1) : null;
+    var tabId = hash && validTabs.includes(hash.slice(1)) ? hash.slice(1) : null;
+    if (!tabId && activeTabParam && validTabs.includes(activeTabParam)) {
+        tabId = activeTabParam;
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         const tabList = document.querySelector('.uview-tabs');
