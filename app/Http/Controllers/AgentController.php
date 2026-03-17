@@ -117,6 +117,12 @@ class AgentController extends Controller
 
         $agente->load(['notes.user', 'user']);
 
+        $activities = $agente->activities()
+            ->with('causer')
+            ->latest()
+            ->limit(100)
+            ->get();
+
         $marcacoes = collect();
         $vendas = collect();
 
@@ -163,7 +169,7 @@ class AgentController extends Controller
                 });
         }
 
-        return view('agentes.show', compact('agente', 'marcacoes', 'vendas'));
+        return view('agentes.show', compact('agente', 'activities', 'marcacoes', 'vendas'));
     }
 
     /**
