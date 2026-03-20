@@ -8,9 +8,117 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Models\Activity;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class CalendarEvent extends Model
 {
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly([
+                'title',
+                'start_at',
+                'end_at',
+                'description',
+                'user_id',
+                'client_id',
+                'service_id',
+                'event_type',
+                'personal_time_type_id',
+                'status',
+                'cancellation_reason',
+                'cancellation_type',
+                'refund_reserva',
+                'avisou_dentro_prazo',
+                'eventable_type',
+                'eventable_id',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'Evento criado na agenda',
+                'updated' => 'Marcação atualizada',
+                'deleted' => 'Evento eliminado da agenda',
+                default => 'Evento da agenda alterado',
+            });
+    }
+
+    public function tapActivity(Activity $activity, string $eventName): void
+    {
+        if ($eventName === 'created') {
+            $activity->description = match ($this->event_type) {
+                self::TYPE_MARCACAO => 'Marcação criada',
+                self::TYPE_TEMPO_PESSOAL => 'Tempo pessoal criado',
+                self::TYPE_MANUAL, self::TYPE_OUTRO => 'Evento manual criado',
+                self::TYPE_VISITA => 'Visita agendada',
+                self::TYPE_LEAD => 'Evento de lead criado',
+                default => 'Evento criado na agenda',
+            };
+        } elseif ($eventName === 'updated') {
+            $activity->description = $this->describeActivityUpdate();
+        } elseif ($eventName === 'deleted') {
+            $activity->description = match ($this->event_type) {
+                self::TYPE_MARCACAO => 'Marcação eliminada',
+                self::TYPE_TEMPO_PESSOAL => 'Tempo pessoal eliminado',
+                default => 'Evento eliminado da agenda',
+            };
+        }
+    }
+
+    protected function describeActivityUpdate(): string
+    {
+        $changed = array_values(array_diff(array_keys($this->getChanges()), ['updated_at']));
+        if ($changed === []) {
+            return 'Marcação atualizada';
+        }
+        sort($changed);
+
+        $cancelFields = ['cancellation_reason', 'cancellation_type', 'refund_reserva', 'avisou_dentro_prazo'];
+        $hasCancel = count(array_intersect($changed, $cancelFields)) > 0;
+        $hasStatus = in_array('status', $changed, true);
+
+        if ($hasCancel && $hasStatus) {
+            return 'Estado e dados de cancelamento/falta atualizados';
+        }
+        if ($hasCancel) {
+            return 'Dados de cancelamento/falta atualizados';
+        }
+        if ($hasStatus && count($changed) === 1) {
+            return 'Estado da marcação alterado';
+        }
+
+        if ($changed === ['end_at', 'start_at']) {
+            return 'Data e hora da marcação alteradas';
+        }
+        if (count($changed) === 1) {
+            return match ($changed[0]) {
+                'start_at' => 'Horário de início alterado',
+                'end_at' => 'Horário de fim alterado',
+                'user_id' => 'Marcação transferida para outro técnico',
+                'status' => 'Estado da marcação alterado',
+                'client_id' => 'Cliente da marcação alterado',
+                'title' => 'Título do evento alterado',
+                'description' => 'Observações alteradas',
+                'event_type' => 'Tipo de evento alterado',
+                'service_id' => 'Serviço principal alterado',
+                'personal_time_type_id' => 'Tipo de tempo pessoal alterado',
+                'eventable_type' => 'Origem do evento alterada',
+                'eventable_id' => 'Origem do evento alterada',
+                default => 'Marcação atualizada',
+            };
+        }
+
+        if (! array_diff($changed, ['start_at', 'end_at']) && count($changed) <= 2) {
+            return 'Data e hora da marcação alteradas';
+        }
+
+        return 'Marcação atualizada';
+    }
+
     public const TYPE_MANUAL = 'manual';
     public const TYPE_OUTRO = 'outro';
     public const TYPE_MARCACAO = 'marcacao';

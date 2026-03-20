@@ -27,7 +27,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('services', function (Blueprint $table) {
-            $table->enum('commission_type', ['percent', 'fixed'])->default('percent')->after('promo_price');
+            $table->enum('commission_type', ['percent', 'fixed'])->default('percent')->after('online_price');
             $table->decimal('commission_value', 10, 2)->after('commission_type');
             $table->boolean('is_active')->default(true)->after('commission_value');
             $table->boolean('is_visible_online')->default(false)->after('is_active');

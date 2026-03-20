@@ -16,6 +16,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ExtraController;
+use App\Http\Controllers\ActivityLogController;
 
 // Rotas de autenticação (públicas)
 Route::middleware('guest')->group(function () {
@@ -40,6 +41,8 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
     Route::get('/dashboard/clientes', [DashboardController::class, 'clientes'])->name('dashboard.clientes');
     Route::get('/dashboard/ocupacao', [DashboardController::class, 'ocupacao'])->name('dashboard.ocupacao');
+
+    Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
     Route::resource('clientes', ClientController::class);
     Route::post('clientes/{cliente}/notes', [ClientController::class, 'storeNote'])->name('clientes.storeNote');

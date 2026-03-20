@@ -63,6 +63,7 @@
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-marcacoes">Marcações</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-vendas">Vendas</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-estatisticas">Estatísticas</button>
+                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-log">Atividade</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-notas">Notas</button>
             </div>
             <div class="card-body tab-content">
@@ -194,15 +195,15 @@
                         <input type="hidden" name="vendas_ate" value="{{ $vendasAte ?? '' }}">
                         <input type="hidden" name="vendas_servico" value="{{ $vendasServico ?? '' }}">
                         <input type="hidden" name="vendas_tecnico" value="{{ $vendasTecnico ?? '' }}">
-                        <div class="mb-0">
+                        <div class="mb-0 flex-shrink-0" style="min-width: 150px;">
                             <label class="form-label small text-muted mb-0">Desde</label>
-                            <input type="date" name="marcacoes_desde" class="form-control form-control-sm" value="{{ $marcacoesDesde ?? '' }}">
+                            <input type="text" name="marcacoes_desde" class="form-control form-control-sm" value="{{ $marcacoesDesde ?? '' }}">
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 flex-shrink-0" style="min-width: 150px;">
                             <label class="form-label small text-muted mb-0">Até</label>
-                            <input type="date" name="marcacoes_ate" class="form-control form-control-sm" value="{{ $marcacoesAte ?? '' }}">
+                            <input type="text" name="marcacoes_ate" class="form-control form-control-sm" value="{{ $marcacoesAte ?? '' }}">
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 flex-grow-1" style="min-width: 180px;">
                             <label class="form-label small text-muted mb-0">Serviço</label>
                             <select name="marcacoes_servico" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -211,7 +212,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 flex-grow-1" style="min-width: 160px;">
                             <label class="form-label small text-muted mb-0">Técnico</label>
                             <select name="marcacoes_tecnico" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -220,7 +221,18 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 flex-grow-1" style="min-width: 160px;">
+                            <label class="form-label small text-muted mb-0">Estado</label>
+                            <select name="marcacoes_estado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                @foreach(\App\Models\CalendarEvent::statuses() as $key => $label)
+                                    @if($key !== \App\Models\CalendarEvent::STATUS_CANCELADO)
+                                        <option value="{{ $key }}" {{ ($marcacoesEstado ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-0 flex-shrink-0">
                             <button type="submit" class="btn btn-primary">
                                 <i class="ph ph-magnifying-glass"></i>
                             </button>
@@ -274,15 +286,16 @@
                         <input type="hidden" name="marcacoes_ate" value="{{ $marcacoesAte ?? '' }}">
                         <input type="hidden" name="marcacoes_servico" value="{{ $marcacoesServico ?? '' }}">
                         <input type="hidden" name="marcacoes_tecnico" value="{{ $marcacoesTecnico ?? '' }}">
-                        <div class="mb-0">
+                        <input type="hidden" name="marcacoes_estado" value="{{ $marcacoesEstado ?? '' }}">
+                        <div class="mb-0 flex-shrink-0" style="min-width: 150px;">
                             <label class="form-label small text-muted mb-0">Desde</label>
                             <input type="date" name="vendas_desde" class="form-control form-control-sm" value="{{ $vendasDesde ?? '' }}">
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 flex-shrink-0" style="min-width: 150px;">
                             <label class="form-label small text-muted mb-0">Até</label>
                             <input type="date" name="vendas_ate" class="form-control form-control-sm" value="{{ $vendasAte ?? '' }}">
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 flex-grow-1" style="min-width: 180px;">
                             <label class="form-label small text-muted mb-0">Serviço</label>
                             <select name="vendas_servico" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -291,7 +304,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 flex-grow-1" style="min-width: 160px;">
                             <label class="form-label small text-muted mb-0">Técnico</label>
                             <select name="vendas_tecnico" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -300,7 +313,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0">
+                        <div class="mb-0 flex-shrink-0">
                             <button type="submit" class="btn btn-primary">
                                 <i class="ph ph-magnifying-glass"></i>
                             </button>
@@ -449,6 +462,70 @@
                     @endif
                 </div>
 
+                <!-- Atividade (logs) Tab -->
+                <div class="tab-pane fade" id="tab-log">
+                    <h6 class="mb-3">Histórico de alterações</h6>
+                    @if(isset($activities) && $activities->count() > 0)
+                        <div class="activity-log">
+                            @foreach($activities as $activity)
+                                @php
+                                    $eventIcon = match($activity->event ?? '') {
+                                        'created' => 'ph ph-plus-circle',
+                                        'updated' => 'ph ph-pencil-simple',
+                                        'deleted' => 'ph ph-trash',
+                                        default => 'ph ph-info',
+                                    };
+                                    $eventClass = match($activity->event ?? '') {
+                                        'created' => 'bg-success-light text-success',
+                                        'updated' => 'bg-primary-light text-primary',
+                                        'deleted' => 'bg-danger-light text-danger',
+                                        default => 'bg-secondary-light text-secondary',
+                                    };
+                                @endphp
+                                <div class="activity-item">
+                                    <div class="activity-icon {{ $eventClass }}">
+                                        <i class="{{ $eventIcon }}"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <div class="activity-title">{{ $activity->description ?? 'Alteração' }}</div>
+                                        @if($activity->event === 'updated' && $activity->properties)
+                                            @php
+                                                $props = $activity->properties;
+                                                $attrs = is_object($props) ? $props->get('attributes', []) : ($props['attributes'] ?? []);
+                                                $old = is_object($props) ? $props->get('old', []) : ($props['old'] ?? []);
+                                                $attrs = is_array($attrs) ? $attrs : (method_exists($attrs, 'toArray') ? $attrs->toArray() : []);
+                                                $old = is_array($old) ? $old : (method_exists($old, 'toArray') ? $old->toArray() : []);
+                                            @endphp
+                                            @if(!empty($attrs) || !empty($old))
+                                                <div class="activity-description small text-muted">
+                                                    @foreach(array_keys($attrs + $old) as $attr)
+                                                        @if(in_array($attr, ['password'], true)) @continue @endif
+                                                        @php
+                                                            $newVal = $attrs[$attr] ?? null;
+                                                            $oldVal = $old[$attr] ?? null;
+                                                        @endphp
+                                                        @if($oldVal != $newVal)
+                                                            <span class="d-block">{{ $attr }}: {{ is_bool($oldVal) ? ($oldVal ? 'Sim' : 'Não') : (strlen((string)$oldVal) > 50 ? substr($oldVal, 0, 50).'…' : $oldVal) }} → {{ is_bool($newVal) ? ($newVal ? 'Sim' : 'Não') : (strlen((string)$newVal) > 50 ? substr($newVal, 0, 50).'…' : $newVal) }}</span>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        @endif
+                                        <div class="activity-time">
+                                            <i class="ph ph-clock"></i> {{ $activity->created_at->format('d/m/Y H:i') }}
+                                            @if($activity->causer)
+                                                por {{ $activity->causer->name }}
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-muted text-center py-3">Nenhuma atividade registada.</p>
+                    @endif
+                </div>
+
                 <!-- Notas Tab -->
                 <div class="tab-pane fade" id="tab-notas">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -565,14 +642,14 @@
 @include('partials.note-form-modal', ['route' => route('clientes.storeNote', $cliente), 'modelName' => 'cliente'])
 
 @endsection
-
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/pt.js"></script>
 <script>
 (function() {
     const hash = window.location.hash;
     const params = new URLSearchParams(window.location.search);
     const activeTabParam = params.get('active_tab');
-    const validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-notas'];
+    const validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
     var tabId = hash && validTabs.includes(hash.slice(1)) ? hash.slice(1) : null;
     if (!tabId && activeTabParam && validTabs.includes(activeTabParam)) {
         tabId = activeTabParam;
@@ -580,24 +657,43 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         const tabList = document.querySelector('.uview-tabs');
-        if (!tabList) return;
-
-        if (tabId) {
-            const trigger = document.querySelector('[data-bs-target="#' + tabId + '"]');
-            if (trigger && typeof bootstrap !== 'undefined') {
-                bootstrap.Tab.getOrCreateInstance(trigger).show();
+        if (tabList) {
+            if (tabId) {
+                const trigger = document.querySelector('[data-bs-target="#' + tabId + '"]');
+                if (trigger && typeof bootstrap !== 'undefined') {
+                    bootstrap.Tab.getOrCreateInstance(trigger).show();
+                }
             }
+
+            tabList.addEventListener('shown.bs.tab', function(e) {
+                const target = e.target.getAttribute('data-bs-target');
+                if (target && target.startsWith('#')) {
+                    history.replaceState(null, '', window.location.pathname + target);
+                }
+                if (target === '#tab-estatisticas' && typeof initStatsCharts === 'function') {
+                    initStatsCharts();
+                }
+            });
         }
 
-        tabList.addEventListener('shown.bs.tab', function(e) {
-            const target = e.target.getAttribute('data-bs-target');
-            if (target && target.startsWith('#')) {
-                history.replaceState(null, '', window.location.pathname + target);
+        if (typeof flatpickr !== 'undefined') {
+            const desdeInput = document.querySelector('input[name="marcacoes_desde"]');
+            const ateInput = document.querySelector('input[name="marcacoes_ate"]');
+            if (desdeInput) {
+                flatpickr(desdeInput, {
+                    dateFormat: 'Y-m-d',
+                    allowInput: true,
+                    locale: (window.flatpickr?.l10ns?.pt) || undefined
+                });
             }
-            if (target === '#tab-estatisticas' && typeof initStatsCharts === 'function') {
-                initStatsCharts();
+            if (ateInput) {
+                flatpickr(ateInput, {
+                    dateFormat: 'Y-m-d',
+                    allowInput: true,
+                    locale: (window.flatpickr?.l10ns?.pt) || undefined
+                });
             }
-        });
+        }
     });
 })();
 @if(isset($stats) && $stats)

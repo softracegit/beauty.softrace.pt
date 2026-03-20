@@ -11,7 +11,7 @@
     <nav class="sidebar-iconbar-nav">
       <ul class="iconbar-menu">
         <li>
-          <a href="{{ route('dashboard') }}" class="iconbar-item {{ request()->routeIs('dashboard*') ? 'active' : '' }}" data-panel="dashboard" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
+          <a href="{{ route('dashboard') }}" class="iconbar-item {{ request()->routeIs('dashboard*') ? 'active' : '' }}" data-panel="dashboard" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
             <i class="ph ph-house"></i>
           </a>
         </li>
@@ -26,12 +26,12 @@
           </button>
         </li>
         <li>
-          <a href="{{ route('clientes.index') }}" class="iconbar-item {{ request()->routeIs('clientes.*') ? 'active' : '' }}" data-panel="clientes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Clientes" aria-label="Clientes">
+          <a href="{{ route('clientes.index') }}" class="iconbar-item {{ request()->routeIs('clientes.*') ? 'active' : '' }}" data-panel="clientes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Clientes" aria-label="Clientes">
             <i class="ph ph-smiley"></i>
           </a>
         </li>
         <li>
-          <a href="{{ route('services.index') }}" class="iconbar-item {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') ? 'active' : '' }}" data-panel="catalogue" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
+          <a href="{{ route('services.index') }}" class="iconbar-item {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') ? 'active' : '' }}" data-panel="catalogue" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
             <i class="ph ph-book-open"></i>
           </a>
         </li>
@@ -41,7 +41,7 @@
           </button>
         </li>
         <li>
-          <a href="{{ route('equipa.index') }}" class="iconbar-item {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-panel="agentes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
+          <a href="{{ route('equipa.index') }}" class="iconbar-item {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-panel="agentes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
             <i class="ph ph-users"></i>
           </a>
         </li>

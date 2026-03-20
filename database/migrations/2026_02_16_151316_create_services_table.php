@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->integer('duration')->default(60); // minutos
             $table->decimal('price', 10, 2);
-            $table->decimal('promo_price', 10, 2)->nullable();
+            $table->decimal('online_price', 10, 2)->nullable();
             $table->enum('commission_type', ['percent', 'fixed'])->default('percent');
             $table->decimal('commission_value', 10, 2);
             $table->boolean('is_active')->default(true);

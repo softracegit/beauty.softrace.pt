@@ -142,6 +142,9 @@
             <a class="dropdown-item" href="{{ route('dashboard') }}">
               <i class="bi bi-speedometer2"></i> Dashboard
             </a>
+            <a class="dropdown-item" href="{{ route('activity.index') }}">
+              <i class="ph ph-clock-counter-clockwise"></i> Activity Log
+            </a>
           </div>
           <div class="user-dropdown-footer">
             <form method="POST" action="{{ route('logout') }}" class="d-inline">

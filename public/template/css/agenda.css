@@ -1300,6 +1300,38 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     border-left: 1px solid var(--border-color, #dee2e6);
     padding: var(--spacing-lg);
 }
+
+/* Coluna serviços: lista a scrollar; total alinhado ao fundo (junto ao footer do modal) */
+#novaMarcacaoModal .modal-body .row.g-0 > .nova-marcacao-services-col,
+#eventDetailEditModal .modal-body .row.g-0 > .nova-marcacao-services-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    align-self: stretch;
+    padding-bottom: 1rem !important;
+}
+.nova-marcacao-services-col-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.nova-marcacao-services-col-main > .nova-marcacao-section-title {
+    flex-shrink: 0;
+}
+.nova-marcacao-services-col-main > .nova-marcacao-services-list,
+.nova-marcacao-services-col-main > #novaMarcacaoServiceSelected,
+.nova-marcacao-services-col-main > #eventDetailServiceSelected {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    max-height: none;
+}
+.nova-marcacao-services-col .nova-marcacao-total-row {
+    flex-shrink: 0;
+    margin-top: auto;
+}
 #novaMarcacaoModal .modal-body,
 #eventDetailEditModal .modal-body {
     display: flex;
@@ -1659,4 +1691,17 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     border-color: var(--bs-primary) !important;
     background-color: rgba(var(--bs-primary-rgb), 0.12);
     box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), 0.25);
+}
+.fc-refreshAgenda-button {
+    margin-left: 0.5rem !important;
+}
+.fc-refreshAgenda-button i {
+    font-size: 1.2rem !important;
+    vertical-align: sub !important;
+}
+.fc-refreshAgenda-button {
+    margin-left: 0.5rem !important;
+}
+.fc-refreshAgenda-button.fc-button.fc-button-primary {
+    margin-left: 0.5rem !important;
 }

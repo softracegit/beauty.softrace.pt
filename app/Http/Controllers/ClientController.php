@@ -138,19 +138,35 @@ class ClientController extends Controller
     {
         $cliente->load('notes.user');
 
+        $activities = $cliente->activities()
+            ->with('causer')
+            ->latest()
+            ->limit(100)
+            ->get();
+
         $today = now()->startOfDay();
+        $tomorrow = now()->addDay()->startOfDay();
 
         // Filtros Marcações
         $marcacoesDesde = $request->get('marcacoes_desde');
         $marcacoesAte = $request->get('marcacoes_ate');
         $marcacoesServico = $request->get('marcacoes_servico');
         $marcacoesTecnico = $request->get('marcacoes_tecnico');
+        $marcacoesEstado = $request->get('marcacoes_estado');
 
         // Filtros Vendas
         $vendasDesde = $request->get('vendas_desde');
         $vendasAte = $request->get('vendas_ate');
         $vendasServico = $request->get('vendas_servico');
         $vendasTecnico = $request->get('vendas_tecnico');
+
+        // Valores por defeito para filtros de marcações (hoje e amanhã)
+        if (!$marcacoesDesde) {
+            $marcacoesDesde = $today->toDateString();
+        }
+        if (!$marcacoesAte) {
+            $marcacoesAte = $tomorrow->toDateString();
+        }
 
         // Base query marcações
         $marcacoesQuery = $cliente->calendarEvents()
@@ -169,6 +185,9 @@ class ClientController extends Controller
         }
         if ($marcacoesTecnico) {
             $marcacoesQuery->where('user_id', $marcacoesTecnico);
+        }
+        if ($marcacoesEstado) {
+            $marcacoesQuery->where('status', $marcacoesEstado);
         }
 
         $marcacoes = $marcacoesQuery
@@ -320,6 +339,7 @@ class ClientController extends Controller
 
         return view('clientes.show', compact(
             'cliente',
+            'activities',
             'marcacoes',
             'vendas',
             'stats',
@@ -330,6 +350,7 @@ class ClientController extends Controller
             'marcacoesAte',
             'marcacoesServico',
             'marcacoesTecnico',
+            'marcacoesEstado',
             'vendasDesde',
             'vendasAte',
             'vendasServico',

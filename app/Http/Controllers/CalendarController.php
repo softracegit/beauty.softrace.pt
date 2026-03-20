@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\PersonalTimeType;
 use App\Models\Sale;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class CalendarController extends Controller
@@ -106,6 +107,11 @@ class CalendarController extends Controller
 
         $events = $query->get();
 
+        // Carregar extras associados aos serviços para poderem ser mostrados no quickview
+        $events->each(function (CalendarEvent $event) {
+            $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
+        });
+
         // Na vista de recursos, apenas users com agents ativos são válidos (excluir Administradores)
         $validUserIds = $forResources 
             ? Agent::where('status', Agent::STATUS_ACTIVE)
@@ -150,15 +156,30 @@ class CalendarController extends Controller
                     'service_name' => $event->eventServices->isNotEmpty()
                         ? $event->eventServices->pluck('name')->join(', ')
                         : ($event->service?->name ?? null),
-                    'event_services' => $event->eventServices->map(fn ($s) => [
-                        'id' => $s->id,
-                        'name' => $s->name,
-                        'duration' => $dur = ($s->pivot->duration ?? $s->duration),
-                        'price' => (float) ($s->pivot->price ?? $s->price),
-                        'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
-                        'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
-                        'formatted_duration' => $this->formatDurationMinutes((int) $dur),
-                    ])->values()->all(),
+                    'event_services' => $event->eventServices->map(function ($s) {
+                        $dur = ($s->pivot->duration ?? $s->duration);
+                        return [
+                            'id' => $s->id,
+                            'name' => $s->name,
+                            'duration' => $dur,
+                            'price' => (float) ($s->pivot->price ?? $s->price),
+                            'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
+                            'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
+                            'formatted_duration' => $this->formatDurationMinutes((int) $dur),
+                            'extras' => $s->pivot->extras->map(function ($pe) {
+                                $extraDuration = $pe->duration ?? $pe->extra?->duration ?? 0;
+                                $extraPrice = (float) ($pe->price ?? $pe->extra?->price ?? 0);
+                                return [
+                                    'extra_id' => $pe->extra_id,
+                                    'name' => $pe->extra?->name ?? '',
+                                    'duration' => $extraDuration,
+                                    'price' => $extraPrice,
+                                    'formatted_duration' => $this->formatDurationMinutes((int) $extraDuration),
+                                    'formatted_price' => number_format($extraPrice, 2, ',', '.') . ' €',
+                                ];
+                            })->values()->all(),
+                        ];
+                    })->values()->all(),
                     'is_source_editable' => $event->isSourceEditable(),
                     'is_deletable' => $event->isDeletableFromCalendar(),
                     'is_time_editable' => $event->isTimeEditable(),
@@ -353,6 +374,7 @@ class CalendarController extends Controller
                 'client_id' => $calendarEvent->client_id,
                 'client_name' => $calendarEvent->client?->name,
                 'client_email' => $calendarEvent->client?->email,
+                'client_phone' => $calendarEvent->client?->phone,
                 'client_avatar_url' => $calendarEvent->client?->avatar ? asset('storage/' . $calendarEvent->client->avatar) : null,
                 'event_services' => $calendarEvent->eventServices->map(function ($s) {
                     $cat = $s->category;
@@ -534,6 +556,16 @@ class CalendarController extends Controller
                     ]);
                 }
             }
+            if ($event->event_type === CalendarEvent::TYPE_MARCACAO) {
+                activity()
+                    ->performedOn($event)
+                    ->causedBy(auth()->user())
+                    ->event('updated')
+                    ->withProperties([
+                        'servicos' => $event->eventServices->pluck('name')->implode(', '),
+                    ])
+                    ->log('Serviços associados à nova marcação');
+            }
         }
 
         return response()->json([
@@ -601,40 +633,53 @@ class CalendarController extends Controller
             $validated['service_id'] = null;
         }
 
+        $tz = config('app.timezone');
+
         if ($calendarEvent->isTimeEditable() && (isset($validated['start_at']) || isset($validated['end_at']))) {
             $updates = [];
             if (isset($validated['start_at'])) {
-                $updates['start_at'] = $validated['start_at'];
+                $newStart = Carbon::parse($validated['start_at'])->timezone($tz)->format('Y-m-d H:i:s');
+                $oldStart = $calendarEvent->start_at?->copy()->timezone($tz)->format('Y-m-d H:i:s');
+                if ($newStart !== $oldStart) {
+                    $updates['start_at'] = $validated['start_at'];
+                }
             }
             if (isset($validated['end_at'])) {
-                $updates['end_at'] = $validated['end_at'];
+                $newEnd = Carbon::parse($validated['end_at'])->timezone($tz)->format('Y-m-d H:i:s');
+                $oldEnd = $calendarEvent->end_at?->copy()->timezone($tz)->format('Y-m-d H:i:s');
+                if ($newEnd !== $oldEnd) {
+                    $updates['end_at'] = $validated['end_at'];
+                }
             }
-            if (!empty($updates)) {
+            if ($updates !== []) {
                 $calendarEvent->update($updates);
-            }
 
-            if ($calendarEvent->eventable_type === \App\Models\Visit::class && $calendarEvent->eventable) {
-                $calendarEvent->eventable->update([
-                    'scheduled_at' => $calendarEvent->start_at,
-                ]);
-            }
-            if ($calendarEvent->eventable_type === \App\Models\Lead::class && $calendarEvent->eventable) {
-                $calendarEvent->eventable->update([
-                    'scheduled_at' => $calendarEvent->start_at,
-                ]);
+                if ($calendarEvent->eventable_type === \App\Models\Visit::class && $calendarEvent->eventable) {
+                    $calendarEvent->eventable->update([
+                        'scheduled_at' => $calendarEvent->start_at,
+                    ]);
+                }
+                if ($calendarEvent->eventable_type === \App\Models\Lead::class && $calendarEvent->eventable) {
+                    $calendarEvent->eventable->update([
+                        'scheduled_at' => $calendarEvent->start_at,
+                    ]);
+                }
             }
         }
 
         if (array_key_exists('user_id', $validated)) {
-            $newUserId = $validated['user_id'] ?: null;
+            $newUserId = $validated['user_id'] ? (int) $validated['user_id'] : null;
             if ($newUserId && User::find($newUserId)?->role === User::ROLE_ADMIN) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Não é possível atribuir o evento a um Administrador.',
                 ], 422);
             }
-            $calendarEvent->user_id = $newUserId;
-            $calendarEvent->save();
+            $currentUserId = $calendarEvent->user_id ? (int) $calendarEvent->user_id : null;
+            if ($currentUserId !== $newUserId) {
+                $calendarEvent->user_id = $newUserId;
+                $calendarEvent->save();
+            }
         }
 
         if (isset($validated['status'])) {
@@ -651,7 +696,9 @@ class CalendarController extends Controller
                 $update['refund_reserva'] = null;
                 $update['avisou_dentro_prazo'] = null;
             }
-            $calendarEvent->update($update);
+            if ($this->calendarEventStatusPayloadDiffers($calendarEvent, $update)) {
+                $calendarEvent->update($update);
+            }
         }
 
         if ($calendarEvent->isSourceEditable()) {
@@ -663,33 +710,47 @@ class CalendarController extends Controller
                     $toUpdate['title'] = $type->name;
                 }
             }
-            if (!empty($toUpdate)) {
+            $toUpdate = $this->filterCalendarEventScalarChanges($calendarEvent, $toUpdate);
+            if ($toUpdate !== []) {
                 $calendarEvent->update($toUpdate);
             }
 
-            if (!empty($servicesPayload)) {
-                $calendarEvent->eventServices()->detach();
-                foreach ($servicesPayload as $i => $item) {
-                    $calendarEvent->eventServices()->attach((int) $item['service_id'], [
-                        'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
-                        'price' => isset($item['price']) ? (float) $item['price'] : null,
-                        'original_price' => isset($item['original_price']) ? (float) $item['original_price'] : (isset($item['price']) ? (float) $item['price'] : null),
-                        'sort_order' => $i,
-                    ]);
-                }
-                $calendarEvent->load('eventServices');
-                $ordered = $calendarEvent->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
-                foreach ($ordered as $i => $svc) {
-                    $extras = $servicesPayload[$i]['extras'] ?? [];
-                    foreach ($extras as $j => $ex) {
-                        \App\Models\CalendarEventServiceExtra::create([
-                            'calendar_event_service_id' => $svc->pivot->id,
-                            'extra_id' => (int) ($ex['extra_id'] ?? 0),
-                            'duration' => isset($ex['duration']) ? (int) $ex['duration'] : null,
-                            'price' => isset($ex['price']) ? (float) $ex['price'] : null,
-                            'sort_order' => $j,
+            if (! empty($servicesPayload) && $calendarEvent->event_type === CalendarEvent::TYPE_MARCACAO) {
+                $beforeSnapshot = $this->marcacaoServicesSnapshotFromModel($calendarEvent);
+                $afterSnapshot = $this->marcacaoServicesSnapshotFromPayload($servicesPayload);
+                if (json_encode($beforeSnapshot) !== json_encode($afterSnapshot)) {
+                    $calendarEvent->eventServices()->detach();
+                    foreach ($servicesPayload as $i => $item) {
+                        $calendarEvent->eventServices()->attach((int) $item['service_id'], [
+                            'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
+                            'price' => isset($item['price']) ? (float) $item['price'] : null,
+                            'original_price' => isset($item['original_price']) ? (float) $item['original_price'] : (isset($item['price']) ? (float) $item['price'] : null),
+                            'sort_order' => $i,
                         ]);
                     }
+                    $calendarEvent->load('eventServices');
+                    $ordered = $calendarEvent->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
+                    foreach ($ordered as $i => $svc) {
+                        $extras = $servicesPayload[$i]['extras'] ?? [];
+                        foreach ($extras as $j => $ex) {
+                            \App\Models\CalendarEventServiceExtra::create([
+                                'calendar_event_service_id' => $svc->pivot->id,
+                                'extra_id' => (int) ($ex['extra_id'] ?? 0),
+                                'duration' => isset($ex['duration']) ? (int) $ex['duration'] : null,
+                                'price' => isset($ex['price']) ? (float) $ex['price'] : null,
+                                'sort_order' => $j,
+                            ]);
+                        }
+                    }
+                    $calendarEvent->refresh();
+                    activity()
+                        ->performedOn($calendarEvent)
+                        ->causedBy(auth()->user())
+                        ->event('updated')
+                        ->withProperties([
+                            'servicos' => $calendarEvent->eventServices->pluck('name')->implode(', '),
+                        ])
+                        ->log('Serviços ou extras da marcação alterados');
                 }
             }
         }
@@ -771,7 +832,9 @@ class CalendarController extends Controller
             $update['refund_reserva'] = null;
             $update['avisou_dentro_prazo'] = null;
         }
-        $calendarEvent->update($update);
+        if ($this->calendarEventStatusPayloadDiffers($calendarEvent, $update)) {
+            $calendarEvent->update($update);
+        }
 
         return response()->json([
             'success' => true,
@@ -781,6 +844,118 @@ class CalendarController extends Controller
             'status_label' => CalendarEvent::statuses()[$newStatus],
             'status_icon' => $calendarEvent->fresh()->status_icon,
         ]);
+    }
+
+    private function calendarEventStatusPayloadDiffers(CalendarEvent $event, array $update): bool
+    {
+        foreach ($update as $key => $val) {
+            $cur = $event->getAttribute($key);
+            if (in_array($key, ['refund_reserva', 'avisou_dentro_prazo'], true)) {
+                if ((bool) $cur !== (bool) $val) {
+                    return true;
+                }
+                continue;
+            }
+            if ($key === 'cancellation_reason') {
+                if (trim((string) ($cur ?? '')) !== trim((string) ($val ?? ''))) {
+                    return true;
+                }
+                continue;
+            }
+            if ((string) ($cur ?? '') !== (string) ($val ?? '')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validatedSubset
+     * @return array<string, mixed>
+     */
+    private function filterCalendarEventScalarChanges(CalendarEvent $event, array $validatedSubset): array
+    {
+        $out = [];
+        foreach ($validatedSubset as $key => $val) {
+            $cur = $event->getAttribute($key);
+            switch ($key) {
+                case 'client_id':
+                case 'service_id':
+                case 'personal_time_type_id':
+                    if ((int) ($cur ?? 0) !== (int) ($val ?? 0)) {
+                        $out[$key] = $val;
+                    }
+                    break;
+                case 'description':
+                    if (trim((string) ($cur ?? '')) !== trim((string) ($val ?? ''))) {
+                        $out[$key] = $val;
+                    }
+                    break;
+                default:
+                    if ($cur != $val) {
+                        $out[$key] = $val;
+                    }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array{service_id: int, duration: int, price: float, original_price: float, extras: list<array{extra_id: int, duration: int, price: float}>}>
+     */
+    private function marcacaoServicesSnapshotFromModel(CalendarEvent $event): array
+    {
+        $items = $event->eventServiceItems()->orderBy('sort_order')->with(['extras' => fn ($q) => $q->orderBy('sort_order')])->get();
+        $snapshot = [];
+        foreach ($items as $ces) {
+            $extras = [];
+            foreach ($ces->extras as $e) {
+                $extras[] = [
+                    'extra_id' => (int) $e->extra_id,
+                    'duration' => (int) ($e->duration ?? 0),
+                    'price' => round((float) ($e->price ?? 0), 4),
+                ];
+            }
+            $snapshot[] = [
+                'service_id' => (int) $ces->service_id,
+                'duration' => (int) ($ces->duration ?? 0),
+                'price' => round((float) ($ces->price ?? 0), 4),
+                'original_price' => round((float) ($ces->original_price ?? $ces->price ?? 0), 4),
+                'extras' => $extras,
+            ];
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $servicesPayload
+     * @return list<array{service_id: int, duration: int, price: float, original_price: float, extras: list<array{extra_id: int, duration: int, price: float}>}>
+     */
+    private function marcacaoServicesSnapshotFromPayload(array $servicesPayload): array
+    {
+        $snapshot = [];
+        foreach ($servicesPayload as $item) {
+            $extrasList = [];
+            foreach ($item['extras'] ?? [] as $ex) {
+                $extrasList[] = [
+                    'extra_id' => (int) ($ex['extra_id'] ?? 0),
+                    'duration' => (int) ($ex['duration'] ?? 0),
+                    'price' => round((float) ($ex['price'] ?? 0), 4),
+                ];
+            }
+            $snapshot[] = [
+                'service_id' => (int) ($item['service_id'] ?? 0),
+                'duration' => (int) ($item['duration'] ?? 0),
+                'price' => round((float) ($item['price'] ?? 0), 4),
+                'original_price' => round((float) ($item['original_price'] ?? $item['price'] ?? 0), 4),
+                'extras' => $extrasList,
+            ];
+        }
+
+        return $snapshot;
     }
 
     private function formatEventForCalendar(CalendarEvent $event, bool $withResourceId = false): array
@@ -793,16 +968,30 @@ class CalendarController extends Controller
         $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
         $agentColor = $isTempoPessoal ? null : ($event->user?->agent?->color);
         $eventServicesData = $event->eventServices->isNotEmpty()
-            ? $event->eventServices->map(fn ($s) => [
-                'id' => $s->id,
-                'name' => $s->name,
-                'duration' => $dur = ($s->pivot->duration ?? $s->duration),
-                'price' => (float) ($s->pivot->price ?? $s->price),
-                'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
-                'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
-                'formatted_duration' => $this->formatDurationMinutes((int) $dur),
-                'extras' => $s->pivot->extras->map(fn ($pe) => ['name' => $pe->extra?->name ?? ''])->values()->all(),
-            ])->values()->all()
+            ? $event->eventServices->map(function ($s) {
+                $dur = ($s->pivot->duration ?? $s->duration);
+                return [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'duration' => $dur,
+                    'price' => (float) ($s->pivot->price ?? $s->price),
+                    'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
+                    'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
+                    'formatted_duration' => $this->formatDurationMinutes((int) $dur),
+                    'extras' => $s->pivot->extras->map(function ($pe) {
+                        $extraDuration = $pe->duration ?? $pe->extra?->duration ?? 0;
+                        $extraPrice = (float) ($pe->price ?? $pe->extra?->price ?? 0);
+                        return [
+                            'extra_id' => $pe->extra_id,
+                            'name' => $pe->extra?->name ?? '',
+                            'duration' => $extraDuration,
+                            'price' => $extraPrice,
+                            'formatted_duration' => $this->formatDurationMinutes((int) $extraDuration),
+                            'formatted_price' => number_format($extraPrice, 2, ',', '.') . ' €',
+                        ];
+                    })->values()->all(),
+                ];
+            })->values()->all()
             : [];
         $serviceName = $event->eventServices->isNotEmpty()
             ? $event->eventServices->pluck('name')->join(', ')

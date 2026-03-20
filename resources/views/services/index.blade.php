@@ -428,12 +428,13 @@
                             <input type="number" class="form-control" name="duration" value="60" min="1" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Preço (€) <span class="text-danger">*</span></label>
+                            <label class="form-label">Preço normal (€) <span class="text-danger">*</span></label>
                             <input type="number" class="form-control" name="price" step="0.01" min="0" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Preço Promocional (€)</label>
-                            <input type="number" class="form-control" name="promo_price" step="0.01" min="0">
+                            <label class="form-label">Preço online (€)</label>
+                            <input type="number" class="form-control" name="online_price" id="addServiceOnlinePrice" step="0.01" min="0" placeholder="Opcional, mais barato">
+                            <div class="form-text">Preço para reservas online (deve ser ≤ preço normal).</div>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -514,12 +515,13 @@
                             <input type="number" class="form-control" name="duration" id="editServiceDuration" min="1" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Preço (€) <span class="text-danger">*</span> <span id="editServicePriceOriginal" class="text-muted text-decoration-line-through small ms-1" style="display:none;"></span></label>
+                            <label class="form-label">Preço normal (€) <span class="text-danger">*</span> <span id="editServicePriceOriginal" class="text-muted text-decoration-line-through small ms-1" style="display:none;"></span></label>
                             <input type="number" class="form-control" name="price" id="editServicePrice" step="0.01" min="0" required>
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Preço Promocional (€)</label>
-                            <input type="number" class="form-control" name="promo_price" id="editServicePromoPrice" step="0.01" min="0">
+                            <label class="form-label">Preço online (€)</label>
+                            <input type="number" class="form-control" name="online_price" id="editServiceOnlinePrice" step="0.01" min="0" placeholder="Opcional">
+                            <div class="form-text">Preço para reservas online (≤ preço normal).</div>
                         </div>
                     </div>
                     <div class="mb-3">

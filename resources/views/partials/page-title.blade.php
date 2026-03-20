@@ -111,6 +111,12 @@
                 ];
             }
         }
+    } elseif (str_contains($currentRoute, 'activity')) {
+        $breadcrumbs[] = [
+            'label' => 'Activity Log',
+            'url' => route('activity.index'),
+            'active' => true
+        ];
     } else {
         $breadcrumbs[] = [
             'label' => 'Dashboard',

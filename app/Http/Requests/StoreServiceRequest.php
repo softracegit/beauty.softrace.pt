@@ -27,12 +27,19 @@ class StoreServiceRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'duration' => ['required', 'integer', 'min:1'],
             'price' => ['required', 'numeric', 'min:0'],
-            'promo_price' => ['nullable', 'numeric', 'min:0'],
+            'online_price' => ['nullable', 'numeric', 'min:0', 'lte:price'],
             'agent_ids' => ['nullable', 'array'],
             'agent_ids.*' => ['exists:agents,id'],
             'extra_ids' => ['nullable', 'array'],
             'extra_ids.*' => ['exists:extras,id'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'online_price.lte' => 'O preço online não pode ser superior ao preço normal.',
         ];
     }
 }

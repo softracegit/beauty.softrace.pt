@@ -426,7 +426,22 @@ document.addEventListener('DOMContentLoaded', function() {
         var userName = (ext.user_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var eventServices = ext.event_services || [];
         var totalPrice = 0;
-        eventServices.forEach(function(s) { totalPrice += parseFloat(s.price) || 0; });
+        var totalDuration = 0;
+        eventServices.forEach(function(s) {
+            var basePrice = parseFloat(s.price) || 0;
+            var baseDuration = parseInt(s.duration || 0, 10) || 0;
+            var extras = Array.isArray(s.extras) ? s.extras : [];
+            var extrasTotal = 0;
+            var extrasDurationTotal = 0;
+            extras.forEach(function(ex) {
+                var exPrice = parseFloat(ex.price) || 0;
+                var exDuration = parseInt(ex.duration || 0, 10) || 0;
+                extrasTotal += exPrice;
+                extrasDurationTotal += exDuration;
+            });
+            totalPrice += basePrice + extrasTotal;
+            totalDuration += baseDuration + extrasDurationTotal;
+        });
         var totalPriceStr = totalPrice > 0 ? (totalPrice.toFixed(2).replace('.', ',') + ' €') : '';
 
         var qv = $id('agendaEventQuickview');
@@ -482,6 +497,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (eventServices.length > 0) {
             eventServices.forEach(function(s) {
+                // Linha principal do serviço
                 var row = document.createElement('div');
                 row.className = 'agenda-quickview-service-row';
                 var left = document.createElement('div');
@@ -490,20 +506,108 @@ document.addEventListener('DOMContentLoaded', function() {
                 nameEl.className = 'agenda-quickview-service-name';
                 nameEl.textContent = (s.name || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 left.appendChild(nameEl);
+                // Duração deste serviço (como nos extras, apenas duração)
                 var meta = document.createElement('div');
                 meta.className = 'agenda-quickview-service-meta';
                 var metaParts = [];
-                if (userName) metaParts.push(userName);
-                metaParts.push(s.formatted_duration || (s.duration || 0) + ' min');
+                if (s.formatted_duration) {
+                    metaParts.push(s.formatted_duration);
+                } else if (s.duration) {
+                    metaParts.push((s.duration || 0) + ' min');
+                }
                 meta.textContent = metaParts.join(' · ');
-                left.appendChild(meta);
+                if (meta.textContent) {
+                    left.appendChild(meta);
+                }
                 row.appendChild(left);
                 var priceEl = document.createElement('div');
                 priceEl.className = 'agenda-quickview-service-price';
                 priceEl.textContent = s.formatted_price || (parseFloat(s.price) || 0).toFixed(2).replace('.', ',') + ' €';
                 row.appendChild(priceEl);
                 body.appendChild(row);
+
+                // Extras associados ao serviço, cada um como uma linha própria
+                var extras = Array.isArray(s.extras) ? s.extras : [];
+                extras.forEach(function(ex) {
+                    var extraRow = document.createElement('div');
+                    extraRow.className = 'agenda-quickview-service-row';
+
+                    var extraLeft = document.createElement('div');
+                    extraLeft.className = 'agenda-quickview-service-left';
+                    var extraNameEl = document.createElement('div');
+                    extraNameEl.className = 'agenda-quickview-service-name';
+                    var extraName = (ex.name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    extraNameEl.textContent = '+ ' + (extraName || 'Extra');
+                    extraLeft.appendChild(extraNameEl);
+
+                    var extraMeta = document.createElement('div');
+                    extraMeta.className = 'agenda-quickview-service-meta';
+                    var extraMetaParts = [];
+                    if (ex.formatted_duration) {
+                        extraMetaParts.push(ex.formatted_duration);
+                    } else if (ex.duration) {
+                        extraMetaParts.push((ex.duration || 0) + ' min');
+                    }
+                    extraMeta.textContent = extraMetaParts.join(' · ');
+                    if (extraMeta.textContent) {
+                        extraLeft.appendChild(extraMeta);
+                    }
+
+                    extraRow.appendChild(extraLeft);
+
+                    var extraPriceEl = document.createElement('div');
+                    extraPriceEl.className = 'agenda-quickview-service-price';
+                    if (typeof ex.formatted_price === 'string' && ex.formatted_price.trim() !== '') {
+                        extraPriceEl.textContent = ex.formatted_price;
+                    } else if (ex.price != null) {
+                        extraPriceEl.textContent = (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €';
+                    } else {
+                        extraPriceEl.textContent = '';
+                    }
+                    extraRow.appendChild(extraPriceEl);
+
+                    body.appendChild(extraRow);
+                });
             });
+
+            // Linha única com duração total (serviços + extras) e preço total
+            if (totalDuration > 0 || totalPriceStr) {
+                var totalRow = document.createElement('div');
+                totalRow.className = 'agenda-quickview-service-row';
+                totalRow.style.marginTop = '0.5rem';
+                totalRow.style.paddingTop = '0.5rem';
+                totalRow.style.borderTop = '1px solid var(--border-color, rgba(0,0,0,0.1))';
+
+                var totalLeft = document.createElement('div');
+                totalLeft.className = 'agenda-quickview-service-left';
+
+                var durationText = '';
+                if (totalDuration > 0) {
+                    var hours = Math.floor(totalDuration / 60);
+                    var mins = totalDuration % 60;
+                    if (hours > 0 && mins > 0) {
+                        durationText = hours + 'h ' + mins + 'min';
+                    } else if (hours > 0) {
+                        durationText = hours + 'h';
+                    } else {
+                        durationText = mins + 'min';
+                    }
+                }
+
+                var durationEl = document.createElement('div');
+                durationEl.className = 'agenda-quickview-service-name';
+                durationEl.textContent = durationText || '';
+                totalLeft.appendChild(durationEl);
+
+                totalRow.appendChild(totalLeft);
+
+                var totalPriceEl = document.createElement('div');
+                totalPriceEl.className = 'agenda-quickview-service-price';
+                totalPriceEl.textContent = totalPriceStr;
+                totalRow.appendChild(totalPriceEl);
+
+                body.appendChild(totalRow);
+            }
             if (eventServices.length > 1 && totalPriceStr) {
                 var totalRow = document.createElement('div');
                 totalRow.className = 'agenda-quickview-service-row';
@@ -777,49 +881,68 @@ document.addEventListener('DOMContentLoaded', function() {
 
     NovaMarcacao.renderSelectedServices = function() {
         var container = $id('novaMarcacaoSelectedServicesList');
+        var totalRow = $id('novaMarcacaoTotalPrice') ? $id('novaMarcacaoTotalPrice').closest('.nova-marcacao-total-row') : null;
         var titleEl = $('#novaMarcacaoServiceSelected .nova-marcacao-services-selected-title');
         if (!container) return;
         if (novaMarcacaoSelectedServices.length === 0) {
             container.innerHTML = '';
             if (titleEl) titleEl.textContent = 'Serviços selecionados';
+            // Sem serviços selecionados, escondemos a linha do total
+            if (totalRow) totalRow.classList.add('d-none');
             return;
         }
         if (titleEl) titleEl.textContent = novaMarcacaoSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
         var html = novaMarcacaoSelectedServices.map(function(item, idx) {
+            var serviceRow =
+                '<div class="d-flex justify-content-between align-items-center w-100">' +
+                    '<div class="nova-marcacao-service-item-left">' +
+                        '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
+                        '<div class="nova-marcacao-service-item-duration">' + (item.formatted_duration || item.duration + ' min') + '</div>' +
+                    '</div>' +
+                    '<div class="d-flex align-items-center gap-2 justify-content-end">' +
+                        '<div class="d-flex gap-1">' +
+                            ( (item.available_extras && item.available_extras.length > 0)
+                                ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoAddExtrasBtn" data-idx="' + idx + '" title="Adicionar extras" aria-label="Adicionar extras"><i class="ph ph-plus-circle"></i></button>'
+                                : '' ) +
+                            '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoEditServiceBtn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
+                            '<button type="button" class="btn btn-outline-danger btn-icon btn-sm novaMarcacaoDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
+                        '</div>' +
+                        '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>' +
+                    '</div>' +
+                '</div>';
+
             var extrasLine = (item.extras && item.extras.length)
-                ? '<div class="small text-muted mt-1 nova-marcacao-extras-line">' +
-                    item.extras.map(function(e, eIdx) {
-                        var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
-                        var durText = e.formatted_duration || ((e.duration || 0) + ' min');
-                        return '<span class="badge rounded-pill text-bg-light me-1">' +
-                            '+ ' + (e.name || '') + ' (' + priceText + ' · ' + durText + ')' +
-                            '<button type="button" class="btn btn-link btn-sm p-0 ms-1 novaMarcacaoRemoveExtraBtn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra"><i class="ph ph-x"></i></button>' +
-                            '</span>';
-                    }).join('') +
-                  '</div>'
+                ? item.extras.map(function(e, eIdx) {
+                    var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
+                    var durText = e.formatted_duration || ((e.duration || 0) + ' min');
+                    return '' +
+                        '<div class="nova-marcacao-extra-row d-flex justify-content-between align-items-start mt-1 w-100" data-idx="' + idx + '" data-extra-index="' + eIdx + '">' +
+                            '<div class="nova-marcacao-service-item-left d-flex flex-column">' +
+                                '<div class="d-flex align-items-center">' +
+                                    '<div class="nova-marcacao-service-item-name">+ ' + (e.name || '') + '</div>' +
+                                    '<button type="button" class="btn btn-link btn-sm p-0 ms-1 mt-1 novaMarcacaoRemoveExtraBtn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra">' +
+                                        '<i class="ph ph-x"></i>' +
+                                    '</button>' +
+                                '</div>' +
+                                '<div class="nova-marcacao-service-item-duration">' + durText + '</div>' +
+                            '</div>' +
+                            '<div class="nova-marcacao-service-item-price">' + priceText + '</div>' +
+                        '</div>';
+                }).join('')
                 : '';
-            var hasAvailableExtras = (item.available_extras && item.available_extras.length > 0);
-            var addExtrasBtn = hasAvailableExtras ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoAddExtrasBtn" data-idx="' + idx + '" title="Adicionar extras" aria-label="Adicionar extras"><i class="ph ph-plus-circle"></i></button>' : '';
             var origP = item.original_price != null ? parseFloat(item.original_price) : NaN;
             var currP = item.price != null ? parseFloat(item.price) : NaN;
             var showStrikethrough = !isNaN(origP) && currP !== origP;
             var priceBlock = showStrikethrough
                 ? '<span class="text-danger text-decoration-line-through small me-1">' + (origP.toFixed(2).replace('.', ',') + ' €') + '</span><span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>'
                 : '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>';
-            return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card d-flex justify-content-between align-items-center mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + '">' +
-                '<div class="nova-marcacao-service-item-left">' +
-                '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
-                '<div class="nova-marcacao-service-item-duration">' + (item.formatted_duration || item.duration + ' min') + '</div>' + extrasLine +
-                '</div>' +
-                '<div class="d-flex align-items-center gap-2 justify-content-end">' +
-                '<div class="d-flex gap-1">' + addExtrasBtn +
-                '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoEditServiceBtn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
-                '<button type="button" class="btn btn-outline-danger btn-icon btn-sm novaMarcacaoDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
-                '</div>' +
-                priceBlock +
-                '</div></div></div>';
+            return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + ';display:block;">' +
+                serviceRow +
+                extrasLine +
+                '</div>';
         }).join('');
         container.innerHTML = html;
+        if (totalRow) totalRow.classList.remove('d-none');
         container.querySelectorAll('.novaMarcacaoEditServiceBtn').forEach(function(btn) {
             btn.addEventListener('click', function(e) { e.stopPropagation(); NovaMarcacao.openEditQuickMenu(e, parseInt(this.dataset.idx, 10)); });
         });
@@ -1232,9 +1355,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<div class="mt-2"><a href="' + (C.urlLeads || '') + '/' + data.lead.id + '" class="btn btn-sm btn-outline-primary"><i class="ph ph-file-text me-1"></i>Ficha da Lead</a></div>';
             }
         } else if (data.client_id && data.client_name) {
-            eventDetailSelectedClient = { id: data.client_id, name: data.client_name, email: data.client_email || '', avatar_url: data.client_avatar_url || '' };
+            eventDetailSelectedClient = { id: data.client_id, name: data.client_name, phone: data.client_phone || '', avatar_url: data.client_avatar_url || '' };
             $id('eventDetailClientSelectedName').textContent = data.client_name;
-            $id('eventDetailClientSelectedEmail').textContent = data.client_email || '—';
+            $id('eventDetailClientSelectedEmail').textContent = data.client_phone || '—';
             if (data.client_avatar_url) {
                 $id('eventDetailClientAvatar').src = data.client_avatar_url;
                 $id('eventDetailClientAvatar').classList.remove('d-none');
@@ -1363,54 +1486,79 @@ document.addEventListener('DOMContentLoaded', function() {
         var container = $id('eventDetailSelectedServicesList');
         if (!container) return;
         var titleEl = $('#eventDetailServiceSelected .nova-marcacao-services-selected-title');
+        var totalRow = $id('eventDetailTotalPrice') ? $id('eventDetailTotalPrice').closest('.nova-marcacao-total-row') : null;
         if (eventDetailSelectedServices.length === 0) {
             container.innerHTML = '';
             if (titleEl) titleEl.textContent = 'Serviços selecionados';
+            if (totalRow) totalRow.classList.remove('d-none');
             return;
         }
         if (titleEl) titleEl.textContent = eventDetailSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
         var isCompleted = (eventDetailCurrentData?.status === 'completo');
         var html = eventDetailSelectedServices.map(function(item, idx) {
-            var extrasLine = (item.extras && item.extras.length)
-                ? '<div class="small text-muted mt-1 event-detail-extras-line">' +
-                    item.extras.map(function(e, eIdx) {
-                        var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
-                        var durText = e.formatted_duration || ((e.duration || 0) + ' min');
-                        var base = '<span class="badge rounded-pill text-bg-light me-1">+ ' + (e.name || '') + ' (' + priceText + ' · ' + durText + ')';
-                        if (isCompleted) {
-                            return base + '</span>';
-                        }
-                        return base +
-                            '<button type="button" class="btn btn-link btn-sm p-0 ms-1 eventDetailRemoveExtraBtn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra"><i class="ph ph-x"></i></button></span>';
-                    }).join('') +
-                  '</div>'
-                : '';
-            var hasAvailableExtras = (item.available_extras && item.available_extras.length > 0);
-            var addExtrasBtn = (!isCompleted && hasAvailableExtras)
-                ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailAddExtrasBtn" data-idx="' + idx + '" title="Adicionar extras"><i class="ph ph-plus-circle"></i></button>'
-                : '';
             var origP = item.original_price != null ? parseFloat(item.original_price) : NaN;
             var currP = item.price != null ? parseFloat(item.price) : NaN;
             var showStrikethrough = !isNaN(origP) && currP !== origP;
             var priceBlock = showStrikethrough
                 ? '<span class="text-danger text-decoration-line-through small me-1">' + (origP.toFixed(2).replace('.', ',') + ' €') + '</span><span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>'
                 : '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>';
-            return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card d-flex justify-content-between align-items-center mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + '">' +
-                '<div class="nova-marcacao-service-item-left">' +
-                '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
-                '<div class="nova-marcacao-service-item-duration">' + (item.formatted_duration || item.duration + ' min') + '</div>' + extrasLine +
-                '</div>' +
-                '<div class="d-flex align-items-center gap-2 justify-content-end">' +
-                (isCompleted
-                    ? priceBlock
-                    : ('<div class="d-flex gap-1">' + addExtrasBtn +
-                        '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailEditServiceBtn" data-idx="' + idx + '" title="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
-                        '<button type="button" class="btn btn-outline-danger btn-icon btn-sm eventDetailDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar"><i class="ph ph-trash"></i></button>' +
-                        '</div>' + priceBlock)
-                ) +
-                '</div></div></div>';
+
+            var serviceRow =
+                '<div class="d-flex justify-content-between align-items-center w-100">' +
+                    '<div class="nova-marcacao-service-item-left">' +
+                        '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
+                        '<div class="nova-marcacao-service-item-duration">' + (item.formatted_duration || item.duration + ' min') + '</div>' +
+                    '</div>' +
+                    '<div class="d-flex align-items-center gap-2 justify-content-end">' +
+                        (isCompleted
+                            ? priceBlock
+                            : (
+                                '<div class="d-flex gap-1">' +
+                                    (item.available_extras && item.available_extras.length > 0
+                                        ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailAddExtrasBtn" data-idx="' + idx + '" title="Adicionar extras"><i class="ph ph-plus-circle"></i></button>'
+                                        : ''
+                                    ) +
+                                    '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailEditServiceBtn" data-idx="' + idx + '" title="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
+                                    '<button type="button" class="btn btn-outline-danger btn-icon btn-sm eventDetailDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar"><i class="ph ph-trash"></i></button>' +
+                                '</div>' +
+                                priceBlock
+                            )
+                        ) +
+                    '</div>' +
+                '</div>';
+
+            var extrasLine = (item.extras && item.extras.length)
+                ? item.extras.map(function(e, eIdx) {
+                    var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
+                    var durText = e.formatted_duration || ((e.duration || 0) + ' min');
+                    var removeBtn = '';
+                    if (!isCompleted) {
+                        removeBtn =
+                            '<button type="button" class="btn btn-link btn-sm p-0 ms-1 mt-1 eventDetailRemoveExtraBtn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra">' +
+                                '<i class="ph ph-x"></i>' +
+                            '</button>';
+                    }
+                    return '' +
+                        '<div class="event-detail-extra-row d-flex justify-content-between align-items-start mt-1 w-100" data-idx="' + idx + '" data-extra-index="' + eIdx + '">' +
+                            '<div class="nova-marcacao-service-item-left d-flex flex-column">' +
+                                '<div class="d-flex align-items-center">' +
+                                    '<div class="nova-marcacao-service-item-name">+ ' + (e.name || '') + '</div>' +
+                                    removeBtn +
+                                '</div>' +
+                                '<div class="nova-marcacao-service-item-duration">' + durText + '</div>' +
+                            '</div>' +
+                            '<div class="nova-marcacao-service-item-price">' + priceText + '</div>' +
+                        '</div>';
+                }).join('')
+                : '';
+
+            return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + ';display:block;">' +
+                serviceRow +
+                extrasLine +
+                '</div>';
         }).join('');
         container.innerHTML = html;
+        if (totalRow) totalRow.classList.remove('d-none');
         if (!isCompleted) {
             container.querySelectorAll('.eventDetailEditServiceBtn').forEach(function(btn) {
                 btn.addEventListener('click', function(e) { e.stopPropagation(); EventDetail.openEditQuickMenu(e, parseInt(this.dataset.idx, 10)); });
@@ -1789,15 +1937,25 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         var modal = bootstrap.Modal.getOrCreateInstance($id('novaMarcacaoModal'));
         modal.show();
+
+        // Ao abrir a nova marcação, esconder a linha de total enquanto não houver serviços selecionados
+        var totalRow = $id('novaMarcacaoTotalPrice') ? $id('novaMarcacaoTotalPrice').closest('.nova-marcacao-total-row') : null;
+        if (totalRow) {
+            if (!novaMarcacaoSelectedServices || novaMarcacaoSelectedServices.length === 0) {
+                totalRow.classList.add('d-none');
+            } else {
+                totalRow.classList.remove('d-none');
+            }
+        }
         if (preSelectedClientId) {
             fetch(agendaClientsUrl + '?client_id=' + encodeURIComponent(preSelectedClientId), { headers: { 'Accept': 'application/json' } })
                 .then(function(r) { return r.json(); })
                 .then(function(clients) {
                     if (clients && clients[0]) {
                         var c = clients[0];
-                        novaMarcacaoSelectedClient = { id: String(c.id), name: c.name || '', email: c.email || '', avatar_url: c.avatar_url || '' };
+                        novaMarcacaoSelectedClient = { id: String(c.id), name: c.name || '', phone: c.phone || '', avatar_url: c.avatar_url || '' };
                         $id('novaMarcacaoClientSelectedName').textContent = c.name || '';
-                        $id('novaMarcacaoClientSelectedEmail').textContent = c.email || '—';
+                        $id('novaMarcacaoClientSelectedEmail').textContent = c.phone || '—';
                         var link = $id('novaMarcacaoClientProfileLink');
                         if (link) link.href = clientesBaseUrl + '/' + c.id;
                         if (c.avatar_url) {
@@ -1837,18 +1995,23 @@ document.addEventListener('DOMContentLoaded', function() {
                             return;
                         }
                         var html = clients.map(function(c) {
-                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-email="' + (c.email || '').replace(/"/g, '&quot;') + '" data-avatar="' + (c.avatar_url || '').replace(/"/g, '&quot;') + '"';
-                            return '<div class="nova-marcacao-client-item" ' + dataAttrs + '>' + (c.name || '') + (c.email ? ' <small class="text-muted">' + c.email + '</small>' : '') + '</div>';
+                            var phone = c.phone || '';
+                            var label = (c.name || '');
+                            if (phone) {
+                                label += ' <small class="text-muted">(' + phone + ')</small>';
+                            }
+                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-phone="' + (phone || '').replace(/"/g, '&quot;') + '" data-avatar="' + (c.avatar_url || '').replace(/"/g, '&quot;') + '"';
+                            return '<div class="nova-marcacao-client-item" ' + dataAttrs + '>' + label + '</div>';
                         }).join('');
                         $id('novaMarcacaoClientResults').innerHTML = html;
                         $id('novaMarcacaoClientResults').querySelectorAll('.nova-marcacao-client-item').forEach(function(el) {
                             el.addEventListener('click', function() {
                                 var name = this.dataset.name || '';
-                                var email = this.dataset.email || '';
+                                var phone = this.dataset.phone || '';
                                 var avatarUrl = this.dataset.avatar || '';
-                                novaMarcacaoSelectedClient = { id: this.dataset.id, name: name, email: email, avatar_url: avatarUrl };
+                                novaMarcacaoSelectedClient = { id: this.dataset.id, name: name, phone: phone, avatar_url: avatarUrl };
                                 $id('novaMarcacaoClientSelectedName').textContent = name;
-                                $id('novaMarcacaoClientSelectedEmail').textContent = email || '—';
+                                $id('novaMarcacaoClientSelectedEmail').textContent = phone || '—';
                                 var link = $id('novaMarcacaoClientProfileLink');
                                 if (link) link.href = clientesBaseUrl + '/' + this.dataset.id;
                                 if (avatarUrl) {
@@ -1878,7 +2041,7 @@ document.addEventListener('DOMContentLoaded', function() {
     })());
 
     $id('novaMarcacaoClientClear').addEventListener('click', function() {
-        var prev = novaMarcacaoSelectedClient ? { id: novaMarcacaoSelectedClient.id, name: novaMarcacaoSelectedClient.name, email: novaMarcacaoSelectedClient.email || '', avatar_url: novaMarcacaoSelectedClient.avatar_url || '' } : null;
+        var prev = novaMarcacaoSelectedClient ? { id: novaMarcacaoSelectedClient.id, name: novaMarcacaoSelectedClient.name, phone: novaMarcacaoSelectedClient.phone || '', avatar_url: novaMarcacaoSelectedClient.avatar_url || '' } : null;
         novaMarcacaoSelectedClient = null;
         $id('novaMarcacaoClientSelected').classList.add('d-none');
         $id('novaMarcacaoClientAddWrap').classList.remove('d-none');
@@ -1975,11 +2138,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }); })
             .then(function(client) {
                 hide();
-                var c = { id: String(client.id), name: client.name || name, email: client.email || email, avatar_url: client.avatar_url || '' };
+                var c = { id: String(client.id), name: client.name || name, phone: client.phone || '', avatar_url: client.avatar_url || '' };
                 if (context === 'novaMarcacao') {
                     novaMarcacaoSelectedClient = c;
                     $id('novaMarcacaoClientSelectedName').textContent = c.name;
-                    $id('novaMarcacaoClientSelectedEmail').textContent = c.email || '—';
+                    $id('novaMarcacaoClientSelectedEmail').textContent = c.phone || '—';
                     var link = $id('novaMarcacaoClientProfileLink');
                     if (link) link.href = clientesBaseUrl + '/' + c.id;
                     $id('novaMarcacaoClientAvatar').classList.add('d-none');
@@ -1997,7 +2160,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     eventDetailSelectedClient = c;
                     $id('eventDetailClientSelectedName').textContent = c.name;
-                    $id('eventDetailClientSelectedEmail').textContent = c.email || '—';
+                    $id('eventDetailClientSelectedEmail').textContent = c.phone || '—';
                     var link = $id('eventDetailClientProfileLink');
                     if (link) link.href = clientesBaseUrl + '/' + c.id;
                     if (c.avatar_url) {
@@ -2055,15 +2218,6 @@ document.addEventListener('DOMContentLoaded', function() {
             popup.querySelector('.create-client-name').focus();
         });
     }
-    $id('novaMarcacaoAddClientBtn').addEventListener('click', function() {
-        $id('novaMarcacaoClientAddWrap').classList.add('d-none');
-        $id('novaMarcacaoClientSearchWrap').classList.remove('d-none');
-    });
-    $id('eventDetailAddClientBtn').addEventListener('click', function() {
-        $id('eventDetailClientAddWrap').classList.add('d-none');
-        $id('eventDetailClientSearchWrap').classList.remove('d-none');
-        $id('eventDetailCreateClientBtn').classList.remove('d-none');
-    });
     $id('novaMarcacaoCreateClientBtn').addEventListener('click', function(e) {
         e.preventDefault();
         openCreateClientQuickMenu('novaMarcacao', e);
@@ -2078,7 +2232,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (prev) {
             novaMarcacaoSelectedClient = prev;
             $id('novaMarcacaoClientSelectedName').textContent = prev.name;
-            $id('novaMarcacaoClientSelectedEmail').textContent = prev.email || '—';
+            $id('novaMarcacaoClientSelectedEmail').textContent = prev.phone || '—';
             var link = $id('novaMarcacaoClientProfileLink');
             if (link) link.href = clientesBaseUrl + '/' + prev.id;
             if (prev.avatar_url) {
@@ -2106,28 +2260,44 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('novaMarcacaoServiceSelected').classList.add('d-none');
         $id('novaMarcacaoCancelAddServicesBtn').classList.remove('d-none');
         $id('novaMarcacaoServicesList').classList.remove('d-none');
+        var totalRow = $id('novaMarcacaoTotalPrice') ? $id('novaMarcacaoTotalPrice').closest('.nova-marcacao-total-row') : null;
+        if (totalRow) totalRow.classList.add('d-none');
     });
 
     $id('novaMarcacaoCancelAddServicesBtn').addEventListener('click', function() {
         $id('novaMarcacaoServicesList').classList.add('d-none');
         $id('novaMarcacaoCancelAddServicesBtn').classList.add('d-none');
         $id('novaMarcacaoServiceSelected').classList.remove('d-none');
+        var totalRow = $id('novaMarcacaoTotalPrice') ? $id('novaMarcacaoTotalPrice').closest('.nova-marcacao-total-row') : null;
+        if (totalRow) totalRow.classList.remove('d-none');
     });
 
     $id('eventDetailAddMoreServicesBtn').addEventListener('click', function() {
         $id('eventDetailServiceSelected').classList.add('d-none');
         $id('eventDetailCancelAddServicesBtn').classList.remove('d-none');
         $id('eventDetailServicesList').classList.remove('d-none');
+        var totalRow = $id('eventDetailTotalPrice') ? $id('eventDetailTotalPrice').closest('.nova-marcacao-total-row') : null;
+        if (totalRow) totalRow.classList.add('d-none');
     });
 
     $id('eventDetailCancelAddServicesBtn').addEventListener('click', function() {
         $id('eventDetailServicesList').classList.add('d-none');
         $id('eventDetailCancelAddServicesBtn').classList.add('d-none');
         $id('eventDetailServiceSelected').classList.remove('d-none');
+        var totalRow = $id('eventDetailTotalPrice') ? $id('eventDetailTotalPrice').closest('.nova-marcacao-total-row') : null;
+        if (totalRow) totalRow.classList.remove('d-none');
     });
 
     $id('eventDetailClientClear').addEventListener('click', function() {
-        var prev = eventDetailSelectedClient ? { id: eventDetailSelectedClient.id, name: eventDetailSelectedClient.name, email: eventDetailSelectedClient.email || '', avatar_url: eventDetailSelectedClient.avatar_url || '' } : null;
+        // Guardar o cliente atual para poder reverter se o utilizador cancelar
+        var prev = eventDetailSelectedClient ? {
+            id: eventDetailSelectedClient.id,
+            name: eventDetailSelectedClient.name,
+            phone: eventDetailSelectedClient.phone || '',
+            avatar_url: eventDetailSelectedClient.avatar_url || ''
+        } : null;
+
+        // Esconder o cartão atual e voltar ao estado "Cliente" + pesquisa
         eventDetailSelectedClient = null;
         $id('eventDetailClientSelected').classList.add('d-none');
         $id('eventDetailClientAddWrap').classList.remove('d-none');
@@ -2137,6 +2307,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('eventDetailClientSearch').focus();
         $id('eventDetailClientResults').innerHTML = '';
         $id('eventDetailCreateClientBtn').classList.remove('d-none');
+
         if (prev) {
             window._eventDetailPreviousClient = prev;
             $id('eventDetailClientCancelBtn').classList.remove('d-none');
@@ -2147,7 +2318,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (prev) {
             eventDetailSelectedClient = prev;
             $id('eventDetailClientSelectedName').textContent = prev.name;
-            $id('eventDetailClientSelectedEmail').textContent = prev.email || '—';
+            $id('eventDetailClientSelectedEmail').textContent = prev.phone || '—';
             var link = $id('eventDetailClientProfileLink');
             if (link) link.href = clientesBaseUrl + '/' + prev.id;
             if (prev.avatar_url) {
@@ -2191,16 +2362,23 @@ document.addEventListener('DOMContentLoaded', function() {
                             return;
                         }
                         var html = clients.map(function(c) {
-                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-email="' + (c.email || '').replace(/"/g, '&quot;') + '" data-avatar="' + (c.avatar_url || '').replace(/"/g, '&quot;') + '"';
-                            return '<div class="nova-marcacao-client-item event-detail-client-item" ' + dataAttrs + '>' + (c.name || '') + (c.email ? ' <small class="text-muted">' + c.email + '</small>' : '') + '</div>';
+                            var phone = c.phone || '';
+                            var label = (c.name || '');
+                            if (phone) {
+                                label += ' <small class="text-muted">(' + phone + ')</small>';
+                            }
+                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-phone="' + (phone || '').replace(/"/g, '&quot;') + '" data-avatar="' + (c.avatar_url || '').replace(/"/g, '&quot;') + '"';
+                            return '<div class="nova-marcacao-client-item event-detail-client-item" ' + dataAttrs + '>' + label + '</div>';
                         }).join('');
                         $id('eventDetailClientResults').innerHTML = html;
                         $id('eventDetailClientResults').querySelectorAll('.event-detail-client-item').forEach(function(el) {
                             el.addEventListener('click', function() {
-                                var name = this.dataset.name || '', email = this.dataset.email || '', avatarUrl = this.dataset.avatar || '';
-                                eventDetailSelectedClient = { id: this.dataset.id, name: name, email: email, avatar_url: avatarUrl };
+                                var name = this.dataset.name || '';
+                                var phone = this.dataset.phone || '';
+                                var avatarUrl = this.dataset.avatar || '';
+                                eventDetailSelectedClient = { id: this.dataset.id, name: name, phone: phone, avatar_url: avatarUrl };
                                 $id('eventDetailClientSelectedName').textContent = name;
-                                $id('eventDetailClientSelectedEmail').textContent = email || '—';
+                                $id('eventDetailClientSelectedEmail').textContent = phone || '—';
                                 var link = $id('eventDetailClientProfileLink');
                                 if (link) link.href = clientesBaseUrl + '/' + this.dataset.id;
                                 if (avatarUrl) {
@@ -2586,6 +2764,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Dropdown será inicializado após render (só visível na vista Dia)
                 }
             },
+            refreshAgenda: {
+                text: '',
+                click: function() {
+                    if (typeof calendar !== 'undefined') {
+                        calendar.refetchEvents();
+                    }
+                }
+            },
             adicionarDropdown: {
                 text: 'Adicionar',
                 click: function() {
@@ -2594,7 +2780,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         headerToolbar: {
-            left: 'today prev currentDate next',
+            left: 'today prev currentDate next refreshAgenda',
             center: '',
             right: 'consultantFilter viewSelector adicionarDropdown'
         },
@@ -3536,6 +3722,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (nextBtn) {
             nextBtn.innerHTML = '<span class="fc-icon fc-icon-chevron-right"></span>';
+        }
+        
+        // Botão de refresh da agenda com ícone
+        const refreshBtn = calendarEl.querySelector('.fc-refreshAgenda-button');
+        if (refreshBtn && !refreshBtn.dataset._iconApplied) {
+            refreshBtn.innerHTML = '<i class="ph ph-arrow-clockwise"></i>';
+            refreshBtn.dataset._iconApplied = '1';
         }
         
         // Esconder título/chunk do center

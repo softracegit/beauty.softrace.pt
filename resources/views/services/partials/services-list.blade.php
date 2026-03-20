@@ -12,8 +12,8 @@
                 @endif
                 <div class="d-flex flex-wrap gap-3 text-muted small service-item-duration">
                     <span><i class="ph ph-clock me-1"></i>{{ $service->formatted_duration }}</span>
-                    @if($service->promo_price)
-                        <span class="text-success"><i class="ph ph-tag me-1"></i>{{ $service->formatted_promo_price }}</span>
+                    @if($service->online_price)
+                        <span class="text-success" title="Preço online"><i class="ph ph-globe me-1"></i>{{ $service->formatted_online_price }}</span>
                     @endif
                     @if(($service->extras_count ?? $service->extras->count() ?? 0) > 0)
                         <span><i class="ph ph-package me-1"></i>{{ $service->extras_count ?? $service->extras->count() }} extra(s)</span>
@@ -21,7 +21,7 @@
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0 service-item-right">
-                <span class="service-item-price">{{ $service->formatted_price }}</span>
+                <span class="service-item-price" title="Preço normal">{{ $service->formatted_price }}</span>
                 <div class="dropdown">
                     <button class="btn btn-outline-secondary btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções">
                         <i class="ph ph-dots-three-vertical"></i>

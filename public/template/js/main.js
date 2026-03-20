@@ -121,6 +121,16 @@
       body.classList.add('sidebar-panel-collapsed');
     }
 
+    // On tablet, auto-open the active sidebar panel section (except Agenda).
+    // This keeps the panel state in sync with the current route after icon-bar navigation.
+    if (window.innerWidth >= 768 && window.innerWidth < 1280) {
+      var activePanelSection = document.querySelector('.sidebar-panel-section.active');
+      var isAgendaRoute = body.classList.contains('sidebar-panel-collapsed'); // Agenda uses this class on <body>
+      if (activePanelSection && !isAgendaRoute) {
+        body.classList.add('sidebar-panel-open');
+      }
+    }
+
     // Handle window resize
     var resizeTimer;
     window.addEventListener('resize', function() {

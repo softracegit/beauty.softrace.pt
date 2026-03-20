@@ -58,7 +58,7 @@
                                         <strong id="novaMarcacaoAddClientBtn" class="d-block">Cliente</strong>
                                     </div>
                                     <div id="novaMarcacaoClientSearchWrap" class="mb-0">
-                                        <div class="d-flex gap-2 align-items-center mb-2">
+                                        <div class="d-flex gap-2 align-items-center mb-3">
                                             <input type="text" id="novaMarcacaoClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Pesquisar cliente..." autocomplete="off">
                                             <button type="button" class="btn btn-light btn-sm d-none" id="novaMarcacaoClientCancelBtn">Cancelar</button>
                                         </div>
@@ -94,7 +94,8 @@
                                 <input type="hidden" id="novaMarcacaoObservacoes" name="description" value="">
                             </div>
                         </div>
-                        <div class="col-lg-7" id="novaMarcacaoServicesCol">
+                        <div class="col-lg-7 nova-marcacao-services-col" id="novaMarcacaoServicesCol">
+                            <div class="nova-marcacao-services-col-main">
                             <h6 class="nova-marcacao-section-title mb-3 d-flex align-items-center" id="novaMarcacaoServicesTitle">
                                 <span>Serviços</span>
                                 <button type="button" class="btn btn-link btn-sm p-0 d-none" id="novaMarcacaoCancelAddServicesBtn">
@@ -112,7 +113,8 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                            </div>
+                            <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center pt-3 border-top">
                                 <span class="text-black fs-6 fw-bold">Total</span>
                                 <span class="fw-semibold fs-6" id="novaMarcacaoTotalPrice">0,00 €</span>
                             </div>
@@ -346,11 +348,11 @@
                             <div class="nova-marcacao-sidebar">
                                 <div class="nova-marcacao-section nova-marcacao-section-client" id="eventDetailClientSection">
                                     <div id="eventDetailClientAddWrap" class="nova-marcacao-client-add-wrap text-center d-none">
-                                        <div class="nova-marcacao-client-add-icon mb-2"><i class="ph ph-user-circle-plus"></i></div>
+                                        <div class="nova-marcacao-client-add-icon mb-3"><i class="ph ph-user-circle-plus"></i></div>
                                         <strong id="eventDetailAddClientBtn" class="d-block">Cliente</strong>
                                     </div>
                                     <div id="eventDetailClientSearchWrap" class="mb-0 d-none">
-                                        <div class="d-flex gap-2 align-items-center mb-2">
+                                        <div class="d-flex gap-2 align-items-center mb-3">
                                             <input type="text" id="eventDetailClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Pesquisar cliente..." autocomplete="off">
                                             <button type="button" class="btn btn-light btn-sm d-none" id="eventDetailClientCancelBtn">Cancelar</button>
                                         </div>
@@ -388,7 +390,8 @@
                                 <input type="hidden" id="eventDetailObservacoes" name="description" value="">
                             </div>
                         </div>
-                        <div class="col-lg-7" id="eventDetailServicesCol">
+                        <div class="col-lg-7 nova-marcacao-services-col" id="eventDetailServicesCol">
+                            <div class="nova-marcacao-services-col-main">
                             <h6 class="nova-marcacao-section-title mb-3 d-flex align-items-center">
                                 <span>Serviços</span>
                                 <button type="button" class="btn btn-link btn-sm p-0 d-none" id="eventDetailCancelAddServicesBtn">
@@ -406,7 +409,8 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                            </div>
+                            <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center pt-3 border-top">
                                 <span class="text-black fs-6 fw-bold">Total</span>
                                 <span class="fw-semibold fs-6" id="eventDetailTotalPrice">0,00 €</span>
                             </div>

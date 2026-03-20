@@ -5,9 +5,26 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Extra extends Model
 {
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['extra_category_id', 'name', 'description', 'price', 'duration', 'sort_order'])
+            ->logOnlyDirty()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'Extra criado',
+                'updated' => 'Extra atualizado',
+                'deleted' => 'Extra eliminado',
+                default => 'Extra alterado',
+            });
+    }
+
     protected $fillable = [
         'extra_category_id',
         'name',

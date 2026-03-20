@@ -5,23 +5,40 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class Service extends Model
 {
+    use LogsActivity;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['category_id', 'name', 'description', 'duration', 'price', 'online_price', 'sort_order'])
+            ->logOnlyDirty()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'created' => 'Serviço criado',
+                'updated' => 'Serviço atualizado',
+                'deleted' => 'Serviço eliminado',
+                default => 'Serviço alterado',
+            });
+    }
+
     protected $fillable = [
         'category_id',
         'name',
         'description',
         'duration',
         'price',
-        'promo_price',
+        'online_price',
         'sort_order',
     ];
 
     protected $casts = [
         'duration' => 'integer',
         'price' => 'decimal:2',
-        'promo_price' => 'decimal:2',
+        'online_price' => 'decimal:2',
         'sort_order' => 'integer',
     ];
 
@@ -68,11 +85,11 @@ class Service extends Model
     }
 
     /**
-     * Get formatted promo price
+     * Get formatted online price (preço online, habitualmente mais baixo)
      */
-    public function getFormattedPromoPriceAttribute(): ?string
+    public function getFormattedOnlinePriceAttribute(): ?string
     {
-        return $this->promo_price ? number_format($this->promo_price, 2, ',', '.') . ' €' : null;
+        return $this->online_price ? number_format($this->online_price, 2, ',', '.') . ' €' : null;
     }
 
     /**

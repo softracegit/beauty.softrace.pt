@@ -427,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${service.description ? `<p class="text-muted small mb-1">${service.description.substring(0, 100)}${service.description.length > 100 ? '...' : ''}</p>` : ''}
                             <div class="d-flex flex-wrap gap-3 text-muted small service-item-duration">
                                 <span><i class="ph ph-clock me-1"></i>${formatDuration(service.duration)}</span>
-                                ${service.promo_price ? `<span class="text-success"><i class="ph ph-tag me-1"></i>${formatPrice(service.promo_price)}</span>` : ''}
+                                ${service.online_price ? `<span class="text-success" title="Preço online"><i class="ph ph-globe me-1"></i>${formatPrice(service.online_price)}</span>` : ''}
                                 ${(service.extras_count || (service.extras && service.extras.length) || 0) > 0 ? `<span><i class="ph ph-package me-1"></i>${service.extras_count || (service.extras && service.extras.length) || 0} extra(s)</span>` : ''}
                             </div>
                         </div>
@@ -791,7 +791,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('editServiceDescription').value = service.description || '';
                     document.getElementById('editServiceDuration').value = service.duration;
                     document.getElementById('editServicePrice').value = service.price;
-                    document.getElementById('editServicePromoPrice').value = service.promo_price || '';
+                    document.getElementById('editServiceOnlinePrice').value = service.online_price || '';
                     
                     // Preencher checkboxes de agentes
                     document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit').forEach(cb => {
