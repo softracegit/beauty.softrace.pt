@@ -74,15 +74,30 @@
                 <tbody>
                     @forelse ($clients as $client)
                         @php
-                            $avatarNum = ($client->id % 9) + 1;
-                            $avatarSrc = $client->avatar
-                                ? asset('storage/' . $client->avatar)
-                                : asset("template/img/avatars/avatar-{$avatarNum}.webp");
+                            $hasAvatar = (bool) $client->avatar;
+                            $avatarSrc = $hasAvatar ? asset('storage/' . $client->avatar) : null;
+                            $nameParts = preg_split('/\s+/u', trim((string) ($client->name ?? '')));
+                            $nameParts = array_values(array_filter($nameParts, fn ($part) => $part !== ''));
+                            if (count($nameParts) >= 2) {
+                                $firstInitial = mb_substr($nameParts[0], 0, 1, 'UTF-8');
+                                $lastInitial = mb_substr($nameParts[count($nameParts) - 1], 0, 1, 'UTF-8');
+                                $avatarInitial = mb_strtoupper($firstInitial . $lastInitial, 'UTF-8');
+                            } elseif (count($nameParts) === 1) {
+                                $avatarInitial = mb_strtoupper(mb_substr($nameParts[0], 0, 1, 'UTF-8'), 'UTF-8');
+                            } else {
+                                $avatarInitial = '—';
+                            }
                         @endphp
                         <tr>
                             <td>
                                 <div class="users-cell-user">
-                                    <img src="{{ $avatarSrc }}" alt="{{ $client->name }}">
+                                    @if($hasAvatar)
+                                        <img src="{{ $avatarSrc }}" alt="{{ $client->name }}">
+                                    @else
+                                        <div class="users-cell-avatar-initial" aria-label="{{ $client->name }}">
+                                            {{ $avatarInitial }}
+                                        </div>
+                                    @endif
                                     <div>
                                         <a href="{{ route('clientes.show', $client) }}" class="users-cell-name">{{ $client->name }}</a>
                                         <div class="users-cell-email">{{ $client->email }}</div>

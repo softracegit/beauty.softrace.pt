@@ -141,6 +141,11 @@
           </a>
         </li>
         <li>
+          <a class="panel-link {{ request()->routeIs('services.tecnicos') ? 'active' : '' }}" href="{{ route('services.tecnicos') }}">
+            Serviços por equipa
+          </a>
+        </li>
+        <li>
           <a class="panel-link {{ request()->routeIs('extras.*') ? 'active' : '' }}" href="{{ route('extras.index') }}">
             Extras / Add-ons
           </a>

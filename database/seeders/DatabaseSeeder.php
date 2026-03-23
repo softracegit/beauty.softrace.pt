@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Agent;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,11 +17,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Criar utilizador administrador
-        User::create([
+        // Administrador com agente associado (middleware has.agent exige agente)
+        $user = User::create([
             'name' => 'Administrador',
             'email' => 'admin@imobiliaria.pt',
-            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_ADMIN,
+        ]);
+
+        Agent::create([
+            'user_id' => $user->id,
+            'name' => 'Administrador',
+            'status' => Agent::STATUS_ACTIVE,
         ]);
 
         // Seeders de referência

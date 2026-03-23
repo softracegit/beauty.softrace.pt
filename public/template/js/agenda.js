@@ -2799,8 +2799,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 duration: { days: 3 }
             }
         },
-        slotMinTime: '00:00:00',
-        slotMaxTime: '23:59:00',
+        // Horário visível da grelha (futuro: vir da configuração da loja)
+        slotMinTime: '09:00:00',
+        slotMaxTime: '20:00:00',
         slotDuration: '00:15:00',
         slotLabelInterval: '01:00',
         allDaySlot: false,

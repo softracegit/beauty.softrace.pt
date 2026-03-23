@@ -13,9 +13,9 @@ class ClientSeeder extends Seeder
     public function run(): void
     {
         $clients = [
-            ['name' => 'Maria Silva', 'email' => 'maria.silva@email.pt', 'phone' => '+351 912 345 678', 'location' => 'Lisboa', 'status' => 'available', 'property_type' => 'Apartment'],
-            ['name' => 'João Santos', 'email' => 'joao.santos@email.pt', 'phone' => '+351 923 456 789', 'location' => 'Porto', 'status' => 'active', 'property_type' => 'Villa'],
-            ['name' => 'Ana Ferreira', 'email' => 'ana.ferreira@email.pt', 'phone' => '+351 934 567 890', 'location' => 'Braga', 'status' => 'available', 'property_type' => 'Condo'],
+            ['name' => 'Maria Silva', 'email' => 'maria.silva@email.pt', 'phone' => '+351 912 345 678', 'locality' => 'Lisboa', 'type' => Client::TYPE_POTENCIAL_CLIENTE],
+            ['name' => 'João Santos', 'email' => 'joao.santos@email.pt', 'phone' => '+351 923 456 789', 'locality' => 'Porto', 'type' => Client::TYPE_POTENCIAL_CLIENTE],
+            ['name' => 'Ana Ferreira', 'email' => 'ana.ferreira@email.pt', 'phone' => '+351 934 567 890', 'locality' => 'Braga', 'type' => Client::TYPE_POTENCIAL_CLIENTE],
         ];
 
         foreach ($clients as $data) {

@@ -117,6 +117,8 @@ Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'dest
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
     Route::get('categories/all/services', [ServiceController::class, 'allGrouped'])->name('services.allGrouped');
     Route::get('categories/{category}/services', [ServiceController::class, 'index'])->name('services.byCategory')->where('category', '[0-9]+');
+    Route::get('servicos/equipa', [ServiceController::class, 'tecnicos'])->name('services.tecnicos');
+    Route::post('servicos/equipa', [ServiceController::class, 'syncTecnicos'])->name('services.tecnicos.sync');
     Route::get('services/{service}', [ServiceController::class, 'show'])->name('services.show');
     Route::post('services', [ServiceController::class, 'store'])->name('services.store');
     Route::match(['post', 'put'], 'services/{service}', [ServiceController::class, 'update'])->name('services.update');

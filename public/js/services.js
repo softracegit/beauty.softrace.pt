@@ -421,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
                 </div>
                 <div class="card service-item" style="--service-category-color: ${borderColor};">
-                    <div class="card-body d-flex justify-content-between align-items-center gap-3">
+                    <div class="card-body d-flex justify-content-between align-items-center gap-3 py-2 pe-2">
                         <div class="service-item-left">
                             <h6 class="mb-0 service-item-name">${service.name}</h6>
                             ${service.description ? `<p class="text-muted small mb-1">${service.description.substring(0, 100)}${service.description.length > 100 ? '...' : ''}</p>` : ''}

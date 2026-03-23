@@ -8,6 +8,10 @@
     <p class="auth-subtitle">Introduza as suas credenciais para aceder à sua conta</p>
   </div>
 
+  @if (session('error'))
+    <div class="auth-alert auth-alert-error" role="alert">{{ session('error') }}</div>
+  @endif
+
   @if ($errors->any())
     <div class="auth-alert auth-alert-error">
       <ul class="mb-0" style="list-style: none; padding-left: 0;">

@@ -10,7 +10,6 @@ use App\Models\CalendarEventService;
 use App\Models\CalendarEventServiceExtra;
 use App\Models\Service;
 use App\Models\Sale;
-use App\Models\SaleItem;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -71,17 +70,14 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        // Receita por serviço: apenas vendas pagas de marcações concluídas
-        $porServico = SaleItem::query()
-            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
-            ->leftJoin('services', 'sale_items.service_id', '=', 'services.id')
-            ->where('sales.status', Sale::STATUS_PAGO)
+        // Marcações por serviço (independente de venda/faturação)
+        $porServico = CalendarEventService::query()
+            ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
+            ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', CalendarEvent::STATUS_COMPLETO)
-            ->where('sale_items.tipo', SaleItem::TIPO_SERVICO)
+            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->groupBy('services.id', 'services.name')
-            ->selectRaw('services.name as service_name, count(*) as total, sum(sale_items.subtotal) as receita')
+            ->selectRaw('services.name as service_name, count(*) as total, sum(coalesce(calendar_event_services.price, services.price)) as receita')
             ->orderByDesc('total')
             ->limit(8)
             ->get();

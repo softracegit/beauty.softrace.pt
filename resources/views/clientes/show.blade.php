@@ -8,7 +8,17 @@
     $avatarSrc = $hasAvatar
         ? asset('storage/' . $cliente->avatar)
         : null;
-    $avatarInitial = mb_strtoupper(mb_substr($cliente->name ?? '—', 0, 1, 'UTF-8'), 'UTF-8');
+    $nameParts = preg_split('/\s+/u', trim((string) ($cliente->name ?? '')));
+    $nameParts = array_values(array_filter($nameParts, fn ($part) => $part !== ''));
+    if (count($nameParts) >= 2) {
+        $firstInitial = mb_substr($nameParts[0], 0, 1, 'UTF-8');
+        $lastInitial = mb_substr($nameParts[count($nameParts) - 1], 0, 1, 'UTF-8');
+        $avatarInitial = mb_strtoupper($firstInitial . $lastInitial, 'UTF-8');
+    } elseif (count($nameParts) === 1) {
+        $avatarInitial = mb_strtoupper(mb_substr($nameParts[0], 0, 1, 'UTF-8'), 'UTF-8');
+    } else {
+        $avatarInitial = '—';
+    }
     $clientNotes = $cliente->getRelationValue('notes') ?: $cliente->notes()->with('user')->get();
 @endphp
 

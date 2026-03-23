@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Service;
 use App\Models\Category;
 use App\Models\Agent;
+use App\Models\User;
 use App\Http\Requests\StoreServiceRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 
 class ServiceController extends Controller
 {
@@ -156,5 +160,58 @@ class ServiceController extends Controller
             'success' => true,
             'message' => 'Ordem dos serviços atualizada com sucesso.',
         ]);
+    }
+
+    /**
+     * Matriz serviços × técnicos (agentes com perfil prestador/técnico).
+     */
+    public function tecnicos(): View
+    {
+        $categories = Category::orderBy('sort_order')
+            ->with(['services' => fn ($q) => $q->with('agents:id')->orderBy('sort_order')])
+            ->get();
+
+        $agents = Agent::query()
+            ->whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('services.tecnicos', [
+            'categories' => $categories,
+            'agents' => $agents,
+        ]);
+    }
+
+    /**
+     * Persistir associações serviço ↔ técnico (pivot agent_service).
+     */
+    public function syncTecnicos(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'assignments' => ['nullable', 'array'],
+            'assignments.*' => ['array'],
+            'assignments.*.*' => ['integer', 'exists:agents,id'],
+        ]);
+
+        $assignments = $request->input('assignments', []);
+
+        $allowedAgentIds = Agent::query()
+            ->whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
+            ->pluck('id')
+            ->all();
+
+        DB::transaction(function () use ($assignments, $allowedAgentIds): void {
+            foreach (Service::query()->pluck('id') as $serviceId) {
+                $ids = isset($assignments[$serviceId])
+                    ? array_values(array_unique(array_map('intval', (array) $assignments[$serviceId])))
+                    : [];
+                $ids = array_values(array_intersect($ids, $allowedAgentIds));
+                Service::query()->whereKey($serviceId)->first()?->agents()->sync($ids);
+            }
+        });
+
+        return redirect()
+            ->route('services.tecnicos')
+            ->with('success', 'Associações entre serviços e técnicos atualizadas.');
     }
 }

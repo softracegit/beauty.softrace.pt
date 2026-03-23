@@ -10,7 +10,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem 1.25rem;
+    padding: 0.5rem 0.5rem 0.4rem 0.5rem;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 0 !important;
     background: var(--surface-color);

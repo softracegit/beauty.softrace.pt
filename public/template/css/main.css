@@ -10114,6 +10114,21 @@ textarea.form-control {
   flex-shrink: 0;
 }
 
+.users-cell-avatar-initial {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background-color: var(--accent-soft-color, #eef2ff);
+  color: var(--accent-color, #4f46e5);
+  text-transform: uppercase;
+}
+
 .users-cell-name {
   font-weight: 600;
   color: var(--heading-color);
