@@ -43,6 +43,14 @@ class Sale extends Model
         'status' => self::STATUS_PAGO,
     ];
 
+    public static function statuses(): array
+    {
+        return [
+            self::STATUS_PAGO => 'Pago',
+            self::STATUS_ANULADO => 'Anulado',
+        ];
+    }
+
     public static function paymentMethods(): array
     {
         return [

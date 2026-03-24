@@ -69,12 +69,12 @@
     <div>
         <div class="card">
             <div class="uview-tabs" role="tablist">
-                <button class="uview-tab nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#tab-details">Detalhes</button>
-                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-marcacoes">Marcações</button>
-                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-vendas">Vendas</button>
-                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-estatisticas">Estatísticas</button>
-                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-log">Atividade</button>
-                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-notas">Notas</button>
+                <button type="button" class="uview-tab nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#tab-details">Detalhes</button>
+                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-marcacoes">Marcações</button>
+                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-vendas">Vendas</button>
+                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-estatisticas">Estatísticas</button>
+                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-log">Atividade</button>
+                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-notas">Notas</button>
             </div>
             <div class="card-body tab-content">
 
@@ -199,21 +199,22 @@
 
                 <!-- Marcações Tab -->
                 <div class="tab-pane fade" id="tab-marcacoes">
-                    <form method="GET" action="{{ route('clientes.show', $cliente) }}" class="d-flex flex-wrap align-items-end gap-2 mb-3" data-tab-target="tab-marcacoes">
+                    <form method="GET" action="{{ route('clientes.show', $cliente) }}" class="uview-cliente-tab-filters mb-3">
                         <input type="hidden" name="active_tab" value="tab-marcacoes">
                         <input type="hidden" name="vendas_desde" value="{{ $vendasDesde ?? '' }}">
                         <input type="hidden" name="vendas_ate" value="{{ $vendasAte ?? '' }}">
                         <input type="hidden" name="vendas_servico" value="{{ $vendasServico ?? '' }}">
                         <input type="hidden" name="vendas_tecnico" value="{{ $vendasTecnico ?? '' }}">
-                        <div class="mb-0 flex-shrink-0" style="min-width: 150px;">
+                        <input type="hidden" name="vendas_estado" value="{{ $vendasEstado ?? '' }}">
+                        <div class="uview-filter-field uview-filter-date">
                             <label class="form-label small text-muted mb-0">Desde</label>
                             <input type="text" name="marcacoes_desde" class="form-control form-control-sm" value="{{ $marcacoesDesde ?? '' }}">
                         </div>
-                        <div class="mb-0 flex-shrink-0" style="min-width: 150px;">
+                        <div class="uview-filter-field uview-filter-date">
                             <label class="form-label small text-muted mb-0">Até</label>
                             <input type="text" name="marcacoes_ate" class="form-control form-control-sm" value="{{ $marcacoesAte ?? '' }}">
                         </div>
-                        <div class="mb-0 flex-grow-1" style="min-width: 180px;">
+                        <div class="uview-filter-field uview-filter-select">
                             <label class="form-label small text-muted mb-0">Serviço</label>
                             <select name="marcacoes_servico" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -222,7 +223,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0 flex-grow-1" style="min-width: 160px;">
+                        <div class="uview-filter-field uview-filter-select">
                             <label class="form-label small text-muted mb-0">Técnico</label>
                             <select name="marcacoes_tecnico" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -231,7 +232,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0 flex-grow-1" style="min-width: 160px;">
+                        <div class="uview-filter-field uview-filter-estado">
                             <label class="form-label small text-muted mb-0">Estado</label>
                             <select name="marcacoes_estado" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -242,7 +243,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0 flex-shrink-0">
+                        <div class="uview-filter-submit">
                             <button type="submit" class="btn btn-primary">
                                 <i class="ph ph-magnifying-glass"></i>
                             </button>
@@ -290,22 +291,22 @@
 
                 <!-- Vendas Tab -->
                 <div class="tab-pane fade" id="tab-vendas">
-                    <form method="GET" action="{{ route('clientes.show', $cliente) }}" class="d-flex flex-wrap align-items-end gap-2 mb-3" data-tab-target="tab-vendas">
+                    <form method="GET" action="{{ route('clientes.show', $cliente) }}" class="uview-cliente-tab-filters mb-3">
                         <input type="hidden" name="active_tab" value="tab-vendas">
                         <input type="hidden" name="marcacoes_desde" value="{{ $marcacoesDesde ?? '' }}">
                         <input type="hidden" name="marcacoes_ate" value="{{ $marcacoesAte ?? '' }}">
                         <input type="hidden" name="marcacoes_servico" value="{{ $marcacoesServico ?? '' }}">
                         <input type="hidden" name="marcacoes_tecnico" value="{{ $marcacoesTecnico ?? '' }}">
                         <input type="hidden" name="marcacoes_estado" value="{{ $marcacoesEstado ?? '' }}">
-                        <div class="mb-0 flex-shrink-0" style="min-width: 150px;">
+                        <div class="uview-filter-field uview-filter-date">
                             <label class="form-label small text-muted mb-0">Desde</label>
-                            <input type="date" name="vendas_desde" class="form-control form-control-sm" value="{{ $vendasDesde ?? '' }}">
+                            <input type="text" name="vendas_desde" class="form-control form-control-sm" value="{{ $vendasDesde ?? '' }}">
                         </div>
-                        <div class="mb-0 flex-shrink-0" style="min-width: 150px;">
+                        <div class="uview-filter-field uview-filter-date">
                             <label class="form-label small text-muted mb-0">Até</label>
-                            <input type="date" name="vendas_ate" class="form-control form-control-sm" value="{{ $vendasAte ?? '' }}">
+                            <input type="text" name="vendas_ate" class="form-control form-control-sm" value="{{ $vendasAte ?? '' }}">
                         </div>
-                        <div class="mb-0 flex-grow-1" style="min-width: 180px;">
+                        <div class="uview-filter-field uview-filter-select">
                             <label class="form-label small text-muted mb-0">Serviço</label>
                             <select name="vendas_servico" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -314,7 +315,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0 flex-grow-1" style="min-width: 160px;">
+                        <div class="uview-filter-field uview-filter-select">
                             <label class="form-label small text-muted mb-0">Técnico</label>
                             <select name="vendas_tecnico" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -323,7 +324,16 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mb-0 flex-shrink-0">
+                        <div class="uview-filter-field uview-filter-estado">
+                            <label class="form-label small text-muted mb-0">Estado</label>
+                            <select name="vendas_estado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                @foreach(\App\Models\Sale::statuses() as $key => $label)
+                                    <option value="{{ $key }}" {{ ($vendasEstado ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="uview-filter-submit">
                             <button type="submit" class="btn btn-primary">
                                 <i class="ph ph-magnifying-glass"></i>
                             </button>
@@ -346,14 +356,20 @@
                                     @foreach($vendas as $linha)
                                         @php
                                             $linhaTotal = ($linha->preco * $linha->quantidade) + ($linha->gorjeta ?? 0);
-                                            $totalVendas += $linhaTotal;
+                                            $isAnulada = ($linha->sale_status ?? '') === \App\Models\Sale::STATUS_ANULADO;
+                                            if (!$isAnulada) {
+                                                $totalVendas += $linhaTotal;
+                                            }
                                         @endphp
-                                        <tr>
+                                        <tr class="{{ $isAnulada ? 'text-muted' : '' }}">
                                             <td>{{ $linha->data->format('d/m/Y H:i') }}</td>
                                             <td>
                                                 {{ $linha->servico }}
                                                 @if($linha->tipo === 'extra')
                                                     <span class="badge bg-info-light text-info ms-1">Extra</span>
+                                                @endif
+                                                @if($isAnulada)
+                                                    <span class="badge bg-secondary-light text-secondary ms-1">Anulada</span>
                                                 @endif
                                             </td>
                                             <td class="text-center">{{ $linha->quantidade }}</td>
@@ -687,22 +703,17 @@
         }
 
         if (typeof flatpickr !== 'undefined') {
-            const desdeInput = document.querySelector('input[name="marcacoes_desde"]');
-            const ateInput = document.querySelector('input[name="marcacoes_ate"]');
-            if (desdeInput) {
-                flatpickr(desdeInput, {
-                    dateFormat: 'Y-m-d',
-                    allowInput: true,
-                    locale: (window.flatpickr?.l10ns?.pt) || undefined
-                });
-            }
-            if (ateInput) {
-                flatpickr(ateInput, {
-                    dateFormat: 'Y-m-d',
-                    allowInput: true,
-                    locale: (window.flatpickr?.l10ns?.pt) || undefined
-                });
-            }
+            var fpOpts = {
+                dateFormat: 'Y-m-d',
+                allowInput: true,
+                locale: (window.flatpickr && window.flatpickr.l10ns && window.flatpickr.l10ns.pt) ? window.flatpickr.l10ns.pt : undefined
+            };
+            /* Só inputs visíveis: os hidden com o mesmo name senão o flatpickr duplica Desde/Até na tab errada */
+            document.querySelectorAll(
+                'input[type="text"][name="marcacoes_desde"], input[type="text"][name="marcacoes_ate"], input[type="text"][name="vendas_desde"], input[type="text"][name="vendas_ate"]'
+            ).forEach(function (el) {
+                flatpickr(el, fpOpts);
+            });
         }
     });
 })();

@@ -503,13 +503,17 @@
 /* User View Grid */
 .uview-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: var(--spacing-lg);
+}
+
+.uview-grid > :first-child {
+  min-width: 0;
 }
 
 @media (max-width: 1199px) {
   .uview-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

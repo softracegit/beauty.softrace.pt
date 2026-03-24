@@ -61,6 +61,19 @@ body .app-wrapper .container-fluid {
     margin: 0;
 }
 
+/* Toggle 24h (grelha 0–24h vs horário compacto) na toolbar */
+.agenda-slot-24h-toggle {
+    vertical-align: middle;
+}
+.agenda-slot-24h-toggle .form-check-input {
+    cursor: pointer;
+    margin-top: 2px !important;
+}
+.agenda-slot-24h-toggle .form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
 .fc-license-message {
     display: none !important;
 }
@@ -192,6 +205,11 @@ body .app-wrapper .container-fluid {
     width: 100%;
     height: 100%;
     overflow: hidden;               /* garantir que nada sai para fora do cartão */
+}
+
+/* Reforço: horas no cartão vêm só do eventContent (evita faixa de tempo nativa + conteúdo custom = “duplicado”) */
+.fc-timegrid-event:not(.fc-event-mirror) .fc-event-time {
+    display: none !important;
 }
 /* Eventos de tempo pessoal: cinza claro (apenas no fc-event, como os outros) */
 .fc-event.agenda-event-tempo-pessoal {
@@ -1704,4 +1722,5 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 }
 .fc-refreshAgenda-button.fc-button.fc-button-primary {
     margin-left: 0.5rem !important;
+    margin-right: 0.5rem !important;
 }

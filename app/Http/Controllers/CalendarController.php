@@ -65,6 +65,7 @@ class CalendarController extends Controller
     /**
      * Get events in FullCalendar format (JSON).
      * With for_resources=1 returns events for all consultants (for resource view).
+     * Optional filter_user_ids: comma-separated user ids (active agents only) to restrict events (e.g. Semana / 3 dias).
      */
     public function events(Request $request)
     {
@@ -82,19 +83,36 @@ class CalendarController extends Controller
         // Verificar se o utilizador pode ver todos os eventos (admin ou diretor)
         $canViewAll = auth()->user()->canManageAgents();
 
-        if (!$forResources) {
+        $activeAgentUserIds = Agent::where('status', Agent::STATUS_ACTIVE)
+            ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        // Filtro opcional (vistas Semana / 3 dias): filter_user_ids=1,2,3 — só agents ativos; sem permissão total, só o próprio id
+        $filterUserIdsRaw = $request->get('filter_user_ids');
+        $requestedFilterIds = [];
+        if (is_string($filterUserIdsRaw) && $filterUserIdsRaw !== '') {
+            $requestedFilterIds = array_values(array_unique(array_filter(array_map('intval', explode(',', $filterUserIdsRaw)))));
+        }
+        $allowedFilterIds = array_values(array_intersect($requestedFilterIds, $activeAgentUserIds));
+        if (! $canViewAll) {
+            $allowedFilterIds = array_values(array_intersect($allowedFilterIds, [(int) auth()->id()]));
+        }
+        $hasConsultantFilter = count($allowedFilterIds) > 0;
+
+        if ($hasConsultantFilter) {
+            $query->whereIn('user_id', $allowedFilterIds);
+        } elseif (! $forResources) {
             // Se não pode ver todos, mostrar apenas eventos do utilizador atual
             // Se pode ver todos (admin/diretor), mostrar todos os eventos
-            if (!$canViewAll) {
+            if (! $canViewAll) {
                 $query->where('user_id', auth()->id());
             }
         } else {
-            // Na vista de consultor, só mostrar eventos com consultor atribuído (excluir Administradores)
-            $activeAgentUserIds = Agent::where('status', Agent::STATUS_ACTIVE)
-                ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
-                ->pluck('user_id')
-                ->filter()
-                ->toArray();
+            // Na vista por recurso (dia), só eventos de consultores ativos (excluir Administradores)
             $query->whereIn('user_id', $activeAgentUserIds);
         }
 
@@ -113,14 +131,8 @@ class CalendarController extends Controller
         });
 
         // Na vista de recursos, apenas users com agents ativos são válidos (excluir Administradores)
-        $validUserIds = $forResources 
-            ? Agent::where('status', Agent::STATUS_ACTIVE)
-                ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
-                ->pluck('user_id')
-                ->filter()
-                ->map(fn ($id) => (string) $id)
-                ->flip()
-                ->all() 
+        $validUserIds = $forResources
+            ? collect($activeAgentUserIds)->map(fn ($id) => (string) $id)->flip()->all()
             : [];
 
         $result = $events->map(function (CalendarEvent $event) use ($forResources, $validUserIds) {

@@ -10395,13 +10395,19 @@ textarea.form-control {
 /* User View Grid */
 .uview-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: var(--spacing-lg);
+}
+
+/* Permite a coluna principal encolher com conteúdo largo (ex.: filtros em linha);
+   sem isto, min-width:auto do grid empurra a sidebar para fora do ecrã. */
+.uview-grid > :first-child {
+  min-width: 0;
 }
 
 @media (max-width: 1199px) {
   .uview-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -10531,6 +10537,57 @@ textarea.form-control {
 .uview-status-value {
   font-size: 0.8125rem;
   font-weight: 500;
+}
+
+/* Ficha cliente — tabs Marcações / Vendas: filtros numa linha, larguras contidas */
+.uview-cliente-tab-filters {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+
+/* Nota: não usar flex no selector genérico > .uview-filter-field — a especificidade
+   ganhava sobre .uview-filter-date / -select / -estado e quebrava larguras. */
+.uview-cliente-tab-filters > .uview-filter-field {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.uview-cliente-tab-filters .uview-filter-field.uview-filter-date {
+  flex: 0 0 auto;
+  width: 10rem;
+  max-width: 10rem;
+}
+
+.uview-cliente-tab-filters .uview-filter-field.uview-filter-select {
+  flex: 0 1 12rem;
+  max-width: 14rem;
+  min-width: 7.5rem;
+}
+
+.uview-cliente-tab-filters .uview-filter-field.uview-filter-estado {
+  flex: 0 1 9rem;
+  max-width: 11rem;
+  min-width: 6.5rem;
+}
+
+.uview-cliente-tab-filters .uview-filter-submit {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+.uview-cliente-tab-filters .form-control,
+.uview-cliente-tab-filters .form-select {
+  width: 100%;
+  min-width: 0;
 }
 
 /* User Edit Page */

@@ -145,9 +145,15 @@ class ClientController extends Controller
             ->get();
 
         $today = now()->startOfDay();
-        $tomorrow = now()->addDay()->startOfDay();
+        $firstDayOfMonth = now()->copy()->startOfMonth();
 
-        // Filtros Marcações
+        $validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
+        $activeTab = $request->get('active_tab', 'tab-details');
+        if (!in_array($activeTab, $validTabs, true)) {
+            $activeTab = 'tab-details';
+        }
+
+        // Filtros Marcações (independentes dos de vendas)
         $marcacoesDesde = $request->get('marcacoes_desde');
         $marcacoesAte = $request->get('marcacoes_ate');
         $marcacoesServico = $request->get('marcacoes_servico');
@@ -159,13 +165,20 @@ class ClientController extends Controller
         $vendasAte = $request->get('vendas_ate');
         $vendasServico = $request->get('vendas_servico');
         $vendasTecnico = $request->get('vendas_tecnico');
+        $vendasEstado = $request->get('vendas_estado');
 
-        // Valores por defeito para filtros de marcações (hoje e amanhã)
+        // Valores por defeito: mês corrente (1º dia → hoje), por tab
         if (!$marcacoesDesde) {
-            $marcacoesDesde = $today->toDateString();
+            $marcacoesDesde = $firstDayOfMonth->toDateString();
         }
         if (!$marcacoesAte) {
-            $marcacoesAte = $tomorrow->toDateString();
+            $marcacoesAte = $today->toDateString();
+        }
+        if (!$vendasDesde) {
+            $vendasDesde = $firstDayOfMonth->toDateString();
+        }
+        if (!$vendasAte) {
+            $vendasAte = $today->toDateString();
         }
 
         // Base query marcações
@@ -196,17 +209,20 @@ class ClientController extends Controller
             ->limit(200)
             ->get();
 
-        // Base query vendas: apenas vendas concluídas (pagas) de marcações não canceladas
+        // Base query vendas: marcações não canceladas; estado da venda filtrável (Todos = pago + anulado)
         $vendasQuery = Sale::query()
             ->where('client_id', $cliente->id)
-            ->where('status', Sale::STATUS_PAGO)
             ->whereHas('calendarEvent', function ($q) {
                 $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             });
+        if ($vendasEstado) {
+            $vendasQuery->where('status', $vendasEstado);
+        } else {
+            $vendasQuery->whereIn('status', [Sale::STATUS_PAGO, Sale::STATUS_ANULADO]);
+        }
 
         if ($vendasDesde) {
-            // Filtrar por data de emissão da venda
             $vendasQuery->whereDate('data_emissao', '>=', $vendasDesde);
         }
         if ($vendasAte) {
@@ -277,6 +293,7 @@ class ClientController extends Controller
                         'preco' => (float) $item->preco_unitario,
                         'gorjeta' => $gorjetaLinha,
                         'tipo' => $item->tipo,
+                        'sale_status' => $sale->status,
                     ];
                 }
 
@@ -346,6 +363,7 @@ class ClientController extends Controller
             'totalGasto',
             'ticketMedio',
             'agents',
+            'activeTab',
             'marcacoesDesde',
             'marcacoesAte',
             'marcacoesServico',
@@ -355,6 +373,7 @@ class ClientController extends Controller
             'vendasAte',
             'vendasServico',
             'vendasTecnico',
+            'vendasEstado',
             'servicosCliente',
             'tecnicosCliente'
         ));

@@ -14,9 +14,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let allResources = [];
     let consultantFilterIds = [];
-    let currentViewMode = 'normal';
+    let currentViewMode = 'consultant';
     let selectedConsultantId = '';
     let eventDetailModalLoading = false;
+    /** Tipo da vista atual; usado em callbacks do FullCalendar que correm antes de `calendar` existir (evita TDZ). */
+    let agendaCurrentViewType = 'resourceTimeGridDay';
+
+    const AGENDA_SLOT_STORAGE_KEY = 'agendaSlot24h';
+    function readAgendaSlot24hPreference() {
+        try {
+            return localStorage.getItem(AGENDA_SLOT_STORAGE_KEY) === '1';
+        } catch (e) {
+            return false;
+        }
+    }
+    function getAgendaSlotRange(is24h) {
+        return is24h
+            ? { min: '00:00:00', max: '24:00:00' }
+            : { min: '09:00:00', max: '19:00:00' };
+    }
+    let agendaSlot24hEnabled = readAgendaSlot24hPreference();
+    var initialAgendaSlots = getAgendaSlotRange(agendaSlot24hEnabled);
+
+    function viewSupportsConsultantFilter(viewType) {
+        return viewType === 'resourceTimeGridDay' || viewType === 'timeGridWeek' || viewType === 'timeGridThreeDay';
+    }
+    function isResourceTimeGridDayView(viewType) {
+        return viewType === 'resourceTimeGridDay';
+    }
 
     const DAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const DAYS_LONG = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -2712,10 +2737,8 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.disabled = false;
             btn.textContent = 'Criar marcação';
             if (res.success && res.event) {
-                if (currentViewMode === 'consultant' && res.event.extendedProps?.user_id) {
-                    res.event.resourceId = String(res.event.extendedProps.user_id);
-                }
-                calendar.addEvent(res.event);
+                /* refetch em vez de addEvent: evita duplicar com o mesmo evento vindo do fetch (ex.: mudar filtro de equipa) */
+                calendar.refetchEvents();
                 bootstrap.Modal.getInstance($id('novaMarcacaoModal')).hide();
             } else {
                 showToast(res.message || 'Erro ao criar marcação.', 'error');
@@ -2740,6 +2763,42 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('novaMarcacaoClientSearchWrap').classList.add('d-none');
         $id('novaMarcacaoClientSelected').classList.add('d-none');
     });
+
+    function ensureAgendaSlot24hToggle() {
+        var leftChunk = calendarEl.querySelector('.fc-header-toolbar .fc-toolbar-chunk');
+        if (!leftChunk) return;
+        var existing = leftChunk.querySelector('#agendaSlot24hToggle');
+        if (existing) {
+            if (existing.checked !== agendaSlot24hEnabled) {
+                existing.checked = agendaSlot24hEnabled;
+            }
+            return;
+        }
+        var wrap = document.createElement('div');
+        wrap.className = 'form-check form-switch agenda-slot-24h-toggle d-inline-flex align-items-center ms-2 ms-md-3';
+        wrap.innerHTML = '<input class="form-check-input flex-shrink-0" type="checkbox" id="agendaSlot24hToggle" role="switch" aria-label="Mostrar grelha 24 horas">' +
+            '<label class="form-check-label small text-nowrap ms-2 mb-0" for="agendaSlot24hToggle">24&nbsp;h</label>';
+        leftChunk.appendChild(wrap);
+        var input = wrap.querySelector('#agendaSlot24hToggle');
+        input.checked = agendaSlot24hEnabled;
+        input.addEventListener('change', function() {
+            agendaSlot24hEnabled = input.checked;
+            var r = getAgendaSlotRange(agendaSlot24hEnabled);
+            calendar.setOption('slotMinTime', r.min);
+            calendar.setOption('slotMaxTime', r.max);
+            try {
+                localStorage.setItem(AGENDA_SLOT_STORAGE_KEY, agendaSlot24hEnabled ? '1' : '0');
+            } catch (e) {}
+            var vt = calendar.view.type;
+            if (vt.indexOf('timeGrid') !== -1 || vt.indexOf('resourceTimeGrid') !== -1) {
+                setTimeout(function() {
+                    var now = new Date();
+                    var currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':00';
+                    calendar.scrollToTime(currentTime);
+                }, 50);
+            }
+        });
+    }
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'resourceTimeGridDay',
@@ -2799,9 +2858,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 duration: { days: 3 }
             }
         },
-        // Horário visível da grelha (futuro: vir da configuração da loja)
-        slotMinTime: '09:00:00',
-        slotMaxTime: '20:00:00',
+        // Horário da grelha: 9h–19h ou 24h conforme toggle (futuro: config. da loja)
+        slotMinTime: initialAgendaSlots.min,
+        slotMaxTime: initialAgendaSlots.max,
         slotDuration: '00:15:00',
         slotLabelInterval: '01:00',
         allDaySlot: false,
@@ -2809,6 +2868,8 @@ document.addEventListener('DOMContentLoaded', function() {
         scrollTime: new Date().toTimeString().slice(0, 5) + ':00',
         scrollTimeReset: false,
         slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        /* Horário/título já vão no eventContent; sem isto o TimeGrid mostra .fc-event-time por cima e parece duplicado */
+        displayEventTime: false,
         slotLaneDidMount: function(arg) {
             if (arg.el && arg.date) arg.el.setAttribute('data-slot-date', arg.date.toISOString());
         },
@@ -2911,8 +2972,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const dayIndex = d.getDay();
             
-            // Verificar qual é a vista atual
-            const currentView = calendar ? calendar.view.type : '';
+            const currentView = agendaCurrentViewType;
             
             // Na vista de mês, mostrar apenas o nome do dia
             if (currentView === 'dayGridMonth') {
@@ -3023,8 +3083,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 successCallback(out);
                 
-                // Atualizar dropdown de consultores após recursos serem carregados
-                if (currentViewMode === 'consultant') {
+                if (viewSupportsConsultantFilter(agendaCurrentViewType)) {
                     setTimeout(function() {
                         initConsultantDropdown();
                         updateConsultantFilterButton();
@@ -3052,7 +3111,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 start: info.startStr,
                 end: info.endStr
             });
-            if (currentViewMode === 'consultant') params.set('for_resources', '1');
+            var vtEvents = agendaCurrentViewType;
+            if (vtEvents === 'resourceTimeGridDay') {
+                params.set('for_resources', '1');
+            } else if ((vtEvents === 'timeGridWeek' || vtEvents === 'timeGridThreeDay') && consultantFilterIds.length > 0) {
+                params.set('filter_user_ids', consultantFilterIds.join(','));
+            }
             fetch(eventsUrl + '?' + params.toString(), {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             })
@@ -3061,10 +3125,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (Array.isArray(events)) {
                     const seen = new Set();
                     events = events.filter(function(ev) {
-                        // Evitar duplicados exatos (mesmo id, início e fim)
-                        const key = String(ev.id || '') + '|' + String(ev.start || '') + '|' + String(ev.end || '');
-                        if (seen.has(key)) return false;
-                        seen.add(key);
+                        var id = String(ev.id || '');
+                        if (!id) return true;
+                        if (seen.has(id)) return false;
+                        seen.add(id);
                         return true;
                     });
                 }
@@ -3139,7 +3203,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDrop: function(info) {
             if (info.event.extendedProps.has_invoice) { info.revert(); return; }
             const timeEditable = info.event.extendedProps.is_time_editable !== false;
-            const reassignOnly = info.newResource && currentViewMode === 'consultant';
+            const reassignOnly = info.newResource && isResourceTimeGridDayView(calendar.view.type);
             if (!timeEditable && !reassignOnly) {
                 info.revert();
                 return;
@@ -3148,7 +3212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const start = info.event.start.toISOString();
             const end = info.event.end ? info.event.end.toISOString() : start;
             const payload = { start_at: start, end_at: end };
-            if (info.newResource && currentViewMode === 'consultant') {
+            if (info.newResource && isResourceTimeGridDayView(calendar.view.type)) {
                 payload.user_id = info.newResource.id || null;
             }
             const url = (C.urlEvents || '') + '/' + id + '/update';
@@ -3232,6 +3296,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         },
         datesSet: function(info) {
+            agendaCurrentViewType = info.view.type;
             if ((info.view.type.includes('timeGrid') || info.view.type.includes('resourceTimeGrid')) &&
                 calendar.view.activeStart <= new Date() && calendar.view.activeEnd >= new Date()) {
                 setTimeout(function() {
@@ -3241,6 +3306,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 50);
             }
             requestAnimationFrame(function() {
+                var viewType = calendar.view.type;
                 const viewSelectorBtn = calendarEl.querySelector('.fc-viewSelector-button');
                 const consultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
                 const currentDateBtn = calendarEl.querySelector('.fc-currentDate-button');
@@ -3250,13 +3316,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     viewSelectorBtn.dataset.initialized = '';
                     initViewSelectorDropdown();
                 }
-                if (consultantBtn && currentViewMode === 'consultant' && (!consultantBtn.closest('.dropdown') || !calendarEl.querySelector('#consultantDropdown'))) {
+                if (consultantBtn && viewSupportsConsultantFilter(viewType) && (!consultantBtn.closest('.dropdown') || !calendarEl.querySelector('#consultantDropdown'))) {
                     consultantBtn.dataset.initialized = '';
                     initConsultantDropdown();
                 }
-                var addBtn = calendarEl.querySelector('.fc-adicionarDropdown-button');
-                if (addBtn && addBtn.dataset.initialized !== '1') initAdicionarDropdown();
-                var viewType = calendar.view.type;
+                initAdicionarDropdown();
                 var startDate = viewType === 'dayGridMonth' ? calendar.view.currentStart : info.start;
                 if (currentDateBtn) {
                     currentDateBtn.textContent = formatCurrentDateButton(viewType, startDate, info.end);
@@ -3274,19 +3338,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     };
                     viewSelectorBtn.textContent = viewLabels[viewType] || 'Dia';
                 }
-                if (consultantBtn && consultantBtn.dataset.initialized === '1' && currentViewMode === 'consultant') {
+                if (consultantBtn && consultantBtn.dataset.initialized === '1' && viewSupportsConsultantFilter(viewType)) {
                     var res = selectedConsultantId && allResources.length ? allResources.find(function(r) { return r.id === selectedConsultantId; }) : null;
                     consultantBtn.textContent = res ? res.title : 'Toda a equipa';
                 }
                 if (prevBtn) prevBtn.innerHTML = '<span class="fc-icon fc-icon-chevron-left"></span>';
                 if (nextBtn) nextBtn.innerHTML = '<span class="fc-icon fc-icon-chevron-right"></span>';
                 applyToolbarStyles();
+                ensureAgendaSlot24hToggle();
             });
         },
         viewDidMount: function(info) {
+            agendaCurrentViewType = info.view.type;
             const isConsultant = info.view.type === 'resourceTimeGridDay';
-            currentViewMode = isConsultant ? 'consultant' : 'normal';
-            
+            const nextMode = isConsultant ? 'consultant' : 'normal';
+            const modeChanged = currentViewMode !== nextMode;
+            currentViewMode = nextMode;
+
+            if (isConsultant) {
+                calendar.refetchResources();
+                calendar.refetchEvents();
+            } else if (modeChanged) {
+                /* Dia (recursos) → semana/mês: refetch sem for_resources evita eventos “fantasma” / duplicados visuais */
+                calendar.refetchEvents();
+            }
+
             // Fazer scroll para a hora atual se for uma vista de tempo
             if (info.view.type.includes('timeGrid') || info.view.type.includes('resourceTimeGrid')) {
                 setTimeout(function() {
@@ -3296,33 +3372,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 100);
             }
             
-            requestAnimationFrame(function() { applyToolbarStyles(); });
+            requestAnimationFrame(function() {
+                applyToolbarStyles();
+                ensureAgendaSlot24hToggle();
+            });
             setTimeout(function() {
                 initViewSelectorDropdown();
                 updateViewSelectorButton(info.view.type);
                 updateViewDropdownActive(info.view.type);
-                if (calendarEl.querySelector('.fc-adicionarDropdown-button')?.dataset.initialized !== '1') initAdicionarDropdown();
+                initAdicionarDropdown();
                 applyToolbarStyles();
+                ensureAgendaSlot24hToggle();
             }, 0);
             
-            // Mostrar/esconder botão de filtro de consultor (só na vista Dia)
+            const showConsultantFilter = viewSupportsConsultantFilter(info.view.type);
             const consultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
             if (consultantBtn) {
-                consultantBtn.style.display = isConsultant ? 'inline-block' : 'none';
+                consultantBtn.style.display = showConsultantFilter ? 'inline-block' : 'none';
                 var parent = consultantBtn.parentElement;
                 if (parent && parent.classList.contains('dropdown')) {
-                    parent.style.display = isConsultant ? 'inline-block' : 'none';
+                    parent.style.display = showConsultantFilter ? 'inline-block' : 'none';
                 }
             }
-            
-            if (isConsultant) {
-                calendar.refetchResources();
-                calendar.refetchEvents();
+            if (showConsultantFilter) {
                 setTimeout(function() {
                     initConsultantDropdown();
                     updateConsultantFilterButton();
                     applyToolbarStyles();
-                }, 150);
+                    ensureAgendaSlot24hToggle();
+                }, isConsultant ? 150 : 0);
             }
         }
     });
@@ -3617,20 +3695,30 @@ document.addEventListener('DOMContentLoaded', function() {
     function initAdicionarDropdown() {
         const addBtn = calendarEl.querySelector('.fc-adicionarDropdown-button');
         if (!addBtn) return;
-        if (addBtn.dataset.initialized === '1') return;
-        addBtn.dataset.initialized = '1';
-        var btnParent = addBtn.parentElement;
-        var needWrapper = !btnParent.classList.contains('dropdown') ||
-            btnParent.querySelector('.fc-consultantFilter-button') ||
-            btnParent.querySelector('.fc-viewSelector-button');
-        if (needWrapper) {
-            var wrapper = document.createElement('div');
-            wrapper.className = 'dropdown';
-            wrapper.style.setProperty('display', 'inline-block', 'important');
-            addBtn.parentElement.insertBefore(wrapper, addBtn);
-            wrapper.appendChild(addBtn);
-            btnParent = wrapper;
+
+        var existingDd = bootstrap.Dropdown.getInstance(addBtn);
+        if (existingDd) existingDd.dispose();
+
+        calendarEl.querySelectorAll('.agenda-adicionar-dropdown-menu').forEach(function(el) { el.remove(); });
+        var orphanMenu = document.getElementById('adicionarDropdownMenu');
+        if (orphanMenu) orphanMenu.remove();
+
+        var isolated = addBtn.closest('.agenda-adicionar-dropdown-isolated');
+        var isolatedOk = isolated && !isolated.querySelector('.fc-viewSelector-button') && !isolated.querySelector('.fc-consultantFilter-button');
+        if (!isolatedOk) {
+            var nw = document.createElement('div');
+            nw.className = 'dropdown agenda-adicionar-dropdown-isolated';
+            nw.style.setProperty('display', 'inline-block', 'important');
+            nw.style.setProperty('margin', '0', 'important');
+            nw.style.setProperty('padding', '0', 'important');
+            addBtn.parentElement.insertBefore(nw, addBtn);
+            nw.appendChild(addBtn);
         }
+
+        var btnParent = addBtn.parentElement;
+        btnParent.querySelectorAll('.agenda-adicionar-dropdown-menu').forEach(function(el) { el.remove(); });
+
+        addBtn.dataset.initialized = '1';
         addBtn.classList.add('dropdown-toggle');
         addBtn.setAttribute('data-bs-toggle', 'dropdown');
         addBtn.setAttribute('data-bs-target', '#adicionarDropdownMenu');
@@ -3638,7 +3726,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addBtn.id = 'adicionarDropdownBtn';
         var menu = document.createElement('div');
         menu.id = 'adicionarDropdownMenu';
-        menu.className = 'dropdown-menu dropdown-menu-end';
+        menu.className = 'dropdown-menu dropdown-menu-end agenda-adicionar-dropdown-menu';
         menu.setAttribute('aria-labelledby', 'adicionarDropdownBtn');
         var optMarcacao = document.createElement('a');
         optMarcacao.className = 'dropdown-item';
@@ -3647,7 +3735,7 @@ document.addEventListener('DOMContentLoaded', function() {
         optMarcacao.addEventListener('click', function(e) {
             e.preventDefault();
             var slot = getClosestSlotToNow();
-            var resourceId = (currentViewMode === 'consultant' && selectedConsultantId) ? selectedConsultantId : null;
+            var resourceId = (viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null;
             openNovaMarcacaoModal(slot.startStr, slot.endStr, resourceId);
             bootstrap.Dropdown.getInstance(addBtn)?.hide();
         });
@@ -3658,13 +3746,14 @@ document.addEventListener('DOMContentLoaded', function() {
         optTempoPessoal.addEventListener('click', function(e) {
             e.preventDefault();
             var slot = getClosestSlotToNow();
-            var resourceId = (currentViewMode === 'consultant' && selectedConsultantId) ? selectedConsultantId : null;
+            var resourceId = (viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null;
             openTempoPessoalModal(slot.startStr, slot.endStr, resourceId);
             bootstrap.Dropdown.getInstance(addBtn)?.hide();
         });
         menu.appendChild(optMarcacao);
         menu.appendChild(optTempoPessoal);
         btnParent.appendChild(menu);
+        bootstrap.Dropdown.getOrCreateInstance(addBtn);
     }
     
     /** Aplica estilos estruturais da toolbar (cores vêm do CSS/theme: var(--surface-color), etc.). */
@@ -3731,6 +3820,8 @@ document.addEventListener('DOMContentLoaded', function() {
             refreshBtn.innerHTML = '<i class="ph ph-arrow-clockwise"></i>';
             refreshBtn.dataset._iconApplied = '1';
         }
+
+        ensureAgendaSlot24hToggle();
         
         // Esconder título/chunk do center
         const titleEl = calendarEl.querySelector('.fc-toolbar-title');
@@ -3748,7 +3839,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function initConsultantDropdown() {
         const consultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
         if (!consultantBtn) return;
-        
+
+        if (allResources.length === 0 && resourcesUrl) {
+            fetch(resourcesUrl, { headers: { 'Accept': 'application/json' } })
+                .then(function(r) { return r.json(); })
+                .then(function(res) {
+                    allResources = res || [];
+                    initConsultantDropdown();
+                })
+                .catch(function() {});
+            return;
+        }
+
         // Se já foi inicializado, verificar se a estrutura ainda existe
         if (consultantBtn.dataset.initialized === '1') {
             const wrapper = consultantBtn.closest('.dropdown');
@@ -3827,7 +3929,10 @@ document.addEventListener('DOMContentLoaded', function() {
             consultantFilterIds = [];
             consultantBtn.textContent = '';
             consultantBtn.textContent = 'Toda a equipa';
-            calendar.refetchResources();
+            if (isResourceTimeGridDayView(calendar.view.type)) {
+                calendar.refetchResources();
+            }
+            calendar.refetchEvents();
             updateDropdownActive();
         });
         dropdown.appendChild(allOption);
@@ -3841,7 +3946,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectedConsultantId = String(u.id);
                 consultantFilterIds = [String(u.id)];
                 consultantBtn.textContent = u.name;
-                calendar.refetchResources();
+                if (isResourceTimeGridDayView(calendar.view.type)) {
+                    calendar.refetchResources();
+                }
+                calendar.refetchEvents();
                 updateDropdownActive();
             });
             dropdown.appendChild(opt);
@@ -3851,7 +3959,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateConsultantFilterButton() {
         const consultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
-        if (consultantBtn && currentViewMode === 'consultant') {
+        if (consultantBtn && viewSupportsConsultantFilter(calendar.view.type)) {
             // Garantir que o dropdown está inicializado
             if (!consultantBtn.dataset.initialized) {
                 initConsultantDropdown();
@@ -4085,10 +4193,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (res.event.backgroundColor != null) ev.setProp('backgroundColor', res.event.backgroundColor);
                         }
                     } else {
-                        if (currentViewMode === 'consultant' && res.event.extendedProps?.user_id) {
-                            res.event.resourceId = String(res.event.extendedProps.user_id);
-                        }
-                        calendar.addEvent(res.event);
+                        calendar.refetchEvents();
                     }
                 }
             } else {
