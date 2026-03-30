@@ -106,7 +106,7 @@
                             </td>
                             <td>
                                 @if($client->phone)
-                                    <span class="users-cell-meta">{{ $client->phone }}</span>
+                                    <span class="users-cell-meta">{{ $client->formatted_phone }}</span>
                                 @else
                                     <span class="users-cell-meta text-muted">—</span>
                                 @endif

@@ -107,7 +107,7 @@
                         </td>
                         <td>
                             @if($agent->phone)
-                                <span class="users-cell-meta">{{ $agent->phone }}</span>
+                                <span class="users-cell-meta">{{ $agent->formatted_phone }}</span>
                             @else
                                 <span class="users-cell-meta text-muted">—</span>
                             @endif

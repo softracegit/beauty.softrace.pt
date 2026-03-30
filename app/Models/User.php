@@ -74,6 +74,14 @@ class User extends Authenticatable
     }
 
     /**
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany<UserNotificationPreference, $this>
+     */
+    public function notificationPreferences()
+    {
+        return $this->hasMany(UserNotificationPreference::class);
+    }
+
+    /**
      * Check if user has a specific role
      */
     public function hasRole(string $role): bool

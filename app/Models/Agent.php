@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -94,6 +95,19 @@ class Agent extends Model
     public function getAgentIdAttribute(): string
     {
         return '#AG' . str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Telefone para exibição (indicativo e número conforme o país).
+     */
+    public function getFormattedPhoneAttribute(): ?string
+    {
+        $raw = $this->attributes['phone'] ?? null;
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return PhoneDisplay::formatInternational($raw) ?? $raw;
     }
 
     /**

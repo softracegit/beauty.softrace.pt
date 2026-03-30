@@ -1,22 +1,24 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ClientController;
-use App\Http\Controllers\AgentController;
-use App\Http\Controllers\LeadController;
-use App\Http\Controllers\PropertyController;
-use App\Http\Controllers\OpportunityController;
-use App\Http\Controllers\VisitController;
-use App\Http\Controllers\ProposalController;
-use App\Http\Controllers\DealController;
-use App\Http\Controllers\CalendarController;
-use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\ServiceController;
-use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ClientController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DefinicoesController;
+use App\Http\Controllers\DealController;
+use App\Http\Controllers\ExtraController;
+use App\Http\Controllers\LeadController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OpportunityController;
+use App\Http\Controllers\PropertyController;
+use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\VisitController;
+use Illuminate\Support\Facades\Route;
 
 // Rotas de autenticação (públicas)
 Route::middleware('guest')->group(function () {
@@ -35,7 +37,7 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::get('/', function () {
         return redirect()->route('dashboard');
     });
-    
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/imoveis', [DashboardController::class, 'imoveis'])->name('dashboard.imoveis');
     Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
@@ -44,12 +46,31 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
 
     Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
 
+    Route::get('notificacoes', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notificacoes/api', [NotificationController::class, 'apiList'])->name('notifications.api');
+    Route::post('notificacoes/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::post('notificacoes/{id}/read', [NotificationController::class, 'markRead'])
+        ->whereUuid('id')
+        ->name('notifications.read');
+
+    Route::prefix('definicoes')->name('definicoes.')->group(function () {
+        Route::get('/', [DefinicoesController::class, 'index'])->name('index');
+        Route::get('conta', [DefinicoesController::class, 'conta'])->name('conta');
+        Route::get('negocio', [DefinicoesController::class, 'negocio'])->name('negocio');
+        Route::get('agendamentos', [DefinicoesController::class, 'agendamentos'])->name('agendamentos');
+        Route::get('vendas', [DefinicoesController::class, 'vendas'])->name('vendas');
+        Route::get('clientes', [DefinicoesController::class, 'clientes'])->name('clientes');
+        Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');
+        Route::get('notificacoes', [DefinicoesController::class, 'notificacoes'])->name('notificacoes');
+        Route::post('notificacoes', [DefinicoesController::class, 'updateNotificacoes'])->name('notificacoes.update');
+    });
+
     Route::resource('clientes', ClientController::class);
     Route::post('clientes/{cliente}/notes', [ClientController::class, 'storeNote'])->name('clientes.storeNote');
-    
+
     Route::resource('equipa', AgentController::class)->parameters(['equipa' => 'agente']);
     Route::post('equipa/{agente}/notes', [AgentController::class, 'storeNote'])->name('equipa.storeNote');
-    
+
     // Rotas de Leads
     Route::get('leads/kanban', [LeadController::class, 'kanban'])->name('leads.kanban');
     Route::post('leads/{lead}/update-status', [LeadController::class, 'updateStatus'])->name('leads.updateStatus');
@@ -58,13 +79,13 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::post('leads/{lead}/archive', [LeadController::class, 'archive'])->name('leads.archive');
     Route::post('leads/{lead}/restore', [LeadController::class, 'restore'])->name('leads.restore');
     Route::resource('leads', LeadController::class);
-    
+
     // Rotas de Imóveis
     Route::get('properties/get-cities', [PropertyController::class, 'getCitiesByDistrict'])->name('properties.getCities');
     Route::get('properties/get-parishes', [PropertyController::class, 'getParishesByCity'])->name('properties.getParishes');
     Route::post('properties/{property}/notes', [PropertyController::class, 'storeNote'])->name('properties.storeNote');
     Route::resource('properties', PropertyController::class);
-    
+
     // Rotas de Oportunidades
     Route::get('opportunities/kanban', [OpportunityController::class, 'kanban'])->name('opportunities.kanban');
     Route::post('opportunities/{opportunity}/update-status', [OpportunityController::class, 'updateStatus'])->name('opportunities.updateStatus');
@@ -82,13 +103,13 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::post('proposals/{proposal}/reject', [ProposalController::class, 'reject'])->name('proposals.reject');
     Route::post('proposals/{proposal}/counter-proposal', [ProposalController::class, 'storeCounterProposal'])->name('proposals.counterProposal');
     Route::resource('opportunities', OpportunityController::class);
-    
+
     // Rotas de Deals (Negócios Fechados)
     Route::get('deals', [DealController::class, 'index'])->name('deals.index');
     Route::get('deals/{deal}', [DealController::class, 'show'])->name('deals.show');
     Route::post('opportunities/{opportunity}/finalize', [DealController::class, 'finalize'])->name('opportunities.finalize');
     Route::post('deals/{deal}/revert', [DealController::class, 'revert'])->name('deals.revert');
-    
+
     // Agenda (Calendário)
     Route::get('agenda', [CalendarController::class, 'index'])->name('agenda.index');
     Route::get('agenda/resources', [CalendarController::class, 'resources'])->name('agenda.resources');
@@ -101,7 +122,7 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::put('agenda/events/{calendarEvent}', [CalendarController::class, 'update'])->name('agenda.events.update');
     Route::post('agenda/events/{calendarEvent}/update', [CalendarController::class, 'update'])->name('agenda.events.update.post');
     Route::post('agenda/events/{calendarEvent}/status', [CalendarController::class, 'updateStatus'])->name('agenda.events.status');
-Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
+    Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
     Route::get('agenda/events/{calendarEvent}/checkout', [CheckoutController::class, 'checkout'])->name('agenda.checkout');
     Route::post('agenda/checkout', [CheckoutController::class, 'store'])->name('agenda.checkout.store');
     Route::get('sales/{sale}/pdf', [CheckoutController::class, 'pdf'])->name('sales.pdf');
@@ -138,7 +159,7 @@ Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'dest
     Route::post('extra-categories', [ExtraController::class, 'storeCategory'])->name('extras.categories.store');
     Route::match(['put', 'patch'], 'extra-categories/{extraCategory}', [ExtraController::class, 'updateCategory'])->name('extras.categories.update');
     Route::delete('extra-categories/{extraCategory}', [ExtraController::class, 'destroyCategory'])->name('extras.categories.destroy');
-    
+
     // Rotas do template (protegidas)
     Route::get('{page}', [DashboardController::class, 'page'])->where('page', '[A-Za-z0-9\-]+');
 });

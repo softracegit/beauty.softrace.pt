@@ -16,7 +16,7 @@
   @include('partials.head-css')
 </head>
 
-<body class="{{ request()->routeIs('agenda.*') ? 'sidebar-panel-collapsed' : '' }}">
+<body class="{{ request()->routeIs('agenda.*') ? 'sidebar-panel-collapsed' : '' }} {{ request()->routeIs('definicoes.*') ? 'definicoes-sidebar-open' : '' }}">
   @include('partials.header')
   @include('partials.sidebar')
 
@@ -35,6 +35,13 @@
   </a>
 
   @include('partials.vendor-scripts')
+  <script>
+    window.CrmNotifications = {
+      listUrl: @json(route('notifications.api')),
+      readAllUrl: @json(route('notifications.read-all')),
+    };
+  </script>
+  <script src="{{ asset('template/js/crm-notifications.js') }}?v={{ file_exists(public_path('template/js/crm-notifications.js')) ? filemtime(public_path('template/js/crm-notifications.js')) : time() }}"></script>
   @include('partials.toast-container')
   @yield('js')
 </body>

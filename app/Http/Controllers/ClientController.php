@@ -100,8 +100,8 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:clients,email'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')],
+            'phone' => ['required', 'string', 'max:50'],
             'nif' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::in(array_keys(Client::genders()))],
@@ -452,8 +452,8 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($cliente->id)],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($cliente->id)],
+            'phone' => ['required', 'string', 'max:50'],
             'nif' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::in(array_keys(Client::genders()))],

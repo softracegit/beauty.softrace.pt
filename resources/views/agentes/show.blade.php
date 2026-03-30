@@ -77,7 +77,7 @@
                         @if($agente->phone)
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Telefone</div>
-                            <div class="uview-detail-value"><a href="tel:{{ $agente->phone }}">{{ $agente->phone }}</a></div>
+                            <div class="uview-detail-value"><a href="{{ \App\Support\PhoneDisplay::telHref($agente->phone) }}">{{ $agente->formatted_phone }}</a></div>
                         </div>
                         @endif
                         @if($agente->nif)

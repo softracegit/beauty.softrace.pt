@@ -58,7 +58,7 @@
                 <div class="uedit-section">
                     <div class="uedit-section-title">Dados gerais</div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-12 mb-3">
                             <label class="form-label">Nome completo <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ $v('name') }}" placeholder="Ex: Maria Silva" required>
                             @error('name')
@@ -66,16 +66,21 @@
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Email <span class="text-danger">*</span></label>
-                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ $v('email') }}" placeholder="email@exemplo.com" required>
-                            @error('email')
+                            <label class="form-label" for="{{ $isEdit ? 'clientPhone' : 'clientCreatePhone' }}">Telemóvel <span class="text-danger">*</span></label>
+                            @if($isEdit)
+                                {{-- name="phone" é enviado via hidden pelo intl-phone-init (E.164), para não repintar o campo visível no submit --}}
+                                <input type="tel" id="clientPhone" class="form-control @error('phone') is-invalid @enderror" value="{{ $v('phone') }}" autocomplete="tel" required>
+                            @else
+                                <input type="tel" id="clientCreatePhone" class="form-control @error('phone') is-invalid @enderror" value="{{ $v('phone') }}" autocomplete="tel" required>
+                            @endif
+                            @error('phone')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Telefone</label>
-                            <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ $v('phone') }}" placeholder="+351 912 345 678">
-                            @error('phone')
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ $v('email') }}" placeholder="email@exemplo.com">
+                            @error('email')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

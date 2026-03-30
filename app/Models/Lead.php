@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,6 +48,19 @@ class Lead extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Telefone para exibição (indicativo e número conforme o país).
+     */
+    public function getFormattedPhoneAttribute(): ?string
+    {
+        $raw = $this->attributes['phone'] ?? null;
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return PhoneDisplay::formatInternational($raw) ?? $raw;
+    }
 
     // Tipos de lead
     public const TYPE_COMPRA = 'compra';

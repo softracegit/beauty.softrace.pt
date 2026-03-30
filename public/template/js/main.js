@@ -121,12 +121,17 @@
       body.classList.add('sidebar-panel-collapsed');
     }
 
+    // Definições: painel secundário sempre visível (ignora colapso guardado nestas rotas)
+    if (body.classList.contains('definicoes-sidebar-open')) {
+      body.classList.remove('sidebar-panel-collapsed');
+    }
+
     // On tablet, auto-open the active sidebar panel section (except Agenda).
     // This keeps the panel state in sync with the current route after icon-bar navigation.
     if (window.innerWidth >= 768 && window.innerWidth < 1280) {
       var activePanelSection = document.querySelector('.sidebar-panel-section.active');
-      var isAgendaRoute = body.classList.contains('sidebar-panel-collapsed'); // Agenda uses this class on <body>
-      if (activePanelSection && !isAgendaRoute) {
+      var isAgendaCollapsedLayout = body.classList.contains('sidebar-panel-collapsed');
+      if (activePanelSection && !isAgendaCollapsedLayout) {
         body.classList.add('sidebar-panel-open');
       }
     }

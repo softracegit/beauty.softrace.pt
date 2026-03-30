@@ -1,5 +1,10 @@
 @extends('partials.layouts.main')
 @section('title', 'Novo Cliente | Beauty CRM')
+
+@section('css')
+@include('clientes.partials.intl-phone-css')
+@endsection
+
 @section('content')
 
 <form action="{{ route('clientes.store') }}" method="POST" enctype="multipart/form-data">
@@ -71,4 +76,5 @@
         });
     })();
 </script>
+@include('clientes.partials.intl-phone-init', ['phoneInputId' => 'clientCreatePhone'])
 @endsection

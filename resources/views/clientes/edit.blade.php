@@ -1,5 +1,10 @@
 @extends('partials.layouts.main')
 @section('title', 'Editar Cliente | Beauty CRM')
+
+@section('css')
+@include('clientes.partials.intl-phone-css')
+@endsection
+
 @section('content')
 
 <form action="{{ route('clientes.update', $cliente) }}" method="POST" enctype="multipart/form-data">
@@ -100,4 +105,5 @@
         });
     })();
 </script>
+@include('clientes.partials.intl-phone-init', ['phoneInputId' => 'clientPhone'])
 @endsection

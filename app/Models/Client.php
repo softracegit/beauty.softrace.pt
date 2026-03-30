@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -55,6 +56,19 @@ class Client extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Telefone para exibição (indicativo e número separados por regras do país).
+     */
+    public function getFormattedPhoneAttribute(): ?string
+    {
+        $raw = $this->attributes['phone'] ?? null;
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return PhoneDisplay::formatInternational($raw) ?? $raw;
+    }
 
     // Tipos de cliente
     public const TYPE_POTENCIAL_CLIENTE = 'potencial_cliente';

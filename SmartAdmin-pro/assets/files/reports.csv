@@ -1,22 +1,65 @@
-﻿date;status;client_name;client_phone;item_name;service_provider
-20/03/2026 09:00;chegou;Mariana Sacchetti;919999999;Manutenção de gel / Acrilico ( de outra Profesional Externa );6
-20/03/2026 09:00;chegou;Manuela Alvez;919999999;Verniz de Gel / Gelinho;7
-20/03/2026 09:30;chegou;Livia Rincon;919999999;Manutenção Volume Brasileiro ( até 4 semanas );9
-20/03/2026 10:30;chegou;Regina Goossen;919999999;Manutenção de Gel;7
-20/03/2026 11:00;chegou;Ana Catarina Fernandes;919999999;Unhas de Gel c/Extensão;6
-20/03/2026 12:10;completo;Marieli Dias;919999999;Manutenção de Gel;7
-20/03/2026 13:05;chegou;Ana Catarina Fernandes;919999999;Full Nail Art ( preço a definir consoante ao design );6
-20/03/2026 13:50;completo;Marieli Dias;919999999;Francesinha;7
-20/03/2026 14:05;completo;Marieli Dias;919999999;Reparação de Uma Unha de Gel;7
-20/03/2026 17:00;confirmado;Diana Nunes;919999999;Manutenção de Gel;6
-20/03/2026 18:05;confirmado;Marie Singh;919999999;Extensão de Pestanas Volume Russo;9
-20/03/2026 18:40;confirmado;Diana Nunes;919999999;Nails Art ( Decoração);6
-21/03/2026 09:30;confirmado;Inês Silva;919999999;Manutenção de gel / Acrilico ( de outra Profesional Externa );8
-21/03/2026 10:00;confirmado;Joyce Miranda;919999999;Manutenção de Gel;7
-21/03/2026 11:40;confirmado;Joyce Miranda;919999999;Nails Art ( Decoração);7
-21/03/2026 12:00;confirmado;Irene Oliveira;919999999;Pedicure Tradicional;7
-21/03/2026 12:00;confirmado;Guiselle llavali;919999999;Manicure Tradicional;6
-21/03/2026 12:45;confirmado;Guiselle llavali;919999999;Pedicure Tradicional;6
-21/03/2026 14:30;confirmado;Bruna Marcondes;919999999;Verniz Gel + Pedicure Normal;6
-21/03/2026 16:00;confirmado;Ana Marques;919999999;Verniz de Gel / Gelinho;7
-21/03/2026 16:45;confirmado;Bruna Marcondes;919999999;Design Personalizado  de Sobrancelhas;8
+﻿date;status;client_name;item_name;service_provider;price_base
+24/03/2026 09:00;chegou;Marta Ferreira;Verniz de Gel / Gelinho;Laissa Osto;20
+24/03/2026 10:00;chegou;Marta Ferreira;Nail Art 3D;Laissa Osto;5
+24/03/2026 13:25;chegou;Maya Marques;Manutenção de Gel;Laissa Osto;27
+24/03/2026 15:00;chegou;Myrelle Sabino;Manutenção de Gel;Vanessa Pereira;27
+24/03/2026 15:00;chegou;Caroline Fernandes;Unhas de Gel (Sobre o Tamanho da Unha Natural );Laissa Osto;24
+24/03/2026 17:30;confirmado;Raquel Cardoso;Unhas de Gel (Sobre o Tamanho da Unha Natural );Vanessa Pereira;24
+24/03/2026 17:40;confirmado;Zaida Ramos;Unhas de Gel c/Extensão;Sandy Hurtado;35
+25/03/2026 10:00;confirmado;Celeste Paiao;Unhas de Gel (Sobre o Tamanho da Unha Natural );Vanessa Pereira;24
+25/03/2026 10:00;confirmado;Rebecca Seoane;Verniz de Gel / Gelinho;Sandy Hurtado;20
+25/03/2026 11:00;confirmado;Rebecca Seoane;Pedicure com Verniz Gel / Gelinho;Sandy Hurtado;22
+25/03/2026 11:10;confirmado;Rodrigues Vanina;Manutenção de Gel;Laissa Osto;27
+25/03/2026 11:30;confirmado;Burcin Oktem;Manicure Tradicional;Vanessa Pereira;15
+25/03/2026 12:50;confirmado;Rodrigues Vanina;Full Nail Art ( preço a definir consoante ao design );Laissa Osto;0
+25/03/2026 14:00;confirmado;Giha Nogueira;Verniz de Gel / Gelinho;Vanessa Pereira;20
+25/03/2026 15:00;confirmado;Camile Veloso;Manutenção de Gel;Laissa Osto;27
+25/03/2026 15:00;confirmado;Giha Nogueira;Pedicure com Verniz Gel / Gelinho;Vanessa Pereira;22
+25/03/2026 16:30;confirmado;Daniela Santos;Verniz de Gel / Gelinho;Sandy Hurtado;20
+25/03/2026 17:00;confirmado;Heloisa Aquino;Pedicure com Verniz Gel / Gelinho;Laissa Osto;22
+25/03/2026 18:00;confirmado;Heloisa Aquino;Unhas de Gel (Sobre o Tamanho da Unha Natural );Laissa Osto;24
+26/03/2026 09:00;confirmado;Patricia Soares;Manutenção de Gel;Vanessa Pereira;27
+26/03/2026 10:00;confirmado;Sofia Fernandes;Verniz de Gel / Gelinho;Laissa Osto;20
+26/03/2026 11:00;confirmado;Sofia Fernandes;Nails Art ( Decoração);Laissa Osto;3
+26/03/2026 13:00;confirmado;Nathalya ;Pedicure com Verniz Gel / Gelinho;Vanessa Pereira;22
+26/03/2026 14:00;confirmado;Nathalya ;Unhas de Acrílico c/ Extensão;Vanessa Pereira;38
+26/03/2026 18:00;confirmado;Maria Neiva;Unhas de Gel (Sobre o Tamanho da Unha Natural );Vanessa Pereira;24
+27/03/2026 10:30;confirmado;Joyce Silva;Unhas de Gel c/Extensão;Laissa Osto;35
+27/03/2026 14:00;confirmado;Renato Pina;Verniz de Gel / Gelinho;Vanessa Pereira;20
+27/03/2026 15:00;confirmado;Maria Isabel Ferreira;Unhas de Gel (Sobre o Tamanho da Unha Natural );Laissa Osto;24
+27/03/2026 15:00;confirmado;Renato Pina;Nails Art ( Decoração);Vanessa Pereira;3
+27/03/2026 16:00;confirmado;Marianne Andrada;Manutenção de Acrilico;Laissa Osto;28
+27/03/2026 18:00;confirmado;Diana Isabel Pereira Bento;Verniz de Gel / Gelinho;Laissa Osto;20
+28/03/2026 09:00;confirmado;Alice Cardoso;Manutenção de Gel;Laissa Osto;27
+28/03/2026 10:00;confirmado;Lucia Serrano;Unhas de Gel (Sobre o Tamanho da Unha Natural );Vanessa Pereira;24
+28/03/2026 10:00;confirmado;Gilda Rico;Unhas de Gel (Sobre o Tamanho da Unha Natural );Sandy Hurtado;24
+28/03/2026 10:40;confirmado;Alice Cardoso;Full Nail Art ( preço a definir consoante ao design );Laissa Osto;0
+28/03/2026 11:10;confirmado;Lucia Serrano;Full Nail Art ( preço a definir consoante ao design );Vanessa Pereira;0
+28/03/2026 11:10;confirmado;Gilda Rico;Nails Art ( Decoração);Sandy Hurtado;3
+28/03/2026 12:30;confirmado;Julia Hoff;Manutenção de Acrilico;Vanessa Pereira;28
+28/03/2026 12:30;confirmado;Anna Maris;Manutenção de Gel;Sandy Hurtado;27
+28/03/2026 13:00;confirmado;Mariana Silva;Manutenção de Gel;Laissa Osto;27
+28/03/2026 13:40;confirmado;Vanessa Tanko;Manutenção Volume Brasileiro ( até 4 semanas );Andrea Velasquez;27
+28/03/2026 14:30;confirmado;karla vecchio;Unhas de Gel (Sobre o Tamanho da Unha Natural );Vanessa Pereira;24
+28/03/2026 14:40;confirmado;Mariana Silva;Nails Art ( Decoração);Laissa Osto;3
+28/03/2026 15:00;confirmado;Karine Mello;Manutenção de Gel;Laissa Osto;27
+28/03/2026 15:40;confirmado;karla vecchio;Nails Art ( Decoração);Vanessa Pereira;3
+28/03/2026 16:00;confirmado;Vanessa Tanko;Manutenção de gel / Acrilico ( de outra Profesional Externa );Vanessa Pereira;30
+28/03/2026 17:00;confirmado;Sarai Moreno;Manutenção de Gel;Laissa Osto;27
+28/03/2026 18:40;confirmado;Sarai Moreno;Nails Art ( Decoração);Laissa Osto;3
+30/03/2026 09:00;confirmado;Aline Nicomedes;Manutenção de Unhas de Gel + Pedicure com Verniz Gel;Vanessa Pereira;47
+30/03/2026 10:00;confirmado;janiele de Souza;Manutenção de Gel;Laissa Osto;27
+30/03/2026 11:00;confirmado;Rosabel Dos Santos;Manicure Tradicional;Sandy Hurtado;15
+30/03/2026 11:40;confirmado;janiele de Souza;Pedicure com Verniz Gel / Gelinho;Laissa Osto;22
+30/03/2026 11:45;confirmado;Rosabel Dos Santos;Pedicure Tradicional;Sandy Hurtado;20
+30/03/2026 12:40;confirmado;Joana Gomes;Verniz de Gel / Gelinho;Laissa Osto;20
+30/03/2026 13:40;confirmado;Joana Gomes;Nails Art ( Decoração);Laissa Osto;3
+30/03/2026 16:30;confirmado;Renata Alcântara;Unhas de Gel (Sobre o Tamanho da Unha Natural );Laissa Osto;24
+30/03/2026 17:00;confirmado;Ana Araujo;Design Personalizado  de Sobrancelhas;Sandy Hurtado;15
+30/03/2026 18:00;confirmado;Ana Araujo;Manutenção Mega Volume ( até 4 semanas );Andrea Velasquez;35
+30/03/2026 18:20;confirmado;Nataliya Pereira;Manutenção de Gel;Vanessa Pereira;27
+31/03/2026 10:30;confirmado;BERTA CAMILE;Unhas de Gel (Sobre o Tamanho da Unha Natural );Vanessa Pereira;24
+31/03/2026 12:00;confirmado;Clara Pinto;Verniz de Gel / Gelinho;Vanessa Pereira;20
+31/03/2026 14:00;confirmado;ana mesquita;Verniz de Gel / Gelinho;Laissa Osto;20
+31/03/2026 18:30;confirmado;Renata Abade;Unhas de Gel (Sobre o Tamanho da Unha Natural );Laissa Osto;24
+31/03/2026 19:40;confirmado;Renata Abade;Nails Art ( Decoração);Laissa Osto;3

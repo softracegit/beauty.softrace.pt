@@ -117,6 +117,28 @@
             'url' => route('activity.index'),
             'active' => true
         ];
+    } elseif (str_contains($currentRoute, 'definicoes')) {
+        $breadcrumbs[] = [
+            'label' => 'Definições',
+            'url' => route('definicoes.index'),
+            'active' => false
+        ];
+        $sectionLabels = [
+            'definicoes.conta' => 'Conta',
+            'definicoes.negocio' => 'Negócio',
+            'definicoes.agendamentos' => 'Agendamentos',
+            'definicoes.vendas' => 'Vendas',
+            'definicoes.clientes' => 'Clientes',
+            'definicoes.equipa' => 'Equipa',
+            'definicoes.notificacoes' => 'Notificações',
+        ];
+        if (isset($sectionLabels[$currentRoute])) {
+            $breadcrumbs[] = [
+                'label' => $sectionLabels[$currentRoute],
+                'url' => null,
+                'active' => true
+            ];
+        }
     } else {
         $breadcrumbs[] = [
             'label' => 'Dashboard',

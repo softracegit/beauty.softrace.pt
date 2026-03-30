@@ -54,11 +54,11 @@
     </nav>
 
     <div class="sidebar-iconbar-bottom">
-      <a href="#!" class="iconbar-item iconbar-bottom-item" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Definições">
+      <a href="{{ route('definicoes.index') }}" class="iconbar-item iconbar-bottom-item {{ request()->routeIs('definicoes.*') ? 'active' : '' }}" data-panel="definicoes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Definições" aria-label="Definições">
         <i class="ph ph-gear"></i>
       </a>
-      <a href="{{ route('dashboard') }}" class="iconbar-bottom-avatar" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
-        <img src="{{ asset('template/img/profile-img.webp') }}" alt="User">
+      <a href="#!" class="iconbar-item iconbar-bottom-item" data-panel="ajuda" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Ajuda" aria-label="Ajuda">
+        <i class="ph ph-question"></i>
       </a>
     </div>
   </div>
@@ -254,6 +254,64 @@
         <li>
           <a class="panel-link" href="#!">
             Favoritos
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="sidebar-panel-section {{ request()->routeIs('definicoes.*') ? 'active' : '' }}" data-section="definicoes">
+      <div class="sidebar-panel-header">
+        <h6>Definições</h6>
+        <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+      </div>
+      <ul class="panel-nav">
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.conta') ? 'active' : '' }}" href="{{ route('definicoes.conta') }}">
+            Conta
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.negocio') ? 'active' : '' }}" href="{{ route('definicoes.negocio') }}">
+            Negócio
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.agendamentos') ? 'active' : '' }}" href="{{ route('definicoes.agendamentos') }}">
+            Agendamentos
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.vendas') ? 'active' : '' }}" href="{{ route('definicoes.vendas') }}">
+            Vendas
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.clientes') ? 'active' : '' }}" href="{{ route('definicoes.clientes') }}">
+            Clientes
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.equipa') ? 'active' : '' }}" href="{{ route('definicoes.equipa') }}">
+            Equipa
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.notificacoes') ? 'active' : '' }}" href="{{ route('definicoes.notificacoes') }}">
+            Notificações
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="sidebar-panel-section" data-section="ajuda">
+      <div class="sidebar-panel-header">
+        <h6>Ajuda</h6>
+        <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+      </div>
+      <ul class="panel-nav">
+        <li>
+          <a class="panel-link" href="#!">
+            Manual do utilizador
           </a>
         </li>
       </ul>

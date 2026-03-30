@@ -2,6 +2,7 @@
 @section('title', 'Agenda | Beauty CRM')
 @section('css')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/css/intlTelInput.css">
     <link rel="stylesheet" href="{{ asset('template/css/agenda.css') }}?v={{ file_exists(public_path('template/css/agenda.css')) ? filemtime(public_path('template/css/agenda.css')) : time() }}">
 @endsection
 @section('content')
@@ -55,11 +56,11 @@
                                 <div class="nova-marcacao-section nova-marcacao-section-client">
                                     <div id="novaMarcacaoClientAddWrap" class="nova-marcacao-client-add-wrap text-center">
                                         <div class="nova-marcacao-client-add-icon mb-3"><i class="ph ph-user-circle-plus"></i></div>
-                                        <strong id="novaMarcacaoAddClientBtn" class="d-block">Cliente</strong>
+                                        <strong id="novaMarcacaoAddClientBtn" class="d-block">Pesquisar cliente</strong>
                                     </div>
                                     <div id="novaMarcacaoClientSearchWrap" class="mb-0">
                                         <div class="d-flex gap-2 align-items-center mb-3">
-                                            <input type="text" id="novaMarcacaoClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Pesquisar cliente..." autocomplete="off">
+                                            <input type="text" id="novaMarcacaoClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Nome, telemóvel, email..." autocomplete="off">
                                             <button type="button" class="btn btn-light btn-sm d-none" id="novaMarcacaoClientCancelBtn">Cancelar</button>
                                         </div>
                                         <div class="text-center mb-2">
@@ -349,11 +350,11 @@
                                 <div class="nova-marcacao-section nova-marcacao-section-client" id="eventDetailClientSection">
                                     <div id="eventDetailClientAddWrap" class="nova-marcacao-client-add-wrap text-center d-none">
                                         <div class="nova-marcacao-client-add-icon mb-3"><i class="ph ph-user-circle-plus"></i></div>
-                                        <strong id="eventDetailAddClientBtn" class="d-block">Cliente</strong>
+                                        <strong id="eventDetailAddClientBtn" class="d-block">Pesquisar cliente</strong>
                                     </div>
                                     <div id="eventDetailClientSearchWrap" class="mb-0 d-none">
                                         <div class="d-flex gap-2 align-items-center mb-3">
-                                            <input type="text" id="eventDetailClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Pesquisar cliente..." autocomplete="off">
+                                            <input type="text" id="eventDetailClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Nome, telemóvel, email..." autocomplete="off">
                                             <button type="button" class="btn btn-light btn-sm d-none" id="eventDetailClientCancelBtn">Cancelar</button>
                                         </div>
                                         <div class="text-center mb-2">
@@ -481,6 +482,7 @@
 @endsection
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/intlTelInput.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/pt.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/pt.js"></script>

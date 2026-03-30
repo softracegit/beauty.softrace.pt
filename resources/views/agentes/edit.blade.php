@@ -1,6 +1,7 @@
 @extends('partials.layouts.main')
 @section('title', 'Editar Membro | Beauty CRM')
 @section('css')
+@include('clientes.partials.intl-phone-css')
 <link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
 <style>.category-color-choice .ri-circle-fill { font-size: 1rem; }</style>
 @endsection
@@ -104,10 +105,17 @@
                     <div class="uedit-section">
                         <div class="uedit-section-title">Dados gerais</div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label class="form-label">Nome completo <span class="text-danger">*</span></label>
                                 <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $agente->name) }}" required>
                                 @error('name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label" for="agentEditPhone">Telefone</label>
+                                <input type="tel" id="agentEditPhone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $agente->phone) }}" autocomplete="tel">
+                                @error('phone')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -154,13 +162,6 @@
                     <div class="uedit-section">
                         <div class="uedit-section-title">Dados Pessoais</div>
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Telefone</label>
-                                <input type="text" name="phone" class="form-control @error('phone') is-invalid @enderror" value="{{ old('phone', $agente->phone) }}" placeholder="+351 912 345 678">
-                                @error('phone')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">NIF</label>
                                 <input type="text" name="nif" class="form-control @error('nif') is-invalid @enderror" value="{{ old('nif', $agente->nif) }}" placeholder="123456789" maxlength="20">
@@ -406,4 +407,5 @@
         if (el && !el.closest('.choices')) new Choices(el, opts);
     })();
 </script>
+@include('clientes.partials.intl-phone-init', ['phoneInputId' => 'agentEditPhone', 'phoneOptional' => true])
 @endsection

@@ -164,8 +164,9 @@ document.addEventListener('DOMContentLoaded', function() {
         wrapper.style.position = 'fixed';
         wrapper.style.top = slotRect.top + 'px';
         wrapper.style.left = colRect.left + 'px';
-        wrapper.style.width = colRect.width + 'px';
-        wrapper.style.height = slotRect.height + 'px';
+        wrapper.style.width = 'calc(' + colRect.width + 'px - 6px)';
+        wrapper.style.height = 'calc(' + slotRect.height + 'px - 4px)';
+        wrapper.style.margin = '2px 2px 0 3px';
         wrapper.style.zIndex = '999';
         wrapper.style.pointerEvents = 'none';
         var timeSpan = document.createElement('span');
@@ -897,6 +898,16 @@ document.addEventListener('DOMContentLoaded', function() {
     var agendaEquipaBaseUrl = (C.agendaEquipaBaseUrl || '');
     var novaMarcacaoServicesData = null;
     var novaMarcacaoSelectedClient = null;
+
+    function agendaEscAttr(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    }
+    /** Telefone legível (servidor: formatted_phone); fallback para E.164 guardado. */
+    function agendaClientPhoneLabel(c) {
+        if (!c) return '—';
+        if (c.formatted_phone) return c.formatted_phone;
+        return c.phone || '—';
+    }
     var novaMarcacaoSelectedServices = [];
     var novaMarcacaoEditServiceIndex = -1;
     var eventDetailSelectedServices = [];
@@ -1376,13 +1387,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 block.innerHTML = '<h6 class="nova-marcacao-section-title">Cliente (Visita)</h6><div class="nova-marcacao-person"><div><strong>' + (data.visit.client_name || '—') + '</strong></div></div>' +
                     '<div class="mt-2"><a href="' + (data.visit.opportunity_id ? (C.urlOpportunities || '') + '/' + data.visit.opportunity_id : '#') + '" class="btn btn-sm btn-outline-primary"><i class="ph ph-briefcase me-1"></i>Ficha da Oportunidade</a></div>';
             } else if (data.lead) {
-                block.innerHTML = '<h6 class="nova-marcacao-section-title">Lead</h6><div class="nova-marcacao-person"><div><strong>' + (data.lead.name || '—') + '</strong><span class="d-block small text-muted">' + [data.lead.email, data.lead.phone].filter(Boolean).join(' · ') + '</span></div></div>' +
+                block.innerHTML = '<h6 class="nova-marcacao-section-title">Lead</h6><div class="nova-marcacao-person"><div><strong>' + (data.lead.name || '—') + '</strong><span class="d-block small text-muted">' + [data.lead.email, data.lead.formatted_phone || data.lead.phone].filter(Boolean).join(' · ') + '</span></div></div>' +
                     '<div class="mt-2"><a href="' + (C.urlLeads || '') + '/' + data.lead.id + '" class="btn btn-sm btn-outline-primary"><i class="ph ph-file-text me-1"></i>Ficha da Lead</a></div>';
             }
         } else if (data.client_id && data.client_name) {
-            eventDetailSelectedClient = { id: data.client_id, name: data.client_name, phone: data.client_phone || '', avatar_url: data.client_avatar_url || '' };
+            eventDetailSelectedClient = { id: data.client_id, name: data.client_name, phone: data.client_phone || '', formatted_phone: data.client_formatted_phone || '', avatar_url: data.client_avatar_url || '' };
             $id('eventDetailClientSelectedName').textContent = data.client_name;
-            $id('eventDetailClientSelectedEmail').textContent = data.client_phone || '—';
+            $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
             if (data.client_avatar_url) {
                 $id('eventDetailClientAvatar').src = data.client_avatar_url;
                 $id('eventDetailClientAvatar').classList.remove('d-none');
@@ -1978,9 +1989,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(function(clients) {
                     if (clients && clients[0]) {
                         var c = clients[0];
-                        novaMarcacaoSelectedClient = { id: String(c.id), name: c.name || '', phone: c.phone || '', avatar_url: c.avatar_url || '' };
+                        novaMarcacaoSelectedClient = { id: String(c.id), name: c.name || '', phone: c.phone || '', formatted_phone: c.formatted_phone || '', avatar_url: c.avatar_url || '' };
                         $id('novaMarcacaoClientSelectedName').textContent = c.name || '';
-                        $id('novaMarcacaoClientSelectedEmail').textContent = c.phone || '—';
+                        $id('novaMarcacaoClientSelectedEmail').textContent = agendaClientPhoneLabel(novaMarcacaoSelectedClient);
                         var link = $id('novaMarcacaoClientProfileLink');
                         if (link) link.href = clientesBaseUrl + '/' + c.id;
                         if (c.avatar_url) {
@@ -2020,12 +2031,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             return;
                         }
                         var html = clients.map(function(c) {
-                            var phone = c.phone || '';
+                            var raw = c.phone || '';
+                            var disp = c.formatted_phone || raw;
                             var label = (c.name || '');
-                            if (phone) {
-                                label += ' <small class="text-muted">(' + phone + ')</small>';
+                            if (disp) {
+                                label += ' <small class="text-muted">(' + disp + ')</small>';
                             }
-                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-phone="' + (phone || '').replace(/"/g, '&quot;') + '" data-avatar="' + (c.avatar_url || '').replace(/"/g, '&quot;') + '"';
+                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + agendaEscAttr(c.name || '') + '" data-phone="' + agendaEscAttr(raw) + '" data-formatted-phone="' + agendaEscAttr(c.formatted_phone || '') + '" data-avatar="' + agendaEscAttr(c.avatar_url || '') + '"';
                             return '<div class="nova-marcacao-client-item" ' + dataAttrs + '>' + label + '</div>';
                         }).join('');
                         $id('novaMarcacaoClientResults').innerHTML = html;
@@ -2033,10 +2045,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             el.addEventListener('click', function() {
                                 var name = this.dataset.name || '';
                                 var phone = this.dataset.phone || '';
+                                var formattedPhone = this.dataset.formattedPhone || '';
                                 var avatarUrl = this.dataset.avatar || '';
-                                novaMarcacaoSelectedClient = { id: this.dataset.id, name: name, phone: phone, avatar_url: avatarUrl };
+                                novaMarcacaoSelectedClient = { id: this.dataset.id, name: name, phone: phone, formatted_phone: formattedPhone, avatar_url: avatarUrl };
                                 $id('novaMarcacaoClientSelectedName').textContent = name;
-                                $id('novaMarcacaoClientSelectedEmail').textContent = phone || '—';
+                                $id('novaMarcacaoClientSelectedEmail').textContent = agendaClientPhoneLabel(novaMarcacaoSelectedClient);
                                 var link = $id('novaMarcacaoClientProfileLink');
                                 if (link) link.href = clientesBaseUrl + '/' + this.dataset.id;
                                 if (avatarUrl) {
@@ -2066,7 +2079,7 @@ document.addEventListener('DOMContentLoaded', function() {
     })());
 
     $id('novaMarcacaoClientClear').addEventListener('click', function() {
-        var prev = novaMarcacaoSelectedClient ? { id: novaMarcacaoSelectedClient.id, name: novaMarcacaoSelectedClient.name, phone: novaMarcacaoSelectedClient.phone || '', avatar_url: novaMarcacaoSelectedClient.avatar_url || '' } : null;
+        var prev = novaMarcacaoSelectedClient ? { id: novaMarcacaoSelectedClient.id, name: novaMarcacaoSelectedClient.name, phone: novaMarcacaoSelectedClient.phone || '', formatted_phone: novaMarcacaoSelectedClient.formatted_phone || '', avatar_url: novaMarcacaoSelectedClient.avatar_url || '' } : null;
         novaMarcacaoSelectedClient = null;
         $id('novaMarcacaoClientSelected').classList.add('d-none');
         $id('novaMarcacaoClientAddWrap').classList.remove('d-none');
@@ -2078,6 +2091,49 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('novaMarcacaoClientCancelBtn').classList.remove('d-none');
         }
     });
+
+    /** intl-tel-input: criar cliente rápido na agenda (nova marcação / editar marcação) */
+    function destroyAgendaCreateClientIntl(popup) {
+        if (popup && popup._agendaPhoneIti) {
+            try {
+                popup._agendaPhoneIti.destroy();
+            } catch (e) { /* ignore */ }
+            popup._agendaPhoneIti = null;
+        }
+    }
+    /** Carrega i18n PT (países + interface) como em clientes/partials/intl-phone-init. */
+    function initAgendaCreateClientIntl(phoneInput, popup) {
+        destroyAgendaCreateClientIntl(popup);
+        if (!phoneInput || typeof window.intlTelInput !== 'function') {
+            return Promise.resolve();
+        }
+        var intlPtBase = 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/i18n/pt';
+        var loadPt = Promise.all([
+            import(intlPtBase + '/countries.js'),
+            import(intlPtBase + '/interface.js'),
+        ]).then(function(mods) {
+            return Object.assign({}, mods[0].default, mods[1].default);
+        }).catch(function(err) {
+            console.warn('intl-tel-input (agenda): locale PT não carregado', err);
+            return {};
+        });
+        return loadPt.then(function(ptI18n) {
+            var iti = window.intlTelInput(phoneInput, {
+                initialCountry: 'pt',
+                countryOrder: ['pt', 'br', 'es', 'fr', 'gb', 'de'],
+                separateDialCode: true,
+                strictMode: true,
+                validationNumberType: 'MOBILE',
+                utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/utils.js',
+                i18n: Object.assign({}, ptI18n, {
+                    searchPlaceholder: 'Pesquisar',
+                    zeroSearchResults: 'Nenhum resultado',
+                }),
+            });
+            popup._agendaPhoneIti = iti;
+        });
+    }
+
     function openCreateClientQuickMenu(context, evt) {
         var popup = $id('agendaCreateClientQuickMenu');
         if (!popup) return;
@@ -2085,6 +2141,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var modalContent = modalEl?.querySelector('.modal-content');
         if (modalContent) modalContent.appendChild(popup);
         function hide() {
+            destroyAgendaCreateClientIntl(popup);
             popup.classList.remove('is-open');
             popup.innerHTML = '';
             document.removeEventListener('click', ch);
@@ -2098,17 +2155,23 @@ document.addEventListener('DOMContentLoaded', function() {
             '</div>' +
             '<div class="create-client-body">' +
             '<div class="mb-2"><label class="form-label small">Nome <span class="text-danger">*</span></label>' +
-            '<input type="text" class="form-control form-control-sm create-client-name" placeholder="Nome do cliente" required></div>' +
-            '<div class="mb-2"><label class="form-label small">Email <span class="text-danger">*</span></label>' +
-            '<input type="email" class="form-control form-control-sm create-client-email" placeholder="email@exemplo.pt" required></div>' +
-            '<div class="mb-0"><label class="form-label small">Telefone</label>' +
-            '<input type="tel" class="form-control form-control-sm create-client-phone" placeholder="+351 912 345 678"></div>' +
+            '<input type="text" class="form-control create-client-name" placeholder="Nome do cliente" required></div>' +
+            '<div class="mb-2"><label class="form-label small" for="agendaCreateClientPhone">Telemóvel <span class="text-danger">*</span></label>' +
+            '<input type="tel" id="agendaCreateClientPhone" class="form-control create-client-phone" autocomplete="tel" required></div>' +
+            '<div class="mb-0"><label class="form-label small">Email</label>' +
+            '<input type="email" class="form-control create-client-email" placeholder="Opcional"></div>' +
             '</div>' +
             '<div class="create-client-footer">' +
             '<button type="button" class="btn btn-light btn-sm create-client-cancel">Cancelar</button>' +
-            '<button type="button" class="btn btn-primary btn-sm create-client-submit">Criar</button>' +
+            '<button type="button" class="btn btn-primary btn-sm create-client-submit" disabled>Criar</button>' +
             '</div>';
         popup.classList.add('is-open');
+        var createClientSubmitBtn = popup.querySelector('.create-client-submit');
+        initAgendaCreateClientIntl(popup.querySelector('#agendaCreateClientPhone'), popup).then(function() {
+            if (createClientSubmitBtn) createClientSubmitBtn.disabled = false;
+        }).catch(function() {
+            if (createClientSubmitBtn) createClientSubmitBtn.disabled = false;
+        });
         // Posicionar logo abaixo do link "criar novo cliente", centrado em relação ao link
         try {
             var triggerEl = evt.currentTarget || evt.target;
@@ -2139,35 +2202,45 @@ document.addEventListener('DOMContentLoaded', function() {
         popup.querySelector('.create-client-submit').addEventListener('click', function() {
             var name = popup.querySelector('.create-client-name').value.trim();
             var email = popup.querySelector('.create-client-email').value.trim();
-            var phone = popup.querySelector('.create-client-phone').value.trim();
-            if (!name || !email) {
-                showToast('Preencha nome e email.', 'error');
+            var iti = popup._agendaPhoneIti;
+            if (!name) {
+                showToast('Preencha o nome.', 'error');
                 return;
             }
-            var btn = popup.querySelector('.create-client-submit');
-            btn.disabled = true;
-            btn.textContent = 'A criar...';
-            fetch(agendaClientsUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({ name: name, email: email, phone: phone || null })
-            })
-            .then(function(r) { return r.json().then(function(data) {
-                if (!r.ok) {
-                    var msg = 'Erro ao criar cliente.';
-                    if (data.errors && data.errors.email) msg = 'O email inserido já existe associado a um cliente.';
-                    else if (data.message) msg = data.message;
-                    throw new Error(msg);
+            if (!iti) {
+                showToast('Campo de telemóvel indisponível. Recarregue a página.', 'error');
+                return;
+            }
+            iti.promise.then(function() {
+                if (!iti.isValidNumber()) {
+                    showToast('Indique um número de telemóvel válido para o país selecionado (ex.: 9 dígitos em Portugal).', 'error');
+                    return;
                 }
-                return data;
-            }); })
-            .then(function(client) {
+                var phone = iti.getNumber();
+                var btn = popup.querySelector('.create-client-submit');
+                btn.disabled = true;
+                btn.textContent = 'A criar...';
+                fetch(agendaClientsUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify({ name: name, email: email || null, phone: phone })
+                })
+                .then(function(r) { return r.json().then(function(data) {
+                    if (!r.ok) {
+                        var msg = 'Erro ao criar cliente.';
+                        if (data.errors && data.errors.email) msg = 'O email inserido já existe associado a um cliente.';
+                        else if (data.message) msg = data.message;
+                        throw new Error(msg);
+                    }
+                    return data;
+                }); })
+                .then(function(client) {
                 hide();
-                var c = { id: String(client.id), name: client.name || name, phone: client.phone || '', avatar_url: client.avatar_url || '' };
+                var c = { id: String(client.id), name: client.name || name, phone: client.phone || '', formatted_phone: client.formatted_phone || '', avatar_url: client.avatar_url || '' };
                 if (context === 'novaMarcacao') {
                     novaMarcacaoSelectedClient = c;
                     $id('novaMarcacaoClientSelectedName').textContent = c.name;
-                    $id('novaMarcacaoClientSelectedEmail').textContent = c.phone || '—';
+                    $id('novaMarcacaoClientSelectedEmail').textContent = agendaClientPhoneLabel(c);
                     var link = $id('novaMarcacaoClientProfileLink');
                     if (link) link.href = clientesBaseUrl + '/' + c.id;
                     $id('novaMarcacaoClientAvatar').classList.add('d-none');
@@ -2185,7 +2258,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     eventDetailSelectedClient = c;
                     $id('eventDetailClientSelectedName').textContent = c.name;
-                    $id('eventDetailClientSelectedEmail').textContent = c.phone || '—';
+                    $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(c);
                     var link = $id('eventDetailClientProfileLink');
                     if (link) link.href = clientesBaseUrl + '/' + c.id;
                     if (c.avatar_url) {
@@ -2208,11 +2281,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     window._eventDetailPreviousClient = null;
                 }
                 showToast('Cliente criado com sucesso.', 'success');
-            })
-            .catch(function(err) {
-                btn.disabled = false;
-                btn.textContent = 'Criar';
-                showToast(err.message || 'Erro ao criar cliente.', 'error');
+                })
+                .catch(function(err) {
+                    btn.disabled = false;
+                    btn.textContent = 'Criar';
+                    showToast(err.message || 'Erro ao criar cliente.', 'error');
+                });
+            }).catch(function() {
+                showToast('Não foi possível validar o número. Verifique a ligação e tente de novo.', 'error');
             });
         });
         requestAnimationFrame(function() {
@@ -2257,7 +2333,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (prev) {
             novaMarcacaoSelectedClient = prev;
             $id('novaMarcacaoClientSelectedName').textContent = prev.name;
-            $id('novaMarcacaoClientSelectedEmail').textContent = prev.phone || '—';
+            $id('novaMarcacaoClientSelectedEmail').textContent = agendaClientPhoneLabel(prev);
             var link = $id('novaMarcacaoClientProfileLink');
             if (link) link.href = clientesBaseUrl + '/' + prev.id;
             if (prev.avatar_url) {
@@ -2319,6 +2395,7 @@ document.addEventListener('DOMContentLoaded', function() {
             id: eventDetailSelectedClient.id,
             name: eventDetailSelectedClient.name,
             phone: eventDetailSelectedClient.phone || '',
+            formatted_phone: eventDetailSelectedClient.formatted_phone || '',
             avatar_url: eventDetailSelectedClient.avatar_url || ''
         } : null;
 
@@ -2343,7 +2420,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (prev) {
             eventDetailSelectedClient = prev;
             $id('eventDetailClientSelectedName').textContent = prev.name;
-            $id('eventDetailClientSelectedEmail').textContent = prev.phone || '—';
+            $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(prev);
             var link = $id('eventDetailClientProfileLink');
             if (link) link.href = clientesBaseUrl + '/' + prev.id;
             if (prev.avatar_url) {
@@ -2387,12 +2464,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             return;
                         }
                         var html = clients.map(function(c) {
-                            var phone = c.phone || '';
+                            var raw = c.phone || '';
+                            var disp = c.formatted_phone || raw;
                             var label = (c.name || '');
-                            if (phone) {
-                                label += ' <small class="text-muted">(' + phone + ')</small>';
+                            if (disp) {
+                                label += ' <small class="text-muted">(' + disp + ')</small>';
                             }
-                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + (c.name || '').replace(/"/g, '&quot;') + '" data-phone="' + (phone || '').replace(/"/g, '&quot;') + '" data-avatar="' + (c.avatar_url || '').replace(/"/g, '&quot;') + '"';
+                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + agendaEscAttr(c.name || '') + '" data-phone="' + agendaEscAttr(raw) + '" data-formatted-phone="' + agendaEscAttr(c.formatted_phone || '') + '" data-avatar="' + agendaEscAttr(c.avatar_url || '') + '"';
                             return '<div class="nova-marcacao-client-item event-detail-client-item" ' + dataAttrs + '>' + label + '</div>';
                         }).join('');
                         $id('eventDetailClientResults').innerHTML = html;
@@ -2400,10 +2478,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             el.addEventListener('click', function() {
                                 var name = this.dataset.name || '';
                                 var phone = this.dataset.phone || '';
+                                var formattedPhone = this.dataset.formattedPhone || '';
                                 var avatarUrl = this.dataset.avatar || '';
-                                eventDetailSelectedClient = { id: this.dataset.id, name: name, phone: phone, avatar_url: avatarUrl };
+                                eventDetailSelectedClient = { id: this.dataset.id, name: name, phone: phone, formatted_phone: formattedPhone, avatar_url: avatarUrl };
                                 $id('eventDetailClientSelectedName').textContent = name;
-                                $id('eventDetailClientSelectedEmail').textContent = phone || '—';
+                                $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
                                 var link = $id('eventDetailClientProfileLink');
                                 if (link) link.href = clientesBaseUrl + '/' + this.dataset.id;
                                 if (avatarUrl) {
@@ -2800,6 +2879,70 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    let stackedClassRefreshTimer = null;
+    function scheduleStackedEventClassRefresh() {
+        if (stackedClassRefreshTimer) clearTimeout(stackedClassRefreshTimer);
+        stackedClassRefreshTimer = setTimeout(function() {
+            stackedClassRefreshTimer = null;
+            applyStackedEventClasses();
+        }, 0);
+    }
+
+    function applyStackedEventClasses() {
+        if (!calendarEl) return;
+        var eventEls = calendarEl.querySelectorAll('.fc-event[data-event-id]');
+        eventEls.forEach(function(el) { el.classList.remove('is-stacked'); });
+
+        var events = (calendar && typeof calendar.getEvents === 'function') ? calendar.getEvents() : [];
+        if (!events || events.length < 2) return;
+
+        var groups = new Map();
+        var stackedIds = new Set();
+        for (var i = 0; i < events.length; i++) {
+            var ev = events[i];
+            if (!ev || ev.allDay || !ev.start) continue;
+            var start = ev.start;
+            var end = ev.end ? ev.end : new Date(start.getTime() + 15 * 60 * 1000);
+            if (!(end > start)) end = new Date(start.getTime() + 15 * 60 * 1000);
+
+            var resourceId = '';
+            if (typeof ev.getResources === 'function') {
+                var resources = ev.getResources();
+                resourceId = resources && resources[0] ? String(resources[0].id || '') : '';
+            }
+            if (!resourceId && ev.extendedProps && ev.extendedProps.user_id != null) {
+                resourceId = String(ev.extendedProps.user_id);
+            }
+            var dayKey = String(start.getFullYear()) + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0');
+            var groupKey = resourceId + '|' + dayKey;
+            if (!groups.has(groupKey)) groups.set(groupKey, []);
+            groups.get(groupKey).push({
+                id: String(ev.id),
+                startMs: start.getTime(),
+                endMs: end.getTime(),
+            });
+        }
+
+        groups.forEach(function(items) {
+            for (var a = 0; a < items.length; a++) {
+                for (var b = a + 1; b < items.length; b++) {
+                    var x = items[a];
+                    var y = items[b];
+                    if (x.startMs < y.endMs && y.startMs < x.endMs) {
+                        stackedIds.add(x.id);
+                        stackedIds.add(y.id);
+                    }
+                }
+            }
+        });
+
+        if (stackedIds.size === 0) return;
+        eventEls.forEach(function(el) {
+            var id = el.getAttribute('data-event-id');
+            if (id && stackedIds.has(String(id))) el.classList.add('is-stacked');
+        });
+    }
+
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'resourceTimeGridDay',
         locale: 'pt',
@@ -3133,8 +3276,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 successCallback(events);
+                scheduleStackedEventClassRefresh();
             })
             .catch(failureCallback);
+        },
+        eventsSet: function() {
+            scheduleStackedEventClassRefresh();
+        },
+        eventAdd: function() {
+            scheduleStackedEventClassRefresh();
+        },
+        eventChange: function() {
+            scheduleStackedEventClassRefresh();
+        },
+        eventRemove: function() {
+            scheduleStackedEventClassRefresh();
         },
         eventDidMount: function(info) {
             info.el.dataset.eventId = info.event.id;
@@ -3171,6 +3327,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     hideEventQuickview();
                 }, 80);
             });
+            scheduleStackedEventClassRefresh();
         },
         eventClick: function(info) {
             hideEventQuickview();
@@ -3258,10 +3415,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         }, 0);
                     }
                 }
+                scheduleStackedEventClassRefresh();
             })
             .catch(function(err) {
                 console.error('eventDrop error', err);
                 info.revert();
+                scheduleStackedEventClassRefresh();
             });
         },
         eventResize: function(info) {
@@ -3288,11 +3447,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!res.success) {
                     showToast(res.message || 'Erro ao atualizar.', 'error');
                     info.revert();
+                    scheduleStackedEventClassRefresh();
                 }
+                scheduleStackedEventClassRefresh();
             })
             .catch(function(err) {
                 console.error('eventResize error', err);
                 info.revert();
+                scheduleStackedEventClassRefresh();
             });
         },
         datesSet: function(info) {
@@ -3472,8 +3634,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             _agendaHoverHighlight.style.top = slotRect.top + 'px';
             _agendaHoverHighlight.style.left = colRect.left + 'px';
-            _agendaHoverHighlight.style.width = colRect.width + 'px';
-            _agendaHoverHighlight.style.height = slotRect.height + 'px';
+            _agendaHoverHighlight.style.width = 'calc(' + colRect.width + 'px - 6px)';
+            _agendaHoverHighlight.style.height = 'calc(' + slotRect.height + 'px - 4px)';
+            _agendaHoverHighlight.style.margin = '2px 2px 0 3px';
             _agendaHoverHighlight.querySelector('.agenda-cell-time-overlay').textContent = timeLabel;
             if (!_agendaHoverHighlight.parentNode) document.body.appendChild(_agendaHoverHighlight);
         }

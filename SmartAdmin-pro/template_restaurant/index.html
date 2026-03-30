@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sabor & Brasa | Restaurante</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header" id="topo">
+    <div class="container nav-wrap">
+      <a href="#topo" class="brand">Sabor<span>&</span>Brasa</a>
+      <button class="menu-toggle" aria-label="Abrir menu" aria-expanded="false">Menu</button>
+      <nav class="site-nav">
+        <a href="#inicio">Inicio</a>
+        <a href="#sobre">Sobre</a>
+        <a href="#menu">Menu</a>
+        <a href="#eventos">Eventos</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div class="hero-overlay"></div>
+      <div class="container hero-content">
+        <p class="tag">Fine Dining Experience</p>
+        <h1>Saboreia cada momento especial</h1>
+        <p class="hero-text">Um ambiente sofisticado, ingredientes frescos e pratos assinados para transformar cada refeicao numa experiencia memoravel.</p>
+        <div class="hero-actions">
+          <a href="#contacto" class="btn btn-primary">Reservar Mesa</a>
+          <a href="#menu" class="btn btn-outline">Ver Menu</a>
+        </div>
+        <div class="hero-cards">
+          <article>
+            <h3>Horario</h3>
+            <p>Seg - Dom: 11h00 - 23h00</p>
+          </article>
+          <article>
+            <h3>Reservas</h3>
+            <p>+351 912 345 678</p>
+          </article>
+          <article>
+            <h3>Morada</h3>
+            <p>Rua das Oliveiras, 128 - Porto</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="about section" id="sobre">
+      <div class="container split">
+        <div class="about-image">
+          <img src="imgs/showcase-12.webp" alt="Prato gourmet do restaurante">
+        </div>
+        <div class="about-content">
+          <p class="section-tag">Sobre Nos</p>
+          <h2>Tradicao e criatividade no mesmo prato</h2>
+          <p>Inspirado no conceito de bistronomia moderna, o Sabor & Brasa combina tecnicas classicas com toque contemporaneo para destacar o melhor de cada ingrediente.</p>
+          <ul>
+            <li>Ingredientes sazonais de produtores locais</li>
+            <li>Carta de vinhos selecionada por sommelier</li>
+            <li>Espaco ideal para jantares, eventos e celebracoes</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="menu section" id="menu">
+      <div class="container">
+        <p class="section-tag centered">Menu</p>
+        <h2 class="centered">Sugestoes do Chef</h2>
+        <div class="menu-grid">
+          <article class="dish">
+            <h3>Bruschetta de Citrinos</h3>
+            <p class="price">13.75 EUR</p>
+            <p>Pao artesanal crocante com creme de ricotta, zest de limao e ervas frescas.</p>
+          </article>
+          <article class="dish">
+            <h3>Lombo de Novilho em reducao de vinho</h3>
+            <p class="price">31.50 EUR</p>
+            <p>Carne suculenta, pure de batata trufado e legumes braseados.</p>
+          </article>
+          <article class="dish">
+            <h3>Robalo com crosta de ervas</h3>
+            <p class="price">29.90 EUR</p>
+            <p>Filete de robalo no forno, arroz cremoso de lima e emulsao de manteiga.</p>
+          </article>
+          <article class="dish">
+            <h3>Creme Brulee de Pistacho</h3>
+            <p class="price">12.95 EUR</p>
+            <p>Textura aveludada com topo caramelizado e crumble de amendoa.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="events section" id="eventos">
+      <div class="container split reverse">
+        <div class="events-content">
+          <p class="section-tag">Eventos</p>
+          <h2>Cria celebracoes inesqueciveis</h2>
+          <p>Recebemos eventos corporativos, aniversarios e jantares privados com menus personalizados e atendimento dedicado.</p>
+          <a href="#contacto" class="btn btn-primary">Pedir Proposta</a>
+        </div>
+        <div class="events-image">
+          <img src="imgs/showcase-12.webp" alt="Sala de eventos do restaurante">
+        </div>
+      </div>
+    </section>
+
+    <section class="contact section" id="contacto">
+      <div class="container contact-wrap">
+        <div class="contact-info">
+          <p class="section-tag">Contacto</p>
+          <h2>Reserva a tua mesa</h2>
+          <p>Envia-nos uma mensagem e confirmamos a tua reserva em poucos minutos.</p>
+          <p><strong>Telefone:</strong> +351 912 345 678</p>
+          <p><strong>Email:</strong> reservas@saborebrasa.pt</p>
+          <p><strong>Morada:</strong> Rua das Oliveiras, 128 - Porto</p>
+        </div>
+        <form class="contact-form">
+          <label>
+            Nome
+            <input type="text" placeholder="O teu nome" required>
+          </label>
+          <label>
+            Email
+            <input type="email" placeholder="teu@email.com" required>
+          </label>
+          <label>
+            Data
+            <input type="date" required>
+          </label>
+          <label>
+            Mensagem
+            <textarea rows="4" placeholder="Detalhes da reserva"></textarea>
+          </label>
+          <button type="submit" class="btn btn-primary full">Enviar Pedido</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© 2026 Sabor & Brasa. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

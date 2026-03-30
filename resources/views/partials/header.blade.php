@@ -98,7 +98,7 @@
             </div>
           </div>
           <div class="notification-footer">
-            <a href="#" id="headerNotificationViewAll">Ver todas as notificações <i class="bi bi-arrow-right"></i></a>
+            <a href="{{ route('notifications.index') }}" id="headerNotificationViewAll">Ver todas as notificações <i class="bi bi-arrow-right"></i></a>
           </div>
         </div>
       </div>
@@ -144,6 +144,9 @@
             </a>
             <a class="dropdown-item" href="{{ route('activity.index') }}">
               <i class="ph ph-clock-counter-clockwise"></i> Activity Log
+            </a>
+            <a class="dropdown-item" href="{{ route('definicoes.index') }}">
+              <i class="ph ph-gear"></i> Definições
             </a>
           </div>
           <div class="user-dropdown-footer">

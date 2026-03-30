@@ -8,8 +8,10 @@ use App\Models\Client;
 use App\Models\PersonalTimeType;
 use App\Models\Sale;
 use App\Models\User;
+use App\Notifications\AppointmentNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CalendarController extends Controller
 {
@@ -43,12 +45,13 @@ class CalendarController extends Controller
             ->with('user')
             ->orderBy('name')
             ->get();
-        
+
         $result = $agents->map(function ($agent) {
             $avatarNum = ($agent->id % 9) + 1;
             $avatarUrl = $agent->avatar
-                ? asset('storage/' . $agent->avatar)
+                ? asset('storage/'.$agent->avatar)
                 : asset("template/img/avatars/avatar-{$avatarNum}.webp");
+
             return [
                 'id' => (string) $agent->user_id, // Usar user_id como ID do recurso
                 'title' => $agent->name,
@@ -58,7 +61,7 @@ class CalendarController extends Controller
                 ],
             ];
         })->values();
-        
+
         return response()->json($result);
     }
 
@@ -152,10 +155,10 @@ class CalendarController extends Controller
                 'end' => $event->end_at->toIso8601String(),
                 'className' => $className,
                 'backgroundColor' => $agentColor ?: ($isTempoPessoal ? '#dee2e6' : null),
-                'editable' => !$hasInvoice,
+                'editable' => ! $hasInvoice,
                 'extendedProps' => [
                     'client_name' => $event->client?->name,
-                    'client_avatar_url' => $event->client?->avatar ? asset('storage/' . $event->client->avatar) : null,
+                    'client_avatar_url' => $event->client?->avatar ? asset('storage/'.$event->client->avatar) : null,
                     'description' => $event->description,
                     'event_type' => $event->event_type,
                     'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
@@ -170,24 +173,26 @@ class CalendarController extends Controller
                         : ($event->service?->name ?? null),
                     'event_services' => $event->eventServices->map(function ($s) {
                         $dur = ($s->pivot->duration ?? $s->duration);
+
                         return [
                             'id' => $s->id,
                             'name' => $s->name,
                             'duration' => $dur,
                             'price' => (float) ($s->pivot->price ?? $s->price),
                             'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
-                            'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
+                            'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.').' €' : $s->formatted_price,
                             'formatted_duration' => $this->formatDurationMinutes((int) $dur),
                             'extras' => $s->pivot->extras->map(function ($pe) {
                                 $extraDuration = $pe->duration ?? $pe->extra?->duration ?? 0;
                                 $extraPrice = (float) ($pe->price ?? $pe->extra?->price ?? 0);
+
                                 return [
                                     'extra_id' => $pe->extra_id,
                                     'name' => $pe->extra?->name ?? '',
                                     'duration' => $extraDuration,
                                     'price' => $extraPrice,
                                     'formatted_duration' => $this->formatDurationMinutes((int) $extraDuration),
-                                    'formatted_price' => number_format($extraPrice, 2, ',', '.') . ' €',
+                                    'formatted_price' => number_format($extraPrice, 2, ',', '.').' €',
                                 ];
                             })->values()->all(),
                         ];
@@ -214,12 +219,14 @@ class CalendarController extends Controller
                     $item['resourceId'] = $uid;
                 }
             }
+
             return $item;
         })->filter(function ($item) use ($forResources) {
             // Filtrar eventos sem resourceId válido na vista de consultor
-            if ($forResources && !isset($item['resourceId'])) {
+            if ($forResources && ! isset($item['resourceId'])) {
                 return false;
             }
+
             return true;
         })->values();
 
@@ -232,11 +239,23 @@ class CalendarController extends Controller
     public function memberServices(User $user)
     {
         $agent = $user->agent;
-        if (!$agent) {
+        if (! $agent) {
             return response()->json(['categories' => []]);
         }
 
-        $services = $agent->services()->with('category', 'extras')->orderBy('name')->get();
+        $services = $agent->services()
+            ->with([
+                'category',
+                'extras' => fn ($q) => $q->orderBy('extras.sort_order'),
+            ])
+            ->get()
+            ->sortBy(function ($s) {
+                $catOrder = $s->category?->sort_order ?? 999999;
+
+                return sprintf('%010d-%010d', $catOrder, $s->sort_order);
+            })
+            ->values();
+
         $byCategory = $services->groupBy(function ($s) {
             return $s->category_id ?: 0;
         });
@@ -284,9 +303,12 @@ class CalendarController extends Controller
             $client = \App\Models\Client::find($clientId);
             if ($client) {
                 $arr = $client->only(['id', 'name', 'email', 'phone']);
-                $arr['avatar_url'] = $client->avatar ? asset('storage/' . $client->avatar) : null;
+                $arr['formatted_phone'] = $client->formatted_phone;
+                $arr['avatar_url'] = $client->avatar ? asset('storage/'.$client->avatar) : null;
+
                 return response()->json([$arr]);
             }
+
             return response()->json([]);
         }
 
@@ -303,9 +325,12 @@ class CalendarController extends Controller
         $clients = $query->get(['id', 'name', 'email', 'phone', 'avatar']);
         $result = $clients->map(function ($c) {
             $arr = $c->only(['id', 'name', 'email', 'phone']);
-            $arr['avatar_url'] = $c->avatar ? asset('storage/' . $c->avatar) : null;
+            $arr['formatted_phone'] = $c->formatted_phone;
+            $arr['avatar_url'] = $c->avatar ? asset('storage/'.$c->avatar) : null;
+
             return $arr;
         });
+
         return response()->json($result);
     }
 
@@ -317,14 +342,14 @@ class CalendarController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:clients,email'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')],
+            'phone' => ['required', 'string', 'max:50'],
         ]);
 
         $client = Client::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'],
         ]);
 
         $result = [
@@ -332,7 +357,8 @@ class CalendarController extends Controller
             'name' => $client->name,
             'email' => $client->email,
             'phone' => $client->phone,
-            'avatar_url' => $client->avatar ? asset('storage/' . $client->avatar) : null,
+            'formatted_phone' => $client->formatted_phone,
+            'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
         ];
 
         return response()->json($result);
@@ -347,7 +373,7 @@ class CalendarController extends Controller
         try {
             $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventable', 'personalTimeType', 'sale']);
             $calendarEvent->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
-            
+
             $userAvatarUrl = null;
             try {
                 if ($calendarEvent->user) {
@@ -356,7 +382,7 @@ class CalendarController extends Controller
                         $agent = $calendarEvent->user->agent;
                         $avatarNum = ($agent->id % 9) + 1;
                         $userAvatarUrl = $agent->avatar
-                            ? asset('storage/' . $agent->avatar)
+                            ? asset('storage/'.$agent->avatar)
                             : asset("template/img/avatars/avatar-{$avatarNum}.webp");
                     }
                 }
@@ -387,7 +413,8 @@ class CalendarController extends Controller
                 'client_name' => $calendarEvent->client?->name,
                 'client_email' => $calendarEvent->client?->email,
                 'client_phone' => $calendarEvent->client?->phone,
-                'client_avatar_url' => $calendarEvent->client?->avatar ? asset('storage/' . $calendarEvent->client->avatar) : null,
+                'client_formatted_phone' => $calendarEvent->client?->formatted_phone,
+                'client_avatar_url' => $calendarEvent->client?->avatar ? asset('storage/'.$calendarEvent->client->avatar) : null,
                 'event_services' => $calendarEvent->eventServices->map(function ($s) {
                     $cat = $s->category;
                     $color = $cat?->color ?? '#6c757d';
@@ -399,15 +426,16 @@ class CalendarController extends Controller
                         'duration' => $pe->duration ?? $pe->extra?->duration ?? 0,
                         'price' => (float) ($pe->price ?? $pe->extra?->price ?? 0),
                         'formatted_duration' => $this->formatDurationMinutes((int) ($pe->duration ?? $pe->extra?->duration ?? 0)),
-                        'formatted_price' => number_format((float) ($pe->price ?? $pe->extra?->price ?? 0), 2, ',', '.') . ' €',
+                        'formatted_price' => number_format((float) ($pe->price ?? $pe->extra?->price ?? 0), 2, ',', '.').' €',
                     ])->values()->all();
+
                     return [
                         'id' => $s->id,
                         'name' => $s->name,
                         'duration' => $duration,
                         'price' => $price,
                         'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : $price,
-                        'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
+                        'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.').' €' : $s->formatted_price,
                         'formatted_duration' => $this->formatDurationMinutes((int) $duration),
                         'color' => $color,
                         'extras' => $extras,
@@ -463,6 +491,7 @@ class CalendarController extends Controller
                         'name' => $lead->name,
                         'email' => $lead->email,
                         'phone' => $lead->phone,
+                        'formatted_phone' => $lead->formatted_phone,
                         'status' => $lead->status,
                     ];
                 } catch (\Exception $e) {
@@ -472,13 +501,14 @@ class CalendarController extends Controller
 
             return response()->json($payload);
         } catch (\Exception $e) {
-            \Log::error('Erro ao carregar evento: ' . $e->getMessage(), [
+            \Log::error('Erro ao carregar evento: '.$e->getMessage(), [
                 'event_id' => $calendarEvent->id,
-                'exception' => $e
+                'exception' => $e,
             ]);
+
             return response()->json([
                 'error' => 'Erro ao carregar detalhes do evento.',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -523,7 +553,7 @@ class CalendarController extends Controller
 
         $servicesPayload = $request->input('services', []);
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
-            if (!empty($servicesPayload)) {
+            if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
             } else {
                 $request->validate(['service_id' => ['required', 'exists:services,id']]);
@@ -545,7 +575,7 @@ class CalendarController extends Controller
 
         $event = CalendarEvent::create($validated);
 
-        if (!empty($servicesPayload)) {
+        if (! empty($servicesPayload)) {
             foreach ($servicesPayload as $i => $item) {
                 $event->eventServices()->attach((int) $item['service_id'], [
                     'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
@@ -578,6 +608,11 @@ class CalendarController extends Controller
                     ])
                     ->log('Serviços associados à nova marcação');
             }
+        }
+
+        if ($event->event_type === CalendarEvent::TYPE_MARCACAO && $event->user_id) {
+            $event->load(['client', 'service', 'eventServices']);
+            $this->notifyMarcacaoRecipient((int) $event->user_id, $event, 'assigned');
         }
 
         return response()->json([
@@ -634,10 +669,16 @@ class CalendarController extends Controller
 
         $servicesPayload = $request->input('services', []);
 
+        $prevStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
+        $timeChanged = false;
+        $userIdChanged = false;
+        $newAssigneeUserId = null;
+        $statusChangedInUpdate = false;
+
         if (isset($validated['event_type']) && $validated['event_type'] === CalendarEvent::TYPE_MARCACAO && $calendarEvent->isSourceEditable()) {
-            if (!empty($servicesPayload)) {
+            if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
-            } elseif (!array_key_exists('service_id', $validated)) {
+            } elseif (! array_key_exists('service_id', $validated)) {
                 $request->validate(['service_id' => ['required', 'exists:services,id']]);
                 $validated['service_id'] = $request->input('service_id');
             }
@@ -664,6 +705,7 @@ class CalendarController extends Controller
                 }
             }
             if ($updates !== []) {
+                $timeChanged = true;
                 $calendarEvent->update($updates);
 
                 if ($calendarEvent->eventable_type === \App\Models\Visit::class && $calendarEvent->eventable) {
@@ -689,6 +731,8 @@ class CalendarController extends Controller
             }
             $currentUserId = $calendarEvent->user_id ? (int) $calendarEvent->user_id : null;
             if ($currentUserId !== $newUserId) {
+                $userIdChanged = true;
+                $newAssigneeUserId = $newUserId;
                 $calendarEvent->user_id = $newUserId;
                 $calendarEvent->save();
             }
@@ -710,6 +754,7 @@ class CalendarController extends Controller
             }
             if ($this->calendarEventStatusPayloadDiffers($calendarEvent, $update)) {
                 $calendarEvent->update($update);
+                $statusChangedInUpdate = true;
             }
         }
 
@@ -767,6 +812,18 @@ class CalendarController extends Controller
             }
         }
 
+        $freshEvent = $calendarEvent->fresh(['client', 'service', 'eventServices']);
+        if ($freshEvent && $freshEvent->event_type === CalendarEvent::TYPE_MARCACAO) {
+            if ($userIdChanged && $newAssigneeUserId !== null) {
+                $this->notifyMarcacaoRecipient($newAssigneeUserId, $freshEvent, 'reassigned');
+            } elseif ($timeChanged && $freshEvent->user_id) {
+                $this->notifyMarcacaoRecipient((int) $freshEvent->user_id, $freshEvent, 'rescheduled');
+            }
+            if ($statusChangedInUpdate && $freshEvent->user_id) {
+                $this->notifyMarcacaoRecipient((int) $freshEvent->user_id, $freshEvent, 'status_changed', $prevStatus);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Evento atualizado com sucesso.',
@@ -782,10 +839,10 @@ class CalendarController extends Controller
     {
         $isOwner = $calendarEvent->user_id === null || $calendarEvent->user_id === auth()->id();
         $adminCanDeleteTempoPessoal = $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL && auth()->user()->canManageAgents();
-        if (!$isOwner && !$adminCanDeleteTempoPessoal) {
+        if (! $isOwner && ! $adminCanDeleteTempoPessoal) {
             abort(403, 'Apenas o consultor responsável pode eliminar este evento.');
         }
-        if (!$calendarEvent->isDeletableFromCalendar()) {
+        if (! $calendarEvent->isDeletableFromCalendar()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Este evento não pode ser eliminado pela agenda. Elimine-o na origem (visita ou lead).',
@@ -825,10 +882,10 @@ class CalendarController extends Controller
 
         // Verificar se a transição é válida
         $currentStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
-        if (!$calendarEvent->canTransitionTo($newStatus)) {
+        if (! $calendarEvent->canTransitionTo($newStatus)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Não é possível alterar o estado de "' . CalendarEvent::statuses()[$currentStatus] . '" para "' . CalendarEvent::statuses()[$newStatus] . '".',
+                'message' => 'Não é possível alterar o estado de "'.CalendarEvent::statuses()[$currentStatus].'" para "'.CalendarEvent::statuses()[$newStatus].'".',
             ], 422);
         }
 
@@ -844,8 +901,20 @@ class CalendarController extends Controller
             $update['refund_reserva'] = null;
             $update['avisou_dentro_prazo'] = null;
         }
+        $marcacao = $calendarEvent->event_type === CalendarEvent::TYPE_MARCACAO;
+        $previousStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
+        $statusUpdateApplied = false;
+
         if ($this->calendarEventStatusPayloadDiffers($calendarEvent, $update)) {
             $calendarEvent->update($update);
+            $statusUpdateApplied = true;
+        }
+
+        if ($statusUpdateApplied && $marcacao) {
+            $ev = $calendarEvent->fresh(['client', 'service', 'eventServices']);
+            if ($ev && $ev->event_type === CalendarEvent::TYPE_MARCACAO && $ev->user_id) {
+                $this->notifyMarcacaoRecipient((int) $ev->user_id, $ev, 'status_changed', $previousStatus);
+            }
         }
 
         return response()->json([
@@ -866,12 +935,14 @@ class CalendarController extends Controller
                 if ((bool) $cur !== (bool) $val) {
                     return true;
                 }
+
                 continue;
             }
             if ($key === 'cancellation_reason') {
                 if (trim((string) ($cur ?? '')) !== trim((string) ($val ?? ''))) {
                     return true;
                 }
+
                 continue;
             }
             if ((string) ($cur ?? '') !== (string) ($val ?? '')) {
@@ -982,24 +1053,26 @@ class CalendarController extends Controller
         $eventServicesData = $event->eventServices->isNotEmpty()
             ? $event->eventServices->map(function ($s) {
                 $dur = ($s->pivot->duration ?? $s->duration);
+
                 return [
                     'id' => $s->id,
                     'name' => $s->name,
                     'duration' => $dur,
                     'price' => (float) ($s->pivot->price ?? $s->price),
                     'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
-                    'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.') . ' €' : $s->formatted_price,
+                    'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.').' €' : $s->formatted_price,
                     'formatted_duration' => $this->formatDurationMinutes((int) $dur),
                     'extras' => $s->pivot->extras->map(function ($pe) {
                         $extraDuration = $pe->duration ?? $pe->extra?->duration ?? 0;
                         $extraPrice = (float) ($pe->price ?? $pe->extra?->price ?? 0);
+
                         return [
                             'extra_id' => $pe->extra_id,
                             'name' => $pe->extra?->name ?? '',
                             'duration' => $extraDuration,
                             'price' => $extraPrice,
                             'formatted_duration' => $this->formatDurationMinutes((int) $extraDuration),
-                            'formatted_price' => number_format($extraPrice, 2, ',', '.') . ' €',
+                            'formatted_price' => number_format($extraPrice, 2, ',', '.').' €',
                         ];
                     })->values()->all(),
                 ];
@@ -1024,7 +1097,7 @@ class CalendarController extends Controller
             'end' => $event->end_at->toIso8601String(),
             'className' => $className,
             'backgroundColor' => $bgColor,
-            'editable' => !$hasInvoice,
+            'editable' => ! $hasInvoice,
             'extendedProps' => [
                 'client_id' => $event->client_id,
                 'client_name' => $event->client?->name,
@@ -1059,6 +1132,7 @@ class CalendarController extends Controller
         if ($withResourceId) {
             $arr['resourceId'] = $event->user_id ? (string) $event->user_id : 'unassigned';
         }
+
         return $arr;
     }
 
@@ -1067,11 +1141,38 @@ class CalendarController extends Controller
         $hours = floor($minutes / 60);
         $mins = $minutes % 60;
         if ($hours > 0 && $mins > 0) {
-            return $hours . 'h ' . $mins . 'min';
+            return $hours.'h '.$mins.'min';
         }
         if ($hours > 0) {
-            return $hours . 'h';
+            return $hours.'h';
         }
-        return $mins . 'min';
+
+        return $mins.'min';
+    }
+
+    /**
+     * Notifica o utilizador responsável pela marcação (sem auto-notificação).
+     */
+    private function notifyMarcacaoRecipient(int $userId, CalendarEvent $event, string $type, ?string $previousStatus = null): void
+    {
+        if ($event->event_type !== CalendarEvent::TYPE_MARCACAO) {
+            return;
+        }
+        $user = User::find($userId);
+        if (! $user || auth()->id() === $user->id) {
+            return;
+        }
+        try {
+            $user->notify(new AppointmentNotification($event->id, $type, $previousStatus));
+        } catch (\Throwable $e) {
+            // Falha de email/notificação não deve bloquear criação/edição da marcação.
+            \Log::warning('Falha ao enviar notificação de marcação.', [
+                'calendar_event_id' => $event->id,
+                'recipient_user_id' => $user->id,
+                'type' => $type,
+                'previous_status' => $previousStatus,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
