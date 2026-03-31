@@ -347,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     $id('cancelMarcacaoRefund').value = '';
                     $id('cancelMarcacaoAvisouPrazo').value = '';
                     $id('cancelMarcacaoAvisouWrap').classList.add('d-none');
+                    $id('cancelMarcacaoNotifyClient').checked = true;
                     bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
                     return;
                 }
@@ -4443,6 +4444,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $id('cancelMarcacaoRefund').value = '';
                 $id('cancelMarcacaoAvisouPrazo').value = '';
                 $id('cancelMarcacaoAvisouWrap').classList.add('d-none');
+                $id('cancelMarcacaoNotifyClient').checked = true;
                 var editModalInstance = bootstrap.Modal.getOrCreateInstance($id('eventDetailEditModal'));
                 editModalInstance.hide();
                 bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
@@ -4528,7 +4530,8 @@ document.addEventListener('DOMContentLoaded', function() {
             cancellation_reason: reason,
             cancellation_type: status,
             refund_reserva: refundReserva,
-            avisou_dentro_prazo: avisouDentroPrazo
+            avisou_dentro_prazo: avisouDentroPrazo,
+            notify_client: $id('cancelMarcacaoNotifyClient').checked
         };
         fetch((C.urlEvents || '') + '/' + evId + '/status', {
             method: 'POST',

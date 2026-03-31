@@ -26,12 +26,12 @@
 
                         <div>
                             <label class="form-label small text-muted mb-0">De</label>
-                            <input type="date" name="from" class="form-control form-control-sm" value="{{ $from }}">
+                            <input type="text" name="from" class="form-control form-control-sm" value="{{ $from }}" data-crm-datepicker autocomplete="off">
                         </div>
 
                         <div>
                             <label class="form-label small text-muted mb-0">Até</label>
-                            <input type="date" name="to" class="form-control form-control-sm" value="{{ $to }}">
+                            <input type="text" name="to" class="form-control form-control-sm" value="{{ $to }}" data-crm-datepicker autocomplete="off">
                         </div>
 
                         <div>

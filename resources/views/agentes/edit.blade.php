@@ -171,7 +171,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Data de Nascimento</label>
-                                <input type="date" name="birth_date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', $agente->birth_date?->format('Y-m-d')) }}" max="{{ date('Y-m-d', strtotime('-18 years')) }}">
+                                <input type="text" name="birth_date" class="form-control @error('birth_date') is-invalid @enderror" value="{{ old('birth_date', $agente->birth_date?->format('Y-m-d')) }}" data-crm-datepicker data-max-date="{{ date('Y-m-d', strtotime('-18 years')) }}" autocomplete="off" placeholder="dd/mm/aaaa">
                                 @error('birth_date')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror

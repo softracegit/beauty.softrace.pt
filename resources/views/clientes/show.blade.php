@@ -669,7 +669,6 @@
 
 @endsection
 @section('js')
-<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/pt.js"></script>
 <script>
 (function() {
     const hash = window.location.hash;
@@ -699,20 +698,6 @@
                 if (target === '#tab-estatisticas' && typeof initStatsCharts === 'function') {
                     initStatsCharts();
                 }
-            });
-        }
-
-        if (typeof flatpickr !== 'undefined') {
-            var fpOpts = {
-                dateFormat: 'Y-m-d',
-                allowInput: true,
-                locale: (window.flatpickr && window.flatpickr.l10ns && window.flatpickr.l10ns.pt) ? window.flatpickr.l10ns.pt : undefined
-            };
-            /* Só inputs visíveis: os hidden com o mesmo name senão o flatpickr duplica Desde/Até na tab errada */
-            document.querySelectorAll(
-                'input[type="text"][name="marcacoes_desde"], input[type="text"][name="marcacoes_ate"], input[type="text"][name="vendas_desde"], input[type="text"][name="vendas_ate"]'
-            ).forEach(function (el) {
-                flatpickr(el, fpOpts);
             });
         }
     });

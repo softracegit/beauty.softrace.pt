@@ -38,7 +38,7 @@
                         </div>
                         <div class="col-12 col-md-6">
                             <label for="scheduled_at" class="form-label">Data/hora agendada</label>
-                            <input type="datetime-local" name="scheduled_at" id="scheduled_at" class="form-control @error('scheduled_at') is-invalid @enderror" value="{{ old('scheduled_at', $lead->scheduled_at ? $lead->scheduled_at->format('Y-m-d\TH:i') : '') }}">
+                            <input type="text" name="scheduled_at" id="scheduled_at" class="form-control @error('scheduled_at') is-invalid @enderror" value="{{ old('scheduled_at', $lead->scheduled_at ? $lead->scheduled_at->format('Y-m-d\TH:i') : '') }}" data-crm-datetime autocomplete="off" placeholder="dd/mm/aaaa HH:mm">
                             <small class="text-muted">Se preenchido, será criado um evento na Agenda.</small>
                             @error('scheduled_at')
                                 <div class="invalid-feedback">{{ $message }}</div>

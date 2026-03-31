@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Agent;
 use App\Models\CalendarEvent;
+use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Models\Client;
 use App\Models\PersonalTimeType;
 use App\Models\Sale;
@@ -11,6 +12,7 @@ use App\Models\User;
 use App\Notifications\AppointmentNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 
 class CalendarController extends Controller
@@ -876,6 +878,7 @@ class CalendarController extends Controller
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'refund_reserva' => ['nullable', 'boolean'],
             'avisou_dentro_prazo' => ['nullable', 'boolean'],
+            'notify_client' => ['sometimes', 'boolean'],
         ]);
 
         $newStatus = $validated['status'];
@@ -914,6 +917,26 @@ class CalendarController extends Controller
             $ev = $calendarEvent->fresh(['client', 'service', 'eventServices']);
             if ($ev && $ev->event_type === CalendarEvent::TYPE_MARCACAO && $ev->user_id) {
                 $this->notifyMarcacaoRecipient((int) $ev->user_id, $ev, 'status_changed', $previousStatus);
+            }
+            $notifyClient = (bool) ($validated['notify_client'] ?? false);
+            if (
+                $notifyClient
+                && in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO], true)
+            ) {
+                $clientEv = $calendarEvent->fresh(['client']);
+                $email = $clientEv?->client?->email;
+                if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    try {
+                        Notification::route('mail', $email)
+                            ->notify(new ClientAppointmentCancelledNotification($calendarEvent->id));
+                    } catch (\Throwable $e) {
+                        \Log::warning('Falha ao enviar email de cancelamento ao cliente.', [
+                            'calendar_event_id' => $calendarEvent->id,
+                            'client_email' => $email,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
             }
         }
 

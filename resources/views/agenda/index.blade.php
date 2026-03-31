@@ -277,6 +277,10 @@
                         <option value="0">Não</option>
                     </select>
                 </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="cancelMarcacaoNotifyClient" checked>
+                    <label class="form-check-label" for="cancelMarcacaoNotifyClient">Avisar cliente do cancelamento</label>
+                </div>
                 <div class="border rounded p-3 bg-light">
                     <h6 class="nova-marcacao-section-title mb-2">Detalhes do cancelamento</h6>
                     <div class="mb-0">
@@ -287,7 +291,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Não cancelar</button>
                 <button type="button" class="btn btn-danger" id="cancelMarcacaoConfirmBtn">Cancelar marcação</button>
             </div>
         </div>

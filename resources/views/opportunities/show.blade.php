@@ -740,7 +740,7 @@
                     <p class="text-muted mb-3" id="visitPropertyName"></p>
                     <div class="mb-3">
                         <label for="visitScheduledAt" class="form-label">Data e Hora <span class="text-danger">*</span></label>
-                        <input type="datetime-local" class="form-control" id="visitScheduledAt" name="scheduled_at" required>
+                        <input type="text" class="form-control" id="visitScheduledAt" name="scheduled_at" required data-crm-datetime autocomplete="off" placeholder="dd/mm/aaaa HH:mm">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -773,7 +773,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="editVisitScheduledAt" class="form-label">Data e Hora</label>
-                        <input type="datetime-local" class="form-control" id="editVisitScheduledAt" name="scheduled_at">
+                        <input type="text" class="form-control" id="editVisitScheduledAt" name="scheduled_at" data-crm-datetime autocomplete="off" placeholder="dd/mm/aaaa HH:mm">
                     </div>
                     <div class="mb-3" id="editVisitFeedbackSection">
                         <label class="form-label">Opinião do Cliente</label>
@@ -1333,16 +1333,25 @@
     function openScheduleVisitModal(propertyId, propertyTitle) {
         document.getElementById('visitPropertyId').value = propertyId;
         document.getElementById('visitPropertyName').textContent = 'Imóvel: ' + propertyTitle;
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('visitScheduledAt').value = now.toISOString().slice(0, 16);
+        const visitAt = document.getElementById('visitScheduledAt');
+        if (typeof window.crmFlatpickrSetValue === 'function') {
+            window.crmFlatpickrSetValue(visitAt, new Date());
+        } else {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            visitAt.value = now.toISOString().slice(0, 16);
+        }
         new bootstrap.Modal(document.getElementById('scheduleVisitModal')).show();
     }
 
     function openEditVisitModal(data) {
         document.getElementById('editVisitId').value = data.id;
         document.getElementById('editVisitStatus').value = data.status;
-        document.getElementById('editVisitScheduledAt').value = data.scheduled_at || '';
+        if (typeof window.crmFlatpickrSetValue === 'function') {
+            window.crmFlatpickrSetValue(document.getElementById('editVisitScheduledAt'), data.scheduled_at || '');
+        } else {
+            document.getElementById('editVisitScheduledAt').value = data.scheduled_at || '';
+        }
         document.getElementById('editVisitStrengths').value = data.client_feedback_strengths || '';
         document.getElementById('editVisitWeaknesses').value = data.client_feedback_weaknesses || '';
         document.getElementById('editVisitNotes').value = data.notes || '';

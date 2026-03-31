@@ -8,6 +8,7 @@
 <script src="{{ asset('template/vendor/tinymce/tinymce.min.js') }}?v={{ file_exists(public_path('template/vendor/tinymce/tinymce.min.js')) ? filemtime(public_path('template/vendor/tinymce/tinymce.min.js')) : time() }}"></script>
 <script src="{{ asset('template/vendor/choices.js/choices.min.js') }}?v={{ file_exists(public_path('template/vendor/choices.js/choices.min.js')) ? filemtime(public_path('template/vendor/choices.js/choices.min.js')) : time() }}"></script>
 <script src="{{ asset('template/vendor/flatpickr/flatpickr.min.js') }}?v={{ file_exists(public_path('template/vendor/flatpickr/flatpickr.min.js')) ? filemtime(public_path('template/vendor/flatpickr/flatpickr.min.js')) : time() }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/pt.js"></script>
 <script src="{{ asset('template/vendor/php-email-form/validate.js') }}?v={{ file_exists(public_path('template/vendor/php-email-form/validate.js')) ? filemtime(public_path('template/vendor/php-email-form/validate.js')) : time() }}"></script>
 
 <!-- Template Main JS Files -->

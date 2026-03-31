@@ -46,7 +46,7 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="reminderAt" class="form-label">Data e Hora do Lembrete</label>
-                                    <input type="datetime-local" name="reminder_at" id="reminderAt" class="form-control">
+                                    <input type="text" name="reminder_at" id="reminderAt" class="form-control" data-crm-datetime autocomplete="off" placeholder="dd/mm/aaaa HH:mm">
                                 </div>
                                 <div class="col-md-6">
                                     <label for="reminderAdvance" class="form-label">Antecedência (minutos)</label>

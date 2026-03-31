@@ -42,6 +42,7 @@
     };
   </script>
   <script src="{{ asset('template/js/crm-notifications.js') }}?v={{ file_exists(public_path('template/js/crm-notifications.js')) ? filemtime(public_path('template/js/crm-notifications.js')) : time() }}"></script>
+  <script src="{{ asset('template/js/crm-flatpickr.js') }}?v={{ file_exists(public_path('template/js/crm-flatpickr.js')) ? filemtime(public_path('template/js/crm-flatpickr.js')) : time() }}"></script>
   @include('partials.toast-container')
   @yield('js')
 </body>
