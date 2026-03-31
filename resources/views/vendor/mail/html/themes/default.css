@@ -119,11 +119,11 @@ img {
     width: 75px;
 }
 
-/* Logo da marca no cabeçalho (~20% de ~570px); reforçado com inline style no blade */
+/* Logo da marca no cabeçalho com largura fixa para consistência entre clientes de email */
 .logo-mail-brand {
     display: block;
-    width: 114px !important;
-    max-width: 20% !important;
+    width: 140px !important;
+    max-width: 140px !important;
     height: auto !important;
     max-height: 72px;
     margin: 0 auto;
