@@ -22,6 +22,32 @@
 <!-- Quickview do evento (ao passar o rato por cima do evento) -->
 <div id="agendaEventQuickview" role="tooltip" aria-label="Detalhe do evento" class="agenda-event-quickview"></div>
 
+<!-- Modal: confirmar arrastar/redimensionar marcação (avisar cliente) -->
+<div class="modal fade" id="agendaDragConfirmModal" tabindex="-1" aria-labelledby="agendaDragConfirmModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header pb-3">
+                <h4 class="modal-title mb-0 fw-semibold" id="agendaDragConfirmModalLabel">Confirmar alteração</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="agendaDragConfirmNotify">
+                    <label class="form-check-label" for="agendaDragConfirmNotify">Avisar cliente da mudança da marcação</label>
+                </div>
+                <p class="small text-muted mb-2">
+                    Enviar uma mensagem a <strong id="agendaDragConfirmClientName">—</strong> a avisar que a marcação foi alterada.
+                </p>
+                <p class="small text-warning mb-0 d-none" id="agendaDragConfirmNoEmail">Este cliente não tem email válido; não será enviada mensagem.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="agendaDragConfirmCancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="agendaDragConfirmSubmit">Atualizar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Nova marcação (inspirado em apps-support ticket detail) -->
 <div class="modal fade" id="novaMarcacaoModal" tabindex="-1" aria-labelledby="novaMarcacaoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -50,6 +76,12 @@
                 <input type="hidden" id="novaMarcacaoStart" name="start_at">
                 <input type="hidden" id="novaMarcacaoEnd" name="end_at">
                 <div class="modal-body p-0">
+                    <div class="px-3 pt-3 pb-0">
+                        <div class="alert alert-warning d-none mb-0" id="novaMarcacaoHorarioAviso" role="alert">
+                            <i class="ph ph-warning-circle me-1"></i>
+                            Horário fora do período habitual (09:00-20:00). Pode guardar na mesma, se for excecional.
+                        </div>
+                    </div>
                     <div class="row g-0">
                         <div class="col-lg-5">
                             <div class="nova-marcacao-sidebar">
@@ -83,16 +115,30 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="nova-marcacao-section nova-marcacao-notes-wrap text-start px-2 pt-2 border-top">
+                                    <label for="novaMarcacaoObservacoes" class="form-label small text-muted mb-1">Observações / notas</label>
+                                    <textarea class="form-control form-control-sm" id="novaMarcacaoObservacoes" name="description" rows="2" placeholder="Notas sobre a marcação (visíveis nos relatórios e no detalhe do evento)"></textarea>
+                                </div>
                                 <div class="nova-marcacao-section nova-marcacao-agent-wrap text-center">
                                     <h6 class="nova-marcacao-section-title">Prestador(a) do serviço</h6>
-                                    <a id="novaMarcacaoAgentLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body d-inline-flex align-items-center gap-2 justify-content-center">
-                                        <img id="novaMarcacaoAgentAvatar" src="" alt="" class="rounded-circle agenda-avatar-img flex-shrink-0" width="40" height="40" style="display: none;">
-                                        <div class="flex-grow-1 min-w-0">
-                                            <strong id="novaMarcacaoAgentName" class="d-block">—</strong>
+                                    <div id="novaMarcacaoAgentSelectWrap" class="d-none">
+                                        <label for="novaMarcacaoAgentSelect" class="form-label visually-hidden">Técnico</label>
+                                        <select id="novaMarcacaoAgentSelect" class="form-select form-select-sm mx-auto" style="max-width: 280px;">
+                                            <option value="">— Selecionar técnico —</option>
+                                        </select>
+                                    </div>
+                                    <div id="novaMarcacaoAgentSelectedWrap" class="d-none">
+                                        <a id="novaMarcacaoAgentLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body d-inline-flex align-items-center gap-2 justify-content-center">
+                                            <img id="novaMarcacaoAgentAvatar" src="" alt="" class="rounded-circle agenda-avatar-img flex-shrink-0" width="40" height="40" style="display: none;">
+                                            <div class="flex-grow-1 min-w-0">
+                                                <strong id="novaMarcacaoAgentName" class="d-block">—</strong>
+                                            </div>
+                                        </a>
+                                        <div class="mt-1">
+                                            <button type="button" class="btn btn-link btn-sm p-0" id="novaMarcacaoAgentChangeBtn">Alterar</button>
                                         </div>
-                                    </a>
+                                    </div>
                                 </div>
-                                <input type="hidden" id="novaMarcacaoObservacoes" name="description" value="">
                             </div>
                         </div>
                         <div class="col-lg-7 nova-marcacao-services-col" id="novaMarcacaoServicesCol">
@@ -115,10 +161,15 @@
                                 </div>
                             </div>
                             </div>
-                            <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center pt-3 border-top">
-                                <span class="text-black fs-6 fw-bold">Total</span>
-                                <span class="fw-semibold fs-6" id="novaMarcacaoTotalPrice">0,00 €</span>
-                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-0 flex-shrink-0 nova-marcacao-modal-total-strip border-top border-light">
+                    <div class="col-12 col-lg-5" aria-hidden="true"></div>
+                    <div class="col-12 col-lg-7 nova-marcacao-modal-total-strip-col">
+                        <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center pt-3">
+                            <span class="text-black fs-6 fw-bold">Total</span>
+                            <span class="fw-semibold fs-6" id="novaMarcacaoTotalPrice">0,00 €</span>
                         </div>
                     </div>
                 </div>
@@ -154,26 +205,37 @@
                 <input type="hidden" id="tempoPessoalStart" name="start_at">
                 <input type="hidden" id="tempoPessoalEnd" name="end_at">
                 <div class="modal-body">
+                    <div class="alert alert-warning d-none" id="tempoPessoalHorarioAviso" role="alert">
+                        <i class="ph ph-warning-circle me-1"></i>
+                        Horário fora do período habitual (09:00-20:00). Pode guardar na mesma, se for excecional.
+                    </div>
                     <div class="mb-3">
                         <label class="form-label d-block">Tipo de tempo pessoal</label>
                         <div class="tempo-pessoal-type-toggle-wrapper" role="group" id="tempoPessoalTypeToggleGroup">
-                            @forelse($personalTimeTypes ?? [] as $pt)
+                            @foreach($personalTimeTypes ?? [] as $pt)
                             <button type="button" class="tempo-pessoal-type-card btn border rounded-2 {{ $loop->first ? 'active' : '' }}" data-id="{{ $pt->id }}" data-duration="{{ $pt->duration }}" data-name="{{ $pt->name }}" title="{{ $pt->name }} · {{ $pt->formatted_duration }}">
                                 <i class="ph {{ $pt->icon }} tempo-pessoal-type-card-icon"></i>
                                 <span class="fw-semibold tempo-pessoal-type-card-name">{{ $pt->name }}</span>
                                 <span class="text-muted small tempo-pessoal-type-card-duration">{{ $pt->formatted_duration }}</span>
                             </button>
-                            @empty
-                            <p class="text-muted small mb-0">Nenhum tipo configurado.</p>
-                            @endforelse
+                            @endforeach
+                            <button type="button" class="tempo-pessoal-type-card btn border rounded-2 {{ empty($personalTimeTypes) || count($personalTimeTypes) === 0 ? 'active' : '' }}" data-id="" data-duration="60" data-name="Outro" data-is-custom="1" title="Outro · 1h">
+                                <i class="ph ph-pencil tempo-pessoal-type-card-icon"></i>
+                                <span class="fw-semibold tempo-pessoal-type-card-name">Outro</span>
+                                <span class="text-muted small tempo-pessoal-type-card-duration">1h</span>
+                            </button>
                         </div>
-                        <input type="hidden" id="tempoPessoalTipo" name="personal_time_type_id" value="{{ ($personalTimeTypes ?? collect())->first()?->id ?? '' }}" required>
+                        <input type="hidden" id="tempoPessoalTipo" name="personal_time_type_id" value="{{ ($personalTimeTypes ?? collect())->first()?->id ?? '' }}">
+                    </div>
+                    <div class="mb-3 d-none" id="tempoPessoalTituloWrap">
+                        <label for="tempoPessoalTitulo" class="form-label">Título do Tempo Pessoal</label>
+                        <input type="text" class="form-control" id="tempoPessoalTitulo" name="title" maxlength="255" placeholder="Escreva o título...">
                     </div>
                     <div class="mb-3">
                         <label for="tempoPessoalDateToggle" class="form-label">Data</label>
                         <div class="dropdown w-100">
                             <span class="form-control dropdown-toggle d-flex align-items-center text-start" id="tempoPessoalDateToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor: pointer">—</span>
-                            <div class="dropdown-menu dropdown-menu-start p-0 w-100" id="tempoPessoalDateDropdownMenu">
+                            <div class="dropdown-menu dropdown-menu-start p-0" id="tempoPessoalDateDropdownMenu">
                                 <div class="picker-inline-wrapper" id="tempoPessoalDatePickerWrap"></div>
                             </div>
                         </div>
@@ -278,7 +340,7 @@
                     </select>
                 </div>
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="cancelMarcacaoNotifyClient" checked>
+                    <input class="form-check-input" type="checkbox" id="cancelMarcacaoNotifyClient">
                     <label class="form-check-label" for="cancelMarcacaoNotifyClient">Avisar cliente do cancelamento</label>
                 </div>
                 <div class="border rounded p-3 bg-light">
@@ -348,6 +410,12 @@
                 <input type="hidden" id="eventDetailEditStart" name="start_at">
                 <input type="hidden" id="eventDetailEditEnd" name="end_at">
                 <div class="modal-body p-0">
+                    <div class="px-3 pt-3 pb-0">
+                        <div class="alert alert-warning d-none mb-0" id="eventDetailHorarioAviso" role="alert">
+                            <i class="ph ph-warning-circle me-1"></i>
+                            Horário fora do período habitual (09:00-20:00). Pode guardar na mesma, se for excecional.
+                        </div>
+                    </div>
                     <div class="row g-0">
                     <div class="col-lg-5">
                             <div class="nova-marcacao-sidebar">
@@ -382,6 +450,11 @@
                                     </div>
                                     <div id="eventDetailVisitLeadBlock" class="d-none"></div>
                                 </div>
+                                <input type="hidden" id="eventDetailStatus" name="status" value="agendado">
+                                <div class="nova-marcacao-section nova-marcacao-notes-wrap text-start px-2 pt-2 border-top w-100">
+                                    <label for="eventDetailObservacoes" class="form-label small text-muted mb-1">Observações / notas</label>
+                                    <textarea class="form-control form-control-sm" id="eventDetailObservacoes" name="description" rows="2" placeholder="Notas sobre a marcação (relatórios e detalhe)"></textarea>
+                                </div>
                                 <div class="nova-marcacao-section nova-marcacao-agent-wrap text-center">
                                     <h6 class="nova-marcacao-section-title mb-2">Prestador(a) do serviço</h6>
                                     <a id="eventDetailAgentLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body d-inline-flex align-items-center gap-2 justify-content-center">
@@ -391,8 +464,6 @@
                                         </div>
                                     </a>
                                 </div>
-                                <input type="hidden" id="eventDetailStatus" name="status" value="agendado">
-                                <input type="hidden" id="eventDetailObservacoes" name="description" value="">
                             </div>
                         </div>
                         <div class="col-lg-7 nova-marcacao-services-col" id="eventDetailServicesCol">
@@ -415,10 +486,15 @@
                                 </div>
                             </div>
                             </div>
-                            <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center pt-3 border-top">
-                                <span class="text-black fs-6 fw-bold">Total</span>
-                                <span class="fw-semibold fs-6" id="eventDetailTotalPrice">0,00 €</span>
-                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-0 flex-shrink-0 nova-marcacao-modal-total-strip border-top border-light">
+                    <div class="col-12 col-lg-5" aria-hidden="true"></div>
+                    <div class="col-12 col-lg-7 nova-marcacao-modal-total-strip-col">
+                        <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center pt-3">
+                            <span class="text-black fs-6 fw-bold">Total</span>
+                            <span class="fw-semibold fs-6" id="eventDetailTotalPrice">0,00 €</span>
                         </div>
                     </div>
                 </div>
@@ -527,7 +603,8 @@ window.AGENDA_CONFIG = {
     urlOpportunities: @json(url('opportunities')),
     urlLeads: @json(url('leads')),
     agendaAgentInfo: @json($agentInfoMap->all()),
-    usersForConsultant: @json($usersForConsultant)
+    usersForConsultant: @json($usersForConsultant),
+    nationalHolidaysPt: @json($nationalHolidaysPt ?? [])
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>

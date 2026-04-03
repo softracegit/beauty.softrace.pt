@@ -22,39 +22,51 @@
         <div class="quickaccess-grid">
           <a href="{{ route('dashboard') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
-              <i class="bi bi-speedometer2"></i>
+              <i class="ph ph-house"></i>
             </span>
             <span class="quickaccess-label">Dashboard</span>
           </a>
-          <a href="{{ route('leads.kanban') }}" class="quickaccess-item">
-            <span class="quickaccess-icon" style="--qa-color: var(--success-color)">
-              <i class="bi bi-kanban"></i>
-            </span>
-            <span class="quickaccess-label">Leads</span>
-          </a>
-          <a href="{{ route('opportunities.kanban') }}" class="quickaccess-item">
-            <span class="quickaccess-icon" style="--qa-color: var(--info-color)">
-              <i class="bi bi-briefcase"></i>
-            </span>
-            <span class="quickaccess-label">Oportunidades</span>
-          </a>
           <a href="{{ route('agenda.index') }}" class="quickaccess-item">
-            <span class="quickaccess-icon" style="--qa-color: #ec4899">
-              <i class="bi bi-calendar3"></i>
+            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+              <i class="ph ph-calendar-blank"></i>
             </span>
             <span class="quickaccess-label">Agenda</span>
           </a>
+          <a href="{{ route('agenda.index', ['novaMarcacao' => 1]) }}" class="quickaccess-item">
+            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+              <i class="ph ph-calendar-plus"></i>
+            </span>
+            <span class="quickaccess-label">Nova marcação</span>
+          </a>
           <a href="{{ route('clientes.index') }}" class="quickaccess-item">
-            <span class="quickaccess-icon" style="--qa-color: var(--danger-color)">
-              <i class="bi bi-people"></i>
+            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+              <i class="ph ph-smiley"></i>
             </span>
             <span class="quickaccess-label">Clientes</span>
           </a>
-          <a href="{{ route('properties.index') }}" class="quickaccess-item">
-            <span class="quickaccess-icon" style="--qa-color: #8b5cf6">
-              <i class="bi bi-house-door"></i>
+          <a href="{{ route('services.index') }}" class="quickaccess-item">
+            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+              <i class="ph ph-book-open"></i>
             </span>
-            <span class="quickaccess-label">Imóveis</span>
+            <span class="quickaccess-label">Serviços</span>
+          </a>
+          <a href="{{ route('equipa.index') }}" class="quickaccess-item">
+            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+              <i class="ph ph-users"></i>
+            </span>
+            <span class="quickaccess-label">Equipa</span>
+          </a>
+          <a href="{{ route('relatorios.marcacoes') }}" class="quickaccess-item">
+            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+              <i class="ph ph-chart-line-up"></i>
+            </span>
+            <span class="quickaccess-label">Marcações</span>
+          </a>
+          <a href="{{ route('relatorios.vendas') }}" class="quickaccess-item">
+            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+              <i class="ph ph-chart-line-up"></i>
+            </span>
+            <span class="quickaccess-label">Vendas</span>
           </a>
         </div>
       </div>

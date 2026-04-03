@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Agent;
 use App\Models\CalendarEvent;
-use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Models\Client;
 use App\Models\PersonalTimeType;
 use App\Models\Sale;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
+use App\Notifications\ClientAppointmentCancelledNotification;
+use App\Notifications\ClientAppointmentRescheduledNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
@@ -33,7 +34,68 @@ class CalendarController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('agenda.index', compact('eventTypes', 'users', 'personalTimeTypes'));
+        $today = now();
+        $nationalHolidaysPt = $this->ptNationalHolidayDatesBetweenYears((int) $today->format('Y') - 1, (int) $today->format('Y') + 2);
+
+        return view('agenda.index', compact('eventTypes', 'users', 'personalTimeTypes', 'nationalHolidaysPt'));
+    }
+
+    /**
+     * @return array<int, string> Datas Y-m-d dos feriados nacionais de Portugal no intervalo de anos.
+     */
+    private function ptNationalHolidayDatesBetweenYears(int $yearStart, int $yearEnd): array
+    {
+        if ($yearEnd < $yearStart) {
+            return [];
+        }
+
+        $dates = [];
+        for ($y = $yearStart; $y <= $yearEnd; $y++) {
+            $dates = array_merge($dates, $this->ptNationalHolidayDatesForYear($y));
+        }
+
+        $dates = array_values(array_unique($dates));
+        sort($dates);
+
+        return $dates;
+    }
+
+    /**
+     * @return array<int, string> Datas Y-m-d dos feriados nacionais de Portugal para o ano indicado.
+     */
+    private function ptNationalHolidayDatesForYear(int $year): array
+    {
+        // Páscoa (algoritmo de Gauss para calendário gregoriano).
+        $a = $year % 19;
+        $b = intdiv($year, 100);
+        $c = $year % 100;
+        $d = intdiv($b, 4);
+        $e = $b % 4;
+        $f = intdiv($b + 8, 25);
+        $g = intdiv($b - $f + 1, 3);
+        $h = (19 * $a + $b - $d - $g + 15) % 30;
+        $i = intdiv($c, 4);
+        $k = $c % 4;
+        $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
+        $m = intdiv($a + 11 * $h + 22 * $l, 451);
+        $month = intdiv($h + $l - 7 * $m + 114, 31);
+        $day = (($h + $l - 7 * $m + 114) % 31) + 1;
+        $easter = Carbon::createMidnightDate($year, $month, $day);
+
+        return [
+            Carbon::createMidnightDate($year, 1, 1)->toDateString(),   // Ano Novo
+            Carbon::createMidnightDate($year, 4, 25)->toDateString(),  // Dia da Liberdade
+            Carbon::createMidnightDate($year, 5, 1)->toDateString(),   // Dia do Trabalhador
+            Carbon::createMidnightDate($year, 6, 10)->toDateString(),  // Dia de Portugal
+            Carbon::createMidnightDate($year, 8, 15)->toDateString(),  // Assunção
+            Carbon::createMidnightDate($year, 10, 5)->toDateString(),  // Implantação da República
+            Carbon::createMidnightDate($year, 11, 1)->toDateString(),  // Todos-os-Santos
+            Carbon::createMidnightDate($year, 12, 1)->toDateString(),  // Restauração da Independência
+            Carbon::createMidnightDate($year, 12, 8)->toDateString(),  // Imaculada Conceição
+            Carbon::createMidnightDate($year, 12, 25)->toDateString(), // Natal
+            $easter->copy()->subDays(2)->toDateString(),               // Sexta-Feira Santa
+            $easter->copy()->addDays(60)->toDateString(),              // Corpo de Deus
+        ];
     }
 
     /**
@@ -161,6 +223,8 @@ class CalendarController extends Controller
                 'extendedProps' => [
                     'client_name' => $event->client?->name,
                     'client_avatar_url' => $event->client?->avatar ? asset('storage/'.$event->client->avatar) : null,
+                    'client_phone' => $event->client?->phone,
+                    'client_formatted_phone' => $event->client?->formatted_phone,
                     'description' => $event->description,
                     'event_type' => $event->event_type,
                     'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
@@ -213,6 +277,8 @@ class CalendarController extends Controller
                         'formatted_duration' => $event->personalTimeType->formatted_duration,
                     ] : null,
                     'has_invoice' => $hasInvoice,
+                    'client_id' => $event->client_id,
+                    'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
                 ],
             ];
             if ($forResources && $event->user_id) {
@@ -413,6 +479,7 @@ class CalendarController extends Controller
                 'service_name' => $calendarEvent->service?->name,
                 'client_id' => $calendarEvent->client_id,
                 'client_name' => $calendarEvent->client?->name,
+                'client_has_email' => (bool) ($calendarEvent->client_id && $calendarEvent->client?->email && filter_var($calendarEvent->client->email, FILTER_VALIDATE_EMAIL)),
                 'client_email' => $calendarEvent->client?->email,
                 'client_phone' => $calendarEvent->client?->phone,
                 'client_formatted_phone' => $calendarEvent->client?->formatted_phone,
@@ -657,6 +724,7 @@ class CalendarController extends Controller
             'services.*.extras.*.extra_id' => ['nullable', 'exists:extras,id'],
             'services.*.extras.*.duration' => ['nullable', 'integer', 'min:0'],
             'services.*.extras.*.price' => ['nullable', 'numeric', 'min:0'],
+            'notify_client' => ['sometimes', 'boolean'],
         ];
 
         if ($calendarEvent->isSourceEditable()) {
@@ -689,6 +757,13 @@ class CalendarController extends Controller
         }
 
         $tz = config('app.timezone');
+
+        $notifyClientPrevStart = null;
+        $notifyClientPrevEnd = null;
+        if ($calendarEvent->isTimeEditable() && (isset($validated['start_at']) || isset($validated['end_at']))) {
+            $notifyClientPrevStart = $calendarEvent->start_at?->copy();
+            $notifyClientPrevEnd = $calendarEvent->end_at?->copy();
+        }
 
         if ($calendarEvent->isTimeEditable() && (isset($validated['start_at']) || isset($validated['end_at']))) {
             $updates = [];
@@ -826,6 +901,32 @@ class CalendarController extends Controller
             }
         }
 
+        $notifyClientWanted = $request->boolean('notify_client');
+        if (
+            $notifyClientWanted
+            && $timeChanged
+            && $freshEvent
+            && $freshEvent->event_type === CalendarEvent::TYPE_MARCACAO
+            && $freshEvent->client_id
+        ) {
+            $clientEmail = $freshEvent->client?->email;
+            if ($clientEmail && filter_var($clientEmail, FILTER_VALIDATE_EMAIL)) {
+                try {
+                    Notification::route('mail', $this->resolveClientNotificationRecipientEmail($clientEmail))->notify(new ClientAppointmentRescheduledNotification(
+                        (int) $freshEvent->id,
+                        $notifyClientPrevStart?->toIso8601String(),
+                        $notifyClientPrevEnd?->toIso8601String()
+                    ));
+                } catch (\Throwable $e) {
+                    \Log::warning('Falha ao enviar email de remarcação ao cliente.', [
+                        'calendar_event_id' => $freshEvent->id,
+                        'client_email' => $clientEmail,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Evento atualizado com sucesso.',
@@ -927,7 +1028,7 @@ class CalendarController extends Controller
                 $email = $clientEv?->client?->email;
                 if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     try {
-                        Notification::route('mail', $email)
+                        Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
                             ->notify(new ClientAppointmentCancelledNotification($calendarEvent->id));
                     } catch (\Throwable $e) {
                         \Log::warning('Falha ao enviar email de cancelamento ao cliente.', [
@@ -1069,7 +1170,7 @@ class CalendarController extends Controller
         $classMap = CalendarEvent::typeClassMap();
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
-        $event->loadMissing(['eventServices', 'user.agent', 'personalTimeType', 'sale']);
+        $event->loadMissing(['client', 'eventServices', 'user.agent', 'personalTimeType', 'sale']);
         $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
         $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
         $agentColor = $isTempoPessoal ? null : ($event->user?->agent?->color);
@@ -1124,6 +1225,9 @@ class CalendarController extends Controller
             'extendedProps' => [
                 'client_id' => $event->client_id,
                 'client_name' => $event->client?->name,
+                'client_phone' => $event->client?->phone,
+                'client_formatted_phone' => $event->client?->formatted_phone,
+                'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
                 'description' => $event->description,
                 'event_type' => $event->event_type,
                 'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
@@ -1171,6 +1275,22 @@ class CalendarController extends Controller
         }
 
         return $mins.'min';
+    }
+
+    /**
+     * Evita enviar emails de testes para clientes reais.
+     * Em produção, mantém o email original; noutros ambientes, redireciona para suporte.
+     */
+    private function resolveClientNotificationRecipientEmail(?string $originalEmail): string
+    {
+        $originalEmail = $originalEmail ?? '';
+        $supportEmail = env('MAIL_CLIENT_TEST_REDIRECT_TO', 'suporte@softrace.pt');
+
+        if (app()->environment('production')) {
+            return $originalEmail;
+        }
+
+        return $supportEmail;
     }
 
     /**

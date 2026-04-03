@@ -139,6 +139,24 @@
                 'active' => true
             ];
         }
+    } elseif (str_starts_with($currentRoute, 'relatorios.')) {
+        $breadcrumbs[] = [
+            'label' => 'Relatórios',
+            'url' => route('relatorios.marcacoes'),
+            'active' => false
+        ];
+        $sectionLabels = [
+            'relatorios.marcacoes' => 'Marcações',
+            'relatorios.vendas' => 'Vendas',
+            'relatorios.comissoes' => 'Comissões',
+        ];
+        if (isset($sectionLabels[$currentRoute])) {
+            $breadcrumbs[] = [
+                'label' => $sectionLabels[$currentRoute],
+                'url' => null,
+                'active' => true
+            ];
+        }
     } else {
         $breadcrumbs[] = [
             'label' => 'Dashboard',

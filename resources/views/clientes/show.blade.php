@@ -237,9 +237,7 @@
                             <select name="marcacoes_estado" class="form-select form-select-sm">
                                 <option value="">Todos</option>
                                 @foreach(\App\Models\CalendarEvent::statuses() as $key => $label)
-                                    @if($key !== \App\Models\CalendarEvent::STATUS_CANCELADO)
-                                        <option value="{{ $key }}" {{ ($marcacoesEstado ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
-                                    @endif
+                                    <option value="{{ $key }}" {{ ($marcacoesEstado ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>

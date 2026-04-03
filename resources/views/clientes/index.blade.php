@@ -55,9 +55,17 @@
                     </button>
                 </form>
             </div>
-            <a href="{{ route('clientes.create') }}" class="btn btn-primary">
-                <i class="ph ph-plus me-1"></i> Adicionar Cliente
-            </a>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <a href="{{ route('clientes.export', request()->query()) }}" class="btn btn-outline-primary btn-sm">
+                    <i class="ph ph-download-simple me-1"></i> Exportar
+                </a>
+                <a href="{{ route('clientes.pdf', request()->query()) }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+                    <i class="ph ph-printer me-1"></i> Imprimir
+                </a>
+                <a href="{{ route('clientes.create') }}" class="btn btn-primary">
+                    <i class="ph ph-plus me-1"></i> Adicionar Cliente
+                </a>
+            </div>
         </div>
 
         <div class="users-table-wrap">

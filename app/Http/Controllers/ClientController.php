@@ -3,17 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
-use App\Models\User;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
-use App\Models\CalendarEventServiceExtra;
 use App\Models\Client;
 use App\Models\Local;
 use App\Models\Note;
 use App\Models\Sale;
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientController extends Controller
 {
@@ -22,23 +26,11 @@ class ClientController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Client::query()->orderBy('name');
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('nif', 'like', "%{$search}%")
-                    ->orWhere('locality', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
-            });
-        }
+        $query = $this->clientsFilteredQuery($request);
 
         $allowedPerPage = [9, 18, 27, 36, 50];
         $perPage = (int) ($request->get('per_page') ?? $request->cookie('clientes_per_page', 9));
-        if (!in_array($perPage, $allowedPerPage)) {
+        if (! in_array($perPage, $allowedPerPage)) {
             $perPage = 9;
         }
         if ($request->has('per_page')) {
@@ -75,6 +67,92 @@ class ClientController extends Controller
             'clientesEsteMes',
             'taxaRetencao'
         ));
+    }
+
+    public function indexExport(Request $request): StreamedResponse
+    {
+        $clients = $this->clientsFilteredQuery($request)->get();
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Clientes');
+
+        $sheet->fromArray([
+            ['Nome', 'Email', 'Telefone', 'NIF', 'Localidade', 'Morada', 'Código postal', 'Registado em'],
+        ], null, 'A1');
+
+        $rowIndex = 2;
+        foreach ($clients as $c) {
+            $sheet->fromArray([
+                [
+                    $c->name,
+                    $c->email ?? '',
+                    $c->formatted_phone ?? '',
+                    $c->nif ?? '',
+                    $c->locality ?? '',
+                    $c->address ?? '',
+                    $c->postal_code ?? '',
+                    $c->created_at ? $c->created_at->format('d/m/Y H:i') : '',
+                ],
+            ], null, 'A'.$rowIndex);
+            $rowIndex++;
+        }
+
+        foreach (range('A', 'H') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'clientes_'.now()->format('Y-m-d_His').'.xlsx';
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function indexPdf(Request $request)
+    {
+        $clients = $this->clientsFilteredQuery($request)->get();
+
+        $filtrosLinhas = [];
+        if ($request->filled('search')) {
+            $filtrosLinhas[] = 'Pesquisa: '.$request->get('search');
+        }
+
+        $pdf = Pdf::loadView('clientes.pdf.list', [
+            'clients' => $clients,
+            'filtrosLinhas' => $filtrosLinhas,
+            'appName' => config('app.name'),
+            'total' => $clients->count(),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'clientes_'.now()->format('Y-m-d_His').'.pdf';
+
+        return $pdf->stream($filename);
+    }
+
+    /**
+     * Query da listagem de clientes com o mesmo filtro de pesquisa (GET search).
+     */
+    private function clientsFilteredQuery(Request $request): Builder
+    {
+        $query = Client::query()->orderBy('name');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('nif', 'like', "%{$search}%")
+                    ->orWhere('locality', 'like', "%{$search}%")
+                    ->orWhere('address', 'like', "%{$search}%");
+            });
+        }
+
+        return $query;
     }
 
     /**
@@ -149,7 +227,7 @@ class ClientController extends Controller
 
         $validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
         $activeTab = $request->get('active_tab', 'tab-details');
-        if (!in_array($activeTab, $validTabs, true)) {
+        if (! in_array($activeTab, $validTabs, true)) {
             $activeTab = 'tab-details';
         }
 
@@ -168,23 +246,22 @@ class ClientController extends Controller
         $vendasEstado = $request->get('vendas_estado');
 
         // Valores por defeito: mês corrente (1º dia → hoje), por tab
-        if (!$marcacoesDesde) {
+        if (! $marcacoesDesde) {
             $marcacoesDesde = $firstDayOfMonth->toDateString();
         }
-        if (!$marcacoesAte) {
+        if (! $marcacoesAte) {
             $marcacoesAte = $today->toDateString();
         }
-        if (!$vendasDesde) {
+        if (! $vendasDesde) {
             $vendasDesde = $firstDayOfMonth->toDateString();
         }
-        if (!$vendasAte) {
+        if (! $vendasAte) {
             $vendasAte = $today->toDateString();
         }
 
         // Base query marcações
         $marcacoesQuery = $cliente->calendarEvents()
-            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO);
 
         if ($marcacoesDesde) {
             $marcacoesQuery->whereDate('start_at', '>=', $marcacoesDesde);
@@ -268,7 +345,7 @@ class ClientController extends Controller
                         if ($item->tipo === 'servico' && (int) $item->service_id !== (int) $vendasServico) {
                             continue;
                         }
-                        if ($item->tipo === 'extra' && $filteredCesIds !== null && !in_array($item->calendar_event_service_id, $filteredCesIds, true)) {
+                        if ($item->tipo === 'extra' && $filteredCesIds !== null && ! in_array($item->calendar_event_service_id, $filteredCesIds, true)) {
                             continue;
                         }
                     }
@@ -286,7 +363,7 @@ class ClientController extends Controller
                         $gorjetaLinha = (float) ($sale->gorjeta ?? 0);
                     }
 
-                    $lines[] = (object)[
+                    $lines[] = (object) [
                         'data' => $sale->calendarEvent?->start_at ?? $sale->data_emissao,
                         'servico' => $label ?? '—',
                         'quantidade' => (int) $item->quantidade,
@@ -306,7 +383,6 @@ class ClientController extends Controller
             ->join('calendar_events', 'calendar_events.id', '=', 'calendar_event_services.calendar_event_id')
             ->where('calendar_events.client_id', $cliente->id)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->select('services.id', 'services.name')
             ->distinct()
             ->orderBy('services.name')
@@ -316,7 +392,6 @@ class ClientController extends Controller
             ->join('calendar_events', 'calendar_events.user_id', '=', 'users.id')
             ->where('calendar_events.client_id', $cliente->id)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->select('users.id', 'users.name')
             ->distinct()
             ->orderBy('users.name')
@@ -423,11 +498,11 @@ class ClientController extends Controller
         if ($cliente->id_district) {
             $selectedDistrict = $cliente->id_district;
             $cities = Local::getCitiesByDistrict($cliente->id_district);
-            
+
             if ($cliente->id_city) {
                 $selectedCity = $cliente->id_city;
                 $parishes = Local::getParishesByCity($cliente->id_city);
-                
+
                 if ($cliente->id_parish) {
                     $selectedParish = $cliente->id_parish;
                 }
@@ -601,5 +676,4 @@ class ClientController extends Controller
             'marcacoesFuturas' => $marcacoesFuturas,
         ];
     }
-
 }

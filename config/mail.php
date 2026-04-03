@@ -115,4 +115,20 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Beauty CRM'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Global "To" Address (safe mode for non-production)
+    |--------------------------------------------------------------------------
+    |
+    | Em ambiente que não seja production, redireciona todos os emails para
+    | um endereço de suporte para evitar envios acidentais para clientes reais.
+    |
+    */
+    'to' => env('APP_ENV', 'production') === 'production'
+        ? null
+        : [
+            'address' => env('MAIL_TEST_REDIRECT_TO', 'suporte@softrace.pt'),
+            'name' => env('MAIL_TEST_REDIRECT_NAME', 'Suporte Softrace'),
+        ],
+
 ];

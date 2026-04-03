@@ -8,14 +8,15 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DefinicoesController;
 use App\Http\Controllers\DealController;
+use App\Http\Controllers\DefinicoesController;
 use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\RelatoriosController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
@@ -65,6 +66,8 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
         Route::post('notificacoes', [DefinicoesController::class, 'updateNotificacoes'])->name('notificacoes.update');
     });
 
+    Route::get('clientes/export', [ClientController::class, 'indexExport'])->name('clientes.export');
+    Route::get('clientes/pdf', [ClientController::class, 'indexPdf'])->name('clientes.pdf');
     Route::resource('clientes', ClientController::class);
     Route::post('clientes/{cliente}/notes', [ClientController::class, 'storeNote'])->name('clientes.storeNote');
 
@@ -159,6 +162,16 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::post('extra-categories', [ExtraController::class, 'storeCategory'])->name('extras.categories.store');
     Route::match(['put', 'patch'], 'extra-categories/{extraCategory}', [ExtraController::class, 'updateCategory'])->name('extras.categories.update');
     Route::delete('extra-categories/{extraCategory}', [ExtraController::class, 'destroyCategory'])->name('extras.categories.destroy');
+
+    Route::prefix('relatorios')->name('relatorios.')->group(function () {
+        Route::get('marcacoes/export', [RelatoriosController::class, 'marcacoesExport'])->name('marcacoes.export');
+        Route::get('marcacoes/pdf', [RelatoriosController::class, 'marcacoesPdf'])->name('marcacoes.pdf');
+        Route::get('marcacoes', [RelatoriosController::class, 'marcacoes'])->name('marcacoes');
+        Route::get('vendas/export', [RelatoriosController::class, 'vendasExport'])->name('vendas.export');
+        Route::get('vendas/pdf', [RelatoriosController::class, 'vendasPdf'])->name('vendas.pdf');
+        Route::get('vendas', [RelatoriosController::class, 'vendas'])->name('vendas');
+        Route::get('comissoes', [RelatoriosController::class, 'comissoes'])->name('comissoes');
+    });
 
     // Rotas do template (protegidas)
     Route::get('{page}', [DashboardController::class, 'page'])->where('page', '[A-Za-z0-9\-]+');

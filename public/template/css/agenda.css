@@ -541,6 +541,67 @@ body .app-wrapper .container-fluid {
 .fc .fc-timegrid-slot {
     background-color: transparent !important;
 }
+/* Riscas diagonais suaves; fixed = mesmo padrão no viewport → linhas contínuas entre células (não reinicia em cada slot) */
+.fc .fc-timegrid-slot.agenda-slot-outside-hours {
+    --agenda-outside-hatch-bg: rgba(108, 117, 125, 0.055);
+    --agenda-outside-hatch-line: rgba(108, 117, 125, 0.09);
+    background-color: var(--agenda-outside-hatch-bg) !important;
+    background-image: repeating-linear-gradient(
+        45deg,
+        var(--agenda-outside-hatch-line) 0,
+        var(--agenda-outside-hatch-line) 1px,
+        transparent 1px,
+        transparent 13px
+    ) !important;
+    background-size: 18px 18px !important;
+    background-attachment: fixed !important;
+    background-repeat: repeat !important;
+}
+.fc .fc-timegrid-slot.agenda-slot-holiday {
+    --agenda-holiday-hatch-bg: rgba(220, 53, 69, 0.038);
+    --agenda-holiday-hatch-line: rgba(220, 53, 69, 0.078);
+    background-color: var(--agenda-holiday-hatch-bg) !important;
+    background-image: repeating-linear-gradient(
+        45deg,
+        var(--agenda-holiday-hatch-line) 0,
+        var(--agenda-holiday-hatch-line) 1px,
+        transparent 1px,
+        transparent 13px
+    ) !important;
+    background-size: 18px 18px !important;
+    background-attachment: fixed !important;
+    background-repeat: repeat !important;
+}
+.fc .fc-timegrid-col.agenda-day-holiday {
+    --agenda-holiday-hatch-bg: rgba(220, 53, 69, 0.042);
+    --agenda-holiday-hatch-line: rgba(220, 53, 69, 0.09);
+    background-color: var(--agenda-holiday-hatch-bg) !important;
+    background-image: repeating-linear-gradient(
+        45deg,
+        var(--agenda-holiday-hatch-line) 0,
+        var(--agenda-holiday-hatch-line) 1px,
+        transparent 1px,
+        transparent 13px
+    ) !important;
+    background-size: 18px 18px !important;
+    background-attachment: fixed !important;
+    background-repeat: repeat !important;
+}
+.fc .fc-daygrid-day.agenda-day-holiday .fc-daygrid-day-frame {
+    --agenda-holiday-hatch-bg: rgba(220, 53, 69, 0.038);
+    --agenda-holiday-hatch-line: rgba(220, 53, 69, 0.078);
+    background-color: var(--agenda-holiday-hatch-bg) !important;
+    background-image: repeating-linear-gradient(
+        45deg,
+        var(--agenda-holiday-hatch-line) 0,
+        var(--agenda-holiday-hatch-line) 1px,
+        transparent 1px,
+        transparent 13px
+    ) !important;
+    background-size: 18px 18px !important;
+    background-attachment: fixed !important;
+    background-repeat: repeat !important;
+}
 .fc .fc-timegrid-col.fc-day-today {
     background-color: transparent !important;
 }
@@ -819,8 +880,8 @@ body .app-wrapper .container-fluid {
     display: none;
     position: fixed;
     z-index: 1055;
-    min-width: 280px;
-    max-width: 320px;
+    min-width: 340px;
+    max-width: 380px;
     padding: 0;
     background: var(--bs-body-bg, #fff);
     border: 1px solid var(--border-color);
@@ -842,9 +903,30 @@ body .app-wrapper .container-fluid {
     border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
 }
 #agendaEventQuickview .agenda-quickview-header .agenda-quickview-time {
-    font-size: 0.8125rem;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    white-space: nowrap;
+    line-height: 1.1;
+    gap: 0.3rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--heading-color, #1e293b);
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-time .agenda-quickview-date-line {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-time .agenda-quickview-date-line::after {
+    content: "•";
+    color: var(--default-color, #64748b);
+    font-weight: 500;
+    margin: 0 0.15rem 0 0.2rem;
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-time .agenda-quickview-time-line {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--default-color, #64748b);
 }
 #agendaEventQuickview .agenda-quickview-header .agenda-quickview-status {
     display: flex;
@@ -888,9 +970,20 @@ body .app-wrapper .container-fluid {
     flex-shrink: 0;
 }
 #agendaEventQuickview .agenda-quickview-client .agenda-quickview-client-name {
+    display: block;
     font-weight: 600;
     font-size: 0.875rem;
     color: var(--heading-color, #1e293b);
+}
+#agendaEventQuickview .agenda-quickview-client .agenda-quickview-client-text {
+    min-width: 0;
+}
+#agendaEventQuickview .agenda-quickview-client .agenda-quickview-client-phone {
+    display: block;
+    margin-top: 0.05rem;
+    font-size: 0.6875rem;
+    line-height: 1.15;
+    color: var(--default-color, #64748b);
 }
 #agendaEventQuickview .agenda-quickview-service-row {
     display: flex;
@@ -1290,7 +1383,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     flex-direction: column;
     min-height: 0;
     align-self: stretch;
-    padding-bottom: 1rem !important;
+    padding-bottom: 0.5rem !important;
 }
 .nova-marcacao-services-col-main {
     flex: 1 1 auto;
@@ -1310,9 +1403,23 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     overflow-y: auto;
     max-height: none;
 }
-.nova-marcacao-services-col .nova-marcacao-total-row {
+/* Total numa faixa própria acima do footer (.nova-marcacao-modal-total-strip) */
+.nova-marcacao-modal-total-strip {
     flex-shrink: 0;
-    margin-top: auto;
+}
+.nova-marcacao-modal-total-strip-col {
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+    padding-bottom: 0.35rem;
+}
+@media (min-width: 992px) {
+    .nova-marcacao-modal-total-strip-col {
+        border-left: 1px solid var(--border-color, #dee2e6);
+    }
+}
+.nova-marcacao-modal-total-strip .nova-marcacao-total-row {
+    flex-shrink: 0;
+    margin-top: 0;
 }
 #novaMarcacaoModal .modal-body,
 #eventDetailEditModal .modal-body {
@@ -1490,6 +1597,10 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     flex-direction: column;
     overflow: hidden;
 }
+#novaMarcacaoModal #novaMarcacaoForm > .nova-marcacao-modal-total-strip {
+    flex-shrink: 0;
+    background: var(--bs-modal-bg, var(--bs-body-bg, #fff));
+}
 #novaMarcacaoModal .modal-body {
     flex: 1;
     overflow-y: auto;
@@ -1525,6 +1636,10 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+#eventDetailEditModal #eventDetailEditForm > .nova-marcacao-modal-total-strip {
+    flex-shrink: 0;
+    background: var(--bs-modal-bg, var(--bs-body-bg, #fff));
 }
 #eventDetailEditModal .modal-body {
     flex: 1;
@@ -1687,4 +1802,9 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 .fc-refreshAgenda-button.fc-button.fc-button-primary {
     margin-left: 0.5rem !important;
     margin-right: 0.5rem !important;
+}
+
+/* Confirmação (arrastar / editar): por cima do modal de detalhe — no DOM vem antes do #eventDetailEditModal */
+#agendaDragConfirmModal.modal {
+    z-index: 1080;
 }

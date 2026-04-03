@@ -21,11 +21,6 @@
           </a>
         </li>
         <li>
-          <button class="iconbar-item" data-panel="sales" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Vendas" aria-label="Vendas">
-            <i class="ph ph-tag"></i>
-          </button>
-        </li>
-        <li>
           <a href="{{ route('clientes.index') }}" class="iconbar-item {{ request()->routeIs('clientes.*') ? 'active' : '' }}" data-panel="clientes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Clientes" aria-label="Clientes">
             <i class="ph ph-smiley"></i>
           </a>
@@ -46,9 +41,9 @@
           </a>
         </li>
         <li>
-          <button class="iconbar-item" data-panel="reports" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Relatórios" aria-label="Relatórios">
+          <a href="{{ route('relatorios.marcacoes') }}" class="iconbar-item {{ request()->routeIs('relatorios.*') ? 'active' : '' }}" data-panel="reports" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Relatórios" aria-label="Relatórios">
             <i class="ph ph-chart-line-up"></i>
-          </button>
+          </a>
         </li>
       </ul>
     </nav>
@@ -85,30 +80,6 @@
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard.ocupacao') ? 'active' : '' }}" href="{{ route('dashboard.ocupacao') }}">
             Ocupação
-          </a>
-        </li>
-      </ul>
-    </div>
-
-    <div class="sidebar-panel-section" data-section="sales">
-      <div class="sidebar-panel-header">
-        <h6>Vendas</h6>
-        <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
-      </div>
-      <ul class="panel-nav">
-        <li>
-          <a class="panel-link" href="#!">
-            Resumo diário
-          </a>
-        </li>
-        <li>
-          <a class="panel-link" href="#!">
-            Vendas
-          </a>
-        </li>
-        <li>
-          <a class="panel-link" href="#!">
-            Pagamentos
           </a>
         </li>
       </ul>
@@ -240,20 +211,25 @@
       </ul>
     </div>
 
-    <div class="sidebar-panel-section" data-section="reports">
+    <div class="sidebar-panel-section {{ request()->routeIs('relatorios.*') ? 'active' : '' }}" data-section="reports">
       <div class="sidebar-panel-header">
         <h6>Relatórios</h6>
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link" href="#!">
-            Todos os relatórios
+          <a class="panel-link {{ request()->routeIs('relatorios.marcacoes') ? 'active' : '' }}" href="{{ route('relatorios.marcacoes') }}">
+            Marcações
           </a>
         </li>
         <li>
-          <a class="panel-link" href="#!">
-            Favoritos
+          <a class="panel-link {{ request()->routeIs('relatorios.vendas') ? 'active' : '' }}" href="{{ route('relatorios.vendas') }}">
+            Vendas
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('relatorios.comissoes') ? 'active' : '' }}" href="{{ route('relatorios.comissoes') }}">
+            Comissões
           </a>
         </li>
       </ul>

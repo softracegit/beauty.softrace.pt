@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const $id = function(id) { return document.getElementById(id); };
     const $ = function(sel) { return document.querySelector(sel); };
     const $$ = function(sel) { return document.querySelectorAll(sel); };
+    /** Faixa do total (full width acima do footer dos modais de marcação). */
+    function agendaMarcacaoTotalStrip(priceId) {
+        var el = $id(priceId);
+        return el ? el.closest('.nova-marcacao-modal-total-strip') : null;
+    }
 
     const calendarEl = $id('calendar');
     const eventsUrl = C.eventsUrl || '';
@@ -17,6 +22,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentViewMode = 'consultant';
     let selectedConsultantId = '';
     let eventDetailModalLoading = false;
+    /** Pendente após revert no arrastar/redimensionar (marcação com cliente → modal de confirmação). */
+    let agendaDragPending = null;
+    /** true quando o modal de confirmação fechou após Guardar/Atualizar com sucesso — evita revert ao arrastar. */
+    let agendaDragConfirmSucceeded = false;
     /** Tipo da vista atual; usado em callbacks do FullCalendar que correm antes de `calendar` existir (evita TDZ). */
     let agendaCurrentViewType = 'resourceTimeGridDay';
 
@@ -31,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getAgendaSlotRange(is24h) {
         return is24h
             ? { min: '00:00:00', max: '24:00:00' }
-            : { min: '09:00:00', max: '19:00:00' };
+            : { min: '09:00:00', max: '20:00:00' };
     }
     let agendaSlot24hEnabled = readAgendaSlot24hPreference();
     var initialAgendaSlots = getAgendaSlotRange(agendaSlot24hEnabled);
@@ -66,6 +75,125 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelado: 'ph-x-circle',
         completo: 'ph-check-circle'
     };
+    const STORE_OPEN_HOUR = 9;
+    const STORE_CLOSE_HOUR = 20;
+    const HOLIDAYS_PT_SET = new Set((C.nationalHolidaysPt || []).map(function(d) { return String(d || '').slice(0, 10); }));
+    function agendaDateToYmdLocal(d) {
+        if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function isNationalHolidayPtAtDate(d) {
+        var ymd = agendaDateToYmdLocal(d);
+        return !!(ymd && HOLIDAYS_PT_SET.has(ymd));
+    }
+    function applyHolidayClassesToTimeGridColumns() {
+        if (!calendarEl) return;
+        calendarEl.querySelectorAll('.fc-timegrid-col[data-date]').forEach(function(col) {
+            var ymd = String(col.getAttribute('data-date') || '').slice(0, 10);
+            if (ymd && HOLIDAYS_PT_SET.has(ymd)) {
+                col.classList.add('agenda-day-holiday');
+            } else {
+                col.classList.remove('agenda-day-holiday');
+            }
+        });
+    }
+    function getMinutesFromDate(d) {
+        return (d.getHours() * 60) + d.getMinutes();
+    }
+    function isOutsideStoreHoursAtDate(d) {
+        if (!(d instanceof Date) || isNaN(d.getTime())) return false;
+        var mins = getMinutesFromDate(d);
+        return mins < (STORE_OPEN_HOUR * 60) || mins >= (STORE_CLOSE_HOUR * 60);
+    }
+    /** Parse YYYY-MM-DDTHH:mm (sem timezone) como hora local — evita bugs de new Date() em alguns browsers. */
+    function parseAgendaLocalDateTime(str) {
+        if (!str || typeof str !== 'string') return null;
+        var t = str.trim();
+        if (t.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(t)) {
+            var dz = new Date(t);
+            return isNaN(dz.getTime()) ? null : dz;
+        }
+        var m = t.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})/);
+        if (!m) {
+            var d = new Date(str);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        return new Date(
+            parseInt(m[1], 10),
+            parseInt(m[2], 10) - 1,
+            parseInt(m[3], 10),
+            parseInt(m[4], 10),
+            parseInt(m[5], 10),
+            0,
+            0
+        );
+    }
+
+    /** Início/fim do modal de edição: sempre hora local YYYY-MM-DDTHH:mm (evita misturar ISO Z num campo e local noutro). */
+    function agendaFormatLocalDateTimeForInput(d) {
+        if (!(d instanceof Date) || isNaN(d.getTime())) return '';
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+
+    /**
+     * Valor do input local (sem Z) → ISO UTC para o Laravel.
+     * Sem isto, strings tipo "2025-08-15T18:00" podem ser interpretadas como UTC no servidor e o evento salta +1h na hora local (ex.: Portugal no verão).
+     */
+    function agendaLocalInputToUtcIso(str) {
+        if (!str || typeof str !== 'string') return str;
+        var d = parseAgendaLocalDateTime(str);
+        if (!d || isNaN(d.getTime())) {
+            d = new Date(str);
+            if (isNaN(d.getTime())) return str;
+        }
+        return d.toISOString();
+    }
+    function intersectsOutsideStoreHours(start, end) {
+        if (!(start instanceof Date) || isNaN(start.getTime())) return false;
+        if (!(end instanceof Date) || isNaN(end.getTime())) {
+            return isOutsideStoreHoursAtDate(start);
+        }
+        /* Fim antes do início: intervalo inválido — manter aviso */
+        if (end.getTime() < start.getTime()) return true;
+        /* Fim = início (duração 0, ex. ainda sem serviços): só o instante de início importa */
+        if (end.getTime() === start.getTime()) {
+            return isOutsideStoreHoursAtDate(start);
+        }
+        if (start.toDateString() !== end.toDateString()) return true;
+        var startM = getMinutesFromDate(start);
+        var endM = getMinutesFromDate(end);
+        return startM < (STORE_OPEN_HOUR * 60) || endM > (STORE_CLOSE_HOUR * 60);
+    }
+    function toggleOutOfHoursWarning(elId, isOutside) {
+        var el = $id(elId);
+        if (!el) return;
+        if (isOutside) {
+            el.classList.remove('d-none');
+        } else {
+            el.classList.add('d-none');
+        }
+    }
+    function updateNovaMarcacaoOutOfHoursWarning() {
+        var startStr = $id('novaMarcacaoStart')?.value || '';
+        var endStr = $id('novaMarcacaoEnd')?.value || '';
+        var start = startStr ? parseAgendaLocalDateTime(startStr) : null;
+        var end = endStr ? parseAgendaLocalDateTime(endStr) : null;
+        toggleOutOfHoursWarning('novaMarcacaoHorarioAviso', intersectsOutsideStoreHours(start, end));
+    }
+    function updateTempoPessoalOutOfHoursWarning() {
+        var startStr = $id('tempoPessoalStart')?.value || '';
+        var endStr = $id('tempoPessoalEnd')?.value || '';
+        var start = startStr ? parseAgendaLocalDateTime(startStr) : null;
+        var end = endStr ? parseAgendaLocalDateTime(endStr) : null;
+        toggleOutOfHoursWarning('tempoPessoalHorarioAviso', intersectsOutsideStoreHours(start, end));
+    }
+    function updateEventDetailOutOfHoursWarning() {
+        var startStr = $id('eventDetailEditStart')?.value || '';
+        var endStr = $id('eventDetailEditEnd')?.value || '';
+        var start = startStr ? parseAgendaLocalDateTime(startStr) : null;
+        var end = endStr ? parseAgendaLocalDateTime(endStr) : null;
+        toggleOutOfHoursWarning('eventDetailHorarioAviso', intersectsOutsideStoreHours(start, end));
+    }
 
     // Formatar data para prev/next: "Qui 5 Fev"
     function formatDateShort(date) {
@@ -347,7 +475,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     $id('cancelMarcacaoRefund').value = '';
                     $id('cancelMarcacaoAvisouPrazo').value = '';
                     $id('cancelMarcacaoAvisouWrap').classList.add('d-none');
-                    $id('cancelMarcacaoNotifyClient').checked = true;
+                    $id('cancelMarcacaoNotifyClient').checked = false;
                     bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
                     return;
                 }
@@ -405,6 +533,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var agendaEventQuickviewHoverId = null;
 
     function hideEventQuickview() {
+        if (agendaEventQuickviewShowTimeout) {
+            clearTimeout(agendaEventQuickviewShowTimeout);
+            agendaEventQuickviewShowTimeout = null;
+        }
         if (agendaEventQuickviewHideTimeout) {
             clearTimeout(agendaEventQuickviewHideTimeout);
             agendaEventQuickviewHideTimeout = null;
@@ -448,7 +580,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var startStr = fmt(start);
         var endStr = fmt(end);
         var timeStr = startStr && endStr ? (startStr + ' - ' + endStr) : (startStr || '—');
+        var dayDateStr = start
+            ? (DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()])
+            : '—';
         var clientName = (ext.client_name || event.title || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var clientPhoneRaw = ext.client_formatted_phone || ext.client_phone || '';
+        var clientPhone = String(clientPhoneRaw || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var clientAvatarUrl = ext.client_avatar_url || '';
         var userName = (ext.user_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var eventServices = ext.event_services || [];
@@ -479,7 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
         header.className = 'agenda-quickview-header';
         var timeSpan = document.createElement('span');
         timeSpan.className = 'agenda-quickview-time';
-        timeSpan.textContent = timeStr;
+        timeSpan.innerHTML = '<span class="agenda-quickview-date-line">' + dayDateStr + '</span><span class="agenda-quickview-time-line">' + timeStr + '</span>';
         header.appendChild(timeSpan);
         var statusSpan = document.createElement('span');
         statusSpan.className = 'agenda-quickview-status';
@@ -494,8 +631,8 @@ document.addEventListener('DOMContentLoaded', function() {
             typeRow.className = 'agenda-quickview-service-row';
             var typeLeft = document.createElement('div');
             typeLeft.className = 'agenda-quickview-service-left';
-            var typeIcon = personalTimeType.icon ? ('ph ' + personalTimeType.icon) : 'ph ph-dots-three';
-            typeLeft.innerHTML = '<i class="' + typeIcon + ' me-2"></i><span class="agenda-quickview-service-name">' + (personalTimeType.name || event.title || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
+            var typeIcon = personalTimeType.icon ? ('ph ' + personalTimeType.icon) : '';
+            typeLeft.innerHTML = (typeIcon ? ('<i class="' + typeIcon + ' me-2"></i>') : '') + '<span class="agenda-quickview-service-name">' + (personalTimeType.name || event.title || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
             typeRow.appendChild(typeLeft);
             body.appendChild(typeRow);
         }
@@ -515,10 +652,19 @@ document.addEventListener('DOMContentLoaded', function() {
             fallback.textContent = initials;
             clientRow.appendChild(fallback);
         }
+        var clientTextWrap = document.createElement('div');
+        clientTextWrap.className = 'agenda-quickview-client-text';
         var nameSpan = document.createElement('span');
         nameSpan.className = 'agenda-quickview-client-name';
         nameSpan.textContent = clientName;
-        clientRow.appendChild(nameSpan);
+        clientTextWrap.appendChild(nameSpan);
+        if (clientPhone) {
+            var phoneSpan = document.createElement('span');
+            phoneSpan.className = 'agenda-quickview-client-phone';
+            phoneSpan.textContent = clientPhone;
+            clientTextWrap.appendChild(phoneSpan);
+        }
+        clientRow.appendChild(clientTextWrap);
         body.appendChild(clientRow);
         }
 
@@ -726,6 +872,24 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const TempoPessoal = {
+        isCustomTypeSelected: function() {
+            var selectedTypeId = ($id('tempoPessoalTipo')?.value || '').trim();
+            return selectedTypeId === '';
+        },
+        syncCustomTitleField: function(prefillTitle) {
+            var wrap = $id('tempoPessoalTituloWrap');
+            var input = $id('tempoPessoalTitulo');
+            if (!wrap || !input) return;
+            var isCustom = TempoPessoal.isCustomTypeSelected();
+            wrap.classList.toggle('d-none', !isCustom);
+            input.disabled = !isCustom;
+            if (isCustom) {
+                if (typeof prefillTitle === 'string') input.value = prefillTitle;
+                input.focus();
+            } else {
+                input.value = '';
+            }
+        },
         populateTimeOptions: function(containerSelector, selectedTime, onSelect) {
             var container = $(containerSelector);
             if (!container) return;
@@ -762,6 +926,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('tempoPessoalEndTimeToggle').textContent = pad(end.getHours()) + ':' + pad(Math.floor(end.getMinutes() / 15) * 15);
             TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', timeStr, TempoPessoal.applyNewStartTime);
             TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', $id('tempoPessoalEndTimeToggle').textContent, TempoPessoal.applyNewEndTime);
+            updateTempoPessoalOutOfHoursWarning();
             var toggle = $id('tempoPessoalStartTimeToggle');
             if (toggle && bootstrap.Dropdown) bootstrap.Dropdown.getInstance(toggle)?.hide();
         },
@@ -777,6 +942,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('tempoPessoalEnd').value = endD.getFullYear() + '-' + pad(endD.getMonth() + 1) + '-' + pad(endD.getDate()) + 'T' + pad(endD.getHours()) + ':' + pad(endD.getMinutes());
             $id('tempoPessoalEndTimeToggle').textContent = et;
             TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime);
+            updateTempoPessoalOutOfHoursWarning();
         },
         applyNewEndTime: function(timeStr) {
             var startStr = $id('tempoPessoalStart').value;
@@ -791,6 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('tempoPessoalEnd').value = end.getFullYear() + '-' + pad(end.getMonth() + 1) + '-' + pad(end.getDate()) + 'T' + pad(end.getHours()) + ':' + pad(end.getMinutes());
             $id('tempoPessoalEndTimeToggle').textContent = timeStr;
             TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', timeStr, TempoPessoal.applyNewEndTime);
+            updateTempoPessoalOutOfHoursWarning();
             var toggle = $id('tempoPessoalEndTimeToggle');
             if (toggle && bootstrap.Dropdown) bootstrap.Dropdown.getInstance(toggle)?.hide();
         },
@@ -815,6 +982,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             $id('tempoPessoalStart').value = startIso;
             $id('tempoPessoalEnd').value = endD.getFullYear() + '-' + String(endD.getMonth() + 1).padStart(2, '0') + '-' + String(endD.getDate()).padStart(2, '0') + 'T' + String(endD.getHours()).padStart(2, '0') + ':' + String(endD.getMinutes()).padStart(2, '0');
+            updateTempoPessoalOutOfHoursWarning();
         }
     };
 
@@ -823,6 +991,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('tempoPessoalStart').value = startStr || '';
         $id('tempoPessoalEnd').value = endStr || '';
         $id('tempoPessoalMembro').value = resourceId ? String(resourceId) : (currentUserIsAdmin ? '' : String(C.authId || ''));
+        $id('tempoPessoalTitulo').value = '';
         var firstCard = $('.tempo-pessoal-type-card');
         if (firstCard) {
             $$('.tempo-pessoal-type-card').forEach(function(c) { c.classList.remove('active'); });
@@ -851,6 +1020,8 @@ document.addEventListener('DOMContentLoaded', function() {
         TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', st, TempoPessoal.applyNewStartTime);
         TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime);
         TempoPessoal.syncHiddenFromInputs();
+        TempoPessoal.syncCustomTitleField();
+        updateTempoPessoalOutOfHoursWarning();
         bootstrap.Modal.getOrCreateInstance($id('tempoPessoalModal')).show();
     }
 
@@ -863,7 +1034,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var cards = $$('.tempo-pessoal-type-card');
         var selectedCard = typeId ? $('.tempo-pessoal-type-card[data-id="' + typeId + '"]') : null;
         if (!selectedCard && data.title) {
-            selectedCard = Array.prototype.find.call(cards, function(c) { return (c.dataset.name || '').trim() === (data.title || '').trim(); }) || cards[0];
+            selectedCard = Array.prototype.find.call(cards, function(c) { return (c.dataset.name || '').trim() === (data.title || '').trim(); });
+        }
+        if (!selectedCard && !typeId) {
+            selectedCard = Array.prototype.find.call(cards, function(c) { return c.dataset.isCustom === '1'; }) || null;
         }
         if (!selectedCard) selectedCard = cards[0];
         cards.forEach(function(c) { c.classList.remove('active'); });
@@ -875,6 +1049,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         $id('tempoPessoalDescricao').value = data.description || '';
         $id('tempoPessoalDeleteBtn').style.display = data.id ? 'inline-block' : 'none';
+        TempoPessoal.syncCustomTitleField(data.title || '');
+        toggleOutOfHoursWarning('tempoPessoalHorarioAviso', false);
         var startDate = data.start_at ? new Date(data.start_at) : null;
         var endDate = data.end_at ? new Date(data.end_at) : null;
         if (startDate) {
@@ -891,6 +1067,7 @@ document.addEventListener('DOMContentLoaded', function() {
             TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', st, TempoPessoal.applyNewStartTime);
             TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime);
             TempoPessoal.syncHiddenFromInputs();
+            updateTempoPessoalOutOfHoursWarning();
         }
     }
 
@@ -918,14 +1095,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     NovaMarcacao.renderSelectedServices = function() {
         var container = $id('novaMarcacaoSelectedServicesList');
-        var totalRow = $id('novaMarcacaoTotalPrice') ? $id('novaMarcacaoTotalPrice').closest('.nova-marcacao-total-row') : null;
+        var totalStrip = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
         var titleEl = $('#novaMarcacaoServiceSelected .nova-marcacao-services-selected-title');
         if (!container) return;
         if (novaMarcacaoSelectedServices.length === 0) {
             container.innerHTML = '';
             if (titleEl) titleEl.textContent = 'Serviços selecionados';
             // Sem serviços selecionados, escondemos a linha do total
-            if (totalRow) totalRow.classList.add('d-none');
+            if (totalStrip) totalStrip.classList.add('d-none');
             return;
         }
         if (titleEl) titleEl.textContent = novaMarcacaoSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
@@ -979,7 +1156,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '</div>';
         }).join('');
         container.innerHTML = html;
-        if (totalRow) totalRow.classList.remove('d-none');
+        if (totalStrip) totalStrip.classList.remove('d-none');
         container.querySelectorAll('.novaMarcacaoEditServiceBtn').forEach(function(btn) {
             btn.addEventListener('click', function(e) { e.stopPropagation(); NovaMarcacao.openEditQuickMenu(e, parseInt(this.dataset.idx, 10)); });
         });
@@ -1079,6 +1256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('novaMarcacaoEditTitleDay').textContent = DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()];
         $id('novaMarcacaoTimeToggle').textContent = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
         NovaMarcacao.updateEndTimeAndTotal();
+        updateNovaMarcacaoOutOfHoursWarning();
         var dateToggle = $id('novaMarcacaoDateToggle');
         if (dateToggle && bootstrap.Dropdown) {
             var inst = bootstrap.Dropdown.getInstance(dateToggle);
@@ -1103,6 +1281,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('novaMarcacaoEditTitleDay').textContent = DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()];
         $id('novaMarcacaoTimeToggle').textContent = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
         NovaMarcacao.updateEndTimeAndTotal();
+        updateNovaMarcacaoOutOfHoursWarning();
         var dd = $id('novaMarcacaoTimeToggle');
         if (dd && bootstrap.Dropdown) {
             var inst = bootstrap.Dropdown.getInstance(dd);
@@ -1144,6 +1323,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return sum + p;
         }, 0);
         $id('novaMarcacaoTotalPrice').textContent = totalPrice.toFixed(2).replace('.', ',') + ' €';
+        updateNovaMarcacaoOutOfHoursWarning();
     }
 
     NovaMarcacao.openEditQuickMenu = function(evt, idx) {
@@ -1253,6 +1433,64 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailOriginalStartAt = null;
     var eventDetailOriginalEndAt = null;
     var eventDetailWasSaved = false;
+
+    function agendaIsoTimesEqual(a, b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        var ta = new Date(a).getTime();
+        var tb = new Date(b).getTime();
+        if (!isNaN(ta) && !isNaN(tb)) return ta === tb;
+        return String(a) === String(b);
+    }
+    function eventDetailScheduleTimesChanged(payload) {
+        if (!eventDetailOriginalStartAt && !eventDetailOriginalEndAt) return false;
+        return !agendaIsoTimesEqual(payload.start_at, eventDetailOriginalStartAt) ||
+            !agendaIsoTimesEqual(payload.end_at, eventDetailOriginalEndAt);
+    }
+    function getEventDetailNotifyExtendedProps() {
+        var name = (eventDetailSelectedClient && eventDetailSelectedClient.name) || (eventDetailCurrentData && eventDetailCurrentData.client_name) || 'o cliente';
+        var email = (eventDetailSelectedClient && eventDetailSelectedClient.email) || (eventDetailCurrentData && eventDetailCurrentData.client_email) || '';
+        var hasEmail = !!(email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).trim()));
+        return { client_name: name, client_has_email: hasEmail };
+    }
+
+    /** Soma (min) de duração base + extras por linha — pode duplicar o tempo real se o pivot já incluir extras. */
+    function eventDetailServicesPartsSumMinutes() {
+        return eventDetailSelectedServices.reduce(function(sum, s) {
+            var d = (parseInt(s.duration, 10) || 0) + (s.extras || []).reduce(function(s2, e) {
+                return s2 + (parseInt(e.duration, 10) || 0);
+            }, 0);
+            return sum + d;
+        }, 0);
+    }
+
+    /**
+     * Duração efetiva para fim da marcação / guardar: alinha ao intervalo start–end quando a soma das partes
+     * é o dobro do slot (bug comum: pivot na BD já com tempo total e extras a somar outra vez).
+     */
+    function eventDetailEffectiveDurationMinutes() {
+        var sumDur = eventDetailServicesPartsSumMinutes();
+        var startEl = $id('eventDetailEditStart');
+        var endEl = $id('eventDetailEditEnd');
+        if (!startEl || !endEl) return sumDur;
+        var startStr = startEl.value;
+        var endStr = endEl.value;
+        if (!startStr || !endStr) return sumDur;
+        var slotDur = Math.round((new Date(endStr).getTime() - new Date(startStr).getTime()) / 60000);
+        if (slotDur < 1 || isNaN(slotDur)) return sumDur;
+        var origSlot = 0;
+        if (eventDetailOriginalStartAt && eventDetailOriginalEndAt) {
+            origSlot = Math.round((new Date(eventDetailOriginalEndAt).getTime() - new Date(eventDetailOriginalStartAt).getTime()) / 60000);
+        }
+        if (origSlot > 0 && slotDur === origSlot && Math.abs(sumDur - 2 * origSlot) < 1) {
+            return origSlot;
+        }
+        if (Math.abs(sumDur - 2 * slotDur) < 1) {
+            return slotDur;
+        }
+        return sumDur;
+    }
+
     var eventDetailExistingSale = null;
 
     function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
@@ -1312,6 +1550,14 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('eventDetailEditUserId').value = data.user_id || '';
         $id('eventDetailEditStart').value = data.start_at || '';
         $id('eventDetailEditEnd').value = data.end_at || '';
+        if (data.start_at && data.end_at) {
+            var dsNorm = new Date(data.start_at);
+            var deNorm = new Date(data.end_at);
+            if (!isNaN(dsNorm.getTime()) && !isNaN(deNorm.getTime())) {
+                $id('eventDetailEditStart').value = agendaFormatLocalDateTimeForInput(dsNorm);
+                $id('eventDetailEditEnd').value = agendaFormatLocalDateTimeForInput(deNorm);
+            }
+        }
         var startDate = data.start_at ? new Date(data.start_at) : null;
         var endDate = data.end_at ? new Date(data.end_at) : null;
         if (startDate) {
@@ -1392,7 +1638,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<div class="mt-2"><a href="' + (C.urlLeads || '') + '/' + data.lead.id + '" class="btn btn-sm btn-outline-primary"><i class="ph ph-file-text me-1"></i>Ficha da Lead</a></div>';
             }
         } else if (data.client_id && data.client_name) {
-            eventDetailSelectedClient = { id: data.client_id, name: data.client_name, phone: data.client_phone || '', formatted_phone: data.client_formatted_phone || '', avatar_url: data.client_avatar_url || '' };
+            eventDetailSelectedClient = { id: data.client_id, name: data.client_name, email: data.client_email || '', phone: data.client_phone || '', formatted_phone: data.client_formatted_phone || '', avatar_url: data.client_avatar_url || '' };
             $id('eventDetailClientSelectedName').textContent = data.client_name;
             $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
             if (data.client_avatar_url) {
@@ -1505,12 +1751,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         $id('eventDetailServiceSelected').classList.remove('d-none');
                     }
                     setEventDetailPaymentAndReadOnly(eventDetailExistingSale, 'marcacao', eventDetailSelectedServices.length);
+                    updateEventDetailOutOfHoursWarning();
                 })
                 .catch(function() {
                     $id('eventDetailServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
                 });
         } else {
             setEventDetailPaymentAndReadOnly(null, data.event_type || '', 0);
+            updateEventDetailOutOfHoursWarning();
         }
     }
 
@@ -1523,11 +1771,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var container = $id('eventDetailSelectedServicesList');
         if (!container) return;
         var titleEl = $('#eventDetailServiceSelected .nova-marcacao-services-selected-title');
-        var totalRow = $id('eventDetailTotalPrice') ? $id('eventDetailTotalPrice').closest('.nova-marcacao-total-row') : null;
+        var totalStrip = agendaMarcacaoTotalStrip('eventDetailTotalPrice');
         if (eventDetailSelectedServices.length === 0) {
             container.innerHTML = '';
             if (titleEl) titleEl.textContent = 'Serviços selecionados';
-            if (totalRow) totalRow.classList.remove('d-none');
+            if (totalStrip) totalStrip.classList.remove('d-none');
             return;
         }
         if (titleEl) titleEl.textContent = eventDetailSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
@@ -1595,7 +1843,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '</div>';
         }).join('');
         container.innerHTML = html;
-        if (totalRow) totalRow.classList.remove('d-none');
+        if (totalStrip) totalStrip.classList.remove('d-none');
         if (!isCompleted) {
             container.querySelectorAll('.eventDetailEditServiceBtn').forEach(function(btn) {
                 btn.addEventListener('click', function(e) { e.stopPropagation(); EventDetail.openEditQuickMenu(e, parseInt(this.dataset.idx, 10)); });
@@ -1684,14 +1932,13 @@ document.addEventListener('DOMContentLoaded', function() {
     EventDetail.updateEndTime = function() {
         var startStr = $id('eventDetailEditStart').value;
         if (!startStr) return;
-        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) {
-            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
-            return sum + d;
-        }, 0);
+        var totalDur = eventDetailEffectiveDurationMinutes();
         var start = new Date(startStr);
+        if (isNaN(start.getTime())) return;
         var end = new Date(start.getTime() + totalDur * 60 * 1000);
-        var endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
-        $id('eventDetailEditEnd').value = endStr;
+        $id('eventDetailEditStart').value = agendaFormatLocalDateTimeForInput(start);
+        $id('eventDetailEditEnd').value = agendaFormatLocalDateTimeForInput(end);
+        updateEventDetailOutOfHoursWarning();
     }
 
     EventDetail.applyNewStartTime = function(newTimeStr) {
@@ -1702,10 +1949,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var parts = (newTimeStr || '').match(/^(\d{1,2}):(\d{2})/);
         if (!parts) return;
         start.setHours(parseInt(parts[1], 10), parseInt(parts[2], 10), 0, 0);
-        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) {
-            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
-            return sum + d;
-        }, 0);
+        var totalDur = eventDetailEffectiveDurationMinutes();
         if (totalDur === 0 && endStr) {
             var oldStart = new Date(startStr);
             var oldEnd = new Date(endStr);
@@ -1713,8 +1957,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (totalDur < 1) totalDur = 60;
         var end = new Date(start.getTime() + totalDur * 60 * 1000);
-        var startIso = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0') + 'T' + String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
-        var endIso = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+        var startIso = agendaFormatLocalDateTimeForInput(start);
+        var endIso = agendaFormatLocalDateTimeForInput(end);
         $id('eventDetailEditStart').value = startIso;
         $id('eventDetailEditEnd').value = endIso;
         $id('eventDetailEditTitleDay').textContent = DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()];
@@ -1736,6 +1980,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var inst = bootstrap.Dropdown.getInstance(dd);
             if (inst) inst.hide();
         }
+        updateEventDetailOutOfHoursWarning();
     }
 
     EventDetail.applyNewDate = function(ymd) {
@@ -1746,10 +1991,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var parts = (ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
         if (!parts) return;
         start.setFullYear(parseInt(parts[1], 10), parseInt(parts[2], 10) - 1, parseInt(parts[3], 10));
-        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) {
-            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
-            return sum + d;
-        }, 0);
+        var totalDur = eventDetailEffectiveDurationMinutes();
         if (totalDur === 0 && endStr) {
             var oldStart = new Date(startStr);
             var oldEnd = new Date(endStr);
@@ -1757,8 +1999,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (totalDur < 1) totalDur = 60;
         var end = new Date(start.getTime() + totalDur * 60 * 1000);
-        var startIso = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0') + 'T' + String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
-        var endIso = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+        var startIso = agendaFormatLocalDateTimeForInput(start);
+        var endIso = agendaFormatLocalDateTimeForInput(end);
         $id('eventDetailEditStart').value = startIso;
         $id('eventDetailEditEnd').value = endIso;
         $id('eventDetailEditTitleDay').textContent = DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()];
@@ -1780,6 +2022,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var inst = bootstrap.Dropdown.getInstance(dateToggle);
             if (inst) inst.hide();
         }
+        updateEventDetailOutOfHoursWarning();
     }
 
     var eventDetailEditServiceIndex = -1;
@@ -1852,19 +2095,34 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     var agendaAgentInfo = C.agendaAgentInfo || {};
+    var novaMarcacaoAgentSelectPopulated = false;
 
-    function openNovaMarcacaoModal(startStr, endStr, resourceId, preSelectedClientId) {
-        var agentId = resourceId || String(C.authId || '');
-        $id('novaMarcacaoAgentId').value = agentId;
-        $id('novaMarcacaoStart').value = startStr;
-        $id('novaMarcacaoEnd').value = endStr;
-        $id('novaMarcacaoObservacoes').value = '';
-        novaMarcacaoSelectedClient = null;
-        $id('novaMarcacaoClientAddWrap').classList.remove('d-none');
-        $id('novaMarcacaoClientSearchWrap').classList.remove('d-none');
-        $id('novaMarcacaoClientSelected').classList.add('d-none');
-        $id('novaMarcacaoClientSearch').value = '';
-        $id('novaMarcacaoClientResults').innerHTML = '';
+    function populateNovaMarcacaoAgentSelectIfNeeded() {
+        var sel = $id('novaMarcacaoAgentSelect');
+        if (!sel || novaMarcacaoAgentSelectPopulated) return;
+        var list = C.usersForConsultant || [];
+        list.forEach(function(u) {
+            var opt = document.createElement('option');
+            opt.value = String(u.id);
+            opt.textContent = u.name || ('#' + u.id);
+            sel.appendChild(opt);
+        });
+        novaMarcacaoAgentSelectPopulated = true;
+    }
+
+    function novaMarcacaoShowAgentPicker() {
+        var sw = $id('novaMarcacaoAgentSelectWrap');
+        var aw = $id('novaMarcacaoAgentSelectedWrap');
+        var sel = $id('novaMarcacaoAgentSelect');
+        if (sw) sw.classList.remove('d-none');
+        if (aw) aw.classList.add('d-none');
+        var cur = $id('novaMarcacaoAgentId') ? $id('novaMarcacaoAgentId').value : '';
+        if (sel && cur) {
+            sel.value = cur;
+        }
+    }
+
+    function novaMarcacaoResolveAgentInfo(agentId) {
         var agentInfo = agendaAgentInfo[String(agentId)] || { name: '—', email: '', avatarUrl: '' };
         if (!agentInfo.name || agentInfo.name === '—') {
             var resources = calendar.getResources();
@@ -1876,9 +2134,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-        if (agentInfo.name === '—' && agentId === String(C.authId || '')) {
+        if (agentInfo.name === '—' && String(agentId) === String(C.authId || '')) {
             agentInfo = { name: (C.authName || 'Eu'), email: (C.authEmail || ''), avatarUrl: agentInfo.avatarUrl || '' };
         }
+        return agentInfo;
+    }
+
+    function novaMarcacaoApplyAgentDisplay(agentId) {
+        var agentInfo = novaMarcacaoResolveAgentInfo(agentId);
         var agentName = agentInfo.name || '—';
         var agentNameEl = $id('novaMarcacaoAgentName');
         if (agentNameEl) agentNameEl.textContent = agentName;
@@ -1899,25 +2162,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 agentAvatarEl.style.display = 'none';
             }
         }
-        var startD = new Date(startStr);
-        var endD = new Date(endStr);
-        if (window.novaMarcacaoDateFlatpickr) {
-            var ymdStr = startD.getFullYear() + '-' + String(startD.getMonth() + 1).padStart(2, '0') + '-' + String(startD.getDate()).padStart(2, '0');
-            window.novaMarcacaoDateFlatpickr.setDate(ymdStr, false);
-        }
-        var timeStr = String(startD.getHours()).padStart(2, '0') + ':' + String(startD.getMinutes()).padStart(2, '0');
-        var min = startD.getMinutes();
-        var m = Math.round(min / 15) * 15;
-        if (m === 60) { m = 0; }
-        var timeSlotForDropdown = String(startD.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-        $id('novaMarcacaoEditTitleDay').textContent = DAYS_LONG[startD.getDay()] + ', ' + startD.getDate() + ' ' + MONTHS_LONG[startD.getMonth()];
-        $id('novaMarcacaoTimeToggle').textContent = timeStr;
-        NovaMarcacao.populateTimeOptions(timeSlotForDropdown);
+    }
+
+    function novaMarcacaoLoadServicesForAgent(agentId) {
         $id('novaMarcacaoServicesList').innerHTML = '<div class="text-muted small">A carregar serviços...</div>';
         $id('novaMarcacaoServicesList').classList.remove('d-none');
         $id('novaMarcacaoServiceSelected').classList.add('d-none');
         novaMarcacaoServicesData = null;
         novaMarcacaoSelectedServices = [];
+        if (!agentId) {
+            $id('novaMarcacaoServicesList').innerHTML = '<div class="text-muted small">Selecione um técnico para ver os serviços disponíveis.</div>';
+            var totalStripEmpty = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
+            if (totalStripEmpty) totalStripEmpty.classList.add('d-none');
+            return;
+        }
         fetch(agendaMembersServicesUrl + '/' + agentId + '/services', { headers: { 'Accept': 'application/json' } })
             .then(function(r) { return r.json(); })
             .then(function(data) {
@@ -1972,16 +2230,79 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(function() {
                 $id('novaMarcacaoServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
             });
+    }
+
+    function novaMarcacaoConfirmAgent(agentId) {
+        if (!agentId) return;
+        $id('novaMarcacaoAgentId').value = String(agentId);
+        var sel = $id('novaMarcacaoAgentSelect');
+        if (sel) sel.value = String(agentId);
+        novaMarcacaoApplyAgentDisplay(agentId);
+        var sw = $id('novaMarcacaoAgentSelectWrap');
+        var aw = $id('novaMarcacaoAgentSelectedWrap');
+        if (sw) sw.classList.add('d-none');
+        if (aw) aw.classList.remove('d-none');
+        novaMarcacaoLoadServicesForAgent(String(agentId));
+    }
+
+    function openNovaMarcacaoModal(startStr, endStr, resourceId, preSelectedClientId) {
+        populateNovaMarcacaoAgentSelectIfNeeded();
+        var hasResource = resourceId != null && String(resourceId) !== '';
+        $id('novaMarcacaoStart').value = startStr;
+        $id('novaMarcacaoEnd').value = endStr;
+        $id('novaMarcacaoObservacoes').value = '';
+        novaMarcacaoSelectedClient = null;
+        $id('novaMarcacaoClientAddWrap').classList.remove('d-none');
+        $id('novaMarcacaoClientSearchWrap').classList.remove('d-none');
+        $id('novaMarcacaoClientSelected').classList.add('d-none');
+        $id('novaMarcacaoClientSearch').value = '';
+        $id('novaMarcacaoClientResults').innerHTML = '';
+        if (hasResource) {
+            $id('novaMarcacaoAgentSelect').value = String(resourceId);
+            novaMarcacaoConfirmAgent(String(resourceId));
+        } else if (currentUserIsAdmin) {
+            novaMarcacaoShowAgentPicker();
+            $id('novaMarcacaoAgentId').value = '';
+            $id('novaMarcacaoAgentSelect').value = '';
+            novaMarcacaoLoadServicesForAgent('');
+        } else {
+            var uid = String(C.authId || '');
+            var inList = (C.usersForConsultant || []).some(function(u) { return String(u.id) === uid; });
+            if (inList) {
+                $id('novaMarcacaoAgentSelect').value = uid;
+                novaMarcacaoConfirmAgent(uid);
+            } else {
+                novaMarcacaoShowAgentPicker();
+                $id('novaMarcacaoAgentId').value = '';
+                $id('novaMarcacaoAgentSelect').value = '';
+                novaMarcacaoLoadServicesForAgent('');
+            }
+        }
+        var startD = new Date(startStr);
+        var endD = new Date(endStr);
+        if (window.novaMarcacaoDateFlatpickr) {
+            var ymdStr = startD.getFullYear() + '-' + String(startD.getMonth() + 1).padStart(2, '0') + '-' + String(startD.getDate()).padStart(2, '0');
+            window.novaMarcacaoDateFlatpickr.setDate(ymdStr, false);
+        }
+        var timeStr = String(startD.getHours()).padStart(2, '0') + ':' + String(startD.getMinutes()).padStart(2, '0');
+        var min = startD.getMinutes();
+        var m = Math.round(min / 15) * 15;
+        if (m === 60) { m = 0; }
+        var timeSlotForDropdown = String(startD.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        $id('novaMarcacaoEditTitleDay').textContent = DAYS_LONG[startD.getDay()] + ', ' + startD.getDate() + ' ' + MONTHS_LONG[startD.getMonth()];
+        $id('novaMarcacaoTimeToggle').textContent = timeStr;
+        NovaMarcacao.populateTimeOptions(timeSlotForDropdown);
+        updateNovaMarcacaoOutOfHoursWarning();
         var modal = bootstrap.Modal.getOrCreateInstance($id('novaMarcacaoModal'));
         modal.show();
 
         // Ao abrir a nova marcação, esconder a linha de total enquanto não houver serviços selecionados
-        var totalRow = $id('novaMarcacaoTotalPrice') ? $id('novaMarcacaoTotalPrice').closest('.nova-marcacao-total-row') : null;
-        if (totalRow) {
+        var totalStripOpen = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
+        if (totalStripOpen) {
             if (!novaMarcacaoSelectedServices || novaMarcacaoSelectedServices.length === 0) {
-                totalRow.classList.add('d-none');
+                totalStripOpen.classList.add('d-none');
             } else {
-                totalRow.classList.remove('d-none');
+                totalStripOpen.classList.remove('d-none');
             }
         }
         if (preSelectedClientId) {
@@ -2011,6 +2332,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
         }
+    }
+
+    var novaMarcacaoAgentSelectEl = $id('novaMarcacaoAgentSelect');
+    if (novaMarcacaoAgentSelectEl) {
+        novaMarcacaoAgentSelectEl.addEventListener('change', function() {
+            var v = this.value;
+            if (v) {
+                novaMarcacaoConfirmAgent(v);
+            } else {
+                $id('novaMarcacaoAgentId').value = '';
+                var sw = $id('novaMarcacaoAgentSelectWrap');
+                var aw = $id('novaMarcacaoAgentSelectedWrap');
+                if (sw) sw.classList.remove('d-none');
+                if (aw) aw.classList.add('d-none');
+                novaMarcacaoLoadServicesForAgent('');
+            }
+        });
+    }
+    var novaMarcacaoAgentChangeBtn = $id('novaMarcacaoAgentChangeBtn');
+    if (novaMarcacaoAgentChangeBtn) {
+        novaMarcacaoAgentChangeBtn.addEventListener('click', function() {
+            novaMarcacaoShowAgentPicker();
+        });
     }
 
     $id('novaMarcacaoClientSearch').addEventListener('input', (function() {
@@ -2362,32 +2706,32 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('novaMarcacaoServiceSelected').classList.add('d-none');
         $id('novaMarcacaoCancelAddServicesBtn').classList.remove('d-none');
         $id('novaMarcacaoServicesList').classList.remove('d-none');
-        var totalRow = $id('novaMarcacaoTotalPrice') ? $id('novaMarcacaoTotalPrice').closest('.nova-marcacao-total-row') : null;
-        if (totalRow) totalRow.classList.add('d-none');
+        var totalStripNm = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
+        if (totalStripNm) totalStripNm.classList.add('d-none');
     });
 
     $id('novaMarcacaoCancelAddServicesBtn').addEventListener('click', function() {
         $id('novaMarcacaoServicesList').classList.add('d-none');
         $id('novaMarcacaoCancelAddServicesBtn').classList.add('d-none');
         $id('novaMarcacaoServiceSelected').classList.remove('d-none');
-        var totalRow = $id('novaMarcacaoTotalPrice') ? $id('novaMarcacaoTotalPrice').closest('.nova-marcacao-total-row') : null;
-        if (totalRow) totalRow.classList.remove('d-none');
+        var totalStripNm2 = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
+        if (totalStripNm2) totalStripNm2.classList.remove('d-none');
     });
 
     $id('eventDetailAddMoreServicesBtn').addEventListener('click', function() {
         $id('eventDetailServiceSelected').classList.add('d-none');
         $id('eventDetailCancelAddServicesBtn').classList.remove('d-none');
         $id('eventDetailServicesList').classList.remove('d-none');
-        var totalRow = $id('eventDetailTotalPrice') ? $id('eventDetailTotalPrice').closest('.nova-marcacao-total-row') : null;
-        if (totalRow) totalRow.classList.add('d-none');
+        var totalStripEd = agendaMarcacaoTotalStrip('eventDetailTotalPrice');
+        if (totalStripEd) totalStripEd.classList.add('d-none');
     });
 
     $id('eventDetailCancelAddServicesBtn').addEventListener('click', function() {
         $id('eventDetailServicesList').classList.add('d-none');
         $id('eventDetailCancelAddServicesBtn').classList.add('d-none');
         $id('eventDetailServiceSelected').classList.remove('d-none');
-        var totalRow = $id('eventDetailTotalPrice') ? $id('eventDetailTotalPrice').closest('.nova-marcacao-total-row') : null;
-        if (totalRow) totalRow.classList.remove('d-none');
+        var totalStripEd2 = agendaMarcacaoTotalStrip('eventDetailTotalPrice');
+        if (totalStripEd2) totalStripEd2.classList.remove('d-none');
     });
 
     $id('eventDetailClientClear').addEventListener('click', function() {
@@ -2471,17 +2815,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (disp) {
                                 label += ' <small class="text-muted">(' + disp + ')</small>';
                             }
-                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + agendaEscAttr(c.name || '') + '" data-phone="' + agendaEscAttr(raw) + '" data-formatted-phone="' + agendaEscAttr(c.formatted_phone || '') + '" data-avatar="' + agendaEscAttr(c.avatar_url || '') + '"';
+                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + agendaEscAttr(c.name || '') + '" data-email="' + agendaEscAttr(c.email || '') + '" data-phone="' + agendaEscAttr(raw) + '" data-formatted-phone="' + agendaEscAttr(c.formatted_phone || '') + '" data-avatar="' + agendaEscAttr(c.avatar_url || '') + '"';
                             return '<div class="nova-marcacao-client-item event-detail-client-item" ' + dataAttrs + '>' + label + '</div>';
                         }).join('');
                         $id('eventDetailClientResults').innerHTML = html;
                         $id('eventDetailClientResults').querySelectorAll('.event-detail-client-item').forEach(function(el) {
                             el.addEventListener('click', function() {
                                 var name = this.dataset.name || '';
+                                var email = this.dataset.email || '';
                                 var phone = this.dataset.phone || '';
                                 var formattedPhone = this.dataset.formattedPhone || '';
                                 var avatarUrl = this.dataset.avatar || '';
-                                eventDetailSelectedClient = { id: this.dataset.id, name: name, phone: phone, formatted_phone: formattedPhone, avatar_url: avatarUrl };
+                                eventDetailSelectedClient = { id: this.dataset.id, name: name, email: email, phone: phone, formatted_phone: formattedPhone, avatar_url: avatarUrl };
                                 $id('eventDetailClientSelectedName').textContent = name;
                                 $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
                                 var link = $id('eventDetailClientProfileLink');
@@ -2520,21 +2865,20 @@ document.addEventListener('DOMContentLoaded', function() {
             var serviceNames = eventDetailSelectedServices.map(function(s) { return s.name; }).join(', ');
             title = (clientName || 'Cliente') + ' - ' + serviceNames;
         }
-        var totalDur = eventDetailSelectedServices.reduce(function(sum, s) {
-            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
-            return sum + d;
-        }, 0);
+        var totalDur = eventDetailEffectiveDurationMinutes();
         var startStr = $id('eventDetailEditStart').value;
-        var endStr = startStr;
+        var endStr = $id('eventDetailEditEnd').value || startStr;
         if (totalDur > 0 && startStr) {
             var start = new Date(startStr);
-            var end = new Date(start.getTime() + totalDur * 60 * 1000);
-            endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
+            if (!isNaN(start.getTime())) {
+                var end = new Date(start.getTime() + totalDur * 60 * 1000);
+                endStr = agendaFormatLocalDateTimeForInput(end);
+            }
         }
         var payload = {
             title: title,
-            start_at: startStr,
-            end_at: endStr,
+            start_at: agendaLocalInputToUtcIso(startStr),
+            end_at: agendaLocalInputToUtcIso(endStr),
             description: $id('eventDetailObservacoes').value,
             status: $id('eventDetailStatus').value
         };
@@ -2551,6 +2895,17 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         var btn = $id('eventDetailSaveBtn');
+        var needNotifyConfirm = eventDetailCurrentData && eventDetailCurrentData.event_type === 'marcacao' && payload.client_id && eventDetailScheduleTimesChanged(payload);
+        if (needNotifyConfirm) {
+            agendaDragPending = {
+                kind: 'eventDetail',
+                eventId: id,
+                putPayload: payload,
+                extendedProps: getEventDetailNotifyExtendedProps()
+            };
+            openAgendaDragConfirmModal(agendaDragPending.extendedProps);
+            return;
+        }
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar...';
         fetch((C.urlEvents || '') + '/' + id, {
@@ -2766,6 +3121,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     $id('novaMarcacaoForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        if (!$id('novaMarcacaoAgentId').value) {
+            showToast('Selecione um técnico.', 'error');
+            return;
+        }
         if (!novaMarcacaoSelectedServices.length) {
             showToast('Selecione pelo menos um serviço.', 'error');
             return;
@@ -2788,10 +3147,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 extras: (s.extras || []).map(function(e) { return { extra_id: e.id, duration: e.duration || 0, price: e.price || 0 }; })
             };
         });
+        var startNova = $id('novaMarcacaoStart').value;
+        var endNova = $id('novaMarcacaoEnd').value;
         var payload = {
             title: title,
-            start_at: $id('novaMarcacaoStart').value,
-            end_at: $id('novaMarcacaoEnd').value,
+            start_at: agendaLocalInputToUtcIso(startNova),
+            end_at: agendaLocalInputToUtcIso(endNova || startNova),
             description: $id('novaMarcacaoObservacoes').value,
             event_type: 'marcacao',
             user_id: $id('novaMarcacaoAgentId').value,
@@ -2944,6 +3305,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function applyAgendaEventFromServer(ev, serverEvent) {
+        if (!ev || !serverEvent) return;
+        ev.setProp('title', serverEvent.title);
+        ev.setStart(serverEvent.start);
+        ev.setEnd(serverEvent.end);
+        if (serverEvent.backgroundColor !== undefined) ev.setProp('backgroundColor', serverEvent.backgroundColor);
+        var ep = serverEvent.extendedProps || {};
+        Object.keys(ep).forEach(function(k) { ev.setExtendedProp(k, ep[k]); });
+        var newColor = serverEvent.backgroundColor;
+        var el = document.querySelector('[data-event-id="' + String(ev.id) + '"]');
+        if (el) {
+            if (newColor) el.style.setProperty('background-color', newColor, 'important');
+            else el.style.removeProperty('background-color');
+        }
+        scheduleStackedEventClassRefresh();
+    }
+
+    function openAgendaDragConfirmModal(extendedProps) {
+        hideEventQuickview();
+        var chk = $id('agendaDragConfirmNotify');
+        var nameEl = $id('agendaDragConfirmClientName');
+        var noEmailEl = $id('agendaDragConfirmNoEmail');
+        var submitBtn = $id('agendaDragConfirmSubmit');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Atualizar';
+        }
+        var clientName = (extendedProps && extendedProps.client_name) ? String(extendedProps.client_name) : 'o cliente';
+        if (nameEl) nameEl.textContent = clientName;
+        var hasEmail = extendedProps && extendedProps.client_has_email === true;
+        if (chk) {
+            chk.checked = false;
+            chk.disabled = !hasEmail;
+        }
+        if (noEmailEl) noEmailEl.classList.toggle('d-none', hasEmail);
+        bootstrap.Modal.getOrCreateInstance($id('agendaDragConfirmModal')).show();
+    }
+
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'resourceTimeGridDay',
         locale: 'pt',
@@ -3017,13 +3416,22 @@ document.addEventListener('DOMContentLoaded', function() {
         slotLaneDidMount: function(arg) {
             if (arg.el && arg.date) arg.el.setAttribute('data-slot-date', arg.date.toISOString());
         },
+        dayCellClassNames: function(arg) {
+            return isNationalHolidayPtAtDate(arg.date) ? ['agenda-day-holiday'] : [];
+        },
+        slotLaneClassNames: function(arg) {
+            var out = [];
+            if (isOutsideStoreHoursAtDate(arg.date)) out.push('agenda-slot-outside-hours');
+            if (isNationalHolidayPtAtDate(arg.date)) out.push('agenda-slot-holiday');
+            return out;
+        },
         dayMaxEvents: 2,
         dayMaxEventRows: 2,
         eventContent: function(arg) {
             const extProps = arg.event.extendedProps || {};
             const isTempoPessoal = (extProps.event_type || '') === 'tempo_pessoal';
             const statusIcon = isTempoPessoal
-                ? (extProps.personal_time_type?.icon ? 'ph ' + extProps.personal_time_type.icon : 'ph ph-dots-three')
+                ? (extProps.personal_time_type?.icon ? 'ph ' + extProps.personal_time_type.icon : null)
                 : (extProps.status_icon || null);
             const clientName = (extProps.client_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const serviceName = (extProps.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -3373,6 +3781,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (info.newResource && isResourceTimeGridDayView(calendar.view.type)) {
                 payload.user_id = info.newResource.id || null;
             }
+            const ext = info.event.extendedProps || {};
+            if (ext.event_type === 'marcacao' && ext.client_id) {
+                agendaDragPending = {
+                    eventId: id,
+                    payload: payload,
+                    info: info,
+                    kind: 'drop',
+                    needsCalendarRevert: true,
+                    extendedProps: ext
+                };
+                openAgendaDragConfirmModal(ext);
+                return;
+            }
             const url = (C.urlEvents || '') + '/' + id + '/update';
             fetch(url, {
                 method: 'POST',
@@ -3430,6 +3851,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const id = info.event.id;
             const start = info.event.start.toISOString();
             const end = info.event.end ? info.event.end.toISOString() : start;
+            const ext = info.event.extendedProps || {};
+            if (ext.event_type === 'marcacao' && ext.client_id) {
+                agendaDragPending = {
+                    eventId: id,
+                    payload: { start_at: start, end_at: end },
+                    info: info,
+                    kind: 'resize',
+                    needsCalendarRevert: true,
+                    extendedProps: ext
+                };
+                openAgendaDragConfirmModal(ext);
+                return;
+            }
             const url = (C.urlEvents || '') + '/' + id + '/update';
             fetch(url, {
                 method: 'POST',
@@ -3509,6 +3943,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (nextBtn) nextBtn.innerHTML = '<span class="fc-icon fc-icon-chevron-right"></span>';
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
+                applyHolidayClassesToTimeGridColumns();
             });
         },
         viewDidMount: function(info) {
@@ -3538,6 +3973,7 @@ document.addEventListener('DOMContentLoaded', function() {
             requestAnimationFrame(function() {
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
+                applyHolidayClassesToTimeGridColumns();
             });
             setTimeout(function() {
                 initViewSelectorDropdown();
@@ -3546,6 +3982,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 initAdicionarDropdown();
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
+                applyHolidayClassesToTimeGridColumns();
             }, 0);
             
             const showConsultantFilter = viewSupportsConsultantFilter(info.view.type);
@@ -3563,6 +4000,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     updateConsultantFilterButton();
                     applyToolbarStyles();
                     ensureAgendaSlot24hToggle();
+                    applyHolidayClassesToTimeGridColumns();
                 }, isConsultant ? 150 : 0);
             }
         }
@@ -3696,7 +4134,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .finally(function() {
                     eventDetailModalLoading = false;
                 });
-        } else if (novaMarcacao === '1' && clientId && userId) {
+        } else if (novaMarcacao === '1') {
             var now = new Date();
             var min = now.getMinutes();
             var roundedMin = Math.ceil(min / 15) * 15;
@@ -3706,7 +4144,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var end = new Date(now.getTime() + 60 * 60 * 1000);
             var startStr = now.toISOString().slice(0, 19).replace('T', ' ');
             var endStr = end.toISOString().slice(0, 19).replace('T', ' ');
-            openNovaMarcacaoModal(startStr, endStr, userId, clientId);
+            openNovaMarcacaoModal(startStr, endStr, userId || '', clientId || null);
             if (history.replaceState) {
                 history.replaceState({}, document.title, window.location.pathname);
             }
@@ -4219,6 +4657,9 @@ document.addEventListener('DOMContentLoaded', function() {
             active.scrollIntoView({ block: 'nearest', behavior: 'instant' });
         }
     });
+    $id('eventDetailTimeToggle')?.addEventListener('hidden.bs.dropdown', function() {
+        updateEventDetailOutOfHoursWarning();
+    });
 
     if (typeof flatpickr !== 'undefined') {
         var datePickerWrap = $id('eventDetailDatePickerWrap');
@@ -4260,6 +4701,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             $id('tempoPessoalDateToggle').textContent = DAYS_LONG[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS_LONG[d.getMonth()];
                         }
                         TempoPessoal.syncHiddenFromInputs();
+                        updateTempoPessoalOutOfHoursWarning();
                         var toggle = $id('tempoPessoalDateToggle');
                         if (toggle && bootstrap.Dropdown) bootstrap.Dropdown.getInstance(toggle)?.hide();
                     }
@@ -4294,11 +4736,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (m === 60) { m = 0; }
             timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
-        tempoPessoalPopulateTimeOptions('.tempo-pessoal-end-time-options', timeStr, tempoPessoalApplyNewEndTime);
+        TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', timeStr, TempoPessoal.applyNewEndTime);
     });
     $id('tempoPessoalEndTimeToggle')?.addEventListener('shown.bs.dropdown', function() {
         var active = $('.tempo-pessoal-end-time-options .tempo-pessoal-time-opt.active');
         if (active) active.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    });
+    $id('tempoPessoalStartTimeToggle')?.addEventListener('hidden.bs.dropdown', function() {
+        updateTempoPessoalOutOfHoursWarning();
+    });
+    $id('tempoPessoalEndTimeToggle')?.addEventListener('hidden.bs.dropdown', function() {
+        updateTempoPessoalOutOfHoursWarning();
     });
 
     $id('tempoPessoalTypeToggleGroup')?.addEventListener('click', function(e) {
@@ -4308,6 +4756,8 @@ document.addEventListener('DOMContentLoaded', function() {
         card.classList.add('active');
         $id('tempoPessoalTipo').value = card.dataset.id || '';
         TempoPessoal.applyTypeDuration();
+        TempoPessoal.syncCustomTitleField();
+        updateTempoPessoalOutOfHoursWarning();
     });
 
     $id('tempoPessoalForm').addEventListener('submit', function(e) {
@@ -4326,14 +4776,24 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.innerHTML = originalHtml;
             return;
         }
+        var isCustomTempoPessoal = TempoPessoal.isCustomTypeSelected();
         var payload = {
             personal_time_type_id: $id('tempoPessoalTipo').value || null,
             event_type: 'tempo_pessoal',
-            start_at: startVal.replace('T', ' ') + ':00',
-            end_at: endVal.replace('T', ' ') + ':00',
+            start_at: agendaLocalInputToUtcIso(startVal),
+            end_at: agendaLocalInputToUtcIso(endVal || startVal),
             description: $id('tempoPessoalDescricao').value.trim() || null,
             user_id: currentUserIsAdmin ? (memberVal || null) : (memberVal || String(C.authId || ''))
         };
+        if (isCustomTempoPessoal) {
+            payload.title = $id('tempoPessoalTitulo').value.trim() || '';
+        }
+        if (isCustomTempoPessoal && !payload.title) {
+            showToast('Preencha o título para o tipo Outro.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            return;
+        }
         var url = id ? (C.urlEvents || '') + '/' + id + '/update' : (C.urlEventsStore || '');
         fetch(url, {
             method: 'POST',
@@ -4417,6 +4877,9 @@ document.addEventListener('DOMContentLoaded', function() {
             active.scrollIntoView({ block: 'nearest', behavior: 'instant' });
         }
     });
+    $id('novaMarcacaoTimeToggle')?.addEventListener('hidden.bs.dropdown', function() {
+        updateNovaMarcacaoOutOfHoursWarning();
+    });
 
     $id('eventDetailStatusMenu').querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
         opt.addEventListener('click', function(e) {
@@ -4444,7 +4907,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $id('cancelMarcacaoRefund').value = '';
                 $id('cancelMarcacaoAvisouPrazo').value = '';
                 $id('cancelMarcacaoAvisouWrap').classList.add('d-none');
-                $id('cancelMarcacaoNotifyClient').checked = true;
+                $id('cancelMarcacaoNotifyClient').checked = false;
                 var editModalInstance = bootstrap.Modal.getOrCreateInstance($id('eventDetailEditModal'));
                 editModalInstance.hide();
                 bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
@@ -4558,6 +5021,138 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.innerHTML = 'Cancelar marcação';
             showToast('Erro de ligação.', 'error');
         });
+    });
+
+    $id('agendaDragConfirmSubmit').addEventListener('click', function() {
+        if (!agendaDragPending) return;
+        var p = agendaDragPending;
+        var chk = $id('agendaDragConfirmNotify');
+        var notify = chk && chk.checked && !chk.disabled;
+        var btn = $id('agendaDragConfirmSubmit');
+        var origText = 'Atualizar';
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + origText;
+
+        if (p.kind === 'eventDetail') {
+            var body = Object.assign({}, p.putPayload, { notify_client: !!notify });
+            fetch((C.urlEvents || '') + '/' + p.eventId, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(body)
+            })
+            .then(function(r) {
+                return r.json().then(function(res) {
+                    if (!r.ok) {
+                        var msg = res.message || (res.errors ? Object.values(res.errors).flat().join(' ') : null) || 'Erro ao guardar.';
+                        throw new Error(msg);
+                    }
+                    return res;
+                });
+            })
+            .then(function(res) {
+                btn.disabled = false;
+                btn.textContent = origText;
+                if (!res.success || !res.event) {
+                    showToast(res.message || 'Erro ao guardar.', 'error');
+                    return;
+                }
+                agendaDragConfirmSucceeded = true;
+                agendaDragPending = null;
+                bootstrap.Modal.getInstance($id('agendaDragConfirmModal')).hide();
+                var ev = calendar.getEventById(p.eventId);
+                if (ev && res.event) {
+                    applyAgendaEventFromServer(ev, res.event);
+                }
+                eventDetailWasSaved = true;
+                bootstrap.Modal.getInstance($id('eventDetailEditModal')).hide();
+                scheduleStackedEventClassRefresh();
+            })
+            .catch(function(err) {
+                console.error('agendaDragConfirm eventDetail error', err);
+                btn.disabled = false;
+                btn.textContent = origText;
+                var msg = (err && err.message && err.message.indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação. Verifique os logs do servidor se o problema persistir.';
+                showToast(msg, 'error');
+            });
+            return;
+        }
+
+        var bodyDrag = Object.assign({}, p.payload, { notify_client: !!notify });
+        var url = (C.urlEvents || '') + '/' + p.eventId + '/update';
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf
+            },
+            body: JSON.stringify(bodyDrag)
+        })
+        .then(function(r) {
+            if (!r.ok) throw new Error(r.statusText);
+            return r.json();
+        })
+        .then(function(res) {
+            btn.disabled = false;
+            btn.textContent = origText;
+            if (!res.success) {
+                showToast(res.message || 'Erro ao atualizar.', 'error');
+                return;
+            }
+            agendaDragConfirmSucceeded = true;
+            agendaDragPending = null;
+            bootstrap.Modal.getInstance($id('agendaDragConfirmModal')).hide();
+            var ev = calendar.getEventById(p.eventId);
+            if (ev && res.event) {
+                applyAgendaEventFromServer(ev, res.event);
+                if (p.kind === 'drop' && p.payload.user_id !== undefined && p.info && p.info.newResource) {
+                    var newColor = res.event.backgroundColor;
+                    if (newColor == null && allResources && allResources.length) {
+                        var resObj = allResources.find(function(r) { return String(r.id) === String(p.info.newResource.id); });
+                        newColor = resObj && resObj.extendedProps ? resObj.extendedProps.color : null;
+                    }
+                    if (newColor) {
+                        ev.setProp('backgroundColor', newColor);
+                        var domEl = document.querySelector('[data-event-id="' + String(ev.id) + '"]');
+                        if (domEl) domEl.style.setProperty('background-color', newColor, 'important');
+                    }
+                    if (typeof calendar.getResourceById === 'function' && typeof ev.setResources === 'function') {
+                        var rr = calendar.getResourceById(String(p.payload.user_id));
+                        if (rr) ev.setResources([rr]);
+                    }
+                }
+            }
+            scheduleStackedEventClassRefresh();
+        })
+        .catch(function(err) {
+            console.error('agendaDragConfirm error', err);
+            btn.disabled = false;
+            btn.textContent = origText;
+            showToast('Erro de ligação.', 'error');
+        });
+    });
+
+    $id('agendaDragConfirmModal').addEventListener('shown.bs.modal', function() {
+        var backs = document.querySelectorAll('.modal-backdrop');
+        if (backs.length > 1) {
+            backs[backs.length - 1].style.zIndex = '1070';
+        }
+    });
+
+    $id('agendaDragConfirmModal').addEventListener('hidden.bs.modal', function() {
+        var p = agendaDragPending;
+        var succeeded = agendaDragConfirmSucceeded;
+        agendaDragConfirmSucceeded = false;
+        agendaDragPending = null;
+        if (!succeeded && p && p.needsCalendarRevert && p.info && typeof p.info.revert === 'function') {
+            p.info.revert();
+            scheduleStackedEventClassRefresh();
+        }
     });
 
     $id('cancelMarcacaoModal').addEventListener('hidden.bs.modal', function() {

@@ -51,6 +51,7 @@ class AgentController extends Controller
         $categories = Category::orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
+
         return view('agentes.create', compact('categories'));
     }
 
@@ -129,7 +130,6 @@ class AgentController extends Controller
         if ($agente->user_id) {
             $marcacoes = \App\Models\CalendarEvent::where('user_id', $agente->user_id)
                 ->where('event_type', \App\Models\CalendarEvent::TYPE_MARCACAO)
-                ->where('status', '!=', \App\Models\CalendarEvent::STATUS_CANCELADO)
                 ->with(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra'])
                 ->orderByDesc('start_at')
                 ->limit(100)
@@ -146,7 +146,7 @@ class AgentController extends Controller
                 ->flatMap(function ($event) {
                     $lines = [];
                     foreach ($event->eventServiceItems as $es) {
-                        $lines[] = (object)[
+                        $lines[] = (object) [
                             'data' => $event->start_at,
                             'cliente' => $event->client?->name ?? '—',
                             'servico' => $es->service?->name ?? '—',
@@ -155,7 +155,7 @@ class AgentController extends Controller
                             'tipo' => 'servico',
                         ];
                         foreach ($es->extras ?? [] as $extra) {
-                            $lines[] = (object)[
+                            $lines[] = (object) [
                                 'data' => $event->start_at,
                                 'cliente' => $event->client?->name ?? '—',
                                 'servico' => $extra->extra?->name ?? '—',
@@ -165,6 +165,7 @@ class AgentController extends Controller
                             ];
                         }
                     }
+
                     return $lines;
                 });
         }
@@ -209,6 +210,7 @@ class AgentController extends Controller
         $categories = Category::orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
+
         return view('agentes.edit', compact('agente', 'categories'));
     }
 
@@ -218,7 +220,7 @@ class AgentController extends Controller
     public function update(Request $request, Agent $agente)
     {
         $this->authorize('update', $agente);
-        
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($agente->user_id)],
@@ -267,11 +269,11 @@ class AgentController extends Controller
                 'email' => $validated['email'],
                 'role' => $validated['role'],
             ];
-            
-            if (!empty($validated['password'])) {
+
+            if (! empty($validated['password'])) {
                 $userData['password'] = Hash::make($validated['password']);
             }
-            
+
             $agente->user->update($userData);
         }
 
@@ -287,7 +289,7 @@ class AgentController extends Controller
     public function destroy(Agent $agente)
     {
         $this->authorize('delete', $agente);
-        
+
         // O user será removido automaticamente devido ao cascadeOnDelete
         $agente->delete();
 

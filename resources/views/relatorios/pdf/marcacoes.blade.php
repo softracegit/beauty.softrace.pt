@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <title>Marcações — {{ config('app.name') }}</title>
+  <style>
+    body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #333; }
+    .header { margin-bottom: 14px; }
+    .header h1 { font-size: 16px; margin: 0 0 6px 0; }
+    .header .meta { font-size: 8px; color: #666; margin-bottom: 8px; }
+    .filtros { font-size: 8px; color: #555; margin-bottom: 12px; line-height: 1.5; }
+    .filtros strong { color: #333; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 5px 6px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+    th { background: #f5f5f5; font-size: 7px; text-transform: uppercase; letter-spacing: 0.02em; }
+    .text-end { text-align: right; }
+    .small { font-size: 8px; color: #555; }
+    .footer { margin-top: 16px; font-size: 8px; color: #888; }
+    .servicos-cell { max-width: 140px; word-wrap: break-word; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Relatório de marcações</h1>
+    <div class="meta">{{ $appName ?? config('app.name') }} · Gerado em {{ now()->format('d/m/Y H:i') }} · {{ $totalRegistos }} registo(s)</div>
+  </div>
+
+  @if(!empty($filtrosLinhas))
+    <div class="filtros">
+      <strong>Filtros aplicados:</strong><br>
+      @foreach($filtrosLinhas as $linha)
+        {{ $linha }}@if(!$loop->last)<br>@endif
+      @endforeach
+    </div>
+  @endif
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:11%">Data/Hora</th>
+        <th style="width:9%">Estado</th>
+        <th style="width:14%">Cliente</th>
+        <th style="width:12%">Técnico</th>
+        <th style="width:22%">Serviços</th>
+        <th class="text-end" style="width:8%">Preço</th>
+        <th style="width:24%">Notas</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach($marcacoes as $ev)
+        @php
+          $totalPreco = $ev->eventServiceItems->sum(function ($es) {
+            return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
+          });
+          $services = $ev->eventServiceItems
+            ->map(fn ($es) => $es->service?->name)
+            ->filter()
+            ->implode(', ');
+        @endphp
+        <tr>
+          <td>{{ $ev->start_at->format('d/m/Y H:i') }}</td>
+          <td>{{ \App\Models\CalendarEvent::statuses()[$ev->status] ?? $ev->status }}</td>
+          <td>{{ $ev->client?->name ?? '—' }}</td>
+          <td>{{ $ev->user?->name ?? '—' }}</td>
+          <td class="servicos-cell small">{{ $services !== '' ? $services : '—' }}</td>
+          <td class="text-end">{{ number_format($totalPreco, 2, ',', ' ') }} €</td>
+          <td class="small">{{ $ev->description ? \Illuminate\Support\Str::limit($ev->description, 120) : '—' }}</td>
+        </tr>
+      @endforeach
+    </tbody>
+  </table>
+
+  @if($marcacoes->isEmpty())
+    <p style="margin-top:12px; font-size:9px; color:#666;">Nenhum registo para os filtros selecionados.</p>
+  @endif
+
+  <div class="footer">
+    Documento para impressão ou arquivo. Os valores refletem os filtros indicados acima.
+  </div>
+</body>
+</html>
