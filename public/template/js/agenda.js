@@ -3375,6 +3375,48 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.refetchEvents();
     }
 
+    /** Calendário popup (Flatpickr) ao clicar no título da data — navegar para o dia escolhido (mobile e desktop). */
+    function ensureAgendaToolbarDateFlatpickr() {
+        if (window.agendaToolbarDateFlatpickr) {
+            return window.agendaToolbarDateFlatpickr;
+        }
+        var input = $id('agendaToolbarDatePicker');
+        if (!input || typeof flatpickr === 'undefined') {
+            return null;
+        }
+        var fp = flatpickr(input, {
+            locale: 'pt',
+            dateFormat: 'Y-m-d',
+            allowInput: false,
+            clickOpens: false,
+            appendTo: document.body,
+            disableMobile: true,
+            onChange: function(selectedDates) {
+                if (selectedDates && selectedDates[0]) {
+                    calendar.gotoDate(selectedDates[0]);
+                }
+            }
+        });
+        window.agendaToolbarDateFlatpickr = fp;
+        return fp;
+    }
+
+    function openAgendaToolbarDatePicker() {
+        if (!calendar) {
+            return;
+        }
+        var fp = ensureAgendaToolbarDateFlatpickr();
+        if (!fp) {
+            return;
+        }
+        var btn = calendarEl.querySelector('.fc-currentDate-button');
+        if (btn) {
+            fp._positionElement = btn;
+        }
+        fp.setDate(calendar.getDate(), false);
+        fp.open();
+    }
+
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'resourceTimeGridDay',
         locale: 'pt',
@@ -3383,7 +3425,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentDate: {
                 text: '',
                 click: function() {
-                    // Botão apenas informativo (título), não faz nada
+                    openAgendaToolbarDatePicker();
                 }
             },
             viewSelector: {
@@ -3966,11 +4008,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 var startDate = viewType === 'dayGridMonth' ? calendar.view.currentStart : info.start;
                 if (currentDateBtn) {
                     currentDateBtn.textContent = formatCurrentDateButton(viewType, startDate, info.end);
-                    currentDateBtn.style.pointerEvents = 'none';
-                    currentDateBtn.style.cursor = 'default';
+                    currentDateBtn.style.pointerEvents = 'auto';
+                    currentDateBtn.style.cursor = 'pointer';
                     currentDateBtn.style.fontWeight = '500';
                     currentDateBtn.style.color = '#212529';
                     currentDateBtn.style.opacity = '1';
+                    currentDateBtn.setAttribute('title', 'Escolher data');
+                    currentDateBtn.setAttribute('aria-label', 'Escolher data');
                 }
                 if (viewSelectorBtn && viewSelectorBtn.dataset.initialized === '1') {
                     var viewLabels = {
@@ -4967,11 +5011,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Para vista mensal, usar currentStart que representa o início do mês visualizado
             const startDate = view.type === 'dayGridMonth' ? view.currentStart : view.activeStart;
             currentDateBtn.textContent = formatCurrentDateButton(view.type, startDate, view.activeEnd);
-            currentDateBtn.style.pointerEvents = 'none';
-            currentDateBtn.style.cursor = 'default';
+            currentDateBtn.style.pointerEvents = 'auto';
+            currentDateBtn.style.cursor = 'pointer';
             currentDateBtn.style.fontWeight = '500';
             currentDateBtn.style.color = '#212529';
             currentDateBtn.style.opacity = '1';
+            currentDateBtn.setAttribute('title', 'Escolher data');
+            currentDateBtn.setAttribute('aria-label', 'Escolher data');
         }
         
         // Garantir que prev/next têm apenas ícones

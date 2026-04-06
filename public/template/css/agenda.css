@@ -396,8 +396,9 @@ body .app-wrapper .container-fluid {
     border-left: none !important;
 }
 .fc-currentDate-button {
-    pointer-events: none;
-    cursor: default;
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
     font-weight: 500;
     background: var(--surface-color) !important;
     border: 1px solid var(--border-color) !important;
@@ -409,11 +410,16 @@ body .app-wrapper .container-fluid {
     border-radius: 0 !important;
 }
 .fc-currentDate-button:hover {
-    background: var(--surface-color) !important;
+    background: color-mix(in srgb, var(--surface-color), var(--heading-color) 6%) !important;
     color: var(--heading-color) !important;
 }
 .fc-viewSelector-button {
     margin-left: 0.55em !important;
+}
+
+/* Flatpickr (data pelo título): acima da toolbar e dos controlos flutuantes mobile */
+.flatpickr-calendar.open {
+    z-index: 1100;
 }
 
 /* Botões da toolbar (Hoje, setas, vista, filtro): cores do tema para suportar dark/light */
@@ -1972,6 +1978,9 @@ body.modal-open .agenda-mobile-controls {
         text-overflow: ellipsis;
         text-align: center;
         color: var(--heading-color) !important;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        touch-action: manipulation;
     }
     .fc .fc-currentDate-button:hover,
     .fc .fc-currentDate-button:focus,

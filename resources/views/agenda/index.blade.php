@@ -10,6 +10,8 @@
     <div class="col-12 p-0">
         <div class="card border-0 shadow-none">
             <div class="card-body p-0">
+                <!-- Âncora invisível para o Flatpickr ao clicar no título da data na toolbar -->
+                <input type="text" id="agendaToolbarDatePicker" class="visually-hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
                 <div id="calendar"></div>
             </div>
         </div>
