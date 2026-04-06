@@ -1808,3 +1808,118 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay {
 #agendaDragConfirmModal.modal {
     z-index: 1080;
 }
+
+/* Mobile agenda controls (toolbar compact + floating actions) */
+.agenda-mobile-controls {
+    position: fixed;
+    inset: auto 0 0 0;
+    pointer-events: none;
+    z-index: 1040;
+    display: none;
+}
+.agenda-mobile-controls.is-visible {
+    display: block;
+}
+body.modal-open .agenda-mobile-controls {
+    display: none !important;
+}
+.agenda-mobile-fab {
+    position: fixed;
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md, 0 0.35rem 0.8rem rgba(0, 0, 0, 0.18));
+    cursor: pointer;
+    pointer-events: auto;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.agenda-mobile-fab:hover {
+    transform: translateY(-1px);
+}
+.agenda-mobile-fab i {
+    font-size: 1rem;
+    line-height: 1;
+}
+.agenda-mobile-fab-primary {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: #fff;
+}
+.agenda-mobile-fab-secondary,
+.agenda-mobile-fab-ghost {
+    background: var(--surface-color);
+    color: var(--heading-color);
+}
+.agenda-mobile-fab-refresh {
+    left: 0.75rem;
+    bottom: 0.85rem;
+}
+.agenda-mobile-fab-eye {
+    right: 0.75rem;
+    bottom: 4.75rem;
+}
+.agenda-mobile-fab-add {
+    right: 0.75rem;
+    bottom: 0.85rem;
+}
+.agenda-mobile-fab.is-loading i {
+    animation: agenda-mobile-spin 0.7s linear infinite;
+}
+@keyframes agenda-mobile-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.agenda-mobile-sheet-dialog {
+    margin: 0.5rem;
+}
+.agenda-mobile-sheet .list-group-item.active {
+    background-color: color-mix(in srgb, var(--accent-color), #fff 88%);
+    color: var(--heading-color);
+    border-color: var(--border-color);
+}
+
+@media (max-width: 991.98px) {
+    #calendar {
+        height: calc(100dvh - 56px);
+    }
+    .fc-header-toolbar {
+        padding: 0.35rem 0.5rem 0.2rem 0.5rem !important;
+        justify-content: center !important;
+    }
+    .fc .fc-toolbar.fc-header-toolbar {
+        margin-bottom: 0.25rem;
+    }
+    .fc-header-toolbar .fc-toolbar-chunk:first-child {
+        width: 100%;
+        justify-content: center !important;
+        display: flex !important;
+    }
+    .fc-header-toolbar .fc-toolbar-chunk:last-child {
+        display: none !important;
+    }
+    .fc-today-button,
+    .fc-refreshAgenda-button {
+        display: none !important;
+    }
+    .fc-prev-button,
+    .fc-next-button {
+        padding: 0.2rem 0.45rem !important;
+    }
+    .fc-currentDate-button {
+        width: auto !important;
+        min-width: 84vw;
+        max-width: 84vw;
+        padding: 0.4rem 0.5rem !important;
+        font-size: 0.78rem !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .agenda-slot-24h-toggle {
+        display: none !important;
+    }
+}

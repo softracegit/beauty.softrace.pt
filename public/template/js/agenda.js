@@ -44,6 +44,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     let agendaSlot24hEnabled = readAgendaSlot24hPreference();
     var initialAgendaSlots = getAgendaSlotRange(agendaSlot24hEnabled);
+    function isAgendaMobileViewport() {
+        return window.matchMedia('(max-width: 991.98px)').matches;
+    }
 
     function viewSupportsConsultantFilter(viewType) {
         return viewType === 'resourceTimeGridDay' || viewType === 'timeGridWeek' || viewType === 'timeGridThreeDay';
@@ -3206,6 +3209,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function ensureAgendaSlot24hToggle() {
+        if (isAgendaMobileViewport()) return;
         var leftChunk = calendarEl.querySelector('.fc-header-toolbar .fc-toolbar-chunk');
         if (!leftChunk) return;
         var existing = leftChunk.querySelector('#agendaSlot24hToggle');
@@ -3343,6 +3347,14 @@ document.addEventListener('DOMContentLoaded', function() {
         bootstrap.Modal.getOrCreateInstance($id('agendaDragConfirmModal')).show();
     }
 
+    function refreshAgendaData() {
+        if (!calendar) return;
+        if (isResourceTimeGridDayView(calendar.view.type)) {
+            calendar.refetchResources();
+        }
+        calendar.refetchEvents();
+    }
+
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'resourceTimeGridDay',
         locale: 'pt',
@@ -3369,9 +3381,7 @@ document.addEventListener('DOMContentLoaded', function() {
             refreshAgenda: {
                 text: '',
                 click: function() {
-                    if (typeof calendar !== 'undefined') {
-                        calendar.refetchEvents();
-                    }
+                    refreshAgendaData();
                 }
             },
             adicionarDropdown: {
@@ -3944,6 +3954,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
                 applyHolidayClassesToTimeGridColumns();
+                syncAgendaMobileControls();
             });
         },
         viewDidMount: function(info) {
@@ -3974,6 +3985,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
                 applyHolidayClassesToTimeGridColumns();
+                syncAgendaMobileControls();
             });
             setTimeout(function() {
                 initViewSelectorDropdown();
@@ -4006,6 +4018,215 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     calendar.render();
+
+    let agendaMobileControlsBound = false;
+    function ensureAgendaMobileControls() {
+        if (document.getElementById('agendaMobileControls')) return;
+        var controls = document.createElement('div');
+        controls.id = 'agendaMobileControls';
+        controls.className = 'agenda-mobile-controls';
+        controls.innerHTML =
+            '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-secondary agenda-mobile-fab-refresh" id="agendaMobileRefreshBtn" aria-label="Atualizar agenda" title="Atualizar">' +
+                '<i class="ph ph-arrow-clockwise"></i>' +
+            '</button>' +
+            '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-ghost agenda-mobile-fab-eye" id="agendaMobileViewBtn" aria-label="Mudar vista" title="Vista">' +
+                '<i class="ph ph-eye"></i>' +
+            '</button>' +
+            '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-primary agenda-mobile-fab-add" id="agendaMobileAddBtn" aria-label="Adicionar" title="Adicionar">' +
+                '<i class="ph ph-plus"></i>' +
+            '</button>';
+        document.body.appendChild(controls);
+    }
+
+    function ensureAgendaMobileModals() {
+        if (!document.getElementById('agendaMobileViewModal')) {
+            var viewModal = document.createElement('div');
+            viewModal.className = 'modal fade';
+            viewModal.id = 'agendaMobileViewModal';
+            viewModal.tabIndex = -1;
+            viewModal.setAttribute('aria-labelledby', 'agendaMobileViewModalLabel');
+            viewModal.setAttribute('aria-hidden', 'true');
+            viewModal.innerHTML =
+                '<div class="modal-dialog modal-dialog-centered modal-sm agenda-mobile-sheet-dialog">' +
+                    '<div class="modal-content agenda-mobile-sheet">' +
+                        '<div class="modal-header pb-2">' +
+                            '<h5 class="modal-title" id="agendaMobileViewModalLabel">Vista</h5>' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>' +
+                        '</div>' +
+                        '<div class="modal-body pt-2">' +
+                            '<label class="form-label small text-muted mb-2">Vista</label>' +
+                            '<div class="list-group list-group-flush mb-3" id="agendaMobileViewList"></div>' +
+                            '<label class="form-label small text-muted mb-1">Equipa</label>' +
+                            '<select id="agendaMobileConsultantSelect" class="form-select form-select-sm mb-3"></select>' +
+                            '<div class="form-check form-switch">' +
+                                '<input class="form-check-input" type="checkbox" id="agendaMobileSlot24hToggle">' +
+                                '<label class="form-check-label" for="agendaMobileSlot24hToggle">Mostrar 24 horas</label>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(viewModal);
+        }
+
+        if (!document.getElementById('agendaMobileAddModal')) {
+            var addModal = document.createElement('div');
+            addModal.className = 'modal fade';
+            addModal.id = 'agendaMobileAddModal';
+            addModal.tabIndex = -1;
+            addModal.setAttribute('aria-labelledby', 'agendaMobileAddModalLabel');
+            addModal.setAttribute('aria-hidden', 'true');
+            addModal.innerHTML =
+                '<div class="modal-dialog modal-dialog-centered modal-sm agenda-mobile-sheet-dialog">' +
+                    '<div class="modal-content agenda-mobile-sheet">' +
+                        '<div class="modal-header pb-2">' +
+                            '<h5 class="modal-title" id="agendaMobileAddModalLabel">Adicionar</h5>' +
+                            '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>' +
+                        '</div>' +
+                        '<div class="modal-body pt-2">' +
+                            '<div class="d-grid gap-2">' +
+                                '<button type="button" class="btn btn-outline-primary btn-sm" id="agendaMobileAddBookingBtn"><i class="bi bi-calendar-check me-1"></i>Nova marcação</button>' +
+                                '<button type="button" class="btn btn-outline-secondary btn-sm" id="agendaMobileAddPersonalTimeBtn"><i class="bi bi-person me-1"></i>Novo tempo pessoal</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(addModal);
+        }
+    }
+
+    function updateAgendaMobileViewList() {
+        var list = document.getElementById('agendaMobileViewList');
+        if (!list) return;
+        var views = [
+            { type: 'resourceTimeGridDay', label: 'Dia' },
+            { type: 'timeGridThreeDay', label: '3 dias' },
+            { type: 'timeGridWeek', label: 'Semana' }
+        ];
+        list.innerHTML = '';
+        views.forEach(function(view) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'list-group-item list-group-item-action d-flex align-items-center justify-content-between' + (calendar.view.type === view.type ? ' active' : '');
+            btn.setAttribute('data-view-type', view.type);
+            btn.innerHTML = '<span>' + view.label + '</span>' + (calendar.view.type === view.type ? '<i class="ph ph-check"></i>' : '');
+            btn.addEventListener('click', function() {
+                calendar.changeView(view.type);
+                calendar.gotoDate(new Date());
+                updateViewSelectorButton(view.type);
+                updateViewDropdownActive(view.type);
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('agendaMobileViewModal')).hide();
+                syncAgendaMobileControls();
+            });
+            list.appendChild(btn);
+        });
+    }
+
+    function updateAgendaMobileFilterOptions() {
+        var select = document.getElementById('agendaMobileConsultantSelect');
+        var toggle24h = document.getElementById('agendaMobileSlot24hToggle');
+        if (!select || !toggle24h) return;
+
+        var supportsFilter = viewSupportsConsultantFilter(calendar.view.type);
+        select.innerHTML = '';
+        var allOpt = document.createElement('option');
+        allOpt.value = '';
+        allOpt.textContent = 'Toda a equipa';
+        select.appendChild(allOpt);
+        (C.usersForConsultant || []).forEach(function(u) {
+            var opt = document.createElement('option');
+            opt.value = String(u.id);
+            opt.textContent = u.name;
+            select.appendChild(opt);
+        });
+        select.value = selectedConsultantId || '';
+        select.disabled = !supportsFilter;
+        toggle24h.checked = !!agendaSlot24hEnabled;
+    }
+
+    function bindAgendaMobileControls() {
+        if (agendaMobileControlsBound) return;
+        agendaMobileControlsBound = true;
+
+        document.getElementById('agendaMobileRefreshBtn')?.addEventListener('click', function() {
+            var btn = this;
+            btn.classList.add('is-loading');
+            refreshAgendaData();
+            setTimeout(function() { btn.classList.remove('is-loading'); }, 500);
+        });
+
+        document.getElementById('agendaMobileViewBtn')?.addEventListener('click', function() {
+            updateAgendaMobileViewList();
+            if (allResources.length === 0 && resourcesUrl) {
+                fetch(resourcesUrl, { headers: { 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) { allResources = res || []; })
+                    .catch(function() {});
+            }
+            updateAgendaMobileFilterOptions();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('agendaMobileViewModal')).show();
+        });
+
+        document.getElementById('agendaMobileAddBtn')?.addEventListener('click', function() {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('agendaMobileAddModal')).show();
+        });
+
+        document.getElementById('agendaMobileConsultantSelect')?.addEventListener('change', function() {
+            var selectedId = this.value || '';
+            var label = 'Toda a equipa';
+            if (selectedId) {
+                var selectedUser = (C.usersForConsultant || []).find(function(u) { return String(u.id) === String(selectedId); });
+                label = selectedUser ? selectedUser.name : label;
+            }
+            setConsultantFilterSelection(selectedId, label);
+        });
+
+        document.getElementById('agendaMobileSlot24hToggle')?.addEventListener('change', function() {
+            agendaSlot24hEnabled = this.checked;
+            var r = getAgendaSlotRange(agendaSlot24hEnabled);
+            calendar.setOption('slotMinTime', r.min);
+            calendar.setOption('slotMaxTime', r.max);
+            try {
+                localStorage.setItem(AGENDA_SLOT_STORAGE_KEY, agendaSlot24hEnabled ? '1' : '0');
+            } catch (e) {}
+            if (calendar.view.type.indexOf('timeGrid') !== -1 || calendar.view.type.indexOf('resourceTimeGrid') !== -1) {
+                setTimeout(function() {
+                    var now = new Date();
+                    var currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':00';
+                    calendar.scrollToTime(currentTime);
+                }, 50);
+            }
+        });
+
+        document.getElementById('agendaMobileAddBookingBtn')?.addEventListener('click', function() {
+            var slot = getClosestSlotToNow();
+            var resourceId = (viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null;
+            openNovaMarcacaoModal(slot.startStr, slot.endStr, resourceId);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('agendaMobileAddModal')).hide();
+        });
+
+        document.getElementById('agendaMobileAddPersonalTimeBtn')?.addEventListener('click', function() {
+            var slot = getClosestSlotToNow();
+            var resourceId = (viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null;
+            openTempoPessoalModal(slot.startStr, slot.endStr, resourceId);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('agendaMobileAddModal')).hide();
+        });
+    }
+
+    function syncAgendaMobileControls() {
+        var controls = document.getElementById('agendaMobileControls');
+        if (!controls) return;
+        var isMobile = isAgendaMobileViewport();
+        controls.classList.toggle('is-visible', isMobile);
+        if (!isMobile) return;
+        updateAgendaMobileViewList();
+        updateAgendaMobileFilterOptions();
+    }
+
+    ensureAgendaMobileControls();
+    ensureAgendaMobileModals();
+    bindAgendaMobileControls();
+    syncAgendaMobileControls();
+    window.addEventListener('resize', syncAgendaMobileControls);
 
     // Clique no ícone de estado: abre só o dropdown de estados (não o modal). Captura em fase capture para correr antes do eventClick do FullCalendar.
     // Marcações faturadas (has_invoice): não abrir menu.
@@ -4437,6 +4658,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 50);
     }, 100);
 
+    function setConsultantFilterSelection(userId, userLabel) {
+        selectedConsultantId = userId ? String(userId) : '';
+        consultantFilterIds = selectedConsultantId ? [selectedConsultantId] : [];
+        const consultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
+        if (consultantBtn) {
+            consultantBtn.textContent = userLabel || 'Toda a equipa';
+        }
+        refreshAgendaData();
+        updateDropdownActive();
+        syncAgendaMobileControls();
+    }
+
     // Inicializar dropdown de consultores após render
     function initConsultantDropdown() {
         const consultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
@@ -4527,15 +4760,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allOption.textContent = 'Toda a equipa';
         allOption.addEventListener('click', function(e) {
             e.preventDefault();
-            selectedConsultantId = '';
-            consultantFilterIds = [];
-            consultantBtn.textContent = '';
-            consultantBtn.textContent = 'Toda a equipa';
-            if (isResourceTimeGridDayView(calendar.view.type)) {
-                calendar.refetchResources();
-            }
-            calendar.refetchEvents();
-            updateDropdownActive();
+            setConsultantFilterSelection('', 'Toda a equipa');
         });
         dropdown.appendChild(allOption);
         (C.usersForConsultant || []).forEach(function(u) {
@@ -4545,14 +4770,7 @@ document.addEventListener('DOMContentLoaded', function() {
             opt.textContent = u.name;
             opt.addEventListener('click', function(e) {
                 e.preventDefault();
-                selectedConsultantId = String(u.id);
-                consultantFilterIds = [String(u.id)];
-                consultantBtn.textContent = u.name;
-                if (isResourceTimeGridDayView(calendar.view.type)) {
-                    calendar.refetchResources();
-                }
-                calendar.refetchEvents();
-                updateDropdownActive();
+                setConsultantFilterSelection(String(u.id), u.name);
             });
             dropdown.appendChild(opt);
         });
