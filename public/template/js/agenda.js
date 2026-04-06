@@ -4028,7 +4028,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 
-    /** Navegação por swipe (mobile): substitui as setas na toolbar + animação slide. */
+    /** Navegação por swipe (mobile): substitui as setas na toolbar + slide (arraste em tempo real + commit ao largar). */
     (function setupAgendaSwipeNavigation() {
         var startX = 0;
         var startY = 0;
@@ -4039,6 +4039,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var cooldownMs = 700;
         var agendaSlideLocked = false;
         var SLIDE_MS = 280;
+
+        var swipeActive = false;
+        var currentDragPx = 0;
+        var lastVelX = 0;
+        var lastMoveX = 0;
+        var lastMoveT = 0;
 
         function prefersReducedMotion() {
             try {
@@ -4055,6 +4061,24 @@ document.addEventListener('DOMContentLoaded', function() {
             return calendarEl.querySelector(':scope > .fc') || calendarEl;
         }
 
+        function getSlideWidth() {
+            var slideRoot = getSlideRoot();
+            return slideRoot ? slideRoot.offsetWidth || 0 : 0;
+        }
+
+        function clampDragPx(dx, w) {
+            if (!w) return dx;
+            var max = w;
+            var min = -w;
+            if (dx > max) {
+                return max + (dx - max) * 0.22;
+            }
+            if (dx < min) {
+                return min + (dx - min) * 0.22;
+            }
+            return dx;
+        }
+
         function agendaNavigateSlideCleanup() {
             var slideRoot = getSlideRoot();
             if (slideRoot) {
@@ -4068,9 +4092,42 @@ document.addEventListener('DOMContentLoaded', function() {
             lastNavAt = Date.now();
         }
 
-        function agendaNavigateWithSlide(direction) {
+        function agendaSwipeDragReset() {
+            swipeActive = false;
+            currentDragPx = 0;
+            lastVelX = 0;
+            calendarEl.classList.remove('agenda-swipe-dragging');
+            var slideRoot = getSlideRoot();
+            if (slideRoot) {
+                slideRoot.style.transition = '';
+                slideRoot.style.transform = '';
+                slideRoot.style.willChange = '';
+            }
+            calendarEl.style.overflow = '';
+        }
+
+        function agendaSwipeSnapBack(fromPx) {
+            var slideRoot = getSlideRoot();
+            if (!slideRoot) {
+                agendaSwipeDragReset();
+                return;
+            }
+            calendarEl.classList.remove('agenda-swipe-dragging');
+            slideRoot.style.willChange = 'transform';
+            slideRoot.style.transition = 'transform 240ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+            slideRoot.style.transform = 'translateX(0px)';
+            setTimeout(function() {
+                agendaSwipeDragReset();
+            }, 250);
+        }
+
+        /**
+         * Completa o slide a partir da posição atual do arraste (px), depois troca o dia e anima a entrada.
+         */
+        function agendaNavigateWithSlideFromDrag(direction, startPxPx) {
             var isNext = direction === 'next';
             if (!isAgendaMobileViewport() || prefersReducedMotion()) {
+                agendaSwipeDragReset();
                 if (isNext) {
                     calendar.next();
                 } else {
@@ -4083,7 +4140,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             var slideRoot = getSlideRoot();
-            if (!slideRoot) {
+            var w = getSlideWidth();
+            if (!slideRoot || !w) {
+                agendaSwipeDragReset();
                 if (isNext) {
                     calendar.next();
                 } else {
@@ -4093,16 +4152,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            var targetPx = isNext ? -w : w;
+            var remaining = Math.abs(targetPx - startPxPx);
+            var exitMs = Math.min(320, Math.max(90, remaining * 0.85));
+
             agendaSlideLocked = true;
+            calendarEl.classList.remove('agenda-swipe-dragging');
             calendarEl.classList.add('agenda-slide-running');
             calendarEl.style.overflow = 'hidden';
 
-            var outTx = isNext ? '-100%' : '100%';
-            var inFrom = isNext ? '100%' : '-100%';
-
             slideRoot.style.willChange = 'transform';
-            slideRoot.style.transition = 'transform ' + SLIDE_MS + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
-            slideRoot.style.transform = 'translateX(' + outTx + ')';
+            slideRoot.style.transition = 'transform ' + exitMs + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+            slideRoot.style.transform = 'translateX(' + targetPx + 'px)';
 
             setTimeout(function() {
                 if (isNext) {
@@ -4116,20 +4177,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     agendaNavigateSlideCleanup();
                     return;
                 }
+                var inFrom = isNext ? w : -w;
                 slideRoot.style.transition = 'none';
-                slideRoot.style.transform = 'translateX(' + inFrom + ')';
+                slideRoot.style.transform = 'translateX(' + inFrom + 'px)';
                 slideRoot.offsetHeight;
                 slideRoot.style.transition = 'transform ' + SLIDE_MS + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
                 requestAnimationFrame(function() {
                     requestAnimationFrame(function() {
-                        slideRoot.style.transform = 'translateX(0)';
+                        slideRoot.style.transform = 'translateX(0px)';
                     });
                 });
 
                 setTimeout(function() {
                     agendaNavigateSlideCleanup();
                 }, SLIDE_MS + 40);
-            }, SLIDE_MS);
+            }, exitMs);
+        }
+
+        function agendaNavigateWithSlide(direction) {
+            agendaNavigateWithSlideFromDrag(direction, 0);
         }
 
         function swipeTargetOk(el) {
@@ -4145,32 +4211,113 @@ document.addEventListener('DOMContentLoaded', function() {
             if (agendaSlideLocked) return;
             if (e.touches.length !== 1) return;
             var t = e.touches[0];
+            if (!swipeTargetOk(t.target)) return;
             touchId = t.identifier;
             startX = t.clientX;
             startY = t.clientY;
+            swipeActive = false;
+            currentDragPx = 0;
+            lastVelX = 0;
+            lastMoveX = t.clientX;
+            lastMoveT = Date.now();
         }, { passive: true });
+
+        calendarEl.addEventListener('touchmove', function(e) {
+            if (!isAgendaMobileViewport()) return;
+            if (agendaSlideLocked) return;
+            if (touchId === null) return;
+            if (prefersReducedMotion()) return;
+            var t = null;
+            for (var i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].identifier === touchId) {
+                    t = e.touches[i];
+                    break;
+                }
+            }
+            if (!t) return;
+
+            var dx = t.clientX - startX;
+            var dy = t.clientY - startY;
+
+            if (!swipeActive) {
+                if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx) * 1.12) {
+                    touchId = null;
+                    return;
+                }
+                if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.05) {
+                    swipeActive = true;
+                    calendarEl.classList.add('agenda-swipe-dragging');
+                    calendarEl.style.overflow = 'hidden';
+                } else {
+                    return;
+                }
+            }
+
+            var w = getSlideWidth();
+            currentDragPx = clampDragPx(dx, w);
+            var slideRoot = getSlideRoot();
+            if (slideRoot) {
+                slideRoot.style.willChange = 'transform';
+                slideRoot.style.transition = 'none';
+                slideRoot.style.transform = 'translateX(' + currentDragPx + 'px)';
+            }
+            var now = Date.now();
+            lastVelX = (t.clientX - lastMoveX) / Math.max(1, now - lastMoveT);
+            lastMoveX = t.clientX;
+            lastMoveT = now;
+
+            e.preventDefault();
+        }, { passive: false });
 
         calendarEl.addEventListener('touchend', function(e) {
             if (!isAgendaMobileViewport()) return;
             if (agendaSlideLocked) return;
             if (touchId === null) return;
             var touch = null;
-            for (var i = 0; i < e.changedTouches.length; i++) {
-                if (e.changedTouches[i].identifier === touchId) {
-                    touch = e.changedTouches[i];
+            for (var j = 0; j < e.changedTouches.length; j++) {
+                if (e.changedTouches[j].identifier === touchId) {
+                    touch = e.changedTouches[j];
                     break;
                 }
             }
             touchId = null;
+
+            if (swipeActive) {
+                if (!touch || !swipeTargetOk(e.target)) {
+                    agendaSwipeSnapBack(currentDragPx);
+                    swipeActive = false;
+                    return;
+                }
+                var w = getSlideWidth();
+                var dx = touch.clientX - startX;
+                var commitDist = w * 0.26;
+                var velOk = Math.abs(lastVelX) > 0.42 && Math.abs(dx) > 22;
+                var velMatches = velOk && (dx < 0 ? lastVelX < 0 : lastVelX > 0);
+                var distOk = Math.abs(dx) >= commitDist;
+                var shouldCommit = (distOk || velMatches) && Date.now() - lastNavAt >= cooldownMs;
+
+                if (shouldCommit) {
+                    if (dx < 0) {
+                        agendaNavigateWithSlideFromDrag('next', currentDragPx);
+                    } else {
+                        agendaNavigateWithSlideFromDrag('prev', currentDragPx);
+                    }
+                } else {
+                    agendaSwipeSnapBack(currentDragPx);
+                }
+                swipeActive = false;
+                return;
+            }
+
             if (!touch || !swipeTargetOk(e.target)) return;
 
-            var dx = touch.clientX - startX;
-            var dy = touch.clientY - startY;
-            if (Math.abs(dx) < minDx) return;
-            if (Math.abs(dx) < Math.abs(dy) * minRatio) return;
+            var dxEnd = touch.clientX - startX;
+            var dyEnd = touch.clientY - startY;
+            if (Math.abs(dxEnd) < minDx) return;
+            if (Math.abs(dxEnd) < Math.abs(dyEnd) * minRatio) return;
             if (Date.now() - lastNavAt < cooldownMs) return;
 
-            if (dx < 0) {
+            if (dxEnd < 0) {
                 agendaNavigateWithSlide('next');
             } else {
                 agendaNavigateWithSlide('prev');
@@ -4178,7 +4325,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: true });
 
         calendarEl.addEventListener('touchcancel', function() {
+            if (touchId === null) return;
             touchId = null;
+            if (swipeActive) {
+                agendaSwipeSnapBack(currentDragPx);
+                swipeActive = false;
+            }
         }, { passive: true });
     })();
 
@@ -4189,8 +4341,8 @@ document.addEventListener('DOMContentLoaded', function() {
         controls.id = 'agendaMobileControls';
         controls.className = 'agenda-mobile-controls';
         controls.innerHTML =
-            '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-ghost agenda-mobile-fab-eye" id="agendaMobileViewBtn" aria-label="Vista e filtros" title="Vista e filtros">' +
-                '<i class="ph ph-eye"></i>' +
+            '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-ghost agenda-mobile-fab-cog" id="agendaMobileViewBtn" aria-label="Opções" title="Opções">' +
+                '<i class="ph ph-gear-six"></i>' +
             '</button>' +
             '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-secondary agenda-mobile-fab-refresh" id="agendaMobileRefreshBtn" aria-label="Atualizar agenda" title="Atualizar">' +
                 '<i class="ph ph-arrow-clockwise"></i>' +
@@ -4213,17 +4365,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<div class="modal-dialog modal-dialog-centered modal-sm agenda-mobile-sheet-dialog">' +
                     '<div class="modal-content agenda-mobile-sheet">' +
                         '<div class="modal-header pb-2">' +
-                            '<h5 class="modal-title" id="agendaMobileViewModalLabel">Vista</h5>' +
+                            '<h5 class="modal-title" id="agendaMobileViewModalLabel">Opções</h5>' +
                             '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>' +
                         '</div>' +
                         '<div class="modal-body pt-2">' +
-                            '<label class="form-label small text-muted mb-2">Vista</label>' +
-                            '<div class="list-group list-group-flush mb-3" id="agendaMobileViewList"></div>' +
-                            '<label class="form-label small text-muted mb-1">Equipa</label>' +
-                            '<select id="agendaMobileConsultantSelect" class="form-select form-select-sm mb-3"></select>' +
-                            '<div class="form-check form-switch">' +
-                                '<input class="form-check-input" type="checkbox" id="agendaMobileSlot24hToggle">' +
-                                '<label class="form-check-label" for="agendaMobileSlot24hToggle">Mostrar 24 horas</label>' +
+                            '<div class="agenda-mobile-option-group">' +
+                                '<label class="form-label small text-muted mb-2">Vista</label>' +
+                                '<div class="list-group list-group-flush" id="agendaMobileViewList"></div>' +
+                            '</div>' +
+                            '<div class="agenda-mobile-option-group">' +
+                                '<label class="form-label small text-muted mb-2">Equipa</label>' +
+                                '<select id="agendaMobileConsultantSelect" class="form-select form-select-sm"></select>' +
+                            '</div>' +
+                            '<div class="agenda-mobile-option-group">' +
+                                '<div class="form-check form-switch mb-0">' +
+                                    '<input class="form-check-input" type="checkbox" id="agendaMobileSlot24hToggle">' +
+                                    '<label class="form-check-label" for="agendaMobileSlot24hToggle">Mostrar 24 horas</label>' +
+                                '</div>' +
                             '</div>' +
                         '</div>' +
                     '</div>' +

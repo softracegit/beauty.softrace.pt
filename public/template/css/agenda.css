@@ -1854,7 +1854,7 @@ body.modal-open .agenda-mobile-controls {
     background: var(--surface-color);
     color: var(--heading-color);
 }
-/* Empilhados à direita, de baixo para cima: Adicionar, Refresh, Eye (mais compacto) */
+/* Empilhados à direita, de baixo para cima: Adicionar, Refresh, Opções (engrenagem) */
 .agenda-mobile-fab-add {
     right: 0.75rem;
     bottom: 0.85rem;
@@ -1863,7 +1863,7 @@ body.modal-open .agenda-mobile-controls {
     right: 0.75rem;
     bottom: calc(0.85rem + 42px + 6px);
 }
-.agenda-mobile-fab-eye {
+.agenda-mobile-fab-cog {
     right: 0.75rem;
     bottom: calc(0.85rem + (42px + 6px) * 2);
 }
@@ -1882,6 +1882,13 @@ body.modal-open .agenda-mobile-controls {
     color: var(--heading-color);
     border-color: var(--border-color);
 }
+/* Modal Opções: espaço entre Vista, Equipa e 24h */
+#agendaMobileViewModal .agenda-mobile-option-group:not(:last-child) {
+    margin-bottom: 1.5rem;
+}
+#agendaMobileViewModal .agenda-mobile-option-group .form-label {
+    display: block;
+}
 
 @media (max-width: 991.98px) {
     #calendar {
@@ -1891,6 +1898,11 @@ body.modal-open .agenda-mobile-controls {
     #calendar.agenda-slide-running {
         pointer-events: none;
         touch-action: none;
+    }
+    /* Arraste horizontal em tempo real (segue o dedo; bloqueia scroll até largar) */
+    #calendar.agenda-swipe-dragging {
+        touch-action: none;
+        overflow: hidden;
     }
     .fc-header-toolbar {
         padding: 0.2rem 0.5rem 0.12rem 0.5rem !important;
