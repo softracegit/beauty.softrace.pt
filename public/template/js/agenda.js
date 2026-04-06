@@ -55,6 +55,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return viewType === 'resourceTimeGridDay';
     }
 
+    /** Primeiro nome (primeira palavra) para cabeçalhos de coluna das técnicas. */
+    function agendaTechnicianFirstName(fullName) {
+        if (fullName == null || typeof fullName !== 'string') return '';
+        var t = fullName.trim();
+        if (!t) return '';
+        var parts = t.split(/\s+/u);
+        return parts[0] || t;
+    }
+
     const DAYS_SHORT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const DAYS_LONG = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     const MONTHS_SHORT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -3656,7 +3665,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         resourceLabelContent: function(arg) {
             const res = arg.resource;
-            const title = (res.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            const title = agendaTechnicianFirstName(res.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             const ext = res.extendedProps || {};
             const avatarUrl = ext.avatarUrl || '';
             if (!avatarUrl) {
@@ -4019,6 +4028,160 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 
+    /** Navegação por swipe (mobile): substitui as setas na toolbar + animação slide. */
+    (function setupAgendaSwipeNavigation() {
+        var startX = 0;
+        var startY = 0;
+        var touchId = null;
+        var lastNavAt = 0;
+        var minDx = 56;
+        var minRatio = 1.2;
+        var cooldownMs = 700;
+        var agendaSlideLocked = false;
+        var SLIDE_MS = 280;
+
+        function prefersReducedMotion() {
+            try {
+                return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function getSlideRoot() {
+            if (calendarEl.classList && calendarEl.classList.contains('fc')) {
+                return calendarEl;
+            }
+            return calendarEl.querySelector(':scope > .fc') || calendarEl;
+        }
+
+        function agendaNavigateSlideCleanup() {
+            var slideRoot = getSlideRoot();
+            if (slideRoot) {
+                slideRoot.style.transition = '';
+                slideRoot.style.transform = '';
+                slideRoot.style.willChange = '';
+            }
+            calendarEl.classList.remove('agenda-slide-running');
+            calendarEl.style.overflow = '';
+            agendaSlideLocked = false;
+            lastNavAt = Date.now();
+        }
+
+        function agendaNavigateWithSlide(direction) {
+            var isNext = direction === 'next';
+            if (!isAgendaMobileViewport() || prefersReducedMotion()) {
+                if (isNext) {
+                    calendar.next();
+                } else {
+                    calendar.prev();
+                }
+                lastNavAt = Date.now();
+                return;
+            }
+            if (agendaSlideLocked) {
+                return;
+            }
+            var slideRoot = getSlideRoot();
+            if (!slideRoot) {
+                if (isNext) {
+                    calendar.next();
+                } else {
+                    calendar.prev();
+                }
+                lastNavAt = Date.now();
+                return;
+            }
+
+            agendaSlideLocked = true;
+            calendarEl.classList.add('agenda-slide-running');
+            calendarEl.style.overflow = 'hidden';
+
+            var outTx = isNext ? '-100%' : '100%';
+            var inFrom = isNext ? '100%' : '-100%';
+
+            slideRoot.style.willChange = 'transform';
+            slideRoot.style.transition = 'transform ' + SLIDE_MS + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+            slideRoot.style.transform = 'translateX(' + outTx + ')';
+
+            setTimeout(function() {
+                if (isNext) {
+                    calendar.next();
+                } else {
+                    calendar.prev();
+                }
+
+                slideRoot = getSlideRoot();
+                if (!slideRoot) {
+                    agendaNavigateSlideCleanup();
+                    return;
+                }
+                slideRoot.style.transition = 'none';
+                slideRoot.style.transform = 'translateX(' + inFrom + ')';
+                slideRoot.offsetHeight;
+                slideRoot.style.transition = 'transform ' + SLIDE_MS + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        slideRoot.style.transform = 'translateX(0)';
+                    });
+                });
+
+                setTimeout(function() {
+                    agendaNavigateSlideCleanup();
+                }, SLIDE_MS + 40);
+            }, SLIDE_MS);
+        }
+
+        function swipeTargetOk(el) {
+            if (!el || !calendarEl.contains(el)) return false;
+            if (el.closest('.fc-event')) return false;
+            if (el.closest('a, button, input, select, textarea, label')) return false;
+            if (el.closest('.modal')) return false;
+            return true;
+        }
+
+        calendarEl.addEventListener('touchstart', function(e) {
+            if (!isAgendaMobileViewport()) return;
+            if (agendaSlideLocked) return;
+            if (e.touches.length !== 1) return;
+            var t = e.touches[0];
+            touchId = t.identifier;
+            startX = t.clientX;
+            startY = t.clientY;
+        }, { passive: true });
+
+        calendarEl.addEventListener('touchend', function(e) {
+            if (!isAgendaMobileViewport()) return;
+            if (agendaSlideLocked) return;
+            if (touchId === null) return;
+            var touch = null;
+            for (var i = 0; i < e.changedTouches.length; i++) {
+                if (e.changedTouches[i].identifier === touchId) {
+                    touch = e.changedTouches[i];
+                    break;
+                }
+            }
+            touchId = null;
+            if (!touch || !swipeTargetOk(e.target)) return;
+
+            var dx = touch.clientX - startX;
+            var dy = touch.clientY - startY;
+            if (Math.abs(dx) < minDx) return;
+            if (Math.abs(dx) < Math.abs(dy) * minRatio) return;
+            if (Date.now() - lastNavAt < cooldownMs) return;
+
+            if (dx < 0) {
+                agendaNavigateWithSlide('next');
+            } else {
+                agendaNavigateWithSlide('prev');
+            }
+        }, { passive: true });
+
+        calendarEl.addEventListener('touchcancel', function() {
+            touchId = null;
+        }, { passive: true });
+    })();
+
     let agendaMobileControlsBound = false;
     function ensureAgendaMobileControls() {
         if (document.getElementById('agendaMobileControls')) return;
@@ -4026,11 +4189,11 @@ document.addEventListener('DOMContentLoaded', function() {
         controls.id = 'agendaMobileControls';
         controls.className = 'agenda-mobile-controls';
         controls.innerHTML =
+            '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-ghost agenda-mobile-fab-eye" id="agendaMobileViewBtn" aria-label="Vista e filtros" title="Vista e filtros">' +
+                '<i class="ph ph-eye"></i>' +
+            '</button>' +
             '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-secondary agenda-mobile-fab-refresh" id="agendaMobileRefreshBtn" aria-label="Atualizar agenda" title="Atualizar">' +
                 '<i class="ph ph-arrow-clockwise"></i>' +
-            '</button>' +
-            '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-ghost agenda-mobile-fab-eye" id="agendaMobileViewBtn" aria-label="Mudar vista" title="Vista">' +
-                '<i class="ph ph-eye"></i>' +
             '</button>' +
             '<button type="button" class="agenda-mobile-fab agenda-mobile-fab-primary agenda-mobile-fab-add" id="agendaMobileAddBtn" aria-label="Adicionar" title="Adicionar">' +
                 '<i class="ph ph-plus"></i>' +
