@@ -349,8 +349,14 @@ document.addEventListener('DOMContentLoaded', function() {
             hideQuickMenu();
         }
 
+        /** No mobile, o browser dispara um `click` sintético após o toque que abriu o menu; ignoramos esse primeiro “fora” para não fechar logo. */
+        var suppressFirstOutsideClose = true;
         function closeHandler(e) {
             if (menu.contains(e.target)) return;
+            if (suppressFirstOutsideClose) {
+                suppressFirstOutsideClose = false;
+                return;
+            }
             hideQuickMenu();
         }
 
@@ -450,8 +456,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.removeEventListener('click', closeHandler);
             document.removeEventListener('keydown', escHandler);
         }
+        var suppressFirstOutsideCloseStatus = true;
         function closeHandler(e) {
             if (menu.contains(e.target)) return;
+            if (suppressFirstOutsideCloseStatus) {
+                suppressFirstOutsideCloseStatus = false;
+                return;
+            }
             hideMenu();
         }
         function escHandler(e) {
@@ -3641,7 +3652,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             ];
             clearAgendaHoverHighlight();
-            showQuickMenu(info.jsEvent.clientX, info.jsEvent.clientY, headingLabel, options);
+            var ev = info.jsEvent;
+            var cx = ev.clientX;
+            var cy = ev.clientY;
+            if ((cx == null || cy == null) || (cx === 0 && cy === 0)) {
+                var touch = (ev.changedTouches && ev.changedTouches[0]) || (ev.touches && ev.touches[0]);
+                if (touch) {
+                    cx = touch.clientX;
+                    cy = touch.clientY;
+                }
+            }
+            if (cx == null || cy == null || (cx === 0 && cy === 0)) {
+                var rect = calendarEl.getBoundingClientRect();
+                cx = rect.left + rect.width * 0.5;
+                cy = rect.top + rect.height * 0.45;
+            }
+            showQuickMenu(cx, cy, headingLabel, options);
         },
         resources: function(fetchInfo, successCallback, failureCallback) {
             fetch(resourcesUrl, { headers: { 'Accept': 'application/json' } })

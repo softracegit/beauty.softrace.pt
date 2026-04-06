@@ -8,6 +8,17 @@ body .main-content {
     padding: 0 !important;
 }
 
+/* Só na página do calendário: a coluna principal não estica para baixo do #calendar (evita faixa vazia + zona do “voltar ao topo”) */
+body.page-agenda .main {
+    min-height: auto;
+}
+body.page-agenda .main-content {
+    flex: 0 0 auto;
+}
+body.page-agenda .back-to-top {
+    display: none !important;
+}
+
 /* Esconder breadcrumbs na agenda */
 body .main-breadcrumb,
 body .main-breadcrumb * {
