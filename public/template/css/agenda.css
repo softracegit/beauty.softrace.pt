@@ -1911,24 +1911,26 @@ body.modal-open .agenda-mobile-controls {
     #calendar {
         height: calc(100dvh - 56px);
     }
-    /* Slide só na grelha; toolbar (título do dia) mantém-se fixa — clicável durante a animação */
+    .agenda-swipe-preview-layer {
+        position: absolute;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+        background: var(--bs-body-bg, #fff);
+        will-change: transform;
+    }
+    .agenda-swipe-preview-host {
+        width: 100%;
+        height: 100%;
+    }
+    /* Slide durante swipe: bloquear interação até terminar */
     #calendar.agenda-slide-running {
         pointer-events: none;
         touch-action: none;
     }
-    #calendar.agenda-slide-running .fc-header-toolbar {
-        pointer-events: auto;
-    }
     /* Arraste horizontal em tempo real (segue o dedo; bloqueia scroll até largar) */
     #calendar.agenda-swipe-dragging {
         touch-action: none;
-        overflow: hidden;
-    }
-    .fc-scrollgrid-section-body {
-        position: relative;
-    }
-    #calendar.agenda-swipe-dragging .fc-scrollgrid td.fc-scrollgrid-section-body,
-    #calendar.agenda-slide-running .fc-scrollgrid td.fc-scrollgrid-section-body {
         overflow: hidden;
     }
     .fc-header-toolbar {

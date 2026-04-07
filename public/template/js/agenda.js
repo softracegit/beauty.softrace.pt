@@ -4108,13 +4108,23 @@ document.addEventListener('DOMContentLoaded', function() {
         var minRatio = 1.2;
         var cooldownMs = 700;
         var agendaSlideLocked = false;
-        var SLIDE_MS = 280;
+        var SLIDE_MS = 250;
+        var SLIDE_EASING = 'cubic-bezier(0.22, 1, 0.36, 1)';
+        var SLIDE_BG = 'var(--bs-body-bg, #fff)';
 
         var swipeActive = false;
         var currentDragPx = 0;
         var lastVelX = 0;
         var lastMoveX = 0;
         var lastMoveT = 0;
+        var gestureAxisLock = null; // 'x' | 'y' | null
+        var agendaSwipePreviewLayer = null;
+        var agendaSwipePreviewHost = null;
+        var agendaSwipePreviewCalendar = null;
+        var agendaSwipePreviewDirection = null;
+        var agendaSwipePreviewLockedDirection = null;
+        var agendaSwipePreviewParent = null;
+        var agendaSwipePreviewParentPrevOverflow = '';
 
         function prefersReducedMotion() {
             try {
@@ -4145,52 +4155,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return td.querySelector('.fc-scroller-harness');
         }
 
-        /** Só a grelha (eventos); toolbar + título do dia ficam fora do transform. */
+        /** Slide global: move o calendário completo (toolbar + cabeçalhos + eixo + grelha). */
         function getSlideTransformEls() {
-            var out = [];
             var fcRoot = getFcRootEl();
-            var grid = fcRoot.querySelector('table.fc-scrollgrid');
-            var i;
-            if (grid) {
-                var tds = grid.querySelectorAll('tbody .fc-scrollgrid-section-body');
-                if (!tds.length) {
-                    tds = grid.querySelectorAll('td.fc-scrollgrid-section-body');
-                }
-                for (i = 0; i < tds.length; i++) {
-                    var harness = getScrollerHarnessInCell(tds[i]);
-                    out.push(harness || tds[i]);
-                }
-            }
-            if (!out.length && grid) {
-                var tgBody = grid.querySelector('.fc-timegrid-body');
-                if (tgBody) {
-                    var tdTg = tgBody.closest('td');
-                    if (tdTg) {
-                        var hh = getScrollerHarnessInCell(tdTg);
-                        out.push(hh || tdTg);
-                    }
-                }
-            }
-            if (!out.length && fcRoot.querySelector('.fc-timegrid-body')) {
-                var list = fcRoot.querySelectorAll('.fc-timegrid .fc-scroller-harness');
-                for (i = 0; i < list.length; i++) {
-                    out.push(list[i]);
-                }
-            }
-            if (out.length) {
-                return out;
-            }
-            var daygrid = fcRoot.querySelector('.fc-daygrid-body');
-            if (daygrid) {
-                var tdDg = daygrid.closest('td.fc-scrollgrid-section-body');
-                var h2 = getScrollerHarnessInCell(tdDg);
-                if (h2) {
-                    out.push(h2);
-                } else if (tdDg) {
-                    out.push(tdDg);
-                }
-            }
-            return out;
+            return fcRoot ? [fcRoot] : [];
         }
 
         function clearSlideElStyles() {
@@ -4199,20 +4167,190 @@ document.addEventListener('DOMContentLoaded', function() {
                 els[i].style.transition = '';
                 els[i].style.transform = '';
                 els[i].style.willChange = '';
+                els[i].style.background = '';
             }
         }
 
         function getSlideWidth() {
+            // Usar a largura do próprio painel que está a ser transformado.
+            // O preview deve ter exatamente o mesmo retângulo para não sobrepor.
             var els = getSlideTransformEls();
-            var w = els.length && els[0].offsetWidth ? els[0].offsetWidth : 0;
-            if (!w) {
-                var vh = calendarEl.querySelector('.fc-view-harness');
-                w = vh ? Math.round(vh.getBoundingClientRect().width) : 0;
+            if (els.length) {
+                var rw = Math.round(els[0].getBoundingClientRect().width);
+                if (rw > 0) return rw;
             }
-            if (!w && calendarEl) {
-                w = Math.round(calendarEl.getBoundingClientRect().width);
+            if (agendaSwipePreviewLayer) {
+                var pw = Math.round(agendaSwipePreviewLayer.getBoundingClientRect().width);
+                if (pw > 0) return pw;
             }
-            return w;
+            var vh = calendarEl.querySelector('.fc-view-harness');
+            if (vh) {
+                var vw = Math.round(vh.getBoundingClientRect().width);
+                if (vw > 0) return vw;
+            }
+            return calendarEl ? Math.round(calendarEl.getBoundingClientRect().width) : 0;
+        }
+
+        function getAdjacentDateForDirection(direction) {
+            try {
+                var view = calendar.view;
+                if (!view || !view.activeStart || !view.activeEnd) {
+                    return null;
+                }
+                var spanMs = view.activeEnd.getTime() - view.activeStart.getTime();
+                return new Date(view.activeStart.getTime() + (direction === 'next' ? spanMs : -spanMs));
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function destroyAgendaSwipePreview() {
+            agendaSwipePreviewDirection = null;
+            agendaSwipePreviewLockedDirection = null;
+            if (agendaSwipePreviewCalendar) {
+                try {
+                    agendaSwipePreviewCalendar.destroy();
+                } catch (e) {}
+                agendaSwipePreviewCalendar = null;
+            }
+            if (agendaSwipePreviewLayer && agendaSwipePreviewLayer.parentNode) {
+                agendaSwipePreviewLayer.parentNode.removeChild(agendaSwipePreviewLayer);
+            }
+            if (agendaSwipePreviewParent) {
+                agendaSwipePreviewParent.style.overflow = agendaSwipePreviewParentPrevOverflow || '';
+            }
+            agendaSwipePreviewLayer = null;
+            agendaSwipePreviewHost = null;
+            agendaSwipePreviewParent = null;
+            agendaSwipePreviewParentPrevOverflow = '';
+            calendarEl.style.zIndex = '';
+        }
+
+        function syncAgendaSwipePreviewBounds() {
+            if (!agendaSwipePreviewLayer || !calendarEl) return;
+            var parent = agendaSwipePreviewLayer.parentElement;
+            if (!parent) return;
+            var pr = parent.getBoundingClientRect();
+            var els = getSlideTransformEls();
+            var rr = els.length ? els[0].getBoundingClientRect() : calendarEl.getBoundingClientRect();
+            agendaSwipePreviewLayer.style.top = Math.round(rr.top - pr.top) + 'px';
+            agendaSwipePreviewLayer.style.left = Math.round(rr.left - pr.left) + 'px';
+            agendaSwipePreviewLayer.style.width = Math.round(rr.width) + 'px';
+            agendaSwipePreviewLayer.style.height = Math.round(rr.height) + 'px';
+        }
+
+        function updateAgendaSwipePreviewTransform(dx, w, direction) {
+            if (!agendaSwipePreviewLayer) return;
+            var parent = agendaSwipePreviewLayer.parentElement;
+            var slideEls = getSlideTransformEls();
+            if (!parent || !slideEls.length) {
+                return;
+            }
+            // Sincroniza com a geometria real do painel atual para ficarem sempre colados.
+            var pr = parent.getBoundingClientRect();
+            var cr = slideEls[0].getBoundingClientRect();
+            var previewRect = agendaSwipePreviewLayer.getBoundingClientRect();
+            var x;
+            if (direction === 'next') {
+                x = (cr.left - pr.left) + cr.width;
+            } else {
+                x = (cr.left - pr.left) - previewRect.width;
+            }
+            agendaSwipePreviewLayer.style.willChange = 'left, transform';
+            agendaSwipePreviewLayer.style.transition = 'none';
+            agendaSwipePreviewLayer.style.left = Math.round(x) + 'px';
+            agendaSwipePreviewLayer.style.transform = 'translateX(0px)';
+        }
+
+        function buildAgendaSwipePreviewOptions(adjDate) {
+            var get = function(k, fallback) {
+                try {
+                    var v = calendar.getOption(k);
+                    return v !== undefined && v !== null ? v : fallback;
+                } catch (e) {
+                    return fallback;
+                }
+            };
+            return {
+                initialView: calendar.view.type,
+                initialDate: adjDate,
+                locale: get('locale', 'pt'),
+                headerToolbar: get('headerToolbar', false),
+                customButtons: get('customButtons'),
+                buttonText: get('buttonText'),
+                views: get('views'),
+                slotMinTime: get('slotMinTime'),
+                slotMaxTime: get('slotMaxTime'),
+                slotDuration: get('slotDuration'),
+                slotLabelInterval: get('slotLabelInterval'),
+                slotLabelFormat: get('slotLabelFormat'),
+                allDaySlot: get('allDaySlot'),
+                nowIndicator: false,
+                scrollTime: get('scrollTime'),
+                scrollTimeReset: false,
+                displayEventTime: get('displayEventTime'),
+                dayHeaderFormat: get('dayHeaderFormat'),
+                dayCellClassNames: get('dayCellClassNames'),
+                slotLaneClassNames: get('slotLaneClassNames'),
+                slotLaneDidMount: get('slotLaneDidMount'),
+                dayMaxEvents: get('dayMaxEvents'),
+                dayMaxEventRows: get('dayMaxEventRows'),
+                resources: get('resources'),
+                events: get('events'),
+                eventContent: get('eventContent'),
+                resourceLabelContent: get('resourceLabelContent'),
+                editable: false,
+                selectable: false,
+                eventStartEditable: false,
+                eventDurationEditable: false,
+                eventResourceEditable: false
+                ,
+                datesSet: function(info) {
+                    try {
+                        var btn = agendaSwipePreviewHost && agendaSwipePreviewHost.querySelector('.fc-currentDate-button');
+                        if (!btn) return;
+                        var vt = info && info.view && info.view.type ? info.view.type : calendar.view.type;
+                        var startDate = vt === 'dayGridMonth' ? info.view.currentStart : info.start;
+                        btn.textContent = formatCurrentDateButton(vt, startDate, info.end);
+                    } catch (e) {}
+                }
+            };
+        }
+
+        function ensureAgendaSwipePreview(direction) {
+            if (!isAgendaMobileViewport()) return;
+            if (agendaSwipePreviewCalendar && agendaSwipePreviewDirection === direction) return;
+            var adjDate = getAdjacentDateForDirection(direction);
+            if (!adjDate || isNaN(adjDate.getTime())) return;
+
+            destroyAgendaSwipePreview();
+            agendaSwipePreviewDirection = direction;
+
+            var parent = calendarEl.parentElement || calendarEl;
+            agendaSwipePreviewParent = parent;
+            agendaSwipePreviewParentPrevOverflow = parent.style.overflow || '';
+            parent.style.overflow = 'hidden';
+            if (window.getComputedStyle(parent).position === 'static') {
+                parent.style.position = 'relative';
+            }
+            calendarEl.style.position = 'relative';
+            calendarEl.style.zIndex = '2';
+
+            agendaSwipePreviewLayer = document.createElement('div');
+            agendaSwipePreviewLayer.className = 'agenda-swipe-preview-layer';
+            agendaSwipePreviewLayer.setAttribute('aria-hidden', 'true');
+            agendaSwipePreviewHost = document.createElement('div');
+            agendaSwipePreviewHost.className = 'agenda-swipe-preview-host';
+            agendaSwipePreviewLayer.appendChild(agendaSwipePreviewHost);
+            parent.appendChild(agendaSwipePreviewLayer);
+            syncAgendaSwipePreviewBounds();
+
+            try {
+                agendaSwipePreviewCalendar = new FullCalendar.Calendar(agendaSwipePreviewHost, buildAgendaSwipePreviewOptions(adjDate));
+                agendaSwipePreviewCalendar.render();
+            } catch (e) {
+                destroyAgendaSwipePreview();
+            }
         }
 
         function clampDragPx(dx, w) {
@@ -4229,6 +4367,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function agendaNavigateSlideCleanup() {
+            destroyAgendaSwipePreview();
             clearSlideElStyles();
             calendarEl.classList.remove('agenda-slide-running');
             calendarEl.style.overflow = '';
@@ -4240,6 +4379,7 @@ document.addEventListener('DOMContentLoaded', function() {
             swipeActive = false;
             currentDragPx = 0;
             lastVelX = 0;
+            destroyAgendaSwipePreview();
             calendarEl.classList.remove('agenda-swipe-dragging');
             clearSlideElStyles();
             calendarEl.style.overflow = '';
@@ -4252,11 +4392,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             calendarEl.classList.remove('agenda-swipe-dragging');
+            var w = getSlideWidth();
+            if (agendaSwipePreviewLayer && w) {
+                var off = agendaSwipePreviewDirection === 'next' ? w : -w;
+                agendaSwipePreviewLayer.style.willChange = 'transform';
+                agendaSwipePreviewLayer.style.transition = 'transform 220ms ' + SLIDE_EASING;
+                agendaSwipePreviewLayer.style.transform = 'translateX(' + off + 'px)';
+            }
             var si;
             for (si = 0; si < slideEls.length; si++) {
                 slideEls[si].style.willChange = 'transform';
-                slideEls[si].style.transition = 'transform 240ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+                slideEls[si].style.transition = 'transform 220ms ' + SLIDE_EASING;
                 slideEls[si].style.transform = 'translateX(0px)';
+                slideEls[si].style.background = SLIDE_BG;
             }
             setTimeout(function() {
                 agendaSwipeDragReset();
@@ -4296,7 +4444,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             var targetPx = isNext ? -w : w;
             var remaining = Math.abs(targetPx - startPxPx);
-            var exitMs = Math.min(320, Math.max(90, remaining * 0.85));
+            var exitMs = Math.min(280, Math.max(120, remaining * 0.78));
+            ensureAgendaSwipePreview(direction);
+            syncAgendaSwipePreviewBounds();
+            updateAgendaSwipePreviewTransform(startPxPx, w, direction);
+            var hasPreview = !!agendaSwipePreviewLayer;
 
             agendaSlideLocked = true;
             calendarEl.classList.remove('agenda-swipe-dragging');
@@ -4306,8 +4458,14 @@ document.addEventListener('DOMContentLoaded', function() {
             var ei;
             for (ei = 0; ei < slideEls.length; ei++) {
                 slideEls[ei].style.willChange = 'transform';
-                slideEls[ei].style.transition = 'transform ' + exitMs + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+                slideEls[ei].style.transition = 'transform ' + exitMs + 'ms ' + SLIDE_EASING;
                 slideEls[ei].style.transform = 'translateX(' + targetPx + 'px)';
+                slideEls[ei].style.background = SLIDE_BG;
+            }
+            if (hasPreview) {
+                agendaSwipePreviewLayer.style.willChange = 'transform';
+                agendaSwipePreviewLayer.style.transition = 'transform ' + exitMs + 'ms ' + SLIDE_EASING;
+                agendaSwipePreviewLayer.style.transform = 'translateX(0px)';
             }
 
             setTimeout(function() {
@@ -4315,6 +4473,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     calendar.next();
                 } else {
                     calendar.prev();
+                }
+                if (hasPreview) {
+                    agendaNavigateSlideCleanup();
+                    return;
                 }
 
                 slideEls = getSlideTransformEls();
@@ -4332,7 +4494,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     slideEls[0].offsetHeight;
                 }
                 for (j = 0; j < slideEls.length; j++) {
-                    slideEls[j].style.transition = 'transform ' + SLIDE_MS + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+                    slideEls[j].style.transition = 'transform ' + SLIDE_MS + 'ms ' + SLIDE_EASING;
                 }
                 requestAnimationFrame(function() {
                     requestAnimationFrame(function() {
@@ -4355,8 +4517,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function swipeTargetOk(el) {
             if (!el || !calendarEl.contains(el)) return false;
-            if (el.closest('.fc-header-toolbar')) return false;
-            if (el.closest('.fc-scrollgrid-section-header')) return false;
             if (el.closest('.fc-event')) return false;
             if (el.closest('a, button, input, select, textarea, label')) return false;
             if (el.closest('.modal')) return false;
@@ -4373,6 +4533,8 @@ document.addEventListener('DOMContentLoaded', function() {
             startX = t.clientX;
             startY = t.clientY;
             swipeActive = false;
+            gestureAxisLock = null;
+            destroyAgendaSwipePreview();
             currentDragPx = 0;
             lastVelX = 0;
             lastMoveX = t.clientX;
@@ -4396,29 +4558,40 @@ document.addEventListener('DOMContentLoaded', function() {
             var dx = t.clientX - startX;
             var dy = t.clientY - startY;
 
-            if (!swipeActive) {
-                if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx) * 1.12) {
-                    touchId = null;
-                    return;
-                }
+            if (!swipeActive && !gestureAxisLock) {
                 if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.05) {
+                    gestureAxisLock = 'x';
                     swipeActive = true;
                     calendarEl.classList.add('agenda-swipe-dragging');
                     calendarEl.style.overflow = 'hidden';
+                } else if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx) * 1.05) {
+                    gestureAxisLock = 'y';
+                    return;
                 } else {
                     return;
                 }
             }
+            if (gestureAxisLock === 'y') {
+                return; // scroll vertical livre; swipe horizontal bloqueado neste toque
+            }
 
             var w = getSlideWidth();
             currentDragPx = clampDragPx(dx, w);
+            if (!agendaSwipePreviewLockedDirection && Math.abs(currentDragPx) > 6) {
+                agendaSwipePreviewLockedDirection = currentDragPx < 0 ? 'next' : 'prev';
+            }
             var slideElsMove = getSlideTransformEls();
             var sem;
             for (sem = 0; sem < slideElsMove.length; sem++) {
                 slideElsMove[sem].style.willChange = 'transform';
                 slideElsMove[sem].style.transition = 'none';
                 slideElsMove[sem].style.transform = 'translateX(' + currentDragPx + 'px)';
+                slideElsMove[sem].style.background = SLIDE_BG;
             }
+            var dragDir = agendaSwipePreviewLockedDirection || (currentDragPx < 0 ? 'next' : 'prev');
+            ensureAgendaSwipePreview(dragDir);
+            syncAgendaSwipePreviewBounds();
+            updateAgendaSwipePreviewTransform(currentDragPx, w, dragDir);
             var now = Date.now();
             lastVelX = (t.clientX - lastMoveX) / Math.max(1, now - lastMoveT);
             lastMoveX = t.clientX;
@@ -4439,6 +4612,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             touchId = null;
+            var wasVerticalLock = gestureAxisLock === 'y';
+            gestureAxisLock = null;
 
             if (swipeActive) {
                 if (!touch || !swipeTargetOk(e.target)) {
@@ -4466,6 +4641,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 swipeActive = false;
                 return;
             }
+            if (wasVerticalLock) {
+                return;
+            }
 
             if (!touch || !swipeTargetOk(e.target)) return;
 
@@ -4485,6 +4663,7 @@ document.addEventListener('DOMContentLoaded', function() {
         calendarEl.addEventListener('touchcancel', function() {
             if (touchId === null) return;
             touchId = null;
+            gestureAxisLock = null;
             if (swipeActive) {
                 agendaSwipeSnapBack(currentDragPx);
                 swipeActive = false;
