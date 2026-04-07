@@ -675,7 +675,7 @@ window.AGENDA_CONFIG = {
     nationalHolidaysPt: @json($nationalHolidaysPt ?? []),
     memberWeeklySchedules: @json($memberWeeklySchedules ?? []),
     /** Teste: abrir fluxo «Nova marcação» no offcanvas lateral em vez do modal (#novaMarcacaoModal). */
-    useOffcanvasMarcacaoTest: true
+    useOffcanvasMarcacaoTest: false
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>
