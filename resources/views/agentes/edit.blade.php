@@ -265,6 +265,8 @@
                 </div>
             </div>
 
+            @include('agentes.partials.weekly-schedule', ['weeklySchedule' => old('weekly_schedule', $agente->weekly_schedule)])
+
             <!-- Serviços associados -->
             <div class="card">
                 <div class="card-body">

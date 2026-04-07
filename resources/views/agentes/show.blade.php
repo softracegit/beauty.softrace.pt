@@ -322,9 +322,23 @@
                                                         @php
                                                             $newVal = $attrs[$attr] ?? null;
                                                             $oldVal = $old[$attr] ?? null;
+                                                            $formatActivityValue = static function ($value) {
+                                                                if (is_bool($value)) {
+                                                                    return $value ? 'Sim' : 'Não';
+                                                                }
+                                                                if (is_array($value) || is_object($value)) {
+                                                                    $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                                                                    return $json !== false ? $json : '[valor complexo]';
+                                                                }
+
+                                                                $str = (string) $value;
+
+                                                                return strlen($str) > 50 ? substr($str, 0, 50).'…' : $str;
+                                                            };
                                                         @endphp
                                                         @if($oldVal != $newVal)
-                                                            <span class="d-block">{{ $attr }}: {{ is_bool($oldVal) ? ($oldVal ? 'Sim' : 'Não') : (strlen((string)$oldVal) > 50 ? substr($oldVal, 0, 50).'…' : $oldVal) }} → {{ is_bool($newVal) ? ($newVal ? 'Sim' : 'Não') : (strlen((string)$newVal) > 50 ? substr($newVal, 0, 50).'…' : $newVal) }}</span>
+                                                            <span class="d-block">{{ $attr }}: {{ $formatActivityValue($oldVal) }} → {{ $formatActivityValue($newVal) }}</span>
                                                         @endif
                                                     @endforeach
                                                 </div>

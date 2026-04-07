@@ -120,18 +120,32 @@ class CalendarEvent extends Model
     }
 
     public const TYPE_MANUAL = 'manual';
+
     public const TYPE_OUTRO = 'outro';
+
     public const TYPE_MARCACAO = 'marcacao';
+
     public const TYPE_TEMPO_PESSOAL = 'tempo_pessoal';
+
     public const TYPE_VISITA = 'visita';
+
     public const TYPE_LEAD = 'lead';
 
     public const STATUS_AGENDADO = 'agendado';
+
     public const STATUS_CONFIRMADO = 'confirmado';
+
     public const STATUS_CHEGOU = 'chegou';
+
     public const STATUS_INICIADO = 'iniciado';
+
+    /** Serviço concluído, ainda sem pagamento (antes de «Concluído» com fatura). */
+    public const STATUS_TERMINADO = 'terminado';
+
     public const STATUS_FALTOU = 'faltou';
+
     public const STATUS_CANCELADO = 'cancelado';
+
     public const STATUS_COMPLETO = 'completo';
 
     protected $fillable = [
@@ -258,7 +272,19 @@ class CalendarEvent extends Model
 
     public function isTimeEditable(): bool
     {
-        return true;
+        return ! $this->isMarcacaoStatusLocked();
+    }
+
+    /**
+     * Marcações finalizadas por falta ou cancelamento não podem ser editadas nem pagas.
+     */
+    public function isMarcacaoStatusLocked(): bool
+    {
+        if (($this->event_type ?? '') !== self::TYPE_MARCACAO) {
+            return false;
+        }
+
+        return in_array($this->status ?? '', [self::STATUS_FALTOU, self::STATUS_CANCELADO], true);
     }
 
     public static function statuses(): array
@@ -268,6 +294,7 @@ class CalendarEvent extends Model
             self::STATUS_CONFIRMADO => 'Confirmado',
             self::STATUS_CHEGOU => 'Chegou',
             self::STATUS_INICIADO => 'Iniciado',
+            self::STATUS_TERMINADO => 'Terminado',
             self::STATUS_FALTOU => 'Faltou',
             self::STATUS_CANCELADO => 'Cancelado',
             self::STATUS_COMPLETO => 'Concluído',
@@ -280,14 +307,16 @@ class CalendarEvent extends Model
     public function getStatusIconAttribute(): ?string
     {
         $status = $this->status ?? self::STATUS_AGENDADO;
+
         return match ($status) {
             self::STATUS_AGENDADO => 'ph ph-clock',
-            self::STATUS_CONFIRMADO => 'ph ph-check',
+            self::STATUS_CONFIRMADO => 'ph ph-calendar-check',
             self::STATUS_CHEGOU => 'ph ph-map-pin',
             self::STATUS_INICIADO => 'ph ph-play',
+            self::STATUS_TERMINADO => 'ph ph-check-circle',
             self::STATUS_FALTOU => 'ph ph-prohibit',
             self::STATUS_CANCELADO => 'ph ph-x-circle',
-            self::STATUS_COMPLETO => 'ph ph-check-circle',
+            self::STATUS_COMPLETO => 'ph ph-seal-check',
             default => null,
         };
     }
@@ -298,7 +327,23 @@ class CalendarEvent extends Model
     public function canTransitionTo(string $newStatus): bool
     {
         $currentStatus = $this->status ?? self::STATUS_AGENDADO;
-        
+
+        if ($currentStatus === $newStatus) {
+            return true;
+        }
+
+        if (in_array($currentStatus, [self::STATUS_FALTOU, self::STATUS_CANCELADO], true)) {
+            return false;
+        }
+
+        if ($newStatus === self::STATUS_TERMINADO) {
+            return in_array($currentStatus, [self::STATUS_INICIADO, self::STATUS_CHEGOU], true);
+        }
+
+        if ($newStatus === self::STATUS_COMPLETO) {
+            return ! in_array($currentStatus, [self::STATUS_FALTOU, self::STATUS_CANCELADO], true);
+        }
+
         // Estados bloqueados não podem transitar diretamente para estados ativos
         $blockedStates = [self::STATUS_FALTOU, self::STATUS_CANCELADO];
         $activeStates = [self::STATUS_INICIADO, self::STATUS_CHEGOU];

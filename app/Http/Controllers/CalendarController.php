@@ -211,6 +211,7 @@ class CalendarController extends Controller
             $statusLabel = $isTempoPessoal ? 'Tempo pessoal' : (CalendarEvent::statuses()[$event->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado');
             $statusIcon = $isTempoPessoal ? null : $event->status_icon;
             $hasInvoice = $event->sale && $event->sale->status !== Sale::STATUS_ANULADO;
+            $statusLocked = ! $isTempoPessoal && $event->isMarcacaoStatusLocked();
 
             $item = [
                 'id' => (string) $event->id,
@@ -219,7 +220,7 @@ class CalendarController extends Controller
                 'end' => $event->end_at->toIso8601String(),
                 'className' => $className,
                 'backgroundColor' => $agentColor ?: ($isTempoPessoal ? '#dee2e6' : null),
-                'editable' => ! $hasInvoice,
+                'editable' => ! $hasInvoice && ! $statusLocked,
                 'extendedProps' => [
                     'client_name' => $event->client?->name,
                     'client_avatar_url' => $event->client?->avatar ? asset('storage/'.$event->client->avatar) : null,
@@ -705,11 +706,18 @@ class CalendarController extends Controller
             ], 422);
         }
 
+        if (($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO && $calendarEvent->isMarcacaoStatusLocked()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Marcações com estado «Faltou» ou «Cancelado» não podem ser alteradas.',
+            ], 422);
+        }
+
         $rules = [
             'start_at' => ['sometimes', 'date'],
             'end_at' => ['sometimes', 'date'],
             'user_id' => ['nullable', 'exists:users,id'],
-            'status' => ['sometimes', 'string', 'in:agendado,confirmado,chegou,iniciado,faltou,cancelado'],
+            'status' => ['sometimes', 'string', 'in:agendado,confirmado,chegou,iniciado,terminado,faltou,cancelado'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'refund_reserva' => ['nullable', 'boolean'],
@@ -973,8 +981,15 @@ class CalendarController extends Controller
             ], 422);
         }
 
+        if (($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO && $calendarEvent->isMarcacaoStatusLocked()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Marcações com estado «Faltou» ou «Cancelado» não podem ser alteradas.',
+            ], 422);
+        }
+
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:agendado,confirmado,chegou,iniciado,faltou,cancelado,completo'],
+            'status' => ['required', 'string', 'in:agendado,confirmado,chegou,iniciado,terminado,faltou,cancelado,completo'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'refund_reserva' => ['nullable', 'boolean'],

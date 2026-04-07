@@ -81,7 +81,7 @@
                     <div class="px-3 pt-3 pb-0">
                         <div class="alert alert-warning d-none mb-0" id="novaMarcacaoHorarioAviso" role="alert">
                             <i class="ph ph-warning-circle me-1"></i>
-                            Horário fora do período habitual (09:00-20:00). Pode guardar na mesma, se for excecional.
+                            Horário fora do período habitual da loja (09:00–20:00) ou do membro. Pode guardar na mesma, se for excecional.
                         </div>
                     </div>
                     <div class="row g-0">
@@ -113,7 +113,7 @@
                                         <span id="novaMarcacaoClientSelectedEmail" class="d-block small text-muted mb-3">—</span>
                                         <div class="d-flex justify-content-center gap-2 flex-wrap mt-4">
                                             <button type="button" class="btn btn-light btn-sm" id="novaMarcacaoClientClear">Alterar</button>
-                                            <a id="novaMarcacaoClientProfileLink" href="#" class="btn btn-light btn-sm" target="_blank" rel="noopener">Ver perfil</a>
+                                            <a id="novaMarcacaoClientProfileLink" href="#" class="btn btn-light btn-sm">Ver perfil</a>
                                         </div>
                                     </div>
                                 </div>
@@ -209,7 +209,7 @@
                 <div class="modal-body">
                     <div class="alert alert-warning d-none" id="tempoPessoalHorarioAviso" role="alert">
                         <i class="ph ph-warning-circle me-1"></i>
-                        Horário fora do período habitual (09:00-20:00). Pode guardar na mesma, se for excecional.
+                        Horário fora do período habitual da loja (09:00–20:00) ou do membro. Pode guardar na mesma, se for excecional.
                     </div>
                     <div class="mb-3">
                         <label class="form-label d-block">Tipo de tempo pessoal</label>
@@ -391,14 +391,15 @@
                         </span>
                         <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailStatusMenu">
                             <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="agendado"><i class="me-0 ph ph-clock"></i>Agendado</a>
-                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ph ph-check"></i>Confirmado</a>
+                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ph ph-calendar-check"></i>Confirmado</a>
                             <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ph ph-map-pin"></i>Chegou</a>
                             <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ph ph-play"></i>Iniciado</a>
+                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="terminado"><i class="me-0 ph ph-check-circle"></i>Terminado</a>
                             <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ph ph-x-circle text-danger"></i>Cancelar</a>
                         </div>
                     </span>
-                    <span class="ms-1 d-none event-detail-status-static text-success d-inline-flex align-items-center gap-1" id="eventDetailStatusStatic">
-                        <span id="eventDetailStatusStaticIcon"><i class="me-1 ph ph-check-circle"></i></span>
+                    <span class="ms-1 d-none event-detail-status-static d-inline-flex align-items-center gap-1" id="eventDetailStatusStatic">
+                        <span id="eventDetailStatusStaticIcon"><i class="me-1 ph ph-seal-check"></i></span>
                         <span id="eventDetailStatusStaticLabel">Concluído</span>
                     </span>
                 </h4>
@@ -415,7 +416,7 @@
                     <div class="px-3 pt-3 pb-0">
                         <div class="alert alert-warning d-none mb-0" id="eventDetailHorarioAviso" role="alert">
                             <i class="ph ph-warning-circle me-1"></i>
-                            Horário fora do período habitual (09:00-20:00). Pode guardar na mesma, se for excecional.
+                            Horário fora do período habitual da loja (09:00–20:00) ou do membro. Pode guardar na mesma, se for excecional.
                         </div>
                     </div>
                     <div class="row g-0">
@@ -447,7 +448,7 @@
                                         <span id="eventDetailClientSelectedEmail" class="d-block small text-muted mb-3">—</span>
                                         <div class="d-flex justify-content-center gap-2 flex-wrap mt-4">
                                             <button type="button" class="btn btn-light btn-sm" id="eventDetailClientClear">Alterar</button>
-                                            <a id="eventDetailClientProfileLink" href="#" class="btn btn-light btn-sm" target="_blank" rel="noopener">Ver perfil</a>
+                                            <a id="eventDetailClientProfileLink" href="#" class="btn btn-light btn-sm">Ver perfil</a>
                                         </div>
                                     </div>
                                     <div id="eventDetailVisitLeadBlock" class="d-none"></div>
@@ -504,7 +505,7 @@
                 <button type="submit" class="btn btn-primary" id="eventDetailSaveBtn">Guardar</button>
                     <div class="d-flex align-items-center gap-3" id="eventDetailPaymentWrap">
                         <button type="button" class="btn btn-success d-none" id="eventDetailPaymentBtn">Pagamento</button>
-                        <a href="#" class="btn btn-outline-primary d-none" id="eventDetailVerFaturaLink" target="_blank" rel="noopener">Ver fatura</a>
+                        <a href="#" class="btn btn-outline-primary d-none" id="eventDetailVerFaturaLink">Ver fatura</a>
                         <button type="button" class="btn btn-outline-secondary d-none" id="eventDetailReverterFaturaBtn">Reverter fatura</button>
                     </div>
                 </div>
@@ -584,6 +585,13 @@
         $agentInfoMap->put('' . $me->id, ['name' => $me->name, 'email' => $me->email ?? '', 'avatarUrl' => $avatarUrl, 'agentId' => $a ? $a->id : null]);
     }
     $usersForConsultant = ($users ?? collect())->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()->all();
+    $memberWeeklySchedules = collect($users ?? [])
+        ->filter(fn ($u) => filled($u->agent?->weekly_schedule))
+        ->mapWithKeys(fn ($u) => [(string) $u->id => $u->agent->weekly_schedule]);
+    if ($me && $me->agent && filled($me->agent->weekly_schedule) && ! $memberWeeklySchedules->has((string) $me->id)) {
+        $memberWeeklySchedules->put((string) $me->id, $me->agent->weekly_schedule);
+    }
+    $memberWeeklySchedules = $memberWeeklySchedules->all();
 @endphp
 <script>
 window.AGENDA_CONFIG = {
@@ -606,7 +614,8 @@ window.AGENDA_CONFIG = {
     urlLeads: @json(url('leads')),
     agendaAgentInfo: @json($agentInfoMap->all()),
     usersForConsultant: @json($usersForConsultant),
-    nationalHolidaysPt: @json($nationalHolidaysPt ?? [])
+    nationalHolidaysPt: @json($nationalHolidaysPt ?? []),
+    memberWeeklySchedules: @json($memberWeeklySchedules ?? [])
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>

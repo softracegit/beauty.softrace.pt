@@ -19,7 +19,7 @@ class Agent extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'status'])
+            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'status', 'weekly_schedule'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Membro criado',
@@ -49,6 +49,7 @@ class Agent extends Model
         'status',
         'color',
         'avatar',
+        'weekly_schedule',
     ];
 
     protected $casts = [
@@ -56,10 +57,36 @@ class Agent extends Model
         'commission_rate' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'weekly_schedule' => 'array',
     ];
 
+    /** Segunda a domingo (chaves alinhadas com a agenda em JS). */
+    public const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+    public static function weekdayLabels(): array
+    {
+        return [
+            'mon' => 'Segunda-feira',
+            'tue' => 'Terça-feira',
+            'wed' => 'Quarta-feira',
+            'thu' => 'Quinta-feira',
+            'fri' => 'Sexta-feira',
+            'sat' => 'Sábado',
+            'sun' => 'Domingo',
+        ];
+    }
+
+    public static function timeStringToMinutes(string $hhmm): int
+    {
+        [$h, $m] = explode(':', $hhmm);
+
+        return (int) $h * 60 + (int) $m;
+    }
+
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_INACTIVE = 'inactive';
+
     public const STATUS_ON_LEAVE = 'on_leave';
 
     public static function statusLabels(): array
@@ -94,7 +121,7 @@ class Agent extends Model
 
     public function getAgentIdAttribute(): string
     {
-        return '#AG' . str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
+        return '#AG'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
     }
 
     /**

@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\CalendarEvent;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class CheckoutController extends Controller
 {
@@ -20,11 +20,16 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Apenas marcações podem ir a checkout.'], 422);
         }
 
+        if ($calendarEvent->isMarcacaoStatusLocked()) {
+            return response()->json(['error' => 'Esta marcação não pode ser paga.'], 422);
+        }
+
         $calendarEvent->load(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra']);
 
         $existingSale = $calendarEvent->sale;
         if ($existingSale && $existingSale->status !== Sale::STATUS_ANULADO) {
             $existingSale->load('items');
+
             return response()->json([
                 'event_id' => $calendarEvent->id,
                 'client' => $calendarEvent->client ? [
@@ -64,7 +69,7 @@ class CheckoutController extends Controller
                     'calendar_event_service_id' => $esi->id,
                     'service_id' => null,
                     'extra_id' => $ex->extra_id,
-                    'descricao' => '+ ' . ($ex->extra?->name ?? 'Extra'),
+                    'descricao' => '+ '.($ex->extra?->name ?? 'Extra'),
                     'quantidade' => 1,
                     'preco_unitario' => $price,
                     'subtotal' => $price,
@@ -93,7 +98,7 @@ class CheckoutController extends Controller
     {
         $validated = $request->validate([
             'event_id' => ['required', 'exists:calendar_events,id'],
-            'payment_method' => ['required', 'string', 'in:' . implode(',', array_keys(Sale::paymentMethods()))],
+            'payment_method' => ['required', 'string', 'in:'.implode(',', array_keys(Sale::paymentMethods()))],
             'items' => ['required', 'array', 'min:1'],
             'items.*.tipo' => ['required', 'in:servico,extra'],
             'items.*.descricao' => ['required', 'string', 'max:255'],
@@ -109,6 +114,9 @@ class CheckoutController extends Controller
         $calendarEvent = CalendarEvent::findOrFail($validated['event_id']);
         if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
             return response()->json(['error' => 'Apenas marcações podem ir a checkout.'], 422);
+        }
+        if ($calendarEvent->isMarcacaoStatusLocked()) {
+            return response()->json(['error' => 'Esta marcação não pode ser paga.'], 422);
         }
         $hasActiveSale = $calendarEvent->sale()
             ->where('status', '!=', Sale::STATUS_ANULADO)
@@ -169,6 +177,7 @@ class CheckoutController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
+
             return response()->json(['error' => 'Erro ao gravar a venda.', 'message' => $e->getMessage()], 500);
         }
 
@@ -192,7 +201,8 @@ class CheckoutController extends Controller
         $pdf = Pdf::loadView('pdf.invoice', ['sale' => $sale])
             ->setPaper('a4', 'portrait');
 
-        $safeFilename = str_replace(['/', '\\'], '-', $sale->numero_fatura) . '-fatura.pdf';
+        $safeFilename = str_replace(['/', '\\'], '-', $sale->numero_fatura).'-fatura.pdf';
+
         return $pdf->stream($safeFilename);
     }
 
@@ -206,7 +216,7 @@ class CheckoutController extends Controller
         }
 
         $calendarEvent = $sale->calendarEvent;
-        if (!$calendarEvent) {
+        if (! $calendarEvent) {
             return response()->json(['error' => 'Venda sem marcação associada.'], 422);
         }
 
@@ -218,6 +228,7 @@ class CheckoutController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
+
             return response()->json(['error' => 'Erro ao reverter a venda.', 'message' => $e->getMessage()], 500);
         }
 

@@ -574,6 +574,40 @@ body .app-wrapper .container-fluid {
     background-attachment: fixed !important;
     background-repeat: repeat !important;
 }
+/* Fora do horário definido para o membro (dentro do horário da loja): igual ao padrão da loja */
+.fc .fc-timegrid-slot.agenda-slot-member-unavailable {
+    --agenda-outside-hatch-bg: rgba(108, 117, 125, 0.055);
+    --agenda-outside-hatch-line: rgba(108, 117, 125, 0.09);
+    background-color: var(--agenda-outside-hatch-bg) !important;
+    background-image: repeating-linear-gradient(
+        45deg,
+        var(--agenda-outside-hatch-line) 0,
+        var(--agenda-outside-hatch-line) 1px,
+        transparent 1px,
+        transparent 13px
+    ) !important;
+    background-size: 18px 18px !important;
+    background-attachment: fixed !important;
+    background-repeat: repeat !important;
+}
+.fc .fc-bg-event.agenda-member-unavailable-bg {
+    --agenda-outside-hatch-bg: rgba(108, 117, 125, 0.055);
+    --agenda-outside-hatch-line: rgba(108, 117, 125, 0.09);
+    background-color: var(--agenda-outside-hatch-bg) !important;
+    background-image: repeating-linear-gradient(
+        45deg,
+        var(--agenda-outside-hatch-line) 0,
+        var(--agenda-outside-hatch-line) 1px,
+        transparent 1px,
+        transparent 13px
+    ) !important;
+    background-size: 18px 18px !important;
+    background-attachment: fixed !important;
+    background-repeat: repeat !important;
+    opacity: 1 !important;
+    border: 0 !important;
+    pointer-events: none !important;
+}
 .fc .fc-timegrid-slot.agenda-slot-holiday {
     --agenda-holiday-hatch-bg: rgba(220, 53, 69, 0.038);
     --agenda-holiday-hatch-line: rgba(220, 53, 69, 0.078);

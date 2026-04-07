@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AgentController extends Controller
 {
@@ -97,6 +98,7 @@ class AgentController extends Controller
 
         $agentData = collect($validated)->except(['email', 'password', 'password_confirmation', 'role', 'avatar', 'service_ids'])->all();
         $agentData['user_id'] = $user->id;
+        $agentData['weekly_schedule'] = $this->validatedWeeklySchedule($request);
 
         if ($request->hasFile('avatar')) {
             $agentData['avatar'] = $request->file('avatar')->store('avatars', 'public');
@@ -260,6 +262,7 @@ class AgentController extends Controller
         // Update agent data
         $agentData = $validated;
         unset($agentData['email'], $agentData['role'], $agentData['password']);
+        $agentData['weekly_schedule'] = $this->validatedWeeklySchedule($request);
         $agente->update($agentData);
 
         // Update user data
@@ -295,5 +298,46 @@ class AgentController extends Controller
 
         return redirect()->route('equipa.index')
             ->with('success', 'Membro removido com sucesso.');
+    }
+
+    /**
+     * @return array<string, array{enabled: bool, start: ?string, end: ?string}>|null
+     */
+    private function validatedWeeklySchedule(Request $request): ?array
+    {
+        $raw = $request->input('weekly_schedule');
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        $timePattern = '/^([01]\d|2[0-3]):(00|15|30|45)$/';
+        $out = [];
+
+        foreach (Agent::WEEKDAY_KEYS as $day) {
+            $dayIn = $raw[$day] ?? [];
+            $enabled = filter_var($dayIn['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if (! $enabled) {
+                $out[$day] = ['enabled' => false, 'start' => null, 'end' => null];
+
+                continue;
+            }
+            $start = $dayIn['start'] ?? '09:00';
+            $end = $dayIn['end'] ?? '20:00';
+            if (! is_string($start) || ! is_string($end) || ! preg_match($timePattern, $start) || ! preg_match($timePattern, $end)) {
+                throw ValidationException::withMessages([
+                    "weekly_schedule.{$day}" => 'Horário inválido. Use intervalos de 15 minutos (00:00–23:45).',
+                ]);
+            }
+            $smin = Agent::timeStringToMinutes($start);
+            $emin = Agent::timeStringToMinutes($end);
+            if ($smin >= $emin) {
+                throw ValidationException::withMessages([
+                    "weekly_schedule.{$day}" => 'A hora de início deve ser anterior à hora de fim.',
+                ]);
+            }
+            $out[$day] = ['enabled' => true, 'start' => $start, 'end' => $end];
+        }
+
+        return $out;
     }
 }
