@@ -1911,14 +1911,24 @@ body.modal-open .agenda-mobile-controls {
     #calendar {
         height: calc(100dvh - 56px);
     }
-    /* Durante animação slide (swipe): bloquear interação até terminar */
+    /* Slide só na grelha; toolbar (título do dia) mantém-se fixa — clicável durante a animação */
     #calendar.agenda-slide-running {
         pointer-events: none;
         touch-action: none;
     }
+    #calendar.agenda-slide-running .fc-header-toolbar {
+        pointer-events: auto;
+    }
     /* Arraste horizontal em tempo real (segue o dedo; bloqueia scroll até largar) */
     #calendar.agenda-swipe-dragging {
         touch-action: none;
+        overflow: hidden;
+    }
+    .fc-scrollgrid-section-body {
+        position: relative;
+    }
+    #calendar.agenda-swipe-dragging .fc-scrollgrid td.fc-scrollgrid-section-body,
+    #calendar.agenda-slide-running .fc-scrollgrid td.fc-scrollgrid-section-body {
         overflow: hidden;
     }
     .fc-header-toolbar {

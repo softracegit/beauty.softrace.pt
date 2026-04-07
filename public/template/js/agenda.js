@@ -4124,16 +4124,95 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        function getSlideRoot() {
+        function getFcRootEl() {
             if (calendarEl.classList && calendarEl.classList.contains('fc')) {
                 return calendarEl;
             }
             return calendarEl.querySelector(':scope > .fc') || calendarEl;
         }
 
+        function getScrollerHarnessInCell(td) {
+            if (!td) {
+                return null;
+            }
+            var sc = td.querySelector('.fc-scroller');
+            if (sc) {
+                var h0 = sc.querySelector('.fc-scroller-harness');
+                if (h0) {
+                    return h0;
+                }
+            }
+            return td.querySelector('.fc-scroller-harness');
+        }
+
+        /** Só a grelha (eventos); toolbar + título do dia ficam fora do transform. */
+        function getSlideTransformEls() {
+            var out = [];
+            var fcRoot = getFcRootEl();
+            var grid = fcRoot.querySelector('table.fc-scrollgrid');
+            var i;
+            if (grid) {
+                var tds = grid.querySelectorAll('tbody .fc-scrollgrid-section-body');
+                if (!tds.length) {
+                    tds = grid.querySelectorAll('td.fc-scrollgrid-section-body');
+                }
+                for (i = 0; i < tds.length; i++) {
+                    var harness = getScrollerHarnessInCell(tds[i]);
+                    out.push(harness || tds[i]);
+                }
+            }
+            if (!out.length && grid) {
+                var tgBody = grid.querySelector('.fc-timegrid-body');
+                if (tgBody) {
+                    var tdTg = tgBody.closest('td');
+                    if (tdTg) {
+                        var hh = getScrollerHarnessInCell(tdTg);
+                        out.push(hh || tdTg);
+                    }
+                }
+            }
+            if (!out.length && fcRoot.querySelector('.fc-timegrid-body')) {
+                var list = fcRoot.querySelectorAll('.fc-timegrid .fc-scroller-harness');
+                for (i = 0; i < list.length; i++) {
+                    out.push(list[i]);
+                }
+            }
+            if (out.length) {
+                return out;
+            }
+            var daygrid = fcRoot.querySelector('.fc-daygrid-body');
+            if (daygrid) {
+                var tdDg = daygrid.closest('td.fc-scrollgrid-section-body');
+                var h2 = getScrollerHarnessInCell(tdDg);
+                if (h2) {
+                    out.push(h2);
+                } else if (tdDg) {
+                    out.push(tdDg);
+                }
+            }
+            return out;
+        }
+
+        function clearSlideElStyles() {
+            var els = getSlideTransformEls();
+            for (var i = 0; i < els.length; i++) {
+                els[i].style.transition = '';
+                els[i].style.transform = '';
+                els[i].style.willChange = '';
+            }
+        }
+
         function getSlideWidth() {
-            var slideRoot = getSlideRoot();
-            return slideRoot ? slideRoot.offsetWidth || 0 : 0;
+            var els = getSlideTransformEls();
+            var w = els.length && els[0].offsetWidth ? els[0].offsetWidth : 0;
+            if (!w) {
+                var vh = calendarEl.querySelector('.fc-view-harness');
+                w = vh ? Math.round(vh.getBoundingClientRect().width) : 0;
+            }
+            if (!w && calendarEl) {
+                w = Math.round(calendarEl.getBoundingClientRect().width);
+            }
+            return w;
         }
 
         function clampDragPx(dx, w) {
@@ -4150,12 +4229,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function agendaNavigateSlideCleanup() {
-            var slideRoot = getSlideRoot();
-            if (slideRoot) {
-                slideRoot.style.transition = '';
-                slideRoot.style.transform = '';
-                slideRoot.style.willChange = '';
-            }
+            clearSlideElStyles();
             calendarEl.classList.remove('agenda-slide-running');
             calendarEl.style.overflow = '';
             agendaSlideLocked = false;
@@ -4167,25 +4241,23 @@ document.addEventListener('DOMContentLoaded', function() {
             currentDragPx = 0;
             lastVelX = 0;
             calendarEl.classList.remove('agenda-swipe-dragging');
-            var slideRoot = getSlideRoot();
-            if (slideRoot) {
-                slideRoot.style.transition = '';
-                slideRoot.style.transform = '';
-                slideRoot.style.willChange = '';
-            }
+            clearSlideElStyles();
             calendarEl.style.overflow = '';
         }
 
         function agendaSwipeSnapBack(fromPx) {
-            var slideRoot = getSlideRoot();
-            if (!slideRoot) {
+            var slideEls = getSlideTransformEls();
+            if (!slideEls.length) {
                 agendaSwipeDragReset();
                 return;
             }
             calendarEl.classList.remove('agenda-swipe-dragging');
-            slideRoot.style.willChange = 'transform';
-            slideRoot.style.transition = 'transform 240ms cubic-bezier(0.25, 0.1, 0.25, 1)';
-            slideRoot.style.transform = 'translateX(0px)';
+            var si;
+            for (si = 0; si < slideEls.length; si++) {
+                slideEls[si].style.willChange = 'transform';
+                slideEls[si].style.transition = 'transform 240ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+                slideEls[si].style.transform = 'translateX(0px)';
+            }
             setTimeout(function() {
                 agendaSwipeDragReset();
             }, 250);
@@ -4209,9 +4281,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (agendaSlideLocked) {
                 return;
             }
-            var slideRoot = getSlideRoot();
+            var slideEls = getSlideTransformEls();
             var w = getSlideWidth();
-            if (!slideRoot || !w) {
+            if (!slideEls.length || !w) {
                 agendaSwipeDragReset();
                 if (isNext) {
                     calendar.next();
@@ -4231,9 +4303,12 @@ document.addEventListener('DOMContentLoaded', function() {
             calendarEl.classList.add('agenda-slide-running');
             calendarEl.style.overflow = 'hidden';
 
-            slideRoot.style.willChange = 'transform';
-            slideRoot.style.transition = 'transform ' + exitMs + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
-            slideRoot.style.transform = 'translateX(' + targetPx + 'px)';
+            var ei;
+            for (ei = 0; ei < slideEls.length; ei++) {
+                slideEls[ei].style.willChange = 'transform';
+                slideEls[ei].style.transition = 'transform ' + exitMs + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+                slideEls[ei].style.transform = 'translateX(' + targetPx + 'px)';
+            }
 
             setTimeout(function() {
                 if (isNext) {
@@ -4242,19 +4317,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     calendar.prev();
                 }
 
-                slideRoot = getSlideRoot();
-                if (!slideRoot) {
+                slideEls = getSlideTransformEls();
+                if (!slideEls.length) {
                     agendaNavigateSlideCleanup();
                     return;
                 }
                 var inFrom = isNext ? w : -w;
-                slideRoot.style.transition = 'none';
-                slideRoot.style.transform = 'translateX(' + inFrom + 'px)';
-                slideRoot.offsetHeight;
-                slideRoot.style.transition = 'transform ' + SLIDE_MS + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+                var j;
+                for (j = 0; j < slideEls.length; j++) {
+                    slideEls[j].style.transition = 'none';
+                    slideEls[j].style.transform = 'translateX(' + inFrom + 'px)';
+                }
+                if (slideEls[0]) {
+                    slideEls[0].offsetHeight;
+                }
+                for (j = 0; j < slideEls.length; j++) {
+                    slideEls[j].style.transition = 'transform ' + SLIDE_MS + 'ms cubic-bezier(0.25, 0.1, 0.25, 1)';
+                }
                 requestAnimationFrame(function() {
                     requestAnimationFrame(function() {
-                        slideRoot.style.transform = 'translateX(0px)';
+                        var k;
+                        for (k = 0; k < slideEls.length; k++) {
+                            slideEls[k].style.transform = 'translateX(0px)';
+                        }
                     });
                 });
 
@@ -4270,6 +4355,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function swipeTargetOk(el) {
             if (!el || !calendarEl.contains(el)) return false;
+            if (el.closest('.fc-header-toolbar')) return false;
+            if (el.closest('.fc-scrollgrid-section-header')) return false;
             if (el.closest('.fc-event')) return false;
             if (el.closest('a, button, input, select, textarea, label')) return false;
             if (el.closest('.modal')) return false;
@@ -4325,11 +4412,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             var w = getSlideWidth();
             currentDragPx = clampDragPx(dx, w);
-            var slideRoot = getSlideRoot();
-            if (slideRoot) {
-                slideRoot.style.willChange = 'transform';
-                slideRoot.style.transition = 'none';
-                slideRoot.style.transform = 'translateX(' + currentDragPx + 'px)';
+            var slideElsMove = getSlideTransformEls();
+            var sem;
+            for (sem = 0; sem < slideElsMove.length; sem++) {
+                slideElsMove[sem].style.willChange = 'transform';
+                slideElsMove[sem].style.transition = 'none';
+                slideElsMove[sem].style.transform = 'translateX(' + currentDragPx + 'px)';
             }
             var now = Date.now();
             lastVelX = (t.clientX - lastMoveX) / Math.max(1, now - lastMoveT);
