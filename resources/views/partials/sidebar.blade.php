@@ -96,7 +96,11 @@
             Ver agenda
           </a>
         </li>
-        <!-- Botão \"Novo evento\" removido da sidebar da agenda -->
+        <li>
+          <a class="panel-link {{ request()->routeIs('agenda.index') && request()->query('novaMarcacao') ? 'active' : '' }}" href="{{ route('agenda.index') }}?novaMarcacao=1">
+            Nova marcação
+          </a>
+        </li>
       </ul>
     </div>
 
