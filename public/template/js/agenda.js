@@ -10,6 +10,124 @@ document.addEventListener('DOMContentLoaded', function() {
         return el ? el.closest('.nova-marcacao-modal-total-strip') : null;
     }
 
+    /** Escapa texto para HTML (nomes, labels). */
+    function agendaEscapeHtml(str) {
+        return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
+
+    /**
+     * Scroll vertical até ao cabeçalho da categoria.
+     * A lista pode não ser o contentor que faz scroll (flex sem altura máxima → scroll no modal-body);
+     * por isso procura-se o primeiro ancestral com overflow-y scrollável a partir do alvo.
+     */
+    function agendaScrollCategoryHeaderIntoView(listEl, target) {
+        if (!target || (listEl && !listEl.contains(target))) return;
+        var node = target;
+        var scrollEl = null;
+        while (node && node !== document.documentElement) {
+            var cs = window.getComputedStyle(node);
+            var oy = cs.overflowY;
+            if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && node.scrollHeight > node.clientHeight + 1) {
+                scrollEl = node;
+                break;
+            }
+            node = node.parentElement;
+        }
+        if (!scrollEl) {
+            try {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+            } catch (e) {
+                try {
+                    target.scrollIntoView(true);
+                } catch (e2) { /* ignore */ }
+            }
+            return;
+        }
+        var sr = scrollEl.getBoundingClientRect();
+        var tr = target.getBoundingClientRect();
+        var nextTop = scrollEl.scrollTop + (tr.top - sr.top) - 8;
+        scrollEl.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
+    }
+
+    /** Monta o HTML da lista de serviços por categorias (IDs estáveis para âncoras). */
+    function agendaBuildServicesBrowseFromCategories(categories, idPrefix, itemExtraClass) {
+        var html = '';
+        var extraCls = itemExtraClass ? (' ' + itemExtraClass) : '';
+        (categories || []).forEach(function(cat, idx) {
+            var count = (cat.services || []).length;
+            html += '<div class="nova-marcacao-services-category" id="' + idPrefix + '-cat-' + idx + '"><span>' + agendaEscapeHtml(cat.name || 'Outros') + '</span><span class="badge rounded-pill nova-marcacao-category-count ms-2">' + count + '</span></div>';
+            var color = cat.color || '#6c757d';
+            (cat.services || []).forEach(function(s) {
+                var sFormattedDur = s.formatted_duration || (s.duration || 60) + ' min';
+                var sFormattedPrice = s.formatted_price || '';
+                var sPrice = (s.price != null && s.price !== '') ? parseFloat(s.price) : 0;
+                html += '<div class="nova-marcacao-service-item' + extraCls + '" data-service-id="' + s.id + '" data-duration="' + (s.duration || 60) + '" data-name="' + agendaEscapeHtml(s.name || '') + '" data-price="' + sPrice + '" data-formatted-duration="' + agendaEscapeHtml(sFormattedDur) + '" data-formatted-price="' + agendaEscapeHtml(sFormattedPrice) + '" data-color="' + agendaEscapeHtml(color) + '" style="border-left-color:' + color + '">';
+                html += '<div class="nova-marcacao-service-item-left"><div class="nova-marcacao-service-item-name">' + agendaEscapeHtml(s.name || '') + '</div><div class="nova-marcacao-service-item-duration">' + agendaEscapeHtml(sFormattedDur) + '</div></div>';
+                html += '<div class="nova-marcacao-service-item-price">' + agendaEscapeHtml(sFormattedPrice) + '</div></div>';
+            });
+        });
+        return html;
+    }
+
+    /** Tabs horizontais (só se houver 2+ categorias). */
+    function agendaBuildCategoryTabsHtml(categories, idPrefix) {
+        var cats = categories || [];
+        if (cats.length <= 1) return '';
+        var html = '';
+        cats.forEach(function(cat, idx) {
+            html += '<button type="button" class="nova-marcacao-category-tab" role="tab" data-agenda-category-target="' + idPrefix + '-cat-' + idx + '">' + agendaEscapeHtml(cat.name || 'Outros') + '</button>';
+        });
+        return html;
+    }
+
+    function agendaBindCategoryTabClicks(tabsEl, listEl) {
+        if (!tabsEl || !listEl) return;
+        tabsEl.querySelectorAll('[data-agenda-category-target]').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var tid = btn.getAttribute('data-agenda-category-target');
+                var target = tid ? document.getElementById(tid) : null;
+                if (!target || !listEl.contains(target)) return;
+                agendaScrollCategoryHeaderIntoView(listEl, target);
+                try {
+                    btn.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+                } catch (err) { /* ignore */ }
+            });
+        });
+    }
+
+    /** Aplica lista + tabs e visibilidade das tabs. idPrefix: IDs das âncoras (ex.: agenda-nm-cat-0). */
+    function agendaApplyServicesBrowseUI(listEl, tabsEl, categories, html, idPrefix) {
+        idPrefix = idPrefix || 'agenda-cat';
+        if (listEl) {
+            listEl.innerHTML = html || '<div class="text-muted small">Nenhum serviço disponível.</div>';
+        }
+        if (!tabsEl) return;
+        var tabHtml = agendaBuildCategoryTabsHtml(categories, idPrefix);
+        tabsEl.innerHTML = tabHtml;
+        var hideTabs = !tabHtml || (listEl && listEl.classList.contains('d-none'));
+        tabsEl.classList.toggle('d-none', hideTabs);
+        agendaBindCategoryTabClicks(tabsEl, listEl);
+    }
+
+    /** Tabs + área de listagem: só visíveis no modo «adicionar serviços». Na vista «selecionados», esconde o wrap inteiro (sem espaço reservado). */
+    function agendaSyncCategoryTabsWithServicesList(listEl) {
+        if (!listEl) return;
+        var wrap = listEl.closest('.nova-marcacao-services-browse-wrap');
+        var listHidden = listEl.classList.contains('d-none');
+        if (wrap) {
+            wrap.classList.toggle('d-none', listHidden);
+        }
+        var tabs = listEl.id === 'novaMarcacaoServicesList' ? $id('novaMarcacaoCategoryTabs') : (listEl.id === 'eventDetailServicesList' ? $id('eventDetailCategoryTabs') : null);
+        if (!tabs) return;
+        if (listHidden) {
+            tabs.classList.add('d-none');
+            return;
+        }
+        var n = tabs.querySelectorAll('.nova-marcacao-category-tab').length;
+        tabs.classList.toggle('d-none', n <= 1);
+    }
+
     const calendarEl = $id('calendar');
     const eventsUrl = C.eventsUrl || '';
     const resourcesUrl = C.resourcesUrl || '';
@@ -504,13 +622,14 @@ document.addEventListener('DOMContentLoaded', function() {
         wrapper.style.width = 'calc(' + colRect.width + 'px - 6px)';
         wrapper.style.height = 'calc(' + slotRect.height + 'px - 4px)';
         wrapper.style.margin = '2px 2px 0 3px';
-        wrapper.style.zIndex = '999';
+        wrapper.style.zIndex = '4';
         wrapper.style.pointerEvents = 'none';
         var timeSpan = document.createElement('span');
         timeSpan.className = 'agenda-cell-time-overlay';
         timeSpan.textContent = timeLabel;
         wrapper.appendChild(timeSpan);
-        document.body.appendChild(wrapper);
+        if (calendarEl) calendarEl.appendChild(wrapper);
+        else document.body.appendChild(wrapper);
         return wrapper;
     }
 
@@ -1652,6 +1771,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (novaMarcacaoSelectedServices.length === 0) {
             $id('novaMarcacaoServiceSelected').classList.add('d-none');
             $id('novaMarcacaoServicesList').classList.remove('d-none');
+            agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
         }
     };
 
@@ -1919,6 +2039,11 @@ document.addEventListener('DOMContentLoaded', function() {
             EventDetail.updateEndTime();
             setEventDetailPaymentAndReadOnly(eventDetailExistingSale, 'marcacao', eventDetailSelectedServices.length);
             $id('eventDetailServicesList').innerHTML = '<div class="text-muted small">A carregar...</div>';
+            var edTabsLoad = $id('eventDetailCategoryTabs');
+            if (edTabsLoad) {
+                edTabsLoad.innerHTML = '';
+                edTabsLoad.classList.add('d-none');
+            }
             fetch(agendaMembersServicesUrl + '/' + (data.user_id || C.authId) + '/services', { headers: { 'Accept': 'application/json' } })
                 .then(function(r) { return r.json(); })
                 .then(function(svcData) {
@@ -1933,21 +2058,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         item.available_extras = availableExtras;
                     });
                     EventDetail.renderSelectedServices();
-                    var html = '';
-                    (svcData.categories || []).forEach(function(cat) {
-                        var count = (cat.services || []).length;
-                        html += '<div class="nova-marcacao-services-category"><span>' + (cat.name || 'Outros') + '</span><span class="badge rounded-pill nova-marcacao-category-count ms-2">' + count + '</span></div>';
-                        var color = cat.color || '#6c757d';
-                        (cat.services || []).forEach(function(s) {
-                            var sFormattedDur = s.formatted_duration || (s.duration || 60) + ' min';
-                            var sFormattedPrice = s.formatted_price || '';
-                            var sPrice = (s.price != null && s.price !== '') ? parseFloat(s.price) : 0;
-                            html += '<div class="nova-marcacao-service-item event-detail-service-item" data-service-id="' + s.id + '" data-duration="' + (s.duration || 60) + '" data-name="' + (s.name || '').replace(/"/g, '&quot;') + '" data-price="' + sPrice + '" data-formatted-duration="' + (sFormattedDur || '').replace(/"/g, '&quot;') + '" data-formatted-price="' + (sFormattedPrice || '').replace(/"/g, '&quot;') + '" data-color="' + (color || '#6c757d').replace(/"/g, '&quot;') + '" style="border-left-color:' + color + '">';
-                            html += '<div class="nova-marcacao-service-item-left"><div class="nova-marcacao-service-item-name">' + (s.name || '') + '</div><div class="nova-marcacao-service-item-duration">' + sFormattedDur + '</div></div>';
-                            html += '<div class="nova-marcacao-service-item-price">' + sFormattedPrice + '</div></div>';
-                        });
-                    });
-                    $id('eventDetailServicesList').innerHTML = html || '<div class="text-muted small">Nenhum serviço disponível.</div>';
+                    var idPrefixEd = 'agenda-ed';
+                    var htmlEd = agendaBuildServicesBrowseFromCategories(svcData.categories, idPrefixEd, 'event-detail-service-item');
+                    agendaApplyServicesBrowseUI($id('eventDetailServicesList'), $id('eventDetailCategoryTabs'), svcData.categories, htmlEd, idPrefixEd);
+                    agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
                     $id('eventDetailServicesList').querySelectorAll('.event-detail-service-item').forEach(function(el) {
                         el.addEventListener('click', function() {
                             var sid = this.dataset.serviceId;
@@ -1975,18 +2089,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             $id('eventDetailServicesList').classList.add('d-none');
                             $id('eventDetailCancelAddServicesBtn').classList.add('d-none');
                             $id('eventDetailServiceSelected').classList.remove('d-none');
+                            agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
                         });
                     });
                     if (eventDetailSelectedServices.length > 0) {
                         $id('eventDetailServicesList').classList.add('d-none');
                         $id('eventDetailCancelAddServicesBtn').classList.add('d-none');
                         $id('eventDetailServiceSelected').classList.remove('d-none');
+                        agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
                     }
                     setEventDetailPaymentAndReadOnly(eventDetailExistingSale, 'marcacao', eventDetailSelectedServices.length);
                     updateEventDetailOutOfHoursWarning();
                 })
                 .catch(function() {
                     $id('eventDetailServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
+                    var edTabsErr = $id('eventDetailCategoryTabs');
+                    if (edTabsErr) {
+                        edTabsErr.innerHTML = '';
+                        edTabsErr.classList.add('d-none');
+                    }
+                    agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
                 });
         } else {
             setEventDetailPaymentAndReadOnly(null, data.event_type || '', 0);
@@ -2324,6 +2446,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eventDetailSelectedServices.length === 0) {
             $id('eventDetailServiceSelected').classList.add('d-none');
             $id('eventDetailServicesList').classList.remove('d-none');
+            agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
         }
     }
     var agendaAgentInfo = C.agendaAgentInfo || {};
@@ -2398,8 +2521,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function novaMarcacaoLoadServicesForAgent(agentId) {
         $id('novaMarcacaoServicesList').innerHTML = '<div class="text-muted small">A carregar serviços...</div>';
+        var nmTabs = $id('novaMarcacaoCategoryTabs');
+        if (nmTabs) {
+            nmTabs.innerHTML = '';
+            nmTabs.classList.add('d-none');
+        }
         $id('novaMarcacaoServicesList').classList.remove('d-none');
         $id('novaMarcacaoServiceSelected').classList.add('d-none');
+        agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
         novaMarcacaoServicesData = null;
         novaMarcacaoSelectedServices = [];
         if (!agentId) {
@@ -2412,21 +2541,10 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 novaMarcacaoServicesData = data;
-                var html = '';
-                (data.categories || []).forEach(function(cat) {
-                    var count = (cat.services || []).length;
-                    html += '<div class="nova-marcacao-services-category"><span>' + (cat.name || 'Outros') + '</span><span class="badge rounded-pill nova-marcacao-category-count ms-2">' + count + '</span></div>';
-                    var color = cat.color || '#6c757d';
-                    (cat.services || []).forEach(function(s) {
-                        var sFormattedDur = s.formatted_duration || (s.duration || 60) + ' min';
-                        var sFormattedPrice = s.formatted_price || '';
-                        var sPrice = (s.price != null && s.price !== '') ? parseFloat(s.price) : 0;
-                        html += '<div class="nova-marcacao-service-item" data-service-id="' + s.id + '" data-duration="' + (s.duration || 60) + '" data-name="' + (s.name || '').replace(/"/g, '&quot;') + '" data-price="' + sPrice + '" data-formatted-duration="' + (sFormattedDur || '').replace(/"/g, '&quot;') + '" data-formatted-price="' + (sFormattedPrice || '').replace(/"/g, '&quot;') + '" data-color="' + (color || '#6c757d').replace(/"/g, '&quot;') + '" style="border-left-color:' + color + '">';
-                        html += '<div class="nova-marcacao-service-item-left"><div class="nova-marcacao-service-item-name">' + (s.name || '') + '</div><div class="nova-marcacao-service-item-duration">' + sFormattedDur + '</div></div>';
-                        html += '<div class="nova-marcacao-service-item-price">' + sFormattedPrice + '</div></div>';
-                    });
-                });
-                $id('novaMarcacaoServicesList').innerHTML = html || '<div class="text-muted small">Nenhum serviço disponível.</div>';
+                var idPrefixNm = 'agenda-nm';
+                var htmlNm = agendaBuildServicesBrowseFromCategories(data.categories, idPrefixNm, '');
+                agendaApplyServicesBrowseUI($id('novaMarcacaoServicesList'), $id('novaMarcacaoCategoryTabs'), data.categories, htmlNm, idPrefixNm);
+                agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
                 $id('novaMarcacaoServicesList').querySelectorAll('.nova-marcacao-service-item').forEach(function(el) {
                     el.addEventListener('click', function() {
                         var sid = this.dataset.serviceId;
@@ -2456,11 +2574,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         $id('novaMarcacaoServicesList').classList.add('d-none');
                         $id('novaMarcacaoCancelAddServicesBtn').classList.add('d-none');
                         $id('novaMarcacaoServiceSelected').classList.remove('d-none');
+                        agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
                     });
                 });
             })
             .catch(function() {
                 $id('novaMarcacaoServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
+                var nmTabsErr = $id('novaMarcacaoCategoryTabs');
+                if (nmTabsErr) {
+                    nmTabsErr.innerHTML = '';
+                    nmTabsErr.classList.add('d-none');
+                }
             });
     }
 
@@ -2478,7 +2602,372 @@ document.addEventListener('DOMContentLoaded', function() {
         updateNovaMarcacaoOutOfHoursWarning();
     }
 
+    /** Teste: nova marcação em offcanvas + Choices nos selects (ver #agendaMarcacaoTestOffcanvas). */
+    var agendaOcChoicesInstances = { client: null, service: null, member: null, date: null, time: null };
+    var agendaOcServicesFlat = [];
+    var agendaOcTestFormBound = false;
+
+    function agendaOcCommonChoicesOpts() {
+        return {
+            searchEnabled: true,
+            itemSelectText: '',
+            shouldSort: false,
+            searchPlaceholderValue: 'Pesquisar…'
+        };
+    }
+
+    function agendaOcDestroyTestChoices() {
+        ['client', 'service', 'member', 'date', 'time'].forEach(function(key) {
+            var inst = agendaOcChoicesInstances[key];
+            if (inst) {
+                try {
+                    inst.destroy();
+                } catch (e) { /* ignore */ }
+                agendaOcChoicesInstances[key] = null;
+            }
+        });
+    }
+
+    function agendaOcBuildDateOptions() {
+        var opts = [];
+        var base = new Date();
+        base.setHours(12, 0, 0, 0);
+        for (var i = -7; i <= 120; i++) {
+            var d = new Date(base);
+            d.setDate(d.getDate() + i);
+            var ymd = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            opts.push({ value: ymd, label: DAYS_LONG[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS_LONG[d.getMonth()] });
+        }
+        return opts;
+    }
+
+    function agendaOcBuildTimeOptionElements() {
+        var frag = document.createDocumentFragment();
+        for (var h = 0; h < 24; h++) {
+            for (var m = 0; m < 60; m += 15) {
+                var v = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+                var opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                frag.appendChild(opt);
+            }
+        }
+        return frag;
+    }
+
+    function agendaOcSnapTime15(d) {
+        var h = d.getHours();
+        var min = d.getMinutes();
+        var rounded = Math.round(min / 15) * 15;
+        if (rounded >= 60) {
+            d.setHours(h + 1, 0, 0, 0);
+        } else {
+            d.setMinutes(rounded, 0, 0);
+        }
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+
+    function agendaOcFlattenServicesFromCategories(categories) {
+        var out = [];
+        (categories || []).forEach(function(cat) {
+            (cat.services || []).forEach(function(s) {
+                var dur = parseInt(s.duration, 10) || 60;
+                var priceNum = s.price != null && s.price !== '' ? parseFloat(s.price) : 0;
+                out.push({
+                    service_id: String(s.id),
+                    name: s.name || '',
+                    duration: dur,
+                    price: priceNum,
+                    original_price: priceNum,
+                    formatted_duration: s.formatted_duration || (dur + ' min'),
+                    formatted_price: s.formatted_price || ''
+                });
+            });
+        });
+        return out;
+    }
+
+    function agendaOcRebuildServiceSelect(svcSel, flatList) {
+        svcSel.innerHTML = '<option value="">— Selecionar serviço —</option>';
+        flatList.forEach(function(s) {
+            var opt = document.createElement('option');
+            opt.value = s.service_id;
+            opt.textContent = (s.name || '') + ' (' + (s.formatted_duration || s.duration + ' min') + ')';
+            opt.dataset.duration = String(s.duration);
+            opt.dataset.price = String(s.price);
+            opt.dataset.name = s.name || '';
+            svcSel.appendChild(opt);
+        });
+        svcSel.disabled = flatList.length === 0;
+    }
+
+    function agendaOcReloadServicesForMember(memberId, done) {
+        var svcSel = $id('agendaOcService');
+        if (!svcSel) {
+            if (done) done();
+            return;
+        }
+        if (agendaOcChoicesInstances.service) {
+            try {
+                agendaOcChoicesInstances.service.destroy();
+            } catch (e) { /* ignore */ }
+            agendaOcChoicesInstances.service = null;
+        }
+        if (!memberId) {
+            agendaOcServicesFlat = [];
+            svcSel.innerHTML = '<option value="">— Escolha um profissional —</option>';
+            svcSel.disabled = true;
+            agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+            if (done) done();
+            return;
+        }
+        svcSel.innerHTML = '<option value="">A carregar…</option>';
+        svcSel.disabled = true;
+        fetch(agendaMembersServicesUrl + '/' + memberId + '/services', { headers: { 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
+                agendaOcRebuildServiceSelect(svcSel, agendaOcServicesFlat);
+                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                if (done) done();
+            })
+            .catch(function() {
+                agendaOcServicesFlat = [];
+                svcSel.innerHTML = '<option value="">Erro ao carregar</option>';
+                svcSel.disabled = true;
+                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                if (done) done();
+            });
+    }
+
+    function openAgendaMarcacaoTestOffcanvas(startStr, endStr, resourceId, preSelectedClientId) {
+        if (typeof Choices === 'undefined') {
+            showToast('Choices.js não está disponível.', 'error');
+            return;
+        }
+        var ocEl = $id('agendaMarcacaoTestOffcanvas');
+        if (!ocEl) {
+            showToast('Offcanvas de teste não encontrado.', 'error');
+            return;
+        }
+
+        agendaOcDestroyTestChoices();
+
+        var startD = new Date(startStr);
+        if (isNaN(startD.getTime())) {
+            startD = new Date();
+        }
+
+        var hasResource = resourceId != null && String(resourceId) !== '';
+        var memberId = '';
+        if (hasResource) {
+            memberId = String(resourceId);
+        } else if (currentUserIsAdmin) {
+            memberId = '';
+        } else {
+            var uid = String(C.authId || '');
+            var inList = (C.usersForConsultant || []).some(function(u) { return String(u.id) === uid; });
+            memberId = inList ? uid : '';
+        }
+
+        var memSel = $id('agendaOcMember');
+        memSel.innerHTML = '<option value="">— Selecionar —</option>';
+        (C.usersForConsultant || []).forEach(function(u) {
+            var opt = document.createElement('option');
+            opt.value = String(u.id);
+            opt.textContent = u.name || ('#' + u.id);
+            memSel.appendChild(opt);
+        });
+        if (memberId) {
+            memSel.value = memberId;
+        }
+
+        var ymd = startD.getFullYear() + '-' + String(startD.getMonth() + 1).padStart(2, '0') + '-' + String(startD.getDate()).padStart(2, '0');
+        var timeRounded = agendaOcSnapTime15(new Date(startD.getTime()));
+
+        var dateSel = $id('agendaOcDate');
+        dateSel.innerHTML = '';
+        agendaOcBuildDateOptions().forEach(function(o) {
+            var opt = document.createElement('option');
+            opt.value = o.value;
+            opt.textContent = o.label;
+            dateSel.appendChild(opt);
+        });
+        dateSel.value = ymd;
+        if (!dateSel.value) {
+            dateSel.selectedIndex = Math.max(0, 7);
+        }
+
+        var timeSel = $id('agendaOcTime');
+        timeSel.innerHTML = '';
+        timeSel.appendChild(agendaOcBuildTimeOptionElements());
+        timeSel.value = timeRounded;
+        if (!timeSel.value) {
+            timeSel.value = '09:00';
+        }
+
+        $id('agendaOcObs').value = '';
+
+        var clientSel = $id('agendaOcClient');
+        clientSel.innerHTML = '<option value="">A carregar clientes…</option>';
+
+        var svcSel = $id('agendaOcService');
+        svcSel.innerHTML = '<option value="">A carregar…</option>';
+        svcSel.disabled = true;
+
+        agendaOcChoicesInstances.date = new Choices(dateSel, agendaOcCommonChoicesOpts());
+        agendaOcChoicesInstances.time = new Choices(timeSel, agendaOcCommonChoicesOpts());
+        agendaOcChoicesInstances.member = new Choices(memSel, agendaOcCommonChoicesOpts());
+
+        Promise.all([
+            fetch(agendaClientsUrl, { headers: { 'Accept': 'application/json' } }).then(function(r) { return r.json(); }),
+            memberId
+                ? fetch(agendaMembersServicesUrl + '/' + memberId + '/services', { headers: { 'Accept': 'application/json' } }).then(function(r) { return r.json() })
+                : Promise.resolve({ categories: [] })
+        ])
+            .then(function(results) {
+                var clients = results[0] || [];
+                var svcData = results[1] || { categories: [] };
+                clientSel.innerHTML = '<option value="">— Selecionar cliente —</option>';
+                clients.forEach(function(c) {
+                    var opt = document.createElement('option');
+                    opt.value = String(c.id);
+                    var phone = c.formatted_phone || c.phone || '';
+                    opt.textContent = (c.name || '') + (phone ? ' · ' + phone : '');
+                    clientSel.appendChild(opt);
+                });
+                agendaOcChoicesInstances.client = new Choices(clientSel, agendaOcCommonChoicesOpts());
+                if (preSelectedClientId) {
+                    try {
+                        agendaOcChoicesInstances.client.setChoiceByValue(String(preSelectedClientId));
+                    } catch (e) { /* ignore */ }
+                }
+
+                agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(svcData.categories);
+                agendaOcRebuildServiceSelect(svcSel, agendaOcServicesFlat);
+                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+
+                var off = bootstrap.Offcanvas.getOrCreateInstance(ocEl, { scroll: true });
+                off.show();
+            })
+            .catch(function() {
+                showToast('Erro ao preparar o formulário.', 'error');
+            });
+
+        if (!agendaOcTestFormBound) {
+            agendaOcTestFormBound = true;
+            $id('agendaOcMember').addEventListener('change', function() {
+                agendaOcReloadServicesForMember(this.value || '', null);
+            });
+            $id('agendaMarcacaoTestForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var mid = ($id('agendaOcMember').value || '').trim();
+                if (!mid) {
+                    showToast('Selecione um profissional.', 'error');
+                    return;
+                }
+                var cid = ($id('agendaOcClient').value || '').trim();
+                if (!cid) {
+                    showToast('Selecione um cliente.', 'error');
+                    return;
+                }
+                var sid = ($id('agendaOcService').value || '').trim();
+                if (!sid) {
+                    showToast('Selecione um serviço.', 'error');
+                    return;
+                }
+                var svc = agendaOcServicesFlat.find(function(s) { return String(s.service_id) === String(sid); });
+                if (!svc) {
+                    showToast('Serviço inválido.', 'error');
+                    return;
+                }
+                var dStr = $id('agendaOcDate').value;
+                var tStr = $id('agendaOcTime').value;
+                if (!dStr || !tStr) {
+                    showToast('Indique data e hora.', 'error');
+                    return;
+                }
+                var startLocal = dStr + 'T' + tStr;
+                var startDate = parseAgendaLocalDateTime(startLocal);
+                if (!startDate || isNaN(startDate.getTime())) {
+                    showToast('Data ou hora inválida.', 'error');
+                    return;
+                }
+                var endDate = new Date(startDate.getTime() + (parseInt(svc.duration, 10) || 60) * 60000);
+                var endLocal = agendaFormatLocalDateTimeForInput(endDate);
+
+                var clientName = '';
+                var selOpt = $id('agendaOcClient').selectedOptions && $id('agendaOcClient').selectedOptions[0];
+                if (selOpt) {
+                    clientName = (selOpt.textContent || '').split('·')[0].trim();
+                }
+                var title = (clientName || 'Cliente') + ' - ' + (svc.name || '');
+                var btn = $id('agendaOcSubmit');
+                btn.disabled = true;
+                var origHtml = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar…';
+                var payload = {
+                    title: title,
+                    start_at: agendaLocalInputToUtcIso(startLocal),
+                    end_at: agendaLocalInputToUtcIso(endLocal),
+                    description: $id('agendaOcObs').value,
+                    event_type: 'marcacao',
+                    user_id: mid,
+                    client_id: cid,
+                    services: [{
+                        service_id: svc.service_id,
+                        duration: svc.duration,
+                        price: svc.price,
+                        original_price: svc.original_price != null ? svc.original_price : svc.price,
+                        extras: []
+                    }]
+                };
+                fetch((C.urlEvents || ''), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': C.csrf || '', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify(payload)
+                })
+                    .then(function(r) {
+                        return r.json().then(function(res) {
+                            if (!r.ok) {
+                                var msg = res.message || (res.errors ? Object.values(res.errors).flat().join(' ') : null) || 'Erro ao criar marcação.';
+                                throw new Error(msg);
+                            }
+                            return res;
+                        });
+                    })
+                    .then(function(res) {
+                        btn.disabled = false;
+                        btn.innerHTML = origHtml;
+                        if (res.success && res.event) {
+                            if (typeof calendar !== 'undefined') {
+                                calendar.refetchEvents();
+                            }
+                            bootstrap.Offcanvas.getInstance($id('agendaMarcacaoTestOffcanvas'))?.hide();
+                        } else {
+                            showToast(res.message || 'Erro ao criar marcação.', 'error');
+                        }
+                    })
+                    .catch(function(err) {
+                        btn.disabled = false;
+                        btn.innerHTML = origHtml;
+                        var msg = (err && err.message && String(err.message).indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação.';
+                        showToast(msg, 'error');
+                    });
+            });
+
+            ocEl.addEventListener('hidden.bs.offcanvas', function() {
+                agendaOcDestroyTestChoices();
+                agendaOcServicesFlat = [];
+            });
+        }
+    }
+
     function openNovaMarcacaoModal(startStr, endStr, resourceId, preSelectedClientId) {
+        if (C.useOffcanvasMarcacaoTest) {
+            openAgendaMarcacaoTestOffcanvas(startStr, endStr, resourceId, preSelectedClientId);
+            return;
+        }
         populateNovaMarcacaoAgentSelectIfNeeded();
         var hasResource = resourceId != null && String(resourceId) !== '';
         $id('novaMarcacaoStart').value = startStr;
@@ -2940,6 +3429,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('novaMarcacaoServiceSelected').classList.add('d-none');
         $id('novaMarcacaoCancelAddServicesBtn').classList.remove('d-none');
         $id('novaMarcacaoServicesList').classList.remove('d-none');
+        agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
         var totalStripNm = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
         if (totalStripNm) totalStripNm.classList.add('d-none');
     });
@@ -2948,6 +3438,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('novaMarcacaoServicesList').classList.add('d-none');
         $id('novaMarcacaoCancelAddServicesBtn').classList.add('d-none');
         $id('novaMarcacaoServiceSelected').classList.remove('d-none');
+        agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
         var totalStripNm2 = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
         if (totalStripNm2) totalStripNm2.classList.remove('d-none');
     });
@@ -2956,6 +3447,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('eventDetailServiceSelected').classList.add('d-none');
         $id('eventDetailCancelAddServicesBtn').classList.remove('d-none');
         $id('eventDetailServicesList').classList.remove('d-none');
+        agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
         var totalStripEd = agendaMarcacaoTotalStrip('eventDetailTotalPrice');
         if (totalStripEd) totalStripEd.classList.add('d-none');
     });
@@ -2964,6 +3456,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('eventDetailServicesList').classList.add('d-none');
         $id('eventDetailCancelAddServicesBtn').classList.add('d-none');
         $id('eventDetailServiceSelected').classList.remove('d-none');
+        agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
         var totalStripEd2 = agendaMarcacaoTotalStrip('eventDetailTotalPrice');
         if (totalStripEd2) totalStripEd2.classList.remove('d-none');
     });
@@ -3910,13 +4403,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     wrapper.style.left = slotRect.left + 'px';
                     wrapper.style.width = slotRect.width + 'px';
                     wrapper.style.height = slotRect.height + 'px';
-                    wrapper.style.zIndex = '9998';
+                    wrapper.style.zIndex = '4';
                     wrapper.style.pointerEvents = 'none';
                     var span = document.createElement('span');
                     span.className = 'agenda-cell-time-overlay';
                     span.textContent = timeLabel;
                     wrapper.appendChild(span);
-                    document.body.appendChild(wrapper);
+                    if (calendarEl) calendarEl.appendChild(wrapper);
+                    else document.body.appendChild(wrapper);
                     _agendaHighlight.wrapper = wrapper;
                     _agendaHighlight.wrapper._isFullRow = true;
                 }
@@ -5163,6 +5657,18 @@ document.addEventListener('DOMContentLoaded', function() {
             var target = e.target;
             if (!calendarEl.contains(target)) return;
             if ($id('agendaQuickMenu').classList.contains('is-open')) return;
+            /* Por cima de um evento: não mostrar overlay de célula (evita “mancha” sobre a marcação; z-index do FC é pouco fiável) */
+            if (target.closest && (target.closest('.fc-event') || target.closest('.fc-timegrid-more-link'))) {
+                clearAgendaHoverHighlight();
+                return;
+            }
+            var topAt = document.elementFromPoint(e.clientX, e.clientY);
+            if (topAt && calendarEl.contains(topAt) && topAt.closest) {
+                if (topAt.closest('.fc-event') || topAt.closest('.fc-timegrid-more-link') || topAt.closest('.fc-event-mirror')) {
+                    clearAgendaHoverHighlight();
+                    return;
+                }
+            }
             var slotEl = target.closest('[data-slot-date]');
             if (!slotEl) {
                 // Fallback: quando o alvo é uma camada intermédia (ex.: bg-event),
@@ -5204,13 +5710,13 @@ document.addEventListener('DOMContentLoaded', function() {
             var colRect = colEl.getBoundingClientRect();
             if (colRect.width <= 0 || slotRect.height <= 0) return;
 
-            /* Overlay em position:fixed e coordenadas viewport para ficar exactamente sobre a célula e visível (z-index alto) */
+            /* Overlay em position:fixed; z-index baixo para ficar abaixo dos eventos (.fc-timegrid-event-harness) */
             if (!_agendaHoverHighlight) {
                 var wrapper = document.createElement('div');
                 wrapper.className = 'agenda-cell-highlight-hover';
                 wrapper.setAttribute('role', 'presentation');
                 wrapper.style.position = 'fixed';
-                wrapper.style.zIndex = '9999';
+                wrapper.style.zIndex = '4';
                 wrapper.style.pointerEvents = 'none';
                 var timeSpan = document.createElement('span');
                 timeSpan.className = 'agenda-cell-time-overlay';
@@ -5223,7 +5729,10 @@ document.addEventListener('DOMContentLoaded', function() {
             _agendaHoverHighlight.style.height = 'calc(' + slotRect.height + 'px - 4px)';
             _agendaHoverHighlight.style.margin = '2px 2px 0 3px';
             _agendaHoverHighlight.querySelector('.agenda-cell-time-overlay').textContent = timeLabel;
-            if (!_agendaHoverHighlight.parentNode) document.body.appendChild(_agendaHoverHighlight);
+            if (!_agendaHoverHighlight.parentNode) {
+                if (calendarEl) calendarEl.appendChild(_agendaHoverHighlight);
+                else document.body.appendChild(_agendaHoverHighlight);
+            }
         }
         function clearOnLeave(e) {
             if (!calendarEl.contains(e.relatedTarget)) clearAgendaHoverHighlight();

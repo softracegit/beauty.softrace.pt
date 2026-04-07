@@ -113,15 +113,20 @@
                             @endif
                         </td>
                         <td>
-                            @if($agent->specialization)
-                                <span class="users-cell-meta">{{ $agent->specialization }}</span>
+                            @php
+                                $specList = $agent->specialization && in_array($agent->user->role ?? '', \App\Models\User::rolesWithSpecialization(), true)
+                                    ? \App\Models\Agent::specializationLabel($agent->specialization)
+                                    : null;
+                            @endphp
+                            @if($specList)
+                                <span class="users-cell-meta">{{ $specList }}</span>
                             @else
                                 <span class="users-cell-meta text-muted">—</span>
                             @endif
                         </td>
                         <td>
-                            @if($agent->commission_rate)
-                                <span class="users-cell-meta">{{ number_format($agent->commission_rate, 2) }}%</span>
+                            @if($agent->commission_rate !== null)
+                                <span class="users-cell-meta">{{ $agent->formatCommissionDisplay() }}</span>
                             @else
                                 <span class="users-cell-meta text-muted">—</span>
                             @endif

@@ -18,6 +18,58 @@
     </div>
 </div>
 
+<!-- Teste: nova marcação em offcanvas à direita (substitui o modal quando useOffcanvasMarcacaoTest = true no AGENDA_CONFIG) -->
+<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="agendaMarcacaoTestOffcanvas" aria-labelledby="agendaMarcacaoTestOffcanvasLabel" data-bs-scroll="true">
+    <div class="offcanvas-header border-bottom align-items-start">
+        <div>
+            <h5 class="offcanvas-title fw-semibold mb-0" id="agendaMarcacaoTestOffcanvasLabel">Nova marcação</h5>
+            <p class="small text-muted mb-0 mt-1">Teste — painel lateral</p>
+        </div>
+        <button type="button" class="btn-close mt-0" data-bs-dismiss="offcanvas" data-agenda-oc-close aria-label="Fechar"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="agendaMarcacaoTestForm" class="d-flex flex-column h-100 agenda-oc-test-form" autocomplete="off">
+            <div class="mb-3 agenda-oc-field" style="order:1">
+                <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcClient">Cliente</label>
+                <select id="agendaOcClient" class="form-select form-select-sm" data-placeholder="Pesquisar cliente…">
+                    <option value="">— Carregar… —</option>
+                </select>
+            </div>
+            <div class="mb-3 agenda-oc-field" style="order:2">
+                <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcService">Serviço</label>
+                <select id="agendaOcService" class="form-select form-select-sm" disabled>
+                    <option value="">— Escolha um profissional —</option>
+                </select>
+                <p class="form-text small text-muted mb-0 mt-1" id="agendaOcServiceHint">Os serviços carregam após escolher o profissional (slot do calendário pré-seleciona quando aplicável).</p>
+            </div>
+            <div class="mb-3 agenda-oc-field" style="order:3">
+                <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcMember">Profissional (membro)</label>
+                <select id="agendaOcMember" class="form-select form-select-sm">
+                    <option value="">— Selecionar —</option>
+                </select>
+            </div>
+            <div class="row g-2 mb-3 agenda-oc-field" style="order:4">
+                <div class="col-7">
+                    <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcDate">Data</label>
+                    <select id="agendaOcDate" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-5">
+                    <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcTime">Hora</label>
+                    <select id="agendaOcTime" class="form-select form-select-sm"></select>
+                </div>
+            </div>
+            <div class="mb-3 flex-grow-1 d-flex flex-column min-h-0 agenda-oc-field" style="order:5">
+                <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcObs">Observações</label>
+                <textarea class="form-control form-control-sm flex-grow-1" id="agendaOcObs" name="description" rows="3" placeholder="Notas internas sobre a marcação"></textarea>
+            </div>
+            <div class="mt-auto pt-3 border-top d-flex flex-wrap gap-2 justify-content-end agenda-oc-field" style="order:6">
+                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
+                <button type="submit" class="btn btn-primary btn-sm" id="agendaOcSubmit">Criar marcação</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Quick menu popup (ao clicar numa célula) - mesmo aspeto do quick access da navbar -->
 <div id="agendaQuickMenu" role="menu" aria-label="Opções"></div>
 
@@ -151,8 +203,11 @@
                                     <i class="ph ph-arrow-left me-1"></i>Voltar
                                 </button>
                             </h6>
-                            <div id="novaMarcacaoServicesList" class="nova-marcacao-services-list">
-                                <div class="text-muted small">A carregar serviços...</div>
+                            <div class="nova-marcacao-services-browse-wrap">
+                                <div id="novaMarcacaoCategoryTabs" class="nova-marcacao-category-tabs d-none" role="tablist" aria-label="Atalhos por categoria"></div>
+                                <div id="novaMarcacaoServicesList" class="nova-marcacao-services-list">
+                                    <div class="text-muted small">A carregar serviços...</div>
+                                </div>
                             </div>
                             <div id="novaMarcacaoServiceSelected" class="d-none">
                                 <div id="novaMarcacaoSelectedServicesList"></div>
@@ -477,8 +532,11 @@
                                     <i class="ph ph-arrow-left me-1"></i>Voltar
                                 </button>
                             </h6>
-                            <div id="eventDetailServicesList" class="nova-marcacao-services-list">
-                                <div class="text-muted small">A carregar serviços...</div>
+                            <div class="nova-marcacao-services-browse-wrap">
+                                <div id="eventDetailCategoryTabs" class="nova-marcacao-category-tabs d-none" role="tablist" aria-label="Atalhos por categoria"></div>
+                                <div id="eventDetailServicesList" class="nova-marcacao-services-list">
+                                    <div class="text-muted small">A carregar serviços...</div>
+                                </div>
                             </div>
                             <div id="eventDetailServiceSelected" class="d-none">
                                 <div id="eventDetailSelectedServicesList"></div>
@@ -615,7 +673,9 @@ window.AGENDA_CONFIG = {
     agendaAgentInfo: @json($agentInfoMap->all()),
     usersForConsultant: @json($usersForConsultant),
     nationalHolidaysPt: @json($nationalHolidaysPt ?? []),
-    memberWeeklySchedules: @json($memberWeeklySchedules ?? [])
+    memberWeeklySchedules: @json($memberWeeklySchedules ?? []),
+    /** Teste: abrir fluxo «Nova marcação» no offcanvas lateral em vez do modal (#novaMarcacaoModal). */
+    useOffcanvasMarcacaoTest: true
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>

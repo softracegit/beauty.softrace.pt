@@ -141,19 +141,22 @@
                     </div>
                     @endif
 
-                    @if($agente->specialization || $agente->commission_rate)
+                    @php
+                        $showEspecializacao = $agente->specialization && in_array($agente->user->role ?? '', \App\Models\User::rolesWithSpecialization(), true);
+                    @endphp
+                    @if($showEspecializacao || $agente->commission_rate !== null)
                     <div class="uview-detail-group">
                         <div class="uview-detail-title">Dados Profissionais</div>
-                        @if($agente->specialization)
+                        @if($showEspecializacao)
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Especialização</div>
-                            <div class="uview-detail-value">{{ $agente->specialization }}</div>
+                            <div class="uview-detail-value">{{ \App\Models\Agent::specializationLabel($agente->specialization) }}</div>
                         </div>
                         @endif
-                        @if($agente->commission_rate)
+                        @if($agente->commission_rate !== null)
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Taxa de Comissão</div>
-                            <div class="uview-detail-value">{{ number_format($agente->commission_rate, 2) }}%</div>
+                            <div class="uview-detail-value">{{ $agente->formatCommissionDisplay() }}</div>
                         </div>
                         @endif
                     </div>

@@ -127,20 +127,14 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Especialização</label>
-                                <input type="text" name="specialization" class="form-control @error('specialization') is-invalid @enderror" value="{{ old('specialization') }}" placeholder="Ex: Manicure, Barbeiro, Tratamento Pets">
-                                @error('specialization')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Taxa de Comissão (%)</label>
-                                <input type="number" name="commission_rate" class="form-control @error('commission_rate') is-invalid @enderror" value="{{ old('commission_rate') }}" placeholder="Ex: 5.00" step="0.01" min="0" max="100">
-                                @error('commission_rate')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
+                            @include('agentes.partials.specialization-field', [
+                                'currentRole' => old('role', 'prestador'),
+                                'specializationValue' => old('specialization'),
+                            ])
+                            @include('agentes.partials.commission-field', [
+                                'commissionRate' => old('commission_rate'),
+                                'commissionUnit' => old('commission_unit', \App\Models\Agent::COMMISSION_UNIT_PERCENT),
+                            ])
                         </div>
                     </div>
                 </div>
@@ -350,4 +344,48 @@
     })();
 </script>
 @include('clientes.partials.intl-phone-init', ['phoneInputId' => 'agentCreatePhone', 'phoneOptional' => true])
+<script>
+(function() {
+    var roleSel = document.querySelector('select[name="role"]');
+    var wrap = document.getElementById('agentSpecializationFieldWrap');
+    var specSel = wrap ? wrap.querySelector('select[name="specialization"]') : null;
+    var rolesWith = @json(\App\Models\User::rolesWithSpecialization());
+    function sync() {
+        if (!roleSel || !wrap) return;
+        var show = rolesWith.indexOf(roleSel.value) !== -1;
+        wrap.classList.toggle('d-none', !show);
+        if (!show && specSel) specSel.value = '';
+    }
+    if (roleSel) { roleSel.addEventListener('change', sync); sync(); }
+})();
+(function() {
+    var input = document.getElementById('commissionRateInput');
+    var hidden = document.getElementById('commissionUnitHidden');
+    var btns = document.querySelectorAll('.commission-unit-btn');
+    if (!input || !hidden || !btns.length) return;
+    function syncCommissionMax() {
+        if (hidden.value === '{{ \App\Models\Agent::COMMISSION_UNIT_PERCENT }}') {
+            input.setAttribute('max', '100');
+        } else {
+            input.removeAttribute('max');
+        }
+    }
+    function setUnit(unit) {
+        hidden.value = unit;
+        btns.forEach(function(b) {
+            var on = b.getAttribute('data-unit') === unit;
+            b.classList.toggle('btn-primary', on);
+            b.classList.toggle('btn-outline-secondary', !on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        syncCommissionMax();
+    }
+    btns.forEach(function(b) {
+        b.addEventListener('click', function() {
+            setUnit(b.getAttribute('data-unit'));
+        });
+    });
+    setUnit(hidden.value || '{{ \App\Models\Agent::COMMISSION_UNIT_PERCENT }}');
+})();
+</script>
 @endsection

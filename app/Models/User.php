@@ -49,9 +49,13 @@ class User extends Authenticatable
 
     // Roles (Tipo de Membro - focado em serviços: nails, barbeiros, pets, etc.)
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_GERENTE = 'gerente';
+
     public const ROLE_RECECAO = 'rececao';
+
     public const ROLE_PRESTADOR = 'prestador';
+
     public const ROLE_TECNICO = 'tecnico';
 
     public static function roles(): array
@@ -62,6 +66,15 @@ class User extends Authenticatable
             self::ROLE_RECECAO => 'Receção',
             self::ROLE_PRESTADOR => 'Prestador(a) de Serviços',
             self::ROLE_TECNICO => 'Técnico(a)',
+        ];
+    }
+
+    /** Tipos de membro em que o campo Especialização se aplica. */
+    public static function rolesWithSpecialization(): array
+    {
+        return [
+            self::ROLE_PRESTADOR,
+            self::ROLE_TECNICO,
         ];
     }
 

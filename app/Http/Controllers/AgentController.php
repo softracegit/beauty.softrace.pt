@@ -24,17 +24,24 @@ class AgentController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function ($q) use ($search) {
+            $specSlugsByLabel = collect(Agent::specializations())
+                ->filter(fn (string $label) => stripos($label, $search) !== false)
+                ->keys()
+                ->all();
+            $query->where(function ($q) use ($search, $specSlugsByLabel) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('phone', 'like', "%{$search}%")
                     ->orWhere('nif', 'like', "%{$search}%")
                     ->orWhere('locality', 'like', "%{$search}%")
                     ->orWhere('address', 'like', "%{$search}%")
-                    ->orWhere('specialization', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($userQuery) use ($search) {
-                        $userQuery->where('email', 'like', "%{$search}%")
-                            ->orWhere('name', 'like', "%{$search}%");
-                    });
+                    ->orWhere('specialization', 'like', "%{$search}%");
+                if ($specSlugsByLabel !== []) {
+                    $q->orWhereIn('specialization', $specSlugsByLabel);
+                }
+                $q->orWhereHas('user', function ($userQuery) use ($search) {
+                    $userQuery->where('email', 'like', "%{$search}%")
+                        ->orWhere('name', 'like', "%{$search}%");
+                });
             });
         }
 
@@ -63,6 +70,8 @@ class AgentController extends Controller
     {
         $this->authorize('create', Agent::class);
 
+        $this->prepareCommissionInput($request);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
@@ -80,14 +89,18 @@ class AgentController extends Controller
             'side' => ['nullable', 'string', 'max:10'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'locality' => ['nullable', 'string', 'max:255'],
-            'specialization' => ['nullable', 'string', 'max:255'],
-            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'specialization' => $this->specializationRules($request),
+            'commission_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
+            'commission_rate' => $this->commissionRateRules($request),
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'service_ids' => ['nullable', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
         ]);
+
+        $validated = $this->applySpecializationByRole($validated);
+        $validated = $this->normalizeCommission($validated);
 
         $user = User::create([
             'name' => $validated['name'],
@@ -223,6 +236,8 @@ class AgentController extends Controller
     {
         $this->authorize('update', $agente);
 
+        $this->prepareCommissionInput($request);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($agente->user_id)],
@@ -240,14 +255,18 @@ class AgentController extends Controller
             'side' => ['nullable', 'string', 'max:10'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'locality' => ['nullable', 'string', 'max:255'],
-            'specialization' => ['nullable', 'string', 'max:255'],
-            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'specialization' => $this->specializationRules($request),
+            'commission_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
+            'commission_rate' => $this->commissionRateRules($request),
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'service_ids' => ['nullable', 'array'],
             'service_ids.*' => ['integer', 'exists:services,id'],
         ]);
+
+        $validated = $this->applySpecializationByRole($validated);
+        $validated = $this->normalizeCommission($validated);
 
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
@@ -339,5 +358,91 @@ class AgentController extends Controller
         }
 
         return $out;
+    }
+
+    /** @return array<int, \Illuminate\Contracts\Validation\ValidationRule|string> */
+    private function specializationRules(Request $request): array
+    {
+        return [
+            'nullable',
+            function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                if (! in_array($request->input('role'), User::rolesWithSpecialization(), true)) {
+                    return;
+                }
+                if ($value === null || $value === '') {
+                    return;
+                }
+                if (! array_key_exists((string) $value, Agent::specializations())) {
+                    $fail('A especialização selecionada é inválida.');
+                }
+            },
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function applySpecializationByRole(array $validated): array
+    {
+        if (! in_array($validated['role'], User::rolesWithSpecialization(), true)) {
+            $validated['specialization'] = null;
+        } else {
+            $validated['specialization'] = $validated['specialization'] !== '' && $validated['specialization'] !== null
+                ? (string) $validated['specialization']
+                : null;
+        }
+
+        return $validated;
+    }
+
+    private function prepareCommissionInput(Request $request): void
+    {
+        if ($request->input('commission_rate') === '') {
+            $request->merge(['commission_rate' => null]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function normalizeCommission(array $validated): array
+    {
+        $rate = $validated['commission_rate'] ?? null;
+        if ($rate === null || $rate === '') {
+            $validated['commission_rate'] = null;
+            $validated['commission_unit'] = null;
+
+            return $validated;
+        }
+
+        $unit = $validated['commission_unit'] ?? Agent::COMMISSION_UNIT_PERCENT;
+        if (! in_array($unit, [Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO], true)) {
+            $unit = Agent::COMMISSION_UNIT_PERCENT;
+        }
+        $validated['commission_unit'] = $unit;
+        $validated['commission_rate'] = round((float) $rate, 2);
+
+        return $validated;
+    }
+
+    /** @return array<int, \Illuminate\Contracts\Validation\ValidationRule|string> */
+    private function commissionRateRules(Request $request): array
+    {
+        return [
+            'nullable',
+            'numeric',
+            'min:0',
+            function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                if ($value === null || $value === '') {
+                    return;
+                }
+                $unit = $request->input('commission_unit') ?: Agent::COMMISSION_UNIT_PERCENT;
+                if ($unit === Agent::COMMISSION_UNIT_PERCENT && (float) $value > 100) {
+                    $fail('A percentagem de comissão não pode ser superior a 100%.');
+                }
+            },
+        ];
     }
 }

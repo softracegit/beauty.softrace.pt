@@ -19,7 +19,7 @@ class Agent extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'status', 'weekly_schedule'])
+            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'status', 'weekly_schedule'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Membro criado',
@@ -46,6 +46,7 @@ class Agent extends Model
         'locality',
         'specialization',
         'commission_rate',
+        'commission_unit',
         'status',
         'color',
         'avatar',
@@ -62,6 +63,10 @@ class Agent extends Model
 
     /** Segunda a domingo (chaves alinhadas com a agenda em JS). */
     public const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+    public const COMMISSION_UNIT_PERCENT = 'percent';
+
+    public const COMMISSION_UNIT_EURO = 'euro';
 
     public static function weekdayLabels(): array
     {
@@ -119,6 +124,76 @@ class Agent extends Model
         ];
     }
 
+    /** Chave (BD) => rótulo na UI */
+    public static function specializations(): array
+    {
+        return [
+            'manicure' => 'Manicure',
+            'pedicure' => 'Pedicure',
+            'nail_art' => 'Nail Art',
+            'lash_designer' => 'Lash Designer',
+            'estetica_rosto' => 'Estética Rosto',
+            'depilacao' => 'Depilação',
+        ];
+    }
+
+    public static function specializationLabel(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return self::specializations()[$value] ?? $value;
+    }
+
+    /**
+     * Converte texto livre antigo para chave de especialização (migração e tolerância).
+     */
+    public static function normalizeLegacySpecialization(?string $raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $trim = trim($raw);
+        if ($trim === '') {
+            return null;
+        }
+
+        $keys = array_keys(self::specializations());
+        $lower = mb_strtolower($trim);
+        if (in_array($lower, $keys, true)) {
+            return $lower;
+        }
+
+        $norm = str_replace(['á', 'à', 'ã', 'â'], 'a', $lower);
+        $norm = str_replace(['é', 'ê'], 'e', $norm);
+        $norm = str_replace('í', 'i', $norm);
+        $norm = str_replace(['ó', 'ô'], 'o', $norm);
+        $norm = str_replace('ú', 'u', $norm);
+        $norm = str_replace('ç', 'c', $norm);
+
+        if (str_contains($norm, 'nail')) {
+            return 'nail_art';
+        }
+        if (str_contains($norm, 'lash')) {
+            return 'lash_designer';
+        }
+        if (str_contains($norm, 'manicure')) {
+            return 'manicure';
+        }
+        if (str_contains($norm, 'pedicure')) {
+            return 'pedicure';
+        }
+        if (str_contains($norm, 'depil')) {
+            return 'depilacao';
+        }
+        if (str_contains($norm, 'estetica') && str_contains($norm, 'rosto')) {
+            return 'estetica_rosto';
+        }
+
+        return null;
+    }
+
     public function getAgentIdAttribute(): string
     {
         return '#AG'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
@@ -135,6 +210,23 @@ class Agent extends Model
         }
 
         return PhoneDisplay::formatInternational($raw) ?? $raw;
+    }
+
+    /**
+     * Texto da taxa de comissão para listagens e fichas (ex.: "12,50 %" ou "15,00 €").
+     */
+    public function formatCommissionDisplay(): ?string
+    {
+        if ($this->commission_rate === null) {
+            return null;
+        }
+
+        $num = number_format((float) $this->commission_rate, 2, ',', ' ');
+        $unit = $this->commission_unit ?? self::COMMISSION_UNIT_PERCENT;
+
+        return $unit === self::COMMISSION_UNIT_EURO
+            ? $num.' €'
+            : $num.' %';
     }
 
     /**
