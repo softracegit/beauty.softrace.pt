@@ -1,10 +1,6 @@
 @extends('definicoes.layout')
 
 @section('definicoes_content')
-  @if (session('status'))
-    <div class="alert alert-success mb-3" role="alert">{{ session('status') }}</div>
-  @endif
-
   <div class="card">
     <div class="card-header">
       <h5 class="card-title mb-0">Preferências de notificação</h5>
@@ -55,4 +51,13 @@
       </form>
     </div>
   </div>
+  @if (session('status'))
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.showToast === 'function') {
+          window.showToast(@json(session('status')), 'success');
+        }
+      });
+    </script>
+  @endif
 @endsection

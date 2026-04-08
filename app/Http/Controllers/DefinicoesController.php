@@ -16,9 +16,27 @@ class DefinicoesController extends Controller
 
     public function conta(): View
     {
+        $user = auth()->user();
+
         return view('definicoes.conta', [
             'pageTitle' => 'Conta',
+            'agendaUseOffcanvasMarcacaoTest' => (bool) ($user->agenda_use_offcanvas_marcacao_test ?? false),
         ]);
+    }
+
+    public function updateConta(Request $request): RedirectResponse
+    {
+        $user = auth()->user();
+        $validated = $request->validate([
+            'agenda_use_offcanvas_marcacao_test' => ['nullable', 'boolean'],
+        ]);
+
+        $user->agenda_use_offcanvas_marcacao_test = (bool) ($validated['agenda_use_offcanvas_marcacao_test'] ?? false);
+        $user->save();
+
+        return redirect()
+            ->route('definicoes.conta')
+            ->with('status', 'Preferências da conta guardadas.');
     }
 
     public function negocio(): View

@@ -5,18 +5,25 @@
 
 /* Teste: offcanvas «Nova marcação» (useOffcanvasMarcacaoTest) */
 .agenda-marcacao-test-offcanvas {
-    --bs-offcanvas-width: min(28rem, calc(100vw - 1rem));
+    --bs-offcanvas-width: min(34.5rem, calc(100vw - 1rem)) !important;
+    width: min(32rem, calc(100vw - 1rem)) !important;
     z-index: 1060;
+    transition: transform 0.08s ease-out !important;
 }
 .agenda-marcacao-test-offcanvas .offcanvas-header {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+    padding: 1rem 1.875rem;
 }
 .agenda-marcacao-test-offcanvas .offcanvas-body {
-    padding-bottom: 1.25rem;
+    padding: 1.25rem 1.875rem;
+    overflow-y: auto;
 }
 .agenda-oc-test-form {
-    min-height: min(70vh, 32rem);
+    min-height: auto;
+}
+.agenda-marcacao-test-offcanvas-footer {
+    flex-shrink: 0;
+    padding: 1rem 1.875rem 1.25rem;
+    background: var(--bs-body-bg, #fff);
 }
 .agenda-marcacao-test-offcanvas .choices {
     margin-bottom: 0;
@@ -31,6 +38,13 @@
 }
 .agenda-marcacao-test-offcanvas .choices__list--dropdown {
     z-index: 1070;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-add-services-btn {
+    padding-inline: 0.75rem 0.95rem;
+}
+.agenda-marcacao-test-offcanvas #agendaOcDate,
+.agenda-marcacao-test-offcanvas input.flatpickr-input {
+    cursor: pointer !important;
 }
 
 /* main-content sem padding na agenda */

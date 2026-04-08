@@ -141,7 +141,16 @@ class CalendarController extends Controller
         $forResources = $request->boolean('for_resources');
 
         $query = CalendarEvent::query()
-            ->with(['user.agent', 'service', 'client', 'eventServices', 'eventable', 'personalTimeType', 'sale'])
+            ->with([
+                'user.agent',
+                'service',
+                'client',
+                'eventServiceItems.service',
+                'eventServiceItems.extras.extra',
+                'eventable',
+                'personalTimeType',
+                'sale',
+            ])
             ->where(function ($q) {
                 $q->whereNull('status')
                     ->orWhereNotIn('status', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU]);
@@ -192,11 +201,6 @@ class CalendarController extends Controller
 
         $events = $query->get();
 
-        // Carregar extras associados aos serviços para poderem ser mostrados no quickview
-        $events->each(function (CalendarEvent $event) {
-            $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
-        });
-
         // Na vista de recursos, apenas users com agents ativos são válidos (excluir Administradores)
         $validUserIds = $forResources
             ? collect($activeAgentUserIds)->map(fn ($id) => (string) $id)->flip()->all()
@@ -206,9 +210,12 @@ class CalendarController extends Controller
             $classMap = CalendarEvent::typeClassMap();
             $className = $classMap[$event->event_type] ?? 'bg-secondary';
             $agentColor = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL ? null : ($event->user?->agent?->color);
+            $serviceItems = $event->eventServiceItems ?? collect();
+            $serviceName = $serviceItems->isNotEmpty()
+                ? $serviceItems->map(fn ($item) => $item->service?->name)->filter()->join(', ')
+                : ($event->service?->name ?? null);
 
             $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
-            $statusLabel = $isTempoPessoal ? 'Tempo pessoal' : (CalendarEvent::statuses()[$event->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado');
             $statusIcon = $isTempoPessoal ? null : $event->status_icon;
             $hasInvoice = $event->sale && $event->sale->status !== Sale::STATUS_ANULADO;
             $statusLocked = ! $isTempoPessoal && $event->isMarcacaoStatusLocked();
@@ -226,55 +233,40 @@ class CalendarController extends Controller
                     'client_avatar_url' => $event->client?->avatar ? asset('storage/'.$event->client->avatar) : null,
                     'client_phone' => $event->client?->phone,
                     'client_formatted_phone' => $event->client?->formatted_phone,
-                    'description' => $event->description,
                     'event_type' => $event->event_type,
-                    'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
                     'status' => $event->status ?? CalendarEvent::STATUS_AGENDADO,
-                    'status_label' => $statusLabel,
                     'status_icon' => $statusIcon,
                     'user_id' => $event->user_id,
                     'user_name' => $event->user?->name,
-                    'service_id' => $event->service_id,
-                    'service_name' => $event->eventServices->isNotEmpty()
-                        ? $event->eventServices->pluck('name')->join(', ')
-                        : ($event->service?->name ?? null),
-                    'event_services' => $event->eventServices->map(function ($s) {
-                        $dur = ($s->pivot->duration ?? $s->duration);
+                    'service_name' => $serviceName,
+                    'event_services' => $serviceItems->map(function ($item) {
+                        $service = $item->service;
+                        if (! $service) {
+                            return null;
+                        }
+                        $dur = ($item->duration ?? $service->duration);
+                        $price = (float) ($item->price ?? $service->price);
 
                         return [
-                            'id' => $s->id,
-                            'name' => $s->name,
+                            'name' => $service->name,
                             'duration' => $dur,
-                            'price' => (float) ($s->pivot->price ?? $s->price),
-                            'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
-                            'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.').' €' : $s->formatted_price,
-                            'formatted_duration' => $this->formatDurationMinutes((int) $dur),
-                            'extras' => $s->pivot->extras->map(function ($pe) {
+                            'price' => $price,
+                            'extras' => $item->extras->map(function ($pe) {
                                 $extraDuration = $pe->duration ?? $pe->extra?->duration ?? 0;
                                 $extraPrice = (float) ($pe->price ?? $pe->extra?->price ?? 0);
 
                                 return [
-                                    'extra_id' => $pe->extra_id,
                                     'name' => $pe->extra?->name ?? '',
                                     'duration' => $extraDuration,
                                     'price' => $extraPrice,
-                                    'formatted_duration' => $this->formatDurationMinutes((int) $extraDuration),
-                                    'formatted_price' => number_format($extraPrice, 2, ',', '.').' €',
                                 ];
                             })->values()->all(),
                         ];
-                    })->values()->all(),
-                    'is_source_editable' => $event->isSourceEditable(),
-                    'is_deletable' => $event->isDeletableFromCalendar(),
+                    })->filter()->values()->all(),
                     'is_time_editable' => $event->isTimeEditable(),
-                    'eventable_type' => $event->eventable_type,
-                    'eventable_id' => $event->eventable_id,
-                    'personal_time_type_id' => $event->personal_time_type_id,
                     'personal_time_type' => $event->personalTimeType ? [
-                        'id' => $event->personalTimeType->id,
                         'name' => $event->personalTimeType->name,
                         'icon' => $event->personalTimeType->icon,
-                        'duration' => $event->personalTimeType->duration,
                         'formatted_duration' => $event->personalTimeType->formatted_duration,
                     ] : null,
                     'has_invoice' => $hasInvoice,

@@ -2603,9 +2603,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /** Teste: nova marcação em offcanvas + Choices nos selects (ver #agendaMarcacaoTestOffcanvas). */
-    var agendaOcChoicesInstances = { client: null, service: null, member: null, date: null, time: null };
+    var agendaOcChoicesInstances = { client: null, service: null, member: null };
     var agendaOcServicesFlat = [];
+    var agendaOcSelectedServices = [];
+    /** Com serviços já escolhidos: se false, o select fica oculto até clicar em «Adicionar serviços». */
+    var agendaOcShowServicePicker = true;
     var agendaOcTestFormBound = false;
+    var agendaOcDateFlatpickr = null;
 
     function agendaOcCommonChoicesOpts() {
         return {
@@ -2617,7 +2621,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function agendaOcDestroyTestChoices() {
-        ['client', 'service', 'member', 'date', 'time'].forEach(function(key) {
+        ['client', 'service', 'member'].forEach(function(key) {
             var inst = agendaOcChoicesInstances[key];
             if (inst) {
                 try {
@@ -2667,6 +2671,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     }
 
+    function agendaOcCurrentRoundedTime() {
+        return agendaOcSnapTime15(new Date());
+    }
+
     function agendaOcFlattenServicesFromCategories(categories) {
         var out = [];
         (categories || []).forEach(function(cat) {
@@ -2680,11 +2688,130 @@ document.addEventListener('DOMContentLoaded', function() {
                     price: priceNum,
                     original_price: priceNum,
                     formatted_duration: s.formatted_duration || (dur + ' min'),
-                    formatted_price: s.formatted_price || ''
+                    formatted_price: s.formatted_price || '',
+                    available_extras: Array.isArray(s.extras) ? s.extras : [],
+                    extras: []
                 });
             });
         });
         return out;
+    }
+
+    function agendaOcApplyServiceFieldVisibility() {
+        var selWrap = $id('agendaOcServiceSelectWrap');
+        var addWrap = $id('agendaOcAddMoreServicesWrap');
+        if (!selWrap || !addWrap) return;
+        var n = agendaOcSelectedServices.length;
+        if (n === 0) {
+            agendaOcShowServicePicker = true;
+            selWrap.classList.remove('d-none');
+            addWrap.classList.add('d-none');
+            return;
+        }
+        if (agendaOcShowServicePicker) {
+            selWrap.classList.remove('d-none');
+            addWrap.classList.add('d-none');
+        } else {
+            selWrap.classList.add('d-none');
+            addWrap.classList.remove('d-none');
+        }
+    }
+
+    function agendaOcRenderSelectedServices() {
+        var wrap = $id('agendaOcSelectedServicesList');
+        if (!wrap) return;
+        if (!agendaOcSelectedServices.length) {
+            wrap.classList.add('d-none');
+            wrap.innerHTML = '';
+            agendaOcApplyServiceFieldVisibility();
+            return;
+        }
+        wrap.classList.remove('d-none');
+        var html = agendaOcSelectedServices.map(function(item, idx) {
+            var dur = parseInt(item.duration, 10) || 0;
+            var price = parseFloat(item.price) || 0;
+            var originalPrice = item.original_price != null ? parseFloat(item.original_price) : price;
+            var hasPriceChange = Math.abs(price - originalPrice) > 0.0001;
+            var priceHtml = '<div class="fw-semibold text-nowrap">' + price.toFixed(2).replace('.', ',') + ' €</div>';
+            if (hasPriceChange) {
+                priceHtml += '<div class="small text-danger text-decoration-line-through text-nowrap">' + originalPrice.toFixed(2).replace('.', ',') + ' €</div>';
+            }
+            return '<div class="border rounded p-2 mb-2" data-oc-idx="' + idx + '">' +
+                '<div class="d-flex align-items-start justify-content-between gap-2">' +
+                    '<div class="min-w-0">' +
+                        '<div class="fw-semibold text-truncate">' + (item.name || 'Serviço') + '</div>' +
+                        '<div class="small text-muted d-flex align-items-center justify-content-start gap-2 mt-1">' +
+                            '<span>' + dur + ' min</span>' +
+                            '<button type="button" class="btn btn-link btn-sm p-0 lh-1 agenda-oc-edit-service-btn" data-idx="' + idx + '" title="Editar" aria-label="Editar"><i class="ph ph-pencil-simple"></i></button>' +
+                            '<button type="button" class="btn btn-link btn-sm p-0 lh-1 text-danger agenda-oc-remove-service-btn" data-idx="' + idx + '" title="Remover" aria-label="Remover"><i class="ph ph-trash"></i></button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="text-end">' + priceHtml + '</div>' +
+                '</div>' +
+                '<div class="agenda-oc-edit-service-panel d-none mt-2 pt-2 border-top" data-edit-idx="' + idx + '">' +
+                    '<div class="row g-2">' +
+                        '<div class="col-6"><label class="form-label form-label-sm small mb-1">Duração (min)</label><input type="number" min="1" step="1" class="form-control form-control-sm agenda-oc-edit-duration" value="' + dur + '"></div>' +
+                        '<div class="col-6"><label class="form-label form-label-sm small mb-1">Preço (€)</label><input type="number" min="0" step="0.01" class="form-control form-control-sm agenda-oc-edit-price" value="' + price.toFixed(2) + '"></div>' +
+                    '</div>' +
+                    '<div class="d-flex justify-content-end gap-1 mt-2">' +
+                        '<button type="button" class="btn btn-light btn-sm agenda-oc-edit-cancel-btn" data-idx="' + idx + '">Cancelar</button>' +
+                        '<button type="button" class="btn btn-primary btn-sm agenda-oc-edit-save-btn" data-idx="' + idx + '">Guardar</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }).join('');
+        wrap.innerHTML = html;
+
+        wrap.querySelectorAll('.agenda-oc-remove-service-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.idx, 10);
+                if (isNaN(idx) || !agendaOcSelectedServices[idx]) return;
+                agendaOcSelectedServices.splice(idx, 1);
+                agendaOcRenderSelectedServices();
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-service-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.idx, 10);
+                if (isNaN(idx)) return;
+                wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+                var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
+                if (panel) panel.classList.remove('d-none');
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-cancel-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.idx, 10);
+                var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
+                if (panel) panel.classList.add('d-none');
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-save-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.idx, 10);
+                if (isNaN(idx) || !agendaOcSelectedServices[idx]) return;
+                var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
+                if (!panel) return;
+                var durInput = panel.querySelector('.agenda-oc-edit-duration');
+                var priceInput = panel.querySelector('.agenda-oc-edit-price');
+                var dur = parseInt(durInput && durInput.value, 10);
+                var price = parseFloat(priceInput && priceInput.value);
+                if (isNaN(dur) || dur < 1) {
+                    showToast('Duração inválida.', 'error');
+                    return;
+                }
+                if (isNaN(price) || price < 0) {
+                    showToast('Preço inválido.', 'error');
+                    return;
+                }
+                agendaOcSelectedServices[idx].duration = dur;
+                agendaOcSelectedServices[idx].price = price;
+                agendaOcSelectedServices[idx].formatted_duration = dur + ' min';
+                agendaOcSelectedServices[idx].formatted_price = price.toFixed(2).replace('.', ',') + ' €';
+                agendaOcRenderSelectedServices();
+            });
+        });
+        agendaOcApplyServiceFieldVisibility();
     }
 
     function agendaOcRebuildServiceSelect(svcSel, flatList) {
@@ -2783,19 +2910,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         var ymd = startD.getFullYear() + '-' + String(startD.getMonth() + 1).padStart(2, '0') + '-' + String(startD.getDate()).padStart(2, '0');
-        var timeRounded = agendaOcSnapTime15(new Date(startD.getTime()));
+        var timeRounded = agendaOcCurrentRoundedTime();
 
         var dateSel = $id('agendaOcDate');
-        dateSel.innerHTML = '';
-        agendaOcBuildDateOptions().forEach(function(o) {
-            var opt = document.createElement('option');
-            opt.value = o.value;
-            opt.textContent = o.label;
-            dateSel.appendChild(opt);
-        });
-        dateSel.value = ymd;
-        if (!dateSel.value) {
-            dateSel.selectedIndex = Math.max(0, 7);
+        if (dateSel) {
+            if (!agendaOcDateFlatpickr && typeof flatpickr !== 'undefined') {
+                agendaOcDateFlatpickr = flatpickr(dateSel, {
+                    dateFormat: 'Y-m-d',
+                    altInput: true,
+                    altFormat: 'l, j F',
+                    locale: (flatpickr && flatpickr.l10ns && flatpickr.l10ns.pt) ? flatpickr.l10ns.pt : undefined,
+                    allowInput: true,
+                    disableMobile: true
+                });
+                if (agendaOcDateFlatpickr && agendaOcDateFlatpickr.altInput) {
+                    agendaOcDateFlatpickr.altInput.removeAttribute('readonly');
+                    agendaOcDateFlatpickr.altInput.style.cursor = 'pointer';
+                }
+            }
+            if (agendaOcDateFlatpickr) {
+                agendaOcDateFlatpickr.setDate(ymd, false);
+            } else {
+                dateSel.value = ymd;
+            }
+            dateSel.addEventListener('click', function() {
+                if (agendaOcDateFlatpickr) agendaOcDateFlatpickr.open();
+            }, { once: true });
         }
 
         var timeSel = $id('agendaOcTime');
@@ -2807,6 +2947,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         $id('agendaOcObs').value = '';
+        agendaOcSelectedServices = [];
+        agendaOcShowServicePicker = true;
+        agendaOcRenderSelectedServices();
 
         var clientSel = $id('agendaOcClient');
         clientSel.innerHTML = '<option value="">A carregar clientes…</option>';
@@ -2815,9 +2958,10 @@ document.addEventListener('DOMContentLoaded', function() {
         svcSel.innerHTML = '<option value="">A carregar…</option>';
         svcSel.disabled = true;
 
-        agendaOcChoicesInstances.date = new Choices(dateSel, agendaOcCommonChoicesOpts());
-        agendaOcChoicesInstances.time = new Choices(timeSel, agendaOcCommonChoicesOpts());
         agendaOcChoicesInstances.member = new Choices(memSel, agendaOcCommonChoicesOpts());
+
+        var off = bootstrap.Offcanvas.getOrCreateInstance(ocEl, { scroll: true });
+        off.show();
 
         Promise.all([
             fetch(agendaClientsUrl, { headers: { 'Accept': 'application/json' } }).then(function(r) { return r.json(); }),
@@ -2847,8 +2991,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 agendaOcRebuildServiceSelect(svcSel, agendaOcServicesFlat);
                 agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
 
-                var off = bootstrap.Offcanvas.getOrCreateInstance(ocEl, { scroll: true });
-                off.show();
             })
             .catch(function() {
                 showToast('Erro ao preparar o formulário.', 'error');
@@ -2857,7 +2999,62 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!agendaOcTestFormBound) {
             agendaOcTestFormBound = true;
             $id('agendaOcMember').addEventListener('change', function() {
+                agendaOcSelectedServices = [];
+                agendaOcShowServicePicker = true;
+                agendaOcRenderSelectedServices();
                 agendaOcReloadServicesForMember(this.value || '', null);
+            });
+            $id('agendaOcTime').addEventListener('focus', function() {
+                var nowRounded = agendaOcCurrentRoundedTime();
+                if (this.value !== nowRounded) {
+                    this.value = nowRounded;
+                }
+            });
+            $id('agendaOcService').addEventListener('change', function() {
+                var sid = (this.value || '').trim();
+                if (!sid) return;
+                var svc = agendaOcServicesFlat.find(function(s) { return String(s.service_id) === String(sid); });
+                if (!svc) return;
+                var already = agendaOcSelectedServices.some(function(s) { return String(s.service_id) === String(sid); });
+                if (already) {
+                    showToast('Serviço já adicionado.', 'warning');
+                } else {
+                    agendaOcSelectedServices.push({
+                        service_id: svc.service_id,
+                        name: svc.name || '',
+                        duration: parseInt(svc.duration, 10) || 60,
+                        price: parseFloat(svc.price) || 0,
+                        original_price: svc.original_price != null ? svc.original_price : (parseFloat(svc.price) || 0),
+                        formatted_duration: svc.formatted_duration || ((parseInt(svc.duration, 10) || 60) + ' min'),
+                        formatted_price: svc.formatted_price || ((parseFloat(svc.price) || 0).toFixed(2).replace('.', ',') + ' €'),
+                        available_extras: svc.available_extras || [],
+                        extras: []
+                    });
+                    agendaOcShowServicePicker = false;
+                    agendaOcRenderSelectedServices();
+                }
+                this.value = '';
+                if (agendaOcChoicesInstances.service && typeof agendaOcChoicesInstances.service.setChoiceByValue === 'function') {
+                    try { agendaOcChoicesInstances.service.setChoiceByValue(''); } catch (e) { /* ignore */ }
+                }
+            });
+            $id('agendaOcAddMoreServicesBtn').addEventListener('click', function() {
+                agendaOcShowServicePicker = true;
+                agendaOcApplyServiceFieldVisibility();
+                var ch = agendaOcChoicesInstances.service;
+                var selWrap = $id('agendaOcServiceSelectWrap');
+                setTimeout(function() {
+                    if (ch && typeof ch.showDropdown === 'function') {
+                        try {
+                            ch.showDropdown(true);
+                            return;
+                        } catch (e) { /* ignore */ }
+                    }
+                    var inner = selWrap && selWrap.querySelector('.choices__inner');
+                    if (inner) {
+                        inner.click();
+                    }
+                }, 0);
             });
             $id('agendaMarcacaoTestForm').addEventListener('submit', function(e) {
                 e.preventDefault();
@@ -2871,14 +3068,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Selecione um cliente.', 'error');
                     return;
                 }
-                var sid = ($id('agendaOcService').value || '').trim();
-                if (!sid) {
-                    showToast('Selecione um serviço.', 'error');
-                    return;
-                }
-                var svc = agendaOcServicesFlat.find(function(s) { return String(s.service_id) === String(sid); });
-                if (!svc) {
-                    showToast('Serviço inválido.', 'error');
+                if (!agendaOcSelectedServices.length) {
+                    showToast('Adicione pelo menos um serviço.', 'error');
                     return;
                 }
                 var dStr = $id('agendaOcDate').value;
@@ -2893,7 +3084,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Data ou hora inválida.', 'error');
                     return;
                 }
-                var endDate = new Date(startDate.getTime() + (parseInt(svc.duration, 10) || 60) * 60000);
+                var totalDuration = agendaOcSelectedServices.reduce(function(sum, s) { return sum + (parseInt(s.duration, 10) || 0); }, 0);
+                if (totalDuration <= 0) totalDuration = 60;
+                var endDate = new Date(startDate.getTime() + totalDuration * 60000);
                 var endLocal = agendaFormatLocalDateTimeForInput(endDate);
 
                 var clientName = '';
@@ -2901,7 +3094,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (selOpt) {
                     clientName = (selOpt.textContent || '').split('·')[0].trim();
                 }
-                var title = (clientName || 'Cliente') + ' - ' + (svc.name || '');
+                var serviceNames = agendaOcSelectedServices.map(function(s) { return s.name || ''; }).filter(Boolean).join(', ');
+                var title = (clientName || 'Cliente') + ' - ' + (serviceNames || 'Serviço');
                 var btn = $id('agendaOcSubmit');
                 btn.disabled = true;
                 var origHtml = btn.innerHTML;
@@ -2914,13 +3108,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     event_type: 'marcacao',
                     user_id: mid,
                     client_id: cid,
-                    services: [{
-                        service_id: svc.service_id,
-                        duration: svc.duration,
-                        price: svc.price,
-                        original_price: svc.original_price != null ? svc.original_price : svc.price,
-                        extras: []
-                    }]
+                    services: agendaOcSelectedServices.map(function(s) {
+                        return {
+                            service_id: s.service_id,
+                            duration: s.duration,
+                            price: s.price,
+                            original_price: s.original_price != null ? s.original_price : s.price,
+                            extras: (s.extras || []).map(function(ex) {
+                                return { extra_id: ex.id, duration: ex.duration || 0, price: ex.price || 0 };
+                            })
+                        };
+                    })
                 };
                 fetch((C.urlEvents || ''), {
                     method: 'POST',
@@ -2959,6 +3157,9 @@ document.addEventListener('DOMContentLoaded', function() {
             ocEl.addEventListener('hidden.bs.offcanvas', function() {
                 agendaOcDestroyTestChoices();
                 agendaOcServicesFlat = [];
+                agendaOcSelectedServices = [];
+                agendaOcShowServicePicker = true;
+                agendaOcRenderSelectedServices();
             });
         }
     }
@@ -5657,6 +5858,21 @@ document.addEventListener('DOMContentLoaded', function() {
             var target = e.target;
             if (!calendarEl.contains(target)) return;
             if ($id('agendaQuickMenu').classList.contains('is-open')) return;
+            /* Só mostrar overlay dentro da grelha de tempo; nunca na toolbar/cabeçalhos. */
+            if (target.closest && (target.closest('.fc-header-toolbar') || target.closest('.fc-toolbar') || target.closest('.fc-col-header'))) {
+                clearAgendaHoverHighlight();
+                return;
+            }
+            var inTimeGrid = target.closest && (
+                target.closest('.fc-timegrid-body') ||
+                target.closest('.fc-timegrid-slots') ||
+                target.closest('.fc-timegrid-cols') ||
+                target.closest('.fc-timegrid-col')
+            );
+            if (!inTimeGrid) {
+                clearAgendaHoverHighlight();
+                return;
+            }
             /* Por cima de um evento: não mostrar overlay de célula (evita “mancha” sobre a marcação; z-index do FC é pouco fiável) */
             if (target.closest && (target.closest('.fc-event') || target.closest('.fc-timegrid-more-link'))) {
                 clearAgendaHoverHighlight();

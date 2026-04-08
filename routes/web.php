@@ -57,6 +57,7 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::prefix('definicoes')->name('definicoes.')->group(function () {
         Route::get('/', [DefinicoesController::class, 'index'])->name('index');
         Route::get('conta', [DefinicoesController::class, 'conta'])->name('conta');
+        Route::post('conta', [DefinicoesController::class, 'updateConta'])->name('conta.update');
         Route::get('negocio', [DefinicoesController::class, 'negocio'])->name('negocio');
         Route::get('agendamentos', [DefinicoesController::class, 'agendamentos'])->name('agendamentos');
         Route::get('vendas', [DefinicoesController::class, 'vendas'])->name('vendas');

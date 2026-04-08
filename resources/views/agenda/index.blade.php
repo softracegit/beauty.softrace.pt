@@ -23,50 +23,59 @@
     <div class="offcanvas-header border-bottom align-items-start">
         <div>
             <h5 class="offcanvas-title fw-semibold mb-0" id="agendaMarcacaoTestOffcanvasLabel">Nova marcação</h5>
-            <p class="small text-muted mb-0 mt-1">Teste — painel lateral</p>
         </div>
         <button type="button" class="btn-close mt-0" data-bs-dismiss="offcanvas" data-agenda-oc-close aria-label="Fechar"></button>
     </div>
     <div class="offcanvas-body">
-        <form id="agendaMarcacaoTestForm" class="d-flex flex-column h-100 agenda-oc-test-form" autocomplete="off">
-            <div class="mb-3 agenda-oc-field" style="order:1">
-                <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcClient">Cliente</label>
+        <form id="agendaMarcacaoTestForm" class="agenda-oc-test-form" autocomplete="off">
+            <div class="mb-4 agenda-oc-field" style="order:1">
+                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcClient">Cliente <span class="text-danger">*</span></label>
                 <select id="agendaOcClient" class="form-select form-select-sm" data-placeholder="Pesquisar cliente…">
                     <option value="">— Carregar… —</option>
                 </select>
             </div>
-            <div class="mb-3 agenda-oc-field" style="order:2">
-                <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcService">Serviço</label>
-                <select id="agendaOcService" class="form-select form-select-sm" disabled>
-                    <option value="">— Escolha um profissional —</option>
-                </select>
-                <p class="form-text small text-muted mb-0 mt-1" id="agendaOcServiceHint">Os serviços carregam após escolher o profissional (slot do calendário pré-seleciona quando aplicável).</p>
+            <div class="mb-4 agenda-oc-field" style="order:2">
+                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcService">Serviços <span class="text-danger">*</span></label>
+                <div id="agendaOcServiceSelectWrap">
+                    <select id="agendaOcService" class="form-select form-select-sm" disabled>
+                        <option value="">— Escolha um profissional —</option>
+                    </select>
+                </div>
+                <div id="agendaOcSelectedServicesList" class="mt-2 d-none"></div>
+                <div id="agendaOcAddMoreServicesWrap" class="mt-2 d-none">
+                    <button type="button" id="agendaOcAddMoreServicesBtn" class="btn btn-outline-primary btn-sm agenda-oc-add-services-btn rounded-pill d-inline-flex align-items-center gap-1">
+                        <i class="ph ph-plus" aria-hidden="true"></i>
+                        <span>Adicionar serviços</span>
+                    </button>
+                </div>
             </div>
-            <div class="mb-3 agenda-oc-field" style="order:3">
-                <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcMember">Profissional (membro)</label>
+            <div class="mb-4 agenda-oc-field" style="order:3">
+                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcMember">Profissional <span class="text-danger">*</span></label>
                 <select id="agendaOcMember" class="form-select form-select-sm">
                     <option value="">— Selecionar —</option>
                 </select>
             </div>
-            <div class="row g-2 mb-3 agenda-oc-field" style="order:4">
-                <div class="col-7">
-                    <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcDate">Data</label>
-                    <select id="agendaOcDate" class="form-select form-select-sm"></select>
-                </div>
-                <div class="col-5">
-                    <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcTime">Hora</label>
-                    <select id="agendaOcTime" class="form-select form-select-sm"></select>
+            <div class="mb-4 agenda-oc-field" style="order:4">
+                <div class="row g-2">
+                    <div class="col-7">
+                        <label class="form-label fw-semibold text-dark mb-1" for="agendaOcDate">Data <span class="text-danger">*</span></label>
+                        <input type="text" id="agendaOcDate" class="form-control form-control-sm" placeholder="Selecionar data">
+                    </div>
+                    <div class="col-5">
+                        <label class="form-label fw-semibold text-dark mb-1" for="agendaOcTime">Hora <span class="text-danger">*</span></label>
+                        <select id="agendaOcTime" class="form-select form-select-sm"></select>
+                    </div>
                 </div>
             </div>
-            <div class="mb-3 flex-grow-1 d-flex flex-column min-h-0 agenda-oc-field" style="order:5">
-                <label class="form-label small fw-semibold text-uppercase text-muted mb-1" for="agendaOcObs">Observações</label>
-                <textarea class="form-control form-control-sm flex-grow-1" id="agendaOcObs" name="description" rows="3" placeholder="Notas internas sobre a marcação"></textarea>
-            </div>
-            <div class="mt-auto pt-3 border-top d-flex flex-wrap gap-2 justify-content-end agenda-oc-field" style="order:6">
-                <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
-                <button type="submit" class="btn btn-primary btn-sm" id="agendaOcSubmit">Criar marcação</button>
+            <div class="mb-2 agenda-oc-field" style="order:5">
+                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcObs">Notas da Marcação</label>
+                <textarea class="form-control form-control-sm" id="agendaOcObs" name="description" rows="2" placeholder="Escreva uma nota sobre esta marcação"></textarea>
             </div>
         </form>
+    </div>
+    <div class="agenda-marcacao-test-offcanvas-footer border-top d-flex flex-wrap gap-2 justify-content-end">
+        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-sm" id="agendaOcSubmit" form="agendaMarcacaoTestForm">Criar marcação</button>
     </div>
 </div>
 
@@ -675,7 +684,7 @@ window.AGENDA_CONFIG = {
     nationalHolidaysPt: @json($nationalHolidaysPt ?? []),
     memberWeeklySchedules: @json($memberWeeklySchedules ?? []),
     /** Teste: abrir fluxo «Nova marcação» no offcanvas lateral em vez do modal (#novaMarcacaoModal). */
-    useOffcanvasMarcacaoTest: false
+    useOffcanvasMarcacaoTest: @json((bool) (auth()->user()->agenda_use_offcanvas_marcacao_test ?? false))
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>
