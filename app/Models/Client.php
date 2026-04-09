@@ -175,4 +175,29 @@ class Client extends Model
     {
         return $this->hasMany(Opportunity::class);
     }
+
+    /**
+     * Verifica se já existe cliente com o mesmo número (E.164 quando analisável; senão comparação literal).
+     */
+    public static function existsWithSamePhoneAs(string $phone): bool
+    {
+        $phone = trim($phone);
+        if ($phone === '') {
+            return false;
+        }
+        $inputE164 = PhoneDisplay::toE164($phone);
+
+        return static::query()
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->pluck('phone')
+            ->contains(function (string $existing) use ($phone, $inputE164) {
+                $existingE164 = PhoneDisplay::toE164($existing);
+                if ($inputE164 !== null && $existingE164 !== null) {
+                    return $inputE164 === $existingE164;
+                }
+
+                return trim($existing) === $phone;
+            });
+    }
 }

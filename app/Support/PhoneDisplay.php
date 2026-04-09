@@ -52,4 +52,25 @@ final class PhoneDisplay
             return ($digits !== '' && $digits !== '+') ? 'tel:'.$digits : '#';
         }
     }
+
+    /**
+     * Número em E.164 (ex.: +351934567890) para comparações; null se não for possível analisar.
+     */
+    public static function toE164(?string $phone): ?string
+    {
+        if ($phone === null || trim($phone) === '') {
+            return null;
+        }
+        $phone = trim($phone);
+        try {
+            $util = PhoneNumberUtil::getInstance();
+            $parsed = str_starts_with($phone, '+')
+                ? $util->parse($phone, null)
+                : $util->parse($phone, 'PT');
+
+            return $util->format($parsed, PhoneNumberFormat::E164);
+        } catch (NumberParseException) {
+            return null;
+        }
+    }
 }

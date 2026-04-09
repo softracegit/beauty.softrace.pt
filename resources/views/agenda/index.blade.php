@@ -18,7 +18,7 @@
     </div>
 </div>
 
-<!-- Teste: nova marcação em offcanvas à direita (substitui o modal quando useOffcanvasMarcacaoTest = true no AGENDA_CONFIG) -->
+<!-- Nova marcação: offcanvas lateral -->
 <div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="agendaMarcacaoTestOffcanvas" aria-labelledby="agendaMarcacaoTestOffcanvasLabel" data-bs-scroll="true">
     <div class="offcanvas-header border-bottom align-items-start">
         <div>
@@ -28,17 +28,77 @@
     </div>
     <div class="offcanvas-body">
         <form id="agendaMarcacaoTestForm" class="agenda-oc-test-form" autocomplete="off">
-            <div class="mb-4 agenda-oc-field" style="order:1">
-                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcClient">Cliente <span class="text-danger">*</span></label>
-                <select id="agendaOcClient" class="form-select form-select-sm" data-placeholder="Pesquisar cliente…">
-                    <option value="">— Carregar… —</option>
-                </select>
+            <div class="agenda-oc-field" style="order:1">
+                <div id="agendaOcClientNotSelectedWrap">
+                    <ul class="nav nav-pills agenda-oc-client-tabs flex-wrap gap-2 mb-2" id="agendaOcClientTabs" role="tablist">
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="nav-link active" id="agendaOcTabExistingBtn" data-bs-toggle="tab" data-bs-target="#agendaOcTabExisting" type="button" role="tab" aria-controls="agendaOcTabExisting" aria-selected="true">
+                                <span class="d-inline-flex align-items-center justify-content-center gap-2">
+                                    <i class="ph ph-magnifying-glass flex-shrink-0" aria-hidden="true"></i>
+                                    <span>Cliente existente</span>
+                                </span>
+                            </button>
+                        </li>
+                        <li class="nav-item flex-shrink-0" role="presentation">
+                            <button class="nav-link" id="agendaOcTabNewBtn" data-bs-toggle="tab" data-bs-target="#agendaOcTabNew" type="button" role="tab" aria-controls="agendaOcTabNew" aria-selected="false">
+                                <span class="d-inline-flex align-items-center justify-content-center gap-2">
+                                    <i class="ph ph-user-plus flex-shrink-0" aria-hidden="true"></i>
+                                    <span>Novo cliente</span>
+                                </span>
+                            </button>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="agendaOcClientTabContent">
+                        <div class="tab-pane fade show active" id="agendaOcTabExisting" role="tabpanel" aria-labelledby="agendaOcTabExistingBtn" tabindex="0">
+                            <div id="agendaOcClientSearchWrap">
+                                <select id="agendaOcClient" class="form-select form-select-sm" data-placeholder="Pesquisar cliente" aria-label="Pesquisar cliente">
+                                    <option value="">A carregar…</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="agendaOcTabNew" role="tabpanel" aria-labelledby="agendaOcTabNewBtn" tabindex="0">
+                            <div class="mb-2">
+                                <label class="form-label small mb-1" for="agendaOcNewClientName">Nome <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm" id="agendaOcNewClientName" name="agenda_oc_new_client_name" autocomplete="name" placeholder="Nome completo">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1" for="agendaOcNewClientPhone">Telemóvel <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" id="agendaOcNewClientPhone" autocomplete="tel" placeholder="Número de telemóvel">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small mb-1" for="agendaOcNewClientEmail">Email</label>
+                                <input type="email" class="form-control form-control-sm" id="agendaOcNewClientEmail" name="agenda_oc_new_client_email" autocomplete="email" placeholder="Opcional">
+                            </div>
+                            <button type="button" class="btn btn-primary btn-sm" id="agendaOcNewClientSubmit">Guardar cliente</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="agendaOcClientSelectedCard" class="agenda-oc-client-selected-card d-none mt-1">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="flex-shrink-0 agenda-oc-client-col-avatar">
+                            <img id="agendaOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="56" height="56">
+                            <div id="agendaOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:56px;height:56px;font-size:1rem;">…</div>
+                        </div>
+                        <div class="flex-grow-1 min-w-0 agenda-oc-client-col-text">
+                            <strong id="agendaOcClientSelectedName" class="d-block text-truncate">…</strong>
+                            <span id="agendaOcClientSelectedPhone" class="d-block small text-muted mt-1">…</span>
+                        </div>
+                        <div class="flex-shrink-0 d-inline-flex agenda-oc-client-col-actions">
+                            <a id="agendaOcClientProfileLink" href="#" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-profile-btn d-none text-decoration-none" title="Ver perfil" aria-label="Ver perfil">
+                                <i class="ph ph-eye" aria-hidden="true"></i>
+                            </a>
+                            <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-edit-btn" id="agendaOcClientEditBtn" title="Trocar cliente" aria-label="Trocar cliente">
+                                <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="mb-4 agenda-oc-field" style="order:2">
+            <div class="agenda-oc-field" style="order:2">
                 <label class="form-label fw-semibold text-dark mb-1" for="agendaOcService">Serviços <span class="text-danger">*</span></label>
                 <div id="agendaOcServiceSelectWrap">
                     <select id="agendaOcService" class="form-select form-select-sm" disabled>
-                        <option value="">— Escolha um profissional —</option>
+                        <option value="">Escolha um profissional</option>
                     </select>
                 </div>
                 <div id="agendaOcSelectedServicesList" class="mt-2 d-none"></div>
@@ -52,24 +112,24 @@
             <div class="mb-4 agenda-oc-field" style="order:3">
                 <label class="form-label fw-semibold text-dark mb-1" for="agendaOcMember">Profissional <span class="text-danger">*</span></label>
                 <select id="agendaOcMember" class="form-select form-select-sm">
-                    <option value="">— Selecionar —</option>
+                    <option value="">Selecionar</option>
                 </select>
             </div>
-            <div class="mb-4 agenda-oc-field" style="order:4">
+            <div class="agenda-oc-field" style="order:4">
                 <div class="row g-2">
                     <div class="col-7">
                         <label class="form-label fw-semibold text-dark mb-1" for="agendaOcDate">Data <span class="text-danger">*</span></label>
-                        <input type="text" id="agendaOcDate" class="form-control form-control-sm" placeholder="Selecionar data">
+                        <input type="text" id="agendaOcDate" class="form-control" placeholder="Selecionar data">
                     </div>
                     <div class="col-5">
                         <label class="form-label fw-semibold text-dark mb-1" for="agendaOcTime">Hora <span class="text-danger">*</span></label>
-                        <select id="agendaOcTime" class="form-select form-select-sm"></select>
+                        <select id="agendaOcTime" class="form-select"></select>
                     </div>
                 </div>
             </div>
-            <div class="mb-2 agenda-oc-field" style="order:5">
+            <div class="agenda-oc-field" style="order:5">
                 <label class="form-label fw-semibold text-dark mb-1" for="agendaOcObs">Notas da Marcação</label>
-                <textarea class="form-control form-control-sm" id="agendaOcObs" name="description" rows="2" placeholder="Escreva uma nota sobre esta marcação"></textarea>
+                <textarea class="form-control form-control-sm" id="agendaOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
             </div>
         </form>
     </div>
@@ -99,7 +159,7 @@
                     <label class="form-check-label" for="agendaDragConfirmNotify">Avisar cliente da mudança da marcação</label>
                 </div>
                 <p class="small text-muted mb-2">
-                    Enviar uma mensagem a <strong id="agendaDragConfirmClientName">—</strong> a avisar que a marcação foi alterada.
+                    Enviar uma mensagem a <strong id="agendaDragConfirmClientName">…</strong> a avisar que a marcação foi alterada.
                 </p>
                 <p class="small text-warning mb-0 d-none" id="agendaDragConfirmNoEmail">Este cliente não tem email válido; não será enviada mensagem.</p>
             </div>
@@ -111,152 +171,10 @@
     </div>
 </div>
 
-<!-- Modal: Nova marcação (inspirado em apps-support ticket detail) -->
-<div class="modal fade" id="novaMarcacaoModal" tabindex="-1" aria-labelledby="novaMarcacaoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content">
-            <div class="modal-header pb-3 d-flex align-items-center justify-content-between">
-                <h4 class="modal-title mb-0 fw-semibold d-flex flex-wrap align-items-center gap-2">
-                    <span class="dropdown">
-                        <span class="event-detail-time-toggle dropdown-toggle" id="novaMarcacaoDateToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button">
-                            <span id="novaMarcacaoEditTitleDay">—</span>
-                        </span>
-                        <div class="dropdown-menu dropdown-menu-start p-0" id="novaMarcacaoDateDropdownMenu">
-                            <div class="picker-inline-wrapper" id="novaMarcacaoDatePickerWrap"></div>
-                        </div>
-                    </span>
-                    <span class="dropdown ms-3">
-                        <span class="event-detail-time-toggle dropdown-toggle" id="novaMarcacaoTimeToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button">—</span>
-                        <div class="dropdown-menu dropdown-menu-start p-0" id="novaMarcacaoTimeDropdownMenu">
-                            <div class="nova-marcacao-time-options agenda-time-options-scroll"></div>
-                        </div>
-                    </span>
-                </h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-            </div>
-            <form id="novaMarcacaoForm">
-                <input type="hidden" id="novaMarcacaoAgentId" name="user_id">
-                <input type="hidden" id="novaMarcacaoStart" name="start_at">
-                <input type="hidden" id="novaMarcacaoEnd" name="end_at">
-                <div class="modal-body p-0">
-                    <div class="px-3 pt-3 pb-0">
-                        <div class="alert alert-warning d-none mb-0" id="novaMarcacaoHorarioAviso" role="alert">
-                            <i class="ph ph-warning-circle me-1"></i>
-                            Horário fora do período habitual da loja (09:00–20:00) ou do membro. Pode guardar na mesma, se for excecional.
-                        </div>
-                    </div>
-                    <div class="row g-0">
-                        <div class="col-lg-5">
-                            <div class="nova-marcacao-sidebar">
-                                <div class="nova-marcacao-section nova-marcacao-section-client">
-                                    <div id="novaMarcacaoClientAddWrap" class="nova-marcacao-client-add-wrap text-center">
-                                        <div class="nova-marcacao-client-add-icon mb-3"><i class="ph ph-user-circle-plus"></i></div>
-                                        <strong id="novaMarcacaoAddClientBtn" class="d-block">Pesquisar cliente</strong>
-                                    </div>
-                                    <div id="novaMarcacaoClientSearchWrap" class="mb-0">
-                                        <div class="d-flex gap-2 align-items-center mb-3">
-                                            <input type="text" id="novaMarcacaoClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Nome, telemóvel, email..." autocomplete="off">
-                                            <button type="button" class="btn btn-light btn-sm d-none" id="novaMarcacaoClientCancelBtn">Cancelar</button>
-                                        </div>
-                                        <div class="text-center mb-2">
-                                            <a href="#" class="nova-marcacao-create-client-link" id="novaMarcacaoCreateClientBtn">
-                                                <i class="ph ph-plus"></i> criar novo cliente
-                                            </a>
-                                        </div>
-                                        <div id="novaMarcacaoClientResults" class="nova-marcacao-client-results mb-0"></div>
-                                    </div>
-                                    <div id="novaMarcacaoClientSelected" class="nova-marcacao-client-card d-none text-center">
-                                        <div class="nova-marcacao-client-card-avatar-wrap mb-3">
-                                            <img id="novaMarcacaoClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="80" height="80">
-                                            <div id="novaMarcacaoClientAvatarFallback" class="nova-marcacao-avatar-fallback agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:80px;height:80px;font-size:1.5rem;">—</div>
-                                        </div>
-                                        <strong id="novaMarcacaoClientSelectedName" class="d-block">—</strong>
-                                        <span id="novaMarcacaoClientSelectedEmail" class="d-block small text-muted mb-3">—</span>
-                                        <div class="d-flex justify-content-center gap-2 flex-wrap mt-4">
-                                            <button type="button" class="btn btn-light btn-sm" id="novaMarcacaoClientClear">Alterar</button>
-                                            <a id="novaMarcacaoClientProfileLink" href="#" class="btn btn-light btn-sm">Ver perfil</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="nova-marcacao-section nova-marcacao-notes-wrap text-start px-2 pt-2 border-top">
-                                    <label for="novaMarcacaoObservacoes" class="form-label small text-muted mb-1">Observações / notas</label>
-                                    <textarea class="form-control form-control-sm" id="novaMarcacaoObservacoes" name="description" rows="2" placeholder="Notas sobre a marcação (visíveis nos relatórios e no detalhe do evento)"></textarea>
-                                </div>
-                                <div class="nova-marcacao-section nova-marcacao-agent-wrap text-center">
-                                    <h6 class="nova-marcacao-section-title">Prestador(a) do serviço</h6>
-                                    <div id="novaMarcacaoAgentSelectWrap" class="d-none">
-                                        <label for="novaMarcacaoAgentSelect" class="form-label visually-hidden">Técnico</label>
-                                        <select id="novaMarcacaoAgentSelect" class="form-select form-select-sm mx-auto" style="max-width: 280px;">
-                                            <option value="">— Selecionar técnico —</option>
-                                        </select>
-                                    </div>
-                                    <div id="novaMarcacaoAgentSelectedWrap" class="d-none">
-                                        <a id="novaMarcacaoAgentLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body d-inline-flex align-items-center gap-2 justify-content-center">
-                                            <img id="novaMarcacaoAgentAvatar" src="" alt="" class="rounded-circle agenda-avatar-img flex-shrink-0" width="40" height="40" style="display: none;">
-                                            <div class="flex-grow-1 min-w-0">
-                                                <strong id="novaMarcacaoAgentName" class="d-block">—</strong>
-                                            </div>
-                                        </a>
-                                        <div class="mt-1">
-                                            <button type="button" class="btn btn-link btn-sm p-0" id="novaMarcacaoAgentChangeBtn">Alterar</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-7 nova-marcacao-services-col" id="novaMarcacaoServicesCol">
-                            <div class="nova-marcacao-services-col-main">
-                            <h6 class="nova-marcacao-section-title mb-3 d-flex align-items-center" id="novaMarcacaoServicesTitle">
-                                <span>Serviços</span>
-                                <button type="button" class="btn btn-link btn-sm p-0 d-none" id="novaMarcacaoCancelAddServicesBtn">
-                                    <i class="ph ph-arrow-left me-1"></i>Voltar
-                                </button>
-                            </h6>
-                            <div class="nova-marcacao-services-browse-wrap">
-                                <div id="novaMarcacaoCategoryTabs" class="nova-marcacao-category-tabs d-none" role="tablist" aria-label="Atalhos por categoria"></div>
-                                <div id="novaMarcacaoServicesList" class="nova-marcacao-services-list">
-                                    <div class="text-muted small">A carregar serviços...</div>
-                                </div>
-                            </div>
-                            <div id="novaMarcacaoServiceSelected" class="d-none">
-                                <div id="novaMarcacaoSelectedServicesList"></div>
-                                <div class="text-center mt-4">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="novaMarcacaoAddMoreServicesBtn">
-                                        <i class="ph ph-plus me-1"></i>Adicionar serviços
-                                    </button>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row g-0 flex-shrink-0 nova-marcacao-modal-total-strip border-top border-light">
-                    <div class="col-12 col-lg-5" aria-hidden="true"></div>
-                    <div class="col-12 col-lg-7 nova-marcacao-modal-total-strip-col">
-                        <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center pt-3">
-                            <span class="text-black fs-6 fw-bold">Total</span>
-                            <span class="fw-semibold fs-6" id="novaMarcacaoTotalPrice">0,00 €</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer pt-3 pb-3 d-flex justify-content-end align-items-center">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary ms-2" id="novaMarcacaoSubmitBtn">Criar marcação</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Quick menu: Editar opções do serviço (duração, preço) -->
+<!-- Quick menu: editar duração/preço do serviço (offcanvas detalhe da marcação) -->
 <div id="novaMarcacaoEditServiceQuickMenu" role="dialog" aria-label="Alterar opções do serviço"></div>
-<!-- Quick menu: Adicionar extra ao serviço -->
-<div id="novaMarcacaoAddExtrasQuickMenu" role="dialog" aria-label="Adicionar extra" class="nova-marcacao-quick-menu-extras"></div>
-<!-- Event detail: quick menu Adicionar extra (reutiliza estilos; posicionado no modal) -->
+<!-- Quick menu: adicionar extra (offcanvas detalhe da marcação) -->
 <div id="eventDetailAddExtrasQuickMenu" role="dialog" aria-label="Adicionar extra" class="nova-marcacao-quick-menu-extras" style="position: absolute;"></div>
-
-<!-- Quick menu: Criar cliente -->
-<div id="agendaCreateClientQuickMenu" role="dialog" aria-label="Criar cliente"></div>
 
 <!-- Modal: Tempo pessoal (criar/editar) -->
 <div class="modal fade" id="tempoPessoalModal" tabindex="-1" aria-labelledby="tempoPessoalModalLabel" aria-hidden="true">
@@ -300,7 +218,7 @@
                     <div class="mb-3">
                         <label for="tempoPessoalDateToggle" class="form-label">Data</label>
                         <div class="dropdown w-100">
-                            <span class="form-control dropdown-toggle d-flex align-items-center text-start" id="tempoPessoalDateToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor: pointer">—</span>
+                            <span class="form-control dropdown-toggle d-flex align-items-center text-start" id="tempoPessoalDateToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor: pointer">…</span>
                             <div class="dropdown-menu dropdown-menu-start p-0" id="tempoPessoalDateDropdownMenu">
                                 <div class="picker-inline-wrapper" id="tempoPessoalDatePickerWrap"></div>
                             </div>
@@ -311,7 +229,7 @@
                         <div class="col-6">
                             <label for="tempoPessoalStartTimeToggle" class="form-label">Hora de início</label>
                             <div class="dropdown w-100">
-                                <span class="form-control dropdown-toggle d-flex align-items-center text-start" id="tempoPessoalStartTimeToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor: pointer">—</span>
+                                <span class="form-control dropdown-toggle d-flex align-items-center text-start" id="tempoPessoalStartTimeToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor: pointer">…</span>
                                 <div class="dropdown-menu dropdown-menu-start p-0 w-100" id="tempoPessoalStartTimeDropdownMenu">
                                     <div class="tempo-pessoal-time-options agenda-time-options-scroll"></div>
                                 </div>
@@ -320,7 +238,7 @@
                         <div class="col-6">
                             <label for="tempoPessoalEndTimeToggle" class="form-label">Hora de fim</label>
                             <div class="dropdown w-100">
-                                <span class="form-control dropdown-toggle d-flex align-items-center text-start" id="tempoPessoalEndTimeToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor: pointer">—</span>
+                                <span class="form-control dropdown-toggle d-flex align-items-center text-start" id="tempoPessoalEndTimeToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button" style="cursor: pointer">…</span>
                                 <div class="dropdown-menu dropdown-menu-start p-0 w-100" id="tempoPessoalEndTimeDropdownMenu">
                                     <div class="tempo-pessoal-end-time-options agenda-time-options-scroll"></div>
                                 </div>
@@ -331,7 +249,7 @@
                         <label for="tempoPessoalMembro" class="form-label">Membro</label>
                         <select class="form-select" id="tempoPessoalMembro" name="user_id">
                             @if(auth()->user()->role === \App\Models\User::ROLE_ADMIN)
-                                <option value="">— Selecionar membro —</option>
+                                <option value="">Selecionar membro</option>
                             @else
                                 <option value="">Eu ({{ auth()->user()->name }})</option>
                             @endif
@@ -377,7 +295,7 @@
                 <div class="mb-3">
                     <label for="cancelMarcacaoReason" class="form-label">Razão</label>
                     <select class="form-select w-100" id="cancelMarcacaoReason">
-                        <option value="">— Selecionar razão (opcional) —</option>
+                        <option value="">Selecionar razão (opcional)</option>
                         <option value="O cliente não forneceu razão">O cliente não forneceu razão</option>
                         <option value="Marcação duplicada">Marcação duplicada</option>
                         <option value="Marcação feita por engano">Marcação feita por engano</option>
@@ -392,7 +310,7 @@
                 <div class="mb-3">
                     <label for="cancelMarcacaoRefund" class="form-label">Devolveu o valor da reserva?</label>
                     <select class="form-select w-100" id="cancelMarcacaoRefund">
-                        <option value="">— Selecionar —</option>
+                        <option value="">Selecionar</option>
                         <option value="1">Sim</option>
                         <option value="0">Não</option>
                     </select>
@@ -400,7 +318,7 @@
                 <div id="cancelMarcacaoAvisouWrap" class="mb-3 d-none">
                     <label for="cancelMarcacaoAvisouPrazo" class="form-label">Avisou dentro do prazo?</label>
                     <select class="form-select w-100" id="cancelMarcacaoAvisouPrazo">
-                        <option value="">— Selecionar —</option>
+                        <option value="">Selecionar</option>
                         <option value="1">Sim</option>
                         <option value="0">Não</option>
                     </select>
@@ -426,162 +344,173 @@
     </div>
 </div>
 
-<!-- Modal: Ver/Editar Evento (layout Nova Marcação, unificado) -->
-<div class="modal fade" id="eventDetailEditModal" tabindex="-1" aria-labelledby="eventDetailEditModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl">
-        <div class="modal-content">
-            <div class="modal-header pb-3 d-flex align-items-center justify-content-between">
-                <h4 class="modal-title mb-0 fw-semibold d-flex flex-wrap align-items-center gap-2">
-                    <span class="dropdown">
-                        <span class="event-detail-time-toggle dropdown-toggle" id="eventDetailDateToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button">
-                            <span id="eventDetailEditTitleDay">—</span>
-                        </span>
-                        <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailDateDropdownMenu">
-                            <div class="picker-inline-wrapper" id="eventDetailDatePickerWrap"></div>
-                        </div>
+<!-- Offcanvas: Ver/Editar marcação (estrutura igual à nova marcação: cliente, serviços, profissional, data, notas) -->
+<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="eventDetailEditModal" aria-labelledby="eventDetailEditOffcanvasLabel" data-bs-scroll="true">
+    <div class="offcanvas-header border-bottom d-flex align-items-center gap-2 py-3">
+        <div class="d-flex align-items-center flex-grow-1 min-w-0 gap-3">
+            <h5 class="offcanvas-title fw-semibold mb-0 flex-shrink-0" id="eventDetailEditOffcanvasLabel">Marcação</h5>
+            <div class="d-flex align-items-center min-w-0 flex-shrink-0">
+                <span class="dropdown" id="eventDetailStatusDropdownWrap">
+                    <span class="event-detail-time-toggle dropdown-toggle event-detail-status-toggle d-inline-flex align-items-center text-muted small text-decoration-none" id="eventDetailStatusDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" role="button">
+                        <span id="eventDetailStatusIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ph ph-clock"></i></span>
+                        <span id="eventDetailStatusLabel">Agendado</span>
                     </span>
-                    <span class="dropdown ms-3 me-3">
-                        <span class="event-detail-time-toggle dropdown-toggle" id="eventDetailTimeToggle" data-bs-toggle="dropdown" aria-expanded="false" role="button">—</span>
-                        <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailTimeDropdownMenu">
-                            <div class="event-detail-time-options agenda-time-options-scroll">
-                                <!-- Opções 00:00 - 23:30 geradas em JS -->
-                            </div>
-                        </div>
-                    </span>
-                    <span class="dropdown ms-1" id="eventDetailStatusDropdownWrap">
-                        <span class="event-detail-time-toggle dropdown-toggle event-detail-status-toggle d-inline-flex align-items-center gap-1 text-muted" id="eventDetailStatusDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" role="button">
-                            <span id="eventDetailStatusIcon"><i class="me-1 ph ph-clock"></i></span>
-                            <span id="eventDetailStatusLabel">Agendado</span>
-                        </span>
-                        <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailStatusMenu">
-                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="agendado"><i class="me-0 ph ph-clock"></i>Agendado</a>
-                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ph ph-calendar-check"></i>Confirmado</a>
-                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ph ph-map-pin"></i>Chegou</a>
-                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ph ph-play"></i>Iniciado</a>
-                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="terminado"><i class="me-0 ph ph-check-circle"></i>Terminado</a>
-                            <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ph ph-x-circle text-danger"></i>Cancelar</a>
-                        </div>
-                    </span>
-                    <span class="ms-1 d-none event-detail-status-static d-inline-flex align-items-center gap-1" id="eventDetailStatusStatic">
-                        <span id="eventDetailStatusStaticIcon"><i class="me-1 ph ph-seal-check"></i></span>
-                        <span id="eventDetailStatusStaticLabel">Concluído</span>
-                    </span>
-                </h4>
-                <div class="d-flex align-items-center gap-2">
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailStatusMenu">
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="agendado"><i class="me-0 ph ph-clock"></i>Agendado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ph ph-calendar-check"></i>Confirmado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ph ph-map-pin"></i>Chegou</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ph ph-play"></i>Iniciado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="terminado"><i class="me-0 ph ph-check-circle"></i>Terminado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ph ph-x-circle text-danger"></i>Cancelar</a>
+                    </div>
+                </span>
+                <span class="d-none event-detail-status-static d-inline-flex align-items-center small text-muted" id="eventDetailStatusStatic">
+                    <span id="eventDetailStatusStaticIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ph ph-seal-check"></i></span>
+                    <span id="eventDetailStatusStaticLabel">Concluído</span>
+                </span>
+            </div>
+        </div>
+        <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+    </div>
+    <div id="eventDetailEditPanel" class="offcanvas-body">
+        <form id="eventDetailEditForm" class="agenda-oc-test-form" autocomplete="off">
+            <input type="hidden" id="eventDetailEditId" name="event_id">
+            <input type="hidden" id="eventDetailEditUserId" name="user_id">
+            <input type="hidden" id="eventDetailEditStart" name="start_at">
+            <input type="hidden" id="eventDetailEditEnd" name="end_at">
+            <input type="hidden" id="eventDetailStatus" name="status" value="agendado">
+            <div class="mb-2 d-none" id="eventDetailHorarioAvisoWrap">
+                <div class="alert alert-warning d-none mb-0" id="eventDetailHorarioAviso" role="alert">
+                    <i class="ph ph-warning-circle me-1"></i>
+                    Horário fora do período habitual da loja (09:00–20:00) ou do membro. Pode guardar na mesma, se for excecional.
                 </div>
             </div>
-            <form id="eventDetailEditForm">
-                <input type="hidden" id="eventDetailEditId" name="event_id">
-                <input type="hidden" id="eventDetailEditUserId" name="user_id">
-                <input type="hidden" id="eventDetailEditStart" name="start_at">
-                <input type="hidden" id="eventDetailEditEnd" name="end_at">
-                <div class="modal-body p-0">
-                    <div class="px-3 pt-3 pb-0">
-                        <div class="alert alert-warning d-none mb-0" id="eventDetailHorarioAviso" role="alert">
-                            <i class="ph ph-warning-circle me-1"></i>
-                            Horário fora do período habitual da loja (09:00–20:00) ou do membro. Pode guardar na mesma, se for excecional.
-                        </div>
-                    </div>
-                    <div class="row g-0">
-                    <div class="col-lg-5">
-                            <div class="nova-marcacao-sidebar">
-                                <div class="nova-marcacao-section nova-marcacao-section-client" id="eventDetailClientSection">
-                                    <div id="eventDetailClientAddWrap" class="nova-marcacao-client-add-wrap text-center d-none">
-                                        <div class="nova-marcacao-client-add-icon mb-3"><i class="ph ph-user-circle-plus"></i></div>
-                                        <strong id="eventDetailAddClientBtn" class="d-block">Pesquisar cliente</strong>
-                                    </div>
-                                    <div id="eventDetailClientSearchWrap" class="mb-0 d-none">
-                                        <div class="d-flex gap-2 align-items-center mb-3">
-                                            <input type="text" id="eventDetailClientSearch" class="form-control form-control-sm flex-grow-1" placeholder="Nome, telemóvel, email..." autocomplete="off">
-                                            <button type="button" class="btn btn-light btn-sm d-none" id="eventDetailClientCancelBtn">Cancelar</button>
-                                        </div>
-                                        <div class="text-center mb-2">
-                                            <a href="#" class="nova-marcacao-create-client-link" id="eventDetailCreateClientBtn">
-                                                <i class="ph ph-plus"></i> criar novo cliente
-                                            </a>
-                                        </div>
-                                        <div id="eventDetailClientResults" class="nova-marcacao-client-results mb-0"></div>
-                                    </div>
-                                    <div id="eventDetailClientSelected" class="nova-marcacao-client-card d-none text-center">
-                                        <div class="nova-marcacao-client-card-avatar-wrap mb-3">
-                                            <img id="eventDetailClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="80" height="80">
-                                            <div id="eventDetailClientAvatarFallback" class="nova-marcacao-avatar-fallback agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:80px;height:80px;font-size:1.5rem;">—</div>
-                                        </div>
-                                        <strong id="eventDetailClientSelectedName" class="d-block">—</strong>
-                                        <span id="eventDetailClientSelectedEmail" class="d-block small text-muted mb-3">—</span>
-                                        <div class="d-flex justify-content-center gap-2 flex-wrap mt-4">
-                                            <button type="button" class="btn btn-light btn-sm" id="eventDetailClientClear">Alterar</button>
-                                            <a id="eventDetailClientProfileLink" href="#" class="btn btn-light btn-sm">Ver perfil</a>
-                                        </div>
-                                    </div>
-                                    <div id="eventDetailVisitLeadBlock" class="d-none"></div>
-                                </div>
-                                <input type="hidden" id="eventDetailStatus" name="status" value="agendado">
-                                <div class="nova-marcacao-section nova-marcacao-notes-wrap text-start px-2 pt-2 border-top w-100">
-                                    <label for="eventDetailObservacoes" class="form-label small text-muted mb-1">Observações / notas</label>
-                                    <textarea class="form-control form-control-sm" id="eventDetailObservacoes" name="description" rows="2" placeholder="Notas sobre a marcação (relatórios e detalhe)"></textarea>
-                                </div>
-                                <div class="nova-marcacao-section nova-marcacao-agent-wrap text-center">
-                                    <h6 class="nova-marcacao-section-title mb-2">Prestador(a) do serviço</h6>
-                                    <a id="eventDetailAgentLink" href="#" class="nova-marcacao-person nova-marcacao-agent-link text-decoration-none text-body d-inline-flex align-items-center gap-2 justify-content-center">
-                                        <img id="eventDetailAgentAvatar" src="" alt="" class="rounded-circle agenda-avatar-img flex-shrink-0" width="40" height="40">
-                                        <div class="flex-grow-1 min-w-0">
-                                            <strong id="eventDetailAgentName" class="d-block">—</strong>
-                                        </div>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-7 nova-marcacao-services-col" id="eventDetailServicesCol">
-                            <div class="nova-marcacao-services-col-main">
-                            <h6 class="nova-marcacao-section-title mb-3 d-flex align-items-center">
-                                <span>Serviços</span>
-                                <button type="button" class="btn btn-link btn-sm p-0 d-none" id="eventDetailCancelAddServicesBtn">
-                                    <i class="ph ph-arrow-left me-1"></i>Voltar
+            <div id="eventDetailVisitLeadBlock" class="d-none mb-3"></div>
+            <div id="eventDetailOcMarcacaoSection">
+                <div class="agenda-oc-field" style="order:1">
+                    <div id="eventDetailOcClientNotSelectedWrap">
+                        <ul class="nav nav-pills agenda-oc-client-tabs flex-wrap gap-2 mb-2" id="eventDetailOcClientTabs" role="tablist">
+                            <li class="nav-item flex-shrink-0" role="presentation">
+                                <button class="nav-link active" id="eventDetailOcTabExistingBtn" data-bs-toggle="tab" data-bs-target="#eventDetailOcTabExisting" type="button" role="tab" aria-controls="eventDetailOcTabExisting" aria-selected="true">
+                                    <span class="d-inline-flex align-items-center justify-content-center gap-2">
+                                        <i class="ph ph-magnifying-glass flex-shrink-0" aria-hidden="true"></i>
+                                        <span>Cliente existente</span>
+                                    </span>
                                 </button>
-                            </h6>
-                            <div class="nova-marcacao-services-browse-wrap">
-                                <div id="eventDetailCategoryTabs" class="nova-marcacao-category-tabs d-none" role="tablist" aria-label="Atalhos por categoria"></div>
-                                <div id="eventDetailServicesList" class="nova-marcacao-services-list">
-                                    <div class="text-muted small">A carregar serviços...</div>
+                            </li>
+                            <li class="nav-item flex-shrink-0" role="presentation">
+                                <button class="nav-link" id="eventDetailOcTabNewBtn" data-bs-toggle="tab" data-bs-target="#eventDetailOcTabNew" type="button" role="tab" aria-controls="eventDetailOcTabNew" aria-selected="false">
+                                    <span class="d-inline-flex align-items-center justify-content-center gap-2">
+                                        <i class="ph ph-user-plus flex-shrink-0" aria-hidden="true"></i>
+                                        <span>Novo cliente</span>
+                                    </span>
+                                </button>
+                            </li>
+                        </ul>
+                        <div class="tab-content" id="eventDetailOcClientTabContent">
+                            <div class="tab-pane fade show active" id="eventDetailOcTabExisting" role="tabpanel" aria-labelledby="eventDetailOcTabExistingBtn" tabindex="0">
+                                <div id="eventDetailOcClientSearchWrap">
+                                    <select id="eventDetailOcClient" class="form-select form-select-sm" data-placeholder="Pesquisar cliente" aria-label="Pesquisar cliente">
+                                        <option value="">A carregar…</option>
+                                    </select>
                                 </div>
                             </div>
-                            <div id="eventDetailServiceSelected" class="d-none">
-                                <div id="eventDetailSelectedServicesList"></div>
-                                <div class="text-center mt-4">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="eventDetailAddMoreServicesBtn">
-                                        <i class="ph ph-plus me-1"></i>Adicionar serviços
-                                    </button>
+                            <div class="tab-pane fade" id="eventDetailOcTabNew" role="tabpanel" aria-labelledby="eventDetailOcTabNewBtn" tabindex="0">
+                                <div class="mb-2">
+                                    <label class="form-label small mb-1" for="eventDetailOcNewClientName">Nome <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm" id="eventDetailOcNewClientName" name="event_detail_oc_new_client_name" autocomplete="name" placeholder="Nome completo">
                                 </div>
+                                <div class="mb-2">
+                                    <label class="form-label small mb-1" for="eventDetailOcNewClientPhone">Telemóvel <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" id="eventDetailOcNewClientPhone" autocomplete="tel" placeholder="Número de telemóvel">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small mb-1" for="eventDetailOcNewClientEmail">Email</label>
+                                    <input type="email" class="form-control form-control-sm" id="eventDetailOcNewClientEmail" name="event_detail_oc_new_client_email" autocomplete="email" placeholder="Opcional">
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm" id="eventDetailOcNewClientSubmit">Guardar cliente</button>
                             </div>
+                        </div>
+                    </div>
+                    <div id="eventDetailOcClientSelectedCard" class="agenda-oc-client-selected-card d-none mt-1">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="flex-shrink-0 agenda-oc-client-col-avatar">
+                                <img id="eventDetailOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="56" height="56">
+                                <div id="eventDetailOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:56px;height:56px;font-size:1rem;">…</div>
+                            </div>
+                            <div class="flex-grow-1 min-w-0 agenda-oc-client-col-text">
+                                <strong id="eventDetailOcClientSelectedName" class="d-block text-truncate">…</strong>
+                                <span id="eventDetailOcClientSelectedPhone" class="d-block small text-muted mt-1">…</span>
+                            </div>
+                            <div class="flex-shrink-0 d-inline-flex agenda-oc-client-col-actions">
+                                <a id="eventDetailOcClientProfileLink" href="#" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-profile-btn d-none text-decoration-none" title="Ver perfil" aria-label="Ver perfil">
+                                    <i class="ph ph-eye" aria-hidden="true"></i>
+                                </a>
+                                <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-edit-btn" id="eventDetailOcClientEditBtn" title="Trocar cliente" aria-label="Trocar cliente">
+                                    <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="row g-0 flex-shrink-0 nova-marcacao-modal-total-strip border-top border-light">
-                    <div class="col-12 col-lg-5" aria-hidden="true"></div>
-                    <div class="col-12 col-lg-7 nova-marcacao-modal-total-strip-col">
-                        <div class="nova-marcacao-total-row d-flex justify-content-between align-items-center pt-3">
-                            <span class="text-black fs-6 fw-bold">Total</span>
-                            <span class="fw-semibold fs-6" id="eventDetailTotalPrice">0,00 €</span>
+                <div class="agenda-oc-field" style="order:2">
+                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcService">Serviços <span class="text-danger">*</span></label>
+                    <div id="eventDetailOcServiceSelectWrap">
+                        <select id="eventDetailOcService" class="form-select form-select-sm" disabled>
+                            <option value="">Escolha um profissional</option>
+                        </select>
+                    </div>
+                    <div id="eventDetailOcSelectedServicesList" class="mt-2 d-none"></div>
+                    <div id="eventDetailOcAddMoreServicesWrap" class="mt-2 d-none">
+                        <button type="button" id="eventDetailOcAddMoreServicesBtn" class="btn btn-outline-primary btn-sm agenda-oc-add-services-btn rounded-pill d-inline-flex align-items-center gap-1">
+                            <i class="ph ph-plus" aria-hidden="true"></i>
+                            <span>Adicionar serviços</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-4 agenda-oc-field" style="order:3">
+                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcMember">Profissional <span class="text-danger">*</span></label>
+                    <select id="eventDetailOcMember" class="form-select form-select-sm">
+                        <option value="">Selecionar</option>
+                    </select>
+                </div>
+                <div class="agenda-oc-field" style="order:4">
+                    <div class="row g-2">
+                        <div class="col-7">
+                            <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcDate">Data <span class="text-danger">*</span></label>
+                            <input type="text" id="eventDetailOcDate" class="form-control" placeholder="Selecionar data" autocomplete="off">
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcTime">Hora <span class="text-danger">*</span></label>
+                            <select id="eventDetailOcTime" class="form-select"></select>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer pt-3 pb-3 d-flex justify-content-end align-items-center">
-                <button type="submit" class="btn btn-primary" id="eventDetailSaveBtn">Guardar</button>
-                    <div class="d-flex align-items-center gap-3" id="eventDetailPaymentWrap">
-                        <button type="button" class="btn btn-success d-none" id="eventDetailPaymentBtn">Pagamento</button>
-                        <a href="#" class="btn btn-outline-primary d-none" id="eventDetailVerFaturaLink">Ver fatura</a>
-                        <button type="button" class="btn btn-outline-secondary d-none" id="eventDetailReverterFaturaBtn">Reverter fatura</button>
-                    </div>
+                <div class="agenda-oc-field" style="order:5">
+                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcObs">Notas da Marcação</label>
+                    <textarea class="form-control form-control-sm" id="eventDetailOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
                 </div>
-            </form>
+            </div>
+        </form>
+    </div>
+    <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch">
+        <div class="d-flex justify-content-between align-items-center px-1 pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
+            <span class="text-black fw-bold">Total</span>
+            <span class="fw-semibold" id="eventDetailTotalPrice">0,00 €</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2 justify-content-end">
+            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas">Fechar</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="eventDetailSaveBtn" form="eventDetailEditForm">Guardar</button>
+            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end" id="eventDetailPaymentWrap">
+                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Pagamento</button>
+                <a href="#" class="btn btn-outline-primary btn-sm d-none" id="eventDetailVerFaturaLink">Ver fatura</a>
+                <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="eventDetailReverterFaturaBtn">Reverter fatura</button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal: Pagamento (abre por cima do modal da marcação) -->
+<!-- Modal: Pagamento (abre por cima do offcanvas / marcação) -->
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -638,19 +567,7 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/pt.js"></script>
 
 @php
-    $agentInfoMap = collect($users ?? [])->mapWithKeys(function($u) {
-        $a = $u->agent ?? null;
-        $avatarNum = $a ? (($a->id ?? 1) % 9) + 1 : 1;
-        $avatarUrl = $a && $a->avatar ? asset('storage/' . $a->avatar) : asset('template/img/avatars/avatar-' . $avatarNum . '.webp');
-        return ['' . $u->id => ['name' => $u->name, 'email' => $u->email ?? '', 'avatarUrl' => $avatarUrl, 'agentId' => $a ? $a->id : null]];
-    });
     $me = auth()->user();
-    if ($me && !$agentInfoMap->has('' . $me->id)) {
-        $a = $me->agent ?? null;
-        $avatarNum = $a ? (($a->id ?? 1) % 9) + 1 : 1;
-        $avatarUrl = $a && $a->avatar ? asset('storage/' . $a->avatar) : asset('template/img/avatars/avatar-' . $avatarNum . '.webp');
-        $agentInfoMap->put('' . $me->id, ['name' => $me->name, 'email' => $me->email ?? '', 'avatarUrl' => $avatarUrl, 'agentId' => $a ? $a->id : null]);
-    }
     $usersForConsultant = ($users ?? collect())->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()->all();
     $memberWeeklySchedules = collect($users ?? [])
         ->filter(fn ($u) => filled($u->agent?->weekly_schedule))
@@ -672,19 +589,15 @@ window.AGENDA_CONFIG = {
     authEmail: @json(auth()->user()->email ?? ''),
     agendaMembersServicesUrl: @json(url('agenda/members')),
     agendaClientsUrl: @json(url('agenda/clients')),
-    agendaEquipaBaseUrl: @json(url('equipa')),
     urlEvents: @json(url('agenda/events')),
     urlEventsStore: @json(route('agenda.events.store')),
     agendaCheckoutStoreUrl: @json(route('agenda.checkout.store')),
     salesRevertUrl: @json(url('sales')),
     urlOpportunities: @json(url('opportunities')),
     urlLeads: @json(url('leads')),
-    agendaAgentInfo: @json($agentInfoMap->all()),
     usersForConsultant: @json($usersForConsultant),
     nationalHolidaysPt: @json($nationalHolidaysPt ?? []),
     memberWeeklySchedules: @json($memberWeeklySchedules ?? []),
-    /** Teste: abrir fluxo «Nova marcação» no offcanvas lateral em vez do modal (#novaMarcacaoModal). */
-    useOffcanvasMarcacaoTest: @json((bool) (auth()->user()->agenda_use_offcanvas_marcacao_test ?? false))
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>

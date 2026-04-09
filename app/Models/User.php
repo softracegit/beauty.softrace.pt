@@ -44,7 +44,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'agenda_use_offcanvas_marcacao_test' => 'boolean',
         ];
     }
 

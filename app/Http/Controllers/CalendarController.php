@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CalendarController extends Controller
 {
@@ -401,11 +402,27 @@ class CalendarController extends Controller
      */
     public function storeClient(Request $request)
     {
+        if ($request->input('email') === '') {
+            $request->merge(['email' => null]);
+        }
+
+        // Ordem: telemóvel (obrigatório) primeiro; só depois email (opcional).
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')],
             'phone' => ['required', 'string', 'max:50'],
         ]);
+
+        if (Client::existsWithSamePhoneAs($validated['phone'])) {
+            throw ValidationException::withMessages([
+                'phone' => ['Este número de telemóvel já está associado a um cliente.'],
+            ]);
+        }
+
+        $validated = array_merge($validated, $request->validate([
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')],
+        ], [
+            'email.unique' => 'Este email já está associado a um cliente.',
+        ]));
 
         $client = Client::create([
             'name' => $validated['name'],
@@ -500,6 +517,7 @@ class CalendarController extends Controller
                         'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.').' €' : $s->formatted_price,
                         'formatted_duration' => $this->formatDurationMinutes((int) $duration),
                         'color' => $color,
+                        'category_name' => $cat?->name ?? '',
                         'extras' => $extras,
                     ];
                 })->values()->all(),
@@ -1177,13 +1195,14 @@ class CalendarController extends Controller
         $classMap = CalendarEvent::typeClassMap();
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
-        $event->loadMissing(['client', 'eventServices', 'user.agent', 'personalTimeType', 'sale']);
+        $event->loadMissing(['client', 'eventServices.category', 'user.agent', 'personalTimeType', 'sale']);
         $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
         $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
         $agentColor = $isTempoPessoal ? null : ($event->user?->agent?->color);
         $eventServicesData = $event->eventServices->isNotEmpty()
             ? $event->eventServices->map(function ($s) {
                 $dur = ($s->pivot->duration ?? $s->duration);
+                $cat = $s->category;
 
                 return [
                     'id' => $s->id,
@@ -1193,6 +1212,8 @@ class CalendarController extends Controller
                     'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
                     'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.').' €' : $s->formatted_price,
                     'formatted_duration' => $this->formatDurationMinutes((int) $dur),
+                    'color' => $cat?->color ?? '#6c757d',
+                    'category_name' => $cat?->name ?? '',
                     'extras' => $s->pivot->extras->map(function ($pe) {
                         $extraDuration = $pe->duration ?? $pe->extra?->duration ?? 0;
                         $extraPrice = (float) ($pe->price ?? $pe->extra?->price ?? 0);

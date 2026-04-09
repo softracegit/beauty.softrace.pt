@@ -4,128 +4,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const $id = function(id) { return document.getElementById(id); };
     const $ = function(sel) { return document.querySelector(sel); };
     const $$ = function(sel) { return document.querySelectorAll(sel); };
-    /** Faixa do total (full width acima do footer dos modais de marcação). */
+    /** Faixa do total no rodapé do offcanvas editar (#eventDetailTotalRow). */
     function agendaMarcacaoTotalStrip(priceId) {
         var el = $id(priceId);
-        return el ? el.closest('.nova-marcacao-modal-total-strip') : null;
+        if (!el) return null;
+        return el.closest('.nova-marcacao-modal-total-strip') || el.closest('#eventDetailTotalRow') || null;
     }
 
-    /** Escapa texto para HTML (nomes, labels). */
-    function agendaEscapeHtml(str) {
-        return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-    }
-
-    /**
-     * Scroll vertical até ao cabeçalho da categoria.
-     * A lista pode não ser o contentor que faz scroll (flex sem altura máxima → scroll no modal-body);
-     * por isso procura-se o primeiro ancestral com overflow-y scrollável a partir do alvo.
-     */
-    function agendaScrollCategoryHeaderIntoView(listEl, target) {
-        if (!target || (listEl && !listEl.contains(target))) return;
-        var node = target;
-        var scrollEl = null;
-        while (node && node !== document.documentElement) {
-            var cs = window.getComputedStyle(node);
-            var oy = cs.overflowY;
-            if ((oy === 'auto' || oy === 'scroll' || oy === 'overlay') && node.scrollHeight > node.clientHeight + 1) {
-                scrollEl = node;
-                break;
-            }
-            node = node.parentElement;
-        }
-        if (!scrollEl) {
-            try {
-                target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
-            } catch (e) {
-                try {
-                    target.scrollIntoView(true);
-                } catch (e2) { /* ignore */ }
-            }
-            return;
-        }
-        var sr = scrollEl.getBoundingClientRect();
-        var tr = target.getBoundingClientRect();
-        var nextTop = scrollEl.scrollTop + (tr.top - sr.top) - 8;
-        scrollEl.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
-    }
-
-    /** Monta o HTML da lista de serviços por categorias (IDs estáveis para âncoras). */
-    function agendaBuildServicesBrowseFromCategories(categories, idPrefix, itemExtraClass) {
-        var html = '';
-        var extraCls = itemExtraClass ? (' ' + itemExtraClass) : '';
-        (categories || []).forEach(function(cat, idx) {
-            var count = (cat.services || []).length;
-            html += '<div class="nova-marcacao-services-category" id="' + idPrefix + '-cat-' + idx + '"><span>' + agendaEscapeHtml(cat.name || 'Outros') + '</span><span class="badge rounded-pill nova-marcacao-category-count ms-2">' + count + '</span></div>';
-            var color = cat.color || '#6c757d';
-            (cat.services || []).forEach(function(s) {
-                var sFormattedDur = s.formatted_duration || (s.duration || 60) + ' min';
-                var sFormattedPrice = s.formatted_price || '';
-                var sPrice = (s.price != null && s.price !== '') ? parseFloat(s.price) : 0;
-                html += '<div class="nova-marcacao-service-item' + extraCls + '" data-service-id="' + s.id + '" data-duration="' + (s.duration || 60) + '" data-name="' + agendaEscapeHtml(s.name || '') + '" data-price="' + sPrice + '" data-formatted-duration="' + agendaEscapeHtml(sFormattedDur) + '" data-formatted-price="' + agendaEscapeHtml(sFormattedPrice) + '" data-color="' + agendaEscapeHtml(color) + '" style="border-left-color:' + color + '">';
-                html += '<div class="nova-marcacao-service-item-left"><div class="nova-marcacao-service-item-name">' + agendaEscapeHtml(s.name || '') + '</div><div class="nova-marcacao-service-item-duration">' + agendaEscapeHtml(sFormattedDur) + '</div></div>';
-                html += '<div class="nova-marcacao-service-item-price">' + agendaEscapeHtml(sFormattedPrice) + '</div></div>';
-            });
-        });
-        return html;
-    }
-
-    /** Tabs horizontais (só se houver 2+ categorias). */
-    function agendaBuildCategoryTabsHtml(categories, idPrefix) {
-        var cats = categories || [];
-        if (cats.length <= 1) return '';
-        var html = '';
-        cats.forEach(function(cat, idx) {
-            html += '<button type="button" class="nova-marcacao-category-tab" role="tab" data-agenda-category-target="' + idPrefix + '-cat-' + idx + '">' + agendaEscapeHtml(cat.name || 'Outros') + '</button>';
-        });
-        return html;
-    }
-
-    function agendaBindCategoryTabClicks(tabsEl, listEl) {
-        if (!tabsEl || !listEl) return;
-        tabsEl.querySelectorAll('[data-agenda-category-target]').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                var tid = btn.getAttribute('data-agenda-category-target');
-                var target = tid ? document.getElementById(tid) : null;
-                if (!target || !listEl.contains(target)) return;
-                agendaScrollCategoryHeaderIntoView(listEl, target);
-                try {
-                    btn.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
-                } catch (err) { /* ignore */ }
-            });
-        });
-    }
-
-    /** Aplica lista + tabs e visibilidade das tabs. idPrefix: IDs das âncoras (ex.: agenda-nm-cat-0). */
-    function agendaApplyServicesBrowseUI(listEl, tabsEl, categories, html, idPrefix) {
-        idPrefix = idPrefix || 'agenda-cat';
-        if (listEl) {
-            listEl.innerHTML = html || '<div class="text-muted small">Nenhum serviço disponível.</div>';
-        }
-        if (!tabsEl) return;
-        var tabHtml = agendaBuildCategoryTabsHtml(categories, idPrefix);
-        tabsEl.innerHTML = tabHtml;
-        var hideTabs = !tabHtml || (listEl && listEl.classList.contains('d-none'));
-        tabsEl.classList.toggle('d-none', hideTabs);
-        agendaBindCategoryTabClicks(tabsEl, listEl);
-    }
-
-    /** Tabs + área de listagem: só visíveis no modo «adicionar serviços». Na vista «selecionados», esconde o wrap inteiro (sem espaço reservado). */
-    function agendaSyncCategoryTabsWithServicesList(listEl) {
-        if (!listEl) return;
-        var wrap = listEl.closest('.nova-marcacao-services-browse-wrap');
-        var listHidden = listEl.classList.contains('d-none');
-        if (wrap) {
-            wrap.classList.toggle('d-none', listHidden);
-        }
-        var tabs = listEl.id === 'novaMarcacaoServicesList' ? $id('novaMarcacaoCategoryTabs') : (listEl.id === 'eventDetailServicesList' ? $id('eventDetailCategoryTabs') : null);
-        if (!tabs) return;
-        if (listHidden) {
-            tabs.classList.add('d-none');
-            return;
-        }
-        var n = tabs.querySelectorAll('.nova-marcacao-category-tab').length;
-        tabs.classList.toggle('d-none', n <= 1);
+    /** Painel scrollável do offcanvas «Ver / editar marcação» (âncora para quick menus). */
+    function agendaEventDetailEditHostEl() {
+        return $id('eventDetailEditPanel');
     }
 
     const calendarEl = $id('calendar');
@@ -485,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (intersectsOutsideStoreHours(start, end)) return true;
         return intersectsOutsideMemberHours(start, end, userId);
     }
-    function toggleOutOfHoursWarning(elId, isOutside) {
+    function toggleOutOfHoursWarning(elId, isOutside, wrapId) {
         var el = $id(elId);
         if (!el) return;
         if (isOutside) {
@@ -493,14 +381,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             el.classList.add('d-none');
         }
-    }
-    function updateNovaMarcacaoOutOfHoursWarning() {
-        var startStr = $id('novaMarcacaoStart')?.value || '';
-        var endStr = $id('novaMarcacaoEnd')?.value || '';
-        var start = startStr ? parseAgendaLocalDateTime(startStr) : null;
-        var end = endStr ? parseAgendaLocalDateTime(endStr) : null;
-        var agentId = $id('novaMarcacaoAgentId')?.value || '';
-        toggleOutOfHoursWarning('novaMarcacaoHorarioAviso', shouldWarnOutOfHours(start, end, agentId));
+        if (wrapId) {
+            var wrap = $id(wrapId);
+            if (wrap) {
+                if (isOutside) wrap.classList.remove('d-none');
+                else wrap.classList.add('d-none');
+            }
+        }
     }
     function updateTempoPessoalOutOfHoursWarning() {
         var startStr = $id('tempoPessoalStart')?.value || '';
@@ -519,7 +406,44 @@ document.addEventListener('DOMContentLoaded', function() {
         var start = startStr ? parseAgendaLocalDateTime(startStr) : null;
         var end = endStr ? parseAgendaLocalDateTime(endStr) : null;
         var userId = $id('eventDetailEditUserId')?.value || '';
-        toggleOutOfHoursWarning('eventDetailHorarioAviso', shouldWarnOutOfHours(start, end, userId));
+        toggleOutOfHoursWarning('eventDetailHorarioAviso', shouldWarnOutOfHours(start, end, userId), 'eventDetailHorarioAvisoWrap');
+    }
+
+    /** Na vista Dia (recursos), ao mudar o profissional no offcanvas, mover o evento para a coluna certa. */
+    function syncEventDetailCalendarEventToSelectedMember() {
+        if (typeof calendar === 'undefined' || !calendar) return;
+        if (!isResourceTimeGridDayView(calendar.view.type)) return;
+        var evId = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        if (!evId) return;
+        var ev = calendar.getEventById(evId);
+        if (!ev) return;
+        var extEv = ev.extendedProps || {};
+        if ((extEv.event_type || '') !== 'marcacao') return;
+        var uid = ($id('eventDetailOcMember') && $id('eventDetailOcMember').value || '').trim();
+        if (eventDetailCurrentData) {
+            eventDetailCurrentData.user_id = uid || null;
+        }
+        ev.setExtendedProp('user_id', uid || null);
+        var newColor = null;
+        var newName = null;
+        if (uid && allResources && allResources.length) {
+            var resObj = allResources.find(function(r) { return String(r.id) === String(uid); });
+            if (resObj) {
+                newColor = resObj.extendedProps ? resObj.extendedProps.color : null;
+                newName = resObj.title || null;
+            }
+        }
+        if (newName) ev.setExtendedProp('user_name', newName);
+        if (typeof calendar.getResourceById === 'function' && typeof ev.setResources === 'function' && uid) {
+            var rr = calendar.getResourceById(String(uid));
+            if (rr) ev.setResources([rr]);
+        }
+        if (newColor) {
+            ev.setProp('backgroundColor', newColor);
+            var domEl = document.querySelector('[data-event-id="' + String(ev.id) + '"]');
+            if (domEl) domEl.style.setProperty('background-color', newColor, 'important');
+        }
+        scheduleStackedEventClassRefresh();
     }
 
     // Formatar data para prev/next: "Qui 5 Fev"
@@ -923,11 +847,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var fmt = function(d) { return d ? (String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) : ''; };
         var startStr = fmt(start);
         var endStr = fmt(end);
-        var timeStr = startStr && endStr ? (startStr + ' - ' + endStr) : (startStr || '—');
+        var timeStr = startStr && endStr ? (startStr + ' - ' + endStr) : (startStr || '…');
         var dayDateStr = start
             ? (DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()])
-            : '—';
-        var clientName = (ext.client_name || event.title || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            : '…';
+        var clientName = (ext.client_name || event.title || '…').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var clientPhoneRaw = ext.client_formatted_phone || ext.client_phone || '';
         var clientPhone = String(clientPhoneRaw || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var clientAvatarUrl = ext.client_avatar_url || '';
@@ -976,7 +900,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var typeLeft = document.createElement('div');
             typeLeft.className = 'agenda-quickview-service-left';
             var typeIcon = personalTimeType.icon ? ('ph ' + personalTimeType.icon) : '';
-            typeLeft.innerHTML = (typeIcon ? ('<i class="' + typeIcon + ' me-2"></i>') : '') + '<span class="agenda-quickview-service-name">' + (personalTimeType.name || event.title || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
+            typeLeft.innerHTML = (typeIcon ? ('<i class="' + typeIcon + ' me-2"></i>') : '') + '<span class="agenda-quickview-service-name">' + (personalTimeType.name || event.title || '…').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
             typeRow.appendChild(typeLeft);
             body.appendChild(typeRow);
         }
@@ -1021,7 +945,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 left.className = 'agenda-quickview-service-left';
                 var nameEl = document.createElement('div');
                 nameEl.className = 'agenda-quickview-service-name';
-                nameEl.textContent = (s.name || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                nameEl.textContent = (s.name || '…').replace(/</g, '&lt;').replace(/>/g, '&gt;');
                 left.appendChild(nameEl);
                 // Duração deste serviço (como nos extras, apenas duração)
                 var meta = document.createElement('div');
@@ -1309,8 +1233,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var dateStr = $id('tempoPessoalDateInput')?.value || '';
             var startTimeStr = ($id('tempoPessoalStartTimeToggle')?.textContent || '').trim();
             var endTimeStr = ($id('tempoPessoalEndTimeToggle')?.textContent || '').trim();
-            if (!dateStr || !startTimeStr || startTimeStr === '—') return;
-            if (!endTimeStr || endTimeStr === '—') endTimeStr = startTimeStr;
+            if (!dateStr || !startTimeStr || startTimeStr === '…') return;
+            if (!endTimeStr || endTimeStr === '…') endTimeStr = startTimeStr;
             var datePart = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
             var startPart = startTimeStr.match(/^(\d{1,2}):(\d{2})/);
             var endPart = endTimeStr.match(/^(\d{1,2}):(\d{2})/);
@@ -1417,363 +1341,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var agendaMembersServicesUrl = (C.agendaMembersServicesUrl || '');
     var agendaClientsUrl = (C.agendaClientsUrl || '');
-    var agendaEquipaBaseUrl = (C.agendaEquipaBaseUrl || '');
-    var novaMarcacaoServicesData = null;
-    var novaMarcacaoSelectedClient = null;
 
     function agendaEscAttr(s) {
         return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     }
     /** Telefone legível (servidor: formatted_phone); fallback para E.164 guardado. */
     function agendaClientPhoneLabel(c) {
-        if (!c) return '—';
+        if (!c) return '…';
         if (c.formatted_phone) return c.formatted_phone;
-        return c.phone || '—';
+        return c.phone || '…';
     }
-    var novaMarcacaoSelectedServices = [];
-    var novaMarcacaoEditServiceIndex = -1;
+    /** Mensagem a partir da resposta 422 do POST de cliente rápido (agenda). */
+    function agendaStoreClientCreateErrorMessage(data) {
+        var msg = 'Erro ao criar cliente.';
+        if (!data) return msg;
+        if (data.errors) {
+            var e = data.errors;
+            if (e.phone && e.phone[0]) return e.phone[0];
+            if (e.email && e.email[0]) return e.email[0];
+            if (e.name && e.name[0]) return e.name[0];
+        }
+        if (data.message) return data.message;
+        return msg;
+    }
     var eventDetailSelectedServices = [];
     var eventDetailCurrentData = null;
-
-    const NovaMarcacao = {};
-
-    NovaMarcacao.renderSelectedServices = function() {
-        var container = $id('novaMarcacaoSelectedServicesList');
-        var totalStrip = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
-        var titleEl = $('#novaMarcacaoServiceSelected .nova-marcacao-services-selected-title');
-        if (!container) return;
-        if (novaMarcacaoSelectedServices.length === 0) {
-            container.innerHTML = '';
-            if (titleEl) titleEl.textContent = 'Serviços selecionados';
-            // Sem serviços selecionados, escondemos a linha do total
-            if (totalStrip) totalStrip.classList.add('d-none');
-            return;
-        }
-        if (titleEl) titleEl.textContent = novaMarcacaoSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
-        var html = novaMarcacaoSelectedServices.map(function(item, idx) {
-            var serviceRow =
-                '<div class="d-flex justify-content-between align-items-center w-100">' +
-                    '<div class="nova-marcacao-service-item-left">' +
-                        '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
-                        '<div class="nova-marcacao-service-item-duration">' + (item.formatted_duration || item.duration + ' min') + '</div>' +
-                    '</div>' +
-                    '<div class="d-flex align-items-center gap-2 justify-content-end">' +
-                        '<div class="d-flex gap-1">' +
-                            ( (item.available_extras && item.available_extras.length > 0)
-                                ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoAddExtrasBtn" data-idx="' + idx + '" title="Adicionar extras" aria-label="Adicionar extras"><i class="ph ph-plus-circle"></i></button>'
-                                : '' ) +
-                            '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm novaMarcacaoEditServiceBtn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
-                            '<button type="button" class="btn btn-outline-danger btn-icon btn-sm novaMarcacaoDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
-                        '</div>' +
-                        '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>' +
-                    '</div>' +
-                '</div>';
-
-            var extrasLine = (item.extras && item.extras.length)
-                ? item.extras.map(function(e, eIdx) {
-                    var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
-                    var durText = e.formatted_duration || ((e.duration || 0) + ' min');
-                    return '' +
-                        '<div class="nova-marcacao-extra-row d-flex justify-content-between align-items-start mt-1 w-100" data-idx="' + idx + '" data-extra-index="' + eIdx + '">' +
-                            '<div class="nova-marcacao-service-item-left d-flex flex-column">' +
-                                '<div class="d-flex align-items-center">' +
-                                    '<div class="nova-marcacao-service-item-name">+ ' + (e.name || '') + '</div>' +
-                                    '<button type="button" class="btn btn-link btn-sm p-0 ms-1 mt-1 novaMarcacaoRemoveExtraBtn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra">' +
-                                        '<i class="ph ph-x"></i>' +
-                                    '</button>' +
-                                '</div>' +
-                                '<div class="nova-marcacao-service-item-duration">' + durText + '</div>' +
-                            '</div>' +
-                            '<div class="nova-marcacao-service-item-price">' + priceText + '</div>' +
-                        '</div>';
-                }).join('')
-                : '';
-            var origP = item.original_price != null ? parseFloat(item.original_price) : NaN;
-            var currP = item.price != null ? parseFloat(item.price) : NaN;
-            var showStrikethrough = !isNaN(origP) && currP !== origP;
-            var priceBlock = showStrikethrough
-                ? '<span class="text-danger text-decoration-line-through small me-1">' + (origP.toFixed(2).replace('.', ',') + ' €') + '</span><span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>'
-                : '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>';
-            return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + ';display:block;">' +
-                serviceRow +
-                extrasLine +
-                '</div>';
-        }).join('');
-        container.innerHTML = html;
-        if (totalStrip) totalStrip.classList.remove('d-none');
-        container.querySelectorAll('.novaMarcacaoEditServiceBtn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) { e.stopPropagation(); NovaMarcacao.openEditQuickMenu(e, parseInt(this.dataset.idx, 10)); });
-        });
-        container.querySelectorAll('.novaMarcacaoDeleteServiceBtn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) { e.stopPropagation(); NovaMarcacao.deleteService(parseInt(this.dataset.idx, 10)); });
-        });
-        container.querySelectorAll('.novaMarcacaoAddExtrasBtn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) { e.stopPropagation(); NovaMarcacao.openAddExtrasQuickMenu(e, parseInt(this.dataset.idx, 10)); });
-        });
-        container.querySelectorAll('.novaMarcacaoRemoveExtraBtn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var sIdx = parseInt(this.dataset.idx, 10);
-                var exIdx = parseInt(this.dataset.extraIndex, 10);
-                if (!isNaN(sIdx) && !isNaN(exIdx) && novaMarcacaoSelectedServices[sIdx] && Array.isArray(novaMarcacaoSelectedServices[sIdx].extras)) {
-                    novaMarcacaoSelectedServices[sIdx].extras.splice(exIdx, 1);
-                    NovaMarcacao.renderSelectedServices();
-                    NovaMarcacao.updateEndTimeAndTotal();
-                }
-            });
-        });
-    }
-
-    NovaMarcacao.openAddExtrasQuickMenu = function(evt, idx) {
-        var item = novaMarcacaoSelectedServices[idx];
-        if (!item || !item.available_extras || !item.available_extras.length) return;
-        var addedIds = (item.extras || []).map(function(e) { return e.id; });
-        var toShow = item.available_extras.filter(function(e) { return addedIds.indexOf(e.id) === -1; });
-        if (!toShow.length) {
-            showToast('Não há mais extras disponíveis para este serviço.', 'info');
-            return;
-        }
-        var popup = $id('novaMarcacaoAddExtrasQuickMenu');
-        if (!popup) return;
-        var modalContent = $id('novaMarcacaoModal')?.querySelector('.modal-content');
-        if (modalContent) modalContent.appendChild(popup);
-        function hide() {
-            popup.classList.remove('is-open');
-            popup.innerHTML = '';
-            document.removeEventListener('click', ch);
-            document.removeEventListener('keydown', eh);
-        }
-        function ch(e) { if (popup.contains(e.target)) return; hide(); }
-        function eh(e) { if (e.key === 'Escape') { e.stopPropagation(); hide(); } }
-        popup.innerHTML = '<div class="edit-service-header"><h6>Adicionar extra</h6><button type="button" class="edit-service-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div><div class="edit-service-body"><div class="list-group list-group-flush" id="novaMarcacaoAddExtrasList"></div></div>';
-        popup.querySelector('.edit-service-close').addEventListener('click', hide);
-        var list = $id('novaMarcacaoAddExtrasList');
-        toShow.forEach(function(ex) {
-            var a = document.createElement('a');
-            a.href = '#';
-            a.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center';
-            a.innerHTML = '<span>' + (ex.name || '').replace(/</g, '&lt;') + '</span><span class="small text-muted">' + (ex.formatted_price || ex.price + ' €') + ' · ' + (ex.formatted_duration || ex.duration + ' min') + '</span>';
-            a.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (!novaMarcacaoSelectedServices[idx].extras) novaMarcacaoSelectedServices[idx].extras = [];
-                novaMarcacaoSelectedServices[idx].extras.push({ id: ex.id, name: ex.name, duration: ex.duration || 0, price: ex.price || 0, formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min', formatted_price: ex.formatted_price || (ex.price || 0).toFixed(2).replace('.', ',') + ' €' });
-                hide();
-                NovaMarcacao.renderSelectedServices();
-                NovaMarcacao.updateEndTimeAndTotal();
-            });
-            list.appendChild(a);
-        });
-        popup.classList.add('is-open');
-        var rect = evt.target.closest('button')?.getBoundingClientRect() || { left: evt.clientX, bottom: evt.clientY };
-        var offset = 8;
-        var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
-        var left = container ? (rect.left - container.left) : (rect.left || 0);
-        var top = container ? (rect.bottom + offset - container.top) : ((rect.bottom || 0) + offset);
-        popup.style.left = (left || 0) + 'px';
-        popup.style.top = (top || 0) + 'px';
-        setTimeout(function() { document.addEventListener('click', ch); document.addEventListener('keydown', eh); }, 0);
-    }
-
-    NovaMarcacao.applyNewDate = function(ymd) {
-        var startStr = $id('novaMarcacaoStart').value;
-        var endStr = $id('novaMarcacaoEnd').value;
-        if (!startStr || !ymd) return;
-        var start = new Date(startStr);
-        var parts = (ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (!parts) return;
-        start.setFullYear(parseInt(parts[1], 10), parseInt(parts[2], 10) - 1, parseInt(parts[3], 10));
-        var totalDur = novaMarcacaoSelectedServices.reduce(function(sum, s) {
-            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
-            return sum + d;
-        }, 0);
-        if (totalDur === 0 && endStr) {
-            var oldStart = new Date(startStr);
-            var oldEnd = new Date(endStr);
-            totalDur = (oldEnd.getTime() - oldStart.getTime()) / 60000;
-        }
-        if (totalDur < 1) totalDur = 60;
-        var end = new Date(start.getTime() + totalDur * 60 * 1000);
-        var startIso = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0') + 'T' + String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
-        var endIso = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
-        $id('novaMarcacaoStart').value = startIso;
-        $id('novaMarcacaoEnd').value = endIso;
-        $id('novaMarcacaoEditTitleDay').textContent = DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()];
-        $id('novaMarcacaoTimeToggle').textContent = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
-        NovaMarcacao.updateEndTimeAndTotal();
-        updateNovaMarcacaoOutOfHoursWarning();
-        var dateToggle = $id('novaMarcacaoDateToggle');
-        if (dateToggle && bootstrap.Dropdown) {
-            var inst = bootstrap.Dropdown.getInstance(dateToggle);
-            if (inst) inst.hide();
-        }
-    }
-
-    NovaMarcacao.applyNewStartTime = function(newTimeStr) {
-        var startStr = $id('novaMarcacaoStart').value;
-        if (!startStr) return;
-        var start = new Date(startStr);
-        var parts = (newTimeStr || '').match(/^(\d{1,2}):(\d{2})/);
-        if (!parts) return;
-        start.setHours(parseInt(parts[1], 10), parseInt(parts[2], 10), 0, 0);
-        var totalDur = novaMarcacaoSelectedServices.reduce(function(sum, s) { return sum + (s.duration || 0); }, 0);
-        if (totalDur < 1) totalDur = 60;
-        var end = new Date(start.getTime() + totalDur * 60 * 1000);
-        var startIso = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0') + 'T' + String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
-        var endIso = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
-        $id('novaMarcacaoStart').value = startIso;
-        $id('novaMarcacaoEnd').value = endIso;
-        $id('novaMarcacaoEditTitleDay').textContent = DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()];
-        $id('novaMarcacaoTimeToggle').textContent = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
-        NovaMarcacao.updateEndTimeAndTotal();
-        updateNovaMarcacaoOutOfHoursWarning();
-        var dd = $id('novaMarcacaoTimeToggle');
-        if (dd && bootstrap.Dropdown) {
-            var inst = bootstrap.Dropdown.getInstance(dd);
-            if (inst) inst.hide();
-        }
-    }
-
-    NovaMarcacao.populateTimeOptions = function(selectedTime) {
-        var container = $('.nova-marcacao-time-options');
-        if (!container) return;
-        container.innerHTML = '';
-        for (var h = 0; h < 24; h++) {
-            for (var m = 0; m < 60; m += 15) {
-                var ts = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-                var a = document.createElement('a');
-                a.href = '#';
-                a.className = 'dropdown-item nova-marcacao-time-opt' + (ts === selectedTime ? ' active' : '');
-                a.dataset.time = ts;
-                a.textContent = ts;
-                a.addEventListener('click', function(e) { e.preventDefault(); NovaMarcacao.applyNewStartTime(this.dataset.time); });
-                container.appendChild(a);
-            }
-        }
-    }
-
-    NovaMarcacao.updateEndTimeAndTotal = function() {
-        var startStr = $id('novaMarcacaoStart').value;
-        if (!startStr) return;
-        var totalDur = novaMarcacaoSelectedServices.reduce(function(sum, s) {
-            var d = (s.duration || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (e.duration || 0); }, 0);
-            return sum + d;
-        }, 0);
-        var start = new Date(startStr);
-        var end = new Date(start.getTime() + totalDur * 60 * 1000);
-        var endStr = end.getFullYear() + '-' + String(end.getMonth() + 1).padStart(2, '0') + '-' + String(end.getDate()).padStart(2, '0') + 'T' + String(end.getHours()).padStart(2, '0') + ':' + String(end.getMinutes()).padStart(2, '0');
-        $id('novaMarcacaoEnd').value = endStr;
-        var totalPrice = novaMarcacaoSelectedServices.reduce(function(sum, s) {
-            var p = (parseFloat(s.price) || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (parseFloat(e.price) || 0); }, 0);
-            return sum + p;
-        }, 0);
-        $id('novaMarcacaoTotalPrice').textContent = totalPrice.toFixed(2).replace('.', ',') + ' €';
-        updateNovaMarcacaoOutOfHoursWarning();
-    }
-
-    NovaMarcacao.openEditQuickMenu = function(evt, idx) {
-        novaMarcacaoEditServiceIndex = idx;
-        var item = novaMarcacaoSelectedServices[idx];
-        if (!item) return;
-        var popup = $id('novaMarcacaoEditServiceQuickMenu');
-        if (!popup) return;
-        var modalContent = $id('novaMarcacaoModal')?.querySelector('.modal-content');
-        if (modalContent) modalContent.appendChild(popup);
-
-        function hideEditQuickMenu() {
-            popup.classList.remove('is-open');
-            popup.innerHTML = '';
-            document.removeEventListener('click', closeHandler);
-            document.removeEventListener('keydown', escHandler);
-            window._hideEditServiceQuickMenu = null;
-        }
-        window._hideEditServiceQuickMenu = hideEditQuickMenu;
-        function closeHandler(e) {
-            if (popup.contains(e.target)) return;
-            hideEditQuickMenu();
-        }
-        function escHandler(e) {
-            if (e.key === 'Escape') { e.stopPropagation(); hideEditQuickMenu(); }
-        }
-
-        popup.innerHTML = '<div class="edit-service-header">' +
-            '<h6>Alterar opções do serviço</h6>' +
-            '<button type="button" class="edit-service-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>' +
-            '</div>' +
-            '<div class="edit-service-body">' +
-            '<div class="mb-2"><label class="form-label small">Duração (minutos)</label>' +
-            '<input type="number" class="form-control form-control-sm novaMarcacaoEditDuration" min="1" step="1" placeholder="Ex: 60" value="' + (item.duration || '') + '"></div>' +
-            '<div class="mb-0"><label class="form-label small">Preço (€)</label>' +
-            '<input type="number" class="form-control form-control-sm novaMarcacaoEditPrice" min="0" step="0.01" placeholder="Ex: 25" value="' + (item.price != null && item.price !== '' ? item.price : '') + '"></div>' +
-            '</div>' +
-            '<div class="edit-service-footer">' +
-            '<button type="button" class="btn btn-light btn-sm novaMarcacaoEditCancel">Cancelar</button>' +
-            '<button type="button" class="btn btn-primary btn-sm novaMarcacaoEditSave">Guardar</button>' +
-            '</div>';
-
-        var header = popup.querySelector('.edit-service-header');
-        header.querySelector('.edit-service-close').addEventListener('click', hideEditQuickMenu);
-
-        popup.querySelector('.novaMarcacaoEditCancel').addEventListener('click', hideEditQuickMenu);
-
-        popup.querySelector('.novaMarcacaoEditSave').addEventListener('click', function() {
-            var durInput = popup.querySelector('.novaMarcacaoEditDuration');
-            var priceInput = popup.querySelector('.novaMarcacaoEditPrice');
-            var dur = parseInt(durInput.value, 10);
-            var price = parseFloat(priceInput.value);
-            var i = novaMarcacaoEditServiceIndex;
-            if (i >= 0 && novaMarcacaoSelectedServices[i]) {
-                if (!isNaN(dur) && dur > 0) novaMarcacaoSelectedServices[i].duration = dur;
-                if (!isNaN(price) && price >= 0) {
-                    novaMarcacaoSelectedServices[i].price = price;
-                    novaMarcacaoSelectedServices[i].formatted_price = price.toFixed(2).replace('.', ',') + ' €';
-                }
-                novaMarcacaoSelectedServices[i].formatted_duration = (novaMarcacaoSelectedServices[i].duration || 0) + ' min';
-                NovaMarcacao.renderSelectedServices();
-                NovaMarcacao.updateEndTimeAndTotal();
-            }
-            hideEditQuickMenu();
-        });
-
-        var rect = evt.target.closest('button')?.getBoundingClientRect() || { left: evt.clientX, bottom: evt.clientY };
-        var offset = 8;
-        requestAnimationFrame(function() {
-            popup.classList.add('is-open');
-            var popupRect = popup.getBoundingClientRect();
-            var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
-            var left, top;
-            if (container) {
-                left = (rect.left || evt.clientX) - container.left;
-                top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset - container.top;
-            } else {
-                left = rect.left || evt.clientX;
-                top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset;
-            }
-            var vw = container ? container.width : window.innerWidth;
-            var vh = container ? container.height : window.innerHeight;
-            var maxLeft = vw - popupRect.width - offset;
-            var maxTop = vh - popupRect.height - offset;
-            left = Math.max(offset, Math.min(left, maxLeft));
-            top = Math.max(offset, Math.min(top, maxTop));
-            popup.style.left = left + 'px';
-            popup.style.top = top + 'px';
-        });
-        setTimeout(function() {
-            document.addEventListener('click', closeHandler);
-            document.addEventListener('keydown', escHandler);
-        }, 0);
-    }
-
-    NovaMarcacao.deleteService = function(idx) {
-        if (typeof window._hideEditServiceQuickMenu === 'function') { window._hideEditServiceQuickMenu(); window._hideEditServiceQuickMenu = null; }
-        novaMarcacaoSelectedServices.splice(idx, 1);
-        NovaMarcacao.renderSelectedServices();
-        NovaMarcacao.updateEndTimeAndTotal();
-        if (novaMarcacaoSelectedServices.length === 0) {
-            $id('novaMarcacaoServiceSelected').classList.add('d-none');
-            $id('novaMarcacaoServicesList').classList.remove('d-none');
-            agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
-        }
-    };
 
     var eventDetailOriginalStartAt = null;
     var eventDetailOriginalEndAt = null;
@@ -1859,33 +1451,37 @@ document.addEventListener('DOMContentLoaded', function() {
             if (existingSale) revertBtn.dataset.saleId = String(existingSale.id);
         }
         if (saveBtn) saveBtn.disabled = readonly;
-        var dateToggle = $id('eventDetailDateToggle');
-        var timeToggle = $id('eventDetailTimeToggle');
         var statusWrap = $id('eventDetailStatusDropdownWrap');
-        var observacoes = $id('eventDetailObservacoes');
-        var addMoreBtn = $id('eventDetailAddMoreServicesBtn');
-        var clientCancelBtn = $id('eventDetailClientCancelBtn');
-        [dateToggle, timeToggle, statusWrap].forEach(function(el) {
-            if (el) el.style.pointerEvents = readonly ? 'none' : '';
-        });
+        var observacoes = $id('eventDetailOcObs');
+        var addMoreBtn = $id('eventDetailOcAddMoreServicesBtn');
+        var ocMember = $id('eventDetailOcMember');
+        var ocDate = $id('eventDetailOcDate');
+        var ocTime = $id('eventDetailOcTime');
+        var ocServiceWrap = $id('eventDetailOcServiceSelectWrap');
+        var ocClientEdit = $id('eventDetailOcClientEditBtn');
+        var ocClientProfile = $id('eventDetailOcClientProfileLink');
+        var ocClientTabs = $id('eventDetailOcClientTabs');
+        var ocNotSel = $id('eventDetailOcClientNotSelectedWrap');
+        if (statusWrap) statusWrap.style.pointerEvents = readonly ? 'none' : '';
         if (observacoes) observacoes.disabled = readonly;
         if (addMoreBtn) { addMoreBtn.disabled = readonly; addMoreBtn.style.display = readonly ? 'none' : ''; }
-        if (clientCancelBtn) clientCancelBtn.style.display = readonly ? 'none' : '';
-        var clientSearchWrap = $id('eventDetailClientSearchWrap');
-        var clientResults = $id('eventDetailClientResults');
-        var clientClear = $id('eventDetailClientClear');
-        var clientAddWrap = $id('eventDetailClientAddWrap');
-        if (clientSearchWrap) clientSearchWrap.style.display = readonly ? 'none' : '';
-        if (clientResults) clientResults.style.display = readonly ? 'none' : '';
-        if (clientClear) clientClear.style.display = readonly ? 'none' : '';
-        if (clientAddWrap) clientAddWrap.style.display = readonly ? 'none' : '';
-        var selectedList = $id('eventDetailSelectedServicesList');
+        if (ocMember) ocMember.disabled = readonly;
+        if (ocDate) ocDate.disabled = readonly;
+        if (ocTime) ocTime.disabled = readonly;
+        if (ocServiceWrap) ocServiceWrap.style.pointerEvents = readonly ? 'none' : '';
+        if (ocClientEdit) ocClientEdit.style.pointerEvents = readonly ? 'none' : '';
+        if (ocClientProfile) ocClientProfile.style.pointerEvents = readonly ? 'none' : '';
+        if (ocClientTabs) ocClientTabs.style.pointerEvents = readonly ? 'none' : '';
+        if (ocNotSel) ocNotSel.style.pointerEvents = readonly ? 'none' : '';
+        var selectedList = $id('eventDetailOcSelectedServicesList');
         if (selectedList) selectedList.style.pointerEvents = readonly ? 'none' : '';
         var editModal = $id('eventDetailEditModal');
         if (editModal) editModal.classList.toggle('event-detail-readonly', readonly);
     }
 
     function populateEventDetailEditModal(data) {
+        eventDetailOcTeardownUi();
+        window._eventDetailOcPopulating = true;
         eventDetailCurrentData = data;
         eventDetailExistingSale = data.existing_sale || null;
         eventDetailOriginalStartAt = data.start_at || null;
@@ -1904,45 +1500,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 $id('eventDetailEditEnd').value = agendaFormatLocalDateTimeForInput(deNorm);
             }
         }
-        var startDate = data.start_at ? new Date(data.start_at) : null;
-        var endDate = data.end_at ? new Date(data.end_at) : null;
-        if (startDate) {
-            var dayStr = DAYS_LONG[startDate.getDay()] + ', ' + startDate.getDate() + ' ' + MONTHS_LONG[startDate.getMonth()];
-            var timeStr = String(startDate.getHours()).padStart(2, '0') + ':' + String(startDate.getMinutes()).padStart(2, '0');
-            var min = startDate.getMinutes();
-            var m = Math.round(min / 15) * 15;
-            if (m === 60) { m = 0; }
-            var timeSlotForDropdown = String(startDate.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-            $id('eventDetailEditTitleDay').textContent = dayStr;
-            $id('eventDetailTimeToggle').textContent = timeStr;
-            eventDetailPopulateTimeOptions(timeSlotForDropdown);
-            if (window.eventDetailDateFlatpickr) {
-                var ymdStr = startDate.getFullYear() + '-' + String(startDate.getMonth() + 1).padStart(2, '0') + '-' + String(startDate.getDate()).padStart(2, '0');
-                window.eventDetailDateFlatpickr.setDate(ymdStr, false);
-            }
-        } else {
-            $id('eventDetailEditTitleDay').textContent = '—';
-            $id('eventDetailTimeToggle').textContent = '—';
-            eventDetailPopulateTimeOptions('');
-        }
-        var agentInfo = agendaAgentInfo[String(data.user_id)] || { name: data.user_name || '—', email: '', avatarUrl: data.user_avatar_url || '' };
-        $id('eventDetailAgentName').textContent = agentInfo.name || '—';
-        $id('eventDetailAgentLink').href = (function() { var info = agendaAgentInfo[String(data.user_id || '')]; return (info && info.agentId) ? (agendaEquipaBaseUrl + '/' + info.agentId) : '#'; })();
-        if (agentInfo.avatarUrl) {
-            $id('eventDetailAgentAvatar').src = agentInfo.avatarUrl;
-            $id('eventDetailAgentAvatar').style.display = 'block';
-        } else {
-            $id('eventDetailAgentAvatar').style.display = 'none';
-        }
         var statusVal = data.status || 'agendado';
         $id('eventDetailStatus').value = statusVal;
         $id('eventDetailStatusLabel').textContent = STATUS_LABELS[statusVal] || statusVal;
         var iconEl = $id('eventDetailStatusIcon');
         if (iconEl) {
             var ic = iconEl.querySelector('i');
-            if (ic) ic.className = 'me-2 ph ' + (STATUS_ICONS[statusVal] || 'ph-clock');
+            if (ic) ic.className = 'ph ' + (STATUS_ICONS[statusVal] || 'ph-clock');
         }
-        // Estados finais sem dropdown: concluído, faltou, cancelado
         var statusDropdownWrap = $id('eventDetailStatusDropdownWrap');
         var statusStatic = $id('eventDetailStatusStatic');
         var statusStaticIcon = $id('eventDetailStatusStaticIcon');
@@ -1957,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (statusStaticLabel) statusStaticLabel.textContent = STATUS_LABELS[statusVal] || statusVal;
                 if (statusStaticIcon) {
                     var si = statusStaticIcon.querySelector('i');
-                    if (si) si.className = 'me-1 ph ' + (STATUS_ICONS[statusVal] || 'ph-clock');
+                    if (si) si.className = 'ph ' + (STATUS_ICONS[statusVal] || 'ph-clock');
                 }
             }
         } else {
@@ -1969,260 +1534,786 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var cancelOpt = $id('eventDetailStatusMenu')?.querySelector('[data-status="cancelar"]');
         if (cancelOpt) cancelOpt.style.display = (statusVal === 'faltou' || statusVal === 'cancelado') ? 'none' : '';
-        $id('eventDetailObservacoes').value = data.description || '';
+
+        var obsEl = $id('eventDetailOcObs');
+        if (obsEl) obsEl.value = data.description || '';
+
         var hasVisitLead = !!(data.visit || data.lead);
-        var hasClient = data.client_id && data.client_name;
-        $id('eventDetailClientAddWrap').classList.toggle('d-none', hasVisitLead || hasClient);
-        $id('eventDetailClientSearchWrap').classList.add('d-none');
-        $id('eventDetailClientResults').classList.add('d-none');
-        $id('eventDetailClientSelected').classList.add('d-none');
-        $id('eventDetailVisitLeadBlock').classList.add('d-none');
-        $id('eventDetailCreateClientBtn').classList.add('d-none');
-        if (hasVisitLead) {
-            var block = $id('eventDetailVisitLeadBlock');
-            block.classList.remove('d-none');
-            block.innerHTML = '';
+        var marcacaoSection = $id('eventDetailOcMarcacaoSection');
+        var visitBlock = $id('eventDetailVisitLeadBlock');
+        if (visitBlock) {
+            visitBlock.classList.add('d-none');
+            visitBlock.innerHTML = '';
+        }
+        if (marcacaoSection) {
+            marcacaoSection.classList.toggle('d-none', hasVisitLead || data.event_type !== 'marcacao');
+        }
+        if (hasVisitLead && visitBlock) {
+            visitBlock.classList.remove('d-none');
             if (data.visit) {
-                block.innerHTML = '<h6 class="nova-marcacao-section-title">Cliente (Visita)</h6><div class="nova-marcacao-person"><div><strong>' + (data.visit.client_name || '—') + '</strong></div></div>' +
+                visitBlock.innerHTML = '<h6 class="nova-marcacao-section-title">Cliente (Visita)</h6><div class="nova-marcacao-person"><div><strong>' + (data.visit.client_name || '…') + '</strong></div></div>' +
                     '<div class="mt-2"><a href="' + (data.visit.opportunity_id ? (C.urlOpportunities || '') + '/' + data.visit.opportunity_id : '#') + '" class="btn btn-sm btn-outline-primary"><i class="ph ph-briefcase me-1"></i>Ficha da Oportunidade</a></div>';
             } else if (data.lead) {
-                block.innerHTML = '<h6 class="nova-marcacao-section-title">Lead</h6><div class="nova-marcacao-person"><div><strong>' + (data.lead.name || '—') + '</strong><span class="d-block small text-muted">' + [data.lead.email, data.lead.formatted_phone || data.lead.phone].filter(Boolean).join(' · ') + '</span></div></div>' +
+                visitBlock.innerHTML = '<h6 class="nova-marcacao-section-title">Lead</h6><div class="nova-marcacao-person"><div><strong>' + (data.lead.name || '…') + '</strong><span class="d-block small text-muted">' + [data.lead.email, data.lead.formatted_phone || data.lead.phone].filter(Boolean).join(' · ') + '</span></div></div>' +
                     '<div class="mt-2"><a href="' + (C.urlLeads || '') + '/' + data.lead.id + '" class="btn btn-sm btn-outline-primary"><i class="ph ph-file-text me-1"></i>Ficha da Lead</a></div>';
             }
-        } else if (data.client_id && data.client_name) {
-            eventDetailSelectedClient = { id: data.client_id, name: data.client_name, email: data.client_email || '', phone: data.client_phone || '', formatted_phone: data.client_formatted_phone || '', avatar_url: data.client_avatar_url || '' };
-            $id('eventDetailClientSelectedName').textContent = data.client_name;
-            $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
-            if (data.client_avatar_url) {
-                $id('eventDetailClientAvatar').src = data.client_avatar_url;
-                $id('eventDetailClientAvatar').classList.remove('d-none');
-                $id('eventDetailClientAvatarFallback').classList.add('d-none');
-            } else {
-                var initials = (data.client_name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-                $id('eventDetailClientAvatarFallback').textContent = initials;
-                $id('eventDetailClientAvatarFallback').classList.remove('d-none');
-                $id('eventDetailClientAvatar').classList.add('d-none');
-            }
-            $id('eventDetailClientSelected').classList.remove('d-none');
-            $id('eventDetailCreateClientBtn').classList.add('d-none');
-            $id('eventDetailClientAddWrap').classList.add('d-none');
-            $id('eventDetailClientSearchWrap').classList.add('d-none');
-            var link = $id('eventDetailClientProfileLink');
-            if (link) link.href = clientesBaseUrl + '/' + data.client_id;
-        } else {
-            eventDetailSelectedClient = null;
         }
-        $id('eventDetailServicesCol').classList.toggle('d-none', data.event_type !== 'marcacao');
-        if (data.event_type === 'marcacao') {
-            (data.event_services || []).forEach(function(s) {
-                var dur = s.duration || 60;
-                var pr = parseFloat(s.price) || 0;
-                var origPr = s.original_price != null ? parseFloat(s.original_price) : pr;
-                var extras = (s.extras || []).map(function(e) {
-                    return { id: e.extra_id, name: e.name, duration: e.duration || 0, price: e.price || 0, formatted_duration: e.formatted_duration || (e.duration || 0) + ' min', formatted_price: e.formatted_price || (e.price || 0).toFixed(2).replace('.', ',') + ' €' };
-                });
-                eventDetailSelectedServices.push({
-                    service_id: s.id,
-                    name: s.name,
-                    duration: dur,
-                    price: pr,
-                    original_price: origPr,
-                    formatted_duration: (s.formatted_duration || dur + ' min'),
-                    formatted_price: s.formatted_price || (pr.toFixed(2).replace('.', ',') + ' €'),
-                    color: s.color || '#6c757d',
-                    available_extras: [],
-                    extras: extras
-                });
+
+        if (hasVisitLead || data.event_type !== 'marcacao') {
+            var svcCountEarly = (data.event_services && data.event_services.length) || 0;
+            setEventDetailPaymentAndReadOnly(eventDetailExistingSale, data.event_type || 'marcacao', svcCountEarly);
+            updateEventDetailOutOfHoursWarning();
+            window._eventDetailOcPopulating = false;
+            return;
+        }
+
+        eventDetailOcBindFormOnce();
+        eventDetailOcPopulateMemberSelect(data.user_id || '');
+
+        if (data.client_id && data.client_name) {
+            var cObj = {
+                id: data.client_id,
+                name: data.client_name,
+                email: data.client_email || '',
+                phone: data.client_phone || '',
+                formatted_phone: data.client_formatted_phone || '',
+                avatar_url: data.client_avatar_url || ''
+            };
+            eventDetailOcInitClientChoicesSelect();
+            eventDetailOcApplyClientFromApi(cObj);
+            var phoneL = cObj.formatted_phone || cObj.phone || '';
+            var cLabel = (cObj.name || '') + (phoneL ? ' · ' + phoneL : '');
+            if (eventDetailOcChoicesInstances.client) {
+                eventDetailOcChoicesInstances.client.setChoices([{ value: String(cObj.id), label: cLabel }], 'value', 'label', true);
+                try { eventDetailOcChoicesInstances.client.setChoiceByValue(String(cObj.id)); } catch (e) { /* ignore */ }
+            }
+        } else {
+            eventDetailOcEnterClientSearchMode();
+        }
+
+        (data.event_services || []).forEach(function(s) {
+            var dur = s.duration || 60;
+            var pr = parseFloat(s.price) || 0;
+            var origPr = s.original_price != null ? parseFloat(s.original_price) : pr;
+            var extras = (s.extras || []).map(function(e) {
+                return { id: e.extra_id, name: e.name, duration: e.duration || 0, price: e.price || 0, formatted_duration: e.formatted_duration || (e.duration || 0) + ' min', formatted_price: e.formatted_price || (e.price || 0).toFixed(2).replace('.', ',') + ' €' };
             });
-            EventDetail.renderSelectedServices();
+            eventDetailSelectedServices.push({
+                service_id: s.id,
+                name: s.name,
+                duration: dur,
+                price: pr,
+                original_price: origPr,
+                formatted_duration: (s.formatted_duration || dur + ' min'),
+                formatted_price: s.formatted_price || (pr.toFixed(2).replace('.', ',') + ' €'),
+                color: s.color || '#6c757d',
+                category_name: s.category_name || '',
+                available_extras: [],
+                extras: extras
+            });
+        });
+        eventDetailOcShowServicePicker = eventDetailSelectedServices.length === 0;
+
+        var mid = String(data.user_id || '');
+        eventDetailOcReloadServicesForMember(mid, function() {
+            eventDetailOcRenderSelectedServices();
             EventDetail.updateTotal();
             EventDetail.updateEndTime();
+            eventDetailOcSyncPickersFromHidden();
             setEventDetailPaymentAndReadOnly(eventDetailExistingSale, 'marcacao', eventDetailSelectedServices.length);
-            $id('eventDetailServicesList').innerHTML = '<div class="text-muted small">A carregar...</div>';
-            var edTabsLoad = $id('eventDetailCategoryTabs');
-            if (edTabsLoad) {
-                edTabsLoad.innerHTML = '';
-                edTabsLoad.classList.add('d-none');
-            }
-            fetch(agendaMembersServicesUrl + '/' + (data.user_id || C.authId) + '/services', { headers: { 'Accept': 'application/json' } })
-                .then(function(r) { return r.json(); })
-                .then(function(svcData) {
-                    eventDetailServicesData = svcData;
-                    eventDetailSelectedServices.forEach(function(item) {
-                        var availableExtras = [];
-                        (svcData.categories || []).forEach(function(cat) {
-                            (cat.services || []).forEach(function(svc) {
-                                if (String(svc.id) === String(item.service_id)) availableExtras = svc.extras || [];
-                            });
-                        });
-                        item.available_extras = availableExtras;
-                    });
-                    EventDetail.renderSelectedServices();
-                    var idPrefixEd = 'agenda-ed';
-                    var htmlEd = agendaBuildServicesBrowseFromCategories(svcData.categories, idPrefixEd, 'event-detail-service-item');
-                    agendaApplyServicesBrowseUI($id('eventDetailServicesList'), $id('eventDetailCategoryTabs'), svcData.categories, htmlEd, idPrefixEd);
-                    agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
-                    $id('eventDetailServicesList').querySelectorAll('.event-detail-service-item').forEach(function(el) {
-                        el.addEventListener('click', function() {
-                            var sid = this.dataset.serviceId;
-                            if (eventDetailSelectedServices.some(function(s) { return String(s.service_id) === sid; })) return;
-                            var dur = parseInt(this.dataset.duration, 10) || 60;
-                            var priceNum = parseFloat(this.dataset.price) || 0;
-                            var availableExtras = [];
-                            (eventDetailServicesData.categories || []).forEach(function(cat) {
-                                (cat.services || []).forEach(function(svc) {
-                                    if (String(svc.id) === sid) availableExtras = svc.extras || [];
-                                });
-                            });
-                            eventDetailSelectedServices.push({
-                                service_id: sid, name: this.dataset.name || '', duration: dur, price: priceNum,
-                                original_price: priceNum,
-                                formatted_duration: this.dataset.formattedDuration || dur + ' min',
-                                formatted_price: this.dataset.formattedPrice || (priceNum.toFixed(2).replace('.', ',') + ' €'),
-                                color: this.dataset.color || '#6c757d',
-                                available_extras: availableExtras,
-                                extras: []
-                            });
-                    EventDetail.renderSelectedServices();
-                    EventDetail.updateTotal();
-                    EventDetail.updateEndTime();
-                            $id('eventDetailServicesList').classList.add('d-none');
-                            $id('eventDetailCancelAddServicesBtn').classList.add('d-none');
-                            $id('eventDetailServiceSelected').classList.remove('d-none');
-                            agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
-                        });
-                    });
-                    if (eventDetailSelectedServices.length > 0) {
-                        $id('eventDetailServicesList').classList.add('d-none');
-                        $id('eventDetailCancelAddServicesBtn').classList.add('d-none');
-                        $id('eventDetailServiceSelected').classList.remove('d-none');
-                        agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
-                    }
-                    setEventDetailPaymentAndReadOnly(eventDetailExistingSale, 'marcacao', eventDetailSelectedServices.length);
-                    updateEventDetailOutOfHoursWarning();
-                })
-                .catch(function() {
-                    $id('eventDetailServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
-                    var edTabsErr = $id('eventDetailCategoryTabs');
-                    if (edTabsErr) {
-                        edTabsErr.innerHTML = '';
-                        edTabsErr.classList.add('d-none');
-                    }
-                    agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
-                });
-        } else {
-            setEventDetailPaymentAndReadOnly(null, data.event_type || '', 0);
             updateEventDetailOutOfHoursWarning();
-        }
+            window._eventDetailOcPopulating = false;
+        });
     }
 
     var eventDetailSelectedClient = null;
     var eventDetailServicesData = null;
 
-    const EventDetail = {};
+    /* ——— Offcanvas editar: mesmo fluxo que nova marcação (Choices cliente/serviço, cartão com lápis) ——— */
+    var eventDetailOcChoicesInstances = { client: null, service: null, member: null };
+    var eventDetailOcServicesFlat = [];
+    var eventDetailOcShowServicePicker = true;
+    var eventDetailOcDateFlatpickr = null;
+    var eventDetailOcClientSearchTimer = null;
+    var eventDetailOcClientRemoteSearchBound = false;
+    var eventDetailOcClientChangeBound = false;
+    var eventDetailOcFormBound = false;
 
-    EventDetail.renderSelectedServices = function() {
-        var container = $id('eventDetailSelectedServicesList');
-        if (!container) return;
-        var titleEl = $('#eventDetailServiceSelected .nova-marcacao-services-selected-title');
+    function eventDetailOcDestroyChoices() {
+        ['client', 'service', 'member'].forEach(function(key) {
+            var inst = eventDetailOcChoicesInstances[key];
+            if (inst) {
+                try { inst.destroy(); } catch (e) { /* ignore */ }
+                eventDetailOcChoicesInstances[key] = null;
+            }
+        });
+    }
+    function eventDetailOcTeardownUi() {
+        eventDetailOcDestroyChoices();
+        if (eventDetailOcDateFlatpickr) {
+            try { eventDetailOcDateFlatpickr.destroy(); } catch (e) { /* ignore */ }
+            eventDetailOcDateFlatpickr = null;
+        }
+    }
+    function eventDetailOcPopulateMemberSelect(selectedId) {
+        var memSel = $id('eventDetailOcMember');
+        if (!memSel) return;
+        if (eventDetailOcChoicesInstances.member) {
+            try { eventDetailOcChoicesInstances.member.destroy(); } catch (e) { /* ignore */ }
+            eventDetailOcChoicesInstances.member = null;
+        }
+        memSel.innerHTML = '<option value="">Selecionar</option>';
+        (C.usersForConsultant || []).forEach(function(u) {
+            var opt = document.createElement('option');
+            opt.value = String(u.id);
+            opt.textContent = u.name || ('#' + u.id);
+            memSel.appendChild(opt);
+        });
+        if (selectedId) {
+            memSel.value = String(selectedId);
+        }
+        eventDetailOcChoicesInstances.member = new Choices(memSel, agendaOcCommonChoicesOpts());
+        if (selectedId) {
+            try { eventDetailOcChoicesInstances.member.setChoiceByValue(String(selectedId)); } catch (e) { /* ignore */ }
+        }
+    }
+    function eventDetailOcClientChoicesOpts() {
+        var o = agendaOcCommonChoicesOpts();
+        o.searchChoices = false;
+        o.searchFloor = 1;
+        o.searchResultLimit = 50;
+        o.placeholder = true;
+        o.placeholderValue = 'Pesquisar cliente';
+        o.searchPlaceholderValue = 'Pesquisar Nome, Telemóvel, Email...';
+        o.noResultsText = 'Nenhum cliente encontrado.';
+        return o;
+    }
+    function eventDetailOcOnClientSearchEvent(ev) {
+        var inst = eventDetailOcChoicesInstances.client;
+        if (!inst) return;
+        var q = (ev.detail && ev.detail.value != null) ? String(ev.detail.value).trim() : '';
+        clearTimeout(eventDetailOcClientSearchTimer);
+        if (!q.length) return;
+        eventDetailOcClientSearchTimer = setTimeout(function() {
+            fetch(agendaClientsUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                .then(function(r) { return r.json(); })
+                .then(function(clients) {
+                    if (!eventDetailOcChoicesInstances.client) return;
+                    var items = (clients || []).map(function(c) {
+                        var phone = c.formatted_phone || c.phone || '';
+                        var label = (c.name || '') + (phone ? ' · ' + phone : '');
+                        return { value: String(c.id), label: label };
+                    });
+                    eventDetailOcChoicesInstances.client.setChoices(items, 'value', 'label', true);
+                })
+                .catch(function() { /* ignore */ });
+        }, 300);
+    }
+    function eventDetailOcClearNewClientForm() {
+        var n = $id('eventDetailOcNewClientName');
+        var e = $id('eventDetailOcNewClientEmail');
+        var p = $id('eventDetailOcNewClientPhone');
+        var tabNew = $id('eventDetailOcTabNew');
+        if (n) n.value = '';
+        if (e) e.value = '';
+        if (p) p.value = '';
+        if (tabNew) destroyAgendaCreateClientIntl(tabNew);
+    }
+    function eventDetailOcInitNewClientPhoneIntl() {
+        var phoneEl = $id('eventDetailOcNewClientPhone');
+        var tabNew = $id('eventDetailOcTabNew');
+        if (!phoneEl || !tabNew) return;
+        initAgendaCreateClientIntl(phoneEl, tabNew);
+    }
+    function eventDetailOcResetClientUi() {
+        var notSel = $id('eventDetailOcClientNotSelectedWrap');
+        var card = $id('eventDetailOcClientSelectedCard');
+        if (notSel) notSel.classList.remove('d-none');
+        if (card) card.classList.add('d-none');
+        eventDetailSelectedClient = null;
+        eventDetailOcClearNewClientForm();
+        var tabBtn = $id('eventDetailOcTabExistingBtn');
+        if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            try { bootstrap.Tab.getOrCreateInstance(tabBtn).show(); } catch (err) { /* ignore */ }
+        }
+    }
+    function eventDetailOcApplyClientFromApi(c) {
+        if (!c) return;
+        eventDetailSelectedClient = {
+            id: String(c.id),
+            name: c.name || '',
+            phone: c.phone || '',
+            formatted_phone: c.formatted_phone || '',
+            email: c.email || '',
+            avatar_url: c.avatar_url || ''
+        };
+        var av = $id('eventDetailOcClientAvatar');
+        var fb = $id('eventDetailOcClientAvatarFallback');
+        $id('eventDetailOcClientSelectedName').textContent = c.name || '';
+        $id('eventDetailOcClientSelectedPhone').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
+        var pl = $id('eventDetailOcClientProfileLink');
+        if (pl) {
+            pl.href = clientesBaseUrl + '/' + c.id;
+            pl.classList.remove('d-none');
+        }
+        if (c.avatar_url && av) {
+            av.src = c.avatar_url;
+            av.classList.remove('d-none');
+            if (fb) fb.classList.add('d-none');
+        } else if (av && fb) {
+            av.classList.add('d-none');
+            var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+            fb.textContent = initials;
+            fb.classList.remove('d-none');
+        }
+        var notSel = $id('eventDetailOcClientNotSelectedWrap');
+        var sc = $id('eventDetailOcClientSelectedCard');
+        if (notSel) notSel.classList.add('d-none');
+        if (sc) sc.classList.remove('d-none');
+    }
+    function eventDetailOcInitClientChoicesSelect() {
+        var clientSel = $id('eventDetailOcClient');
+        if (!clientSel) return;
+        if (eventDetailOcChoicesInstances.client) {
+            try { eventDetailOcChoicesInstances.client.destroy(); } catch (e) { /* ignore */ }
+            eventDetailOcChoicesInstances.client = null;
+        }
+        clientSel.innerHTML = '<option value="">Pesquisar cliente</option>';
+        eventDetailOcChoicesInstances.client = new Choices(clientSel, eventDetailOcClientChoicesOpts());
+    }
+    function eventDetailOcEnterClientSearchMode() {
+        eventDetailSelectedClient = null;
+        eventDetailOcClearNewClientForm();
+        var notSel = $id('eventDetailOcClientNotSelectedWrap');
+        var card = $id('eventDetailOcClientSelectedCard');
+        if (card) card.classList.add('d-none');
+        if (notSel) notSel.classList.remove('d-none');
+        var tabBtn = $id('eventDetailOcTabExistingBtn');
+        if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            try { bootstrap.Tab.getOrCreateInstance(tabBtn).show(); } catch (err) { /* ignore */ }
+        }
+        eventDetailOcInitClientChoicesSelect();
+        if (!eventDetailOcClientRemoteSearchBound) {
+            eventDetailOcClientRemoteSearchBound = true;
+            $id('eventDetailOcClient').addEventListener('search', eventDetailOcOnClientSearchEvent);
+        }
+    }
+    function eventDetailOcApplyServiceFieldVisibility() {
+        var selWrap = $id('eventDetailOcServiceSelectWrap');
+        var addWrap = $id('eventDetailOcAddMoreServicesWrap');
+        if (!selWrap || !addWrap) return;
+        var n = eventDetailSelectedServices.length;
+        if (n === 0) {
+            eventDetailOcShowServicePicker = true;
+        }
+        if (eventDetailOcShowServicePicker) {
+            selWrap.classList.remove('d-none');
+            addWrap.classList.add('d-none');
+        } else {
+            selWrap.classList.add('d-none');
+            addWrap.classList.remove('d-none');
+        }
+    }
+    function eventDetailOcRebuildServiceSelect(svcSel, flatList) {
+        svcSel.innerHTML = '<option value="">Selecionar serviço</option>';
+        flatList.forEach(function(s) {
+            var opt = document.createElement('option');
+            opt.value = s.service_id;
+            var durPart = s.formatted_duration || (s.duration + ' min');
+            var catPart = String(s.category_name || '').trim();
+            opt.textContent = (s.name || '') + ' (' + durPart + (catPart ? ' · ' + catPart : '') + ')';
+            opt.dataset.duration = String(s.duration);
+            opt.dataset.price = String(s.price);
+            opt.dataset.name = s.name || '';
+            svcSel.appendChild(opt);
+        });
+        svcSel.disabled = flatList.length === 0;
+    }
+    function eventDetailOcReloadServicesForMember(memberId, done) {
+        var svcSel = $id('eventDetailOcService');
+        if (!svcSel) {
+            if (done) done(null);
+            return;
+        }
+        if (eventDetailOcChoicesInstances.service) {
+            try { eventDetailOcChoicesInstances.service.destroy(); } catch (e) { /* ignore */ }
+            eventDetailOcChoicesInstances.service = null;
+        }
+        if (!memberId) {
+            eventDetailOcServicesFlat = [];
+            svcSel.innerHTML = '<option value="">Escolha um profissional</option>';
+            svcSel.disabled = true;
+            eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+            if (done) done(null);
+            return;
+        }
+        svcSel.innerHTML = '<option value="">A carregar…</option>';
+        svcSel.disabled = true;
+        fetch(agendaMembersServicesUrl + '/' + memberId + '/services', { headers: { 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                eventDetailServicesData = data;
+                eventDetailOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
+                eventDetailOcRebuildServiceSelect(svcSel, eventDetailOcServicesFlat);
+                eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                eventDetailSelectedServices.forEach(function(item) {
+                    var availableExtras = [];
+                    (data.categories || []).forEach(function(cat) {
+                        (cat.services || []).forEach(function(svc) {
+                            if (String(svc.id) === String(item.service_id)) {
+                                availableExtras = svc.extras || [];
+                                if (!item.category_name && cat.name) item.category_name = cat.name;
+                            }
+                        });
+                    });
+                    item.available_extras = availableExtras;
+                    var flatMatch = eventDetailOcServicesFlat.find(function(fs) { return String(fs.service_id) === String(item.service_id); });
+                    if (flatMatch && flatMatch.category_name) item.category_name = flatMatch.category_name;
+                });
+                if (done) done(data);
+            })
+            .catch(function() {
+                eventDetailOcServicesFlat = [];
+                svcSel.innerHTML = '<option value="">Erro ao carregar</option>';
+                svcSel.disabled = true;
+                eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                if (done) done(null);
+            });
+    }
+    function eventDetailOcSyncPickersFromHidden() {
+        var startStr = $id('eventDetailEditStart') && $id('eventDetailEditStart').value;
+        if (!startStr) return;
+        var d = new Date(startStr);
+        if (isNaN(d.getTime())) return;
+        var ymd = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        var timeSel = $id('eventDetailOcTime');
+        if (timeSel) {
+            timeSel.innerHTML = '';
+            timeSel.appendChild(agendaOcBuildTimeOptionElements());
+            var hh = String(d.getHours()).padStart(2, '0');
+            var mm = String(d.getMinutes()).padStart(2, '0');
+            timeSel.value = hh + ':' + mm;
+            if (!timeSel.value) timeSel.value = '09:00';
+        }
+        var dateIn = $id('eventDetailOcDate');
+        if (dateIn && typeof flatpickr !== 'undefined') {
+            if (!eventDetailOcDateFlatpickr) {
+                eventDetailOcDateFlatpickr = flatpickr(dateIn, {
+                    dateFormat: 'Y-m-d',
+                    altInput: true,
+                    altFormat: 'l, j F',
+                    locale: (flatpickr && flatpickr.l10ns && flatpickr.l10ns.pt) ? flatpickr.l10ns.pt : undefined,
+                    allowInput: true,
+                    disableMobile: true,
+                    onChange: function() {
+                        eventDetailOcSyncHiddenFromPickers();
+                        updateEventDetailOutOfHoursWarning();
+                    }
+                });
+                if (eventDetailOcDateFlatpickr && eventDetailOcDateFlatpickr.altInput) {
+                    eventDetailOcDateFlatpickr.altInput.removeAttribute('readonly');
+                    eventDetailOcDateFlatpickr.altInput.style.cursor = 'pointer';
+                }
+            }
+            if (eventDetailOcDateFlatpickr) eventDetailOcDateFlatpickr.setDate(ymd, false);
+            else dateIn.value = ymd;
+        }
+    }
+    function eventDetailOcSyncHiddenFromPickers() {
+        var dStr = $id('eventDetailOcDate') && $id('eventDetailOcDate').value;
+        var tStr = $id('eventDetailOcTime') && $id('eventDetailOcTime').value;
+        if (!dStr || !tStr) return;
+        var startLocal = dStr + 'T' + tStr;
+        var startDate = parseAgendaLocalDateTime(startLocal);
+        if (!startDate || isNaN(startDate.getTime())) return;
+        var totalDur = eventDetailEffectiveDurationMinutes();
+        if (totalDur < 1) totalDur = 60;
+        var end = new Date(startDate.getTime() + totalDur * 60000);
+        $id('eventDetailEditStart').value = agendaFormatLocalDateTimeForInput(startDate);
+        $id('eventDetailEditEnd').value = agendaFormatLocalDateTimeForInput(end);
+        var uid = ($id('eventDetailOcMember') && $id('eventDetailOcMember').value) || '';
+        if (uid) $id('eventDetailEditUserId').value = uid;
+        if (eventDetailCurrentData) {
+            eventDetailCurrentData.start_at = $id('eventDetailEditStart').value;
+            eventDetailCurrentData.end_at = $id('eventDetailEditEnd').value;
+        }
+        var evId = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        if (evId && typeof calendar !== 'undefined') {
+            var ev = calendar.getEventById(evId);
+            if (ev) {
+                ev.setStart(startDate);
+                ev.setEnd(end);
+            }
+        }
+    }
+    /** Duração e categoria (texto muted) na lista de serviços dos offcanvas. */
+    function agendaOcServiceDurationCategoryMeta(item) {
+        var durNum = parseInt(item.duration, 10) || 0;
+        var durText = item.formatted_duration || (durNum + ' min');
+        var cat = String(item.category_name || '').trim();
+        var catEsc = cat.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<div class="small text-muted mt-2">' + durText + (catEsc ? ' · ' + catEsc : '') + '</div>';
+    }
+    function eventDetailOcRenderSelectedServices() {
+        var wrap = $id('eventDetailOcSelectedServicesList');
+        if (!wrap) return;
         var totalStrip = agendaMarcacaoTotalStrip('eventDetailTotalPrice');
-        if (eventDetailSelectedServices.length === 0) {
-            container.innerHTML = '';
-            if (titleEl) titleEl.textContent = 'Serviços selecionados';
+        var isCompleted = (eventDetailCurrentData && eventDetailCurrentData.status === 'completo');
+        if (!eventDetailSelectedServices.length) {
+            wrap.classList.add('d-none');
+            wrap.innerHTML = '';
+            eventDetailOcApplyServiceFieldVisibility();
             if (totalStrip) totalStrip.classList.remove('d-none');
             return;
         }
-        if (titleEl) titleEl.textContent = eventDetailSelectedServices.length === 1 ? 'Serviço selecionado' : 'Serviços selecionados';
-        var isCompleted = (eventDetailCurrentData?.status === 'completo');
+        wrap.classList.remove('d-none');
+        if (totalStrip) totalStrip.classList.remove('d-none');
         var html = eventDetailSelectedServices.map(function(item, idx) {
-            var origP = item.original_price != null ? parseFloat(item.original_price) : NaN;
-            var currP = item.price != null ? parseFloat(item.price) : NaN;
-            var showStrikethrough = !isNaN(origP) && currP !== origP;
-            var priceBlock = showStrikethrough
-                ? '<span class="text-danger text-decoration-line-through small me-1">' + (origP.toFixed(2).replace('.', ',') + ' €') + '</span><span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>'
-                : '<span class="nova-marcacao-service-item-price">' + (item.formatted_price || '') + '</span>';
-
-            var serviceRow =
-                '<div class="d-flex justify-content-between align-items-center w-100">' +
-                    '<div class="nova-marcacao-service-item-left">' +
-                        '<div class="nova-marcacao-service-item-name">' + (item.name || '') + '</div>' +
-                        '<div class="nova-marcacao-service-item-duration">' + (item.formatted_duration || item.duration + ' min') + '</div>' +
-                    '</div>' +
-                    '<div class="d-flex align-items-center gap-2 justify-content-end">' +
-                        (isCompleted
-                            ? priceBlock
-                            : (
-                                '<div class="d-flex gap-1">' +
-                                    (item.available_extras && item.available_extras.length > 0
-                                        ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailAddExtrasBtn" data-idx="' + idx + '" title="Adicionar extras"><i class="ph ph-plus-circle"></i></button>'
-                                        : ''
-                                    ) +
-                                    '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm eventDetailEditServiceBtn" data-idx="' + idx + '" title="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
-                                    '<button type="button" class="btn btn-outline-danger btn-icon btn-sm eventDetailDeleteServiceBtn" data-idx="' + idx + '" title="Eliminar"><i class="ph ph-trash"></i></button>' +
-                                '</div>' +
-                                priceBlock
-                            )
-                        ) +
-                    '</div>' +
+            var dur = parseInt(item.duration, 10) || 0;
+            var price = parseFloat(item.price) || 0;
+            var originalPrice = item.original_price != null ? parseFloat(item.original_price) : price;
+            var hasPriceChange = Math.abs(price - originalPrice) > 0.0001;
+            var priceBlock = hasPriceChange
+                ? '<span class="text-danger text-decoration-line-through small me-1">' + (originalPrice.toFixed(2).replace('.', ',') + ' €') + '</span><span class="fw-semibold text-nowrap">' + price.toFixed(2).replace('.', ',') + ' €</span>'
+                : '<span class="fw-semibold text-nowrap">' + price.toFixed(2).replace('.', ',') + ' €</span>';
+            var addedExtraIds = (item.extras || []).map(function(e) { return e.id; });
+            var extrasToAdd = (!isCompleted && (item.available_extras || []).filter(function(e) { return addedExtraIds.indexOf(e.id) === -1; })) || [];
+            var iconsRow = isCompleted ? ''
+                : '<div class="d-flex gap-1 justify-content-end flex-shrink-0">' +
+                    (extrasToAdd.length > 0
+                        ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm agenda-oc-add-extras-btn" data-idx="' + idx + '" title="Adicionar extras" aria-label="Adicionar extras"><i class="ph ph-plus-circle"></i></button>'
+                        : ''
+                    ) +
+                    '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm agenda-oc-edit-service-btn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
+                    '<button type="button" class="btn btn-outline-danger btn-icon btn-sm agenda-oc-remove-service-btn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
                 '</div>';
-
             var extrasLine = (item.extras && item.extras.length)
                 ? item.extras.map(function(e, eIdx) {
                     var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
                     var durText = e.formatted_duration || ((e.duration || 0) + ' min');
-                    var removeBtn = '';
-                    if (!isCompleted) {
-                        removeBtn =
-                            '<button type="button" class="btn btn-link btn-sm p-0 ms-1 mt-1 eventDetailRemoveExtraBtn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra">' +
-                                '<i class="ph ph-x"></i>' +
-                            '</button>';
-                    }
-                    return '' +
-                        '<div class="event-detail-extra-row d-flex justify-content-between align-items-start mt-1 w-100" data-idx="' + idx + '" data-extra-index="' + eIdx + '">' +
-                            '<div class="nova-marcacao-service-item-left d-flex flex-column">' +
-                                '<div class="d-flex align-items-center">' +
-                                    '<div class="nova-marcacao-service-item-name">+ ' + (e.name || '') + '</div>' +
-                                    removeBtn +
-                                '</div>' +
-                                '<div class="nova-marcacao-service-item-duration">' + durText + '</div>' +
-                            '</div>' +
-                            '<div class="nova-marcacao-service-item-price">' + priceText + '</div>' +
-                        '</div>';
+                    var rm = isCompleted ? '' :
+                        '<button type="button" class="btn btn-link btn-sm p-0 ms-1 agenda-oc-remove-extra-btn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra"><i class="ph ph-x"></i></button>';
+                    return '<div class="agenda-oc-extra-row d-flex justify-content-between align-items-start mt-1 w-100">' +
+                        '<div class="nova-marcacao-service-item-left d-flex flex-column min-w-0">' +
+                            '<div class="d-flex align-items-center"><div class="small fw-medium">+ ' + (e.name || '').replace(/</g, '&lt;') + '</div>' + rm + '</div>' +
+                            '<div class="small text-muted">' + durText + '</div></div>' +
+                        '<div class="small text-nowrap">' + priceText + '</div></div>';
                 }).join('')
                 : '';
-
-            return '<div class="nova-marcacao-service-item nova-marcacao-service-selected-card mb-2" data-idx="' + idx + '" style="border-left-color:' + (item.color || '#6c757d') + ';display:block;">' +
-                serviceRow +
-                extrasLine +
-                '</div>';
+            var addExtrasPanelHtml = '';
+            if (!isCompleted && extrasToAdd.length > 0) {
+                addExtrasPanelHtml =
+                    '<div class="agenda-oc-add-extras-panel d-none mt-2" data-add-extras-idx="' + idx + '">' +
+                        '<div class="small fw-semibold text-body mb-2">Adicionar extra</div>' +
+                        '<div class="d-flex flex-column gap-1 agenda-oc-add-extras-list">' +
+                        extrasToAdd.map(function(ex) {
+                            return '<button type="button" class="btn btn-light btn-sm w-100 text-start d-flex justify-content-between align-items-center agenda-oc-pick-extra-btn" data-idx="' + idx + '" data-extra-id="' + String(ex.id).replace(/"/g, '') + '">' +
+                                '<span class="text-truncate me-2">' + (ex.name || '').replace(/</g, '&lt;') + '</span>' +
+                                '<span class="small text-muted text-nowrap flex-shrink-0">' + (ex.formatted_price || ex.price + ' €') + ' · ' + (ex.formatted_duration || ex.duration + ' min') + '</span>' +
+                            '</button>';
+                        }).join('') +
+                        '</div><div class="d-flex justify-content-end mt-2">' +
+                        '<button type="button" class="btn btn-link btn-sm p-0 agenda-oc-add-extras-close-btn" data-idx="' + idx + '">Fechar</button></div></div>';
+            }
+            return '<div class="border rounded p-2 mb-2 agenda-oc-service-card" data-oc-idx="' + idx + '">' +
+                '<div class="d-flex justify-content-between align-items-start gap-2">' +
+                    '<div class="min-w-0"><div class="fw-semibold text-truncate">' + (item.name || 'Serviço') + '</div>' + agendaOcServiceDurationCategoryMeta(item) + '</div>' +
+                    '<div class="d-flex flex-column align-items-end gap-1 flex-shrink-0 text-end">' +
+                        '<div class="nova-marcacao-service-item-price-row text-nowrap">' + priceBlock + '</div>' + iconsRow + '</div></div>' +
+                extrasLine + addExtrasPanelHtml +
+                '<div class="agenda-oc-edit-service-panel d-none mt-2 pt-2 border-top" data-edit-idx="' + idx + '">' +
+                    '<div class="row g-2">' +
+                        '<div class="col-6"><label class="form-label form-label-sm small mb-1">Duração (min)</label><input type="number" min="1" step="1" class="form-control form-control-sm agenda-oc-edit-duration" value="' + dur + '"></div>' +
+                        '<div class="col-6"><label class="form-label form-label-sm small mb-1">Preço (€)</label><input type="number" min="0" step="0.01" class="form-control form-control-sm agenda-oc-edit-price" value="' + price.toFixed(2) + '"></div>' +
+                    '</div>' +
+                    '<div class="d-flex justify-content-end gap-1 mt-2">' +
+                        '<button type="button" class="btn btn-light btn-sm agenda-oc-edit-cancel-btn" data-idx="' + idx + '">Cancelar</button>' +
+                        '<button type="button" class="btn btn-primary btn-sm agenda-oc-edit-save-btn" data-idx="' + idx + '">Guardar</button>' +
+                    '</div></div></div>';
         }).join('');
-        container.innerHTML = html;
-        if (totalStrip) totalStrip.classList.remove('d-none');
-        if (!isCompleted) {
-            container.querySelectorAll('.eventDetailEditServiceBtn').forEach(function(btn) {
-                btn.addEventListener('click', function(e) { e.stopPropagation(); EventDetail.openEditQuickMenu(e, parseInt(this.dataset.idx, 10)); });
+        wrap.innerHTML = html;
+        wrap.querySelectorAll('.agenda-oc-remove-service-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.idx, 10);
+                if (isNaN(idx) || !eventDetailSelectedServices[idx]) return;
+                eventDetailSelectedServices.splice(idx, 1);
+                if (!eventDetailSelectedServices.length) eventDetailOcShowServicePicker = true;
+                eventDetailOcRenderSelectedServices();
+                EventDetail.updateTotal();
+                EventDetail.updateEndTime();
             });
-            container.querySelectorAll('.eventDetailDeleteServiceBtn').forEach(function(btn) {
-                btn.addEventListener('click', function(e) { e.stopPropagation(); EventDetail.deleteService(parseInt(this.dataset.idx, 10)); });
+        });
+        wrap.querySelectorAll('.agenda-oc-add-extras-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var idx = parseInt(this.dataset.idx, 10);
+                if (isNaN(idx)) return;
+                var panel = wrap.querySelector('.agenda-oc-add-extras-panel[data-add-extras-idx="' + idx + '"]');
+                if (!panel) return;
+                var wasHidden = panel.classList.contains('d-none');
+                wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
+                wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+                if (wasHidden) panel.classList.remove('d-none');
             });
-            container.querySelectorAll('.eventDetailAddExtrasBtn').forEach(function(btn) {
-                btn.addEventListener('click', function(e) { e.stopPropagation(); EventDetail.openAddExtrasQuickMenu(e, parseInt(this.dataset.idx, 10)); });
+        });
+        wrap.querySelectorAll('.agenda-oc-add-extras-close-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var idx = parseInt(this.dataset.idx, 10);
+                var panel = wrap.querySelector('.agenda-oc-add-extras-panel[data-add-extras-idx="' + idx + '"]');
+                if (panel) panel.classList.add('d-none');
             });
-            container.querySelectorAll('.eventDetailRemoveExtraBtn').forEach(function(btn) {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    var sIdx = parseInt(this.dataset.idx, 10);
-                    var exIdx = parseInt(this.dataset.extraIndex, 10);
-                    if (!isNaN(sIdx) && !isNaN(exIdx) && eventDetailSelectedServices[sIdx] && Array.isArray(eventDetailSelectedServices[sIdx].extras)) {
-                        eventDetailSelectedServices[sIdx].extras.splice(exIdx, 1);
-                        EventDetail.renderSelectedServices();
-                        EventDetail.updateTotal();
-                        EventDetail.updateEndTime();
+        });
+        wrap.querySelectorAll('.agenda-oc-pick-extra-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var idx = parseInt(this.dataset.idx, 10);
+                var exIdRaw = this.getAttribute('data-extra-id');
+                if (isNaN(idx) || exIdRaw == null || exIdRaw === '') return;
+                var svc = eventDetailSelectedServices[idx];
+                if (!svc || !svc.available_extras) return;
+                var ex = svc.available_extras.find(function(x) { return String(x.id) === String(exIdRaw); });
+                if (!ex) return;
+                if (!svc.extras) svc.extras = [];
+                svc.extras.push({
+                    id: ex.id, name: ex.name, duration: ex.duration || 0, price: ex.price || 0,
+                    formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min',
+                    formatted_price: ex.formatted_price || (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €'
+                });
+                eventDetailOcRenderSelectedServices();
+                EventDetail.updateTotal();
+                EventDetail.updateEndTime();
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-remove-extra-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sIdx = parseInt(this.dataset.idx, 10);
+                var exIdx = parseInt(this.dataset.extraIndex, 10);
+                if (!isNaN(sIdx) && !isNaN(exIdx) && eventDetailSelectedServices[sIdx] && Array.isArray(eventDetailSelectedServices[sIdx].extras)) {
+                    eventDetailSelectedServices[sIdx].extras.splice(exIdx, 1);
+                    eventDetailOcRenderSelectedServices();
+                    EventDetail.updateTotal();
+                    EventDetail.updateEndTime();
+                }
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-service-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.idx, 10);
+                if (isNaN(idx)) return;
+                wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
+                wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+                var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
+                if (panel) panel.classList.remove('d-none');
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-cancel-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.idx, 10);
+                var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
+                if (panel) panel.classList.add('d-none');
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-save-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var idx = parseInt(this.dataset.idx, 10);
+                if (isNaN(idx) || !eventDetailSelectedServices[idx]) return;
+                var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
+                if (!panel) return;
+                var dur = parseInt(panel.querySelector('.agenda-oc-edit-duration').value, 10);
+                var price = parseFloat(panel.querySelector('.agenda-oc-edit-price').value);
+                if (isNaN(dur) || dur < 1) {
+                    showToast('Duração inválida.', 'error');
+                    return;
+                }
+                if (isNaN(price) || price < 0) {
+                    showToast('Preço inválido.', 'error');
+                    return;
+                }
+                eventDetailSelectedServices[idx].duration = dur;
+                eventDetailSelectedServices[idx].price = price;
+                eventDetailSelectedServices[idx].formatted_duration = dur + ' min';
+                eventDetailSelectedServices[idx].formatted_price = price.toFixed(2).replace('.', ',') + ' €';
+                eventDetailOcRenderSelectedServices();
+                EventDetail.updateTotal();
+                EventDetail.updateEndTime();
+            });
+        });
+        eventDetailOcApplyServiceFieldVisibility();
+    }
+    function eventDetailOcBindFormOnce() {
+        if (eventDetailOcFormBound) return;
+        eventDetailOcFormBound = true;
+        var mem = $id('eventDetailOcMember');
+        if (mem) {
+            mem.addEventListener('change', function() {
+                if (window._eventDetailOcPopulating) return;
+                $id('eventDetailEditUserId').value = this.value || '';
+                syncEventDetailCalendarEventToSelectedMember();
+                eventDetailSelectedServices = [];
+                eventDetailOcShowServicePicker = true;
+                eventDetailOcRenderSelectedServices();
+                eventDetailOcReloadServicesForMember(this.value || '', function() {
+                    eventDetailOcRenderSelectedServices();
+                    updateEventDetailOutOfHoursWarning();
+                });
+            });
+        }
+        var timeSel = $id('eventDetailOcTime');
+        if (timeSel) {
+            timeSel.addEventListener('change', function() {
+                eventDetailOcSyncHiddenFromPickers();
+                updateEventDetailOutOfHoursWarning();
+            });
+            timeSel.addEventListener('focus', function() {
+                var nowRounded = agendaOcCurrentRoundedTime();
+                if (this.value !== nowRounded) this.value = nowRounded;
+            });
+        }
+        var svcEl = $id('eventDetailOcService');
+        if (svcEl) {
+            svcEl.addEventListener('change', function() {
+                var sid = (this.value || '').trim();
+                if (!sid) return;
+                var svc = eventDetailOcServicesFlat.find(function(s) { return String(s.service_id) === String(sid); });
+                if (!svc) return;
+                if (eventDetailSelectedServices.some(function(s) { return String(s.service_id) === String(sid); })) {
+                    showToast('Serviço já adicionado.', 'warning');
+                } else {
+                    eventDetailSelectedServices.push({
+                        service_id: svc.service_id,
+                        name: svc.name || '',
+                        duration: parseInt(svc.duration, 10) || 60,
+                        price: parseFloat(svc.price) || 0,
+                        original_price: svc.original_price != null ? svc.original_price : (parseFloat(svc.price) || 0),
+                        formatted_duration: svc.formatted_duration || ((parseInt(svc.duration, 10) || 60) + ' min'),
+                        formatted_price: svc.formatted_price || ((parseFloat(svc.price) || 0).toFixed(2).replace('.', ',') + ' €'),
+                        category_name: svc.category_name || '',
+                        available_extras: svc.available_extras || [],
+                        extras: []
+                    });
+                    eventDetailOcShowServicePicker = false;
+                    eventDetailOcRenderSelectedServices();
+                    EventDetail.updateTotal();
+                    EventDetail.updateEndTime();
+                }
+                this.value = '';
+                if (eventDetailOcChoicesInstances.service && typeof eventDetailOcChoicesInstances.service.setChoiceByValue === 'function') {
+                    try { eventDetailOcChoicesInstances.service.setChoiceByValue(''); } catch (e) { /* ignore */ }
+                }
+            });
+        }
+        var addMore = $id('eventDetailOcAddMoreServicesBtn');
+        if (addMore) {
+            addMore.addEventListener('click', function() {
+                eventDetailOcShowServicePicker = true;
+                eventDetailOcApplyServiceFieldVisibility();
+                var ch = eventDetailOcChoicesInstances.service;
+                var selWrap = $id('eventDetailOcServiceSelectWrap');
+                setTimeout(function() {
+                    if (ch && typeof ch.showDropdown === 'function') {
+                        try { ch.showDropdown(true); return; } catch (e) { /* ignore */ }
                     }
+                    var inner = selWrap && selWrap.querySelector('.choices__inner');
+                    if (inner) inner.click();
+                }, 0);
+            });
+        }
+        var ctab = $id('eventDetailOcTabNewBtn');
+        if (ctab) {
+            ctab.addEventListener('shown.bs.tab', function() { eventDetailOcInitNewClientPhoneIntl(); });
+        }
+        var cedit = $id('eventDetailOcClientEditBtn');
+        if (cedit) cedit.addEventListener('click', function() { eventDetailOcEnterClientSearchMode(); });
+        if (!eventDetailOcClientChangeBound) {
+            eventDetailOcClientChangeBound = true;
+            $id('eventDetailOcClient').addEventListener('change', function() {
+                var id = (this.value || '').trim();
+                if (!id) {
+                    eventDetailSelectedClient = null;
+                    return;
+                }
+                fetch(agendaClientsUrl + '?client_id=' + encodeURIComponent(id), { headers: { 'Accept': 'application/json' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(clients) {
+                        if (clients && clients[0]) eventDetailOcApplyClientFromApi(clients[0]);
+                    })
+                    .catch(function() { /* ignore */ });
+            });
+        }
+        var ncBtn = $id('eventDetailOcNewClientSubmit');
+        if (ncBtn) {
+            ncBtn.addEventListener('click', function() {
+                var name = ($id('eventDetailOcNewClientName') && $id('eventDetailOcNewClientName').value || '').trim();
+                var email = ($id('eventDetailOcNewClientEmail') && $id('eventDetailOcNewClientEmail').value || '').trim();
+                var tabNew = $id('eventDetailOcTabNew');
+                var iti = tabNew && tabNew._agendaPhoneIti;
+                if (!name) {
+                    showToast('Preencha o nome.', 'error');
+                    return;
+                }
+                if (!iti) {
+                    eventDetailOcInitNewClientPhoneIntl();
+                    iti = tabNew && tabNew._agendaPhoneIti;
+                }
+                if (!iti) {
+                    showToast('Campo de telemóvel indisponível. Recarregue a página.', 'error');
+                    return;
+                }
+                iti.promise.then(function() {
+                    if (!iti.isValidNumber()) {
+                        showToast('Indique um número de telemóvel válido para o país selecionado (ex.: 9 dígitos em Portugal).', 'error');
+                        return;
+                    }
+                    var phone = iti.getNumber();
+                    var btn = $id('eventDetailOcNewClientSubmit');
+                    btn.disabled = true;
+                    var origTxt = btn.textContent;
+                    btn.textContent = 'A criar…';
+                    fetch(agendaClientsUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({ name: name, email: email || null, phone: phone })
+                    })
+                        .then(function(r) {
+                            return r.json().then(function(data) {
+                                if (!r.ok) {
+                                    throw new Error(agendaStoreClientCreateErrorMessage(data));
+                                }
+                                return data;
+                            });
+                        })
+                        .then(function(client) {
+                            btn.disabled = false;
+                            btn.textContent = origTxt;
+                            eventDetailOcClearNewClientForm();
+                            eventDetailOcApplyClientFromApi(client);
+                            if (eventDetailOcChoicesInstances.client) {
+                                var phoneL = client.formatted_phone || client.phone || '';
+                                var label = (client.name || '') + (phoneL ? ' · ' + phoneL : '');
+                                eventDetailOcChoicesInstances.client.setChoices([{ value: String(client.id), label: label }], 'value', 'label', true);
+                                try { eventDetailOcChoicesInstances.client.setChoiceByValue(String(client.id)); } catch (e) { /* ignore */ }
+                            }
+                            showToast('Cliente criado com sucesso.', 'success');
+                        })
+                        .catch(function(err) {
+                            btn.disabled = false;
+                            btn.textContent = origTxt;
+                            showToast(err.message || 'Erro ao criar cliente.', 'error');
+                        });
+                }).catch(function() {
+                    showToast('Não foi possível validar o número. Verifique a ligação e tente de novo.', 'error');
                 });
             });
         }
     }
+
+    const EventDetail = {};
+
+    EventDetail.renderSelectedServices = function() {
+        eventDetailOcRenderSelectedServices();
+    };
 
     EventDetail.openAddExtrasQuickMenu = function(evt, idx) {
         var item = eventDetailSelectedServices[idx];
@@ -2235,8 +2326,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var popup = $id('eventDetailAddExtrasQuickMenu');
         if (!popup) return;
-        var modalContent = $id('eventDetailEditModal')?.querySelector('.modal-content');
-        if (modalContent) modalContent.appendChild(popup);
+        var host = agendaEventDetailEditHostEl();
+        if (host) host.appendChild(popup);
         function hide() {
             popup.classList.remove('is-open');
             popup.innerHTML = '';
@@ -2267,9 +2358,16 @@ document.addEventListener('DOMContentLoaded', function() {
         popup.classList.add('is-open');
         var rect = evt.target.closest('button')?.getBoundingClientRect() || { left: evt.clientX, bottom: evt.clientY };
         var offset = 8;
-        var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
-        var left = container ? (rect.left - container.left) : (rect.left || 0);
-        var top = container ? (rect.bottom + offset - container.top) : ((rect.bottom || 0) + offset);
+        var left;
+        var top;
+        if (host) {
+            var hr = host.getBoundingClientRect();
+            left = rect.left - hr.left + host.scrollLeft;
+            top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset - hr.top + host.scrollTop;
+        } else {
+            left = rect.left || 0;
+            top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset;
+        }
         popup.style.left = (left || 0) + 'px';
         popup.style.top = (top || 0) + 'px';
         setTimeout(function() { document.addEventListener('click', ch); document.addEventListener('keydown', eh); }, 0);
@@ -2295,90 +2393,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateEventDetailOutOfHoursWarning();
     }
 
-    EventDetail.applyNewStartTime = function(newTimeStr) {
-        var startStr = $id('eventDetailEditStart').value;
-        var endStr = $id('eventDetailEditEnd').value;
-        if (!startStr) return;
-        var start = new Date(startStr);
-        var parts = (newTimeStr || '').match(/^(\d{1,2}):(\d{2})/);
-        if (!parts) return;
-        start.setHours(parseInt(parts[1], 10), parseInt(parts[2], 10), 0, 0);
-        var totalDur = eventDetailEffectiveDurationMinutes();
-        if (totalDur === 0 && endStr) {
-            var oldStart = new Date(startStr);
-            var oldEnd = new Date(endStr);
-            totalDur = (oldEnd.getTime() - oldStart.getTime()) / 60000;
-        }
-        if (totalDur < 1) totalDur = 60;
-        var end = new Date(start.getTime() + totalDur * 60 * 1000);
-        var startIso = agendaFormatLocalDateTimeForInput(start);
-        var endIso = agendaFormatLocalDateTimeForInput(end);
-        $id('eventDetailEditStart').value = startIso;
-        $id('eventDetailEditEnd').value = endIso;
-        $id('eventDetailEditTitleDay').textContent = DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()];
-        $id('eventDetailTimeToggle').textContent = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
-        if (eventDetailCurrentData) {
-            eventDetailCurrentData.start_at = startIso;
-            eventDetailCurrentData.end_at = endIso;
-        }
-        var evId = $id('eventDetailEditId').value;
-        if (evId && typeof calendar !== 'undefined') {
-            var ev = calendar.getEventById(evId);
-            if (ev) {
-                ev.setStart(start);
-                ev.setEnd(end);
-            }
-        }
-        var dd = $id('eventDetailTimeToggle');
-        if (dd && bootstrap.Dropdown) {
-            var inst = bootstrap.Dropdown.getInstance(dd);
-            if (inst) inst.hide();
-        }
-        updateEventDetailOutOfHoursWarning();
-    }
-
-    EventDetail.applyNewDate = function(ymd) {
-        var startStr = $id('eventDetailEditStart').value;
-        var endStr = $id('eventDetailEditEnd').value;
-        if (!startStr || !ymd) return;
-        var start = new Date(startStr);
-        var parts = (ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (!parts) return;
-        start.setFullYear(parseInt(parts[1], 10), parseInt(parts[2], 10) - 1, parseInt(parts[3], 10));
-        var totalDur = eventDetailEffectiveDurationMinutes();
-        if (totalDur === 0 && endStr) {
-            var oldStart = new Date(startStr);
-            var oldEnd = new Date(endStr);
-            totalDur = (oldEnd.getTime() - oldStart.getTime()) / 60000;
-        }
-        if (totalDur < 1) totalDur = 60;
-        var end = new Date(start.getTime() + totalDur * 60 * 1000);
-        var startIso = agendaFormatLocalDateTimeForInput(start);
-        var endIso = agendaFormatLocalDateTimeForInput(end);
-        $id('eventDetailEditStart').value = startIso;
-        $id('eventDetailEditEnd').value = endIso;
-        $id('eventDetailEditTitleDay').textContent = DAYS_LONG[start.getDay()] + ', ' + start.getDate() + ' ' + MONTHS_LONG[start.getMonth()];
-        $id('eventDetailTimeToggle').textContent = String(start.getHours()).padStart(2, '0') + ':' + String(start.getMinutes()).padStart(2, '0');
-        if (eventDetailCurrentData) {
-            eventDetailCurrentData.start_at = startIso;
-            eventDetailCurrentData.end_at = endIso;
-        }
-        var evId = $id('eventDetailEditId').value;
-        if (evId && typeof calendar !== 'undefined') {
-            var ev = calendar.getEventById(evId);
-            if (ev) {
-                ev.setStart(start);
-                ev.setEnd(end);
-            }
-        }
-        var dateToggle = $id('eventDetailDateToggle');
-        if (dateToggle && bootstrap.Dropdown) {
-            var inst = bootstrap.Dropdown.getInstance(dateToggle);
-            if (inst) inst.hide();
-        }
-        updateEventDetailOutOfHoursWarning();
-    }
-
     var eventDetailEditServiceIndex = -1;
     EventDetail.openEditQuickMenu = function(evt, idx) {
         eventDetailEditServiceIndex = idx;
@@ -2390,8 +2404,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window._hideEditServiceQuickMenu = hide;
         function ch(e) { if (popup.contains(e.target)) return; hide(); }
         function eh(e) { if (e.key === 'Escape') { e.stopPropagation(); hide(); } }
-        var modalContent = $id('eventDetailEditModal')?.querySelector('.modal-content');
-        if (modalContent) modalContent.appendChild(popup);
+        var host = agendaEventDetailEditHostEl();
+        if (host) host.appendChild(popup);
         popup.innerHTML = '<div class="edit-service-header"><h6>Alterar opções do serviço</h6><button type="button" class="edit-service-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button></div>' +
             '<div class="edit-service-body"><div class="mb-2"><label class="form-label small">Duração (minutos)</label><input type="number" class="form-control form-control-sm edDur" min="1" value="' + (item.duration || '') + '"></div>' +
             '<div class="mb-0"><label class="form-label small">Preço (€)</label><input type="number" class="form-control form-control-sm edPrice" min="0" step="0.01" value="' + (item.price != null ? item.price : '') + '"></div></div>' +
@@ -2416,17 +2430,23 @@ document.addEventListener('DOMContentLoaded', function() {
         requestAnimationFrame(function() {
             popup.classList.add('is-open');
             var popupRect = popup.getBoundingClientRect();
-            var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
-            var left, top;
-            if (container) {
-                left = (rect.left || evt.clientX) - container.left;
-                top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset - container.top;
+            var panel = agendaEventDetailEditHostEl();
+            var left;
+            var top;
+            var vw;
+            var vh;
+            if (panel) {
+                var pr = panel.getBoundingClientRect();
+                left = (rect.left || evt.clientX) - pr.left + panel.scrollLeft;
+                top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset - pr.top + panel.scrollTop;
+                vw = panel.clientWidth;
+                vh = panel.clientHeight;
             } else {
                 left = rect.left || evt.clientX;
                 top = (rect.bottom !== undefined ? rect.bottom : evt.clientY) + offset;
+                vw = window.innerWidth;
+                vh = window.innerHeight;
             }
-            var vw = container ? container.width : window.innerWidth;
-            var vh = container ? container.height : window.innerHeight;
             var maxLeft = vw - popupRect.width - offset;
             var maxTop = vh - popupRect.height - offset;
             left = Math.max(offset, Math.min(left, maxLeft));
@@ -2440,169 +2460,12 @@ document.addEventListener('DOMContentLoaded', function() {
     EventDetail.deleteService = function(idx) {
         if (typeof window._hideEditServiceQuickMenu === 'function') { window._hideEditServiceQuickMenu(); window._hideEditServiceQuickMenu = null; }
         eventDetailSelectedServices.splice(idx, 1);
+        if (!eventDetailSelectedServices.length) eventDetailOcShowServicePicker = true;
         EventDetail.renderSelectedServices();
         EventDetail.updateTotal();
         EventDetail.updateEndTime();
-        if (eventDetailSelectedServices.length === 0) {
-            $id('eventDetailServiceSelected').classList.add('d-none');
-            $id('eventDetailServicesList').classList.remove('d-none');
-            agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
-        }
     }
-    var agendaAgentInfo = C.agendaAgentInfo || {};
-    var novaMarcacaoAgentSelectPopulated = false;
-
-    function populateNovaMarcacaoAgentSelectIfNeeded() {
-        var sel = $id('novaMarcacaoAgentSelect');
-        if (!sel || novaMarcacaoAgentSelectPopulated) return;
-        var list = C.usersForConsultant || [];
-        list.forEach(function(u) {
-            var opt = document.createElement('option');
-            opt.value = String(u.id);
-            opt.textContent = u.name || ('#' + u.id);
-            sel.appendChild(opt);
-        });
-        novaMarcacaoAgentSelectPopulated = true;
-    }
-
-    function novaMarcacaoShowAgentPicker() {
-        var sw = $id('novaMarcacaoAgentSelectWrap');
-        var aw = $id('novaMarcacaoAgentSelectedWrap');
-        var sel = $id('novaMarcacaoAgentSelect');
-        if (sw) sw.classList.remove('d-none');
-        if (aw) aw.classList.add('d-none');
-        var cur = $id('novaMarcacaoAgentId') ? $id('novaMarcacaoAgentId').value : '';
-        if (sel && cur) {
-            sel.value = cur;
-        }
-    }
-
-    function novaMarcacaoResolveAgentInfo(agentId) {
-        var agentInfo = agendaAgentInfo[String(agentId)] || { name: '—', email: '', avatarUrl: '' };
-        if (!agentInfo.name || agentInfo.name === '—') {
-            var resources = calendar.getResources();
-            for (var i = 0; i < resources.length; i++) {
-                if (String(resources[i].id) === String(agentId)) {
-                    agentInfo.name = resources[i].title || '—';
-                    agentInfo.avatarUrl = resources[i].extendedProps?.avatarUrl || agentInfo.avatarUrl;
-                    break;
-                }
-            }
-        }
-        if (agentInfo.name === '—' && String(agentId) === String(C.authId || '')) {
-            agentInfo = { name: (C.authName || 'Eu'), email: (C.authEmail || ''), avatarUrl: agentInfo.avatarUrl || '' };
-        }
-        return agentInfo;
-    }
-
-    function novaMarcacaoApplyAgentDisplay(agentId) {
-        var agentInfo = novaMarcacaoResolveAgentInfo(agentId);
-        var agentName = agentInfo.name || '—';
-        var agentNameEl = $id('novaMarcacaoAgentName');
-        if (agentNameEl) agentNameEl.textContent = agentName;
-        var inlineEmailEl = $id('novaMarcacaoAgentEmail');
-        if (inlineEmailEl) inlineEmailEl.textContent = agentInfo.email || '—';
-        var agentLinkEl = $id('novaMarcacaoAgentLink');
-        if (agentLinkEl) {
-            var infoMap = agendaAgentInfo[String(agentId)];
-            var href = (infoMap && infoMap.agentId) ? (agendaEquipaBaseUrl + '/' + infoMap.agentId) : '#';
-            agentLinkEl.setAttribute('href', href);
-        }
-        var agentAvatarEl = $id('novaMarcacaoAgentAvatar');
-        if (agentAvatarEl) {
-            if (agentInfo.avatarUrl) {
-                agentAvatarEl.src = agentInfo.avatarUrl;
-                agentAvatarEl.style.display = 'block';
-            } else {
-                agentAvatarEl.style.display = 'none';
-            }
-        }
-    }
-
-    function novaMarcacaoLoadServicesForAgent(agentId) {
-        $id('novaMarcacaoServicesList').innerHTML = '<div class="text-muted small">A carregar serviços...</div>';
-        var nmTabs = $id('novaMarcacaoCategoryTabs');
-        if (nmTabs) {
-            nmTabs.innerHTML = '';
-            nmTabs.classList.add('d-none');
-        }
-        $id('novaMarcacaoServicesList').classList.remove('d-none');
-        $id('novaMarcacaoServiceSelected').classList.add('d-none');
-        agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
-        novaMarcacaoServicesData = null;
-        novaMarcacaoSelectedServices = [];
-        if (!agentId) {
-            $id('novaMarcacaoServicesList').innerHTML = '<div class="text-muted small">Selecione um técnico para ver os serviços disponíveis.</div>';
-            var totalStripEmpty = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
-            if (totalStripEmpty) totalStripEmpty.classList.add('d-none');
-            return;
-        }
-        fetch(agendaMembersServicesUrl + '/' + agentId + '/services', { headers: { 'Accept': 'application/json' } })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                novaMarcacaoServicesData = data;
-                var idPrefixNm = 'agenda-nm';
-                var htmlNm = agendaBuildServicesBrowseFromCategories(data.categories, idPrefixNm, '');
-                agendaApplyServicesBrowseUI($id('novaMarcacaoServicesList'), $id('novaMarcacaoCategoryTabs'), data.categories, htmlNm, idPrefixNm);
-                agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
-                $id('novaMarcacaoServicesList').querySelectorAll('.nova-marcacao-service-item').forEach(function(el) {
-                    el.addEventListener('click', function() {
-                        var sid = this.dataset.serviceId;
-                        if (novaMarcacaoSelectedServices.some(function(s) { return String(s.service_id) === sid; })) return;
-                        var dur = parseInt(this.dataset.duration, 10) || 60;
-                        var priceNum = parseFloat(this.dataset.price) || 0;
-                        var availableExtras = [];
-                        (novaMarcacaoServicesData.categories || []).forEach(function(cat) {
-                            (cat.services || []).forEach(function(svc) {
-                                if (String(svc.id) === sid) availableExtras = svc.extras || [];
-                            });
-                        });
-                        novaMarcacaoSelectedServices.push({
-                            service_id: sid,
-                            name: this.dataset.name || '',
-                            duration: dur,
-                            price: priceNum,
-                            original_price: priceNum,
-                            formatted_duration: this.dataset.formattedDuration || dur + ' min',
-                            formatted_price: this.dataset.formattedPrice || (priceNum.toFixed(2).replace('.', ',') + ' €'),
-                            color: this.dataset.color || '#6c757d',
-                            available_extras: availableExtras,
-                            extras: []
-                        });
-                        NovaMarcacao.renderSelectedServices();
-                        NovaMarcacao.updateEndTimeAndTotal();
-                        $id('novaMarcacaoServicesList').classList.add('d-none');
-                        $id('novaMarcacaoCancelAddServicesBtn').classList.add('d-none');
-                        $id('novaMarcacaoServiceSelected').classList.remove('d-none');
-                        agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
-                    });
-                });
-            })
-            .catch(function() {
-                $id('novaMarcacaoServicesList').innerHTML = '<div class="text-danger small">Erro ao carregar serviços.</div>';
-                var nmTabsErr = $id('novaMarcacaoCategoryTabs');
-                if (nmTabsErr) {
-                    nmTabsErr.innerHTML = '';
-                    nmTabsErr.classList.add('d-none');
-                }
-            });
-    }
-
-    function novaMarcacaoConfirmAgent(agentId) {
-        if (!agentId) return;
-        $id('novaMarcacaoAgentId').value = String(agentId);
-        var sel = $id('novaMarcacaoAgentSelect');
-        if (sel) sel.value = String(agentId);
-        novaMarcacaoApplyAgentDisplay(agentId);
-        var sw = $id('novaMarcacaoAgentSelectWrap');
-        var aw = $id('novaMarcacaoAgentSelectedWrap');
-        if (sw) sw.classList.add('d-none');
-        if (aw) aw.classList.remove('d-none');
-        novaMarcacaoLoadServicesForAgent(String(agentId));
-        updateNovaMarcacaoOutOfHoursWarning();
-    }
-
-    /** Teste: nova marcação em offcanvas + Choices nos selects (ver #agendaMarcacaoTestOffcanvas). */
+    /** Nova marcação em offcanvas + Choices (ver #agendaMarcacaoTestOffcanvas). */
     var agendaOcChoicesInstances = { client: null, service: null, member: null };
     var agendaOcServicesFlat = [];
     var agendaOcSelectedServices = [];
@@ -2610,6 +2473,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var agendaOcShowServicePicker = true;
     var agendaOcTestFormBound = false;
     var agendaOcDateFlatpickr = null;
+    var agendaOcClientSearchTimer = null;
+    var agendaOcClientRemoteSearchBound = false;
+    var agendaOcClientChangeBound = false;
+    /** Dados do cliente escolhido no offcanvas (avatar, nome, telefone no cartão). */
+    var agendaOcSelectedClient = null;
 
     function agendaOcCommonChoicesOpts() {
         return {
@@ -2618,6 +2486,143 @@ document.addEventListener('DOMContentLoaded', function() {
             shouldSort: false,
             searchPlaceholderValue: 'Pesquisar…'
         };
+    }
+
+    /** Cliente no offcanvas: resultados via API (?q=), não lista completa no DOM. */
+    function agendaOcClientChoicesOpts() {
+        var o = agendaOcCommonChoicesOpts();
+        o.searchChoices = false;
+        o.searchFloor = 1;
+        o.searchResultLimit = 50;
+        o.placeholder = true;
+        o.placeholderValue = 'Pesquisar cliente';
+        o.searchPlaceholderValue = 'Pesquisar Nome, Telemóvel, Email...';
+        o.noResultsText = 'Nenhum cliente encontrado.';
+        return o;
+    }
+
+    function agendaOcOnClientSearchEvent(ev) {
+        var inst = agendaOcChoicesInstances.client;
+        if (!inst) return;
+        var q = (ev.detail && ev.detail.value != null) ? String(ev.detail.value).trim() : '';
+        clearTimeout(agendaOcClientSearchTimer);
+        if (!q.length) {
+            return;
+        }
+        agendaOcClientSearchTimer = setTimeout(function() {
+            fetch(agendaClientsUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
+                .then(function(r) { return r.json(); })
+                .then(function(clients) {
+                    if (!agendaOcChoicesInstances.client) return;
+                    var items = (clients || []).map(function(c) {
+                        var phone = c.formatted_phone || c.phone || '';
+                        var label = (c.name || '') + (phone ? ' · ' + phone : '');
+                        return { value: String(c.id), label: label };
+                    });
+                    agendaOcChoicesInstances.client.setChoices(items, 'value', 'label', true);
+                })
+                .catch(function() { /* ignore */ });
+        }, 300);
+    }
+
+    function agendaOcClearNewClientForm() {
+        var n = $id('agendaOcNewClientName');
+        var e = $id('agendaOcNewClientEmail');
+        var p = $id('agendaOcNewClientPhone');
+        var tabNew = $id('agendaOcTabNew');
+        if (n) n.value = '';
+        if (e) e.value = '';
+        if (p) p.value = '';
+        if (tabNew) destroyAgendaCreateClientIntl(tabNew);
+    }
+
+    function agendaOcInitNewClientPhoneIntl() {
+        var phoneEl = $id('agendaOcNewClientPhone');
+        var tabNew = $id('agendaOcTabNew');
+        if (!phoneEl || !tabNew) return;
+        initAgendaCreateClientIntl(phoneEl, tabNew);
+    }
+
+    function agendaOcResetClientUi() {
+        var notSel = $id('agendaOcClientNotSelectedWrap');
+        var card = $id('agendaOcClientSelectedCard');
+        if (notSel) notSel.classList.remove('d-none');
+        if (card) card.classList.add('d-none');
+        agendaOcSelectedClient = null;
+        agendaOcClearNewClientForm();
+        var tabBtn = $id('agendaOcTabExistingBtn');
+        if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            try {
+                bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+            } catch (err) { /* ignore */ }
+        }
+    }
+
+    function agendaOcApplyClientFromApi(c) {
+        if (!c) return;
+        agendaOcSelectedClient = {
+            id: String(c.id),
+            name: c.name || '',
+            phone: c.phone || '',
+            formatted_phone: c.formatted_phone || '',
+            avatar_url: c.avatar_url || ''
+        };
+        var av = $id('agendaOcClientAvatar');
+        var fb = $id('agendaOcClientAvatarFallback');
+        $id('agendaOcClientSelectedName').textContent = c.name || '';
+        $id('agendaOcClientSelectedPhone').textContent = agendaClientPhoneLabel(agendaOcSelectedClient);
+        var pl = $id('agendaOcClientProfileLink');
+        if (pl) {
+            pl.href = clientesBaseUrl + '/' + c.id;
+            pl.classList.remove('d-none');
+        }
+        if (c.avatar_url && av) {
+            av.src = c.avatar_url;
+            av.classList.remove('d-none');
+            if (fb) fb.classList.add('d-none');
+        } else if (av && fb) {
+            av.classList.add('d-none');
+            var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+            fb.textContent = initials;
+            fb.classList.remove('d-none');
+        }
+        var notSel = $id('agendaOcClientNotSelectedWrap');
+        var sc = $id('agendaOcClientSelectedCard');
+        if (notSel) notSel.classList.add('d-none');
+        if (sc) sc.classList.remove('d-none');
+    }
+
+    function agendaOcInitClientChoicesSelect() {
+        var clientSel = $id('agendaOcClient');
+        if (!clientSel) return;
+        if (agendaOcChoicesInstances.client) {
+            try {
+                agendaOcChoicesInstances.client.destroy();
+            } catch (e) { /* ignore */ }
+            agendaOcChoicesInstances.client = null;
+        }
+        clientSel.innerHTML = '<option value="">Pesquisar cliente</option>';
+        agendaOcChoicesInstances.client = new Choices(clientSel, agendaOcClientChoicesOpts());
+    }
+
+    function agendaOcEnterClientSearchMode() {
+        agendaOcSelectedClient = null;
+        agendaOcClearNewClientForm();
+        var notSel = $id('agendaOcClientNotSelectedWrap');
+        var card = $id('agendaOcClientSelectedCard');
+        if (card) card.classList.add('d-none');
+        if (notSel) notSel.classList.remove('d-none');
+        var tabBtn = $id('agendaOcTabExistingBtn');
+        if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
+            try {
+                bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+            } catch (e) { /* ignore */ }
+        }
+        agendaOcInitClientChoicesSelect();
+        if (!agendaOcClientRemoteSearchBound) {
+            agendaOcClientRemoteSearchBound = true;
+            $id('agendaOcClient').addEventListener('search', agendaOcOnClientSearchEvent);
+        }
     }
 
     function agendaOcDestroyTestChoices() {
@@ -2689,6 +2694,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     original_price: priceNum,
                     formatted_duration: s.formatted_duration || (dur + ' min'),
                     formatted_price: s.formatted_price || '',
+                    category_name: cat.name || '',
                     available_extras: Array.isArray(s.extras) ? s.extras : [],
                     extras: []
                 });
@@ -2732,22 +2738,70 @@ document.addEventListener('DOMContentLoaded', function() {
             var price = parseFloat(item.price) || 0;
             var originalPrice = item.original_price != null ? parseFloat(item.original_price) : price;
             var hasPriceChange = Math.abs(price - originalPrice) > 0.0001;
-            var priceHtml = '<div class="fw-semibold text-nowrap">' + price.toFixed(2).replace('.', ',') + ' €</div>';
-            if (hasPriceChange) {
-                priceHtml += '<div class="small text-danger text-decoration-line-through text-nowrap">' + originalPrice.toFixed(2).replace('.', ',') + ' €</div>';
+            var priceBlock = hasPriceChange
+                ? '<span class="text-danger text-decoration-line-through small me-1">' + (originalPrice.toFixed(2).replace('.', ',') + ' €') + '</span><span class="fw-semibold text-nowrap">' + price.toFixed(2).replace('.', ',') + ' €</span>'
+                : '<span class="fw-semibold text-nowrap">' + price.toFixed(2).replace('.', ',') + ' €</span>';
+            var addedExtraIds = (item.extras || []).map(function(e) { return e.id; });
+            var extrasToAdd = (item.available_extras || []).filter(function(e) { return addedExtraIds.indexOf(e.id) === -1; });
+            var iconsRow =
+                '<div class="d-flex gap-1 justify-content-end flex-shrink-0">' +
+                    (extrasToAdd.length > 0
+                        ? '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm agenda-oc-add-extras-btn" data-idx="' + idx + '" title="Adicionar extras" aria-label="Adicionar extras"><i class="ph ph-plus-circle"></i></button>'
+                        : ''
+                    ) +
+                    '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm agenda-oc-edit-service-btn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
+                    '<button type="button" class="btn btn-outline-danger btn-icon btn-sm agenda-oc-remove-service-btn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
+                '</div>';
+            var extrasLine = (item.extras && item.extras.length)
+                ? item.extras.map(function(e, eIdx) {
+                    var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
+                    var durText = e.formatted_duration || ((e.duration || 0) + ' min');
+                    return '' +
+                        '<div class="agenda-oc-extra-row d-flex justify-content-between align-items-start mt-1 w-100" data-oc-idx="' + idx + '" data-extra-index="' + eIdx + '">' +
+                            '<div class="nova-marcacao-service-item-left d-flex flex-column min-w-0">' +
+                                '<div class="d-flex align-items-center">' +
+                                    '<div class="small fw-medium">+ ' + (e.name || '').replace(/</g, '&lt;') + '</div>' +
+                                    '<button type="button" class="btn btn-link btn-sm p-0 ms-1 agenda-oc-remove-extra-btn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra">' +
+                                        '<i class="ph ph-x"></i>' +
+                                    '</button>' +
+                                '</div>' +
+                                '<div class="small text-muted">' + durText + '</div>' +
+                            '</div>' +
+                            '<div class="small text-nowrap">' + priceText + '</div>' +
+                        '</div>';
+                }).join('')
+                : '';
+            var addExtrasPanelHtml = '';
+            if (extrasToAdd.length > 0) {
+                addExtrasPanelHtml =
+                    '<div class="agenda-oc-add-extras-panel d-none mt-2" data-add-extras-idx="' + idx + '">' +
+                        '<div class="small fw-semibold text-body mb-2">Adicionar extra</div>' +
+                        '<div class="d-flex flex-column gap-1 agenda-oc-add-extras-list">' +
+                        extrasToAdd.map(function(ex) {
+                            return '<button type="button" class="btn btn-light btn-sm w-100 text-start d-flex justify-content-between align-items-center agenda-oc-pick-extra-btn" data-idx="' + idx + '" data-extra-id="' + String(ex.id).replace(/"/g, '') + '">' +
+                                '<span class="text-truncate me-2">' + (ex.name || '').replace(/</g, '&lt;') + '</span>' +
+                                '<span class="small text-muted text-nowrap flex-shrink-0">' + (ex.formatted_price || ex.price + ' €') + ' · ' + (ex.formatted_duration || ex.duration + ' min') + '</span>' +
+                            '</button>';
+                        }).join('') +
+                        '</div>' +
+                        '<div class="d-flex justify-content-end mt-2">' +
+                            '<button type="button" class="btn btn-link btn-sm p-0 agenda-oc-add-extras-close-btn" data-idx="' + idx + '">Fechar</button>' +
+                        '</div>' +
+                    '</div>';
             }
-            return '<div class="border rounded p-2 mb-2" data-oc-idx="' + idx + '">' +
-                '<div class="d-flex align-items-start justify-content-between gap-2">' +
+            return '<div class="border rounded p-2 mb-2 agenda-oc-service-card" data-oc-idx="' + idx + '">' +
+                '<div class="d-flex justify-content-between align-items-start gap-2">' +
                     '<div class="min-w-0">' +
                         '<div class="fw-semibold text-truncate">' + (item.name || 'Serviço') + '</div>' +
-                        '<div class="small text-muted d-flex align-items-center justify-content-start gap-2 mt-1">' +
-                            '<span>' + dur + ' min</span>' +
-                            '<button type="button" class="btn btn-link btn-sm p-0 lh-1 agenda-oc-edit-service-btn" data-idx="' + idx + '" title="Editar" aria-label="Editar"><i class="ph ph-pencil-simple"></i></button>' +
-                            '<button type="button" class="btn btn-link btn-sm p-0 lh-1 text-danger agenda-oc-remove-service-btn" data-idx="' + idx + '" title="Remover" aria-label="Remover"><i class="ph ph-trash"></i></button>' +
-                        '</div>' +
+                        agendaOcServiceDurationCategoryMeta(item) +
                     '</div>' +
-                    '<div class="text-end">' + priceHtml + '</div>' +
+                    '<div class="d-flex flex-column align-items-end gap-1 flex-shrink-0 text-end">' +
+                        '<div class="nova-marcacao-service-item-price-row text-nowrap">' + priceBlock + '</div>' +
+                        iconsRow +
+                    '</div>' +
                 '</div>' +
+                extrasLine +
+                addExtrasPanelHtml +
                 '<div class="agenda-oc-edit-service-panel d-none mt-2 pt-2 border-top" data-edit-idx="' + idx + '">' +
                     '<div class="row g-2">' +
                         '<div class="col-6"><label class="form-label form-label-sm small mb-1">Duração (min)</label><input type="number" min="1" step="1" class="form-control form-control-sm agenda-oc-edit-duration" value="' + dur + '"></div>' +
@@ -2770,10 +2824,65 @@ document.addEventListener('DOMContentLoaded', function() {
                 agendaOcRenderSelectedServices();
             });
         });
+        wrap.querySelectorAll('.agenda-oc-add-extras-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var idx = parseInt(this.dataset.idx, 10);
+                if (isNaN(idx)) return;
+                var panel = wrap.querySelector('.agenda-oc-add-extras-panel[data-add-extras-idx="' + idx + '"]');
+                if (!panel) return;
+                var wasHidden = panel.classList.contains('d-none');
+                wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
+                wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+                if (wasHidden) panel.classList.remove('d-none');
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-add-extras-close-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var idx = parseInt(this.dataset.idx, 10);
+                var panel = wrap.querySelector('.agenda-oc-add-extras-panel[data-add-extras-idx="' + idx + '"]');
+                if (panel) panel.classList.add('d-none');
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-pick-extra-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var idx = parseInt(this.dataset.idx, 10);
+                var exIdRaw = this.getAttribute('data-extra-id');
+                if (isNaN(idx) || exIdRaw == null || exIdRaw === '') return;
+                var svc = agendaOcSelectedServices[idx];
+                if (!svc || !svc.available_extras) return;
+                var ex = svc.available_extras.find(function(x) { return String(x.id) === String(exIdRaw); });
+                if (!ex) return;
+                if (!svc.extras) svc.extras = [];
+                svc.extras.push({
+                    id: ex.id,
+                    name: ex.name,
+                    duration: ex.duration || 0,
+                    price: ex.price || 0,
+                    formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min',
+                    formatted_price: ex.formatted_price || (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €'
+                });
+                agendaOcRenderSelectedServices();
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-remove-extra-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sIdx = parseInt(this.dataset.idx, 10);
+                var exIdx = parseInt(this.dataset.extraIndex, 10);
+                if (!isNaN(sIdx) && !isNaN(exIdx) && agendaOcSelectedServices[sIdx] && Array.isArray(agendaOcSelectedServices[sIdx].extras)) {
+                    agendaOcSelectedServices[sIdx].extras.splice(exIdx, 1);
+                    agendaOcRenderSelectedServices();
+                }
+            });
+        });
         wrap.querySelectorAll('.agenda-oc-edit-service-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var idx = parseInt(this.dataset.idx, 10);
                 if (isNaN(idx)) return;
+                wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
                 wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
                 var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
                 if (panel) panel.classList.remove('d-none');
@@ -2815,11 +2924,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function agendaOcRebuildServiceSelect(svcSel, flatList) {
-        svcSel.innerHTML = '<option value="">— Selecionar serviço —</option>';
+        svcSel.innerHTML = '<option value="">Selecionar serviço</option>';
         flatList.forEach(function(s) {
             var opt = document.createElement('option');
             opt.value = s.service_id;
-            opt.textContent = (s.name || '') + ' (' + (s.formatted_duration || s.duration + ' min') + ')';
+            var durPart = s.formatted_duration || (s.duration + ' min');
+            var catPart = String(s.category_name || '').trim();
+            opt.textContent = (s.name || '') + ' (' + durPart + (catPart ? ' · ' + catPart : '') + ')';
             opt.dataset.duration = String(s.duration);
             opt.dataset.price = String(s.price);
             opt.dataset.name = s.name || '';
@@ -2842,7 +2953,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (!memberId) {
             agendaOcServicesFlat = [];
-            svcSel.innerHTML = '<option value="">— Escolha um profissional —</option>';
+            svcSel.innerHTML = '<option value="">Escolha um profissional</option>';
             svcSel.disabled = true;
             agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
             if (done) done();
@@ -2879,6 +2990,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         agendaOcDestroyTestChoices();
+        agendaOcResetClientUi();
 
         var startD = new Date(startStr);
         if (isNaN(startD.getTime())) {
@@ -2898,7 +3010,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         var memSel = $id('agendaOcMember');
-        memSel.innerHTML = '<option value="">— Selecionar —</option>';
+        memSel.innerHTML = '<option value="">Selecionar</option>';
         (C.usersForConsultant || []).forEach(function(u) {
             var opt = document.createElement('option');
             opt.value = String(u.id);
@@ -2910,7 +3022,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         var ymd = startD.getFullYear() + '-' + String(startD.getMonth() + 1).padStart(2, '0') + '-' + String(startD.getDate()).padStart(2, '0');
-        var timeRounded = agendaOcCurrentRoundedTime();
+        /* Hora do intervalo passado (clique na grelha); toolbar/mobile «Adicionar» já envia getClosestSlotToNow() ≈ agora. */
+        var timeRounded = agendaOcSnapTime15(new Date(startD.getTime()));
 
         var dateSel = $id('agendaOcDate');
         if (dateSel) {
@@ -2963,28 +3076,36 @@ document.addEventListener('DOMContentLoaded', function() {
         var off = bootstrap.Offcanvas.getOrCreateInstance(ocEl, { scroll: true });
         off.show();
 
-        Promise.all([
-            fetch(agendaClientsUrl, { headers: { 'Accept': 'application/json' } }).then(function(r) { return r.json(); }),
-            memberId
-                ? fetch(agendaMembersServicesUrl + '/' + memberId + '/services', { headers: { 'Accept': 'application/json' } }).then(function(r) { return r.json() })
-                : Promise.resolve({ categories: [] })
-        ])
-            .then(function(results) {
-                var clients = results[0] || [];
-                var svcData = results[1] || { categories: [] };
-                clientSel.innerHTML = '<option value="">— Selecionar cliente —</option>';
-                clients.forEach(function(c) {
-                    var opt = document.createElement('option');
-                    opt.value = String(c.id);
-                    var phone = c.formatted_phone || c.phone || '';
-                    opt.textContent = (c.name || '') + (phone ? ' · ' + phone : '');
-                    clientSel.appendChild(opt);
-                });
-                agendaOcChoicesInstances.client = new Choices(clientSel, agendaOcCommonChoicesOpts());
+        (memberId
+            ? fetch(agendaMembersServicesUrl + '/' + memberId + '/services', { headers: { 'Accept': 'application/json' } }).then(function(r) { return r.json(); })
+            : Promise.resolve({ categories: [] })
+        )
+            .then(function(svcData) {
+                agendaOcInitClientChoicesSelect();
+                if (!agendaOcClientRemoteSearchBound) {
+                    agendaOcClientRemoteSearchBound = true;
+                    clientSel.addEventListener('search', agendaOcOnClientSearchEvent);
+                }
                 if (preSelectedClientId) {
-                    try {
-                        agendaOcChoicesInstances.client.setChoiceByValue(String(preSelectedClientId));
-                    } catch (e) { /* ignore */ }
+                    fetch(agendaClientsUrl + '?client_id=' + encodeURIComponent(preSelectedClientId), { headers: { 'Accept': 'application/json' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(clients) {
+                            if (!agendaOcChoicesInstances.client || !clients || !clients[0]) return;
+                            var c = clients[0];
+                            var phone = c.formatted_phone || c.phone || '';
+                            var label = (c.name || '') + (phone ? ' · ' + phone : '');
+                            agendaOcChoicesInstances.client.setChoices(
+                                [{ value: String(c.id), label: label }],
+                                'value',
+                                'label',
+                                true
+                            );
+                            try {
+                                agendaOcChoicesInstances.client.setChoiceByValue(String(preSelectedClientId));
+                            } catch (e) { /* ignore */ }
+                            agendaOcApplyClientFromApi(c);
+                        })
+                        .catch(function() { /* ignore */ });
                 }
 
                 agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(svcData.categories);
@@ -3004,12 +3125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 agendaOcRenderSelectedServices();
                 agendaOcReloadServicesForMember(this.value || '', null);
             });
-            $id('agendaOcTime').addEventListener('focus', function() {
-                var nowRounded = agendaOcCurrentRoundedTime();
-                if (this.value !== nowRounded) {
-                    this.value = nowRounded;
-                }
-            });
             $id('agendaOcService').addEventListener('change', function() {
                 var sid = (this.value || '').trim();
                 if (!sid) return;
@@ -3027,6 +3142,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         original_price: svc.original_price != null ? svc.original_price : (parseFloat(svc.price) || 0),
                         formatted_duration: svc.formatted_duration || ((parseInt(svc.duration, 10) || 60) + ' min'),
                         formatted_price: svc.formatted_price || ((parseFloat(svc.price) || 0).toFixed(2).replace('.', ',') + ' €'),
+                        category_name: svc.category_name || '',
                         available_extras: svc.available_extras || [],
                         extras: []
                     });
@@ -3063,9 +3179,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Selecione um profissional.', 'error');
                     return;
                 }
-                var cid = ($id('agendaOcClient').value || '').trim();
+                var cid = (agendaOcSelectedClient && agendaOcSelectedClient.id)
+                    ? String(agendaOcSelectedClient.id).trim()
+                    : ($id('agendaOcClient').value || '').trim();
                 if (!cid) {
-                    showToast('Selecione um cliente.', 'error');
+                    showToast('Selecione ou crie um cliente.', 'error');
                     return;
                 }
                 if (!agendaOcSelectedServices.length) {
@@ -3084,15 +3202,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Data ou hora inválida.', 'error');
                     return;
                 }
-                var totalDuration = agendaOcSelectedServices.reduce(function(sum, s) { return sum + (parseInt(s.duration, 10) || 0); }, 0);
+                var totalDuration = agendaOcSelectedServices.reduce(function(sum, s) {
+                    var base = parseInt(s.duration, 10) || 0;
+                    var ex = (s.extras || []).reduce(function(s2, e) { return s2 + (parseInt(e.duration, 10) || 0); }, 0);
+                    return sum + base + ex;
+                }, 0);
                 if (totalDuration <= 0) totalDuration = 60;
                 var endDate = new Date(startDate.getTime() + totalDuration * 60000);
                 var endLocal = agendaFormatLocalDateTimeForInput(endDate);
 
-                var clientName = '';
-                var selOpt = $id('agendaOcClient').selectedOptions && $id('agendaOcClient').selectedOptions[0];
-                if (selOpt) {
-                    clientName = (selOpt.textContent || '').split('·')[0].trim();
+                var clientName = (agendaOcSelectedClient && agendaOcSelectedClient.name) ? agendaOcSelectedClient.name.trim() : '';
+                if (!clientName) {
+                    var selOpt = $id('agendaOcClient').selectedOptions && $id('agendaOcClient').selectedOptions[0];
+                    if (selOpt) {
+                        clientName = (selOpt.textContent || '').split('·')[0].trim();
+                    }
                 }
                 var serviceNames = agendaOcSelectedServices.map(function(s) { return s.name || ''; }).filter(Boolean).join(', ');
                 var title = (clientName || 'Cliente') + ' - ' + (serviceNames || 'Serviço');
@@ -3155,213 +3279,109 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             ocEl.addEventListener('hidden.bs.offcanvas', function() {
+                clearTimeout(agendaOcClientSearchTimer);
+                agendaOcClientSearchTimer = null;
                 agendaOcDestroyTestChoices();
+                agendaOcResetClientUi();
                 agendaOcServicesFlat = [];
                 agendaOcSelectedServices = [];
                 agendaOcShowServicePicker = true;
                 agendaOcRenderSelectedServices();
             });
+            if (!agendaOcClientChangeBound) {
+                agendaOcClientChangeBound = true;
+                $id('agendaOcClient').addEventListener('change', function() {
+                    var id = (this.value || '').trim();
+                    if (!id) {
+                        agendaOcSelectedClient = null;
+                        return;
+                    }
+                    fetch(agendaClientsUrl + '?client_id=' + encodeURIComponent(id), { headers: { 'Accept': 'application/json' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(clients) {
+                            if (clients && clients[0]) {
+                                agendaOcApplyClientFromApi(clients[0]);
+                            }
+                        })
+                        .catch(function() { /* ignore */ });
+                });
+                $id('agendaOcClientEditBtn').addEventListener('click', function() {
+                    agendaOcEnterClientSearchMode();
+                });
+                var newTabBtn = $id('agendaOcTabNewBtn');
+                if (newTabBtn) {
+                    newTabBtn.addEventListener('shown.bs.tab', function() {
+                        agendaOcInitNewClientPhoneIntl();
+                    });
+                }
+                var agendaOcNewClientSubmitBtn = $id('agendaOcNewClientSubmit');
+                if (agendaOcNewClientSubmitBtn) {
+                    agendaOcNewClientSubmitBtn.addEventListener('click', function() {
+                        var name = ($id('agendaOcNewClientName') && $id('agendaOcNewClientName').value || '').trim();
+                        var email = ($id('agendaOcNewClientEmail') && $id('agendaOcNewClientEmail').value || '').trim();
+                        var tabNew = $id('agendaOcTabNew');
+                        var iti = tabNew && tabNew._agendaPhoneIti;
+                        if (!name) {
+                            showToast('Preencha o nome.', 'error');
+                            return;
+                        }
+                        if (!iti) {
+                            agendaOcInitNewClientPhoneIntl();
+                            iti = tabNew && tabNew._agendaPhoneIti;
+                        }
+                        if (!iti) {
+                            showToast('Campo de telemóvel indisponível. Recarregue a página.', 'error');
+                            return;
+                        }
+                        iti.promise.then(function() {
+                            if (!iti.isValidNumber()) {
+                                showToast('Indique um número de telemóvel válido para o país selecionado (ex.: 9 dígitos em Portugal).', 'error');
+                                return;
+                            }
+                            var phone = iti.getNumber();
+                            var btn = $id('agendaOcNewClientSubmit');
+                            btn.disabled = true;
+                            var origTxt = btn.textContent;
+                            btn.textContent = 'A criar…';
+                            fetch(agendaClientsUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                                body: JSON.stringify({ name: name, email: email || null, phone: phone })
+                            })
+                                .then(function(r) {
+                                    return r.json().then(function(data) {
+                                        if (!r.ok) {
+                                            throw new Error(agendaStoreClientCreateErrorMessage(data));
+                                        }
+                                        return data;
+                                    });
+                                })
+                                .then(function(client) {
+                                    btn.disabled = false;
+                                    btn.textContent = origTxt;
+                                    agendaOcClearNewClientForm();
+                                    agendaOcApplyClientFromApi(client);
+                                    showToast('Cliente criado com sucesso.', 'success');
+                                })
+                                .catch(function(err) {
+                                    btn.disabled = false;
+                                    btn.textContent = origTxt;
+                                    showToast(err.message || 'Erro ao criar cliente.', 'error');
+                                });
+                        }).catch(function() {
+                            showToast('Não foi possível validar o número. Verifique a ligação e tente de novo.', 'error');
+                        });
+                    });
+                }
+            }
         }
     }
 
     function openNovaMarcacaoModal(startStr, endStr, resourceId, preSelectedClientId) {
-        if (C.useOffcanvasMarcacaoTest) {
-            openAgendaMarcacaoTestOffcanvas(startStr, endStr, resourceId, preSelectedClientId);
-            return;
-        }
-        populateNovaMarcacaoAgentSelectIfNeeded();
-        var hasResource = resourceId != null && String(resourceId) !== '';
-        $id('novaMarcacaoStart').value = startStr;
-        $id('novaMarcacaoEnd').value = endStr;
-        $id('novaMarcacaoObservacoes').value = '';
-        novaMarcacaoSelectedClient = null;
-        $id('novaMarcacaoClientAddWrap').classList.remove('d-none');
-        $id('novaMarcacaoClientSearchWrap').classList.remove('d-none');
-        $id('novaMarcacaoClientSelected').classList.add('d-none');
-        $id('novaMarcacaoClientSearch').value = '';
-        $id('novaMarcacaoClientResults').innerHTML = '';
-        if (hasResource) {
-            $id('novaMarcacaoAgentSelect').value = String(resourceId);
-            novaMarcacaoConfirmAgent(String(resourceId));
-        } else if (currentUserIsAdmin) {
-            novaMarcacaoShowAgentPicker();
-            $id('novaMarcacaoAgentId').value = '';
-            $id('novaMarcacaoAgentSelect').value = '';
-            novaMarcacaoLoadServicesForAgent('');
-        } else {
-            var uid = String(C.authId || '');
-            var inList = (C.usersForConsultant || []).some(function(u) { return String(u.id) === uid; });
-            if (inList) {
-                $id('novaMarcacaoAgentSelect').value = uid;
-                novaMarcacaoConfirmAgent(uid);
-            } else {
-                novaMarcacaoShowAgentPicker();
-                $id('novaMarcacaoAgentId').value = '';
-                $id('novaMarcacaoAgentSelect').value = '';
-                novaMarcacaoLoadServicesForAgent('');
-            }
-        }
-        var startD = new Date(startStr);
-        var endD = new Date(endStr);
-        if (window.novaMarcacaoDateFlatpickr) {
-            var ymdStr = startD.getFullYear() + '-' + String(startD.getMonth() + 1).padStart(2, '0') + '-' + String(startD.getDate()).padStart(2, '0');
-            window.novaMarcacaoDateFlatpickr.setDate(ymdStr, false);
-        }
-        var timeStr = String(startD.getHours()).padStart(2, '0') + ':' + String(startD.getMinutes()).padStart(2, '0');
-        var min = startD.getMinutes();
-        var m = Math.round(min / 15) * 15;
-        if (m === 60) { m = 0; }
-        var timeSlotForDropdown = String(startD.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-        $id('novaMarcacaoEditTitleDay').textContent = DAYS_LONG[startD.getDay()] + ', ' + startD.getDate() + ' ' + MONTHS_LONG[startD.getMonth()];
-        $id('novaMarcacaoTimeToggle').textContent = timeStr;
-        NovaMarcacao.populateTimeOptions(timeSlotForDropdown);
-        updateNovaMarcacaoOutOfHoursWarning();
-        var modal = bootstrap.Modal.getOrCreateInstance($id('novaMarcacaoModal'));
-        modal.show();
-
-        // Ao abrir a nova marcação, esconder a linha de total enquanto não houver serviços selecionados
-        var totalStripOpen = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
-        if (totalStripOpen) {
-            if (!novaMarcacaoSelectedServices || novaMarcacaoSelectedServices.length === 0) {
-                totalStripOpen.classList.add('d-none');
-            } else {
-                totalStripOpen.classList.remove('d-none');
-            }
-        }
-        if (preSelectedClientId) {
-            fetch(agendaClientsUrl + '?client_id=' + encodeURIComponent(preSelectedClientId), { headers: { 'Accept': 'application/json' } })
-                .then(function(r) { return r.json(); })
-                .then(function(clients) {
-                    if (clients && clients[0]) {
-                        var c = clients[0];
-                        novaMarcacaoSelectedClient = { id: String(c.id), name: c.name || '', phone: c.phone || '', formatted_phone: c.formatted_phone || '', avatar_url: c.avatar_url || '' };
-                        $id('novaMarcacaoClientSelectedName').textContent = c.name || '';
-                        $id('novaMarcacaoClientSelectedEmail').textContent = agendaClientPhoneLabel(novaMarcacaoSelectedClient);
-                        var link = $id('novaMarcacaoClientProfileLink');
-                        if (link) link.href = clientesBaseUrl + '/' + c.id;
-                        if (c.avatar_url) {
-                            $id('novaMarcacaoClientAvatar').src = c.avatar_url;
-                            $id('novaMarcacaoClientAvatar').classList.remove('d-none');
-                            $id('novaMarcacaoClientAvatarFallback').classList.add('d-none');
-                        } else {
-                            $id('novaMarcacaoClientAvatar').classList.add('d-none');
-                            var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-                            $id('novaMarcacaoClientAvatarFallback').textContent = initials;
-                            $id('novaMarcacaoClientAvatarFallback').classList.remove('d-none');
-                        }
-                        $id('novaMarcacaoClientAddWrap').classList.add('d-none');
-                        $id('novaMarcacaoClientSelected').classList.remove('d-none');
-                        $id('novaMarcacaoClientSearchWrap').classList.add('d-none');
-                    }
-                });
-        }
+        openAgendaMarcacaoTestOffcanvas(startStr, endStr, resourceId, preSelectedClientId);
     }
 
-    var novaMarcacaoAgentSelectEl = $id('novaMarcacaoAgentSelect');
-    if (novaMarcacaoAgentSelectEl) {
-        novaMarcacaoAgentSelectEl.addEventListener('change', function() {
-            var v = this.value;
-            if (v) {
-                novaMarcacaoConfirmAgent(v);
-            } else {
-                $id('novaMarcacaoAgentId').value = '';
-                var sw = $id('novaMarcacaoAgentSelectWrap');
-                var aw = $id('novaMarcacaoAgentSelectedWrap');
-                if (sw) sw.classList.remove('d-none');
-                if (aw) aw.classList.add('d-none');
-                novaMarcacaoLoadServicesForAgent('');
-                updateNovaMarcacaoOutOfHoursWarning();
-            }
-        });
-    }
-    var novaMarcacaoAgentChangeBtn = $id('novaMarcacaoAgentChangeBtn');
-    if (novaMarcacaoAgentChangeBtn) {
-        novaMarcacaoAgentChangeBtn.addEventListener('click', function() {
-            novaMarcacaoShowAgentPicker();
-        });
-    }
-
-    $id('novaMarcacaoClientSearch').addEventListener('input', (function() {
-        var t;
-        return function() {
-            clearTimeout(t);
-            var q = this.value.trim();
-            if (q.length < 1) {
-                $id('novaMarcacaoClientResults').innerHTML = '';
-                return;
-            }
-            t = setTimeout(function() {
-                $id('novaMarcacaoClientResults').innerHTML = '<div class="text-muted small">A pesquisar...</div>';
-                fetch(agendaClientsUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(clients) {
-                        if (!clients.length) {
-                            $id('novaMarcacaoClientResults').innerHTML = '<div class="text-muted small">Nenhum cliente encontrado.</div>';
-                            return;
-                        }
-                        var html = clients.map(function(c) {
-                            var raw = c.phone || '';
-                            var disp = c.formatted_phone || raw;
-                            var label = (c.name || '');
-                            if (disp) {
-                                label += ' <small class="text-muted">(' + disp + ')</small>';
-                            }
-                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + agendaEscAttr(c.name || '') + '" data-phone="' + agendaEscAttr(raw) + '" data-formatted-phone="' + agendaEscAttr(c.formatted_phone || '') + '" data-avatar="' + agendaEscAttr(c.avatar_url || '') + '"';
-                            return '<div class="nova-marcacao-client-item" ' + dataAttrs + '>' + label + '</div>';
-                        }).join('');
-                        $id('novaMarcacaoClientResults').innerHTML = html;
-                        $id('novaMarcacaoClientResults').querySelectorAll('.nova-marcacao-client-item').forEach(function(el) {
-                            el.addEventListener('click', function() {
-                                var name = this.dataset.name || '';
-                                var phone = this.dataset.phone || '';
-                                var formattedPhone = this.dataset.formattedPhone || '';
-                                var avatarUrl = this.dataset.avatar || '';
-                                novaMarcacaoSelectedClient = { id: this.dataset.id, name: name, phone: phone, formatted_phone: formattedPhone, avatar_url: avatarUrl };
-                                $id('novaMarcacaoClientSelectedName').textContent = name;
-                                $id('novaMarcacaoClientSelectedEmail').textContent = agendaClientPhoneLabel(novaMarcacaoSelectedClient);
-                                var link = $id('novaMarcacaoClientProfileLink');
-                                if (link) link.href = clientesBaseUrl + '/' + this.dataset.id;
-                                if (avatarUrl) {
-                                    $id('novaMarcacaoClientAvatar').src = avatarUrl;
-                                    $id('novaMarcacaoClientAvatar').classList.remove('d-none');
-                                    $id('novaMarcacaoClientAvatarFallback').classList.add('d-none');
-                                } else {
-                                    $id('novaMarcacaoClientAvatar').classList.add('d-none');
-                                    var initials = (name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-                                    $id('novaMarcacaoClientAvatarFallback').textContent = initials;
-                                    $id('novaMarcacaoClientAvatarFallback').classList.remove('d-none');
-                                }
-                                $id('novaMarcacaoClientAddWrap').classList.add('d-none');
-                                $id('novaMarcacaoClientSelected').classList.remove('d-none');
-                                $id('novaMarcacaoClientSearchWrap').classList.add('d-none');
-                                $id('novaMarcacaoClientResults').innerHTML = '';
-                                $id('novaMarcacaoClientSearch').value = '';
-                                window._novaMarcacaoPreviousClient = null;
-                            });
-                        });
-                    })
-                    .catch(function() {
-                        $id('novaMarcacaoClientResults').innerHTML = '<div class="text-danger small">Erro ao pesquisar.</div>';
-                    });
-            }, 300);
-        };
-    })());
-
-    $id('novaMarcacaoClientClear').addEventListener('click', function() {
-        var prev = novaMarcacaoSelectedClient ? { id: novaMarcacaoSelectedClient.id, name: novaMarcacaoSelectedClient.name, phone: novaMarcacaoSelectedClient.phone || '', formatted_phone: novaMarcacaoSelectedClient.formatted_phone || '', avatar_url: novaMarcacaoSelectedClient.avatar_url || '' } : null;
-        novaMarcacaoSelectedClient = null;
-        $id('novaMarcacaoClientSelected').classList.add('d-none');
-        $id('novaMarcacaoClientAddWrap').classList.remove('d-none');
-        $id('novaMarcacaoClientSearchWrap').classList.remove('d-none');
-        $id('novaMarcacaoClientResults').innerHTML = '';
-        $id('novaMarcacaoCreateClientBtn').classList.remove('d-none');
-        if (prev) {
-            window._novaMarcacaoPreviousClient = prev;
-            $id('novaMarcacaoClientCancelBtn').classList.remove('d-none');
-        }
-    });
-
-    /** intl-tel-input: criar cliente rápido na agenda (nova marcação / editar marcação) */
+    /** intl-tel-input: aba «Novo cliente» no offcanvas (nova marcação / editar marcação) */
     function destroyAgendaCreateClientIntl(popup) {
         if (popup && popup._agendaPhoneIti) {
             try {
@@ -3403,389 +3423,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function openCreateClientQuickMenu(context, evt) {
-        var popup = $id('agendaCreateClientQuickMenu');
-        if (!popup) return;
-        var modalEl = context === 'novaMarcacao' ? $id('novaMarcacaoModal') : $id('eventDetailEditModal');
-        var modalContent = modalEl?.querySelector('.modal-content');
-        if (modalContent) modalContent.appendChild(popup);
-        function hide() {
-            destroyAgendaCreateClientIntl(popup);
-            popup.classList.remove('is-open');
-            popup.innerHTML = '';
-            document.removeEventListener('click', ch);
-            document.removeEventListener('keydown', eh);
-        }
-        function ch(e) { if (popup.contains(e.target)) return; hide(); }
-        function eh(e) { if (e.key === 'Escape') { e.stopPropagation(); hide(); } }
-        popup.innerHTML = '<div class="create-client-header">' +
-            '<h6>Novo cliente</h6>' +
-            '<button type="button" class="create-client-close" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>' +
-            '</div>' +
-            '<div class="create-client-body">' +
-            '<div class="mb-2"><label class="form-label small">Nome <span class="text-danger">*</span></label>' +
-            '<input type="text" class="form-control create-client-name" placeholder="Nome do cliente" required></div>' +
-            '<div class="mb-2"><label class="form-label small" for="agendaCreateClientPhone">Telemóvel <span class="text-danger">*</span></label>' +
-            '<input type="tel" id="agendaCreateClientPhone" class="form-control create-client-phone" autocomplete="tel" required></div>' +
-            '<div class="mb-0"><label class="form-label small">Email</label>' +
-            '<input type="email" class="form-control create-client-email" placeholder="Opcional"></div>' +
-            '</div>' +
-            '<div class="create-client-footer">' +
-            '<button type="button" class="btn btn-light btn-sm create-client-cancel">Cancelar</button>' +
-            '<button type="button" class="btn btn-primary btn-sm create-client-submit" disabled>Criar</button>' +
-            '</div>';
-        popup.classList.add('is-open');
-        var createClientSubmitBtn = popup.querySelector('.create-client-submit');
-        initAgendaCreateClientIntl(popup.querySelector('#agendaCreateClientPhone'), popup).then(function() {
-            if (createClientSubmitBtn) createClientSubmitBtn.disabled = false;
-        }).catch(function() {
-            if (createClientSubmitBtn) createClientSubmitBtn.disabled = false;
-        });
-        // Posicionar logo abaixo do link "criar novo cliente", centrado em relação ao link
-        try {
-            var triggerEl = evt.currentTarget || evt.target;
-            if (triggerEl && modalContent) {
-                var triggerRect = triggerEl.getBoundingClientRect();
-                var containerRect = modalContent.getBoundingClientRect();
-                var popupRect = popup.getBoundingClientRect();
-                var gapY = 4;
-                // centro do link dentro do conteúdo do modal
-                var triggerCenter = (triggerRect.left + triggerRect.right) / 2 - containerRect.left;
-                var left = triggerCenter - popupRect.width / 2;
-                var top = triggerRect.bottom - containerRect.top + gapY;
-                // clamp dentro do conteúdo do modal
-                var minLeft = 8;
-                var maxLeft = containerRect.width - popupRect.width - 8;
-                if (!isNaN(maxLeft)) {
-                    if (left < minLeft) left = minLeft;
-                    if (left > maxLeft) left = maxLeft;
-                }
-                popup.style.left = left + 'px';
-                popup.style.top = top + 'px';
-            }
-        } catch (e) {
-            // fallback silencioso se algo correr mal no cálculo
-        }
-        popup.querySelector('.create-client-close').addEventListener('click', hide);
-        popup.querySelector('.create-client-cancel').addEventListener('click', hide);
-        popup.querySelector('.create-client-submit').addEventListener('click', function() {
-            var name = popup.querySelector('.create-client-name').value.trim();
-            var email = popup.querySelector('.create-client-email').value.trim();
-            var iti = popup._agendaPhoneIti;
-            if (!name) {
-                showToast('Preencha o nome.', 'error');
-                return;
-            }
-            if (!iti) {
-                showToast('Campo de telemóvel indisponível. Recarregue a página.', 'error');
-                return;
-            }
-            iti.promise.then(function() {
-                if (!iti.isValidNumber()) {
-                    showToast('Indique um número de telemóvel válido para o país selecionado (ex.: 9 dígitos em Portugal).', 'error');
-                    return;
-                }
-                var phone = iti.getNumber();
-                var btn = popup.querySelector('.create-client-submit');
-                btn.disabled = true;
-                btn.textContent = 'A criar...';
-                fetch(agendaClientsUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                    body: JSON.stringify({ name: name, email: email || null, phone: phone })
-                })
-                .then(function(r) { return r.json().then(function(data) {
-                    if (!r.ok) {
-                        var msg = 'Erro ao criar cliente.';
-                        if (data.errors && data.errors.email) msg = 'O email inserido já existe associado a um cliente.';
-                        else if (data.message) msg = data.message;
-                        throw new Error(msg);
-                    }
-                    return data;
-                }); })
-                .then(function(client) {
-                hide();
-                var c = { id: String(client.id), name: client.name || name, phone: client.phone || '', formatted_phone: client.formatted_phone || '', avatar_url: client.avatar_url || '' };
-                if (context === 'novaMarcacao') {
-                    novaMarcacaoSelectedClient = c;
-                    $id('novaMarcacaoClientSelectedName').textContent = c.name;
-                    $id('novaMarcacaoClientSelectedEmail').textContent = agendaClientPhoneLabel(c);
-                    var link = $id('novaMarcacaoClientProfileLink');
-                    if (link) link.href = clientesBaseUrl + '/' + c.id;
-                    $id('novaMarcacaoClientAvatar').classList.add('d-none');
-                    var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-                    $id('novaMarcacaoClientAvatarFallback').textContent = initials;
-                    $id('novaMarcacaoClientAvatarFallback').classList.remove('d-none');
-                    $id('novaMarcacaoClientAddWrap').classList.add('d-none');
-                    $id('novaMarcacaoClientSelected').classList.remove('d-none');
-                    $id('novaMarcacaoClientSearchWrap').classList.add('d-none');
-                    $id('novaMarcacaoClientResults').innerHTML = '';
-                    $id('novaMarcacaoClientSearch').value = '';
-                    $id('novaMarcacaoClientCancelBtn').classList.add('d-none');
-                    $id('novaMarcacaoCreateClientBtn').classList.add('d-none');
-                    window._novaMarcacaoPreviousClient = null;
-                } else {
-                    eventDetailSelectedClient = c;
-                    $id('eventDetailClientSelectedName').textContent = c.name;
-                    $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(c);
-                    var link = $id('eventDetailClientProfileLink');
-                    if (link) link.href = clientesBaseUrl + '/' + c.id;
-                    if (c.avatar_url) {
-                        $id('eventDetailClientAvatar').src = c.avatar_url;
-                        $id('eventDetailClientAvatar').classList.remove('d-none');
-                        $id('eventDetailClientAvatarFallback').classList.add('d-none');
-                    } else {
-                        $id('eventDetailClientAvatar').classList.add('d-none');
-                        var inits = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-                        $id('eventDetailClientAvatarFallback').textContent = inits;
-                        $id('eventDetailClientAvatarFallback').classList.remove('d-none');
-                    }
-                    $id('eventDetailClientAddWrap').classList.add('d-none');
-                    $id('eventDetailClientSelected').classList.remove('d-none');
-                    $id('eventDetailClientSearchWrap').classList.add('d-none');
-                    $id('eventDetailClientResults').innerHTML = '';
-                    $id('eventDetailClientSearch').value = '';
-                    $id('eventDetailClientCancelBtn').classList.add('d-none');
-                    $id('eventDetailCreateClientBtn').classList.add('d-none');
-                    window._eventDetailPreviousClient = null;
-                }
-                showToast('Cliente criado com sucesso.', 'success');
-                })
-                .catch(function(err) {
-                    btn.disabled = false;
-                    btn.textContent = 'Criar';
-                    showToast(err.message || 'Erro ao criar cliente.', 'error');
-                });
-            }).catch(function() {
-                showToast('Não foi possível validar o número. Verifique a ligação e tente de novo.', 'error');
-            });
-        });
-        requestAnimationFrame(function() {
-            popup.classList.add('is-open');
-            var btnEl = (evt && evt.target) ? evt.target.closest('button') : null;
-            var rect = btnEl ? btnEl.getBoundingClientRect() : { left: 200, bottom: 200 };
-            var offset = 8;
-            var container = modalContent && modalContent.parentElement ? modalContent.parentElement.getBoundingClientRect() : null;
-            var left, top;
-            if (container) {
-                left = (rect.left || 200) - container.left;
-                top = (rect.bottom !== undefined ? rect.bottom : 200) + offset - container.top;
-            } else {
-                left = rect.left || 200;
-                top = (rect.bottom !== undefined ? rect.bottom : 200) + offset;
-            }
-            var popupRect = popup.getBoundingClientRect();
-            var vw = container ? container.width : window.innerWidth;
-            var vh = container ? container.height : window.innerHeight;
-            var maxLeft = vw - popupRect.width - offset;
-            var maxTop = vh - popupRect.height - offset;
-            left = Math.max(offset, Math.min(left, maxLeft));
-            top = Math.max(offset, Math.min(top, maxTop));
-            popup.style.left = left + 'px';
-            popup.style.top = top + 'px';
-            document.addEventListener('click', ch);
-            document.addEventListener('keydown', eh);
-            popup.querySelector('.create-client-name').focus();
-        });
-    }
-    $id('novaMarcacaoCreateClientBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        openCreateClientQuickMenu('novaMarcacao', e);
-    });
-    $id('eventDetailCreateClientBtn').addEventListener('click', function(e) {
-        e.preventDefault();
-        openCreateClientQuickMenu('eventDetail', e);
-    });
-
-    $id('novaMarcacaoClientCancelBtn').addEventListener('click', function() {
-        var prev = window._novaMarcacaoPreviousClient;
-        if (prev) {
-            novaMarcacaoSelectedClient = prev;
-            $id('novaMarcacaoClientSelectedName').textContent = prev.name;
-            $id('novaMarcacaoClientSelectedEmail').textContent = agendaClientPhoneLabel(prev);
-            var link = $id('novaMarcacaoClientProfileLink');
-            if (link) link.href = clientesBaseUrl + '/' + prev.id;
-            if (prev.avatar_url) {
-                $id('novaMarcacaoClientAvatar').src = prev.avatar_url;
-                $id('novaMarcacaoClientAvatar').classList.remove('d-none');
-                $id('novaMarcacaoClientAvatarFallback').classList.add('d-none');
-            } else {
-                $id('novaMarcacaoClientAvatar').classList.add('d-none');
-                var initials = (prev.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-                $id('novaMarcacaoClientAvatarFallback').textContent = initials;
-                $id('novaMarcacaoClientAvatarFallback').classList.remove('d-none');
-            }
-            $id('novaMarcacaoClientAddWrap').classList.add('d-none');
-            $id('novaMarcacaoClientSelected').classList.remove('d-none');
-            $id('novaMarcacaoClientSearchWrap').classList.add('d-none');
-            $id('novaMarcacaoClientResults').innerHTML = '';
-            $id('novaMarcacaoClientSearch').value = '';
-            $id('novaMarcacaoCreateClientBtn').classList.add('d-none');
-            this.classList.add('d-none');
-            window._novaMarcacaoPreviousClient = null;
-        }
-    });
-
-    $id('novaMarcacaoAddMoreServicesBtn').addEventListener('click', function() {
-        $id('novaMarcacaoServiceSelected').classList.add('d-none');
-        $id('novaMarcacaoCancelAddServicesBtn').classList.remove('d-none');
-        $id('novaMarcacaoServicesList').classList.remove('d-none');
-        agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
-        var totalStripNm = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
-        if (totalStripNm) totalStripNm.classList.add('d-none');
-    });
-
-    $id('novaMarcacaoCancelAddServicesBtn').addEventListener('click', function() {
-        $id('novaMarcacaoServicesList').classList.add('d-none');
-        $id('novaMarcacaoCancelAddServicesBtn').classList.add('d-none');
-        $id('novaMarcacaoServiceSelected').classList.remove('d-none');
-        agendaSyncCategoryTabsWithServicesList($id('novaMarcacaoServicesList'));
-        var totalStripNm2 = agendaMarcacaoTotalStrip('novaMarcacaoTotalPrice');
-        if (totalStripNm2) totalStripNm2.classList.remove('d-none');
-    });
-
-    $id('eventDetailAddMoreServicesBtn').addEventListener('click', function() {
-        $id('eventDetailServiceSelected').classList.add('d-none');
-        $id('eventDetailCancelAddServicesBtn').classList.remove('d-none');
-        $id('eventDetailServicesList').classList.remove('d-none');
-        agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
-        var totalStripEd = agendaMarcacaoTotalStrip('eventDetailTotalPrice');
-        if (totalStripEd) totalStripEd.classList.add('d-none');
-    });
-
-    $id('eventDetailCancelAddServicesBtn').addEventListener('click', function() {
-        $id('eventDetailServicesList').classList.add('d-none');
-        $id('eventDetailCancelAddServicesBtn').classList.add('d-none');
-        $id('eventDetailServiceSelected').classList.remove('d-none');
-        agendaSyncCategoryTabsWithServicesList($id('eventDetailServicesList'));
-        var totalStripEd2 = agendaMarcacaoTotalStrip('eventDetailTotalPrice');
-        if (totalStripEd2) totalStripEd2.classList.remove('d-none');
-    });
-
-    $id('eventDetailClientClear').addEventListener('click', function() {
-        // Guardar o cliente atual para poder reverter se o utilizador cancelar
-        var prev = eventDetailSelectedClient ? {
-            id: eventDetailSelectedClient.id,
-            name: eventDetailSelectedClient.name,
-            phone: eventDetailSelectedClient.phone || '',
-            formatted_phone: eventDetailSelectedClient.formatted_phone || '',
-            avatar_url: eventDetailSelectedClient.avatar_url || ''
-        } : null;
-
-        // Esconder o cartão atual e voltar ao estado "Cliente" + pesquisa
-        eventDetailSelectedClient = null;
-        $id('eventDetailClientSelected').classList.add('d-none');
-        $id('eventDetailClientAddWrap').classList.remove('d-none');
-        $id('eventDetailClientSearchWrap').classList.remove('d-none');
-        $id('eventDetailClientResults').classList.remove('d-none');
-        $id('eventDetailClientSearch').value = '';
-        $id('eventDetailClientSearch').focus();
-        $id('eventDetailClientResults').innerHTML = '';
-        $id('eventDetailCreateClientBtn').classList.remove('d-none');
-
-        if (prev) {
-            window._eventDetailPreviousClient = prev;
-            $id('eventDetailClientCancelBtn').classList.remove('d-none');
-        }
-    });
-    $id('eventDetailClientCancelBtn').addEventListener('click', function() {
-        var prev = window._eventDetailPreviousClient;
-        if (prev) {
-            eventDetailSelectedClient = prev;
-            $id('eventDetailClientSelectedName').textContent = prev.name;
-            $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(prev);
-            var link = $id('eventDetailClientProfileLink');
-            if (link) link.href = clientesBaseUrl + '/' + prev.id;
-            if (prev.avatar_url) {
-                $id('eventDetailClientAvatar').src = prev.avatar_url;
-                $id('eventDetailClientAvatar').classList.remove('d-none');
-                $id('eventDetailClientAvatarFallback').classList.add('d-none');
-            } else {
-                $id('eventDetailClientAvatar').classList.add('d-none');
-                var initials = (prev.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-                $id('eventDetailClientAvatarFallback').textContent = initials;
-                $id('eventDetailClientAvatarFallback').classList.remove('d-none');
-            }
-            $id('eventDetailClientAddWrap').classList.add('d-none');
-            $id('eventDetailClientSelected').classList.remove('d-none');
-            $id('eventDetailClientSearchWrap').classList.add('d-none');
-            $id('eventDetailClientResults').classList.add('d-none');
-            $id('eventDetailClientSearch').value = '';
-            $id('eventDetailClientResults').innerHTML = '';
-            $id('eventDetailCreateClientBtn').classList.add('d-none');
-            this.classList.add('d-none');
-            window._eventDetailPreviousClient = null;
-        }
-    });
-
-    $id('eventDetailClientSearch').addEventListener('input', (function() {
-        var t;
-        return function() {
-            clearTimeout(t);
-            var q = this.value.trim();
-            if (q.length < 1) {
-                $id('eventDetailClientResults').innerHTML = '';
-                return;
-            }
-            t = setTimeout(function() {
-                $id('eventDetailClientResults').innerHTML = '<div class="text-muted small">A pesquisar...</div>';
-                fetch(agendaClientsUrl + '?q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(clients) {
-                        if (!clients.length) {
-                            $id('eventDetailClientResults').innerHTML = '<div class="text-muted small">Nenhum cliente encontrado.</div>';
-                            return;
-                        }
-                        var html = clients.map(function(c) {
-                            var raw = c.phone || '';
-                            var disp = c.formatted_phone || raw;
-                            var label = (c.name || '');
-                            if (disp) {
-                                label += ' <small class="text-muted">(' + disp + ')</small>';
-                            }
-                            var dataAttrs = 'data-id="' + c.id + '" data-name="' + agendaEscAttr(c.name || '') + '" data-email="' + agendaEscAttr(c.email || '') + '" data-phone="' + agendaEscAttr(raw) + '" data-formatted-phone="' + agendaEscAttr(c.formatted_phone || '') + '" data-avatar="' + agendaEscAttr(c.avatar_url || '') + '"';
-                            return '<div class="nova-marcacao-client-item event-detail-client-item" ' + dataAttrs + '>' + label + '</div>';
-                        }).join('');
-                        $id('eventDetailClientResults').innerHTML = html;
-                        $id('eventDetailClientResults').querySelectorAll('.event-detail-client-item').forEach(function(el) {
-                            el.addEventListener('click', function() {
-                                var name = this.dataset.name || '';
-                                var email = this.dataset.email || '';
-                                var phone = this.dataset.phone || '';
-                                var formattedPhone = this.dataset.formattedPhone || '';
-                                var avatarUrl = this.dataset.avatar || '';
-                                eventDetailSelectedClient = { id: this.dataset.id, name: name, email: email, phone: phone, formatted_phone: formattedPhone, avatar_url: avatarUrl };
-                                $id('eventDetailClientSelectedName').textContent = name;
-                                $id('eventDetailClientSelectedEmail').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
-                                var link = $id('eventDetailClientProfileLink');
-                                if (link) link.href = clientesBaseUrl + '/' + this.dataset.id;
-                                if (avatarUrl) {
-                                    $id('eventDetailClientAvatar').src = avatarUrl;
-                                    $id('eventDetailClientAvatar').classList.remove('d-none');
-                                    $id('eventDetailClientAvatarFallback').classList.add('d-none');
-                                } else {
-                                    $id('eventDetailClientAvatar').classList.add('d-none');
-                                    var initials = (name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-                                    $id('eventDetailClientAvatarFallback').textContent = initials;
-                                    $id('eventDetailClientAvatarFallback').classList.remove('d-none');
-                                }
-                                $id('eventDetailClientAddWrap').classList.add('d-none');
-                                $id('eventDetailClientSelected').classList.remove('d-none');
-                                $id('eventDetailClientSearchWrap').classList.add('d-none');
-                                $id('eventDetailClientResults').innerHTML = '';
-                                $id('eventDetailClientSearch').value = '';
-                                $id('eventDetailClientCancelBtn').classList.add('d-none');
-                                $id('eventDetailCreateClientBtn').classList.add('d-none');
-                                window._eventDetailPreviousClient = null;
-                            });
-                        });
-                    });
-            }, 300);
-        };
-    })());
-
     $id('eventDetailEditForm').addEventListener('submit', function(e) {
         e.preventDefault();
+        if (eventDetailCurrentData && eventDetailCurrentData.event_type === 'marcacao') {
+            eventDetailOcSyncHiddenFromPickers();
+        }
         var id = $id('eventDetailEditId').value;
         var title = eventDetailCurrentData?.title || '';
         if (eventDetailCurrentData?.event_type === 'marcacao' && eventDetailSelectedServices.length > 0) {
@@ -3803,14 +3445,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 endStr = agendaFormatLocalDateTimeForInput(end);
             }
         }
+        var obsVal = ($id('eventDetailOcObs') && $id('eventDetailOcObs').value) || '';
         var payload = {
             title: title,
             start_at: agendaLocalInputToUtcIso(startStr),
             end_at: agendaLocalInputToUtcIso(endStr),
-            description: $id('eventDetailObservacoes').value,
+            description: obsVal,
             status: $id('eventDetailStatus').value
         };
         if (eventDetailCurrentData?.event_type === 'marcacao') {
+            var memV = ($id('eventDetailOcMember') && $id('eventDetailOcMember').value || '').trim();
+            if (memV) payload.user_id = memV;
             payload.client_id = eventDetailSelectedClient ? eventDetailSelectedClient.id : null;
             payload.services = eventDetailSelectedServices.map(function(s) {
                 return {
@@ -3863,7 +3508,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     var ep = res.event.extendedProps || {};
                     Object.keys(ep).forEach(function(k) { ev.setExtendedProp(k, ep[k]); });
                 }
-                bootstrap.Modal.getInstance($id('eventDetailEditModal')).hide();
+                bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
             } else {
                 showToast(res.message || 'Erro ao guardar.', 'error');
             }
@@ -4045,92 +3690,6 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('eventDetailReverterFaturaBtn').disabled = false;
             showToast('Erro de ligação.', 'error');
         });
-    });
-
-    $id('novaMarcacaoForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        if (!$id('novaMarcacaoAgentId').value) {
-            showToast('Selecione um técnico.', 'error');
-            return;
-        }
-        if (!novaMarcacaoSelectedServices.length) {
-            showToast('Selecione pelo menos um serviço.', 'error');
-            return;
-        }
-        if (!novaMarcacaoSelectedClient || !novaMarcacaoSelectedClient.name) {
-            showToast('Selecione um cliente.', 'error');
-            return;
-        }
-        var serviceNames = novaMarcacaoSelectedServices.map(function(s) { return s.name; }).join(', ');
-        var title = novaMarcacaoSelectedClient.name + ' - ' + serviceNames;
-        var btn = $id('novaMarcacaoSubmitBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar...';
-        var servicesPayload = novaMarcacaoSelectedServices.map(function(s) {
-            return {
-                service_id: s.service_id,
-                duration: s.duration,
-                price: s.price,
-                original_price: s.original_price != null ? s.original_price : s.price,
-                extras: (s.extras || []).map(function(e) { return { extra_id: e.id, duration: e.duration || 0, price: e.price || 0 }; })
-            };
-        });
-        var startNova = $id('novaMarcacaoStart').value;
-        var endNova = $id('novaMarcacaoEnd').value;
-        var payload = {
-            title: title,
-            start_at: agendaLocalInputToUtcIso(startNova),
-            end_at: agendaLocalInputToUtcIso(endNova || startNova),
-            description: $id('novaMarcacaoObservacoes').value,
-            event_type: 'marcacao',
-            user_id: $id('novaMarcacaoAgentId').value,
-            client_id: novaMarcacaoSelectedClient ? novaMarcacaoSelectedClient.id : null,
-            services: servicesPayload
-        };
-        var csrf = C.csrf || '';
-        fetch((C.urlEvents || ''), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify(payload)
-        })
-        .then(function(r) {
-            return r.json().then(function(res) {
-                if (!r.ok) {
-                    var msg = res.message || (res.errors ? Object.values(res.errors).flat().join(' ') : null) || 'Erro ao criar marcação.';
-                    throw new Error(msg);
-                }
-                return res;
-            });
-        })
-        .then(function(res) {
-            btn.disabled = false;
-            btn.textContent = 'Criar marcação';
-            if (res.success && res.event) {
-                /* refetch em vez de addEvent: evita duplicar com o mesmo evento vindo do fetch (ex.: mudar filtro de equipa) */
-                calendar.refetchEvents();
-                bootstrap.Modal.getInstance($id('novaMarcacaoModal')).hide();
-            } else {
-                showToast(res.message || 'Erro ao criar marcação.', 'error');
-            }
-        })
-        .catch(function(err) {
-            btn.disabled = false;
-            btn.textContent = 'Criar marcação';
-            var msg = (err && err.message && err.message.indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação. Verifique os logs do servidor se o problema persistir.';
-            showToast(msg, 'error');
-        });
-    });
-
-    $id('novaMarcacaoModal').addEventListener('hidden.bs.modal', function() {
-        novaMarcacaoSelectedClient = null;
-        novaMarcacaoServicesData = null;
-        novaMarcacaoSelectedServices = [];
-        $id('novaMarcacaoTotalPrice').textContent = '0,00 €';
-        window._novaMarcacaoPreviousClient = null;
-        $id('novaMarcacaoClientCancelBtn').classList.add('d-none');
-        $id('novaMarcacaoClientAddWrap').classList.remove('d-none');
-        $id('novaMarcacaoClientSearchWrap').classList.add('d-none');
-        $id('novaMarcacaoClientSelected').classList.add('d-none');
     });
 
     function ensureAgendaSlot24hToggle() {
@@ -4451,7 +4010,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Linha 1: ícone + cliente (ou título)
-            const line1 = iconHtml + '<strong class="fc-event-client">' + (clientName || fallbackTitle || '—') + '</strong>';
+            const line1 = iconHtml + '<strong class="fc-event-client">' + (clientName || fallbackTitle || '…') + '</strong>';
 
             // Linha 2: serviço + extras
             let line2 = serviceName || '';
@@ -4790,7 +4349,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     bootstrap.Modal.getOrCreateInstance($id('tempoPessoalModal')).show();
                 } else {
                     populateEventDetailEditModal(data);
-                    bootstrap.Modal.getOrCreateInstance($id('eventDetailEditModal')).show();
+                    bootstrap.Offcanvas.getOrCreateInstance($id('eventDetailEditModal')).show();
                 }
                 eventDetailModalLoading = false;
             })
@@ -5988,7 +5547,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         bootstrap.Modal.getOrCreateInstance($id('tempoPessoalModal')).show();
                     } else {
                         populateEventDetailEditModal(data);
-                        bootstrap.Modal.getOrCreateInstance($id('eventDetailEditModal')).show();
+                        bootstrap.Offcanvas.getOrCreateInstance($id('eventDetailEditModal')).show();
                     }
                     if (history.replaceState) {
                         history.replaceState({}, document.title, window.location.pathname);
@@ -6486,76 +6045,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Status é guardado ao clicar Guardar no modal eventDetailEditModal
-
-    function eventDetailPopulateTimeOptions(selectedTime) {
-        var container = $('.event-detail-time-options');
-        if (!container) return;
-        container.innerHTML = '';
-        for (var h = 0; h < 24; h++) {
-            for (var m = 0; m < 60; m += 15) {
-                var ts = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-                var a = document.createElement('a');
-                a.href = '#';
-                a.className = 'dropdown-item event-detail-time-opt' + (ts === selectedTime ? ' active' : '');
-                a.dataset.time = ts;
-                a.textContent = ts;
-                a.addEventListener('click', function(e) { e.preventDefault(); EventDetail.applyNewStartTime(this.dataset.time); });
-                container.appendChild(a);
-            }
-        }
-    }
-    $id('eventDetailTimeDropdownMenu')?.addEventListener('click', function(e) {
-        var opt = e.target.closest('.event-detail-time-opt');
-        if (opt) { e.preventDefault(); EventDetail.applyNewStartTime(opt.dataset.time); }
-    });
-    $id('eventDetailTimeToggle')?.addEventListener('show.bs.dropdown', function() {
-        var startStr = $id('eventDetailEditStart')?.value;
-        var timeStr = '';
-        if (startStr) {
-            var d = new Date(startStr);
-            var min = d.getMinutes();
-            var m = Math.round(min / 15) * 15;
-            if (m === 60) { m = 0; }
-            timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-        }
-        eventDetailPopulateTimeOptions(timeStr);
-    });
-    $id('eventDetailTimeToggle')?.addEventListener('shown.bs.dropdown', function() {
-        var active = $('.event-detail-time-options .event-detail-time-opt.active');
-        if (active) {
-            active.scrollIntoView({ block: 'nearest', behavior: 'instant' });
-        }
-    });
-    $id('eventDetailTimeToggle')?.addEventListener('hidden.bs.dropdown', function() {
-        updateEventDetailOutOfHoursWarning();
-    });
+    // Status é guardado ao clicar Guardar no offcanvas eventDetailEditModal
 
     if (typeof flatpickr !== 'undefined') {
-        var datePickerWrap = $id('eventDetailDatePickerWrap');
-        if (datePickerWrap) {
-            window.eventDetailDateFlatpickr = flatpickr(datePickerWrap, {
-                inline: true,
-                dateFormat: 'Y-m-d',
-                locale: 'pt',
-                allowInput: false,
-                onChange: function(selectedDates, dateStr) {
-                    if (dateStr) EventDetail.applyNewDate(dateStr);
-                }
-            });
-        }
-        var novaMarcacaoDatePickerWrap = $id('novaMarcacaoDatePickerWrap');
-        if (novaMarcacaoDatePickerWrap) {
-            window.novaMarcacaoDateFlatpickr = flatpickr(novaMarcacaoDatePickerWrap, {
-                inline: true,
-                dateFormat: 'Y-m-d',
-                locale: 'pt',
-                allowInput: false,
-                onChange: function(selectedDates, dateStr) {
-                    if (dateStr) NovaMarcacao.applyNewDate(dateStr);
-                }
-            });
-        }
         var tempoPessoalDatePickerWrap = $id('tempoPessoalDatePickerWrap');
         if (tempoPessoalDatePickerWrap) {
             window.tempoPessoalDateFlatpickr = flatpickr(tempoPessoalDatePickerWrap, {
@@ -6732,28 +6224,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    $id('novaMarcacaoTimeToggle')?.addEventListener('show.bs.dropdown', function() {
-        var startStr = $id('novaMarcacaoStart')?.value;
-        var timeStr = '';
-        if (startStr) {
-            var d = new Date(startStr);
-            var min = d.getMinutes();
-            var m = Math.round(min / 15) * 15;
-            if (m === 60) { m = 0; }
-            timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-        }
-        NovaMarcacao.populateTimeOptions(timeStr);
-    });
-    $id('novaMarcacaoTimeToggle')?.addEventListener('shown.bs.dropdown', function() {
-        var active = $('.nova-marcacao-time-options .nova-marcacao-time-opt.active');
-        if (active) {
-            active.scrollIntoView({ block: 'nearest', behavior: 'instant' });
-        }
-    });
-    $id('novaMarcacaoTimeToggle')?.addEventListener('hidden.bs.dropdown', function() {
-        updateNovaMarcacaoOutOfHoursWarning();
-    });
-
     $id('eventDetailStatusMenu').querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
         opt.addEventListener('click', function(e) {
             e.preventDefault();
@@ -6768,7 +6238,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 window._cancelMarcacaoConfirmed = false;
                 window._cancelMarcacaoPreviousStatus = previousStatus;
                 window._cancelMarcacaoContext = 'edit';
-                window._eventDetailHideForCancelFlow = true;
                 $id('cancelMarcacaoEventId').value = evId;
                 var total = 0;
                 (eventDetailSelectedServices || []).forEach(function(s) { total += parseFloat(s.price) || 0; });
@@ -6781,8 +6250,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 $id('cancelMarcacaoAvisouPrazo').value = '';
                 $id('cancelMarcacaoAvisouWrap').classList.add('d-none');
                 $id('cancelMarcacaoNotifyClient').checked = false;
-                var editModalInstance = bootstrap.Modal.getOrCreateInstance($id('eventDetailEditModal'));
-                editModalInstance.hide();
                 bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
                 return;
             }
@@ -6791,7 +6258,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var iconEl = $id('eventDetailStatusIcon');
             if (iconEl) {
                 var ic = iconEl.querySelector('i');
-                if (ic) ic.className = 'me-2 ph ' + (icons[status] || 'ph-clock');
+                if (ic) ic.className = 'ph ' + (icons[status] || 'ph-clock');
             }
             if (evId && status !== previousStatus) {
                 var payload = { status: status };
@@ -6815,7 +6282,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         $id('eventDetailStatusLabel').textContent = labels[previousStatus] || previousStatus;
                         if (iconEl) {
                             var ic = iconEl.querySelector('i');
-                            if (ic) ic.className = 'me-2 ph ' + (icons[previousStatus] || 'ph-clock');
+                            if (ic) ic.className = 'ph ' + (icons[previousStatus] || 'ph-clock');
                         }
                         showToast(res.message || 'Erro ao atualizar estado.', 'error');
                     }
@@ -6825,7 +6292,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     $id('eventDetailStatusLabel').textContent = labels[previousStatus] || previousStatus;
                     if (iconEl) {
                         var ic = iconEl.querySelector('i');
-                        if (ic) ic.className = 'me-2 ph ' + (icons[previousStatus] || 'ph-clock');
+                        if (ic) ic.className = 'ph ' + (icons[previousStatus] || 'ph-clock');
                     }
                     showToast('Erro de ligação.', 'error');
                 });
@@ -6883,7 +6350,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var ev = typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
                 if (ev) ev.remove();
                 bootstrap.Modal.getInstance($id('cancelMarcacaoModal'))?.hide();
-                bootstrap.Modal.getInstance($id('eventDetailEditModal'))?.hide();
+                bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
                 showToast('Marcação cancelada.', 'success');
             } else {
                 showToast(res.message || 'Erro ao cancelar.', 'error');
@@ -6942,7 +6409,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     applyAgendaEventFromServer(ev, res.event);
                 }
                 eventDetailWasSaved = true;
-                bootstrap.Modal.getInstance($id('eventDetailEditModal')).hide();
+                bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
                 scheduleStackedEventClassRefresh();
             })
             .catch(function(err) {
@@ -7039,20 +6506,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var iconEl = $id('eventDetailStatusIcon');
         if (iconEl) {
             var ic = iconEl.querySelector('i');
-            if (ic) ic.className = 'me-2 ph ' + (icons[prev] || 'ph-clock');
+            if (ic) ic.className = 'ph ' + (icons[prev] || 'ph-clock');
         }
-        var ctx = window._cancelMarcacaoContext || 'edit';
         window._cancelMarcacaoContext = null;
-        if (ctx === 'edit') {
-            bootstrap.Modal.getOrCreateInstance($id('eventDetailEditModal')).show();
-        }
     });
 
-    $id('eventDetailEditModal').addEventListener('hidden.bs.modal', function() {
-        if (window._eventDetailHideForCancelFlow) {
-            window._eventDetailHideForCancelFlow = false;
-            return;
-        }
+    $id('eventDetailEditModal').addEventListener('hidden.bs.offcanvas', function() {
         if (!eventDetailWasSaved) {
             var evId = $id('eventDetailEditId')?.value;
             if (evId && eventDetailOriginalStartAt && eventDetailOriginalEndAt && typeof calendar !== 'undefined') {
@@ -7068,7 +6527,9 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailSelectedClient = null;
         eventDetailSelectedServices = [];
         window._eventDetailPreviousClient = null;
-        $id('eventDetailClientCancelBtn').classList.add('d-none');
+        eventDetailOcTeardownUi();
+        var eDetCan = $id('eventDetailClientCancelBtn');
+        if (eDetCan) eDetCan.classList.add('d-none');
         eventDetailOriginalStartAt = null;
         eventDetailOriginalEndAt = null;
     });
