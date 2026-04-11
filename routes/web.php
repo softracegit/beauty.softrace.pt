@@ -3,6 +3,9 @@
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookingClientAuthController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\BookingPasswordController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
@@ -20,6 +23,37 @@ use App\Http\Controllers\RelatoriosController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Booking (marcação pública — mesmo domínio, prefixo /booking)
+|--------------------------------------------------------------------------
+| Middleware `booking`: contexto do fluxo (ver App\Http\Middleware\BookingContext).
+| Assets estáticos: public/booking-assets/{css,js,img} (não usar public/booking — conflita com a rota /booking)
+*/
+Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(function () {
+    Route::get('/', [BookingController::class, 'index'])->name('index');
+    Route::get('/tecnica', [BookingController::class, 'technician'])->name('technician');
+    Route::get('/data-hora', [BookingController::class, 'datetime'])->name('datetime');
+    Route::get('/disponibilidade', [BookingController::class, 'availability'])->name('availability');
+    Route::get('/passo-3', [BookingController::class, 'step3'])->name('step3');
+    Route::post('/marcacao', [BookingController::class, 'submit'])->name('submit');
+    Route::get('/confirmacao', [BookingController::class, 'confirm'])->name('confirm');
+    Route::get('/servico/{service}', [BookingController::class, 'showService'])->name('service');
+
+    Route::get('/acesso', [BookingClientAuthController::class, 'showAcesso'])->name('acesso');
+    Route::post('/acesso/link', [BookingClientAuthController::class, 'sendMagicLink'])
+        ->middleware('throttle:5,60')
+        ->name('acesso.link');
+    Route::get('/entrada/{token}', [BookingClientAuthController::class, 'consumeMagicLink'])
+        ->where('token', '[a-fA-F0-9]{64}')
+        ->name('login.magic');
+
+    Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {
+        Route::get('password', [BookingPasswordController::class, 'edit'])->name('password.edit');
+        Route::post('password', [BookingPasswordController::class, 'update'])->name('password.update');
+    });
+});
 
 // Rotas de autenticação (públicas)
 Route::middleware('guest')->group(function () {

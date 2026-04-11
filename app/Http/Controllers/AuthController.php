@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -16,8 +16,14 @@ class AuthController extends Controller
     public function showLoginForm()
     {
         if (Auth::check()) {
+            $user = Auth::user();
+            if ($user instanceof User && $user->isBookingClient()) {
+                return redirect()->route('booking.index');
+            }
+
             return redirect()->route('dashboard');
         }
+
         return view('auth-signin');
     }
 
@@ -36,6 +42,11 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
+            $user = Auth::user();
+            if ($user instanceof User && $user->isBookingClient()) {
+                return redirect()->intended(route('booking.index'));
+            }
+
             return redirect()->intended(route('dashboard'));
         }
 
@@ -50,8 +61,14 @@ class AuthController extends Controller
     public function showRegisterForm()
     {
         if (Auth::check()) {
+            $user = Auth::user();
+            if ($user instanceof User && $user->isBookingClient()) {
+                return redirect()->route('booking.index');
+            }
+
             return redirect()->route('dashboard');
         }
+
         return view('auth-signup');
     }
 
@@ -90,10 +107,16 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $wasBookingClient = Auth::user() instanceof User && Auth::user()->isBookingClient();
+
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        if ($wasBookingClient) {
+            return redirect()->route('booking.index');
+        }
 
         return redirect()->route('login');
     }

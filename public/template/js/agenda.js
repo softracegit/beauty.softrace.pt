@@ -1370,6 +1370,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailOriginalStartAt = null;
     var eventDetailOriginalEndAt = null;
     var eventDetailWasSaved = false;
+    /** Se true, a duração do evento segue só a soma dos serviços+extras (heurística anti-duplicação desligada). */
+    var eventDetailTrustServicesSumForDuration = false;
+    function eventDetailMarkServiceListMutated() {
+        eventDetailTrustServicesSumForDuration = true;
+    }
 
     function agendaIsoTimesEqual(a, b) {
         if (a == null && b == null) return true;
@@ -1407,6 +1412,9 @@ document.addEventListener('DOMContentLoaded', function() {
      */
     function eventDetailEffectiveDurationMinutes() {
         var sumDur = eventDetailServicesPartsSumMinutes();
+        if (eventDetailTrustServicesSumForDuration) {
+            return sumDur;
+        }
         var startEl = $id('eventDetailEditStart');
         var endEl = $id('eventDetailEditEnd');
         if (!startEl || !endEl) return sumDur;
@@ -1486,6 +1494,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailExistingSale = data.existing_sale || null;
         eventDetailOriginalStartAt = data.start_at || null;
         eventDetailOriginalEndAt = data.end_at || null;
+        eventDetailTrustServicesSumForDuration = false;
         eventDetailSelectedServices = [];
         var id = data.id;
         $id('eventDetailEditId').value = id;
@@ -2036,6 +2045,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', function() {
                 var idx = parseInt(this.dataset.idx, 10);
                 if (isNaN(idx) || !eventDetailSelectedServices[idx]) return;
+                eventDetailMarkServiceListMutated();
                 eventDetailSelectedServices.splice(idx, 1);
                 if (!eventDetailSelectedServices.length) eventDetailOcShowServicePicker = true;
                 eventDetailOcRenderSelectedServices();
@@ -2075,6 +2085,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var ex = svc.available_extras.find(function(x) { return String(x.id) === String(exIdRaw); });
                 if (!ex) return;
                 if (!svc.extras) svc.extras = [];
+                eventDetailMarkServiceListMutated();
                 svc.extras.push({
                     id: ex.id, name: ex.name, duration: ex.duration || 0, price: ex.price || 0,
                     formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min',
@@ -2091,6 +2102,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var sIdx = parseInt(this.dataset.idx, 10);
                 var exIdx = parseInt(this.dataset.extraIndex, 10);
                 if (!isNaN(sIdx) && !isNaN(exIdx) && eventDetailSelectedServices[sIdx] && Array.isArray(eventDetailSelectedServices[sIdx].extras)) {
+                    eventDetailMarkServiceListMutated();
                     eventDetailSelectedServices[sIdx].extras.splice(exIdx, 1);
                     eventDetailOcRenderSelectedServices();
                     EventDetail.updateTotal();
@@ -2131,6 +2143,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Preço inválido.', 'error');
                     return;
                 }
+                eventDetailMarkServiceListMutated();
                 eventDetailSelectedServices[idx].duration = dur;
                 eventDetailSelectedServices[idx].price = price;
                 eventDetailSelectedServices[idx].formatted_duration = dur + ' min';
@@ -2152,6 +2165,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $id('eventDetailEditUserId').value = this.value || '';
                 syncEventDetailCalendarEventToSelectedMember();
                 eventDetailSelectedServices = [];
+                eventDetailTrustServicesSumForDuration = false;
                 eventDetailOcShowServicePicker = true;
                 eventDetailOcRenderSelectedServices();
                 eventDetailOcReloadServicesForMember(this.value || '', function() {
@@ -2181,6 +2195,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (eventDetailSelectedServices.some(function(s) { return String(s.service_id) === String(sid); })) {
                     showToast('Serviço já adicionado.', 'warning');
                 } else {
+                    eventDetailMarkServiceListMutated();
                     eventDetailSelectedServices.push({
                         service_id: svc.service_id,
                         name: svc.name || '',
@@ -2347,6 +2362,7 @@ document.addEventListener('DOMContentLoaded', function() {
             a.addEventListener('click', function(e) {
                 e.preventDefault();
                 if (!eventDetailSelectedServices[idx].extras) eventDetailSelectedServices[idx].extras = [];
+                eventDetailMarkServiceListMutated();
                 eventDetailSelectedServices[idx].extras.push({ id: ex.id, name: ex.name, duration: ex.duration || 0, price: ex.price || 0, formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min', formatted_price: ex.formatted_price || (ex.price || 0).toFixed(2).replace('.', ',') + ' €' });
                 hide();
                 EventDetail.renderSelectedServices();
@@ -2416,6 +2432,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var d = parseInt(popup.querySelector('.edDur').value, 10);
             var p = parseFloat(popup.querySelector('.edPrice').value);
             if (eventDetailSelectedServices[idx]) {
+                eventDetailMarkServiceListMutated();
                 if (!isNaN(d) && d > 0) eventDetailSelectedServices[idx].duration = d;
                 if (!isNaN(p) && p >= 0) { eventDetailSelectedServices[idx].price = p; eventDetailSelectedServices[idx].formatted_price = p.toFixed(2).replace('.', ',') + ' €'; }
                 eventDetailSelectedServices[idx].formatted_duration = (eventDetailSelectedServices[idx].duration || 0) + ' min';
@@ -2459,6 +2476,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     EventDetail.deleteService = function(idx) {
         if (typeof window._hideEditServiceQuickMenu === 'function') { window._hideEditServiceQuickMenu(); window._hideEditServiceQuickMenu = null; }
+        eventDetailMarkServiceListMutated();
         eventDetailSelectedServices.splice(idx, 1);
         if (!eventDetailSelectedServices.length) eventDetailOcShowServicePicker = true;
         EventDetail.renderSelectedServices();

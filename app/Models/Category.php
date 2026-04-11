@@ -27,10 +27,10 @@ class Category extends Model
     }
 
     /**
-     * Get active services for this category
+     * Serviços da categoria (ordenados). A coluna is_active foi removida de services.
      */
     public function activeServices(): HasMany
     {
-        return $this->hasMany(Service::class)->where('is_active', true)->orderBy('sort_order');
+        return $this->hasMany(Service::class)->orderBy('sort_order');
     }
 }

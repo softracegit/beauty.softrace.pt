@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Spatie\Activitylog\LogOptions;
@@ -142,6 +143,15 @@ class Client extends Model
     public function calendarEvents(): HasMany
     {
         return $this->hasMany(CalendarEvent::class);
+    }
+
+    /**
+     * Utilizador de marcação online (role cliente), se existir.
+     */
+    public function bookingUser(): HasOne
+    {
+        return $this->hasOne(User::class, 'client_id', 'id')
+            ->where('role', User::ROLE_CLIENTE);
     }
 
     /**

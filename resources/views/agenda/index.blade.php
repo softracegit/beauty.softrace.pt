@@ -499,7 +499,7 @@
             <span class="fw-semibold" id="eventDetailTotalPrice">0,00 €</span>
         </div>
         <div class="d-flex flex-wrap gap-2 justify-content-end">
-            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas">Fechar</button>
+            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas">Fechar sem guardar</button>
             <button type="submit" class="btn btn-primary btn-sm" id="eventDetailSaveBtn" form="eventDetailEditForm">Guardar</button>
             <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end" id="eventDetailPaymentWrap">
                 <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Pagamento</button>

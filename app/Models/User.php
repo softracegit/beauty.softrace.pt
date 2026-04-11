@@ -22,6 +22,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'client_id',
+        'must_set_password',
     ];
 
     /**
@@ -44,6 +46,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'must_set_password' => 'boolean',
         ];
     }
 
@@ -58,6 +61,9 @@ class User extends Authenticatable
 
     public const ROLE_TECNICO = 'tecnico';
 
+    /** Conta de cliente para marcação online (magic link / password opcional). */
+    public const ROLE_CLIENTE = 'cliente';
+
     public static function roles(): array
     {
         return [
@@ -66,6 +72,7 @@ class User extends Authenticatable
             self::ROLE_RECECAO => 'Receção',
             self::ROLE_PRESTADOR => 'Prestador(a) de Serviços',
             self::ROLE_TECNICO => 'Técnico(a)',
+            self::ROLE_CLIENTE => 'Cliente (marcação online)',
         ];
     }
 
@@ -84,6 +91,19 @@ class User extends Authenticatable
     public function agent()
     {
         return $this->hasOne(Agent::class);
+    }
+
+    /**
+     * Ficha de CRM associada a contas de marcação online (role cliente).
+     */
+    public function client()
+    {
+        return $this->belongsTo(Client::class);
+    }
+
+    public function isBookingClient(): bool
+    {
+        return $this->role === self::ROLE_CLIENTE && $this->client_id !== null;
     }
 
     /**
