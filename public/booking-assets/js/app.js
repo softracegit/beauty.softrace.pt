@@ -150,6 +150,7 @@
                 els.nextBtn.disabled = true;
             }
             closeSummaryDrawer();
+            scheduleBookingSummaryFooterVisualBottom();
             return;
         }
 
@@ -223,6 +224,7 @@
         if (els.summaryTotalDuration) {
             els.summaryTotalDuration.textContent = formatDurationPT(getTotalDurationMinutes());
         }
+        scheduleBookingSummaryFooterVisualBottom();
     }
 
     function removeLine(lineId) {
@@ -1239,6 +1241,50 @@
         });
     }
 
+    /**
+     * Barra fixa do resumo (mobile): Chrome/Safari no iPhone mudam a altura da viewport
+     * ao esconder a barra de navegação. bottom:0 fica ancorado ao layout viewport e fica um vão.
+     * Espaço entre o fundo do layout e o fundo da viewport visível = innerHeight - vv.height - offsetTop.
+     */
+    function syncBookingSummaryFooterVisualBottom() {
+        var footer = document.querySelector('.booking-summary-footer');
+        if (!footer) {
+            return;
+        }
+        if (!window.matchMedia('(max-width: 991.98px)').matches) {
+            footer.style.removeProperty('bottom');
+            return;
+        }
+        if (!window.visualViewport) {
+            footer.style.removeProperty('bottom');
+            return;
+        }
+        var vv = window.visualViewport;
+        var gap = window.innerHeight - vv.height - vv.offsetTop;
+        footer.style.bottom = (gap > 0 ? gap : 0) + 'px';
+    }
+
+    var bookingFooterVvRaf = 0;
+    function scheduleBookingSummaryFooterVisualBottom() {
+        if (bookingFooterVvRaf) {
+            return;
+        }
+        bookingFooterVvRaf = window.requestAnimationFrame(function () {
+            bookingFooterVvRaf = 0;
+            syncBookingSummaryFooterVisualBottom();
+        });
+    }
+
+    function bindBookingSummaryFooterVisualViewport() {
+        syncBookingSummaryFooterVisualBottom();
+        if (!window.visualViewport) {
+            return;
+        }
+        var vv = window.visualViewport;
+        vv.addEventListener('resize', scheduleBookingSummaryFooterVisualBottom);
+        vv.addEventListener('scroll', scheduleBookingSummaryFooterVisualBottom);
+    }
+
     function bindSummaryLayoutResize() {
         var resizeTimer;
         window.addEventListener('resize', function () {
@@ -1250,6 +1296,7 @@
                 if (wasDrawerOpen && !window.matchMedia('(max-width: 991.98px)').matches) {
                     closeSummaryDrawer();
                 }
+                syncBookingSummaryFooterVisualBottom();
             }, 120);
         });
     }
@@ -1303,6 +1350,7 @@
         bindNext();
         bindSummaryDrawerToggle();
         bindSummaryLayoutResize();
+        bindBookingSummaryFooterVisualViewport();
     }
 
     if (document.readyState === 'loading') {
