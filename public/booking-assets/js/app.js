@@ -149,6 +149,7 @@
             if (els.nextBtn) {
                 els.nextBtn.disabled = true;
             }
+            closeSummaryDrawer();
             return;
         }
 
@@ -1191,6 +1192,68 @@
             });
     }
 
+    function syncSummaryScrollPlacement() {
+        var scroll = document.getElementById('booking-summary-scroll');
+        var drawer = document.getElementById('booking-summary-mobile-drawer');
+        var cardBody = document.querySelector('.booking-summary-card__body');
+        var footer = document.querySelector('.booking-summary-footer');
+        if (!scroll || !drawer || !cardBody || !footer) {
+            return;
+        }
+        var mobile = window.matchMedia('(max-width: 991.98px)').matches;
+        if (mobile) {
+            if (scroll.parentElement !== drawer) {
+                drawer.appendChild(scroll);
+            }
+        } else if (scroll.parentElement === drawer) {
+            cardBody.insertBefore(scroll, footer);
+        }
+    }
+
+    function closeSummaryDrawer() {
+        var footer = document.querySelector('.booking-summary-footer');
+        var drawer = document.getElementById('booking-summary-mobile-drawer');
+        var btn = document.getElementById('booking-summary-toggle-drawer');
+        if (footer) {
+            footer.classList.remove('is-drawer-open');
+        }
+        if (drawer) {
+            drawer.setAttribute('aria-hidden', 'true');
+        }
+        if (btn) {
+            btn.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    function bindSummaryDrawerToggle() {
+        var btn = document.getElementById('booking-summary-toggle-drawer');
+        var footer = document.querySelector('.booking-summary-footer');
+        var drawer = document.getElementById('booking-summary-mobile-drawer');
+        if (!btn || !footer || !drawer) {
+            return;
+        }
+        btn.addEventListener('click', function () {
+            var open = footer.classList.toggle('is-drawer-open');
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+        });
+    }
+
+    function bindSummaryLayoutResize() {
+        var resizeTimer;
+        window.addEventListener('resize', function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                var footer = document.querySelector('.booking-summary-footer');
+                var wasDrawerOpen = footer && footer.classList.contains('is-drawer-open');
+                syncSummaryScrollPlacement();
+                if (wasDrawerOpen && !window.matchMedia('(max-width: 991.98px)').matches) {
+                    closeSummaryDrawer();
+                }
+            }, 120);
+        });
+    }
+
     function bindNext() {
         if (!els.nextBtn) {
             return;
@@ -1229,6 +1292,7 @@
 
     function init() {
         cacheElements();
+        syncSummaryScrollPlacement();
         loadFromStorage();
         renderSummary();
         initTechnicianStep();
@@ -1237,6 +1301,8 @@
         bindServiceButtons();
         bindModal();
         bindNext();
+        bindSummaryDrawerToggle();
+        bindSummaryLayoutResize();
     }
 
     if (document.readyState === 'loading') {

@@ -121,7 +121,7 @@
             </div>
             <div class="uview-detail-row">
               <div class="uview-detail-label">Preço</div>
-              <div class="uview-detail-value">{{ number_format((float) $es->price, 2, ',', ' ') }} €</div>
+              <div class="uview-detail-value">{{ number_format((float) $es->price, 2, ',', ' ') }}€</div>
             </div>
             @foreach($es->extras as $x)
               <div class="uview-detail-row">
@@ -129,7 +129,7 @@
                 <div class="uview-detail-value">
                   <span class="fw-medium">{{ $x->extra?->name ?? 'Extra' }}</span>
                   <span class="text-muted"> · {{ $formatMins($x->duration !== null ? (int) $x->duration : null) }}</span>
-                  <span class="text-muted"> · {{ number_format((float) $x->price, 2, ',', ' ') }} €</span>
+                  <span class="text-muted"> · {{ number_format((float) $x->price, 2, ',', ' ') }}€</span>
                 </div>
               </div>
             @endforeach

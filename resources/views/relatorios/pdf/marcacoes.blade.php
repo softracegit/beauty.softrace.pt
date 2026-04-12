@@ -14,6 +14,7 @@
     th, td { padding: 5px 6px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
     th { background: #f5f5f5; font-size: 7px; text-transform: uppercase; letter-spacing: 0.02em; }
     .text-end { text-align: right; }
+    .text-nowrap { white-space: nowrap; }
     .small { font-size: 8px; color: #555; }
     .footer { margin-top: 16px; font-size: 8px; color: #888; }
     .servicos-cell { max-width: 140px; word-wrap: break-word; }
@@ -41,9 +42,10 @@
         <th style="width:9%">Estado</th>
         <th style="width:14%">Cliente</th>
         <th style="width:12%">Técnico</th>
-        <th style="width:22%">Serviços</th>
-        <th class="text-end" style="width:8%">Preço</th>
-        <th style="width:24%">Notas</th>
+        <th style="width:18%">Serviços</th>
+        <th style="width:12%">Categoria</th>
+        <th class="text-end text-nowrap" style="width:8%">Preço</th>
+        <th style="width:18%">Notas</th>
       </tr>
     </thead>
     <tbody>
@@ -56,6 +58,10 @@
             ->map(fn ($es) => $es->service?->name)
             ->filter()
             ->implode(', ');
+          $categorias = $ev->eventServiceItems
+            ->map(fn ($es) => $es->service?->category?->name)
+            ->map(fn ($n) => $n !== null && $n !== '' ? $n : '—')
+            ->implode(', ');
         @endphp
         <tr>
           <td>{{ $ev->start_at->format('d/m/Y H:i') }}</td>
@@ -63,11 +69,22 @@
           <td>{{ $ev->client?->name ?? '—' }}</td>
           <td>{{ $ev->user?->name ?? '—' }}</td>
           <td class="servicos-cell small">{{ $services !== '' ? $services : '—' }}</td>
-          <td class="text-end">{{ number_format($totalPreco, 2, ',', ' ') }} €</td>
+          <td class="servicos-cell small">{{ $categorias !== '' ? $categorias : '—' }}</td>
+          <td class="text-end text-nowrap">{{ number_format($totalPreco, 2, ',', ' ') }}€</td>
           <td class="small">{{ $ev->description ? \Illuminate\Support\Str::limit($ev->description, 120) : '—' }}</td>
         </tr>
       @endforeach
     </tbody>
+    @if(!empty($marcacoesTotais))
+      <tfoot>
+        <tr>
+          <td colspan="5" class="text-end" style="font-weight:bold;">Total</td>
+          <td>—</td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($marcacoesTotais['preco_total'] ?? 0, 2, ',', ' ') }}€</td>
+          <td class="small" style="font-weight:bold;">{{ ($marcacoesTotais['servicos_count'] ?? 0) }} serviço(s)</td>
+        </tr>
+      </tfoot>
+    @endif
   </table>
 
   @if($marcacoes->isEmpty())

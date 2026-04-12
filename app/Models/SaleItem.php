@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SaleItem extends Model
 {
     public const TIPO_SERVICO = 'servico';
+
     public const TIPO_EXTRA = 'extra';
 
     protected $fillable = [
@@ -20,6 +21,7 @@ class SaleItem extends Model
         'quantidade',
         'preco_unitario',
         'subtotal',
+        'desconto',
         'sort_order',
     ];
 
@@ -27,6 +29,7 @@ class SaleItem extends Model
         'quantidade' => 'integer',
         'preco_unitario' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'desconto' => 'decimal:2',
         'sort_order' => 'integer',
     ];
 

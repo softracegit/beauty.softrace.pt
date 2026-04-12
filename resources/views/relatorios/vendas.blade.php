@@ -72,7 +72,7 @@
 
   @if($vendas->count() > 0)
     <div class="table-responsive">
-      <table class="table table-sm table-hover">
+      <table class="table table-sm table-hover align-middle">
         <thead>
           <tr>
             <th>Data</th>
@@ -82,7 +82,9 @@
             <th>Técnico</th>
             <th>Serviço</th>
             <th class="text-center">Qtd</th>
-            <th class="text-end">Valor</th>
+            <th class="text-end text-nowrap">Desconto</th>
+            <th class="text-end text-nowrap">Valor</th>
+            <th class="text-end text-nowrap">Em dívida</th>
             <th class="text-end"></th>
           </tr>
         </thead>
@@ -101,15 +103,70 @@
                 @endif
               </td>
               <td class="text-center">{{ $linha->quantidade }}</td>
-              <td class="text-end">{{ number_format($linha->valor, 2, ',', ' ') }} €</td>
-              <td class="text-end">
-                <a href="{{ route('sales.pdf', $linha->sale) }}" class="btn btn-sm btn-light" target="_blank" rel="noopener" title="PDF da fatura">
-                  <i class="ph ph-file-pdf"></i>
-                </a>
+              <td class="text-end text-nowrap">
+                @if((float) ($linha->desconto ?? 0) > 0)
+                  {{ number_format((float) $linha->desconto, 2, ',', ' ') }}€
+                @else
+                  —
+                @endif
+              </td>
+              <td class="text-end text-nowrap">{{ number_format($linha->valor, 2, ',', ' ') }}€</td>
+              <td class="text-end text-nowrap">
+                @if((float) ($linha->pendente ?? 0) > 0)
+                  {{ number_format((float) $linha->pendente, 2, ',', ' ') }}€
+                @else
+                  —
+                @endif
+              </td>
+              <td class="text-end p-1">
+                <div class="dropdown d-inline-block">
+                  <button class="btn btn-sm btn-light dropdown-toggle js-vendas-dropdown" type="button" id="vendas-acoes-{{ $loop->index }}" data-bs-toggle="dropdown" aria-expanded="false" title="Ações da fatura">
+                    <i class="ph ph-dots-three-vertical"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="vendas-acoes-{{ $loop->index }}">
+                    <li>
+                      <a class="dropdown-item" href="{{ route('sales.pdf', $linha->sale) }}" target="_blank" rel="noopener">
+                        <i class="ph ph-printer me-2"></i>Ver / Imprimir
+                      </a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="{{ route('sales.pdf', $linha->sale) }}?download=1">
+                        <i class="ph ph-file-pdf me-2"></i>Ver PDF
+                      </a>
+                    </li>
+                    @if($linha->calendar_event_id)
+                      <li>
+                        <a class="dropdown-item" href="{{ route('agenda.index', ['event' => $linha->calendar_event_id]) }}">
+                          <i class="ph ph-calendar me-2"></i>Ver marcação
+                        </a>
+                      </li>
+                    @else
+                      <li><span class="dropdown-item-text text-muted small">Sem marcação associada</span></li>
+                    @endif
+                    @if(($linha->sale_status ?? '') === \App\Models\Sale::STATUS_PAGO)
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <button type="button" class="dropdown-item text-danger js-sale-revert" data-revert-url="{{ route('sales.revert', $linha->sale) }}">
+                          <i class="ph ph-arrow-counter-clockwise me-2"></i>Cancelar (nota de crédito)
+                        </button>
+                      </li>
+                    @endif
+                  </ul>
+                </div>
               </td>
             </tr>
           @endforeach
         </tbody>
+        <tfoot class="table-light">
+          <tr class="fw-semibold">
+            <td colspan="6" class="text-end">Totais (filtro)</td>
+            <td class="text-center">{{ $vendasTotais['num_vendas'] ?? 0 }}</td>
+            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_desconto'] ?? 0, 2, ',', ' ') }}€</td>
+            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_valor'] ?? 0, 2, ',', ' ') }}€</td>
+            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_divida'] ?? 0, 2, ',', ' ') }}€</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
     <div class="mt-3">
@@ -118,4 +175,64 @@
   @else
     <p class="text-muted text-center py-3">Nenhuma linha de venda nos filtros selecionados.</p>
   @endif
+@endsection
+
+@section('js')
+  <script>
+    (function () {
+      function initVendasDropdowns() {
+        if (typeof bootstrap === 'undefined' || !bootstrap.Dropdown) return;
+        document.querySelectorAll('.js-vendas-dropdown').forEach(function (btn) {
+          bootstrap.Dropdown.getOrCreateInstance(btn, {
+            boundary: 'viewport',
+            popperConfig: function (defaultBsPopperConfig) {
+              return Object.assign({}, defaultBsPopperConfig, { strategy: 'fixed' });
+            },
+          });
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initVendasDropdowns);
+      } else {
+        initVendasDropdowns();
+      }
+
+      document.body.addEventListener('click', function (e) {
+        var btn = e.target.closest('.js-sale-revert');
+        if (!btn) return;
+        e.preventDefault();
+        var url = btn.getAttribute('data-revert-url');
+        if (!url) return;
+        if (!window.confirm('Anular esta venda e registar nota de crédito? A marcação volta ao estado editável.')) return;
+        var token = document.querySelector('meta[name="csrf-token"]');
+        token = token ? token.getAttribute('content') : '';
+        btn.disabled = true;
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': token,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: '{}'
+        })
+          .then(function (r) { return r.json().then(function (res) { return { ok: r.ok, res: res }; }); })
+          .then(function (x) {
+            btn.disabled = false;
+            if (!x.ok || !x.res.success) {
+              var msg = (x.res && (x.res.error || x.res.message)) || 'Erro ao anular.';
+              if (window.showToast) window.showToast(msg, 'error'); else alert(msg);
+              return;
+            }
+            if (window.showToast) window.showToast(x.res.message || 'Venda anulada.', 'success');
+            window.location.reload();
+          })
+          .catch(function () {
+            btn.disabled = false;
+            if (window.showToast) window.showToast('Erro de ligação.', 'error'); else alert('Erro de ligação.');
+          });
+      });
+    })();
+  </script>
 @endsection

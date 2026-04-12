@@ -15,6 +15,7 @@
     th { background: #f5f5f5; font-size: 6px; text-transform: uppercase; }
     .text-end { text-align: right; }
     .text-center { text-align: center; }
+    .text-nowrap { white-space: nowrap; }
     .footer { margin-top: 14px; font-size: 7px; color: #888; }
   </style>
 </head>
@@ -41,10 +42,12 @@
         <th style="width:14%">Cliente</th>
         <th style="width:9%">NIF</th>
         <th style="width:11%">Técnico</th>
-        <th style="width:22%">Serviço</th>
+        <th style="width:18%">Serviço</th>
         <th class="text-center" style="width:5%">Qtd</th>
-        <th class="text-end" style="width:8%">Valor</th>
-        <th style="width:8%">Estado</th>
+        <th class="text-end text-nowrap" style="width:7%">Desconto</th>
+        <th class="text-end text-nowrap" style="width:7%">Valor</th>
+        <th class="text-end text-nowrap" style="width:7%">Em dívida</th>
+        <th style="width:7%">Estado</th>
       </tr>
     </thead>
     <tbody>
@@ -57,11 +60,25 @@
           <td>{{ $linha->tecnico }}</td>
           <td>{{ $linha->servico }}@if(($linha->tipo_item ?? '') === \App\Models\SaleItem::TIPO_EXTRA) (Extra)@endif</td>
           <td class="text-center">{{ $linha->quantidade }}</td>
-          <td class="text-end">{{ number_format($linha->valor, 2, ',', ' ') }} €</td>
+          <td class="text-end text-nowrap">@if((float)($linha->desconto ?? 0) > 0){{ number_format((float) $linha->desconto, 2, ',', ' ') }}€@else—@endif</td>
+          <td class="text-end text-nowrap">{{ number_format($linha->valor, 2, ',', ' ') }}€</td>
+          <td class="text-end text-nowrap">@if((float)($linha->pendente ?? 0) > 0){{ number_format((float) $linha->pendente, 2, ',', ' ') }}€@else—@endif</td>
           <td>{{ \App\Models\Sale::statuses()[$linha->sale_status] ?? $linha->sale_status }}</td>
         </tr>
       @endforeach
     </tbody>
+    @if(!empty($vendasTotais))
+      <tfoot>
+        <tr>
+          <td colspan="6" class="text-end" style="font-weight:bold;">Totais (filtro)</td>
+          <td class="text-center" style="font-weight:bold;">{{ $vendasTotais['num_vendas'] ?? 0 }}</td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_desconto'] ?? 0, 2, ',', ' ') }}€</td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_valor'] ?? 0, 2, ',', ' ') }}€</td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_divida'] ?? 0, 2, ',', ' ') }}€</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    @endif
   </table>
 
   @if($linhas->isEmpty())

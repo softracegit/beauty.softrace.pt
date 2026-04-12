@@ -105,10 +105,13 @@ class CheckoutController extends Controller
             'items.*.quantidade' => ['required', 'integer', 'min:1'],
             'items.*.preco_unitario' => ['required', 'numeric', 'min:0'],
             'items.*.subtotal' => ['nullable', 'numeric', 'min:0'],
+            'items.*.desconto' => ['nullable', 'numeric', 'min:0'],
             'items.*.calendar_event_service_id' => ['nullable', 'exists:calendar_event_services,id'],
             'items.*.service_id' => ['nullable', 'exists:services,id'],
             'items.*.extra_id' => ['nullable', 'exists:extras,id'],
             'gorjeta' => ['nullable', 'numeric', 'min:0'],
+            'desconto' => ['nullable', 'numeric', 'min:0'],
+            'valor_pago' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $calendarEvent = CalendarEvent::findOrFail($validated['event_id']);
@@ -125,14 +128,22 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Esta marcação já foi faturada.'], 422);
         }
 
-        $subtotal = 0;
+        $subtotalItens = 0.0;
         foreach ($validated['items'] as $row) {
             $qty = (int) $row['quantidade'];
             $preco = (float) $row['preco_unitario'];
-            $subtotal += $qty * $preco;
+            $bruto = round($qty * $preco, 2);
+            $descLinha = isset($row['desconto']) ? (float) $row['desconto'] : 0;
+            $descLinha = min(max(0, $descLinha), $bruto);
+            $subtotalItens += round($bruto - $descLinha, 2);
         }
         $gorjeta = isset($validated['gorjeta']) ? (float) $validated['gorjeta'] : 0;
-        $total = round($subtotal + $gorjeta, 2);
+        $descontoDoc = isset($validated['desconto']) ? max(0, (float) $validated['desconto']) : 0;
+        $maxDocDisc = $subtotalItens + $gorjeta;
+        $descontoDoc = min($descontoDoc, $maxDocDisc);
+        $total = round(max(0, $subtotalItens + $gorjeta - $descontoDoc), 2);
+        $valorPago = isset($validated['valor_pago']) ? max(0, (float) $validated['valor_pago']) : $total;
+        $valorPago = min($valorPago, $total);
 
         $now = now();
         $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'));
@@ -147,6 +158,8 @@ class CheckoutController extends Controller
                 'data_emissao' => $now->toDateString(),
                 'total' => $total,
                 'gorjeta' => $gorjeta > 0 ? round($gorjeta, 2) : null,
+                'desconto' => $descontoDoc > 0 ? round($descontoDoc, 2) : null,
+                'valor_pago' => round($valorPago, 2),
                 'iva_total' => null,
                 'payment_method' => $validated['payment_method'],
                 'status' => Sale::STATUS_PAGO,
@@ -155,7 +168,10 @@ class CheckoutController extends Controller
             foreach ($validated['items'] as $idx => $row) {
                 $qty = (int) $row['quantidade'];
                 $preco = (float) $row['preco_unitario'];
-                $subtotal = round($qty * $preco, 2);
+                $bruto = round($qty * $preco, 2);
+                $descLinha = isset($row['desconto']) ? (float) $row['desconto'] : 0;
+                $descLinha = min(max(0, $descLinha), $bruto);
+                $subtotal = round($bruto - $descLinha, 2);
                 SaleItem::create([
                     'sale_id' => $sale->id,
                     'tipo' => $row['tipo'],
@@ -166,6 +182,7 @@ class CheckoutController extends Controller
                     'quantidade' => $qty,
                     'preco_unitario' => $preco,
                     'subtotal' => $subtotal,
+                    'desconto' => $descLinha > 0 ? round($descLinha, 2) : null,
                     'sort_order' => $idx,
                 ]);
             }
@@ -192,9 +209,9 @@ class CheckoutController extends Controller
     }
 
     /**
-     * GET sales/{sale}/pdf – devolver PDF da fatura.
+     * GET sales/{sale}/pdf – devolver PDF da fatura (stream no browser ou descarga).
      */
-    public function pdf(Sale $sale)
+    public function pdf(Request $request, Sale $sale)
     {
         $sale->load(['client', 'items', 'calendarEvent']);
 
@@ -202,6 +219,10 @@ class CheckoutController extends Controller
             ->setPaper('a4', 'portrait');
 
         $safeFilename = str_replace(['/', '\\'], '-', $sale->numero_fatura).'-fatura.pdf';
+
+        if ($request->boolean('download')) {
+            return $pdf->download($safeFilename);
+        }
 
         return $pdf->stream($safeFilename);
     }

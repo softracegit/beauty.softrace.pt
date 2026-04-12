@@ -80,7 +80,8 @@
             <th>Cliente</th>
             <th>Técnico</th>
             <th>Serviços</th>
-            <th class="text-end">Preço</th>
+            <th>Categoria</th>
+            <th class="text-end text-nowrap">Preço</th>
             <th>Notas</th>
             <th></th>
           </tr>
@@ -110,7 +111,12 @@
                   <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ $es->service?->name ?? '—' }}</span>
                 @endforeach
               </td>
-              <td class="text-end">{{ number_format($totalPreco, 2, ',', ' ') }} €</td>
+              <td>
+                @foreach($ev->eventServiceItems as $es)
+                  <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ $es->service?->category?->name ?? '—' }}</span>
+                @endforeach
+              </td>
+              <td class="text-end text-nowrap">{{ number_format($totalPreco, 2, ',', ' ') }}€</td>
               <td class="small text-muted">
                 @if($ev->description)
                   <span title="{{ $ev->description }}">{{ \Illuminate\Support\Str::limit($ev->description, 60) }}</span>
@@ -131,6 +137,14 @@
             </tr>
           @endforeach
         </tbody>
+        <tfoot class="table-light">
+          <tr class="fw-semibold">
+            <td colspan="5" class="text-end">Total</td>
+            <td>—</td>
+            <td class="text-end text-nowrap">{{ number_format($marcacoesTotais['preco_total'] ?? 0, 2, ',', ' ') }}€</td>
+            <td colspan="2" class="small text-muted">{{ ($marcacoesTotais['servicos_count'] ?? 0) }} serviço(s)</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
     @foreach($marcacoes as $ev)

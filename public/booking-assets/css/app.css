@@ -3,6 +3,10 @@
  * Grid, navbar, cards e modal vêm do Bootstrap.
  */
 :root {
+    /* Espaço para a barra fixa de resumo (mobile) — só a faixa de totais + botões */
+    --booking-mobile-summary-bar-height: 4.85rem;
+    /* Painel expansível com a lista de serviços (altura máx.) */
+    --booking-mobile-drawer-max: min(50vh, 22rem);
     --booking-bg: #f3f4f6;
     --booking-text: #1a1a1a;
     --booking-muted: #6b6b6b;
@@ -158,6 +162,14 @@ html {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+}
+
+/* Faixa com totais + ações (no mobile fica por baixo do drawer no DOM, por cima visualmente com column-reverse). */
+.booking-summary-footer-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
 }
 
 .booking-technician-row {
@@ -581,4 +593,189 @@ html {
 .booking-summary-total__value {
     font-weight: 700;
     letter-spacing: -0.02em;
+}
+
+/* -------------------------------------------------------------------------
+ * Resumo em mobile: barra fixa (totais + chevron + botões); lista na gaveta.
+ * ------------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+    .booking-page--services .booking-main-body,
+    .booking-page--datetime .booking-main-body,
+    .booking-page--technician .booking-main-body,
+    .booking-page--step3 .booking-main-body {
+        padding-bottom: calc(var(--booking-mobile-summary-bar-height) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+    }
+
+    /* Sem serviços: barra fixa não existe — evita espaço vazio por baixo do conteúdo */
+    .booking-app:has(#booking-summary-empty:not(.is-hidden)) .booking-main-body {
+        padding-bottom: 1rem !important;
+    }
+
+    /* Gaveta de serviços aberta: espaço extra para o painel acima da barra */
+    .booking-app:has(.booking-summary-footer.is-drawer-open) .booking-main-body {
+        padding-bottom: calc(
+            var(--booking-mobile-summary-bar-height) + var(--booking-mobile-drawer-max) + env(safe-area-inset-bottom, 0px) + 0.75rem
+        ) !important;
+    }
+
+    .booking-summary-panel {
+        position: relative;
+        top: auto;
+        align-self: stretch;
+        z-index: 1010;
+        padding-top: 0;
+    }
+
+    /*
+     * O cartão não pode ser display:none (o footer fixo ficaria oculto).
+     * display:contents remove a caixa visual (borda/sombra) sem retirar os filhos do fluxo lógico.
+     */
+    .booking-summary-card {
+        display: contents;
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        border: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        border-radius: 0 !important;
+        overflow: visible;
+    }
+
+    .booking-summary-card__body {
+        display: contents;
+        padding: 0 !important;
+        margin: 0;
+        min-height: 0;
+    }
+
+    .booking-summary-footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1020;
+        flex-direction: column-reverse;
+        align-items: stretch;
+        justify-content: flex-end;
+        gap: 0;
+        margin-top: 0;
+        padding: 0;
+        border-top: 1px solid var(--booking-border);
+        border-radius: 0;
+        background: #fff;
+        box-shadow: 0 -0.35rem 1rem rgba(0, 0, 0, 0.08);
+    }
+
+    .booking-summary-footer-bar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        flex-shrink: 0;
+        padding: 0.6rem max(0.75rem, env(safe-area-inset-left, 0px)) max(0.6rem, env(safe-area-inset-bottom, 0px)) max(0.75rem, env(safe-area-inset-right, 0px));
+    }
+
+    .booking-summary-mobile-drawer {
+        width: 100%;
+        min-height: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+        border-top: 1px solid transparent;
+        background: #f8f9fa;
+    }
+
+    .booking-summary-footer.is-drawer-open .booking-summary-mobile-drawer {
+        max-height: var(--booking-mobile-drawer-max);
+        border-top-color: var(--booking-border);
+    }
+
+    /* Alinhar com .booking-summary-footer-bar (padding da barra fixa) */
+    .booking-summary-mobile-drawer .booking-summary-scroll {
+        max-height: var(--booking-mobile-drawer-max);
+        margin-top: 0;
+        padding: 0.6rem max(0.75rem, env(safe-area-inset-right, 0px)) 0.75rem max(0.75rem, env(safe-area-inset-left, 0px));
+    }
+
+    /* Carrinho vazio: sem barra de resumo no ecrã */
+    .booking-summary-card__body:has(#booking-summary-empty:not(.is-hidden)) .booking-summary-footer {
+        display: none !important;
+    }
+
+    .booking-summary-footer-bar:has(#booking-summary-total.is-hidden) {
+        justify-content: flex-end;
+    }
+
+    .booking-summary-total {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        column-gap: 0.35rem;
+        row-gap: 0.06rem;
+        justify-content: flex-start;
+        font-size: 0.9375rem;
+    }
+
+    .booking-summary-total__meta {
+        display: contents;
+    }
+
+    .booking-summary-total__label {
+        flex: 1 0 100%;
+        font-size: 0.8125rem;
+    }
+
+    .booking-summary-total__duration,
+    .booking-summary-total__value {
+        flex: 0 0 auto;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        line-height: 1.25;
+        color: var(--booking-muted);
+        letter-spacing: normal;
+    }
+
+    .booking-summary-total__value {
+        white-space: nowrap;
+    }
+
+    .booking-summary-actions {
+        flex: 0 0 auto;
+        gap: 0.4rem;
+    }
+
+    .booking-summary-footer .booking-summary-back-mobile,
+    .booking-summary-footer .booking-summary-next-btn,
+    .booking-summary-footer .booking-summary-toggle-drawer {
+        font-size: 0.875rem;
+        padding: 0.4rem 0.8rem;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+
+    .booking-summary-toggle-drawer {
+        padding-left: 0.55rem;
+        padding-right: 0.55rem;
+    }
+
+    .booking-summary-toggle-drawer__icon {
+        display: block;
+        font-size: 1.1rem;
+        line-height: 1;
+        transition: transform 0.25s ease;
+    }
+
+    .booking-summary-footer.is-drawer-open .booking-summary-toggle-drawer__icon {
+        transform: rotate(-180deg);
+    }
+
+    .booking-summary-next-btn {
+        flex: 0 0 auto !important;
+        min-width: 5.5rem;
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
 }

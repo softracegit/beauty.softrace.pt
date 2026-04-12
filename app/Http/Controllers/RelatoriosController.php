@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -71,6 +72,7 @@ class RelatoriosController extends Controller
             'servicosOpts' => $servicosOpts,
             'tecnicosOpts' => $tecnicosOpts,
             'clientesOpts' => $clientesOpts,
+            'marcacoesTotais' => $this->marcacoesReportTotals($request),
         ]);
     }
 
@@ -91,6 +93,7 @@ class RelatoriosController extends Controller
             'Cliente',
             'Técnico',
             'Serviços',
+            'Categoria',
             'Preço total (€)',
             'Notas',
         ];
@@ -105,6 +108,10 @@ class RelatoriosController extends Controller
                 ->map(fn ($es) => $es->service?->name)
                 ->filter()
                 ->implode(', ');
+            $categorias = $ev->eventServiceItems
+                ->map(fn ($es) => $es->service?->category?->name)
+                ->map(fn ($n) => $n !== null && $n !== '' ? $n : '—')
+                ->implode(', ');
             $statusLabel = CalendarEvent::statuses()[$ev->status] ?? $ev->status;
 
             $sheet->fromArray([
@@ -114,6 +121,7 @@ class RelatoriosController extends Controller
                     $ev->client?->name ?? '',
                     $ev->user?->name ?? '',
                     $services,
+                    $categorias,
                     round($totalPreco, 2),
                     $ev->description ?? '',
                 ],
@@ -121,7 +129,21 @@ class RelatoriosController extends Controller
             $rowIndex++;
         }
 
-        foreach (range('A', 'G') as $col) {
+        $totais = $this->marcacoesTotaisFromEvents($events);
+        $sheet->fromArray([
+            [
+                '',
+                '',
+                '',
+                '',
+                'Total',
+                $totais['servicos_count'].' serviço(s)',
+                round($totais['preco_total'], 2),
+                '',
+            ],
+        ], null, 'A'.$rowIndex);
+
+        foreach (range('A', 'H') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -141,7 +163,7 @@ class RelatoriosController extends Controller
     public function marcacoesPdf(Request $request)
     {
         $events = $this->marcacoesReportQuery($request)
-            ->with(['user', 'client', 'eventServiceItems.service', 'eventServiceItems.extras'])
+            ->with(['user', 'client', 'eventServiceItems.service.category', 'eventServiceItems.extras'])
             ->orderByDesc('start_at')
             ->get();
 
@@ -150,6 +172,7 @@ class RelatoriosController extends Controller
             'filtrosLinhas' => $this->marcacoesFiltrosResumo($request),
             'appName' => config('app.name'),
             'totalRegistos' => $events->count(),
+            'marcacoesTotais' => $this->marcacoesTotaisFromEvents($events),
         ])->setPaper('a4', 'landscape');
 
         $filename = 'marcacoes_'.now()->format('Y-m-d_His').'.pdf';
@@ -236,6 +259,55 @@ class RelatoriosController extends Controller
         return $marcacoesQuery;
     }
 
+    /**
+     * Soma do preço (serviços + extras) e contagem de linhas de serviço para o relatório de marcações (filtros atuais).
+     *
+     * @return array{preco_total: float, servicos_count: int}
+     */
+    private function marcacoesReportTotals(Request $request): array
+    {
+        $eventIds = $this->marcacoesReportQuery($request)->select('calendar_events.id');
+
+        $serviceSum = (float) DB::table('calendar_event_services')
+            ->whereIn('calendar_event_id', $eventIds)
+            ->sum('price');
+
+        $extraSum = (float) DB::table('calendar_event_service_extras as cee')
+            ->join('calendar_event_services as ces', 'cee.calendar_event_service_id', '=', 'ces.id')
+            ->whereIn('ces.calendar_event_id', $eventIds)
+            ->sum('cee.price');
+
+        $servicosCount = (int) DB::table('calendar_event_services')
+            ->whereIn('calendar_event_id', $eventIds)
+            ->count();
+
+        return [
+            'preco_total' => $serviceSum + $extraSum,
+            'servicos_count' => $servicosCount,
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, CalendarEvent>  $events
+     * @return array{preco_total: float, servicos_count: int}
+     */
+    private function marcacoesTotaisFromEvents(Collection $events): array
+    {
+        $preco = 0.0;
+        $count = 0;
+        foreach ($events as $ev) {
+            foreach ($ev->eventServiceItems as $es) {
+                $count++;
+                $preco += (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
+            }
+        }
+
+        return [
+            'preco_total' => $preco,
+            'servicos_count' => $count,
+        ];
+    }
+
     public function vendas(Request $request): View
     {
         $sales = $this->vendasReportQuery($request)
@@ -279,6 +351,7 @@ class RelatoriosController extends Controller
             'clientesOpts' => $this->vendasClientesOpts(),
             'servicosOpts' => $this->vendasServicosOpts(),
             'tecnicosOpts' => $this->vendasTecnicosOpts(),
+            'vendasTotais' => $this->vendasTotaisRodape($allLines),
         ]);
     }
 
@@ -304,7 +377,9 @@ class RelatoriosController extends Controller
             'Técnico',
             'Serviço',
             'Qtd',
+            'Desconto (€)',
             'Valor (€)',
+            'Em dívida (€)',
             'Estado venda',
         ];
         $sheet->fromArray($headers, null, 'A1');
@@ -320,14 +395,33 @@ class RelatoriosController extends Controller
                     $linha->tecnico,
                     $linha->servico,
                     $linha->quantidade,
+                    round((float) ($linha->desconto ?? 0), 2),
                     round($linha->valor, 2),
+                    round((float) ($linha->pendente ?? 0), 2),
                     Sale::statuses()[$linha->sale_status] ?? $linha->sale_status,
                 ],
             ], null, 'A'.$rowIndex);
             $rowIndex++;
         }
 
-        foreach (range('A', 'I') as $col) {
+        $totais = $this->vendasTotaisRodape($lines);
+        $sheet->fromArray([
+            [
+                '',
+                '',
+                '',
+                '',
+                '',
+                'Total',
+                $totais['num_vendas'],
+                round($totais['total_desconto'], 2),
+                round($totais['total_valor'], 2),
+                round($totais['total_divida'], 2),
+                '',
+            ],
+        ], null, 'A'.$rowIndex);
+
+        foreach (range('A', 'K') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -356,6 +450,7 @@ class RelatoriosController extends Controller
             'filtrosLinhas' => $this->vendasFiltrosResumo($request),
             'appName' => config('app.name'),
             'totalLinhas' => $lines->count(),
+            'vendasTotais' => $this->vendasTotaisRodape($lines),
         ])->setPaper('a4', 'landscape');
 
         $filename = 'vendas_'.now()->format('Y-m-d_His').'.pdf';
@@ -446,6 +541,42 @@ class RelatoriosController extends Controller
     }
 
     /**
+     * Totais do rodapé do relatório de vendas (todas as linhas do filtro).
+     *
+     * @param  Collection<int, object>  $lines
+     * @return array{total_valor: float, num_vendas: int, total_desconto: float, total_divida: float}
+     */
+    private function vendasTotaisRodape(Collection $lines): array
+    {
+        $totalValor = 0.0;
+        $totalDesconto = 0.0;
+        foreach ($lines as $linha) {
+            $totalValor += (float) $linha->valor;
+            $totalDesconto += (float) ($linha->desconto ?? 0);
+        }
+
+        $numVendas = $lines->pluck('sale_id')->unique()->count();
+
+        $totalDivida = 0.0;
+        $vistoSale = [];
+        foreach ($lines as $linha) {
+            $sid = (int) $linha->sale_id;
+            if (isset($vistoSale[$sid])) {
+                continue;
+            }
+            $vistoSale[$sid] = true;
+            $totalDivida += (float) ($linha->pendente ?? 0);
+        }
+
+        return [
+            'total_valor' => round($totalValor, 2),
+            'num_vendas' => $numVendas,
+            'total_desconto' => round($totalDesconto, 2),
+            'total_divida' => round($totalDivida, 2),
+        ];
+    }
+
+    /**
      * Uma linha por item de venda (serviço ou extra), alinhado à ficha cliente — Vendas.
      *
      * @return Collection<int, object>
@@ -470,7 +601,7 @@ class RelatoriosController extends Controller
             $tecName = $event?->user?->name ?? '—';
             $dataEmissao = $sale->data_emissao;
 
-            $out = [];
+            $visibleItems = [];
             foreach ($sale->items as $item) {
                 if ($servicoFilter) {
                     if ($item->tipo === SaleItem::TIPO_SERVICO && (int) $item->service_id !== $servicoFilter) {
@@ -481,13 +612,25 @@ class RelatoriosController extends Controller
                         continue;
                     }
                 }
+                $visibleItems[] = $item;
+            }
 
+            $pendente = $sale->status === Sale::STATUS_ANULADO
+                ? 0.0
+                : $sale->amountDue();
+
+            $out = [];
+            foreach ($visibleItems as $i => $item) {
                 $label = $item->descricao;
                 if ($item->tipo === SaleItem::TIPO_SERVICO && $item->service) {
                     $label = $item->service->name;
                 } elseif ($item->tipo === SaleItem::TIPO_EXTRA && $item->extra) {
                     $label = $item->extra->name;
                 }
+
+                $lineDisc = (float) ($item->desconto ?? 0);
+                $docDisc = ($i === 0) ? (float) ($sale->desconto ?? 0) : 0.0;
+                $descontoCol = round($lineDisc + $docDisc, 2);
 
                 $out[] = (object) [
                     'sale' => $sale,
@@ -502,6 +645,9 @@ class RelatoriosController extends Controller
                     'quantidade' => (int) $item->quantidade,
                     'valor' => (float) $item->subtotal,
                     'tipo_item' => $item->tipo,
+                    'desconto' => $descontoCol,
+                    'pendente' => $pendente,
+                    'calendar_event_id' => $sale->calendar_event_id,
                 ];
             }
 
