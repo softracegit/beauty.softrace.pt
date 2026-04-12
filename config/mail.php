@@ -123,6 +123,9 @@ return [
     | Em ambiente que não seja production, redireciona todos os emails para
     | um endereço de suporte para evitar envios acidentais para clientes reais.
     |
+    | O fluxo /booking usa o mailer "booking" (registado em AppServiceProvider),
+    | cópia do mailer por defeito com "to" desactivado, para entregar aos endereços reais.
+    |
     */
     'to' => env('APP_ENV', 'production') === 'production'
         ? null

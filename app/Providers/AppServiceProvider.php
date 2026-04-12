@@ -33,6 +33,31 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register policies
         $this->registerPolicies();
+
+        $this->registerBookingMailer();
+    }
+
+    /**
+     * Mailer dedicado ao fluxo público /booking: mesmo transporte que o default (log, smtp, …)
+     * mas sem o redirecionamento global config('mail.to') usado fora de production.
+     */
+    protected function registerBookingMailer(): void
+    {
+        $defaultName = config('mail.default');
+        if (! is_string($defaultName) || $defaultName === '') {
+            return;
+        }
+
+        $base = config("mail.mailers.{$defaultName}");
+        if (! is_array($base)) {
+            return;
+        }
+
+        config([
+            'mail.mailers.booking' => array_merge($base, [
+                'to' => null,
+            ]),
+        ]);
     }
 
     /**

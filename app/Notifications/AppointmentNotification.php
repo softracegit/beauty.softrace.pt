@@ -15,10 +15,14 @@ class AppointmentNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * @param  bool  $fromPublicBooking  Marcação em /booking: mailer "booking" (sem redirecionamento mail.to em local/staging).
+     */
     public function __construct(
         public int $calendarEventId,
         public string $type,
         public ?string $previousStatus = null,
+        public bool $fromPublicBooking = false,
     ) {}
 
     public function via(object $notifiable): array
@@ -68,13 +72,19 @@ class AppointmentNotification extends Notification implements ShouldQueue
         $title = $this->buildTitle($event);
         $body = $this->buildBody($event);
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject($title)
             ->greeting('Olá '.($notifiable->name ?? '').',')
             ->line($body)
             ->line($this->formatStartLine($event))
             ->line($this->formatEndLine($event))
             ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+
+        if ($this->fromPublicBooking) {
+            $mail->mailer('booking');
+        }
+
+        return $mail;
     }
 
     private function loadEvent(): CalendarEvent

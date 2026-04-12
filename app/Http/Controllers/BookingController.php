@@ -371,7 +371,7 @@ class BookingController extends Controller
         try {
             $recipient = User::find($userId);
             if ($recipient) {
-                $recipient->notify(new AppointmentNotification($event->id, 'assigned', null));
+                $recipient->notify(new AppointmentNotification($event->id, 'assigned', null, fromPublicBooking: true));
             }
         } catch (\Throwable $e) {
             \Log::warning('Marcação online: falha ao notificar técnica.', [

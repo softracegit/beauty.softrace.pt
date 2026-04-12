@@ -55,7 +55,7 @@ class BookingMagicLoginToken extends Model
         $url = route('booking.login.magic', ['token' => $plain], absolute: true);
 
         try {
-            Mail::to($user->email)->send(new BookingMagicLinkMail($user, $url));
+            Mail::mailer('booking')->to($user->email)->send(new BookingMagicLinkMail($user, $url));
         } catch (\Throwable $e) {
             Log::error('Envio do email de magic link (booking) falhou.', [
                 'user_id' => $user->id,
