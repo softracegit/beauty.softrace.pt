@@ -8,7 +8,16 @@
     var TECH_STORAGE_KEY = 'booking_technician_v1';
     var DATETIME_STORAGE_KEY = 'booking_datetime_v1';
     var CONTACT_STORAGE_KEY = 'booking_contact_v1';
+    var STRIPE_CHECKOUT_PUBLIC_ID_KEY = 'booking_checkout_public_id';
     var dateTimeInitAttempts = 0;
+
+    var checkoutPaymentState = {
+        clientSecret: null,
+        publishableKey: null,
+        bookingPublicId: null,
+        stripe: null,
+        elements: null,
+    };
 
     function formatMoneyEUR(amount) {
         return (
@@ -224,6 +233,7 @@
         if (els.summaryTotalDuration) {
             els.summaryTotalDuration.textContent = formatDurationPT(getTotalDurationMinutes());
         }
+        updateCheckoutPaymentPreview();
         scheduleBookingSummaryFooterVisualBottom();
     }
 
@@ -421,7 +431,87 @@
                 notes: notesEl ? notesEl.value.trim() : '',
             };
         }
+        /** Convidado: ler sempre o DOM (sessionStorage pode estar vazio ou desatualizado). */
+        var nameInput = document.getElementById('booking-contact-name');
+        var emailInput = document.getElementById('booking-contact-email');
+        var phoneHidden = document.getElementById('booking-contact-phone-e164');
+        var phoneInput = document.getElementById('booking-contact-phone');
+        var notesInput = document.getElementById('booking-contact-notes');
+        if (nameInput || emailInput || phoneHidden || phoneInput) {
+            var phoneE164 = phoneHidden && phoneHidden.value ? phoneHidden.value.trim() : '';
+            if (!phoneE164 && phoneInput && typeof window.intlTelInput === 'function') {
+                var iti = window.intlTelInput.getInstance(phoneInput);
+                if (iti && typeof iti.getNumber === 'function' && phoneInput.value.trim() !== '') {
+                    if (typeof iti.isValidNumber !== 'function' || iti.isValidNumber()) {
+                        phoneE164 = iti.getNumber() || '';
+                    }
+                }
+            }
+            var stored = getContactSelection() || {};
+            return {
+                name: (nameInput && nameInput.value.trim()) || stored.name || '',
+                email: (emailInput && emailInput.value.trim()) || stored.email || '',
+                phone: phoneE164 || stored.phone || '',
+                phoneDisplay: (phoneInput && phoneInput.value.trim()) || stored.phoneDisplay || '',
+                notes: (notesInput && notesInput.value.trim()) || stored.notes || '',
+            };
+        }
         return getContactSelection();
+    }
+
+    function flushGuestContactFromDomToStorage() {
+        if (isBookingCheckoutProfileMode()) {
+            return;
+        }
+        var p = getCheckoutContactPayload();
+        if (p && (p.name || p.email || p.phone)) {
+            saveContactSelection(p);
+        }
+    }
+
+    function updateCheckoutPaymentPreview() {
+        var panel = document.getElementById('booking-payment-panel');
+        if (!panel || !document.body.classList.contains('booking-page--step3')) {
+            return;
+        }
+        if (!isCheckoutPaymentRequired()) {
+            panel.classList.add('d-none');
+            return;
+        }
+        if (state.items.length === 0) {
+            panel.classList.add('d-none');
+            return;
+        }
+        panel.classList.remove('d-none');
+        var app = document.querySelector('.booking-app[data-booking-deposit-percent]');
+        var pct = 20;
+        if (app) {
+            var rawPct = parseInt(app.getAttribute('data-booking-deposit-percent'), 10);
+            if (Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100) {
+                pct = rawPct;
+            }
+        }
+        var total = getTotalAmount();
+        var paid = Math.round(total * (pct / 100) * 100) / 100;
+        var remaining = Math.round((total - paid) * 100) / 100;
+        if (!checkoutPaymentState.clientSecret) {
+            var depEl = document.getElementById('booking-pay-deposit-amount');
+            var pctEl = document.getElementById('booking-pay-deposit-pct');
+            var remEl = document.getElementById('booking-pay-remaining-amount');
+            if (depEl) {
+                depEl.textContent = formatMoneyEUR(paid);
+            }
+            if (pctEl) {
+                pctEl.textContent = String(pct);
+            }
+            if (remEl) {
+                remEl.textContent = formatMoneyEUR(remaining);
+            }
+        }
+        var hint = document.getElementById('booking-payment-stripe-hint');
+        if (hint) {
+            hint.classList.toggle('d-none', !!checkoutPaymentState.clientSecret);
+        }
     }
 
     function hasCheckoutContact() {
@@ -1075,6 +1165,31 @@
         return m ? m.getAttribute('content') || '' : '';
     }
 
+    function setCheckoutNextBtnLoading(isLoading, label) {
+        if (!els.nextBtn) {
+            return;
+        }
+        if (isLoading) {
+            els.nextBtn.disabled = true;
+            els.nextBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            els.nextBtn.setAttribute('aria-label', label || 'A processar...');
+            return;
+        }
+        els.nextBtn.disabled = false;
+        els.nextBtn.removeAttribute('aria-label');
+        if (label) {
+            els.nextBtn.textContent = label;
+        }
+    }
+
+    function setCheckoutNextBtnColor(isFinalPayment) {
+        if (!els.nextBtn) {
+            return;
+        }
+        els.nextBtn.classList.remove('btn-dark', 'btn-success');
+        els.nextBtn.classList.add(isFinalPayment ? 'btn-success' : 'btn-dark');
+    }
+
     function setCheckoutError(message) {
         var el = document.getElementById('booking-checkout-error');
         if (!el) {
@@ -1092,37 +1207,173 @@
         }
     }
 
-    function submitBookingCheckout() {
-        var bookingApp = document.querySelector('.booking-app[data-booking-submit-url]');
-        var submitUrl = bookingApp ? bookingApp.getAttribute('data-booking-submit-url') : '';
-        if (!submitUrl) {
-            setCheckoutError('Serviço de marcação indisponível.');
-            return;
+    function isCheckoutPaymentRequired() {
+        var app = document.querySelector('.booking-app[data-booking-payment-required]');
+        if (!app) {
+            return true;
         }
-        var contact = getCheckoutContactPayload();
-        var tech = getTechnicianSelection();
-        var dt = getDateTimeSelection();
-        if (!contact || !tech || !dt || !contact.phone || !state.items.length) {
-            setCheckoutError('Falta informação. Volta atrás e completa todos os passos.');
-            return;
+        return app.getAttribute('data-booking-payment-required') !== '0';
+    }
+
+    function getBookingConfirmWithoutPaymentUrl() {
+        var app = document.querySelector('.booking-app[data-booking-confirm-without-payment-url]');
+        if (!app) {
+            return '';
         }
-        hideCheckoutError();
-        var payload = {
-            name: contact.name,
-            email: contact.email,
-            phone: contact.phone,
-            notes: contact.notes || '',
-            date: dt.date,
-            time: dt.time,
-            agent_id: String(tech.id),
-            services: state.items.map(function (line) {
-                return { id: line.id };
-            }),
+        return app.getAttribute('data-booking-confirm-without-payment-url') || '';
+    }
+
+    function getBookingPaymentUrls() {
+        var app = document.querySelector('.booking-app[data-booking-payment-intent-url]');
+        if (!app) {
+            return null;
+        }
+        return {
+            intentUrl: app.getAttribute('data-booking-payment-intent-url') || '',
+            completeUrl: app.getAttribute('data-booking-payment-complete-url') || '',
         };
-        if (els.nextBtn) {
-            els.nextBtn.disabled = true;
+    }
+
+    function setStripeInlineError(message) {
+        var el = document.getElementById('booking-stripe-error');
+        if (!el) {
+            return;
         }
-        fetch(submitUrl, {
+        el.textContent = message || '';
+        el.classList.toggle('d-none', !message);
+    }
+
+    function resetCheckoutPaymentUi() {
+        checkoutPaymentState.clientSecret = null;
+        checkoutPaymentState.publishableKey = null;
+        checkoutPaymentState.bookingPublicId = null;
+        checkoutPaymentState.stripe = null;
+        checkoutPaymentState.elements = null;
+        var mount = document.getElementById('booking-stripe-mount');
+        if (mount) {
+            mount.innerHTML = '';
+        }
+        var panel = document.getElementById('booking-payment-panel');
+        if (panel) {
+            panel.classList.add('d-none');
+        }
+        setStripeInlineError('');
+        if (els.nextBtn) {
+            setCheckoutNextBtnColor(false);
+            els.nextBtn.textContent = isCheckoutPaymentRequired() ? 'Pagamento' : 'Confirmar marcação';
+        }
+        updateCheckoutPaymentPreview();
+    }
+
+    function mountStripePaymentElement() {
+        if (!checkoutPaymentState.clientSecret || !checkoutPaymentState.publishableKey) {
+            return;
+        }
+        var mount = document.getElementById('booking-stripe-mount');
+        if (!mount) {
+            return;
+        }
+
+        function tryMountOnce() {
+            if (typeof window.Stripe !== 'function') {
+                return false;
+            }
+            try {
+                mount.innerHTML = '';
+                checkoutPaymentState.elements = null;
+                if (!checkoutPaymentState.stripe) {
+                    checkoutPaymentState.stripe = window.Stripe(checkoutPaymentState.publishableKey, {
+                        locale: 'pt',
+                    });
+                }
+                var elements = checkoutPaymentState.stripe.elements({
+                    clientSecret: checkoutPaymentState.clientSecret,
+                    appearance: { theme: 'stripe' },
+                    loader: 'auto',
+                });
+                checkoutPaymentState.elements = elements;
+                var paymentEl = elements.create('payment');
+                paymentEl.mount(mount);
+                paymentEl.on('ready', function () {
+                    setStripeInlineError('');
+                });
+                return true;
+            } catch (e) {
+                var errMsg = e && e.message ? e.message : 'Erro ao inicializar o Stripe.';
+                setStripeInlineError(errMsg);
+                return true;
+            }
+        }
+
+        if (tryMountOnce()) {
+            return;
+        }
+
+        var attempts = 0;
+        var iv = setInterval(function () {
+            attempts += 1;
+            if (tryMountOnce() || attempts >= 80) {
+                clearInterval(iv);
+                if (typeof window.Stripe !== 'function') {
+                    setStripeInlineError(
+                        'O script do Stripe ainda não está disponível. Verifica a rede, desactiva bloqueadores de anúncios e recarrega a página.'
+                    );
+                }
+            }
+        }, 50);
+    }
+
+    function confirmStripePayment() {
+        if (!checkoutPaymentState.stripe || !checkoutPaymentState.elements) {
+            setStripeInlineError('Inicia o pagamento novamente.');
+            return;
+        }
+        setCheckoutNextBtnLoading(true, 'A confirmar pagamento...');
+        setStripeInlineError('');
+        var contact = getCheckoutContactPayload() || {};
+        var baseUrl = window.location.href.split('#')[0].split('?')[0];
+        checkoutPaymentState.stripe
+            .confirmPayment({
+                elements: checkoutPaymentState.elements,
+                confirmParams: {
+                    return_url: baseUrl,
+                    payment_method_data: {
+                        billing_details: {
+                            name: contact.name || undefined,
+                            email: contact.email || undefined,
+                            phone: contact.phone || undefined,
+                        },
+                    },
+                },
+                redirect: 'if_required',
+            })
+            .then(function (result) {
+                if (result.error) {
+                    setStripeInlineError(result.error.message || 'Pagamento recusado.');
+                    setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                    return;
+                }
+                var pi = result.paymentIntent;
+                if (pi && pi.status === 'succeeded' && checkoutPaymentState.bookingPublicId) {
+                    finalizeBookingAfterPayment(checkoutPaymentState.bookingPublicId, pi.id);
+                } else {
+                    setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                }
+            })
+            .catch(function () {
+                setStripeInlineError('Erro ao confirmar o pagamento. Tenta novamente.');
+                setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+            });
+    }
+
+    function finalizeBookingAfterPayment(bookingPublicId, paymentIntentId) {
+        var urls = getBookingPaymentUrls();
+        if (!urls || !urls.completeUrl) {
+            setCheckoutError('Serviço de marcação indisponível.');
+            setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+            return;
+        }
+        fetch(urls.completeUrl, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
@@ -1131,14 +1382,20 @@
                 'X-CSRF-TOKEN': getCsrfToken(),
                 'X-Requested-With': 'XMLHttpRequest',
             },
-            body: JSON.stringify(payload),
+            body: JSON.stringify({
+                booking_public_id: bookingPublicId,
+                payment_intent_id: paymentIntentId || null,
+            }),
         })
             .then(function (r) {
-                return r.json().catch(function () {
-                    return {};
-                }).then(function (data) {
-                    return { ok: r.ok, status: r.status, data: data };
-                });
+                return r
+                    .json()
+                    .catch(function () {
+                        return {};
+                    })
+                    .then(function (data) {
+                        return { ok: r.ok, status: r.status, data: data };
+                    });
             })
             .then(function (res) {
                 if (res.ok && res.data && res.data.redirect) {
@@ -1147,9 +1404,14 @@
                         sessionStorage.removeItem(TECH_STORAGE_KEY);
                         sessionStorage.removeItem(DATETIME_STORAGE_KEY);
                         sessionStorage.removeItem(CONTACT_STORAGE_KEY);
+                        sessionStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+                        if (window.location.search.indexOf('payment_intent=') !== -1) {
+                            window.history.replaceState({}, '', window.location.pathname);
+                        }
                     } catch (e) {
                         /* ignore */
                     }
+                    resetCheckoutPaymentUi();
                     window.location.href = res.data.redirect;
                     return;
                 }
@@ -1180,16 +1442,262 @@
                     }
                 }
                 setCheckoutError(msg);
+                setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                renderSummary();
+            })
+            .catch(function () {
+                setCheckoutError('Erro de rede. Tenta novamente.');
+                setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                renderSummary();
+            });
+    }
+
+    function tryResumeStripeRedirectOnCheckout() {
+        if (!isCheckoutPaymentRequired()) {
+            return;
+        }
+        var urls = getBookingPaymentUrls();
+        if (!urls || !urls.completeUrl) {
+            return;
+        }
+        var params = new URLSearchParams(window.location.search);
+        var pi = params.get('payment_intent');
+        var status = params.get('redirect_status');
+        var storedId = null;
+        try {
+            storedId = sessionStorage.getItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+        } catch (e) {
+            /* ignore */
+        }
+        if (!pi || status !== 'succeeded' || !storedId) {
+            return;
+        }
+        setCheckoutNextBtnLoading(true, 'A preparar pagamento...');
+        finalizeBookingAfterPayment(storedId, pi);
+    }
+
+    function handleConfirmWithoutPaymentResponse(res) {
+        if (res.ok && res.data && res.data.redirect) {
+            try {
+                sessionStorage.removeItem(STORAGE_KEY);
+                sessionStorage.removeItem(TECH_STORAGE_KEY);
+                sessionStorage.removeItem(DATETIME_STORAGE_KEY);
+                sessionStorage.removeItem(CONTACT_STORAGE_KEY);
+                sessionStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+            } catch (e) {
+                /* ignore */
+            }
+            resetCheckoutPaymentUi();
+            window.location.href = res.data.redirect;
+            return;
+        }
+        var msg = 'Não foi possível concluir a marcação.';
+        if (res.data && res.data.message) {
+            msg = res.data.message;
+        }
+        if (res.data && res.data.errors && typeof res.data.errors === 'object') {
+            var lines = [];
+            Object.keys(res.data.errors).forEach(function (k) {
+                var arr = res.data.errors[k];
+                if (Array.isArray(arr)) {
+                    arr.forEach(function (t) {
+                        lines.push(t);
+                    });
+                }
+            });
+            if (lines.length) {
+                msg = lines.join(' ');
+            }
+        }
+        var magicWrap = document.getElementById('booking-checkout-magic-wrap');
+        if (magicWrap) {
+            if (res.data && res.data.requires_login) {
+                magicWrap.classList.remove('d-none');
+            } else {
+                magicWrap.classList.add('d-none');
+            }
+        }
+        setCheckoutError(msg);
+        var btnFinal = isCheckoutPaymentRequired() ? 'Pagar e confirmar' : 'Confirmar marcação';
+        setCheckoutNextBtnLoading(false, btnFinal);
+        renderSummary();
+    }
+
+    function submitBookingConfirmWithoutPayment(postUrl, payload) {
+        if (els.nextBtn) {
+            els.nextBtn.disabled = true;
+        }
+        fetch(postUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+        })
+            .then(function (r) {
+                return r
+                    .json()
+                    .catch(function () {
+                        return {};
+                    })
+                    .then(function (data) {
+                        return { ok: r.ok, status: r.status, data: data };
+                    });
+            })
+            .then(function (res) {
+                handleConfirmWithoutPaymentResponse(res);
+            })
+            .catch(function () {
+                setCheckoutError('Erro de rede. Tenta novamente.');
+                setCheckoutNextBtnLoading(false, 'Confirmar marcação');
+                renderSummary();
+            });
+    }
+
+    function submitBookingCheckout() {
+        var urls = getBookingPaymentUrls();
+        var noPayUrl = getBookingConfirmWithoutPaymentUrl();
+        if (isCheckoutPaymentRequired()) {
+            if (!urls || !urls.intentUrl || !urls.completeUrl) {
+                setCheckoutError('Serviço de marcação indisponível.');
+                return;
+            }
+        } else if (!noPayUrl) {
+            setCheckoutError('Serviço de marcação indisponível.');
+            return;
+        }
+        var contact = getCheckoutContactPayload();
+        var tech = getTechnicianSelection();
+        var dt = getDateTimeSelection();
+        if (!contact || !tech || !dt || !contact.phone || !state.items.length) {
+            setCheckoutError('Falta informação. Volta atrás e completa todos os passos.');
+            return;
+        }
+        hideCheckoutError();
+        setStripeInlineError('');
+        var payload = {
+            name: contact.name,
+            email: contact.email,
+            phone: contact.phone,
+            notes: contact.notes || '',
+            date: dt.date,
+            time: dt.time,
+            agent_id: String(tech.id),
+            services: state.items.map(function (line) {
+                return { id: line.id };
+            }),
+        };
+
+        if (!isCheckoutPaymentRequired()) {
+            setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+            submitBookingConfirmWithoutPayment(noPayUrl, payload);
+            return;
+        }
+
+        if (checkoutPaymentState.clientSecret) {
+            confirmStripePayment();
+            return;
+        }
+
+        if (els.nextBtn) {
+            els.nextBtn.disabled = true;
+        }
+        fetch(urls.intentUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+        })
+            .then(function (r) {
+                return r
+                    .json()
+                    .catch(function () {
+                        return {};
+                    })
+                    .then(function (data) {
+                        return { ok: r.ok, status: r.status, data: data };
+                    });
+            })
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.client_secret) {
+                    var msg = 'Não foi possível iniciar o pagamento.';
+                    if (res.data && res.data.message) {
+                        msg = res.data.message;
+                    }
+                    if (res.data && res.data.errors && typeof res.data.errors === 'object') {
+                        var lines = [];
+                        Object.keys(res.data.errors).forEach(function (k) {
+                            var arr = res.data.errors[k];
+                            if (Array.isArray(arr)) {
+                                arr.forEach(function (t) {
+                                    lines.push(t);
+                                });
+                            }
+                        });
+                        if (lines.length) {
+                            msg = lines.join(' ');
+                        }
+                    }
+                    var magicWrap = document.getElementById('booking-checkout-magic-wrap');
+                    if (magicWrap) {
+                        if (res.data && res.data.requires_login) {
+                            magicWrap.classList.remove('d-none');
+                        } else {
+                            magicWrap.classList.add('d-none');
+                        }
+                    }
+                    setCheckoutError(msg);
+                    setCheckoutNextBtnColor(false);
+                    setCheckoutNextBtnLoading(false, 'Pagamento');
+                    renderSummary();
+                    return;
+                }
+                var d = res.data;
+                checkoutPaymentState.clientSecret = d.client_secret;
+                checkoutPaymentState.publishableKey = d.publishable_key;
+                checkoutPaymentState.bookingPublicId = d.booking_public_id;
+                try {
+                    sessionStorage.setItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY, d.booking_public_id);
+                } catch (e) {
+                    /* ignore */
+                }
+                var depEl = document.getElementById('booking-pay-deposit-amount');
+                var pctEl = document.getElementById('booking-pay-deposit-pct');
+                var remEl = document.getElementById('booking-pay-remaining-amount');
+                if (depEl && d.paid_amount != null) {
+                    depEl.textContent = formatMoneyEUR(Number(d.paid_amount));
+                }
+                if (pctEl && d.deposit_percent != null) {
+                    pctEl.textContent = String(d.deposit_percent);
+                }
+                if (remEl && d.remaining_amount != null) {
+                    remEl.textContent = formatMoneyEUR(Number(d.remaining_amount));
+                }
+                var panel = document.getElementById('booking-payment-panel');
+                if (panel) {
+                    panel.classList.remove('d-none');
+                }
+                mountStripePaymentElement();
+                updateCheckoutPaymentPreview();
                 if (els.nextBtn) {
-                    els.nextBtn.disabled = false;
+                    setCheckoutNextBtnColor(true);
+                    setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
                 }
                 renderSummary();
             })
             .catch(function () {
                 setCheckoutError('Erro de rede. Tenta novamente.');
-                if (els.nextBtn) {
-                    els.nextBtn.disabled = false;
-                }
+                setCheckoutNextBtnColor(false);
+                setCheckoutNextBtnLoading(false, 'Pagamento');
                 renderSummary();
             });
     }
@@ -1325,7 +1833,14 @@
                     }
                     phoneInput.setCustomValidity('');
                 }
+                flushGuestContactFromDomToStorage();
                 persist();
+                if (!checkoutPaymentState.clientSecret) {
+                    setCheckoutNextBtnLoading(
+                        true,
+                        isCheckoutPaymentRequired() ? 'A preparar pagamento...' : 'A confirmar marcação...'
+                    );
+                }
                 submitBookingCheckout();
                 return;
             }
@@ -1351,6 +1866,9 @@
         bindSummaryDrawerToggle();
         bindSummaryLayoutResize();
         bindBookingSummaryFooterVisualViewport();
+        if (document.body && document.body.classList.contains('booking-page--step3')) {
+            tryResumeStripeRedirectOnCheckout();
+        }
     }
 
     if (document.readyState === 'loading') {

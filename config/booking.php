@@ -27,4 +27,18 @@ return [
 
     'magic_link_ttl_minutes' => (int) env('BOOKING_MAGIC_LINK_TTL_MINUTES', 60),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pagamento online na marcação (Stripe)
+    |--------------------------------------------------------------------------
+    |
+    | Percentagem cobrada antecipadamente (ex.: 20). O restante é pago na loja.
+    | Valores são arredondados a 2 casas decimais em EUR.
+    |
+    */
+
+    'deposit_percent' => max(0, min(100, (int) env('BOOKING_DEPOSIT_PERCENT', 20))),
+
+    'currency' => strtolower((string) env('BOOKING_CURRENCY', 'eur')),
+
 ];

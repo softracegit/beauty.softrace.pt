@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CrmSetting;
 use App\Models\UserNotificationPreference;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -61,6 +62,26 @@ class DefinicoesController extends Controller
         return view('definicoes.equipa', [
             'pageTitle' => 'Equipa',
         ]);
+    }
+
+    public function pagamentos(): View
+    {
+        return view('definicoes.pagamentos', [
+            'pageTitle' => 'Pagamentos',
+            'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired(),
+        ]);
+    }
+
+    public function updatePagamentos(Request $request): RedirectResponse
+    {
+        CrmSetting::setBool(
+            CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED,
+            $request->boolean('online_booking_payment_required'),
+        );
+
+        return redirect()
+            ->route('definicoes.pagamentos')
+            ->with('status', 'Definições de pagamento guardadas.');
     }
 
     public function notificacoes(): View

@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -50,6 +50,7 @@ class Client extends Model
         'avatar',
         'preferred_schedule',
         'preferences_notes',
+        'stripe_customer_id',
     ];
 
     protected $casts = [
@@ -106,7 +107,7 @@ class Client extends Model
 
     public function getClientIdAttribute(): string
     {
-        return '#CL' . str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
+        return '#CL'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
     }
 
     public static function preferredSchedules(): array
@@ -126,7 +127,7 @@ class Client extends Model
 
     public function getDaysUntilBirthdayAttribute(): ?int
     {
-        if (!$this->birth_date) {
+        if (! $this->birth_date) {
             return null;
         }
         $today = now()->startOfDay();
@@ -134,6 +135,7 @@ class Client extends Model
         if ($nextBday->lt($today)) {
             $nextBday->addYear();
         }
+
         return (int) $today->diffInDays($nextBday, false);
     }
 

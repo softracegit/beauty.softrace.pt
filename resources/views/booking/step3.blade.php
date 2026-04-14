@@ -11,7 +11,13 @@
 @endpush
 
 @section('content')
-    <div class="booking-app d-flex flex-column min-vh-100" data-booking-submit-url="{{ route('booking.submit') }}">
+    <div class="booking-app d-flex flex-column min-vh-100"
+        data-booking-payment-required="{{ ($onlineBookingPaymentRequired ?? true) ? '1' : '0' }}"
+        data-booking-payment-intent-url="{{ $bookingPaymentIntentUrl }}"
+        data-booking-payment-complete-url="{{ $bookingPaymentCompleteUrl }}"
+        data-booking-confirm-without-payment-url="{{ $bookingConfirmWithoutPaymentUrl }}"
+        data-booking-deposit-percent="{{ (int) config('booking.deposit_percent') }}"
+    >
         @include('booking.partials.navbar')
 
         <div class="flex-grow-1 booking-main-body">
@@ -88,6 +94,22 @@
                                                 <a href="{{ route('login') }}" class="text-decoration-none fw-semibold">Login com password</a>
                                             </p>
                                         @endif
+
+                                        <div id="booking-payment-panel" class="mt-4 pt-3 border-top d-none"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif>
+                                            <h2 class="h6 fw-semibold text-dark mb-2 ps-1">Pagamento (depósito)</h2>
+                                            <p class="small text-muted mb-2">
+                                                Pagamento seguro com cartão (Stripe). Pagas hoje
+                                                <strong id="booking-pay-deposit-amount">—</strong>
+                                                (<span id="booking-pay-deposit-pct">—</span>% do total). O restante
+                                                <strong id="booking-pay-remaining-amount">—</strong>
+                                                paga-se na loja no dia do serviço.
+                                            </p>
+                                            <p id="booking-payment-stripe-hint" class="small text-muted mb-3">
+                                                Clica em <strong>Marcar</strong> no resumo para preparar o pagamento com cartão (valores abaixo são estimados até confirmares com o servidor).
+                                            </p>
+                                            <div id="booking-stripe-mount" class="mb-2"></div>
+                                            <p id="booking-stripe-error" class="small text-danger mb-0 d-none" role="alert"></p>
+                                        </div>
                                     </div>
                                 </div>
                             </section>
@@ -102,8 +124,8 @@
                             'showNextButton' => true,
                             'nextUrl' => '#',
                             'nextRequires' => 'checkout',
-                            'nextLabel' => 'Marcar',
-                            'nextClass' => 'btn-success',
+                            'nextLabel' => ($onlineBookingPaymentRequired ?? true) ? 'Pagamento' : 'Confirmar marcação',
+                            'nextClass' => ($onlineBookingPaymentRequired ?? true) ? 'btn-dark' : 'btn-success',
                         ])
                     </div>
                 </div>
@@ -131,6 +153,10 @@
 @endsection
 
 @push('scripts')
+    @if($onlineBookingPaymentRequired ?? true)
+        {{-- Sem defer: garante window.Stripe antes de app.js e do mount do Payment Element (evita inputs invisíveis). --}}
+        <script src="https://js.stripe.com/v3/"></script>
+    @endif
     @unless($bookingClient ?? null)
         <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/intlTelInput.min.js" defer></script>
     @endunless

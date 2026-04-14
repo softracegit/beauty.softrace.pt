@@ -36,6 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return route('dashboard');
         });
+
+        $middleware->validateCsrfTokens(except: [
+            'stripe/webhook',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

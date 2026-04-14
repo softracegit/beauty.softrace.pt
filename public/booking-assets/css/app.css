@@ -96,6 +96,11 @@ html {
     color: #1a1a1a;
 }
 
+/* Stripe Payment Element: espaço mínimo até o iframe carregar */
+#booking-stripe-mount {
+    min-height: 7.5rem;
+}
+
 /*
  * Resumo: sticky na coluna direita.
  * Em lg+ a row usa align-items-lg-stretch (Blade) para a coluna direita ter a mesma altura que a esquerda;

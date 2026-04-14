@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingClientAuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingPasswordController;
+use App\Http\Controllers\BookingPaymentController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\RelatoriosController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,13 +33,23 @@ use Illuminate\Support\Facades\Route;
 | Middleware `booking`: contexto do fluxo (ver App\Http\Middleware\BookingContext).
 | Assets estáticos: public/booking-assets/{css,js,img} (não usar public/booking — conflita com a rota /booking)
 */
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
+
 Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(function () {
     Route::get('/', [BookingController::class, 'index'])->name('index');
-    Route::get('/tecnica', [BookingController::class, 'technician'])->name('technician');
-    Route::get('/data-hora', [BookingController::class, 'datetime'])->name('datetime');
+    Route::get('/staff', [BookingController::class, 'technician'])->name('technician');
+    Route::get('/disponiblidade', [BookingController::class, 'datetime'])->name('datetime');
     Route::get('/disponibilidade', [BookingController::class, 'availability'])->name('availability');
-    Route::get('/passo-3', [BookingController::class, 'step3'])->name('step3');
-    Route::post('/marcacao', [BookingController::class, 'submit'])->name('submit');
+    Route::get('/checkout', [BookingController::class, 'step3'])->name('step3');
+    Route::post('/marcacao/confirmar', [BookingPaymentController::class, 'confirmWithoutPayment'])
+        ->middleware('throttle:30,1')
+        ->name('confirm.without_payment');
+    Route::post('/pagamento/intencao', [BookingPaymentController::class, 'createIntent'])
+        ->middleware('throttle:20,1')
+        ->name('payment.intent');
+    Route::post('/pagamento/finalizar', [BookingPaymentController::class, 'complete'])
+        ->middleware('throttle:30,1')
+        ->name('payment.complete');
     Route::get('/confirmacao', [BookingController::class, 'confirm'])->name('confirm');
     Route::get('/servico/{service}', [BookingController::class, 'showService'])->name('service');
 
@@ -99,6 +111,8 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
         Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');
         Route::get('notificacoes', [DefinicoesController::class, 'notificacoes'])->name('notificacoes');
         Route::post('notificacoes', [DefinicoesController::class, 'updateNotificacoes'])->name('notificacoes.update');
+        Route::get('pagamentos', [DefinicoesController::class, 'pagamentos'])->name('pagamentos');
+        Route::post('pagamentos', [DefinicoesController::class, 'updatePagamentos'])->name('pagamentos.update');
     });
 
     Route::get('clientes/export', [ClientController::class, 'indexExport'])->name('clientes.export');

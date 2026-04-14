@@ -255,6 +255,14 @@ class CalendarEvent extends Model
         return $this->hasOne(Sale::class)->latest('id');
     }
 
+    /**
+     * Registo de marcação online (depósito Stripe), quando existir.
+     */
+    public function onlineBooking(): HasOne
+    {
+        return $this->hasOne(Booking::class, 'calendar_event_id');
+    }
+
     public function isSourceEditable(): bool
     {
         return in_array($this->event_type, [

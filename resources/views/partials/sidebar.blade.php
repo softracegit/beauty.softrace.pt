@@ -280,6 +280,11 @@
             Notificações
           </a>
         </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.pagamentos') ? 'active' : '' }}" href="{{ route('definicoes.pagamentos') }}">
+            Pagamentos
+          </a>
+        </li>
       </ul>
     </div>
 

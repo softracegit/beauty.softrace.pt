@@ -131,6 +131,7 @@
             'definicoes.clientes' => 'Clientes',
             'definicoes.equipa' => 'Equipa',
             'definicoes.notificacoes' => 'Notificações',
+            'definicoes.pagamentos' => 'Pagamentos',
         ];
         if (isset($sectionLabels[$currentRoute])) {
             $breadcrumbs[] = [
