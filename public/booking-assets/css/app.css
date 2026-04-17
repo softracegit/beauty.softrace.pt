@@ -168,6 +168,15 @@ html {
     cursor: default;
 }
 
+/* Steps temporariamente ocultos em todas as viewports (mantidos no DOM). */
+.booking-navbar__inner {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.booking-navbar__cell--center {
+    display: none !important;
+}
+
 @media (max-width: 767.98px) {
     .booking-navbar__inner {
         grid-template-columns: minmax(0, 1fr) auto;
@@ -1327,6 +1336,13 @@ html {
         white-space: nowrap;
     }
 
+    .booking-summary-footer .booking-summary-back-btn {
+        padding: 0;
+        width: 2.35rem;
+        min-width: 2.35rem;
+        max-width: 2.35rem;
+    }
+
     .booking-summary-toggle-drawer {
         padding-left: 0.65rem;
         padding-right: 0.65rem;
@@ -1338,6 +1354,19 @@ html {
         line-height: 1;
         transition: transform 0.25s ease;
     }
+
+.booking-summary-back-btn {
+    width: 2.5rem;
+    min-width: 2.5rem;
+    max-width: 2.5rem;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.booking-summary-back-btn i {
+    font-size: 1rem;
+    line-height: 1;
+}
 
     .booking-summary-footer.is-drawer-open .booking-summary-toggle-drawer__icon {
         transform: rotate(-180deg);

@@ -76,8 +76,12 @@
                                 <i class="bi bi-chevron-down booking-summary-toggle-drawer__icon" aria-hidden="true"></i>
                             </button>
                             @if($showBackButton)
-                                <a href="{{ $backUrl }}" class="btn btn-outline-secondary flex-fill d-none d-lg-inline-flex justify-content-center align-items-center booking-summary-back-desktop">Voltar</a>
-                                <a href="{{ $backUrl }}" class="btn btn-outline-secondary d-inline-flex d-lg-none booking-summary-back-mobile flex-shrink-0">Voltar</a>
+                                <a href="{{ $backUrl }}" class="btn btn-outline-secondary d-none d-lg-inline-flex justify-content-center align-items-center booking-summary-back-btn booking-summary-back-desktop" aria-label="Voltar">
+                                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                                </a>
+                                <a href="{{ $backUrl }}" class="btn btn-outline-secondary d-inline-flex d-lg-none justify-content-center align-items-center booking-summary-back-btn booking-summary-back-mobile flex-shrink-0" aria-label="Voltar">
+                                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                                </a>
                             @endif
                             @if($showNextButton)
                                 <button type="button" id="booking-next" class="btn {{ $nextClass }} flex-fill booking-summary-next-btn" disabled data-next-url="{{ $nextUrl }}" @if($nextRequires) data-next-requires="{{ $nextRequires }}" @endif>
