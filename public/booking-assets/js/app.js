@@ -9,6 +9,7 @@
     var DATETIME_STORAGE_KEY = 'booking_datetime_v1';
     var CONTACT_STORAGE_KEY = 'booking_contact_v1';
     var STRIPE_CHECKOUT_PUBLIC_ID_KEY = 'booking_checkout_public_id';
+    var bookingStorage = createBookingStorage();
     var dateTimeInitAttempts = 0;
 
     var checkoutPaymentState = {
@@ -26,6 +27,71 @@
                 maximumFractionDigits: 2,
             }).format(amount) + '\u00A0€'
         );
+    }
+
+    function createBookingStorage() {
+        function makeNoopStorage() {
+            return {
+                setItem: function () {},
+                getItem: function () {
+                    return null;
+                },
+                removeItem: function () {},
+            };
+        }
+
+        try {
+            var testKeyLocal = '__booking_local_test__';
+            window.localStorage.setItem(testKeyLocal, '1');
+            window.localStorage.removeItem(testKeyLocal);
+            return {
+                setItem: function (key, value) {
+                    window.localStorage.setItem(key, value);
+                },
+                getItem: function (key) {
+                    var val = window.localStorage.getItem(key);
+                    if (val != null) {
+                        return val;
+                    }
+                    try {
+                        var sessionVal = window.sessionStorage.getItem(key);
+                        if (sessionVal != null) {
+                            window.localStorage.setItem(key, sessionVal);
+                        }
+                        return sessionVal;
+                    } catch (e) {
+                        return null;
+                    }
+                },
+                removeItem: function (key) {
+                    window.localStorage.removeItem(key);
+                    try {
+                        window.sessionStorage.removeItem(key);
+                    } catch (e) {
+                        /* ignore */
+                    }
+                },
+            };
+        } catch (e) {
+            try {
+                var testKeySession = '__booking_session_test__';
+                window.sessionStorage.setItem(testKeySession, '1');
+                window.sessionStorage.removeItem(testKeySession);
+                return {
+                    setItem: function (key, value) {
+                        window.sessionStorage.setItem(key, value);
+                    },
+                    getItem: function (key) {
+                        return window.sessionStorage.getItem(key);
+                    },
+                    removeItem: function (key) {
+                        window.sessionStorage.removeItem(key);
+                    },
+                };
+            } catch (err) {
+                return makeNoopStorage();
+            }
+        }
     }
 
     function parseServicePayload(raw) {
@@ -55,8 +121,11 @@
 
     function cacheElements() {
         els.modal = document.getElementById('bookingModal');
-        els.modalName = document.getElementById('booking-modal-service-name');
+        els.modalTitle = document.getElementById('bookingModalTitle');
         els.modalMeta = document.getElementById('booking-modal-service-meta');
+        els.modalOptionsWrap = document.getElementById('booking-modal-options-wrap');
+        els.modalOptions = document.getElementById('booking-modal-options');
+        els.modalOptionsError = document.getElementById('booking-modal-options-error');
         els.modalConfirm = document.getElementById('booking-modal-confirm');
         els.summaryEmpty = document.getElementById('booking-summary-empty');
         els.summaryList = document.getElementById('booking-summary-list');
@@ -64,6 +133,13 @@
         els.summaryTotalValue = document.getElementById('booking-summary-total-value');
         els.summaryTotalCount = document.getElementById('booking-summary-total-count');
         els.summaryTotalDuration = document.getElementById('booking-summary-total-duration');
+        els.summaryTech = document.getElementById('booking-summary-technician');
+        els.summaryTechAvatar = document.getElementById('booking-summary-tech-avatar');
+        els.summaryTechName = document.getElementById('booking-summary-tech-name');
+        els.summaryTechMeta = document.getElementById('booking-summary-tech-meta');
+        els.summaryDateTime = document.getElementById('booking-summary-datetime');
+        els.summaryDateLabel = document.getElementById('booking-summary-date-label');
+        els.summaryTimeLabel = document.getElementById('booking-summary-time-label');
         els.nextBtn = document.getElementById('booking-next');
     }
 
@@ -145,6 +221,84 @@
         return rest + 'min';
     }
 
+    function formatDateLabelPt(dateIso) {
+        if (!dateIso || !/^\d{4}-\d{2}-\d{2}$/.test(String(dateIso))) {
+            return '';
+        }
+        var parts = String(dateIso).split('-');
+        var year = Number(parts[0]);
+        var month = Number(parts[1]) - 1;
+        var day = Number(parts[2]);
+        var d = new Date(year, month, day);
+        if (isNaN(d.getTime())) {
+            return '';
+        }
+        var weekday = new Intl.DateTimeFormat('pt-PT', { weekday: 'long' }).format(d);
+        var monthLabel = new Intl.DateTimeFormat('pt-PT', { month: 'long' }).format(d);
+        var weekdayCap = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+        var monthCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+        return weekdayCap + ', ' + day + ' ' + monthCap;
+    }
+
+    function formatEndTime(startTime, totalMinutes) {
+        if (!startTime || !/^\d{2}:\d{2}$/.test(String(startTime))) {
+            return '';
+        }
+        var h = Number(String(startTime).slice(0, 2));
+        var m = Number(String(startTime).slice(3, 5));
+        if (isNaN(h) || isNaN(m)) {
+            return '';
+        }
+        var total = (h * 60 + m + Math.max(0, Math.round(Number(totalMinutes) || 0))) % (24 * 60);
+        var hh = String(Math.floor(total / 60)).padStart(2, '0');
+        var mm = String(total % 60).padStart(2, '0');
+        return hh + ':' + mm;
+    }
+
+    function renderSummaryExtras() {
+        var hasItems = state.items.length > 0;
+        var tech = getTechnicianSelection();
+        var dt = getDateTimeSelection();
+
+        if (els.summaryTech) {
+            var showTech = hasItems && !!tech;
+            els.summaryTech.classList.toggle('is-hidden', !showTech);
+            if (showTech) {
+                if (els.summaryTechName) {
+                    els.summaryTechName.textContent = tech.name || '';
+                }
+                if (els.summaryTechMeta) {
+                    els.summaryTechMeta.textContent = tech.specialization || '';
+                }
+                if (els.summaryTechAvatar) {
+                    if (tech.avatar) {
+                        els.summaryTechAvatar.innerHTML =
+                            '<img src="' + String(tech.avatar).replace(/"/g, '&quot;') + '" alt="" loading="lazy">';
+                    } else if (tech.name) {
+                        els.summaryTechAvatar.textContent = tech.name.trim().charAt(0).toUpperCase();
+                    } else {
+                        els.summaryTechAvatar.textContent = '?';
+                    }
+                }
+            }
+        }
+
+        if (els.summaryDateTime) {
+            var showDateTime = hasItems && !!dt;
+            els.summaryDateTime.classList.toggle('is-hidden', !showDateTime);
+            if (showDateTime) {
+                if (els.summaryDateLabel) {
+                    els.summaryDateLabel.textContent = formatDateLabelPt(dt.date);
+                }
+                if (els.summaryTimeLabel) {
+                    var start = dt.time || '';
+                    var end = formatEndTime(start, getTotalDurationMinutes());
+                    els.summaryTimeLabel.textContent = end ? start + ' - ' + end : start;
+                }
+            }
+        }
+    }
+
     function renderSummary() {
         if (!els.summaryList || !els.summaryEmpty || !els.summaryTotal) {
             return;
@@ -158,6 +312,7 @@
             if (els.nextBtn) {
                 els.nextBtn.disabled = true;
             }
+            renderSummaryExtras();
             closeSummaryDrawer();
             scheduleBookingSummaryFooterVisualBottom();
             return;
@@ -233,6 +388,7 @@
         if (els.summaryTotalDuration) {
             els.summaryTotalDuration.textContent = formatDurationPT(getTotalDurationMinutes());
         }
+        renderSummaryExtras();
         updateCheckoutPaymentPreview();
         scheduleBookingSummaryFooterVisualBottom();
     }
@@ -269,7 +425,7 @@
 
     function persist() {
         try {
-            sessionStorage.setItem(
+            bookingStorage.setItem(
                 STORAGE_KEY,
                 JSON.stringify({
                     items: state.items,
@@ -293,7 +449,7 @@
 
     function saveTechnicianSelection(tech) {
         try {
-            sessionStorage.setItem(
+            bookingStorage.setItem(
                 TECH_STORAGE_KEY,
                 JSON.stringify({
                     id: tech.id,
@@ -308,7 +464,7 @@
 
     function clearTechnicianSelection() {
         try {
-            sessionStorage.removeItem(TECH_STORAGE_KEY);
+            bookingStorage.removeItem(TECH_STORAGE_KEY);
         } catch (e) {
             /* ignore */
         }
@@ -316,7 +472,7 @@
 
     function getTechnicianSelection() {
         try {
-            var raw = sessionStorage.getItem(TECH_STORAGE_KEY);
+            var raw = bookingStorage.getItem(TECH_STORAGE_KEY);
             if (!raw) {
                 return null;
             }
@@ -336,7 +492,7 @@
 
     function saveDateTimeSelection(payload) {
         try {
-            sessionStorage.setItem(
+            bookingStorage.setItem(
                 DATETIME_STORAGE_KEY,
                 JSON.stringify({
                     date: payload.date || '',
@@ -351,7 +507,7 @@
 
     function getDateTimeSelection() {
         try {
-            var raw = sessionStorage.getItem(DATETIME_STORAGE_KEY);
+            var raw = bookingStorage.getItem(DATETIME_STORAGE_KEY);
             if (!raw) {
                 return null;
             }
@@ -371,7 +527,7 @@
 
     function saveContactSelection(payload) {
         try {
-            sessionStorage.setItem(
+            bookingStorage.setItem(
                 CONTACT_STORAGE_KEY,
                 JSON.stringify({
                     name: payload.name || '',
@@ -389,7 +545,7 @@
 
     function getContactSelection() {
         try {
-            var raw = sessionStorage.getItem(CONTACT_STORAGE_KEY);
+            var raw = bookingStorage.getItem(CONTACT_STORAGE_KEY);
             if (!raw) {
                 return null;
             }
@@ -556,6 +712,20 @@
         currentMonthEl.setAttribute('aria-live', 'polite');
     }
 
+    function syncFlatpickrNavButtons(instance) {
+        if (!instance || !instance.calendarContainer) {
+            return;
+        }
+        var prev = instance.calendarContainer.querySelector('.flatpickr-prev-month');
+        var next = instance.calendarContainer.querySelector('.flatpickr-next-month');
+        if (prev) {
+            prev.innerHTML = '<i class="bi bi-arrow-left booking-flatpickr-nav-icon" aria-hidden="true"></i>';
+        }
+        if (next) {
+            next.innerHTML = '<i class="bi bi-arrow-right booking-flatpickr-nav-icon" aria-hidden="true"></i>';
+        }
+    }
+
     /** Manhã antes das 13:00; tarde a partir das 13:00 (horário contínuo 9h–20h). */
     function splitSlotsMorningAfternoon(timeStrings) {
         var splitMin = 13 * 60;
@@ -604,12 +774,18 @@
 
     function initDateTimeStep() {
         var calendarInput = document.getElementById('booking-calendar');
+        var weekView = document.getElementById('booking-week-view');
+        var weekDays = document.getElementById('booking-week-days');
+        var weekTitle = document.getElementById('booking-week-title');
+        var weekPrev = document.getElementById('booking-week-prev');
+        var weekNext = document.getElementById('booking-week-next');
+        var calendarViewToggle = document.getElementById('booking-calendar-view-toggle');
         var dayTitle = document.getElementById('booking-slots-day');
         var morningWrap = document.getElementById('booking-slots-morning');
         var afternoonWrap = document.getElementById('booking-slots-afternoon');
         var slotsStatus = document.getElementById('booking-slots-status');
         var slotsPeriods = document.getElementById('booking-slots-periods');
-        if (!calendarInput || !dayTitle || !morningWrap || !afternoonWrap) {
+        if (!calendarInput || !weekView || !weekDays || !weekTitle || !weekPrev || !weekNext || !calendarViewToggle || !dayTitle || !morningWrap || !afternoonWrap) {
             return;
         }
         if (typeof flatpickr === 'undefined') {
@@ -630,6 +806,60 @@
         var selected = getDateTimeSelection();
         var selectedDate = selected ? selected.date : null;
         var selectedTime = selected ? selected.time : null;
+        var calendarView = 'month';
+        var weekStart = null;
+        var selectedDateObj = null;
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        function parseIsoDate(iso) {
+            if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(String(iso))) {
+                return null;
+            }
+            var p = String(iso).split('-');
+            var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+            if (isNaN(d.getTime())) {
+                return null;
+            }
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        function startOfWeekMonday(date) {
+            var d = new Date(date);
+            d.setHours(0, 0, 0, 0);
+            var day = d.getDay();
+            var delta = day === 0 ? -6 : 1 - day;
+            d.setDate(d.getDate() + delta);
+            return d;
+        }
+
+        function addDays(date, days) {
+            var d = new Date(date);
+            d.setDate(d.getDate() + days);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        function isBeforeToday(date) {
+            return date.getTime() < today.getTime();
+        }
+
+        function sameDay(a, b) {
+            return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+        }
+
+        function formatIsoDate(date) {
+            return date.getFullYear() + '-' + pad2(date.getMonth() + 1) + '-' + pad2(date.getDate());
+        }
+
+        function formatPtWeekdayShort(date) {
+            var text = new Intl.DateTimeFormat('pt-PT', { weekday: 'short' }).format(date).replace('.', '');
+            return text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        selectedDateObj = parseIsoDate(selectedDate) || new Date(today);
+        weekStart = startOfWeekMonday(selectedDateObj);
 
         function bookingDurationMinutes() {
             var m = getTotalDurationMinutes();
@@ -771,7 +1001,10 @@
         }
 
         function renderDaySlots(date) {
-            selectedDate = date.getFullYear() + '-' + pad2(date.getMonth() + 1) + '-' + pad2(date.getDate());
+            selectedDateObj = new Date(date);
+            selectedDateObj.setHours(0, 0, 0, 0);
+            selectedDate = formatIsoDate(selectedDateObj);
+            weekStart = startOfWeekMonday(selectedDateObj);
             dayTitle.textContent = formatPtDateHeading(date);
             var tech = getTechnicianSelection();
             var agentId = tech && tech.id != null && tech.id !== '' ? String(tech.id) : 'any';
@@ -818,9 +1051,74 @@
                 });
         }
 
-        flatpickr(calendarInput, {
+        function renderWeekView() {
+            weekTitle.textContent = formatPtMonthYear(weekStart.getMonth(), weekStart.getFullYear());
+            weekDays.innerHTML = '';
+            var i;
+            for (i = 0; i < 7; i += 1) {
+                var d = addDays(weekStart, i);
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'booking-week-view__day';
+                btn.setAttribute('role', 'option');
+                btn.setAttribute('data-date', formatIsoDate(d));
+                btn.disabled = isBeforeToday(d);
+
+                var wd = document.createElement('span');
+                wd.className = 'booking-week-view__weekday';
+                wd.textContent = formatPtWeekdayShort(d);
+                var dn = document.createElement('span');
+                dn.className = 'booking-week-view__daynum';
+                dn.textContent = String(d.getDate());
+                btn.appendChild(wd);
+                btn.appendChild(dn);
+
+                if (sameDay(d, selectedDateObj)) {
+                    btn.classList.add('is-active');
+                    btn.setAttribute('aria-selected', 'true');
+                } else {
+                    btn.setAttribute('aria-selected', 'false');
+                }
+
+                btn.addEventListener('click', function () {
+                    if (this.disabled) {
+                        return;
+                    }
+                    var picked = parseIsoDate(this.getAttribute('data-date'));
+                    if (!picked) {
+                        return;
+                    }
+                    selectedTime = null;
+                    fp.setDate(picked, false);
+                    renderDaySlots(picked);
+                    renderWeekView();
+                });
+                weekDays.appendChild(btn);
+            }
+            weekPrev.disabled = startOfWeekMonday(addDays(weekStart, 6)).getTime() <= startOfWeekMonday(today).getTime();
+        }
+
+        function setCalendarView(mode) {
+            calendarView = mode === 'week' ? 'week' : 'month';
+            var isWeek = calendarView === 'week';
+            if (fp && fp.calendarContainer) {
+                fp.calendarContainer.classList.toggle('d-none', isWeek);
+            }
+            weekView.classList.toggle('d-none', !isWeek);
+            calendarViewToggle.classList.toggle('is-week', isWeek);
+            calendarViewToggle.setAttribute('aria-expanded', isWeek ? 'true' : 'false');
+            calendarViewToggle.setAttribute('aria-label', isWeek ? 'Alternar para vista mensal' : 'Alternar para vista semanal');
+            if (isWeek) {
+                renderWeekView();
+            }
+        }
+
+        var baseLocale = (flatpickr && flatpickr.l10ns && flatpickr.l10ns.pt) ? flatpickr.l10ns.pt : {};
+        var calendarLocale = Object.assign({}, baseLocale, { firstDayOfWeek: 1 });
+
+        var fp = flatpickr(calendarInput, {
             inline: true,
-            locale: (flatpickr && flatpickr.l10ns && flatpickr.l10ns.pt) ? flatpickr.l10ns.pt : undefined,
+            locale: calendarLocale,
             dateFormat: 'Y-m-d',
             minDate: 'today',
             defaultDate: selectedDate || 'today',
@@ -830,20 +1128,42 @@
                 }
                 selectedTime = null;
                 renderDaySlots(dates[0]);
+                if (calendarView === 'week') {
+                    renderWeekView();
+                }
             },
             onReady: function (dates, dateStr, instance) {
                 syncFlatpickrMonthTitle(instance);
+                syncFlatpickrNavButtons(instance);
                 if (dates && dates.length) {
                     renderDaySlots(dates[0]);
                 }
+                setCalendarView('month');
             },
             onMonthChange: function (dates, dateStr, instance) {
                 syncFlatpickrMonthTitle(instance);
+                syncFlatpickrNavButtons(instance);
             },
             onYearChange: function (dates, dateStr, instance) {
                 syncFlatpickrMonthTitle(instance);
+                syncFlatpickrNavButtons(instance);
             },
         });
+
+        weekPrev.addEventListener('click', function () {
+            weekStart = addDays(weekStart, -7);
+            renderWeekView();
+        });
+
+        weekNext.addEventListener('click', function () {
+            weekStart = addDays(weekStart, 7);
+            renderWeekView();
+        });
+
+        calendarViewToggle.addEventListener('click', function () {
+            setCalendarView(calendarView === 'week' ? 'month' : 'week');
+        });
+
         calendarInput.setAttribute('data-flatpickr-ready', '1');
     }
 
@@ -923,9 +1243,12 @@
                     return;
                 }
                 var nameEl = row.querySelector('.booking-technician-row__name');
+                var metaEl = row.querySelector('.booking-technician-row__meta');
                 saveTechnicianSelection({
                     id: input.value,
                     name: nameEl ? nameEl.textContent.trim() : '',
+                    specialization: metaEl ? metaEl.textContent.trim() : '',
+                    avatar: row.getAttribute('data-tech-avatar') || '',
                 });
                 renderSummary();
             });
@@ -935,7 +1258,7 @@
 
     function loadFromStorage() {
         try {
-            var raw = sessionStorage.getItem(STORAGE_KEY);
+            var raw = bookingStorage.getItem(STORAGE_KEY);
             if (!raw) {
                 return;
             }
@@ -950,14 +1273,182 @@
         }
     }
 
-    function openModal(service) {
-        if (!els.modalName || !els.modalMeta) {
+    function clearModalServiceOptions() {
+        if (els.modalOptions) {
+            els.modalOptions.innerHTML = '';
+        }
+        if (els.modalOptionsWrap) {
+            els.modalOptionsWrap.classList.add('d-none');
+        }
+        clearModalOptionsError();
+    }
+
+    function clearModalOptionsError() {
+        if (!els.modalOptionsError) {
             return;
         }
-        state.pending = service;
-        els.modalName.textContent = service.name;
-        els.modalMeta.textContent =
-            service.duration + ' · ' + (service.priceFormatted || formatMoneyEUR(service.price));
+        els.modalOptionsError.textContent = '';
+        els.modalOptionsError.classList.add('d-none');
+    }
+
+    function showModalOptionsError(message) {
+        if (!els.modalOptionsError) {
+            return;
+        }
+        els.modalOptionsError.textContent = message || '';
+        els.modalOptionsError.classList.remove('d-none');
+    }
+
+    function syncPendingOptionFromDom() {
+        if (!state.pending || !state.pending.service) {
+            return;
+        }
+        var svc = state.pending.service;
+        if (!svc.options || !svc.options.length) {
+            state.pending.selectedOption = null;
+            return;
+        }
+        var input =
+            els.modalOptions && els.modalOptions.querySelector('input[name="booking-service-option"]:checked');
+        if (!input) {
+            state.pending.selectedOption = null;
+            return;
+        }
+        var want = String(input.value);
+        var found = null;
+        svc.options.forEach(function (o) {
+            if (String(o.id) === want) {
+                found = o;
+            }
+        });
+        state.pending.selectedOption = found;
+    }
+
+    function setModalConfirmEnabled(enabled) {
+        if (els.modalConfirm) {
+            els.modalConfirm.disabled = !enabled;
+        }
+    }
+
+    function formatBookingMinutesLabel(totalMinutes) {
+        var m = Math.max(0, Math.floor(Number(totalMinutes) || 0));
+        var hours = Math.floor(m / 60);
+        var mins = m % 60;
+        if (hours > 0 && mins > 0) {
+            return hours + 'h ' + mins + ' min';
+        }
+        if (hours > 0) {
+            return hours + 'h';
+        }
+        return mins + ' min';
+    }
+
+    function modalSummaryFromOptions(service) {
+        var opts = service.options;
+        if (!opts || !opts.length) {
+            return { price: '', duration: '' };
+        }
+        var minPrice = Infinity;
+        var minDur = Infinity;
+        var maxDur = 0;
+        opts.forEach(function (o) {
+            var p = Number(o.price);
+            if (!isNaN(p) && p < minPrice) {
+                minPrice = p;
+            }
+            var dm = Number(o.durationMinutes);
+            if (!isNaN(dm)) {
+                if (dm < minDur) {
+                    minDur = dm;
+                }
+                if (dm > maxDur) {
+                    maxDur = dm;
+                }
+            }
+        });
+        var priceLabel =
+            minPrice === Infinity ? '' : 'Desde ' + formatMoneyEUR(minPrice);
+        var durationLabel =
+            minDur === Infinity
+                ? ''
+                : minDur === maxDur
+                  ? formatBookingMinutesLabel(minDur)
+                  : formatBookingMinutesLabel(minDur) + '+';
+        return { price: priceLabel, duration: durationLabel };
+    }
+
+    function joinPriceAndDuration(pricePart, durationPart) {
+        var p = (pricePart || '').trim();
+        var d = (durationPart || '').trim();
+        if (p && d) {
+            return p + ' · ' + d;
+        }
+        return p || d;
+    }
+
+    function openModal(service) {
+        if (!els.modalTitle || !els.modalMeta) {
+            return;
+        }
+        clearModalServiceOptions();
+        state.pending = {
+            service: service,
+            selectedOption: null,
+        };
+        els.modalTitle.textContent = service.name || '';
+
+        if (service.options && service.options.length > 0) {
+            var sum = modalSummaryFromOptions(service);
+            var dur = service.summaryDurationLabel || sum.duration;
+            var price = service.summaryPriceLabel || sum.price;
+            els.modalMeta.textContent = joinPriceAndDuration(price, dur);
+            if (els.modalOptionsWrap) {
+                els.modalOptionsWrap.classList.remove('d-none');
+            }
+            if (els.modalOptions) {
+                service.options.forEach(function (opt) {
+                    var label = document.createElement('label');
+                    label.className = 'booking-modal-option';
+                    var main = document.createElement('div');
+                    main.className = 'booking-modal-option__main';
+                    var nameEl = document.createElement('span');
+                    nameEl.className = 'booking-modal-option__name';
+                    nameEl.textContent = opt.name;
+                    var metaEl = document.createElement('span');
+                    metaEl.className = 'booking-modal-option__meta';
+                    metaEl.textContent = joinPriceAndDuration(
+                        opt.priceFormatted != null ? opt.priceFormatted : formatMoneyEUR(opt.price),
+                        opt.duration
+                    );
+                    main.appendChild(nameEl);
+                    main.appendChild(metaEl);
+                    var radWrap = document.createElement('div');
+                    radWrap.className = 'booking-modal-option__radio';
+                    var input = document.createElement('input');
+                    input.type = 'radio';
+                    input.name = 'booking-service-option';
+                    input.value = String(opt.id);
+                    input.setAttribute('aria-label', opt.name);
+                    input.addEventListener('change', function () {
+                        syncPendingOptionFromDom();
+                        clearModalOptionsError();
+                    });
+                    radWrap.appendChild(input);
+                    label.appendChild(main);
+                    label.appendChild(radWrap);
+                    els.modalOptions.appendChild(label);
+                });
+            }
+            syncPendingOptionFromDom();
+        } else {
+            els.modalMeta.textContent = joinPriceAndDuration(
+                service.priceFormatted || formatMoneyEUR(service.price),
+                service.duration
+            );
+        }
+
+        setModalConfirmEnabled(true);
+
         var m = getModalInstance();
         if (m) {
             m.show();
@@ -970,22 +1461,37 @@
             m.hide();
         }
         state.pending = null;
+        clearModalServiceOptions();
     }
 
     function confirmAdd() {
-        if (!state.pending) {
+        if (!state.pending || !state.pending.service) {
             return;
         }
-        var s = state.pending;
-        state.items.push({
+        var svc = state.pending.service;
+        syncPendingOptionFromDom();
+        var opt = state.pending.selectedOption;
+        if (svc.options && svc.options.length) {
+            if (!opt) {
+                showModalOptionsError('Seleciona uma opção para continuar.');
+                return;
+            }
+        }
+        var line = {
             lineId: generateLineId(),
-            id: s.id,
-            name: s.name,
-            duration: s.duration,
-            durationMinutes: Number(s.durationMinutes) || 0,
-            price: s.price,
-            priceFormatted: s.priceFormatted,
-        });
+            id: svc.id,
+            name: opt ? opt.name : svc.name,
+            duration: opt ? opt.duration : svc.duration,
+            durationMinutes: opt
+                ? Number(opt.durationMinutes) || 0
+                : Number(svc.durationMinutes) || 0,
+            price: opt ? opt.price : svc.price,
+            priceFormatted: opt ? opt.priceFormatted : svc.priceFormatted,
+        };
+        if (opt) {
+            line.service_option_id = opt.id;
+        }
+        state.items.push(line);
         persist();
         renderSummary();
         closeModal();
@@ -1014,6 +1520,14 @@
             });
             els.modal.addEventListener('hidden.bs.modal', function () {
                 state.pending = null;
+                clearModalServiceOptions();
+                if (els.modalTitle) {
+                    els.modalTitle.textContent = '';
+                }
+                if (els.modalMeta) {
+                    els.modalMeta.textContent = '';
+                }
+                clearModalOptionsError();
                 document.body.classList.remove('booking-modal-open');
                 /* Garante que o Bootstrap não deixa estilos inline que possam afetar sticky */
                 document.body.style.removeProperty('padding-right');
@@ -1400,11 +1914,11 @@
             .then(function (res) {
                 if (res.ok && res.data && res.data.redirect) {
                     try {
-                        sessionStorage.removeItem(STORAGE_KEY);
-                        sessionStorage.removeItem(TECH_STORAGE_KEY);
-                        sessionStorage.removeItem(DATETIME_STORAGE_KEY);
-                        sessionStorage.removeItem(CONTACT_STORAGE_KEY);
-                        sessionStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+                        bookingStorage.removeItem(STORAGE_KEY);
+                        bookingStorage.removeItem(TECH_STORAGE_KEY);
+                        bookingStorage.removeItem(DATETIME_STORAGE_KEY);
+                        bookingStorage.removeItem(CONTACT_STORAGE_KEY);
+                        bookingStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
                         if (window.location.search.indexOf('payment_intent=') !== -1) {
                             window.history.replaceState({}, '', window.location.pathname);
                         }
@@ -1465,7 +1979,7 @@
         var status = params.get('redirect_status');
         var storedId = null;
         try {
-            storedId = sessionStorage.getItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+            storedId = bookingStorage.getItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
         } catch (e) {
             /* ignore */
         }
@@ -1479,11 +1993,11 @@
     function handleConfirmWithoutPaymentResponse(res) {
         if (res.ok && res.data && res.data.redirect) {
             try {
-                sessionStorage.removeItem(STORAGE_KEY);
-                sessionStorage.removeItem(TECH_STORAGE_KEY);
-                sessionStorage.removeItem(DATETIME_STORAGE_KEY);
-                sessionStorage.removeItem(CONTACT_STORAGE_KEY);
-                sessionStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+                bookingStorage.removeItem(STORAGE_KEY);
+                bookingStorage.removeItem(TECH_STORAGE_KEY);
+                bookingStorage.removeItem(DATETIME_STORAGE_KEY);
+                bookingStorage.removeItem(CONTACT_STORAGE_KEY);
+                bookingStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
             } catch (e) {
                 /* ignore */
             }
@@ -1588,7 +2102,11 @@
             time: dt.time,
             agent_id: String(tech.id),
             services: state.items.map(function (line) {
-                return { id: line.id };
+                var row = { id: line.id };
+                if (line.service_option_id != null && line.service_option_id !== '') {
+                    row.service_option_id = Number(line.service_option_id);
+                }
+                return row;
             }),
         };
 
@@ -1666,7 +2184,7 @@
                 checkoutPaymentState.publishableKey = d.publishable_key;
                 checkoutPaymentState.bookingPublicId = d.booking_public_id;
                 try {
-                    sessionStorage.setItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY, d.booking_public_id);
+                    bookingStorage.setItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY, d.booking_public_id);
                 } catch (e) {
                     /* ignore */
                 }

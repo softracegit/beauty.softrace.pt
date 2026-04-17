@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
-use App\Models\Agent;
-use App\Models\User;
-use App\Models\Extra;
-use App\Models\ExtraCategory;
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
-use Illuminate\Http\Request;
+use App\Models\Agent;
+use App\Models\Category;
+use App\Models\Extra;
+use App\Models\ExtraCategory;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
@@ -22,12 +22,13 @@ class CategoryController extends Controller
         // Only return JSON if explicitly requested via AJAX (lista + counts para badges)
         if ($request->ajax() && $request->header('X-Requested-With') === 'XMLHttpRequest') {
             $categories = Category::orderBy('sort_order')->withCount('services')->get();
+
             return response()->json($categories);
         }
 
         $selectedCategory = null; // por defeito: "Todas as categorias"
         $categories = Category::orderBy('sort_order')
-            ->with(['services' => fn ($q) => $q->with('agents', 'extras')->orderBy('sort_order')])
+            ->with(['services' => fn ($q) => $q->with('agents', 'extras', 'options')->orderBy('sort_order')])
             ->withCount('services')
             ->get();
         $agents = Agent::whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
@@ -55,7 +56,7 @@ class CategoryController extends Controller
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json($category);
         }
-        
+
         return redirect()->route('services.index');
     }
 
@@ -65,15 +66,15 @@ class CategoryController extends Controller
     public function store(StoreCategoryRequest $request)
     {
         $data = $request->validated();
-        
+
         // Set sort_order if not provided
-        if (!isset($data['sort_order'])) {
+        if (! isset($data['sort_order'])) {
             $maxOrder = Category::max('sort_order') ?? 0;
             $data['sort_order'] = $maxOrder + 1;
         }
-        
+
         $category = Category::create($data);
-        
+
         // Check if it's an AJAX request by checking headers
         if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {
             return response()->json([
@@ -82,7 +83,7 @@ class CategoryController extends Controller
                 'category' => $category,
             ]);
         }
-        
+
         return redirect()->route('services.index')
             ->with('success', 'Categoria criada com sucesso.');
     }
@@ -93,7 +94,7 @@ class CategoryController extends Controller
     public function update(UpdateCategoryRequest $request, Category $category)
     {
         $category->update($request->validated());
-        
+
         if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -101,7 +102,7 @@ class CategoryController extends Controller
                 'category' => $category->fresh(),
             ]);
         }
-        
+
         return redirect()->route('services.index')
             ->with('success', 'Categoria atualizada com sucesso.');
     }
@@ -119,19 +120,20 @@ class CategoryController extends Controller
                     'message' => 'Não é possível eliminar uma categoria que possui serviços.',
                 ], 422);
             }
+
             return redirect()->route('services.index')
                 ->with('error', 'Não é possível eliminar uma categoria que possui serviços.');
         }
-        
+
         $category->delete();
-        
+
         if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Categoria eliminada com sucesso.',
             ]);
         }
-        
+
         return redirect()->route('services.index')
             ->with('success', 'Categoria eliminada com sucesso.');
     }
@@ -145,11 +147,11 @@ class CategoryController extends Controller
             'order' => ['required', 'array'],
             'order.*' => ['required', 'integer', 'exists:categories,id'],
         ]);
-        
+
         foreach ($request->order as $index => $categoryId) {
             Category::where('id', $categoryId)->update(['sort_order' => $index + 1]);
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Ordem das categorias atualizada com sucesso.',

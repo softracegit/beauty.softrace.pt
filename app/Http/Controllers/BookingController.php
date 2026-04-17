@@ -31,7 +31,10 @@ class BookingController extends Controller
         $categories = Category::query()
             ->with([
                 'services' => function ($q) {
-                    $q->orderBy('sort_order');
+                    $q->orderBy('sort_order')
+                        ->with(['options' => function ($oq) {
+                            $oq->orderBy('sort_order');
+                        }]);
                 },
             ])
             ->whereHas('services')

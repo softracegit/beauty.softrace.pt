@@ -7,6 +7,7 @@ use App\Models\BookingMagicLoginToken;
 use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\Service;
+use App\Models\ServiceOption;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
 use App\Support\PhoneDisplay;
@@ -47,6 +48,7 @@ class OnlineBookingCheckoutService
             'agent_id' => ['required', 'string'],
             'services' => ['required', 'array', 'min:1'],
             'services.*.id' => ['required', 'integer', 'exists:services,id'],
+            'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
         ];
     }
 
@@ -77,7 +79,14 @@ class OnlineBookingCheckoutService
      * @param  array<string, mixed>  $validated
      * @return array{
      *     validated: array<string, mixed>,
-     *     orderedServices: Collection<int, Service>,
+     *     bookingLines: list<array{
+     *         service: Service,
+     *         option: ?ServiceOption,
+     *         duration: int,
+     *         price: float,
+     *         original_price: float,
+     *         display_name: string,
+     *     }>,
      *     userId: int,
      *     startForDb: Carbon,
      *     endForDb: Carbon,
@@ -101,16 +110,13 @@ class OnlineBookingCheckoutService
             ]);
         }
 
-        $serviceIds = array_values(array_map(fn (array $row): int => (int) $row['id'], $validated['services']));
-        $services = Service::query()->whereIn('id', $serviceIds)->get()->keyBy('id');
-        if ($services->count() !== count(array_unique($serviceIds))) {
-            throw ValidationException::withMessages([
-                'services' => ['Um ou mais serviços são inválidos.'],
-            ]);
-        }
+        $bookingLines = $this->resolveOnlineBookingServiceLines($validated['services']);
+        $serviceIds = array_values(array_unique(array_map(
+            fn (array $line): int => (int) $line['service']->id,
+            $bookingLines,
+        )));
 
-        $orderedServices = collect($serviceIds)->map(fn (int $id) => $services->get($id));
-        $totalDuration = (int) $orderedServices->sum('duration');
+        $totalDuration = (int) array_sum(array_map(fn (array $line): int => (int) $line['duration'], $bookingLines));
         if ($totalDuration <= 0) {
             throw ValidationException::withMessages([
                 'services' => ['Duração total inválida.'],
@@ -165,18 +171,115 @@ class OnlineBookingCheckoutService
         }
 
         $totalPrice = round(
-            (float) $orderedServices->sum(fn (Service $svc) => $this->bookingPriceForService($svc)),
+            (float) array_sum(array_map(fn (array $line): float => (float) $line['price'], $bookingLines)),
             2,
         );
 
         return [
             'validated' => $validated,
-            'orderedServices' => $orderedServices,
+            'bookingLines' => $bookingLines,
             'userId' => $userId,
             'startForDb' => $startForDb,
             'endForDb' => $endForDb,
             'totalPrice' => $totalPrice,
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $servicesInput
+     * @return list<array{
+     *     service: Service,
+     *     option: ?ServiceOption,
+     *     duration: int,
+     *     price: float,
+     *     original_price: float,
+     *     display_name: string,
+     * }>
+     */
+    private function resolveOnlineBookingServiceLines(array $servicesInput): array
+    {
+        $serviceIds = array_values(array_unique(array_map(
+            fn ($row): int => is_array($row) ? (int) ($row['id'] ?? 0) : 0,
+            $servicesInput,
+        )));
+        $serviceIds = array_values(array_filter($serviceIds, fn (int $id) => $id > 0));
+
+        $services = Service::query()
+            ->whereIn('id', $serviceIds)
+            ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
+            ->get()
+            ->keyBy('id');
+
+        if ($services->count() !== count($serviceIds)) {
+            throw ValidationException::withMessages([
+                'services' => ['Um ou mais serviços são inválidos.'],
+            ]);
+        }
+
+        $lines = [];
+        foreach ($servicesInput as $idx => $row) {
+            if (! is_array($row)) {
+                throw ValidationException::withMessages([
+                    'services' => ['Pedido inválido.'],
+                ]);
+            }
+
+            $sid = (int) ($row['id'] ?? 0);
+            $service = $services->get($sid);
+            if (! $service) {
+                throw ValidationException::withMessages([
+                    "services.{$idx}.id" => ['Serviço inválido.'],
+                ]);
+            }
+
+            $hasVariants = $service->options->isNotEmpty();
+            $optRaw = $row['service_option_id'] ?? null;
+            $optId = ($optRaw !== null && $optRaw !== '') ? (int) $optRaw : null;
+
+            if ($hasVariants) {
+                if (! $optId) {
+                    throw ValidationException::withMessages([
+                        "services.{$idx}.service_option_id" => ['Selecione a variante do serviço.'],
+                    ]);
+                }
+                if (! $service->options->contains('id', $optId)) {
+                    throw ValidationException::withMessages([
+                        "services.{$idx}.service_option_id" => ['A variante não pertence a este serviço.'],
+                    ]);
+                }
+            } elseif ($optId) {
+                throw ValidationException::withMessages([
+                    "services.{$idx}.service_option_id" => ['Este serviço não tem variantes.'],
+                ]);
+            }
+
+            /** @var ServiceOption|null $option */
+            $option = $optId ? $service->options->firstWhere('id', $optId) : null;
+
+            $duration = $option ? (int) $option->duration : (int) $service->duration;
+            if ($duration <= 0) {
+                throw ValidationException::withMessages([
+                    "services.{$idx}.id" => ['Duração inválida.'],
+                ]);
+            }
+
+            $price = $option
+                ? $this->bookingPriceForOption($option)
+                : $this->bookingPriceForService($service);
+            $originalPrice = $option ? (float) $option->price : (float) $service->price;
+            $displayName = $option ? (string) $option->name : (string) $service->name;
+
+            $lines[] = [
+                'service' => $service,
+                'option' => $option,
+                'duration' => $duration,
+                'price' => $price,
+                'original_price' => $originalPrice,
+                'display_name' => $displayName,
+            ];
+        }
+
+        return $lines;
     }
 
     /**
@@ -227,7 +330,7 @@ class OnlineBookingCheckoutService
     /**
      * @param  array{
      *     validated: array<string, mixed>,
-     *     orderedServices: Collection<int, Service>,
+     *     bookingLines: list<array{service: Service, option: ?ServiceOption, duration: int, price: float, original_price: float, display_name: string}>,
      *     userId: int,
      *     startForDb: Carbon,
      *     endForDb: Carbon,
@@ -236,24 +339,31 @@ class OnlineBookingCheckoutService
     public function persistMarcacao(array $resolved, Client $client): CalendarEvent
     {
         $validated = $resolved['validated'];
-        $orderedServices = $resolved['orderedServices'];
+        /** @var list<array{service: Service, option: ?ServiceOption, duration: int, price: float, original_price: float, display_name: string}> $bookingLines */
+        $bookingLines = $resolved['bookingLines'];
         $userId = $resolved['userId'];
         $startForDb = $resolved['startForDb'];
         $endForDb = $resolved['endForDb'];
 
-        $firstService = $orderedServices->first();
+        $firstService = $bookingLines[0]['service'];
         $servicesPayload = [];
-        foreach ($orderedServices->values() as $svc) {
-            $price = $this->bookingPriceForService($svc);
+        foreach ($bookingLines as $line) {
+            $svc = $line['service'];
+            $opt = $line['option'];
             $servicesPayload[] = [
                 'service_id' => $svc->id,
-                'duration' => (int) $svc->duration,
-                'price' => $price,
-                'original_price' => (float) $svc->price,
+                'service_option_id' => $opt?->id,
+                'option_name' => $opt?->name,
+                'option_duration' => $opt ? (int) $opt->duration : null,
+                'option_price' => $opt ? (float) $opt->price : null,
+                'option_online_price' => $opt && $opt->online_price !== null ? (float) $opt->online_price : null,
+                'duration' => (int) $line['duration'],
+                'price' => (float) $line['price'],
+                'original_price' => (float) $line['original_price'],
             ];
         }
 
-        $title = $client->name.' - '.$orderedServices->pluck('name')->implode(', ');
+        $title = $client->name.' - '.collect($bookingLines)->pluck('display_name')->implode(', ');
         $notesTrim = isset($validated['notes']) ? trim((string) $validated['notes']) : '';
         $description = $notesTrim !== '' ? $notesTrim : null;
 
@@ -278,6 +388,11 @@ class OnlineBookingCheckoutService
 
             foreach ($servicesPayload as $i => $item) {
                 $ev->eventServices()->attach((int) $item['service_id'], [
+                    'service_option_id' => $item['service_option_id'] ?? null,
+                    'option_name' => $item['option_name'] ?? null,
+                    'option_duration' => $item['option_duration'] ?? null,
+                    'option_price' => $item['option_price'] ?? null,
+                    'option_online_price' => $item['option_online_price'] ?? null,
                     'duration' => $item['duration'],
                     'price' => $item['price'],
                     'original_price' => $item['original_price'],
@@ -312,6 +427,15 @@ class OnlineBookingCheckoutService
         }
 
         return (float) $service->price;
+    }
+
+    public function bookingPriceForOption(ServiceOption $option): float
+    {
+        if ($option->online_price !== null) {
+            return (float) $option->online_price;
+        }
+
+        return (float) $option->price;
     }
 
     /**

@@ -33,6 +33,9 @@
 
 <div class="card">
     <div class="users-table-wrap">
+        @if(!$agents->isEmpty() && $categories->isNotEmpty() && $categories->sum(fn ($c) => $c->services->count()) > 0)
+            <p class="text-muted small px-3 pt-3 mb-0">As marcações aplicam-se ao <strong>serviço</strong> (título na lista). Se o serviço tiver variantes, a mesma equipa técnica aplica-se a todas as opções.</p>
+        @endif
         @if($agents->isEmpty())
             <div class="p-4 text-center text-muted">
                 <p class="mb-2">Não há técnicos ou prestadores de serviços na equipa.</p>

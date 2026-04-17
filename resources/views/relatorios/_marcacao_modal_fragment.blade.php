@@ -25,11 +25,11 @@
         <div class="uview-detail-title">Marcação</div>
         <div class="uview-detail-row">
           <div class="uview-detail-label">Data e hora de início</div>
-          <div class="uview-detail-value">{{ $ev->start_at->format('d/m/Y H:i') }}</div>
+          <div class="uview-detail-value">{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</div>
         </div>
         <div class="uview-detail-row">
           <div class="uview-detail-label">Data e hora de fim</div>
-          <div class="uview-detail-value">{{ $ev->end_at ? $ev->end_at->format('d/m/Y H:i') : '—' }}</div>
+          <div class="uview-detail-value">{{ \App\Support\DateTimeDisplay::business($ev->end_at) }}</div>
         </div>
         <div class="uview-detail-row">
           <div class="uview-detail-label">Estado</div>
@@ -103,7 +103,7 @@
           <div class="@if(!$loop->last) pb-3 mb-3 border-bottom border-light @endif">
             <div class="uview-detail-row">
               <div class="uview-detail-label">Serviço</div>
-              <div class="uview-detail-value">{{ $es->service?->name ?? '—' }}</div>
+              <div class="uview-detail-value">{{ trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? '—') }}</div>
             </div>
             <div class="uview-detail-row">
               <div class="uview-detail-label">Categoria</div>

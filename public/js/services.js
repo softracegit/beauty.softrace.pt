@@ -11,6 +11,211 @@ document.addEventListener('DOMContentLoaded', function() {
     let servicesDrake = null;       // vista de uma categoria (#servicesList)
     let servicesDrakesAll = [];     // vista "Todas" (vários .services-group-list)
 
+    function escapeHtml(str) {
+        if (str == null) {
+            return '';
+        }
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function addModalHasOptions() {
+        const cb = document.getElementById('addServiceHasOptions');
+        return !!(cb && cb.checked);
+    }
+
+    function editModalHasOptions() {
+        const cb = document.getElementById('editServiceHasOptions');
+        return !!(cb && cb.checked);
+    }
+
+    function setSimplePricingInputsDisabled(prefix, disabled) {
+        const id = prefix === 'add' ? 'addServiceSimplePricingWrap' : 'editServiceSimplePricingWrap';
+        const wrap = document.getElementById(id);
+        if (!wrap) {
+            return;
+        }
+        const dur = wrap.querySelector('input[name="duration"]');
+        const pri = wrap.querySelector('input[name="price"]');
+        const onl = wrap.querySelector('input[name="online_price"]');
+        [dur, pri, onl].forEach(function (el) {
+            if (!el) {
+                return;
+            }
+            el.disabled = !!disabled;
+            if (disabled) {
+                el.removeAttribute('required');
+            }
+        });
+        if (dur && !disabled) {
+            dur.setAttribute('required', 'required');
+        }
+        if (pri && !disabled) {
+            pri.setAttribute('required', 'required');
+        }
+    }
+
+    function buildOptionRowHtml(isBaseline, nameVal, durationVal, priceVal, onlineVal, sortIdx, optionId) {
+        const idAttr = optionId ? ' data-option-id="' + String(optionId) + '"' : '';
+        const removeCell = isBaseline
+            ? '<span class="text-muted small">Base</span>'
+            : '<button type="button" class="btn btn-link text-danger p-0 option-remove-btn" title="Remover">×</button>';
+        const nameCell =
+            '<input type="text" class="form-control form-control-sm" data-field="name" value="' +
+            escapeHtml(nameVal) +
+            '" required maxlength="255"' +
+            (isBaseline ? ' placeholder="Nome da opção base"' : '') +
+            '>';
+        return (
+            '<tr data-baseline="' + (isBaseline ? '1' : '0') + '" data-sort="' + sortIdx + '"' + idAttr + '>' +
+            '<td>' + nameCell + '</td>' +
+            '<td><input type="number" class="form-control form-control-sm" data-field="duration" min="1" step="1" required value="' + escapeHtml(String(durationVal)) + '"></td>' +
+            '<td><input type="number" class="form-control form-control-sm" data-field="price" min="0" step="0.01" required value="' + escapeHtml(String(priceVal)) + '"></td>' +
+            '<td><input type="number" class="form-control form-control-sm" data-field="online_price" min="0" step="0.01" required value="' + escapeHtml(String(onlineVal)) + '"></td>' +
+            '<td class="text-end">' + removeCell + '</td>' +
+            '</tr>'
+        );
+    }
+
+    function seedAddOptionsTableIfNeeded() {
+        const tb = document.getElementById('addServiceOptionsTbody');
+        if (!tb || tb.querySelector('tr')) {
+            return;
+        }
+        const d = document.getElementById('addServiceDuration') ? document.getElementById('addServiceDuration').value : '60';
+        const p = document.getElementById('addServicePrice') ? document.getElementById('addServicePrice').value : '';
+        const o = document.getElementById('addServiceOnlinePrice') ? document.getElementById('addServiceOnlinePrice').value : '';
+        const nm = document.getElementById('addServiceName') ? document.getElementById('addServiceName').value : '';
+        tb.innerHTML =
+            buildOptionRowHtml(true, nm, d, p, o, 0, null) +
+            buildOptionRowHtml(false, '', d, p, o, 1, null);
+    }
+
+    function renderEditOptionsFromService(service) {
+        const tb = document.getElementById('editServiceOptionsTbody');
+        if (!tb) {
+            return;
+        }
+        tb.innerHTML = '';
+        const opts = Array.isArray(service.options) ? service.options.slice().sort(function (a, b) { return (a.sort_order || 0) - (b.sort_order || 0); }) : [];
+        if (opts.length === 0) {
+            return;
+        }
+        opts.forEach(function (opt, idx) {
+            const isB = !!opt.is_baseline;
+            const nm = opt.name || '';
+            const rowHtml = buildOptionRowHtml(isB, nm, opt.duration, opt.price, opt.online_price, idx, opt.id);
+            tb.insertAdjacentHTML('beforeend', rowHtml);
+        });
+    }
+
+    function toggleAddServiceOptionsUi() {
+        const on = addModalHasOptions();
+        const opts = document.getElementById('addServiceOptionsWrap');
+        const simple = document.getElementById('addServiceSimplePricingWrap');
+        if (opts) {
+            opts.classList.toggle('d-none', !on);
+        }
+        if (simple) {
+            simple.classList.toggle('d-none', !!on);
+        }
+        setSimplePricingInputsDisabled('add', on);
+        if (on) {
+            seedAddOptionsTableIfNeeded();
+        } else {
+            const tb = document.getElementById('addServiceOptionsTbody');
+            if (tb) {
+                tb.innerHTML = '';
+            }
+        }
+    }
+
+    function toggleEditServiceOptionsUi() {
+        const on = editModalHasOptions();
+        const opts = document.getElementById('editServiceOptionsWrap');
+        const simple = document.getElementById('editServiceSimplePricingWrap');
+        if (opts) {
+            opts.classList.toggle('d-none', !on);
+        }
+        if (simple) {
+            simple.classList.toggle('d-none', !!on);
+        }
+        setSimplePricingInputsDisabled('edit', on);
+        if (!on) {
+            const tb = document.getElementById('editServiceOptionsTbody');
+            if (tb) {
+                tb.innerHTML = '';
+            }
+        } else {
+            const tb = document.getElementById('editServiceOptionsTbody');
+            if (tb && !tb.querySelector('tr')) {
+                const d = document.getElementById('editServiceDuration') ? document.getElementById('editServiceDuration').value : '60';
+                const p = document.getElementById('editServicePrice') ? document.getElementById('editServicePrice').value : '';
+                const o = document.getElementById('editServiceOnlinePrice') ? document.getElementById('editServiceOnlinePrice').value : '';
+                const nm = document.getElementById('editServiceName') ? document.getElementById('editServiceName').value : '';
+                tb.innerHTML =
+                    buildOptionRowHtml(true, nm, d, p, o, 0, null) + buildOptionRowHtml(false, '', d, p, o, 1, null);
+            }
+        }
+    }
+
+    function collectServiceOptionsPayload(tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) {
+            return [];
+        }
+        const rows = Array.from(tbody.querySelectorAll('tr[data-baseline]'));
+        return rows.map(function (tr, idx) {
+            const isB = tr.getAttribute('data-baseline') === '1';
+            const nameEl = tr.querySelector('[data-field="name"]');
+            const name = nameEl ? String(nameEl.value || '').trim() : '';
+            const dur = parseInt(tr.querySelector('[data-field="duration"]').value, 10);
+            const price = tr.querySelector('[data-field="price"]').value;
+            const online = tr.querySelector('[data-field="online_price"]').value;
+            const oid = tr.getAttribute('data-option-id');
+            const row = {
+                name: name,
+                duration: dur,
+                price: price,
+                online_price: online,
+                is_baseline: isB,
+                sort_order: idx,
+            };
+            if (oid) {
+                row.id = parseInt(oid, 10);
+            }
+            return row;
+        });
+    }
+
+    function appendOptionsToFormData(formData, tbodyId) {
+        const opts = collectServiceOptionsPayload(tbodyId);
+        opts.forEach(function (o, i) {
+            formData.append('options[' + i + '][name]', o.name);
+            formData.append('options[' + i + '][duration]', String(o.duration));
+            formData.append('options[' + i + '][price]', String(o.price));
+            formData.append('options[' + i + '][online_price]', String(o.online_price));
+            formData.append('options[' + i + '][sort_order]', String(o.sort_order));
+            formData.append('options[' + i + '][is_baseline]', o.is_baseline ? '1' : '0');
+            if (o.id) {
+                formData.append('options[' + i + '][id]', String(o.id));
+            }
+        });
+    }
+
+    function showFirstValidationError(data) {
+        if (!data || !data.errors) {
+            return;
+        }
+        const first = Object.values(data.errors).flat()[0];
+        if (first) {
+            showToast(first, 'error');
+        }
+    }
+
     /** Após criar/editar/eliminar serviço: atualizar lista da categoria atual e badges. */
     function refreshAfterServiceChange() {
         if (selectedCategoryId === 'all') loadAllServices();
@@ -142,6 +347,59 @@ document.addEventListener('DOMContentLoaded', function() {
             if (selectAll) selectAll.checked = allChecked;
         });
     });
+
+    document.getElementById('addServiceHasOptions')?.addEventListener('change', function () {
+        toggleAddServiceOptionsUi();
+    });
+    document.getElementById('editServiceHasOptions')?.addEventListener('change', function () {
+        toggleEditServiceOptionsUi();
+    });
+    function addOptionRowToTbody(tbodyId) {
+        const tb = document.getElementById(tbodyId);
+        if (!tb) {
+            return;
+        }
+        const first = tb.querySelector('tr [data-field="duration"]');
+        const d = first && first.value ? first.value : '60';
+        const prEl = tb.querySelector('tr [data-field="price"]');
+        const onEl = tb.querySelector('tr [data-field="online_price"]');
+        const p = prEl && prEl.value !== '' ? prEl.value : '';
+        const o = onEl && onEl.value !== '' ? onEl.value : '';
+        const n = tb.querySelectorAll('tr').length;
+        tb.insertAdjacentHTML('beforeend', buildOptionRowHtml(false, '', d, p, o, n, null));
+    }
+
+    document.getElementById('addServiceAddOptionRow')?.addEventListener('click', function () {
+        addOptionRowToTbody('addServiceOptionsTbody');
+    });
+    document.getElementById('editServiceAddOptionRow')?.addEventListener('click', function () {
+        addOptionRowToTbody('editServiceOptionsTbody');
+    });
+
+    function bindOptionRemoveClick(modalEl) {
+        if (!modalEl || modalEl.dataset.optionRemoveBound === '1') {
+            return;
+        }
+        modalEl.dataset.optionRemoveBound = '1';
+        modalEl.addEventListener('click', function (e) {
+            const btn = e.target.closest('.option-remove-btn');
+            if (!btn) {
+                return;
+            }
+            const tr = btn.closest('tr');
+            const tbody = tr && tr.parentElement;
+            if (!tbody || !tr) {
+                return;
+            }
+            if (tbody.querySelectorAll('tr').length <= 2) {
+                showToast('É necessário pelo menos duas opções.', 'error');
+                return;
+            }
+            tr.remove();
+        });
+    }
+    bindOptionRemoveClick(document.getElementById('addServiceModal'));
+    bindOptionRemoveClick(document.getElementById('editServiceModal'));
 
     // --- Sidebar (mobile) e seleção de categoria ---
     const sidebarToggle = document.getElementById('servicesSidebarToggle');
@@ -415,39 +673,64 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
         
-        return services.map(service => `
+        return services.map(function (service) {
+            const opts = service.options && service.options.length ? service.options : [];
+            const hasOpts = opts.length > 0;
+            let fromOnline = null;
+            if (hasOpts) {
+                fromOnline = Math.min.apply(
+                    null,
+                    opts.map(function (x) {
+                        return parseFloat(x.online_price);
+                    }),
+                );
+            }
+            const extrasN = service.extras_count || (service.extras && service.extras.length) || 0;
+            const metaLine = hasOpts
+                ? `<span class="text-success" title="Menor preço online entre opções"><i class="ph ph-globe me-1"></i>Desde ${formatPrice(fromOnline)}</span>
+                   <span><i class="ph ph-list-checks me-1"></i>${opts.length} opção(ões)</span>`
+                : `<span><i class="ph ph-clock me-1"></i>${formatDuration(service.duration)}</span>
+                   ${service.online_price ? `<span class="text-success" title="Preço online"><i class="ph ph-globe me-1"></i>${formatPrice(service.online_price)}</span>` : ''}`;
+            const optionList = hasOpts
+                ? `<ul class="list-unstyled small text-muted mb-0 mt-1 ps-0">${opts
+                      .map(function (opt) {
+                          return (
+                              '<li class="mb-1">' +
+                              escapeHtml(opt.name) +
+                              ' · ' +
+                              formatDuration(opt.duration) +
+                              ' · ' +
+                              formatPrice(opt.online_price) +
+                              '</li>'
+                          );
+                      })
+                      .join('')}</ul>`
+                : '';
+            const priceAside = hasOpts
+                ? `<span class="service-item-price text-muted"><span class="small fw-normal">desde</span> ${formatPrice(fromOnline)}</span>`
+                : `<span class="service-item-price">${formatPrice(service.price)}</span>`;
+            return `
             <div class="service-item-row" data-service-id="${service.id}">
                 <div class="service-drag-handle" aria-label="Arrastar para reordenar">
                     <span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
                 </div>
-                <div class="card service-item" style="--service-category-color: ${borderColor};">
+                <div class="card service-item service-item-clickable" style="--service-category-color: ${borderColor};">
                     <div class="card-body d-flex justify-content-between align-items-center gap-3 py-2 pe-2">
                         <div class="service-item-left">
-                            <h6 class="mb-0 service-item-name">${service.name}</h6>
-                            ${service.description ? `<p class="text-muted small mb-1">${service.description.substring(0, 100)}${service.description.length > 100 ? '...' : ''}</p>` : ''}
+                            <h6 class="mb-0 service-item-name">${escapeHtml(service.name)}</h6>
+                            ${service.description ? `<p class="text-muted small mb-1">${escapeHtml(service.description.substring(0, 100))}${service.description.length > 100 ? '...' : ''}</p>` : ''}
                             <div class="d-flex flex-wrap gap-3 text-muted small service-item-duration">
-                                <span><i class="ph ph-clock me-1"></i>${formatDuration(service.duration)}</span>
-                                ${service.online_price ? `<span class="text-success" title="Preço online"><i class="ph ph-globe me-1"></i>${formatPrice(service.online_price)}</span>` : ''}
-                                ${(service.extras_count || (service.extras && service.extras.length) || 0) > 0 ? `<span><i class="ph ph-package me-1"></i>${service.extras_count || (service.extras && service.extras.length) || 0} extra(s)</span>` : ''}
+                                ${metaLine}
+                                ${extrasN > 0 ? `<span><i class="ph ph-package me-1"></i>${extrasN} extra(s)</span>` : ''}
                             </div>
+                            ${optionList}
                         </div>
-                        <div class="d-flex align-items-center gap-2 flex-shrink-0 service-item-right">
-                            <span class="service-item-price">${formatPrice(service.price)}</span>
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Opções">
-                                    <i class="ph ph-dots-three-vertical"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item edit-service-btn" href="#" data-service-id="${service.id}"><i class="ph ph-pencil-simple me-2"></i>Editar</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger delete-service-btn" href="#" data-service-id="${service.id}"><i class="ph ph-trash me-2"></i>Eliminar</a></li>
-                                </ul>
-                            </div>
-                        </div>
+                        <div class="d-flex align-items-center gap-2 flex-shrink-0 service-item-right">${priceAside}</div>
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
 
     function formatDuration(minutes) {
@@ -656,19 +939,31 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> A criar...';
         
         const formData = new FormData(this);
-        
+
+        const hasVar = addModalHasOptions();
+        formData.set('has_options', hasVar ? '1' : '0');
+        if (hasVar) {
+            const baseline = document.querySelector('#addServiceOptionsTbody tr[data-baseline="1"]');
+            if (baseline) {
+                formData.set('duration', baseline.querySelector('[data-field="duration"]').value);
+                formData.set('price', baseline.querySelector('[data-field="price"]').value);
+                formData.set('online_price', baseline.querySelector('[data-field="online_price"]').value);
+            }
+            appendOptionsToFormData(formData, 'addServiceOptionsTbody');
+        }
+
         // Se estiver em "Todas as categorias", não mudar a vista após criar (manter-se nesta vista)
         const categoryId = formData.get('category_id') || document.getElementById('addServiceCategoryId')?.value || document.getElementById('addServiceCategorySelect')?.value;
         if (categoryId && selectedCategoryId !== 'all') {
             selectedCategoryId = categoryId;
         }
-        
+
         // Adicionar agent_ids ao FormData
         const agentIds = Array.from(document.querySelectorAll('#addServiceModal .service-agent-checkbox:checked')).map(cb => cb.value);
         agentIds.forEach(id => formData.append('agent_ids[]', id));
         const extraIds = Array.from(document.querySelectorAll('#addServiceModal input[name="extra_ids[]"]:checked')).map(cb => cb.value);
         extraIds.forEach(id => formData.append('extra_ids[]', id));
-        
+
         fetch('/services', {
             method: 'POST',
             headers: {
@@ -676,32 +971,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
             },
-            body: formData
+            body: formData,
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                showToast(data.message, 'success');
-                bootstrap.Modal.getInstance(document.getElementById('addServiceModal')).hide();
-                this.reset();
-                refreshAfterServiceChange();
-            } else {
-                showToast(data.message || 'Erro ao criar serviço', 'error');
+            .then(async function (response) {
+                const data = await response.json().catch(function () {
+                    return {};
+                });
+                if (!response.ok) {
+                    showFirstValidationError(data);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    return null;
+                }
+                return data;
+            })
+            .then(data => {
+                if (!data) {
+                    return;
+                }
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('addServiceModal')).hide();
+                    this.reset();
+                    const cb = document.getElementById('addServiceHasOptions');
+                    if (cb) {
+                        cb.checked = false;
+                    }
+                    toggleAddServiceOptionsUi();
+                    refreshAfterServiceChange();
+                } else {
+                    showToast(data.message || 'Erro ao criar serviço', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+            })
+            .catch(error => {
+                console.error('Error creating service:', error);
+                showToast('Erro ao criar serviço. Verifique os dados e tente novamente.', 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnText;
-            }
-        })
-        .catch(error => {
-            console.error('Error creating service:', error);
-            showToast('Erro ao criar serviço. Verifique os dados e tente novamente.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
-        });
+            });
     });
 
     // Edit Service Form (apenas uma vez; o formulário é estático)
@@ -725,7 +1034,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!formData.has('name') && name) formData.set('name', name);
         if (!formData.has('duration') && duration) formData.set('duration', duration);
         if (!formData.has('price') && price) formData.set('price', price);
-        
+        const onlineEl = document.getElementById('editServiceOnlinePrice');
+        if (onlineEl && !formData.has('online_price')) {
+            formData.set('online_price', onlineEl.value || '');
+        }
+
+        const hasVar = editModalHasOptions();
+        formData.set('has_options', hasVar ? '1' : '0');
+        if (hasVar) {
+            const baseline = document.querySelector('#editServiceOptionsTbody tr[data-baseline="1"]');
+            if (baseline) {
+                formData.set('duration', baseline.querySelector('[data-field="duration"]').value);
+                formData.set('price', baseline.querySelector('[data-field="price"]').value);
+                formData.set('online_price', baseline.querySelector('[data-field="online_price"]').value);
+            }
+            appendOptionsToFormData(formData, 'editServiceOptionsTbody');
+        }
+
         const agentIds = Array.from(document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit:checked')).map(cb => cb.value);
         formData.delete('agent_ids[]');
         agentIds.forEach(id => formData.append('agent_ids[]', id));
@@ -742,104 +1067,130 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
             },
-            body: formData
+            body: formData,
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                showToast(data.message, 'success');
-                bootstrap.Modal.getInstance(document.getElementById('editServiceModal')).hide();
-                refreshAfterServiceChange();
-            } else {
-                showToast(data.message || 'Erro ao atualizar serviço', 'error');
+            .then(async function (response) {
+                const data = await response.json().catch(function () {
+                    return {};
+                });
+                if (!response.ok) {
+                    showFirstValidationError(data);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                    return null;
+                }
+                return data;
+            })
+            .then(data => {
+                if (!data) {
+                    return;
+                }
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    bootstrap.Modal.getInstance(document.getElementById('editServiceModal')).hide();
+                    refreshAfterServiceChange();
+                } else {
+                    showToast(data.message || 'Erro ao atualizar serviço', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                }
+            })
+            .catch(error => {
+                console.error('Error updating service:', error);
+                showToast('Erro ao atualizar serviço. Verifique os dados e tente novamente.', 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalBtnText;
-            }
-        })
-        .catch(error => {
-            console.error('Error updating service:', error);
-            showToast('Erro ao atualizar serviço. Verifique os dados e tente novamente.', 'error');
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
-        });
+            });
     });
 
-    // --- Botões dinâmicos da lista (editar / eliminar) — reanexados após cada loadServices ---
-    function attachServiceEventListeners() {
-        // Edit Service
-        document.querySelectorAll('.edit-service-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const serviceId = this.getAttribute('data-service-id');
-                
-                fetch(`/services/${serviceId}`, {
-                    headers: {
-                        'Accept': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const service = data.service;
-                    document.getElementById('editServiceId').value = serviceId;
-                    document.getElementById('editServiceCategoryId').value = service.category_id;
-                    document.getElementById('editServiceName').value = service.name;
-                    document.getElementById('editServiceDescription').value = service.description || '';
-                    document.getElementById('editServiceDuration').value = service.duration;
-                    document.getElementById('editServicePrice').value = service.price;
-                    document.getElementById('editServiceOnlinePrice').value = service.online_price || '';
-                    
-                    // Preencher checkboxes de agentes
-                    document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit').forEach(cb => {
-                        cb.checked = service.agents && service.agents.some(agent => agent.id === parseInt(cb.value));
-                    });
-                    // Atualizar checkbox "Todos os membros"
-                    const allAgentsChecked = Array.from(document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit')).every(c => c.checked);
-                    document.getElementById('editServiceSelectAllAgents').checked = allAgentsChecked;
-                    // Preencher checkboxes de extras
-                    document.querySelectorAll('#editServiceModal input[name="extra_ids[]"]').forEach(cb => {
-                        cb.checked = service.extras && service.extras.some(extra => extra.id === parseInt(cb.value));
-                    });
-                    
-                    new bootstrap.Modal(document.getElementById('editServiceModal')).show();
-                })
-                .catch(error => {
-                    console.error('Error loading service:', error);
-                    showToast('Erro ao carregar serviço', 'error');
-                });
-            });
-        });
+    function openEditServiceModal(serviceId) {
+        fetch(`/services/${serviceId}`, {
+            headers: {
+                Accept: 'application/json',
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                const service = data.service;
+                document.getElementById('editServiceId').value = serviceId;
+                document.getElementById('editServiceCategoryId').value = service.category_id;
+                document.getElementById('editServiceName').value = service.name;
+                document.getElementById('editServiceDescription').value = service.description || '';
+                document.getElementById('editServiceDuration').value = service.duration;
+                document.getElementById('editServicePrice').value = service.price;
+                document.getElementById('editServiceOnlinePrice').value = service.online_price || '';
 
-        // Delete Service
-        document.querySelectorAll('.delete-service-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (!confirm('Tem certeza que deseja eliminar este serviço?')) return;
-                
-                const serviceId = this.getAttribute('data-service-id');
-                fetch(`/services/${serviceId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message, 'success');
-                        refreshAfterServiceChange();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting service:', error);
-                    showToast('Erro ao eliminar serviço', 'error');
+                const hasOpts = service.options && service.options.length > 0;
+                const hc = document.getElementById('editServiceHasOptions');
+                if (hc) {
+                    hc.checked = !!hasOpts;
+                }
+                const tbEdit = document.getElementById('editServiceOptionsTbody');
+                if (tbEdit) {
+                    tbEdit.innerHTML = '';
+                }
+                if (hasOpts) {
+                    renderEditOptionsFromService(service);
+                }
+                toggleEditServiceOptionsUi();
+
+                document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit').forEach(cb => {
+                    cb.checked = service.agents && service.agents.some(agent => agent.id === parseInt(cb.value));
                 });
+                const allAgentsChecked = Array.from(
+                    document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit'),
+                ).every(c => c.checked);
+                document.getElementById('editServiceSelectAllAgents').checked = allAgentsChecked;
+                document.querySelectorAll('#editServiceModal input[name="extra_ids[]"]').forEach(cb => {
+                    cb.checked = service.extras && service.extras.some(extra => extra.id === parseInt(cb.value));
+                });
+
+                new bootstrap.Modal(document.getElementById('editServiceModal')).show();
+            })
+            .catch(error => {
+                console.error('Error loading service:', error);
+                showToast('Erro ao carregar serviço', 'error');
+            });
+    }
+
+    function deleteServiceById(serviceId) {
+        fetch(`/services/${serviceId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                Accept: 'application/json',
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('editServiceModal')).hide();
+                    refreshAfterServiceChange();
+                } else {
+                    showToast(data.message || 'Erro ao eliminar serviço', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting service:', error);
+                showToast('Erro ao eliminar serviço', 'error');
+            });
+    }
+
+    // --- Lista dinâmica: abrir editar ao clicar no card ---
+    function attachServiceEventListeners() {
+        document.querySelectorAll('.service-item-row[data-service-id] .service-item-clickable').forEach(card => {
+            card.addEventListener('click', function (e) {
+                if (e.target.closest('.service-drag-handle')) {
+                    return;
+                }
+                const row = card.closest('.service-item-row[data-service-id]');
+                const serviceId = row ? row.getAttribute('data-service-id') : null;
+                if (!serviceId) {
+                    return;
+                }
+                openEditServiceModal(serviceId);
             });
         });
     }
@@ -867,6 +1218,15 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Criar';
         }
+        const cbAdd = document.getElementById('addServiceHasOptions');
+        if (cbAdd) {
+            cbAdd.checked = false;
+        }
+        const tbAdd = document.getElementById('addServiceOptionsTbody');
+        if (tbAdd) {
+            tbAdd.innerHTML = '';
+        }
+        toggleAddServiceOptionsUi();
     });
 
     document.getElementById('editServiceModal')?.addEventListener('hidden.bs.modal', function() {
@@ -875,6 +1235,27 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Guardar';
         }
+        const cbEd = document.getElementById('editServiceHasOptions');
+        if (cbEd) {
+            cbEd.checked = false;
+        }
+        const tbEd = document.getElementById('editServiceOptionsTbody');
+        if (tbEd) {
+            tbEd.innerHTML = '';
+        }
+        toggleEditServiceOptionsUi();
+    });
+
+    document.getElementById('editServiceDeleteBtn')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        const serviceId = document.getElementById('editServiceId')?.value;
+        if (!serviceId) {
+            return;
+        }
+        if (!confirm('Tem certeza que deseja eliminar este serviço?')) {
+            return;
+        }
+        deleteServiceById(serviceId);
     });
 
     // Initialize on page load

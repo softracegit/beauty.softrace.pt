@@ -231,7 +231,18 @@ class CalendarEvent extends Model
     {
         return $this->belongsToMany(Service::class, 'calendar_event_services')
             ->using(\App\Models\CalendarEventService::class)
-            ->withPivot('id', 'duration', 'price', 'original_price', 'sort_order')
+            ->withPivot(
+                'id',
+                'service_option_id',
+                'option_name',
+                'option_duration',
+                'option_price',
+                'option_online_price',
+                'duration',
+                'price',
+                'original_price',
+                'sort_order',
+            )
             ->withTimestamps()
             ->orderByPivot('sort_order');
     }

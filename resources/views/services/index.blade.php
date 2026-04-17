@@ -78,7 +78,7 @@
 .service-item-row .service-item {
     flex-grow: 1;
     margin-bottom: 0;
-    cursor: default;
+    cursor: pointer;
     transition: box-shadow 0.2s;
     position: relative;
     --service-category-color: var(--bs-secondary, #6c757d);
@@ -118,6 +118,7 @@
 }
 .service-item-price {
     white-space: nowrap;
+    margin-right: 0.85rem;
 }
 /* Botão dos 3 pontinhos: ícone maior e mais escuro */
 .service-item .btn-icon {
@@ -394,7 +395,7 @@
 
 <!-- Add Service Modal -->
 <div class="modal fade" id="addServiceModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Novo Serviço</h5>
@@ -415,27 +416,52 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Nome <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="name" required>
+                            <input type="text" class="form-control" name="name" id="addServiceName" required>
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
                         <textarea class="form-control" name="description" rows="3"></textarea>
                     </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="addServiceHasOptions" value="1" autocomplete="off">
+                        <label class="form-check-label" for="addServiceHasOptions">Este serviço tem variantes (opções de preço e duração)</label>
+                    </div>
+                    <div id="addServiceSimplePricingWrap">
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Duração (minutos) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="duration" value="60" min="1" required>
+                            <input type="number" class="form-control" name="duration" id="addServiceDuration" value="60" min="1" required>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Preço normal (€) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="price" step="0.01" min="0" required>
+                            <input type="number" class="form-control" name="price" id="addServicePrice" step="0.01" min="0" required>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Preço online (€)</label>
                             <input type="number" class="form-control" name="online_price" id="addServiceOnlinePrice" step="0.01" min="0" placeholder="Opcional, mais barato">
                             <div class="form-text">Preço para reservas online (deve ser ≤ preço normal).</div>
                         </div>
+                    </div>
+                    </div>
+                    <div id="addServiceOptionsWrap" class="d-none mb-3">
+                        <label class="form-label fw-semibold">Opções</label>
+                        <p class="text-muted small mb-2">A primeira linha é a opção base: o nome pode ser livre (ex.: «Sem lavagem»); a duração e os preços desta linha definem os valores do serviço no catálogo. O preço online é obrigatório em todas as opções. «Desde» usa o menor preço online.</p>
+                        <div class="table-responsive border rounded">
+                            <table class="table table-sm align-middle mb-0" id="addServiceOptionsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th style="width:7rem">Duração (min)</th>
+                                        <th style="width:7rem">Preço (€)</th>
+                                        <th style="width:7rem">Preço online (€)</th>
+                                        <th style="width:3rem"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="addServiceOptionsTbody"></tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addServiceAddOptionRow">Adicionar opção</button>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Membros da Equipa</label>
@@ -480,7 +506,7 @@
 
 <!-- Edit Service Modal -->
 <div class="modal fade" id="editServiceModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Editar Serviço</h5>
@@ -509,6 +535,11 @@
                         <label class="form-label">Descrição</label>
                         <textarea class="form-control" name="description" id="editServiceDescription" rows="3"></textarea>
                     </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editServiceHasOptions" value="1" autocomplete="off">
+                        <label class="form-check-label" for="editServiceHasOptions">Este serviço tem variantes (opções de preço e duração)</label>
+                    </div>
+                    <div id="editServiceSimplePricingWrap">
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Duração (minutos) <span class="text-danger">*</span></label>
@@ -523,6 +554,26 @@
                             <input type="number" class="form-control" name="online_price" id="editServiceOnlinePrice" step="0.01" min="0" placeholder="Opcional">
                             <div class="form-text">Preço para reservas online (≤ preço normal).</div>
                         </div>
+                    </div>
+                    </div>
+                    <div id="editServiceOptionsWrap" class="d-none mb-3">
+                        <label class="form-label fw-semibold">Opções</label>
+                        <p class="text-muted small mb-2">A opção base pode ter o nome que quiser; o nome do serviço acima é o título do catálogo. A base define duração e preços do serviço. Preço online obrigatório em todas as opções. «Desde» = menor preço online.</p>
+                        <div class="table-responsive border rounded">
+                            <table class="table table-sm align-middle mb-0" id="editServiceOptionsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th style="width:7rem">Duração (min)</th>
+                                        <th style="width:7rem">Preço (€)</th>
+                                        <th style="width:7rem">Preço online (€)</th>
+                                        <th style="width:3rem"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="editServiceOptionsTbody"></tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="editServiceAddOptionRow">Adicionar opção</button>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Membros da Equipa</label>
@@ -557,6 +608,9 @@
                     @endif
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger me-auto" id="editServiceDeleteBtn">
+                        <i class="ph ph-trash me-1"></i>Eliminar
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar</button>
                 </div>

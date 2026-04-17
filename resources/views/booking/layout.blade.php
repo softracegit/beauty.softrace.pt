@@ -14,7 +14,7 @@
 
     <link rel="stylesheet" href="{{ asset('template/vendor/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('booking-assets/css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('booking-assets/css/app.css') }}?v={{ file_exists(public_path('booking-assets/css/app.css')) ? filemtime(public_path('booking-assets/css/app.css')) : time() }}">
     @stack('head')
 </head>
 <body class="booking-body @yield('body_class')" data-booking-index-url="{{ route('booking.index') }}">
@@ -23,6 +23,6 @@
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}" defer></script>
     {{-- Stacks antes de app.js: páginas podem injectar intl-tel-input (etc.) para ficarem disponíveis no init --}}
     @stack('scripts')
-    <script src="{{ asset('booking-assets/js/app.js') }}" defer></script>
+    <script src="{{ asset('booking-assets/js/app.js') }}?v={{ file_exists(public_path('booking-assets/js/app.js')) ? filemtime(public_path('booking-assets/js/app.js')) : time() }}" defer></script>
 </body>
 </html>

@@ -2,6 +2,14 @@
 
 @section('title', ($pageTitle ?? 'Relatórios — Vendas').' — '.config('app.name'))
 
+@section('css')
+  <style>
+    .table-striped > tbody > tr:nth-of-type(odd) > * {
+      background-color:rgb(241, 247, 255) !important;
+    }
+  </style>
+@endsection
+
 @section('content')
   <div class="dash-welcome mb-4">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 w-100">
@@ -63,6 +71,13 @@
         @endforeach
       </select>
     </div>
+    <div class="uview-filter-field uview-filter-select">
+      <label class="form-label small text-muted mb-0">Modo</label>
+      <select name="vendas_modo" class="form-select form-select-sm">
+        <option value="detalhe" {{ ($vendasModo ?? 'detalhe') === 'detalhe' ? 'selected' : '' }}>Detalhe (linhas)</option>
+        <option value="resumo" {{ ($vendasModo ?? 'detalhe') === 'resumo' ? 'selected' : '' }}>Resumo por venda</option>
+      </select>
+    </div>
     <div class="uview-filter-submit">
       <button type="submit" class="btn btn-primary">
         <i class="ph ph-magnifying-glass"></i>
@@ -72,7 +87,7 @@
 
   @if($vendas->count() > 0)
     <div class="table-responsive">
-      <table class="table table-sm table-hover align-middle">
+      <table class="table table-sm table-hover table-striped align-middle">
         <thead>
           <tr>
             <th>Data</th>
@@ -83,7 +98,9 @@
             <th>Serviço</th>
             <th class="text-center">Qtd</th>
             <th class="text-end text-nowrap">Desconto</th>
-            <th class="text-end text-nowrap">Valor</th>
+            <th class="text-end text-nowrap">Valor serviço</th>
+            <th class="text-end text-nowrap">Gorjeta</th>
+            <th class="text-end text-nowrap">Total</th>
             <th class="text-end text-nowrap">Em dívida</th>
             <th class="text-end"></th>
           </tr>
@@ -94,7 +111,7 @@
               <td>{{ $linha->data->format('d/m/Y') }}</td>
               <td>{{ $linha->numero_fatura }}</td>
               <td>{{ $linha->cliente }}</td>
-              <td>{{ $linha->nif !== '' && $linha->nif !== null ? $linha->nif : '—' }}</td>
+              <td>{{ $linha->nif !== '' && $linha->nif !== null ? $linha->nif : '' }}</td>
               <td>{{ $linha->tecnico }}</td>
               <td>
                 {{ $linha->servico }}
@@ -107,15 +124,23 @@
                 @if((float) ($linha->desconto ?? 0) > 0)
                   {{ number_format((float) $linha->desconto, 2, ',', ' ') }}€
                 @else
-                  —
+                  
                 @endif
               </td>
               <td class="text-end text-nowrap">{{ number_format($linha->valor, 2, ',', ' ') }}€</td>
               <td class="text-end text-nowrap">
+                @if((float) ($linha->gorjeta ?? 0) > 0)
+                  {{ number_format((float) $linha->gorjeta, 2, ',', ' ') }}€
+                @else
+                  
+                @endif
+              </td>
+              <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>
+              <td class="text-end text-nowrap">
                 @if((float) ($linha->pendente ?? 0) > 0)
                   {{ number_format((float) $linha->pendente, 2, ',', ' ') }}€
                 @else
-                  —
+                  
                 @endif
               </td>
               <td class="text-end p-1">
@@ -159,10 +184,12 @@
         </tbody>
         <tfoot class="table-light">
           <tr class="fw-semibold">
-            <td colspan="6" class="text-end">Totais (filtro)</td>
-            <td class="text-center">{{ $vendasTotais['num_vendas'] ?? 0 }}</td>
+            <td colspan="6" class="text-end"></td>
+            <td class="text-center">{{ ($vendasModo ?? 'detalhe') === 'resumo' ? ($vendasTotais['num_vendas'] ?? 0) : ($vendasTotais['total_servicos'] ?? 0) }}</td>
             <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_desconto'] ?? 0, 2, ',', ' ') }}€</td>
             <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_valor'] ?? 0, 2, ',', ' ') }}€</td>
+            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_gorjeta'] ?? 0, 2, ',', ' ') }}€</td>
+            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_valor_com_gorjeta'] ?? (($vendasTotais['total_valor'] ?? 0) + ($vendasTotais['total_gorjeta'] ?? 0)), 2, ',', ' ') }}€</td>
             <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_divida'] ?? 0, 2, ',', ' ') }}€</td>
             <td></td>
           </tr>

@@ -23,6 +23,21 @@
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
                                         <input id="booking-calendar" type="text" class="form-control d-none" aria-hidden="true" tabindex="-1">
+                                        <div id="booking-week-view" class="booking-week-view d-none">
+                                            <div class="booking-week-view__header">
+                                                <button type="button" id="booking-week-prev" class="booking-week-view__nav" aria-label="Semana anterior">
+                                                    <i class="bi bi-arrow-left"></i>
+                                                </button>
+                                                <h2 id="booking-week-title" class="booking-week-view__title mb-0" aria-live="polite"></h2>
+                                                <button type="button" id="booking-week-next" class="booking-week-view__nav" aria-label="Semana seguinte">
+                                                    <i class="bi bi-arrow-right"></i>
+                                                </button>
+                                            </div>
+                                            <div id="booking-week-days" class="booking-week-view__days" role="listbox" aria-label="Selecionar dia da semana"></div>
+                                        </div>
+                                        <button type="button" id="booking-calendar-view-toggle" class="booking-calendar-view-toggle" aria-expanded="false" aria-controls="booking-week-view" aria-label="Alternar para vista semanal">
+                                            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                                        </button>
 
                                         <div id="booking-slots" class="booking-slots">
                                             <h2 id="booking-slots-day" class="booking-slots__day h6 fw-semibold mb-3">Seleciona um dia</h2>

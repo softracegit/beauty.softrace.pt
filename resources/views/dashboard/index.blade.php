@@ -161,7 +161,7 @@
                                     <span class="text-muted small">{{ $ev->start_at->format('H:i') }}</span>
                                 </td>
                                 <td>{{ $ev->client?->name ?? '—' }}</td>
-                                <td>{{ $ev->eventServices->pluck('name')->filter()->join(', ') ?: '—' }}</td>
+                                <td>{{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</td>
                                 <td>{{ $ev->user?->name ?? '—' }}</td>
                             </tr>
                         @empty
@@ -262,7 +262,7 @@
                         </div>
                         <div class="transaction-details">
                             <div class="transaction-title">{{ $ev->client?->name ?? '—' }}</div>
-                            <div class="transaction-meta">{{ $ev->start_at->format('d/m/Y H:i') }} · {{ $ev->eventServices->pluck('name')->filter()->join(', ') ?: '—' }}</div>
+                            <div class="transaction-meta">{{ $ev->start_at->format('d/m/Y H:i') }} · {{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</div>
                         </div>
                         <div class="transaction-amount">{{ \App\Models\CalendarEvent::statuses()[$ev->status ?? 'agendado'] ?? $ev->status }}</div>
                     </div>

@@ -1443,7 +1443,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var verFatura = $id('eventDetailVerFaturaLink');
         var revertBtn = $id('eventDetailReverterFaturaBtn');
         var saveBtn = $id('eventDetailSaveBtn');
-        var stLocked = eventDetailCurrentData && (eventDetailCurrentData.status === 'faltou' || eventDetailCurrentData.status === 'cancelado');
+        var closeWithoutSaveBtn = $id('eventDetailCloseWithoutSaveBtn');
+        var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
+        var stLocked = status === 'completo' || status === 'faltou' || status === 'cancelado';
         var readonly = !!existingSale || !!stLocked;
         if (payBtn) payBtn.classList.toggle('d-none', readonly || eventType !== 'marcacao' || servicesCount === 0);
         if (verFatura) {
@@ -1458,10 +1460,15 @@ document.addEventListener('DOMContentLoaded', function() {
             revertBtn.classList.toggle('d-none', !existingSale);
             if (existingSale) revertBtn.dataset.saleId = String(existingSale.id);
         }
-        if (saveBtn) saveBtn.disabled = readonly;
+        if (saveBtn) {
+            saveBtn.disabled = readonly;
+            saveBtn.classList.toggle('d-none', readonly);
+        }
+        if (closeWithoutSaveBtn) closeWithoutSaveBtn.classList.toggle('d-none', readonly);
         var statusWrap = $id('eventDetailStatusDropdownWrap');
         var observacoes = $id('eventDetailOcObs');
         var addMoreBtn = $id('eventDetailOcAddMoreServicesBtn');
+        var addMoreWrap = $id('eventDetailOcAddMoreServicesWrap');
         var ocMember = $id('eventDetailOcMember');
         var ocDate = $id('eventDetailOcDate');
         var ocTime = $id('eventDetailOcTime');
@@ -1473,12 +1480,55 @@ document.addEventListener('DOMContentLoaded', function() {
         if (statusWrap) statusWrap.style.pointerEvents = readonly ? 'none' : '';
         if (observacoes) observacoes.disabled = readonly;
         if (addMoreBtn) { addMoreBtn.disabled = readonly; addMoreBtn.style.display = readonly ? 'none' : ''; }
+        if (addMoreWrap) addMoreWrap.style.display = readonly ? 'none' : '';
         if (ocMember) ocMember.disabled = readonly;
         if (ocDate) ocDate.disabled = readonly;
         if (ocTime) ocTime.disabled = readonly;
+        if (eventDetailOcChoicesInstances.member && typeof eventDetailOcChoicesInstances.member.disable === 'function') {
+            if (readonly) {
+                eventDetailOcChoicesInstances.member.disable();
+            } else if (typeof eventDetailOcChoicesInstances.member.enable === 'function') {
+                eventDetailOcChoicesInstances.member.enable();
+            }
+        }
+        if (eventDetailOcChoicesInstances.time && typeof eventDetailOcChoicesInstances.time.disable === 'function') {
+            if (readonly) {
+                eventDetailOcChoicesInstances.time.disable();
+            } else if (typeof eventDetailOcChoicesInstances.time.enable === 'function') {
+                eventDetailOcChoicesInstances.time.enable();
+            }
+        }
+        if (eventDetailOcChoicesInstances.service && typeof eventDetailOcChoicesInstances.service.disable === 'function') {
+            if (readonly) {
+                eventDetailOcChoicesInstances.service.disable();
+            } else if (typeof eventDetailOcChoicesInstances.service.enable === 'function') {
+                eventDetailOcChoicesInstances.service.enable();
+            }
+        }
+        if (ocMember && ocMember.nextElementSibling && ocMember.nextElementSibling.classList && ocMember.nextElementSibling.classList.contains('choices')) {
+            ocMember.nextElementSibling.style.pointerEvents = readonly ? 'none' : '';
+            ocMember.nextElementSibling.style.opacity = readonly ? '0.7' : '';
+        }
+        if (ocTime && ocTime.nextElementSibling && ocTime.nextElementSibling.classList && ocTime.nextElementSibling.classList.contains('choices')) {
+            ocTime.nextElementSibling.style.pointerEvents = readonly ? 'none' : '';
+            ocTime.nextElementSibling.style.opacity = readonly ? '0.7' : '';
+        }
+        if (eventDetailOcDateFlatpickr) {
+            try {
+                eventDetailOcDateFlatpickr.set('clickOpens', !readonly);
+            } catch (e) { /* ignore */ }
+            if (eventDetailOcDateFlatpickr.altInput) {
+                eventDetailOcDateFlatpickr.altInput.readOnly = !!readonly;
+                eventDetailOcDateFlatpickr.altInput.style.pointerEvents = readonly ? 'none' : '';
+                eventDetailOcDateFlatpickr.altInput.style.opacity = readonly ? '0.7' : '';
+                if (!readonly) {
+                    eventDetailOcDateFlatpickr.altInput.removeAttribute('readonly');
+                }
+            }
+        }
         if (ocServiceWrap) ocServiceWrap.style.pointerEvents = readonly ? 'none' : '';
         if (ocClientEdit) ocClientEdit.style.pointerEvents = readonly ? 'none' : '';
-        if (ocClientProfile) ocClientProfile.style.pointerEvents = readonly ? 'none' : '';
+        if (ocClientProfile) ocClientProfile.style.pointerEvents = '';
         if (ocClientTabs) ocClientTabs.style.pointerEvents = readonly ? 'none' : '';
         if (ocNotSel) ocNotSel.style.pointerEvents = readonly ? 'none' : '';
         var selectedList = $id('eventDetailOcSelectedServicesList');
@@ -1609,6 +1659,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             eventDetailSelectedServices.push({
                 service_id: s.id,
+                service_option_id: s.service_option_id != null && s.service_option_id !== '' ? String(s.service_option_id) : '',
                 name: s.name,
                 duration: dur,
                 price: pr,
@@ -1811,6 +1862,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var selWrap = $id('eventDetailOcServiceSelectWrap');
         var addWrap = $id('eventDetailOcAddMoreServicesWrap');
         if (!selWrap || !addWrap) return;
+        var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
+        var readonly = !!eventDetailExistingSale || status === 'completo' || status === 'faltou' || status === 'cancelado';
+        if (readonly) {
+            selWrap.classList.add('d-none');
+            addWrap.classList.add('d-none');
+            return;
+        }
         var n = eventDetailSelectedServices.length;
         if (n === 0) {
             eventDetailOcShowServicePicker = true;
@@ -1822,21 +1880,6 @@ document.addEventListener('DOMContentLoaded', function() {
             selWrap.classList.add('d-none');
             addWrap.classList.remove('d-none');
         }
-    }
-    function eventDetailOcRebuildServiceSelect(svcSel, flatList) {
-        svcSel.innerHTML = '<option value="">Selecionar serviço</option>';
-        flatList.forEach(function(s) {
-            var opt = document.createElement('option');
-            opt.value = s.service_id;
-            var durPart = s.formatted_duration || (s.duration + ' min');
-            var catPart = String(s.category_name || '').trim();
-            opt.textContent = (s.name || '') + ' (' + durPart + (catPart ? ' · ' + catPart : '') + ')';
-            opt.dataset.duration = String(s.duration);
-            opt.dataset.price = String(s.price);
-            opt.dataset.name = s.name || '';
-            svcSel.appendChild(opt);
-        });
-        svcSel.disabled = flatList.length === 0;
     }
     function eventDetailOcReloadServicesForMember(memberId, done) {
         var svcSel = $id('eventDetailOcService');
@@ -1863,7 +1906,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(data) {
                 eventDetailServicesData = data;
                 eventDetailOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
-                eventDetailOcRebuildServiceSelect(svcSel, eventDetailOcServicesFlat);
+                agendaOcRebuildServiceSelect(svcSel, data.categories || []);
                 eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
                 eventDetailSelectedServices.forEach(function(item) {
                     var availableExtras = [];
@@ -1876,7 +1919,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     });
                     item.available_extras = availableExtras;
-                    var flatMatch = eventDetailOcServicesFlat.find(function(fs) { return String(fs.service_id) === String(item.service_id); });
+                    var flatMatch = eventDetailOcServicesFlat.find(function(fs) {
+                        return String(fs.service_id) === String(item.service_id) && String(fs.service_option_id || '') === String(item.service_option_id || '');
+                    });
                     if (flatMatch && flatMatch.category_name) item.category_name = flatMatch.category_name;
                 });
                 if (done) done(data);
@@ -2188,16 +2233,19 @@ document.addEventListener('DOMContentLoaded', function() {
         var svcEl = $id('eventDetailOcService');
         if (svcEl) {
             svcEl.addEventListener('change', function() {
-                var sid = (this.value || '').trim();
-                if (!sid) return;
-                var svc = eventDetailOcServicesFlat.find(function(s) { return String(s.service_id) === String(sid); });
+                var raw = (this.value || '').trim();
+                if (!raw) return;
+                var svc = agendaOcFindFlatServiceEntry(eventDetailOcServicesFlat, raw);
                 if (!svc) return;
-                if (eventDetailSelectedServices.some(function(s) { return String(s.service_id) === String(sid); })) {
+                if (eventDetailSelectedServices.some(function(s) {
+                    return String(s.service_id) === String(svc.service_id) && String(s.service_option_id || '') === String(svc.service_option_id || '');
+                })) {
                     showToast('Serviço já adicionado.', 'warning');
                 } else {
                     eventDetailMarkServiceListMutated();
                     eventDetailSelectedServices.push({
                         service_id: svc.service_id,
+                        service_option_id: svc.service_option_id || '',
                         name: svc.name || '',
                         duration: parseInt(svc.duration, 10) || 60,
                         price: parseFloat(svc.price) || 0,
@@ -2698,24 +2746,70 @@ document.addEventListener('DOMContentLoaded', function() {
         return agendaOcSnapTime15(new Date());
     }
 
+    /** Valor único no select: serviço simples = id; com variantes = "serviceId|optionId". */
+    function agendaOcServicePicklistValue(entry) {
+        if (!entry) return '';
+        var sid = String(entry.service_id || '').trim();
+        var oid = String(entry.service_option_id || '').trim();
+        return oid ? (sid + '|' + oid) : sid;
+    }
+
+    function agendaOcFindFlatServiceEntry(flatList, rawValue) {
+        var v = String(rawValue || '').trim();
+        if (!v || !flatList || !flatList.length) return null;
+        var pipe = v.indexOf('|');
+        if (pipe !== -1) {
+            var sid = v.slice(0, pipe);
+            var oid = v.slice(pipe + 1);
+            return flatList.find(function(s) {
+                return String(s.service_id) === sid && String(s.service_option_id || '') === oid;
+            }) || null;
+        }
+        return flatList.find(function(s) {
+            return String(s.service_id) === v && !s.service_option_id;
+        }) || null;
+    }
+
     function agendaOcFlattenServicesFromCategories(categories) {
         var out = [];
         (categories || []).forEach(function(cat) {
             (cat.services || []).forEach(function(s) {
-                var dur = parseInt(s.duration, 10) || 60;
-                var priceNum = s.price != null && s.price !== '' ? parseFloat(s.price) : 0;
-                out.push({
-                    service_id: String(s.id),
-                    name: s.name || '',
-                    duration: dur,
-                    price: priceNum,
-                    original_price: priceNum,
-                    formatted_duration: s.formatted_duration || (dur + ' min'),
-                    formatted_price: s.formatted_price || '',
-                    category_name: cat.name || '',
-                    available_extras: Array.isArray(s.extras) ? s.extras : [],
-                    extras: []
-                });
+                var extras = Array.isArray(s.extras) ? s.extras : [];
+                if (s.options && s.options.length > 0) {
+                    (s.options || []).forEach(function(opt) {
+                        var dur = parseInt(opt.duration, 10) || 60;
+                        var priceNum = opt.price != null && opt.price !== '' ? parseFloat(opt.price) : 0;
+                        out.push({
+                            service_id: String(s.id),
+                            service_option_id: String(opt.id),
+                            name: String(opt.name || '').trim() || ('Opção #' + opt.id),
+                            duration: dur,
+                            price: priceNum,
+                            original_price: priceNum,
+                            formatted_duration: opt.formatted_duration || (dur + ' min'),
+                            formatted_price: opt.formatted_price || '',
+                            category_name: cat.name || '',
+                            available_extras: extras,
+                            extras: []
+                        });
+                    });
+                } else {
+                    var dur = parseInt(s.duration, 10) || 60;
+                    var priceNum = s.price != null && s.price !== '' ? parseFloat(s.price) : 0;
+                    out.push({
+                        service_id: String(s.id),
+                        service_option_id: '',
+                        name: s.name || '',
+                        duration: dur,
+                        price: priceNum,
+                        original_price: priceNum,
+                        formatted_duration: s.formatted_duration || (dur + ' min'),
+                        formatted_price: s.formatted_price || '',
+                        category_name: cat.name || '',
+                        available_extras: extras,
+                        extras: []
+                    });
+                }
             });
         });
         return out;
@@ -2941,20 +3035,61 @@ document.addEventListener('DOMContentLoaded', function() {
         agendaOcApplyServiceFieldVisibility();
     }
 
-    function agendaOcRebuildServiceSelect(svcSel, flatList) {
+    /**
+     * Select nativo com <optgroup>: categoria → serviços simples; categoria — serviço pai → só nomes das variantes.
+     */
+    function agendaOcRebuildServiceSelect(svcSel, categories) {
         svcSel.innerHTML = '<option value="">Selecionar serviço</option>';
-        flatList.forEach(function(s) {
-            var opt = document.createElement('option');
-            opt.value = s.service_id;
-            var durPart = s.formatted_duration || (s.duration + ' min');
-            var catPart = String(s.category_name || '').trim();
-            opt.textContent = (s.name || '') + ' (' + durPart + (catPart ? ' · ' + catPart : '') + ')';
-            opt.dataset.duration = String(s.duration);
-            opt.dataset.price = String(s.price);
-            opt.dataset.name = s.name || '';
-            svcSel.appendChild(opt);
+        var hasAny = false;
+        (categories || []).forEach(function(cat) {
+            var catLabel = String(cat.name || '').trim() || 'Serviços';
+            var services = cat.services || [];
+            var simpleBatch = [];
+            var multiList = [];
+            services.forEach(function(s) {
+                if (s.options && s.options.length > 0) {
+                    multiList.push(s);
+                } else {
+                    simpleBatch.push(s);
+                }
+            });
+            if (simpleBatch.length > 0) {
+                hasAny = true;
+                var ogSimple = document.createElement('optgroup');
+                ogSimple.label = catLabel;
+                simpleBatch.forEach(function(s) {
+                    var opt = document.createElement('option');
+                    opt.value = String(s.id);
+                    var dur = parseInt(s.duration, 10) || 60;
+                    var durPart = s.formatted_duration || (dur + ' min');
+                    opt.textContent = (s.name || '') + ' (' + durPart + ')';
+                    opt.dataset.duration = String(dur);
+                    var priceNum = s.price != null && s.price !== '' ? parseFloat(s.price) : 0;
+                    opt.dataset.price = String(priceNum);
+                    opt.dataset.name = s.name || '';
+                    ogSimple.appendChild(opt);
+                });
+                svcSel.appendChild(ogSimple);
+            }
+            multiList.forEach(function(s) {
+                hasAny = true;
+                var og = document.createElement('optgroup');
+                og.label = catLabel + ' — ' + (s.name || ('Serviço #' + s.id));
+                (s.options || []).forEach(function(opt) {
+                    var optEl = document.createElement('option');
+                    optEl.value = String(s.id) + '|' + String(opt.id);
+                    optEl.textContent = String(opt.name || '').trim() || ('Opção #' + opt.id);
+                    var dur = parseInt(opt.duration, 10) || 60;
+                    var priceNum = opt.price != null && opt.price !== '' ? parseFloat(opt.price) : 0;
+                    optEl.dataset.duration = String(dur);
+                    optEl.dataset.price = String(priceNum);
+                    optEl.dataset.name = String(opt.name || '').trim() || ('Opção #' + opt.id);
+                    og.appendChild(optEl);
+                });
+                svcSel.appendChild(og);
+            });
         });
-        svcSel.disabled = flatList.length === 0;
+        svcSel.disabled = !hasAny;
     }
 
     function agendaOcReloadServicesForMember(memberId, done) {
@@ -2983,7 +3118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
-                agendaOcRebuildServiceSelect(svcSel, agendaOcServicesFlat);
+                agendaOcRebuildServiceSelect(svcSel, data.categories || []);
                 agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
                 if (done) done();
             })
@@ -3127,7 +3262,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(svcData.categories);
-                agendaOcRebuildServiceSelect(svcSel, agendaOcServicesFlat);
+                agendaOcRebuildServiceSelect(svcSel, svcData.categories || []);
                 agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
 
             })
@@ -3144,16 +3279,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 agendaOcReloadServicesForMember(this.value || '', null);
             });
             $id('agendaOcService').addEventListener('change', function() {
-                var sid = (this.value || '').trim();
-                if (!sid) return;
-                var svc = agendaOcServicesFlat.find(function(s) { return String(s.service_id) === String(sid); });
+                var raw = (this.value || '').trim();
+                if (!raw) return;
+                var svc = agendaOcFindFlatServiceEntry(agendaOcServicesFlat, raw);
                 if (!svc) return;
-                var already = agendaOcSelectedServices.some(function(s) { return String(s.service_id) === String(sid); });
+                var already = agendaOcSelectedServices.some(function(s) {
+                    return String(s.service_id) === String(svc.service_id) && String(s.service_option_id || '') === String(svc.service_option_id || '');
+                });
                 if (already) {
                     showToast('Serviço já adicionado.', 'warning');
                 } else {
                     agendaOcSelectedServices.push({
                         service_id: svc.service_id,
+                        service_option_id: svc.service_option_id || '',
                         name: svc.name || '',
                         duration: parseInt(svc.duration, 10) || 60,
                         price: parseFloat(svc.price) || 0,
@@ -3251,7 +3389,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     user_id: mid,
                     client_id: cid,
                     services: agendaOcSelectedServices.map(function(s) {
-                        return {
+                        var row = {
                             service_id: s.service_id,
                             duration: s.duration,
                             price: s.price,
@@ -3260,6 +3398,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 return { extra_id: ex.id, duration: ex.duration || 0, price: ex.price || 0 };
                             })
                         };
+                        if (s.service_option_id) {
+                            row.service_option_id = parseInt(s.service_option_id, 10);
+                        }
+                        return row;
                     })
                 };
                 fetch((C.urlEvents || ''), {
@@ -3476,13 +3618,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (memV) payload.user_id = memV;
             payload.client_id = eventDetailSelectedClient ? eventDetailSelectedClient.id : null;
             payload.services = eventDetailSelectedServices.map(function(s) {
-                return {
+                var row = {
                     service_id: s.service_id,
                     duration: s.duration,
                     price: s.price,
                     original_price: s.original_price != null ? s.original_price : s.price,
                     extras: (s.extras || []).map(function(e) { return { extra_id: e.id, duration: e.duration || 0, price: e.price || 0 }; })
                 };
+                if (s.service_option_id) {
+                    row.service_option_id = parseInt(s.service_option_id, 10);
+                }
+                return row;
             });
         }
         var btn = $id('eventDetailSaveBtn');

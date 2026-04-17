@@ -55,7 +55,11 @@
             return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
           });
           $services = $ev->eventServiceItems
-            ->map(fn ($es) => $es->service?->name)
+            ->map(function ($es) {
+              $optionName = trim((string) ($es->option_name ?? ''));
+
+              return $optionName !== '' ? $optionName : ($es->service?->name ?? null);
+            })
             ->filter()
             ->implode(', ');
           $categorias = $ev->eventServiceItems
@@ -64,7 +68,7 @@
             ->implode(', ');
         @endphp
         <tr>
-          <td>{{ $ev->start_at->format('d/m/Y H:i') }}</td>
+          <td>{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
           <td>{{ \App\Models\CalendarEvent::statuses()[$ev->status] ?? $ev->status }}</td>
           <td>{{ $ev->client?->name ?? '—' }}</td>
           <td>{{ $ev->user?->name ?? '—' }}</td>

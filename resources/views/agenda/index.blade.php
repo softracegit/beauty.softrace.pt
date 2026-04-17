@@ -499,11 +499,11 @@
             <span class="fw-semibold" id="eventDetailTotalPrice">0,00 €</span>
         </div>
         <div class="d-flex flex-wrap gap-2 justify-content-end">
-            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas">Fechar sem guardar</button>
+            <button type="button" class="btn btn-light btn-sm" id="eventDetailCloseWithoutSaveBtn" data-bs-dismiss="offcanvas">Fechar sem guardar</button>
             <button type="submit" class="btn btn-primary btn-sm" id="eventDetailSaveBtn" form="eventDetailEditForm">Guardar</button>
             <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end" id="eventDetailPaymentWrap">
                 <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Pagamento</button>
-                <a href="#" class="btn btn-outline-primary btn-sm d-none" id="eventDetailVerFaturaLink">Ver fatura</a>
+                <a href="#" class="btn btn-outline-primary btn-sm d-none" id="eventDetailVerFaturaLink" target="_blank" rel="noopener">Ver fatura</a>
                 <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="eventDetailReverterFaturaBtn">Reverter fatura</button>
             </div>
         </div>

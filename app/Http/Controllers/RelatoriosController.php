@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\DateTimeDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -105,7 +106,11 @@ class RelatoriosController extends Controller
                 return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
             });
             $services = $ev->eventServiceItems
-                ->map(fn ($es) => $es->service?->name)
+                ->map(function ($es) {
+                    $optionName = trim((string) ($es->option_name ?? ''));
+
+                    return $optionName !== '' ? $optionName : ($es->service?->name ?? null);
+                })
                 ->filter()
                 ->implode(', ');
             $categorias = $ev->eventServiceItems
@@ -116,7 +121,7 @@ class RelatoriosController extends Controller
 
             $sheet->fromArray([
                 [
-                    $ev->start_at->format('d/m/Y H:i'),
+                    DateTimeDisplay::business($ev->start_at),
                     $statusLabel,
                     $ev->client?->name ?? '',
                     $ev->user?->name ?? '',
@@ -311,12 +316,17 @@ class RelatoriosController extends Controller
     public function vendas(Request $request): View
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra'])
+            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra', 'items.calendarEventService.service'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
 
-        $allLines = $this->vendasLinhasCollection($sales, $request->get('vendas_servico'));
+        $vendasModo = in_array((string) $request->get('vendas_modo', 'detalhe'), ['detalhe', 'resumo'], true)
+            ? (string) $request->get('vendas_modo', 'detalhe')
+            : 'detalhe';
+        $allLines = $vendasModo === 'resumo'
+            ? $this->vendasResumoCollection($sales, $request->get('vendas_servico'))
+            : $this->vendasLinhasCollection($sales, $request->get('vendas_servico'));
 
         $page = max(1, (int) $request->get('page', 1));
         $perPage = 100;
@@ -348,6 +358,7 @@ class RelatoriosController extends Controller
             'vendasServico' => $request->get('vendas_servico'),
             'vendasTecnico' => $request->get('vendas_tecnico'),
             'vendasEstado' => $request->get('vendas_estado'),
+            'vendasModo' => $vendasModo,
             'clientesOpts' => $this->vendasClientesOpts(),
             'servicosOpts' => $this->vendasServicosOpts(),
             'tecnicosOpts' => $this->vendasTecnicosOpts(),
@@ -358,7 +369,7 @@ class RelatoriosController extends Controller
     public function vendasExport(Request $request): StreamedResponse
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra'])
+            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra', 'items.calendarEventService.service'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
@@ -438,7 +449,7 @@ class RelatoriosController extends Controller
     public function vendasPdf(Request $request)
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra'])
+            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra', 'items.calendarEventService.service'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
@@ -544,15 +555,23 @@ class RelatoriosController extends Controller
      * Totais do rodapé do relatório de vendas (todas as linhas do filtro).
      *
      * @param  Collection<int, object>  $lines
-     * @return array{total_valor: float, num_vendas: int, total_desconto: float, total_divida: float}
+     * @return array{total_valor: float, total_valor_com_gorjeta: float, total_gorjeta: float, num_vendas: int, total_servicos: int, total_desconto: float, total_divida: float}
      */
     private function vendasTotaisRodape(Collection $lines): array
     {
         $totalValor = 0.0;
         $totalDesconto = 0.0;
+        $totalGorjeta = 0.0;
+        $totalServicos = 0;
         foreach ($lines as $linha) {
             $totalValor += (float) $linha->valor;
             $totalDesconto += (float) ($linha->desconto ?? 0);
+            $totalGorjeta += (float) ($linha->gorjeta ?? 0);
+            $isServiceLine = ($linha->tipo_item ?? null) === SaleItem::TIPO_SERVICO
+                || ($linha->tipo_item ?? null) === 'resumo';
+            if ($isServiceLine) {
+                $totalServicos += (int) ($linha->quantidade ?? 0);
+            }
         }
 
         $numVendas = $lines->pluck('sale_id')->unique()->count();
@@ -570,7 +589,10 @@ class RelatoriosController extends Controller
 
         return [
             'total_valor' => round($totalValor, 2),
+            'total_valor_com_gorjeta' => round($totalValor + $totalGorjeta, 2),
+            'total_gorjeta' => round($totalGorjeta, 2),
             'num_vendas' => $numVendas,
+            'total_servicos' => $totalServicos,
             'total_desconto' => round($totalDesconto, 2),
             'total_divida' => round($totalDivida, 2),
         ];
@@ -622,8 +644,8 @@ class RelatoriosController extends Controller
             $out = [];
             foreach ($visibleItems as $i => $item) {
                 $label = $item->descricao;
-                if ($item->tipo === SaleItem::TIPO_SERVICO && $item->service) {
-                    $label = $item->service->name;
+                if ($item->tipo === SaleItem::TIPO_SERVICO) {
+                    $label = $this->serviceLabelForSaleItem($item);
                 } elseif ($item->tipo === SaleItem::TIPO_EXTRA && $item->extra) {
                     $label = $item->extra->name;
                 }
@@ -646,6 +668,7 @@ class RelatoriosController extends Controller
                     'valor' => (float) $item->subtotal,
                     'tipo_item' => $item->tipo,
                     'desconto' => $descontoCol,
+                    'gorjeta' => $i === 0 ? (float) ($sale->gorjeta ?? 0) : 0.0,
                     'pendente' => $pendente,
                     'calendar_event_id' => $sale->calendar_event_id,
                 ];
@@ -653,6 +676,72 @@ class RelatoriosController extends Controller
 
             return $out;
         })->values();
+    }
+
+    /**
+     * Uma linha por venda, agregando os serviços executados (sem extras).
+     *
+     * @return Collection<int, object>
+     */
+    private function vendasResumoCollection(Collection $sales, ?string $vendasServico): Collection
+    {
+        $servicoFilter = $vendasServico !== null && $vendasServico !== '' ? (int) $vendasServico : null;
+
+        return $sales->map(function (Sale $sale) use ($servicoFilter) {
+            $serviceItems = $sale->items
+                ->where('tipo', SaleItem::TIPO_SERVICO)
+                ->when($servicoFilter, fn ($c) => $c->where('service_id', $servicoFilter))
+                ->values();
+            if ($serviceItems->isEmpty()) {
+                return null;
+            }
+
+            $serviceLabels = $serviceItems
+                ->map(fn (SaleItem $item) => $this->serviceLabelForSaleItem($item))
+                ->filter(fn (?string $label) => $label !== null && trim($label) !== '')
+                ->values();
+
+            $event = $sale->calendarEvent;
+            $client = $sale->client;
+
+            return (object) [
+                'sale' => $sale,
+                'sale_id' => $sale->id,
+                'sale_status' => $sale->status,
+                'data' => $sale->data_emissao,
+                'numero_fatura' => $sale->numero_fatura,
+                'cliente' => $client?->name ?? '—',
+                'nif' => $client?->nif ?? '',
+                'tecnico' => $event?->user?->name ?? '—',
+                'servico' => $serviceLabels->implode(', '),
+                'quantidade' => (int) $serviceItems->count(),
+                'valor' => (float) $serviceItems->sum(fn (SaleItem $item) => (float) $item->subtotal),
+                'tipo_item' => 'resumo',
+                'desconto' => (float) ($sale->desconto ?? 0),
+                'gorjeta' => (float) ($sale->gorjeta ?? 0),
+                'pendente' => $sale->status === Sale::STATUS_ANULADO ? 0.0 : $sale->amountDue(),
+                'calendar_event_id' => $sale->calendar_event_id,
+            ];
+        })->filter()->values();
+    }
+
+    private function serviceLabelForSaleItem(SaleItem $item): string
+    {
+        $optionName = trim((string) ($item->calendarEventService?->option_name ?? ''));
+        if ($optionName !== '') {
+            return $optionName;
+        }
+
+        $descricao = trim((string) $item->descricao);
+        if ($descricao !== '') {
+            return $descricao;
+        }
+
+        if ($item->service) {
+            return (string) $item->service->name;
+        }
+
+        return (string) ($item->calendarEventService?->service?->name ?? '—');
     }
 
     private function vendasClientesOpts(): Collection

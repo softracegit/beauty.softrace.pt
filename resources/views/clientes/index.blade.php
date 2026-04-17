@@ -1,6 +1,32 @@
 @extends('partials.layouts.main')
 @section('title', 'Clientes | Beauty CRM')
 @section('content')
+@php
+    $currentSortBy = request('sort_by', 'created_at');
+    $currentSortDir = strtolower((string) request('sort_dir', $currentSortBy === 'created_at' ? 'desc' : 'asc'));
+    $currentSortDir = in_array($currentSortDir, ['asc', 'desc'], true)
+        ? $currentSortDir
+        : ($currentSortBy === 'created_at' ? 'desc' : 'asc');
+    $sortableUrl = function (string $column) use ($currentSortBy, $currentSortDir) {
+        $isCurrent = $currentSortBy === $column;
+        $nextDir = $isCurrent
+            ? ($currentSortDir === 'asc' ? 'desc' : 'asc')
+            : ($column === 'created_at' ? 'desc' : 'asc');
+
+        return request()->fullUrlWithQuery([
+            'sort_by' => $column,
+            'sort_dir' => $nextDir,
+            'page' => 1,
+        ]);
+    };
+    $sortIcon = function (string $column) use ($currentSortBy, $currentSortDir) {
+        if ($currentSortBy !== $column) {
+            return 'ph ph-arrows-down-up';
+        }
+
+        return $currentSortDir === 'asc' ? 'ph ph-sort-ascending' : 'ph ph-sort-descending';
+    };
+@endphp
 
 @if (session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -46,6 +72,8 @@
         <div class="users-toolbar">
             <div class="users-toolbar-left">
                 <form action="{{ route('clientes.index') }}" method="GET" class="d-flex align-items-center gap-2 flex-wrap">
+                    <input type="hidden" name="sort_by" value="{{ $currentSortBy }}">
+                    <input type="hidden" name="sort_dir" value="{{ $currentSortDir }}">
                     <div class="users-search">
                         <i class="ph ph-magnifying-glass"></i>
                         <input type="text" name="search" placeholder="Pesquisar clientes..." value="{{ request('search') }}">
@@ -72,10 +100,21 @@
             <table class="users-table">
                 <thead>
                     <tr>
-                        <th>Cliente</th>
+                        <th>
+                            <a href="{{ $sortableUrl('name') }}" class="text-decoration-none text-reset d-inline-flex align-items-center gap-1">
+                                <span>Cliente</span>
+                                <i class="{{ $sortIcon('name') }}"></i>
+                            </a>
+                        </th>
                         <th>Contacto</th>
                         <th>NIF</th>
                         <th>Localidade</th>
+                        <th>
+                            <a href="{{ $sortableUrl('created_at') }}" class="text-decoration-none text-reset d-inline-flex align-items-center gap-1">
+                                <span>Data de registo</span>
+                                <i class="{{ $sortIcon('created_at') }}"></i>
+                            </a>
+                        </th>
                         <th class="users-th-actions">Ações</th>
                     </tr>
                 </thead>
@@ -134,6 +173,9 @@
                                 @endif
                             </td>
                             <td>
+                                <span class="users-cell-meta">{{ \App\Support\DateTimeDisplay::business($client->created_at) }}</span>
+                            </td>
+                            <td>
                                 <div class="users-actions">
                                     <a href="{{ route('clientes.show', $client) }}" class="users-action-btn" title="Ver"><i class="ph ph-eye"></i></a>
                                     <a href="{{ route('clientes.edit', $client) }}" class="users-action-btn" title="Editar"><i class="ph ph-pencil-simple"></i></a>
@@ -147,7 +189,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
                                 <i class="ph ph-user-circle display-4 text-muted"></i>
                                 <h6 class="mt-3">Nenhum cliente encontrado</h6>
                                 <p class="text-muted mb-3">Comece por adicionar o primeiro cliente.</p>
@@ -168,6 +210,8 @@
                     @if(request('search'))
                     <input type="hidden" name="search" value="{{ request('search') }}">
                     @endif
+                    <input type="hidden" name="sort_by" value="{{ $currentSortBy }}">
+                    <input type="hidden" name="sort_dir" value="{{ $currentSortDir }}">
                     <label class="form-label mb-0 small text-muted">Mostrar</label>
                     <select name="per_page" class="form-select form-select-sm" style="width: auto; min-width: 4.5rem;" onchange="this.form.submit()">
                         <option value="9" {{ $clients->perPage() == 9 ? 'selected' : '' }}>9</option>

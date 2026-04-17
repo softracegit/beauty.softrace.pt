@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -67,12 +68,31 @@ class Service extends Model
     }
 
     /**
+     * Variantes do serviço (ex.: com/sem lavagem). Baseline espelha o serviço pai.
+     */
+    public function options(): HasMany
+    {
+        return $this->hasMany(ServiceOption::class)->orderBy('sort_order');
+    }
+
+    /**
      * Get calendar events that include this service
      */
     public function calendarEvents(): BelongsToMany
     {
         return $this->belongsToMany(\App\Models\CalendarEvent::class, 'calendar_event_services')
-            ->withPivot('duration', 'price', 'sort_order')
+            ->withPivot(
+                'id',
+                'service_option_id',
+                'option_name',
+                'option_duration',
+                'option_price',
+                'option_online_price',
+                'duration',
+                'price',
+                'original_price',
+                'sort_order',
+            )
             ->withTimestamps();
     }
 
@@ -81,7 +101,7 @@ class Service extends Model
      */
     public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->price, 2, ',', '.') . ' €';
+        return number_format($this->price, 2, ',', '.').' €';
     }
 
     /**
@@ -89,7 +109,7 @@ class Service extends Model
      */
     public function getFormattedOnlinePriceAttribute(): ?string
     {
-        return $this->online_price ? number_format($this->online_price, 2, ',', '.') . ' €' : null;
+        return $this->online_price ? number_format($this->online_price, 2, ',', '.').' €' : null;
     }
 
     /**
@@ -99,12 +119,13 @@ class Service extends Model
     {
         $hours = floor($this->duration / 60);
         $minutes = $this->duration % 60;
-        
+
         if ($hours > 0 && $minutes > 0) {
-            return $hours . 'h ' . $minutes . 'min';
+            return $hours.'h '.$minutes.'min';
         } elseif ($hours > 0) {
-            return $hours . 'h';
+            return $hours.'h';
         }
-        return $minutes . 'min';
+
+        return $minutes.'min';
     }
 }

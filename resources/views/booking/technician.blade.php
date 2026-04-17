@@ -19,7 +19,7 @@
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
                                         <ul id="booking-technician-list" class="list-unstyled mb-0" role="list">
-                                            <li class="booking-technician-row booking-technician-row--any" data-tech-id="any" data-any-staff="1" data-tech-service-ids='[]'>
+                                            <li class="booking-technician-row booking-technician-row--any" data-tech-id="any" data-any-staff="1" data-tech-specialization="Sem preferência de técnica" data-tech-avatar="" data-tech-service-ids='[]'>
                                                 <label class="booking-technician-row__label" for="booking-technician-any">
                                                     <div class="booking-technician-row__avatar booking-technician-row__avatar--icon">
                                                         <i class="bi bi-people-fill" aria-hidden="true"></i>
@@ -34,7 +34,7 @@
                                                 </label>
                                             </li>
                                             @foreach($technicians as $tech)
-                                                <li class="booking-technician-row" data-tech-id="{{ $tech['id'] }}" data-tech-service-ids='@json($tech['serviceIds'])'>
+                                                <li class="booking-technician-row" data-tech-id="{{ $tech['id'] }}" data-tech-specialization="{{ $tech['specialization'] }}" data-tech-avatar="{{ $tech['avatar'] ?? '' }}" data-tech-service-ids='@json($tech['serviceIds'])'>
                                                     <label class="booking-technician-row__label" for="booking-technician-{{ $tech['id'] }}">
                                                         <div class="booking-technician-row__avatar">
                                                             @if($tech['avatar'])

@@ -20,6 +20,28 @@
                 </div>
 
                 <ul id="booking-summary-list" class="booking-summary-list list-unstyled is-hidden" role="list"></ul>
+
+                <section id="booking-summary-technician" class="booking-summary-extra is-hidden" aria-label="Técnica selecionada">
+                    <div class="booking-summary-tech">
+                        <div id="booking-summary-tech-avatar" class="booking-summary-tech__avatar" aria-hidden="true"></div>
+                        <div class="booking-summary-tech__body">
+                            <span id="booking-summary-tech-name" class="booking-summary-tech__name"></span>
+                            <span id="booking-summary-tech-meta" class="booking-summary-tech__meta"></span>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="booking-summary-datetime" class="booking-summary-extra is-hidden" aria-label="Dia e hora selecionados">
+                    <div class="booking-summary-datetime">
+                        <span class="booking-summary-datetime__icon" aria-hidden="true">
+                            <i class="bi bi-calendar3"></i>
+                        </span>
+                        <div class="booking-summary-datetime__body">
+                            <span id="booking-summary-date-label" class="booking-summary-datetime__date"></span>
+                            <span id="booking-summary-time-label" class="booking-summary-datetime__time"></span>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <div class="booking-summary-footer">

@@ -4,15 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Agent;
 use App\Models\CalendarEvent;
+use App\Models\CalendarEventService;
 use App\Models\Client;
 use App\Models\PersonalTimeType;
 use App\Models\Sale;
+use App\Models\Service;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
 use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Notifications\ClientAppointmentRescheduledNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -147,6 +150,7 @@ class CalendarController extends Controller
                 'service',
                 'client',
                 'eventServiceItems.service',
+                'eventServiceItems.serviceOption',
                 'eventServiceItems.extras.extra',
                 'eventable',
                 'personalTimeType',
@@ -213,7 +217,7 @@ class CalendarController extends Controller
             $agentColor = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL ? null : ($event->user?->agent?->color);
             $serviceItems = $event->eventServiceItems ?? collect();
             $serviceName = $serviceItems->isNotEmpty()
-                ? $serviceItems->map(fn ($item) => $item->service?->name)->filter()->join(', ')
+                ? $serviceItems->map(fn ($item) => self::marcacaoServiceLineLabel($item))->filter()->join(', ')
                 : ($event->service?->name ?? null);
 
             $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
@@ -249,7 +253,7 @@ class CalendarController extends Controller
                         $price = (float) ($item->price ?? $service->price);
 
                         return [
-                            'name' => $service->name,
+                            'name' => self::marcacaoServiceLineLabel($item),
                             'duration' => $dur,
                             'price' => $price,
                             'extras' => $item->extras->map(function ($pe) {
@@ -309,6 +313,7 @@ class CalendarController extends Controller
             ->with([
                 'category',
                 'extras' => fn ($q) => $q->orderBy('extras.sort_order'),
+                'options' => fn ($q) => $q->orderBy('sort_order'),
             ])
             ->get()
             ->sortBy(function ($s) {
@@ -338,6 +343,18 @@ class CalendarController extends Controller
                     'formatted_duration' => $s->formatted_duration,
                     'price' => (float) $s->price,
                     'formatted_price' => $s->formatted_price,
+                    'has_options' => $s->options->isNotEmpty(),
+                    'options' => $s->options->map(fn ($o) => [
+                        'id' => $o->id,
+                        'name' => $o->name,
+                        'duration' => $o->duration,
+                        'price' => (float) $o->price,
+                        'online_price' => (float) $o->online_price,
+                        'is_baseline' => (bool) $o->is_baseline,
+                        'sort_order' => $o->sort_order,
+                        'formatted_duration' => $o->formatted_duration,
+                        'formatted_price' => $o->formatted_price,
+                    ])->values()->all(),
                     'extras' => $s->extras->map(fn ($e) => [
                         'id' => $e->id,
                         'name' => $e->name,
@@ -486,7 +503,9 @@ class CalendarController extends Controller
                 'user_name' => $calendarEvent->user?->name,
                 'user_avatar_url' => $userAvatarUrl,
                 'service_id' => $calendarEvent->service_id,
-                'service_name' => $calendarEvent->service?->name,
+                'service_name' => $calendarEvent->eventServices->isNotEmpty()
+                    ? $calendarEvent->eventServices->map(fn ($s) => self::marcacaoServiceLineLabel($s->pivot))->join(', ')
+                    : ($calendarEvent->service?->name ?? null),
                 'client_id' => $calendarEvent->client_id,
                 'client_name' => $calendarEvent->client?->name,
                 'client_has_email' => (bool) ($calendarEvent->client_id && $calendarEvent->client?->email && filter_var($calendarEvent->client->email, FILTER_VALIDATE_EMAIL)),
@@ -510,7 +529,9 @@ class CalendarController extends Controller
 
                     return [
                         'id' => $s->id,
-                        'name' => $s->name,
+                        'name' => self::marcacaoServiceLineLabel($s->pivot),
+                        'service_option_id' => $s->pivot->service_option_id,
+                        'option_name' => $s->pivot->option_name,
                         'duration' => $duration,
                         'price' => $price,
                         'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : $price,
@@ -610,6 +631,7 @@ class CalendarController extends Controller
             'service_id' => ['nullable', 'exists:services,id'],
             'services' => ['nullable', 'array'],
             'services.*.service_id' => ['required_with:services', 'exists:services,id'],
+            'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
             'services.*.original_price' => ['nullable', 'numeric', 'min:0'],
@@ -619,6 +641,11 @@ class CalendarController extends Controller
             'services.*.extras.*.price' => ['nullable', 'numeric', 'min:0'],
         ];
         $validated = $request->validate($rules);
+
+        $servicesPayload = $request->input('services', []);
+        if (is_array($servicesPayload) && $servicesPayload !== []) {
+            $this->assertMarcacaoServicesOptionsValid($servicesPayload);
+        }
 
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL) {
             $personalTypeId = $validated['personal_time_type_id'] ?? null;
@@ -631,7 +658,6 @@ class CalendarController extends Controller
             }
         }
 
-        $servicesPayload = $request->input('services', []);
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
             if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
@@ -656,13 +682,14 @@ class CalendarController extends Controller
         $event = CalendarEvent::create($validated);
 
         if (! empty($servicesPayload)) {
+            $servicesById = Service::query()
+                ->whereIn('id', array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload))))
+                ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
+                ->get()
+                ->keyBy('id');
             foreach ($servicesPayload as $i => $item) {
-                $event->eventServices()->attach((int) $item['service_id'], [
-                    'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
-                    'price' => isset($item['price']) ? (float) $item['price'] : null,
-                    'original_price' => isset($item['original_price']) ? (float) $item['original_price'] : (isset($item['price']) ? (float) $item['price'] : null),
-                    'sort_order' => $i,
-                ]);
+                $pivot = $this->pivotAttributesForMarcacaoServiceLine($item, $i, $servicesById);
+                $event->eventServices()->attach((int) $item['service_id'], $pivot);
             }
             $event->load('eventServices');
             $ordered = $event->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
@@ -735,6 +762,7 @@ class CalendarController extends Controller
             'client_id' => ['nullable', 'exists:clients,id'],
             'services' => ['nullable', 'array'],
             'services.*.service_id' => ['required_with:services', 'exists:services,id'],
+            'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
             'services.*.original_price' => ['nullable', 'numeric', 'min:0'],
@@ -756,6 +784,9 @@ class CalendarController extends Controller
         $validated = $request->validate($rules);
 
         $servicesPayload = $request->input('services', []);
+        if (is_array($servicesPayload) && $servicesPayload !== []) {
+            $this->assertMarcacaoServicesOptionsValid($servicesPayload);
+        }
 
         $prevStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
         $timeChanged = false;
@@ -872,13 +903,14 @@ class CalendarController extends Controller
                 $afterSnapshot = $this->marcacaoServicesSnapshotFromPayload($servicesPayload);
                 if (json_encode($beforeSnapshot) !== json_encode($afterSnapshot)) {
                     $calendarEvent->eventServices()->detach();
+                    $servicesById = Service::query()
+                        ->whereIn('id', array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload))))
+                        ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
+                        ->get()
+                        ->keyBy('id');
                     foreach ($servicesPayload as $i => $item) {
-                        $calendarEvent->eventServices()->attach((int) $item['service_id'], [
-                            'duration' => isset($item['duration']) ? (int) $item['duration'] : null,
-                            'price' => isset($item['price']) ? (float) $item['price'] : null,
-                            'original_price' => isset($item['original_price']) ? (float) $item['original_price'] : (isset($item['price']) ? (float) $item['price'] : null),
-                            'sort_order' => $i,
-                        ]);
+                        $pivot = $this->pivotAttributesForMarcacaoServiceLine($item, $i, $servicesById);
+                        $calendarEvent->eventServices()->attach((int) $item['service_id'], $pivot);
                     }
                     $calendarEvent->load('eventServices');
                     $ordered = $calendarEvent->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
@@ -1135,7 +1167,7 @@ class CalendarController extends Controller
     }
 
     /**
-     * @return list<array{service_id: int, duration: int, price: float, original_price: float, extras: list<array{extra_id: int, duration: int, price: float}>}>
+     * @return list<array{service_id: int, service_option_id: int|null, duration: int, price: float, original_price: float, extras: list<array{extra_id: int, duration: int, price: float}>}>
      */
     private function marcacaoServicesSnapshotFromModel(CalendarEvent $event): array
     {
@@ -1152,6 +1184,7 @@ class CalendarController extends Controller
             }
             $snapshot[] = [
                 'service_id' => (int) $ces->service_id,
+                'service_option_id' => $ces->service_option_id ? (int) $ces->service_option_id : null,
                 'duration' => (int) ($ces->duration ?? 0),
                 'price' => round((float) ($ces->price ?? 0), 4),
                 'original_price' => round((float) ($ces->original_price ?? $ces->price ?? 0), 4),
@@ -1164,7 +1197,7 @@ class CalendarController extends Controller
 
     /**
      * @param  array<int, array<string, mixed>>  $servicesPayload
-     * @return list<array{service_id: int, duration: int, price: float, original_price: float, extras: list<array{extra_id: int, duration: int, price: float}>}>
+     * @return list<array{service_id: int, service_option_id: int|null, duration: int, price: float, original_price: float, extras: list<array{extra_id: int, duration: int, price: float}>}>
      */
     private function marcacaoServicesSnapshotFromPayload(array $servicesPayload): array
     {
@@ -1180,6 +1213,9 @@ class CalendarController extends Controller
             }
             $snapshot[] = [
                 'service_id' => (int) ($item['service_id'] ?? 0),
+                'service_option_id' => isset($item['service_option_id']) && $item['service_option_id'] !== '' && $item['service_option_id'] !== null
+                    ? (int) $item['service_option_id']
+                    : null,
                 'duration' => (int) ($item['duration'] ?? 0),
                 'price' => round((float) ($item['price'] ?? 0), 4),
                 'original_price' => round((float) ($item['original_price'] ?? $item['price'] ?? 0), 4),
@@ -1206,7 +1242,9 @@ class CalendarController extends Controller
 
                 return [
                     'id' => $s->id,
-                    'name' => $s->name,
+                    'name' => self::marcacaoServiceLineLabel($s->pivot),
+                    'service_option_id' => $s->pivot->service_option_id,
+                    'option_name' => $s->pivot->option_name,
                     'duration' => $dur,
                     'price' => (float) ($s->pivot->price ?? $s->price),
                     'original_price' => $s->pivot->original_price !== null ? (float) $s->pivot->original_price : (float) ($s->pivot->price ?? $s->price),
@@ -1231,7 +1269,7 @@ class CalendarController extends Controller
             })->values()->all()
             : [];
         $serviceName = $event->eventServices->isNotEmpty()
-            ? $event->eventServices->pluck('name')->join(', ')
+            ? $event->eventServices->map(fn ($s) => self::marcacaoServiceLineLabel($s->pivot))->join(', ')
             : ($event->service?->name ?? null);
 
         $statusLabel = $isTempoPessoal ? 'Tempo pessoal' : (CalendarEvent::statuses()[$event->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado');
@@ -1289,6 +1327,103 @@ class CalendarController extends Controller
         }
 
         return $arr;
+    }
+
+    private static function marcacaoServiceLineLabel(CalendarEventService $item): string
+    {
+        $item->loadMissing('service');
+        $opt = trim((string) ($item->option_name ?? ''));
+        if ($opt !== '') {
+            return $opt;
+        }
+
+        return (string) ($item->service?->name ?? '');
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $servicesPayload
+     */
+    private function assertMarcacaoServicesOptionsValid(array $servicesPayload): void
+    {
+        $serviceIds = array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload)));
+        $serviceIds = array_values(array_filter($serviceIds, fn (int $id) => $id > 0));
+        $services = Service::query()
+            ->whereIn('id', $serviceIds)
+            ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
+            ->get()
+            ->keyBy('id');
+
+        foreach ($servicesPayload as $idx => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $sid = (int) ($item['service_id'] ?? 0);
+            $service = $services->get($sid);
+            if (! $service) {
+                throw ValidationException::withMessages([
+                    "services.{$idx}.service_id" => ['Serviço inválido.'],
+                ]);
+            }
+            $hasVariants = $service->options->isNotEmpty();
+            $optRaw = $item['service_option_id'] ?? null;
+            $optId = ($optRaw !== null && $optRaw !== '') ? (int) $optRaw : null;
+            if ($hasVariants) {
+                if (! $optId) {
+                    throw ValidationException::withMessages([
+                        "services.{$idx}.service_option_id" => ['Selecione a variante do serviço.'],
+                    ]);
+                }
+                if (! $service->options->contains('id', $optId)) {
+                    throw ValidationException::withMessages([
+                        "services.{$idx}.service_option_id" => ['A variante não pertence a este serviço.'],
+                    ]);
+                }
+            } elseif ($optId) {
+                throw ValidationException::withMessages([
+                    "services.{$idx}.service_option_id" => ['Este serviço não tem variantes.'],
+                ]);
+            }
+        }
+    }
+
+    /**
+     * @param  Collection<int, Service>  $servicesById
+     * @return array<string, mixed>
+     */
+    private function pivotAttributesForMarcacaoServiceLine(array $item, int $sortOrder, Collection $servicesById): array
+    {
+        $sid = (int) ($item['service_id'] ?? 0);
+        $duration = isset($item['duration']) ? (int) $item['duration'] : null;
+        $price = isset($item['price']) ? (float) $item['price'] : null;
+        $original = isset($item['original_price']) ? (float) $item['original_price'] : $price;
+
+        $row = [
+            'duration' => $duration,
+            'price' => $price,
+            'original_price' => $original,
+            'sort_order' => $sortOrder,
+            'service_option_id' => null,
+            'option_name' => null,
+            'option_duration' => null,
+            'option_price' => null,
+            'option_online_price' => null,
+        ];
+
+        $optRaw = $item['service_option_id'] ?? null;
+        $optId = ($optRaw !== null && $optRaw !== '') ? (int) $optRaw : null;
+        if ($optId > 0) {
+            $service = $servicesById->get($sid);
+            $opt = $service?->options?->firstWhere('id', $optId);
+            if ($opt) {
+                $row['service_option_id'] = $opt->id;
+                $row['option_name'] = $opt->name;
+                $row['option_duration'] = $opt->duration;
+                $row['option_price'] = $opt->price;
+                $row['option_online_price'] = $opt->online_price;
+            }
+        }
+
+        return $row;
     }
 
     private function formatDurationMinutes(int $minutes): string

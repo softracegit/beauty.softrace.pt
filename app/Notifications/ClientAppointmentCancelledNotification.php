@@ -40,7 +40,13 @@ class ClientAppointmentCancelledNotification extends Notification implements Sho
             : '—';
 
         $services = $event->eventServices->isNotEmpty()
-            ? $event->eventServices->pluck('name')->implode(', ')
+            ? $event->eventServices
+                ->map(function ($service) {
+                    $optionName = trim((string) ($service->pivot->option_name ?? ''));
+
+                    return $optionName !== '' ? $optionName : $service->name;
+                })
+                ->implode(', ')
             : ($event->service?->name ?? 'Marcação');
 
         $type = $event->cancellation_type ?? $event->status;

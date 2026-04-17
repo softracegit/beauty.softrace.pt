@@ -96,7 +96,7 @@
               });
             @endphp
             <tr>
-              <td>{{ $ev->start_at->format('d/m/Y H:i') }}</td>
+              <td>{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
               <td><span class="badge {{ $badgeClass }}">{{ \App\Models\CalendarEvent::statuses()[$ev->status] ?? $ev->status }}</span></td>
               <td>
                 @if($ev->client)
@@ -108,7 +108,7 @@
               <td>{{ $ev->user?->name ?? '—' }}</td>
               <td>
                 @foreach($ev->eventServiceItems as $es)
-                  <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ $es->service?->name ?? '—' }}</span>
+                  <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? '—') }}</span>
                 @endforeach
               </td>
               <td>

@@ -138,7 +138,24 @@ class ClientController extends Controller
      */
     private function clientsFilteredQuery(Request $request): Builder
     {
-        $query = Client::query()->orderBy('name');
+        $allowedSorts = [
+            'name' => 'name',
+            'created_at' => 'created_at',
+        ];
+        $sortBy = (string) $request->get('sort_by', 'created_at');
+        if (! array_key_exists($sortBy, $allowedSorts)) {
+            $sortBy = 'created_at';
+        }
+        $sortDir = strtolower((string) $request->get('sort_dir', $sortBy === 'created_at' ? 'desc' : 'asc'));
+        if (! in_array($sortDir, ['asc', 'desc'], true)) {
+            $sortDir = $sortBy === 'created_at' ? 'desc' : 'asc';
+        }
+
+        $query = Client::query()->orderBy($allowedSorts[$sortBy], $sortDir);
+        if ($sortBy !== 'created_at') {
+            // Desempate consistente: mais recentes primeiro.
+            $query->orderByDesc('created_at');
+        }
 
         if ($request->filled('search')) {
             $search = $request->search;

@@ -116,6 +116,9 @@
 .extra-item-row.service-item:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
+.extra-item-row.extra-item-clickable {
+    cursor: pointer;
+}
 .gu-mirror {
     opacity: 0.8;
 }
@@ -373,12 +376,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    document.querySelectorAll('.form-destroy-extra').forEach(function(form) {
-        form.addEventListener('submit', function(e) {
-            var nome = this.dataset.extraName || '';
-            if (!confirm('Eliminar o extra ' + nome + '?')) e.preventDefault();
-        });
-    });
     var toggle = document.getElementById('extrasSidebarToggle');
     var sidebar = document.getElementById('extrasSidebar');
     var overlay = document.getElementById('extrasSidebarOverlay');
@@ -530,12 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(function() { btn.disabled = false; btn.innerHTML = 'Criar'; });
     });
 
-    // Abrir modal Editar extra: fetch dados e preencher formulário
-    document.getElementById('extrasListContainer')?.addEventListener('click', function(e) {
-        var link = e.target.closest('.open-edit-extra-modal');
-        if (!link) return;
-        e.preventDefault();
-        var extraId = link.getAttribute('data-extra-id');
+    function openEditExtraModal(extraId) {
         if (!extraId) return;
         var modal = document.getElementById('editExtraModal');
         var form = document.getElementById('editExtraModalForm');
@@ -544,6 +536,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 form.action = form.dataset.updateUrl + '/' + data.id;
+                form.setAttribute('data-extra-id', String(data.id));
+                document.getElementById('editExtraDeleteBtn')?.setAttribute('data-extra-id', String(data.id));
                 document.getElementById('editExtraCategoryId').value = data.extra_category_id || '';
                 document.getElementById('editExtraName').value = data.name || '';
                 document.getElementById('editExtraDescription').value = data.description || '';
@@ -574,6 +568,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 bootstrap.Modal.getOrCreateInstance(modal).show();
             })
             .catch(function() { alert('Erro ao carregar extra.'); });
+    }
+
+    // Abrir modal Editar extra ao clicar no card
+    document.getElementById('extrasListContainer')?.addEventListener('click', function(e) {
+        var row = e.target.closest('.extra-item-row.extra-item-clickable[data-extra-id]');
+        if (!row) return;
+        if (e.target.closest('a, button, input, select, textarea, label, .dropdown, .dropdown-menu')) return;
+        e.preventDefault();
+        openEditExtraModal(row.getAttribute('data-extra-id'));
     });
 
     // Submit Editar extra (modal)
@@ -605,6 +608,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(function() { btn.disabled = false; btn.innerHTML = 'Guardar'; });
+    });
+
+    document.getElementById('editExtraDeleteBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        var extraId = this.getAttribute('data-extra-id') || document.getElementById('editExtraModalForm')?.getAttribute('data-extra-id');
+        if (!extraId) return;
+        if (!confirm('Eliminar este extra?')) return;
+        var csrf = document.querySelector('input[name="_token"]')?.value || '';
+        fetch('{{ url('extras') }}/' + extraId, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('editExtraModal')).hide();
+                window.location.reload();
+            } else {
+                alert(data.message || 'Erro ao eliminar.');
+            }
+        })
+        .catch(function() { alert('Erro ao eliminar extra.'); });
     });
 });
 </script>
@@ -772,6 +797,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     @endif
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger me-auto" id="editExtraDeleteBtn">
+                        <i class="ph ph-trash me-1"></i>Eliminar
+                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar</button>
                 </div>
