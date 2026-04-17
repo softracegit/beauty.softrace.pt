@@ -55,26 +55,19 @@
                 ></div>
 
                 <div class="booking-summary-footer-bar">
-                    <div id="booking-summary-total" class="booking-summary-total is-hidden">
+                    <div id="booking-summary-total" class="booking-summary-total is-hidden" role="button" tabindex="0" aria-expanded="false" aria-controls="booking-summary-mobile-drawer" aria-label="Mostrar ou ocultar serviços da marcação">
                         <div class="booking-summary-total__meta">
                             <span id="booking-summary-total-count" class="booking-summary-total__label">0 serviços</span>
                             <span id="booking-summary-total-duration" class="booking-summary-total__duration">0min</span>
                         </div>
                         <span id="booking-summary-total-value" class="booking-summary-total__value"></span>
+                        <span class="d-lg-none booking-summary-total__toggle" aria-hidden="true">
+                            <i class="bi bi-chevron-down booking-summary-total__toggle-icon"></i>
+                        </span>
                     </div>
 
                     @if($showBackButton || $showNextButton)
                         <div class="booking-summary-actions d-flex gap-2 align-items-center">
-                            <button
-                                type="button"
-                                id="booking-summary-toggle-drawer"
-                                class="btn btn-outline-secondary d-lg-none booking-summary-toggle-drawer flex-shrink-0"
-                                aria-expanded="false"
-                                aria-controls="booking-summary-mobile-drawer"
-                                aria-label="Mostrar ou ocultar serviços da marcação"
-                            >
-                                <i class="bi bi-chevron-down booking-summary-toggle-drawer__icon" aria-hidden="true"></i>
-                            </button>
                             @if($showBackButton)
                                 <a href="{{ $backUrl }}" class="btn btn-outline-secondary d-none d-lg-inline-flex justify-content-center align-items-center booking-summary-back-btn booking-summary-back-desktop" aria-label="Voltar">
                                     <i class="bi bi-chevron-left" aria-hidden="true"></i>

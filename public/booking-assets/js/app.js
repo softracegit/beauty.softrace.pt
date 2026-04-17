@@ -1774,7 +1774,7 @@
         setStripeInlineError('');
         if (els.nextBtn) {
             setCheckoutNextBtnColor(false);
-            els.nextBtn.textContent = isCheckoutPaymentRequired() ? 'Pagamento' : 'Confirmar marcação';
+            els.nextBtn.textContent = isCheckoutPaymentRequired() ? 'Pagamento' : 'Marcar';
         }
         updateCheckoutPaymentPreview();
     }
@@ -2032,7 +2032,7 @@
             }
         }
         setCheckoutError(msg);
-        var btnFinal = isCheckoutPaymentRequired() ? 'Pagar e confirmar' : 'Confirmar marcação';
+        var btnFinal = isCheckoutPaymentRequired() ? 'Pagar e confirmar' : 'Marcar';
         setCheckoutNextBtnLoading(false, btnFinal);
         renderSummary();
     }
@@ -2067,7 +2067,7 @@
             })
             .catch(function () {
                 setCheckoutError('Erro de rede. Tenta novamente.');
-                setCheckoutNextBtnLoading(false, 'Confirmar marcação');
+                setCheckoutNextBtnLoading(false, 'Marcar');
                 renderSummary();
             });
     }
@@ -2241,7 +2241,7 @@
     function closeSummaryDrawer() {
         var footer = document.querySelector('.booking-summary-footer');
         var drawer = document.getElementById('booking-summary-mobile-drawer');
-        var btn = document.getElementById('booking-summary-toggle-drawer');
+        var btn = document.getElementById('booking-summary-total');
         if (footer) {
             footer.classList.remove('is-drawer-open');
         }
@@ -2254,16 +2254,26 @@
     }
 
     function bindSummaryDrawerToggle() {
-        var btn = document.getElementById('booking-summary-toggle-drawer');
+        var btn = document.getElementById('booking-summary-total');
         var footer = document.querySelector('.booking-summary-footer');
         var drawer = document.getElementById('booking-summary-mobile-drawer');
         if (!btn || !footer || !drawer) {
             return;
         }
-        btn.addEventListener('click', function () {
+        function toggleDrawer() {
+            if (!window.matchMedia('(max-width: 991.98px)').matches) {
+                return;
+            }
             var open = footer.classList.toggle('is-drawer-open');
             btn.setAttribute('aria-expanded', open ? 'true' : 'false');
             drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+        }
+        btn.addEventListener('click', toggleDrawer);
+        btn.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                toggleDrawer();
+            }
         });
     }
 
