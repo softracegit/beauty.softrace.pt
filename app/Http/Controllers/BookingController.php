@@ -204,6 +204,17 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * Página "A minha conta" (cliente de marcação — middleware auth + booking.client).
+     */
+    public function account(Request $request): View
+    {
+        return view('booking.conta.index', [
+            'businessName' => config('app.name'),
+            'user' => $request->user(),
+        ]);
+    }
+
     private function carbonToWeekdayKey(Carbon $day): string
     {
         $map = [

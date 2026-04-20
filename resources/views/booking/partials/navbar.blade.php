@@ -59,7 +59,7 @@
                 data-bs-toggle="offcanvas"
                 data-bs-target="#bookingStoreDetails"
                 aria-controls="bookingStoreDetails"
-                aria-label="Abrir detalhes da loja"
+                aria-label="Abrir menu"
             >
                 <i class="bi bi-list fs-4"></i>
             </button>

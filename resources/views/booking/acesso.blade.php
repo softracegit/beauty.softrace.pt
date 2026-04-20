@@ -37,11 +37,17 @@
                         </div>
                     </form>
 
-                    <p class="small text-muted mt-4 mb-0">
+                    <p class="small text-muted mt-4 mb-2">
+                        Já tens password?
+                        <a href="{{ route('booking.login') }}" class="text-decoration-none fw-semibold">Iniciar sessão</a>
+                    </p>
+                    <p class="small text-muted mb-0">
                         <a href="{{ route('booking.index') }}" class="text-decoration-none">← Voltar à marcação</a>
                     </p>
                 </main>
             </div>
         </div>
     </div>
+
+    @include('booking.partials.store-offcanvas')
 @endsection

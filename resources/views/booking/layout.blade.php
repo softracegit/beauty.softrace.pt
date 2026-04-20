@@ -19,6 +19,7 @@
 </head>
 <body class="booking-body @yield('body_class')" data-booking-index-url="{{ route('booking.index') }}">
     @yield('content')
+    @include('booking.partials.service-modal')
 
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}" defer></script>
     {{-- Stacks antes de app.js: páginas podem injectar intl-tel-input (etc.) para ficarem disponíveis no init --}}

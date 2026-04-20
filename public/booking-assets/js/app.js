@@ -11,6 +11,8 @@
     var STRIPE_CHECKOUT_PUBLIC_ID_KEY = 'booking_checkout_public_id';
     var bookingStorage = createBookingStorage();
     var dateTimeInitAttempts = 0;
+    /** Definido em initDateTimeStep: volta a pedir horários com a duração atual do carrinho. */
+    var bookingRefreshDateTimeSlotsFn = null;
 
     var checkoutPaymentState = {
         clientSecret: null,
@@ -127,6 +129,10 @@
         els.modalOptions = document.getElementById('booking-modal-options');
         els.modalOptionsError = document.getElementById('booking-modal-options-error');
         els.modalConfirm = document.getElementById('booking-modal-confirm');
+        els.modalFooterAdd = document.getElementById('booking-modal-footer-add');
+        els.modalFooterEdit = document.getElementById('booking-modal-footer-edit');
+        els.modalRemoveLine = document.getElementById('booking-modal-remove-line');
+        els.modalApplyEdit = document.getElementById('booking-modal-apply-edit');
         els.summaryEmpty = document.getElementById('booking-summary-empty');
         els.summaryList = document.getElementById('booking-summary-list');
         els.summaryTotal = document.getElementById('booking-summary-total');
@@ -255,6 +261,66 @@
         return hh + ':' + mm;
     }
 
+    function getTechnicianInitials(name) {
+        if (!name || typeof name !== 'string') {
+            return '?';
+        }
+        var parts = name.trim().split(/\s+/).filter(function (p) {
+            return p.length > 0;
+        });
+        if (parts.length === 0) {
+            return '?';
+        }
+        var first = parts[0];
+        var last = parts[parts.length - 1];
+        var a = first.charAt(0);
+        var b =
+            parts.length > 1
+                ? last.charAt(0)
+                : first.length > 1
+                  ? first.charAt(1)
+                  : '';
+        var s = (a + b).toUpperCase();
+        return s || '?';
+    }
+
+    function renderSummaryTechAvatar(tech) {
+        if (!els.summaryTechAvatar) {
+            return;
+        }
+        var container = els.summaryTechAvatar;
+        container.innerHTML = '';
+        container.classList.remove('booking-summary-tech__avatar--has-img');
+
+        var rawUrl = tech.avatar != null ? String(tech.avatar).trim() : '';
+        var initials = getTechnicianInitials(tech.name);
+
+        function showInitials() {
+            var span = document.createElement('span');
+            span.className = 'booking-summary-tech__avatar-fallback';
+            span.textContent = initials;
+            container.appendChild(span);
+        }
+
+        if (rawUrl) {
+            var img = document.createElement('img');
+            img.alt = '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.src = rawUrl;
+            img.addEventListener('load', function () {
+                container.classList.add('booking-summary-tech__avatar--has-img');
+            });
+            img.addEventListener('error', function () {
+                img.remove();
+                showInitials();
+            });
+            container.appendChild(img);
+        } else {
+            showInitials();
+        }
+    }
+
     function renderSummaryExtras() {
         var hasItems = state.items.length > 0;
         var tech = getTechnicianSelection();
@@ -270,16 +336,7 @@
                 if (els.summaryTechMeta) {
                     els.summaryTechMeta.textContent = tech.specialization || '';
                 }
-                if (els.summaryTechAvatar) {
-                    if (tech.avatar) {
-                        els.summaryTechAvatar.innerHTML =
-                            '<img src="' + String(tech.avatar).replace(/"/g, '&quot;') + '" alt="" loading="lazy">';
-                    } else if (tech.name) {
-                        els.summaryTechAvatar.textContent = tech.name.trim().charAt(0).toUpperCase();
-                    } else {
-                        els.summaryTechAvatar.textContent = '?';
-                    }
-                }
+                renderSummaryTechAvatar(tech);
             }
         }
 
@@ -297,6 +354,16 @@
                 }
             }
         }
+    }
+
+    function isServiceParentInCart(serviceId) {
+        if (serviceId == null || serviceId === '') {
+            return false;
+        }
+        var sid = String(serviceId);
+        return state.items.some(function (l) {
+            return l && l.id != null && String(l.id) === sid;
+        });
     }
 
     function renderSummary() {
@@ -340,38 +407,58 @@
             li.className = 'booking-summary-line';
             li.setAttribute('data-line-id', line.lineId);
 
+            var snap = line.editSnapshot;
+            var hasOption =
+                line.service_option_id != null &&
+                line.service_option_id !== '' &&
+                String(line.service_option_id) !== 'undefined';
+            var parentName = hasOption && snap && snap.name ? snap.name : line.name || '';
+            var optionName =
+                hasOption && snap && snap.name && line.name && line.name !== snap.name ? line.name : '';
+
             var body = document.createElement('div');
             body.className = 'booking-summary-line__body';
 
-            var name = document.createElement('span');
-            name.className = 'booking-summary-line__name';
-            name.textContent = line.name;
+            var serviceNameEl = document.createElement('span');
+            serviceNameEl.className = 'booking-summary-line__service';
+            serviceNameEl.textContent = parentName;
+            body.appendChild(serviceNameEl);
 
-            var meta = document.createElement('span');
-            meta.className = 'booking-summary-line__meta';
-            meta.textContent = line.duration;
+            if (optionName) {
+                var optionEl = document.createElement('span');
+                optionEl.className = 'booking-summary-line__option';
+                optionEl.textContent = optionName;
+                body.appendChild(optionEl);
+            }
 
-            body.appendChild(name);
-            body.appendChild(meta);
+            var durationEl = document.createElement('span');
+            durationEl.className = 'booking-summary-line__duration';
+            durationEl.textContent = line.duration || '';
+            body.appendChild(durationEl);
 
             var side = document.createElement('div');
             side.className = 'booking-summary-line__side';
+
+            var asideStack = document.createElement('div');
+            asideStack.className = 'booking-summary-line__aside-stack';
 
             var price = document.createElement('span');
             price.className = 'booking-summary-line__price';
             price.textContent = line.priceFormatted || formatMoneyEUR(line.price);
 
-            var removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'booking-summary-line__remove';
-            removeBtn.setAttribute('aria-label', 'Remover ' + line.name);
-            removeBtn.textContent = 'remover';
-            removeBtn.addEventListener('click', function () {
-                removeLine(line.lineId);
+            var editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.className = 'booking-summary-line__edit';
+            var editLabel = optionName ? parentName + ' — ' + optionName : parentName;
+            editBtn.setAttribute('aria-label', 'Editar ' + editLabel);
+            editBtn.innerHTML = '<i class="bi bi-pencil-square" aria-hidden="true"></i>';
+            editBtn.addEventListener('click', function () {
+                openEditModal(line);
             });
 
-            side.appendChild(price);
-            side.appendChild(removeBtn);
+            asideStack.appendChild(price);
+            asideStack.appendChild(editBtn);
+            side.appendChild(asideStack);
 
             li.appendChild(body);
             li.appendChild(side);
@@ -399,6 +486,9 @@
         });
         persist();
         renderSummary();
+        if (state.items.length > 0 && bookingRefreshDateTimeSlotsFn) {
+            bookingRefreshDateTimeSlotsFn();
+        }
         if (state.items.length === 0) {
             redirectToStep1IfNeeded();
         }
@@ -454,6 +544,8 @@
                 JSON.stringify({
                     id: tech.id,
                     name: tech.name,
+                    specialization: tech.specialization || '',
+                    avatar: tech.avatar || '',
                     updatedAt: Date.now(),
                 })
             );
@@ -806,7 +898,7 @@
         var selected = getDateTimeSelection();
         var selectedDate = selected ? selected.date : null;
         var selectedTime = selected ? selected.time : null;
-        var calendarView = 'month';
+        var calendarView = 'week';
         var weekStart = null;
         var selectedDateObj = null;
         var today = new Date();
@@ -1073,6 +1165,9 @@
                 btn.appendChild(wd);
                 btn.appendChild(dn);
 
+                if (sameDay(d, today)) {
+                    btn.classList.add('is-today');
+                }
                 if (sameDay(d, selectedDateObj)) {
                     btn.classList.add('is-active');
                     btn.setAttribute('aria-selected', 'true');
@@ -1098,11 +1193,13 @@
             weekPrev.disabled = startOfWeekMonday(addDays(weekStart, 6)).getTime() <= startOfWeekMonday(today).getTime();
         }
 
-        function setCalendarView(mode) {
+        function setCalendarView(mode, fpInstance) {
             calendarView = mode === 'week' ? 'week' : 'month';
             var isWeek = calendarView === 'week';
-            if (fp && fp.calendarContainer) {
-                fp.calendarContainer.classList.toggle('d-none', isWeek);
+            /* onReady corre antes de `var fp = flatpickr(...)` estar atribuído — usar instance do callback. */
+            var calendarInstance = fpInstance || fp;
+            if (calendarInstance && calendarInstance.calendarContainer) {
+                calendarInstance.calendarContainer.classList.toggle('d-none', isWeek);
             }
             weekView.classList.toggle('d-none', !isWeek);
             calendarViewToggle.classList.toggle('is-week', isWeek);
@@ -1138,7 +1235,7 @@
                 if (dates && dates.length) {
                     renderDaySlots(dates[0]);
                 }
-                setCalendarView('month');
+                setCalendarView('week', instance);
             },
             onMonthChange: function (dates, dateStr, instance) {
                 syncFlatpickrMonthTitle(instance);
@@ -1163,6 +1260,10 @@
         calendarViewToggle.addEventListener('click', function () {
             setCalendarView(calendarView === 'week' ? 'month' : 'week');
         });
+
+        bookingRefreshDateTimeSlotsFn = function () {
+            renderDaySlots(selectedDateObj);
+        };
 
         calendarInput.setAttribute('data-flatpickr-ready', '1');
     }
@@ -1299,12 +1400,51 @@
         els.modalOptionsError.classList.remove('d-none');
     }
 
+    /**
+     * Garante lista de opções como array (JSON/localStorage por vezes devolve object com chaves numéricas).
+     */
+    function getNormalizedServiceOptions(svc) {
+        if (!svc || typeof svc !== 'object') {
+            return [];
+        }
+        var raw = svc.options;
+        if (Array.isArray(raw)) {
+            return raw.filter(function (o) {
+                return o && o.id != null && o.id !== '';
+            });
+        }
+        if (raw && typeof raw === 'object') {
+            var keys = Object.keys(raw);
+            if (!keys.length) {
+                return [];
+            }
+            var allNumeric = keys.every(function (k) {
+                return /^\d+$/.test(k);
+            });
+            if (allNumeric) {
+                return keys
+                    .sort(function (a, b) {
+                        return Number(a) - Number(b);
+                    })
+                    .map(function (k) {
+                        return raw[k];
+                    })
+                    .filter(function (o) {
+                        return o && o.id != null && o.id !== '';
+                    });
+            }
+        }
+        return [];
+    }
+
     function syncPendingOptionFromDom() {
         if (!state.pending || !state.pending.service) {
             return;
         }
         var svc = state.pending.service;
-        if (!svc.options || !svc.options.length) {
+        var opts = getNormalizedServiceOptions(svc);
+        svc.options = opts;
+        if (!opts.length) {
             state.pending.selectedOption = null;
             return;
         }
@@ -1316,7 +1456,7 @@
         }
         var want = String(input.value);
         var found = null;
-        svc.options.forEach(function (o) {
+        opts.forEach(function (o) {
             if (String(o.id) === want) {
                 found = o;
             }
@@ -1344,8 +1484,8 @@
     }
 
     function modalSummaryFromOptions(service) {
-        var opts = service.options;
-        if (!opts || !opts.length) {
+        var opts = getNormalizedServiceOptions(service);
+        if (!opts.length) {
             return { price: '', duration: '' };
         }
         var minPrice = Infinity;
@@ -1386,18 +1526,74 @@
         return p || d;
     }
 
-    function openModal(service) {
+    function cloneServiceForEditStorage(svc) {
+        if (!svc) {
+            return null;
+        }
+        var o = {
+            id: svc.id,
+            name: svc.name,
+            options: [],
+            duration: svc.duration,
+            durationMinutes: Number(svc.durationMinutes) || 0,
+            price: svc.price,
+            priceFormatted: svc.priceFormatted,
+            summaryPriceLabel: svc.summaryPriceLabel,
+            summaryDurationLabel: svc.summaryDurationLabel,
+        };
+        var optList = getNormalizedServiceOptions(svc);
+        if (optList.length) {
+            o.options = optList.map(function (opt) {
+                return {
+                    id: opt.id,
+                    name: opt.name,
+                    duration: opt.duration,
+                    durationMinutes: Number(opt.durationMinutes) || 0,
+                    price: opt.price,
+                    priceFormatted: opt.priceFormatted,
+                };
+            });
+        }
+        return o;
+    }
+
+    function buildFallbackEditSnapshot(line) {
+        return {
+            id: line.id,
+            name: line.name || '',
+            options: [],
+            duration: line.duration,
+            durationMinutes: Number(line.durationMinutes) || 0,
+            price: line.price,
+            priceFormatted: line.priceFormatted,
+            summaryPriceLabel: '',
+            summaryDurationLabel: '',
+        };
+    }
+
+    function setModalFooterMode(mode) {
+        var isEdit = mode === 'edit';
+        if (els.modalFooterAdd) {
+            els.modalFooterAdd.classList.toggle('d-none', isEdit);
+        }
+        if (els.modalFooterEdit) {
+            els.modalFooterEdit.classList.toggle('d-none', !isEdit);
+        }
+    }
+
+    function populateModalFromService(service, preselectOptionId) {
         if (!els.modalTitle || !els.modalMeta) {
             return;
         }
         clearModalServiceOptions();
-        state.pending = {
-            service: service,
-            selectedOption: null,
-        };
         els.modalTitle.textContent = service.name || '';
 
-        if (service.options && service.options.length > 0) {
+        var opts = getNormalizedServiceOptions(service);
+        if (opts.length) {
+            service.options = opts;
+        }
+
+        if (opts.length > 0) {
             var sum = modalSummaryFromOptions(service);
             var dur = service.summaryDurationLabel || sum.duration;
             var price = service.summaryPriceLabel || sum.price;
@@ -1406,7 +1602,7 @@
                 els.modalOptionsWrap.classList.remove('d-none');
             }
             if (els.modalOptions) {
-                service.options.forEach(function (opt) {
+                opts.forEach(function (opt) {
                     var label = document.createElement('label');
                     label.className = 'booking-modal-option';
                     var main = document.createElement('div');
@@ -1429,6 +1625,9 @@
                     input.name = 'booking-service-option';
                     input.value = String(opt.id);
                     input.setAttribute('aria-label', opt.name);
+                    if (preselectOptionId != null && String(preselectOptionId) === String(opt.id)) {
+                        input.checked = true;
+                    }
                     input.addEventListener('change', function () {
                         syncPendingOptionFromDom();
                         clearModalOptionsError();
@@ -1448,11 +1647,135 @@
         }
 
         setModalConfirmEnabled(true);
+    }
 
+    function mergeServiceSnapshotFromOptionsCatalog(svc, line) {
+        if (getNormalizedServiceOptions(svc).length > 0) {
+            return svc;
+        }
+        if (!line || line.id == null) {
+            return svc;
+        }
+        var el = document.getElementById('booking-services-options-catalog');
+        if (!el || !el.textContent) {
+            return svc;
+        }
+        try {
+            var catalog = JSON.parse(el.textContent);
+            var entry = catalog[String(line.id)] != null ? catalog[String(line.id)] : catalog[line.id];
+            if (!entry) {
+                return svc;
+            }
+            var merged = Object.assign({}, svc, {
+                name: entry.name || svc.name,
+                summaryPriceLabel: entry.summaryPriceLabel,
+                summaryDurationLabel: entry.summaryDurationLabel,
+            });
+            merged.options = getNormalizedServiceOptions(entry);
+            if (merged.options.length) {
+                return merged;
+            }
+        } catch (e2) {
+            /* ignore */
+        }
+        return svc;
+    }
+
+    function openModal(service) {
+        if (!els.modalTitle || !els.modalMeta) {
+            return;
+        }
+        state.pending = {
+            mode: 'add',
+            lineId: null,
+            service: service,
+            selectedOption: null,
+        };
+        setModalFooterMode('add');
+        populateModalFromService(service, null);
         var m = getModalInstance();
         if (m) {
             m.show();
         }
+    }
+
+    function openEditModal(line) {
+        if (!els.modalTitle || !els.modalMeta) {
+            return;
+        }
+        var raw = line.editSnapshot || buildFallbackEditSnapshot(line);
+        var svc;
+        try {
+            svc = JSON.parse(JSON.stringify(raw));
+        } catch (e) {
+            svc = raw;
+        }
+        svc = mergeServiceSnapshotFromOptionsCatalog(svc, line);
+        svc.options = getNormalizedServiceOptions(svc);
+        state.pending = {
+            mode: 'edit',
+            lineId: line.lineId,
+            service: svc,
+            selectedOption: null,
+        };
+        setModalFooterMode('edit');
+        var pre = line.service_option_id != null ? line.service_option_id : null;
+        populateModalFromService(svc, pre);
+        syncPendingOptionFromDom();
+        clearModalOptionsError();
+        var m = getModalInstance();
+        if (m) {
+            m.show();
+        }
+    }
+
+    function confirmApplyEdit() {
+        if (!state.pending || state.pending.mode !== 'edit' || !state.pending.service) {
+            return;
+        }
+        var svc = state.pending.service;
+        var lineId = state.pending.lineId;
+        syncPendingOptionFromDom();
+        var opt = state.pending.selectedOption;
+        var editOpts = getNormalizedServiceOptions(svc);
+        svc.options = editOpts;
+        if (editOpts.length) {
+            if (!opt) {
+                showModalOptionsError('Seleciona uma opção para continuar.');
+                return;
+            }
+            var line = state.items.find(function (l) {
+                return l.lineId === lineId;
+            });
+            if (!line) {
+                closeModal();
+                return;
+            }
+            line.name = opt.name;
+            line.duration = opt.duration;
+            line.durationMinutes = Number(opt.durationMinutes) || 0;
+            line.price = opt.price;
+            line.priceFormatted = opt.priceFormatted;
+            line.service_option_id = opt.id;
+            line.editSnapshot = cloneServiceForEditStorage(svc);
+            persist();
+            renderSummary();
+            if (bookingRefreshDateTimeSlotsFn) {
+                bookingRefreshDateTimeSlotsFn();
+            }
+            closeModal();
+            return;
+        }
+        closeModal();
+    }
+
+    function removeFromEditModal() {
+        if (!state.pending || state.pending.mode !== 'edit') {
+            return;
+        }
+        var lineId = state.pending.lineId;
+        removeLine(lineId);
+        closeModal();
     }
 
     function closeModal() {
@@ -1465,17 +1788,23 @@
     }
 
     function confirmAdd() {
-        if (!state.pending || !state.pending.service) {
+        if (!state.pending || state.pending.mode !== 'add' || !state.pending.service) {
             return;
         }
         var svc = state.pending.service;
         syncPendingOptionFromDom();
         var opt = state.pending.selectedOption;
-        if (svc.options && svc.options.length) {
+        if (getNormalizedServiceOptions(svc).length) {
             if (!opt) {
                 showModalOptionsError('Seleciona uma opção para continuar.');
                 return;
             }
+        }
+        if (isServiceParentInCart(svc.id)) {
+            showModalOptionsError(
+                'Este serviço já está na marcação. Usa Editar no resumo para mudar a opção.'
+            );
+            return;
         }
         var line = {
             lineId: generateLineId(),
@@ -1491,6 +1820,7 @@
         if (opt) {
             line.service_option_id = opt.id;
         }
+        line.editSnapshot = cloneServiceForEditStorage(svc);
         state.items.push(line);
         persist();
         renderSummary();
@@ -1502,9 +1832,19 @@
         buttons.forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var payload = parseServicePayload(btn.getAttribute('data-service'));
-                if (payload) {
-                    openModal(payload);
+                if (!payload) {
+                    return;
                 }
+                if (isServiceParentInCart(payload.id)) {
+                    var existing = state.items.find(function (l) {
+                        return l && l.id != null && String(l.id) === String(payload.id);
+                    });
+                    if (existing) {
+                        openEditModal(existing);
+                    }
+                    return;
+                }
+                openModal(payload);
             });
         });
     }
@@ -1512,6 +1852,12 @@
     function bindModal() {
         if (els.modalConfirm) {
             els.modalConfirm.addEventListener('click', confirmAdd);
+        }
+        if (els.modalApplyEdit) {
+            els.modalApplyEdit.addEventListener('click', confirmApplyEdit);
+        }
+        if (els.modalRemoveLine) {
+            els.modalRemoveLine.addEventListener('click', removeFromEditModal);
         }
         if (els.modal) {
             els.modal.addEventListener('show.bs.modal', function () {
@@ -1521,6 +1867,7 @@
             els.modal.addEventListener('hidden.bs.modal', function () {
                 state.pending = null;
                 clearModalServiceOptions();
+                setModalFooterMode('add');
                 if (els.modalTitle) {
                     els.modalTitle.textContent = '';
                 }
@@ -1535,7 +1882,9 @@
                 unlockSummaryPanelAfterModal();
             });
             els.modal.addEventListener('shown.bs.modal', function () {
-                if (els.modalConfirm) {
+                if (state.pending && state.pending.mode === 'edit' && els.modalApplyEdit) {
+                    els.modalApplyEdit.focus();
+                } else if (els.modalConfirm) {
                     els.modalConfirm.focus();
                 }
             });
@@ -2337,6 +2686,87 @@
         });
     }
 
+    function bindCategoryChipsScroll() {
+        var nav = document.querySelector('.booking-category-chips');
+        if (!nav) {
+            return;
+        }
+        var scroll = nav.querySelector('.booking-category-chips__scroll');
+        if (!scroll) {
+            return;
+        }
+        var arrowLeft = nav.querySelector('.booking-category-chips__arrow--left');
+        var arrowRight = nav.querySelector('.booking-category-chips__arrow--right');
+        var scrollByArrow = function (direction) {
+            var distance = Math.max(140, Math.round(scroll.clientWidth * 0.6));
+            scroll.scrollBy({
+                left: direction * distance,
+                behavior: 'smooth',
+            });
+            window.setTimeout(updateHints, 240);
+        };
+
+        var updateHints = function () {
+            var maxScroll = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+            var threshold = 2;
+            var hasOverflow = maxScroll > threshold;
+            var canScrollLeft = scroll.scrollLeft > threshold;
+            var canScrollRight = scroll.scrollLeft < (maxScroll - threshold);
+
+            nav.classList.toggle('has-overflow', hasOverflow);
+            nav.classList.toggle('can-scroll-left', hasOverflow && canScrollLeft);
+            nav.classList.toggle('can-scroll-right', hasOverflow && canScrollRight);
+        };
+
+        scroll.addEventListener('scroll', updateHints, { passive: true });
+        window.addEventListener('resize', updateHints);
+        window.addEventListener('orientationchange', updateHints);
+        window.setTimeout(updateHints, 0);
+
+        nav.addEventListener('click', function (ev) {
+            var arrow = ev.target.closest('.booking-category-chips__arrow');
+            if (arrow && nav.contains(arrow)) {
+                if (arrow.classList.contains('booking-category-chips__arrow--left')) {
+                    scrollByArrow(-1);
+                } else if (arrow.classList.contains('booking-category-chips__arrow--right')) {
+                    scrollByArrow(1);
+                }
+                return;
+            }
+            var chip = ev.target.closest('.booking-category-chip');
+            if (!chip || !nav.contains(chip)) {
+                return;
+            }
+            var targetId = chip.getAttribute('data-scroll-target');
+            if (!targetId) {
+                return;
+            }
+            var section = document.getElementById(targetId);
+            if (!section) {
+                return;
+            }
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            window.setTimeout(updateHints, 220);
+        });
+
+        if (arrowLeft) {
+            arrowLeft.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault();
+                    scrollByArrow(-1);
+                }
+            });
+        }
+        if (arrowRight) {
+            arrowRight.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault();
+                    scrollByArrow(1);
+                }
+            });
+        }
+    }
+
     function bindNext() {
         if (!els.nextBtn) {
             return;
@@ -2390,6 +2820,7 @@
         initCheckoutStep();
         bindServiceButtons();
         bindModal();
+        bindCategoryChipsScroll();
         bindNext();
         bindSummaryDrawerToggle();
         bindSummaryLayoutResize();

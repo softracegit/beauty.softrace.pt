@@ -35,4 +35,6 @@
             </div>
         </div>
     </div>
+
+    @include('booking.partials.store-offcanvas')
 @endsection

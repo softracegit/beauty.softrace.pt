@@ -62,7 +62,7 @@
                         </div>
                         <span id="booking-summary-total-value" class="booking-summary-total__value"></span>
                         <span class="d-lg-none booking-summary-total__toggle" aria-hidden="true">
-                            <i class="bi bi-chevron-down booking-summary-total__toggle-icon"></i>
+                            <i class="bi bi-chevron-up booking-summary-total__toggle-icon"></i>
                         </span>
                     </div>
 

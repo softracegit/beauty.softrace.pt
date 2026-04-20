@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class BookingClientAuthController extends Controller
@@ -19,6 +20,45 @@ class BookingClientAuthController extends Controller
             'status' => session('status'),
             'error' => session('error'),
         ]);
+    }
+
+    public function showPasswordLogin(Request $request): View
+    {
+        return view('booking.login', [
+            'businessName' => config('app.name'),
+            'email' => old('email', (string) $request->query('email', '')),
+        ]);
+    }
+
+    public function loginWithPassword(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        $credentials = $request->only('email', 'password');
+        $remember = $request->boolean('remember');
+
+        if (! Auth::attempt($credentials, $remember)) {
+            throw ValidationException::withMessages([
+                'email' => ['As credenciais fornecidas estão incorretas.'],
+            ]);
+        }
+
+        $request->session()->regenerate();
+
+        $user = Auth::user();
+        if (! $user instanceof User || ! $user->isBookingClient()) {
+            Auth::logout();
+            $request->session()->regenerate();
+
+            throw ValidationException::withMessages([
+                'email' => ['Esta página é só para a tua conta de marcação online. Para o acesso da equipa (CRM), usa o login interno.'],
+            ]);
+        }
+
+        return redirect()->intended(route('booking.index'));
     }
 
     public function sendMagicLink(Request $request): RedirectResponse

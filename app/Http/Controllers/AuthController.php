@@ -41,11 +41,17 @@ class AuthController extends Controller
         $remember = $request->filled('remember');
 
         if (Auth::attempt($credentials, $remember)) {
-            $request->session()->regenerate();
             $user = Auth::user();
             if ($user instanceof User && $user->isBookingClient()) {
-                return redirect()->intended(route('booking.index'));
+                Auth::logout();
+                $request->session()->regenerate();
+
+                throw ValidationException::withMessages([
+                    'email' => ['Contas de marcação online iniciam sessão na página de login da marcação: '.route('booking.login').'.'],
+                ]);
             }
+
+            $request->session()->regenerate();
 
             return redirect()->intended(route('dashboard'));
         }

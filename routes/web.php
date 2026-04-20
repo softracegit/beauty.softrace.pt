@@ -61,7 +61,15 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
         ->where('token', '[a-fA-F0-9]{64}')
         ->name('login.magic');
 
+    Route::middleware('guest')->group(function () {
+        Route::get('/login', [BookingClientAuthController::class, 'showPasswordLogin'])->name('login');
+        Route::post('/login', [BookingClientAuthController::class, 'loginWithPassword'])
+            ->middleware('throttle:10,1')
+            ->name('login.perform');
+    });
+
     Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {
+        Route::get('/', [BookingController::class, 'account'])->name('index');
         Route::get('password', [BookingPasswordController::class, 'edit'])->name('password.edit');
         Route::post('password', [BookingPasswordController::class, 'update'])->name('password.update');
     });

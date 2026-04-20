@@ -16,7 +16,7 @@
                     </h1>
                     <p class="text-muted small mb-4">
                         @if ($mustSetPassword)
-                            Opcional: após definires password, podes iniciar sessão em <a href="{{ route('login') }}">login da equipa</a> com email e password (o mesmo email da marcação).
+                            Opcional: após definires password, podes iniciar sessão em <a href="{{ route('booking.login') }}">login da marcação</a> com email e password.
                         @else
                             Introduz a password atual e a nova password.
                         @endif
@@ -61,4 +61,6 @@
             </div>
         </div>
     </div>
+
+    @include('booking.partials.store-offcanvas')
 @endsection

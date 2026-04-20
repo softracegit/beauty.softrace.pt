@@ -36,30 +36,52 @@
 
                             return $mins.' min';
                         };
+                        $bookingServiceOptionsCatalog = [];
                     @endphp
                     <div class="row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row">
                         <div class="col-lg-8">
                             <main class="pt-1">
                                 <h2 class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1">Adicione os serviços que pretende</h2>
-                                <nav class="booking-category-chips" aria-label="Categorias de serviço">
-                                    <div class="booking-category-chips__scroll">
-                                        @foreach($categories as $category)
-                                            <a
-                                                href="#cat-{{ $category->id }}"
-                                                class="booking-category-chip"
-                                            >{{ $category->name }}</a>
-                                        @endforeach
+                                <section class="booking-category-section booking-category-section--chips mb-4 pb-1" aria-label="Atalhos por categoria">
+                                    <div class="card border shadow-sm rounded-3 booking-category-card booking-category-card--chips">
+                                        <nav class="booking-category-chips" aria-label="Categorias de serviço">
+                                            <button type="button" class="booking-category-chips__arrow booking-category-chips__arrow--left" aria-label="Ver categorias anteriores">
+                                                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                                            </button>
+                                            <div class="booking-category-chips__scroll">
+                                                @foreach($categories as $category)
+                                                    @php
+                                                        $categorySlug = \Illuminate\Support\Str::slug($category->name);
+                                                        $categoryAnchorId = 'cat-'.$categorySlug.'-'.$category->id;
+                                                    @endphp
+                                                    <button
+                                                        type="button"
+                                                        class="booking-category-chip"
+                                                        data-scroll-target="{{ $categoryAnchorId }}"
+                                                        aria-controls="{{ $categoryAnchorId }}"
+                                                    >{{ $category->name }}</button>
+                                                @endforeach
+                                            </div>
+                                            <button type="button" class="booking-category-chips__arrow booking-category-chips__arrow--right" aria-label="Ver mais categorias">
+                                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                                            </button>
+                                        </nav>
                                     </div>
-                                </nav>
+                                </section>
                                 @foreach($categories as $category)
+                                    @php
+                                        $categorySlug = \Illuminate\Support\Str::slug($category->name);
+                                        $categoryAnchorId = 'cat-'.$categorySlug.'-'.$category->id;
+                                        $categoryHeadingId = 'cat-heading-'.$categorySlug.'-'.$category->id;
+                                    @endphp
                                     <section
-                                        id="cat-{{ $category->id }}"
+                                        id="{{ $categoryAnchorId }}"
                                         class="booking-category-section mb-4 pb-1"
-                                        aria-labelledby="cat-heading-{{ $category->id }}"
+                                        aria-labelledby="{{ $categoryHeadingId }}"
                                     >
                                         <div class="card border shadow-sm rounded-3 overflow-hidden booking-category-card">
                                             <div class="booking-category-card__header">
-                                                <h2 id="cat-heading-{{ $category->id }}" class="booking-category-heading h6 small fw-semibold text-muted mb-0">{{ $category->name }}</h2>
+                                                <h2 id="{{ $categoryHeadingId }}" class="booking-category-heading h6 small fw-semibold text-muted mb-0">{{ $category->name }}</h2>
                                             </div>
                                             <ul class="list-group list-group-flush" role="list">
                                                 @foreach($category->services as $service)
@@ -93,6 +115,7 @@
                                                                 'summaryDurationLabel' => $rowDurationLabel,
                                                                 'options' => $optionsPayload,
                                                             ];
+                                                            $bookingServiceOptionsCatalog[(int) $service->id] = $payload;
                                                         } else {
                                                             $price = $service->online_price ?? $service->price;
                                                             $rowDurationLabel = $service->formatted_duration;
@@ -144,48 +167,13 @@
                             ])
                         </div>
                     </div>
+                    @if(! empty($bookingServiceOptionsCatalog))
+                        <script type="application/json" id="booking-services-options-catalog">@json($bookingServiceOptionsCatalog)</script>
+                    @endif
                 @endif
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalTitle" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow rounded-3">
-                <div class="modal-header border-0 pb-0">
-                    <h2 class="modal-title h5 fw-semibold" id="bookingModalTitle"></h2>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-                <div class="modal-body pt-2">
-                    <p id="booking-modal-service-meta" class="text-muted small mb-0"></p>
-                    <div id="booking-modal-options-wrap" class="d-none mt-3">
-                        <p class="small fw-semibold text-dark mb-2">Opções</p>
-                        <div id="booking-modal-options" class="booking-modal-options" role="radiogroup" aria-label="Variante do serviço"></div>
-                        <p id="booking-modal-options-error" class="booking-modal-options-error text-danger small mt-2 mb-0 d-none" role="alert"></p>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-dark w-100" id="booking-modal-confirm">Adicionar serviço</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="bookingStoreDetails" aria-labelledby="bookingStoreDetailsTitle">
-        <div class="offcanvas-header border-bottom">
-            <h2 class="offcanvas-title h6 mb-0 fw-semibold" id="bookingStoreDetailsTitle">Detalhes da loja</h2>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
-        </div>
-        <div class="offcanvas-body">
-            <div class="mb-3">
-                <p class="text-muted small text-uppercase mb-1">Nome</p>
-                <p class="mb-0 fw-semibold">{{ $businessName }}</p>
-            </div>
-            <div class="mb-3">
-                <p class="text-muted small text-uppercase mb-1">Website</p>
-                <a class="text-decoration-none" href="{{ config('app.url') }}" target="_blank" rel="noopener">{{ config('app.url') }}</a>
-            </div>
-            <p class="text-muted small mb-0">Em breve: morada, contactos e horário da loja.</p>
-        </div>
-    </div>
+    @include('booking.partials.store-offcanvas')
 @endsection

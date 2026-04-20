@@ -91,7 +91,7 @@
                                                 Já tens conta?
                                                 <a href="{{ $acessoUrl }}" class="text-decoration-none fw-semibold">Link por email</a>
                                                 <span class="text-muted"> · </span>
-                                                <a href="{{ route('login') }}" class="text-decoration-none fw-semibold">Login com password</a>
+                                                <a href="{{ route('booking.login') }}" class="text-decoration-none fw-semibold">Login com password</a>
                                             </p>
                                         @endif
 
@@ -133,23 +133,7 @@
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="bookingStoreDetails" aria-labelledby="bookingStoreDetailsTitle">
-        <div class="offcanvas-header border-bottom">
-            <h2 class="offcanvas-title h6 mb-0 fw-semibold" id="bookingStoreDetailsTitle">Detalhes da loja</h2>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
-        </div>
-        <div class="offcanvas-body">
-            <div class="mb-3">
-                <p class="text-muted small text-uppercase mb-1">Nome</p>
-                <p class="mb-0 fw-semibold">{{ $businessName }}</p>
-            </div>
-            <div class="mb-3">
-                <p class="text-muted small text-uppercase mb-1">Website</p>
-                <a class="text-decoration-none" href="{{ config('app.url') }}" target="_blank" rel="noopener">{{ config('app.url') }}</a>
-            </div>
-            <p class="text-muted small mb-0">Em breve: morada, contactos e horário da loja.</p>
-        </div>
-    </div>
+    @include('booking.partials.store-offcanvas')
 @endsection
 
 @push('scripts')
