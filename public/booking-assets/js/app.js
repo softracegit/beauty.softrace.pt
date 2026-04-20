@@ -2627,9 +2627,7 @@
     }
 
     /**
-     * Barra fixa do resumo (mobile): Chrome/Safari no iPhone mudam a altura da viewport
-     * ao esconder a barra de navegação. bottom:0 fica ancorado ao layout viewport e fica um vão.
-     * Espaço entre o fundo do layout e o fundo da viewport visível = innerHeight - vv.height - offsetTop.
+     * Barra fixa do resumo (mobile): manter sempre colada ao fundo do ecrã.
      */
     function syncBookingSummaryFooterVisualBottom() {
         var footer = document.querySelector('.booking-summary-footer');
@@ -2640,13 +2638,7 @@
             footer.style.removeProperty('bottom');
             return;
         }
-        if (!window.visualViewport) {
-            footer.style.removeProperty('bottom');
-            return;
-        }
-        var vv = window.visualViewport;
-        var gap = window.innerHeight - vv.height - vv.offsetTop;
-        footer.style.bottom = (gap > 0 ? gap : 0) + 'px';
+        footer.style.bottom = '0px';
     }
 
     var bookingFooterVvRaf = 0;
