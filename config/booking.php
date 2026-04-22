@@ -43,6 +43,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Antecedência mínima da marcação (minutos)
+    |--------------------------------------------------------------------------
+    |
+    | Não permite reservar para "agora"; ex.: 30 = só horários a partir de
+    | daqui a 30 minutos.
+    |
+    */
+
+    'min_lead_minutes' => max(0, (int) env('BOOKING_MIN_LEAD_MINUTES', 30)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Dados da loja (marcação pública — resumo e menu)
     |--------------------------------------------------------------------------
     |

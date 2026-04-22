@@ -25,9 +25,14 @@
     data-booking-auth-login-url="{{ route('booking.auth.login') }}"
     data-booking-auth-register-url="{{ route('booking.auth.register') }}"
     data-booking-auth-password-link-url="{{ route('booking.auth.password_link') }}"
+    data-booking-slot-hold-acquire-url="{{ route('booking.slot_hold.acquire') }}"
+    data-booking-slot-hold-extend-url="{{ route('booking.slot_hold.extend') }}"
+    data-booking-slot-hold-release-url="{{ route('booking.slot_hold.release') }}"
+    data-booking-slot-hold-seconds="{{ max(10, \App\Models\CrmSetting::bookingSlotHoldMinutes() * 60) }}"
     data-booking-authenticated-client="{{ (auth()->user() instanceof \App\Models\User && auth()->user()->isBookingClient()) ? '1' : '0' }}"
 >
     @yield('content')
+    @include('booking.partials.slot-hold-expired-modal')
     @include('booking.partials.auth-modal')
     @include('booking.partials.service-modal')
 

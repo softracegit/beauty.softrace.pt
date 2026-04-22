@@ -14,7 +14,7 @@
     --booking-border: #e8e8e8;
     --booking-accent: #0d6efd;
     --booking-radius: 0.75rem;
-    --booking-split-max: 72rem;
+    --booking-split-max: 80rem;
     /* Navbar fixa — alinhar com .booking-navbar__inner */
     --booking-navbar-height: 3.5rem;
     /* Espaço extra entre a navbar e o conteúdo (resumo sticky usa o mesmo offset) */
@@ -992,6 +992,10 @@ button.booking-offcanvas-nav__link {
     letter-spacing: -0.01em;
 }
 
+.booking-slots__status {
+    white-space: pre-line;
+}
+
 .booking-slots-suggested-wrap__label {
     letter-spacing: -0.01em;
 }
@@ -1622,6 +1626,15 @@ button.booking-offcanvas-nav__link {
     margin-top: 1rem;
     padding-top: 1rem;
     border-top: 1px solid var(--booking-border);
+}
+
+.booking-summary-slot-hold {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+}
+
+.booking-summary-slot-hold strong {
+    font-variant-numeric: tabular-nums;
 }
 
 .booking-summary-extra__title {

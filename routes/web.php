@@ -7,6 +7,7 @@ use App\Http\Controllers\BookingClientAuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingPasswordController;
 use App\Http\Controllers\BookingPaymentController;
+use App\Http\Controllers\BookingSlotHoldController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
@@ -66,6 +67,15 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
     Route::post('/password/reset', [BookingClientAuthController::class, 'resetPasswordWithToken'])
         ->middleware('throttle:8,10')
         ->name('password.reset.perform');
+    Route::post('/slot-hold/acquire', [BookingSlotHoldController::class, 'acquire'])
+        ->middleware('throttle:30,1')
+        ->name('slot_hold.acquire');
+    Route::post('/slot-hold/extend', [BookingSlotHoldController::class, 'extend'])
+        ->middleware('throttle:30,1')
+        ->name('slot_hold.extend');
+    Route::post('/slot-hold/release', [BookingSlotHoldController::class, 'release'])
+        ->middleware('throttle:30,1')
+        ->name('slot_hold.release');
 
     Route::get('/login', function (\Illuminate\Http\Request $request) {
         $user = $request->user();
@@ -145,6 +155,7 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
         Route::post('conta', [DefinicoesController::class, 'updateConta'])->name('conta.update');
         Route::get('negocio', [DefinicoesController::class, 'negocio'])->name('negocio');
         Route::get('agendamentos', [DefinicoesController::class, 'agendamentos'])->name('agendamentos');
+        Route::post('agendamentos', [DefinicoesController::class, 'updateAgendamentos'])->name('agendamentos.update');
         Route::get('vendas', [DefinicoesController::class, 'vendas'])->name('vendas');
         Route::get('clientes', [DefinicoesController::class, 'clientes'])->name('clientes');
         Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');

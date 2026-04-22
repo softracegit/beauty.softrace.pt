@@ -9,10 +9,13 @@
     var DATETIME_STORAGE_KEY = 'booking_datetime_v1';
     var CONTACT_STORAGE_KEY = 'booking_contact_v1';
     var STRIPE_CHECKOUT_PUBLIC_ID_KEY = 'booking_checkout_public_id';
+    var SLOT_HOLD_STORAGE_KEY = 'booking_slot_hold_v1';
     var bookingStorage = createBookingStorage();
     var dateTimeInitAttempts = 0;
     /** Definido em initDateTimeStep: volta a pedir horários com a duração atual do carrinho. */
     var bookingRefreshDateTimeSlotsFn = null;
+    /** Definido em initDateTimeStep: alinha `selectedTime` com booking_datetime_v1 (evita re-acquire em loop após conflito). */
+    var syncBookingDateTimeSlotFromStorage = null;
 
     var checkoutPaymentState = {
         clientSecret: null,
@@ -119,6 +122,25 @@
         pending: null,
     };
 
+    var slotHoldState = {
+        holdPublicId: '',
+        sessionToken: '',
+        expiresAt: '',
+        date: '',
+        time: '',
+        agentId: '',
+        servicesSignature: '',
+    };
+    var slotHoldTimer = {
+        intervalId: null,
+        expiredModalShown: false,
+    };
+    var suppressSlotHoldUiErrors = false;
+    var slotHoldAcquirePromise = null;
+    var slotHoldAcquireKey = '';
+    var pendingDateTimeSlotsErrorNotice = '';
+    var slotHoldShowZeroDuringExpiredModal = false;
+
     var els = {};
 
     function cacheElements() {
@@ -146,7 +168,12 @@
         els.summaryDateTime = document.getElementById('booking-summary-datetime');
         els.summaryDateLabel = document.getElementById('booking-summary-date-label');
         els.summaryTimeLabel = document.getElementById('booking-summary-time-label');
+        els.summarySlotHold = document.getElementById('booking-summary-slot-hold');
+        els.summarySlotHoldTime = document.getElementById('booking-summary-slot-hold-time');
         els.nextBtn = document.getElementById('booking-next');
+        els.slotHoldExpiredModal = document.getElementById('booking-slot-hold-expired-modal');
+        els.slotHoldRestartBtn = document.getElementById('booking-slot-hold-restart');
+        els.slotHoldExtendBtn = document.getElementById('booking-slot-hold-extend');
     }
 
     function getModalInstance() {
@@ -370,6 +397,7 @@
         if (!els.summaryList || !els.summaryEmpty || !els.summaryTotal) {
             return;
         }
+        renderSlotHoldBanner();
 
         if (state.items.length === 0) {
             els.summaryEmpty.classList.remove('is-hidden');
@@ -381,6 +409,7 @@
             }
             renderSummaryExtras();
             closeSummaryDrawer();
+            releaseSlotHold('cart_empty');
             scheduleBookingSummaryFooterVisualBottom();
             return;
         }
@@ -476,7 +505,9 @@
             els.summaryTotalDuration.textContent = formatDurationPT(getTotalDurationMinutes());
         }
         renderSummaryExtras();
+        renderSlotHoldBanner();
         updateCheckoutPaymentPreview();
+        ensureSlotHoldForCurrentSelection();
         scheduleBookingSummaryFooterVisualBottom();
     }
 
@@ -560,6 +591,7 @@
         } catch (e) {
             /* ignore */
         }
+        releaseSlotHold('technician_cleared');
     }
 
     function getTechnicianSelection() {
@@ -615,6 +647,93 @@
 
     function hasSelectedDateTime() {
         return !!getDateTimeSelection();
+    }
+
+    function loadSlotHoldState() {
+        try {
+            var raw = bookingStorage.getItem(SLOT_HOLD_STORAGE_KEY);
+            if (!raw) {
+                return;
+            }
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') {
+                return;
+            }
+            slotHoldState = Object.assign({}, slotHoldState, parsed);
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function persistSlotHoldState() {
+        try {
+            bookingStorage.setItem(SLOT_HOLD_STORAGE_KEY, JSON.stringify(slotHoldState));
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function clearSlotHoldState() {
+        slotHoldState = {
+            holdPublicId: '',
+            sessionToken: slotHoldState.sessionToken || '',
+            expiresAt: '',
+            date: '',
+            time: '',
+            agentId: '',
+            servicesSignature: '',
+        };
+        try {
+            bookingStorage.removeItem(SLOT_HOLD_STORAGE_KEY);
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function ensureSlotHoldSessionToken() {
+        if (slotHoldState.sessionToken) {
+            return slotHoldState.sessionToken;
+        }
+        if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+            slotHoldState.sessionToken = crypto.randomUUID().replace(/-/g, '');
+        } else {
+            slotHoldState.sessionToken =
+                String(Date.now()) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        }
+        persistSlotHoldState();
+        return slotHoldState.sessionToken;
+    }
+
+    function buildServicesForSlotHoldPayload() {
+        return state.items.map(function (line) {
+            var row = { id: Number(line.id) };
+            if (line.service_option_id != null && line.service_option_id !== '') {
+                row.service_option_id = Number(line.service_option_id);
+            }
+            return row;
+        });
+    }
+
+    function computeServicesSignature(items) {
+        var list = (items || [])
+            .map(function (row) {
+                var sid = Number(row && row.id);
+                var opt = row && row.service_option_id != null && row.service_option_id !== '' ? Number(row.service_option_id) : null;
+                if (!Number.isFinite(sid) || sid <= 0) {
+                    return null;
+                }
+                return [sid, Number.isFinite(opt) ? opt : null];
+            })
+            .filter(function (x) {
+                return !!x;
+            })
+            .sort(function (a, b) {
+                if (a[0] === b[0]) {
+                    return (a[1] == null ? -1 : a[1]) - (b[1] == null ? -1 : b[1]);
+                }
+                return a[0] - b[0];
+            });
+        return JSON.stringify(list);
     }
 
     function saveContactSelection(payload) {
@@ -852,13 +971,15 @@
         return h * 60 + m;
     }
 
-    /** For the calendar day equal to “now”, keep only slots at or after the current clock time. */
+    /** For today, keep only slots at/after now + min lead minutes (default 30). */
     function filterSlotsForSelectedDay(selectedDate, slots) {
         var now = new Date();
         if (!isSameCalendarDay(selectedDate, now)) {
             return slots;
         }
-        var nowMin = minutesSinceMidnight(now);
+        var leadMinutes = 30;
+        var leadTarget = new Date(now.getTime() + leadMinutes * 60 * 1000);
+        var nowMin = minutesSinceMidnight(leadTarget);
         return slots.filter(function (time) {
             return slotTimeToMinutes(time) >= nowMin;
         });
@@ -980,6 +1101,21 @@
         selectedDateObj = parseIsoDate(selectedDate) || new Date(today);
         weekStart = startOfWeekMonday(selectedDateObj);
 
+        function syncSelectedTimeFromDateTimeStorage() {
+            if (!selectedDate) {
+                selectedTime = null;
+                return;
+            }
+            var storedDt = getDateTimeSelection();
+            if (!storedDt || !storedDt.time || storedDt.date !== selectedDate) {
+                selectedTime = null;
+                return;
+            }
+            selectedTime = storedDt.time;
+        }
+
+        syncBookingDateTimeSlotFromStorage = syncSelectedTimeFromDateTimeStorage;
+
         function bookingDurationMinutes() {
             var m = getTotalDurationMinutes();
             if (!Number.isFinite(m) || m <= 0) {
@@ -1023,6 +1159,10 @@
                 encodeURIComponent(agentId) +
                 '&duration=' +
                 encodeURIComponent(String(durationMinutes));
+            var holdToken = ensureSlotHoldSessionToken();
+            if (holdToken) {
+                url += '&hold_session_token=' + encodeURIComponent(holdToken);
+            }
             return fetch(url, { credentials: 'same-origin', signal: signal })
                 .then(function (r) {
                     if (!r.ok) {
@@ -1061,6 +1201,7 @@
                         date: selectedDate,
                         time: selectedTime,
                     });
+                    ensureSlotHoldForCurrentSelection();
                     renderSummary();
                     layoutSlotsPanels();
                 });
@@ -1132,7 +1273,14 @@
         }
 
         function applySlotsToDom(date, slotList) {
+            if (syncBookingDateTimeSlotFromStorage) {
+                syncBookingDateTimeSlotFromStorage();
+            }
             clearSlotsStatus();
+            if (pendingDateTimeSlotsErrorNotice) {
+                showSlotsStatus('error', pendingDateTimeSlotsErrorNotice);
+                pendingDateTimeSlotsErrorNotice = '';
+            }
             var filtered = filterSlotsForSelectedDay(date, slotList);
             cachedFilteredSlots = filtered.slice();
 
@@ -1149,6 +1297,7 @@
                     date: selectedDate,
                     time: '',
                 });
+                releaseSlotHold('no_slots_for_day');
                 renderSummary();
                 return;
             }
@@ -1159,6 +1308,7 @@
             });
             if (selectedTime && !valid[selectedTime]) {
                 selectedTime = null;
+                releaseSlotHold('slot_invalidated');
             }
 
             layoutSlotsPanels();
@@ -1168,6 +1318,7 @@
                     date: selectedDate,
                     time: '',
                 });
+                releaseSlotHold('time_cleared');
             } else {
                 saveDateTimeSelection({
                     date: selectedDate,
@@ -1375,10 +1526,30 @@
                     return;
                 }
                 slotsUiExpanded = false;
+                layoutSlotsPanels();
             } else {
                 slotsUiExpanded = true;
+                var tech = getTechnicianSelection();
+                var agentId = tech && tech.id != null && tech.id !== '' ? String(tech.id) : 'any';
+                var durationM = bookingDurationMinutes();
+                if (availabilityAbort) {
+                    availabilityAbort.abort();
+                }
+                availabilityAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                var signal = availabilityAbort ? availabilityAbort.signal : undefined;
+                showSlotsStatus('loading', 'A atualizar horários…');
+                fetchAvailabilitySlots(selectedDate, agentId, durationM, signal)
+                    .then(function (slots) {
+                        applySlotsToDom(selectedDateObj, slots);
+                    })
+                    .catch(function (err) {
+                        if (err && err.name === 'AbortError') {
+                            return;
+                        }
+                        clearSlotsStatus();
+                        showSlotsStatus('error', 'Não foi possível atualizar os horários. Tenta novamente.');
+                    });
             }
-            layoutSlotsPanels();
         });
 
         bookingRefreshDateTimeSlotsFn = function () {
@@ -1471,6 +1642,7 @@
                     specialization: metaEl ? metaEl.textContent.trim() : '',
                     avatar: row.getAttribute('data-tech-avatar') || '',
                 });
+                releaseSlotHold('technician_changed');
                 renderSummary();
             });
         });
@@ -2186,6 +2358,16 @@
         setCheckoutError('');
     }
 
+    function setDateTimeSlotsNotice(kind, message) {
+        var el = document.getElementById('booking-slots-status');
+        if (!el) {
+            return;
+        }
+        el.textContent = message || '';
+        var extra = kind === 'error' ? ' text-danger' : ' text-muted';
+        el.className = 'booking-slots__status small mb-3' + (message ? extra : '');
+    }
+
     function isCheckoutPaymentRequired() {
         var app = document.querySelector('.booking-app[data-booking-payment-required]');
         if (!app) {
@@ -2211,6 +2393,51 @@
             intentUrl: app.getAttribute('data-booking-payment-intent-url') || '',
             completeUrl: app.getAttribute('data-booking-payment-complete-url') || '',
         };
+    }
+
+    function getSlotHoldUrls() {
+        var body = document.body;
+        if (!body) {
+            return null;
+        }
+        return {
+            acquireUrl: body.getAttribute('data-booking-slot-hold-acquire-url') || '',
+            extendUrl: body.getAttribute('data-booking-slot-hold-extend-url') || '',
+            releaseUrl: body.getAttribute('data-booking-slot-hold-release-url') || '',
+        };
+    }
+
+    function postJsonWithCsrf(url, payload) {
+        return fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload || {}),
+        }).then(function (r) {
+            return r
+                .json()
+                .catch(function () {
+                    return {};
+                })
+                .then(function (data) {
+                    if (!r.ok) {
+                        var msg = data && data.message ? data.message : 'Não foi possível processar o pedido.';
+                        if (data && data.errors) {
+                            var firstKey = Object.keys(data.errors)[0];
+                            if (firstKey && Array.isArray(data.errors[firstKey]) && data.errors[firstKey][0]) {
+                                msg = data.errors[firstKey][0];
+                            }
+                        }
+                        throw new Error(msg);
+                    }
+                    return data || {};
+                });
+        });
     }
 
     function setStripeInlineError(message) {
@@ -2242,6 +2469,279 @@
             els.nextBtn.textContent = isCheckoutPaymentRequired() ? 'Pagamento' : 'Marcar';
         }
         updateCheckoutPaymentPreview();
+    }
+
+    function formatHoldRemainingLabel(ms) {
+        var total = Math.max(0, Math.ceil(ms / 1000));
+        var mm = Math.floor(total / 60);
+        var ss = total % 60;
+        return mm + ':' + String(ss).padStart(2, '0');
+    }
+
+    function getCurrentSelectionForHold() {
+        var dt = getDateTimeSelection();
+        var tech = getTechnicianSelection();
+        if (!dt || !dt.date || !dt.time || !tech || !tech.id || !state.items.length) {
+            return null;
+        }
+        var services = buildServicesForSlotHoldPayload();
+        if (!services.length) {
+            return null;
+        }
+        return {
+            date: dt.date,
+            time: dt.time,
+            agent_id: String(tech.id),
+            services: services,
+            servicesSignature: computeServicesSignature(services),
+        };
+    }
+
+    function renderSlotHoldBanner() {
+        if (!els.summarySlotHold || !els.summarySlotHoldTime) {
+            return;
+        }
+        if (slotHoldShowZeroDuringExpiredModal) {
+            els.summarySlotHoldTime.textContent = '0:00';
+            els.summarySlotHold.classList.remove('is-hidden');
+            return;
+        }
+        if (!slotHoldState.expiresAt || !slotHoldState.holdPublicId) {
+            els.summarySlotHold.classList.add('is-hidden');
+            return;
+        }
+        var remaining = new Date(slotHoldState.expiresAt).getTime() - Date.now();
+        if (!Number.isFinite(remaining) || remaining <= 0) {
+            els.summarySlotHoldTime.textContent = '0:00';
+            els.summarySlotHold.classList.remove('is-hidden');
+            return;
+        }
+        els.summarySlotHoldTime.textContent = formatHoldRemainingLabel(remaining);
+        els.summarySlotHold.classList.remove('is-hidden');
+    }
+
+    function stopSlotHoldTimer() {
+        if (slotHoldTimer.intervalId) {
+            clearInterval(slotHoldTimer.intervalId);
+            slotHoldTimer.intervalId = null;
+        }
+    }
+
+    function releaseSlotHold(reason) {
+        var holdId = slotHoldState.holdPublicId;
+        var token = ensureSlotHoldSessionToken();
+        slotHoldShowZeroDuringExpiredModal = false;
+        if (!holdId) {
+            return Promise.resolve();
+        }
+        var urls = getSlotHoldUrls();
+        clearSlotHoldState();
+        stopSlotHoldTimer();
+        renderSlotHoldBanner();
+        if (!urls || !urls.releaseUrl) {
+            return Promise.resolve();
+        }
+        return postJsonWithCsrf(urls.releaseUrl, {
+            hold_public_id: holdId,
+            hold_session_token: token,
+            reason: reason || 'manual',
+        }).catch(function () {
+            return null;
+        });
+    }
+
+    function showSlotHoldExpiredModal() {
+        if (slotHoldTimer.expiredModalShown) {
+            return;
+        }
+        if (!els.slotHoldExpiredModal || !window.bootstrap || !window.bootstrap.Modal) {
+            return;
+        }
+        slotHoldTimer.expiredModalShown = true;
+        var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal);
+        modal.show();
+    }
+
+    function onSlotHoldExpired() {
+        stopSlotHoldTimer();
+        slotHoldShowZeroDuringExpiredModal = true;
+        if (slotHoldState.expiresAt) {
+            slotHoldState.expiresAt = new Date().toISOString();
+            persistSlotHoldState();
+        }
+        renderSlotHoldBanner();
+        suppressSlotHoldUiErrors = false;
+        showSlotHoldExpiredModal();
+        renderSummary();
+    }
+
+    function startSlotHoldTimer() {
+        stopSlotHoldTimer();
+        slotHoldTimer.expiredModalShown = false;
+        slotHoldShowZeroDuringExpiredModal = false;
+        renderSlotHoldBanner();
+        if (!slotHoldState.expiresAt || !slotHoldState.holdPublicId) {
+            return;
+        }
+        slotHoldTimer.intervalId = setInterval(function () {
+            renderSlotHoldBanner();
+            var remaining = new Date(slotHoldState.expiresAt).getTime() - Date.now();
+            if (!Number.isFinite(remaining) || remaining <= 0) {
+                onSlotHoldExpired();
+            }
+        }, 1000);
+    }
+
+    function ensureSlotHoldForCurrentSelection() {
+        if (slotHoldShowZeroDuringExpiredModal) {
+            return Promise.resolve();
+        }
+        var selected = getCurrentSelectionForHold();
+        if (!selected) {
+            return releaseSlotHold('selection_cleared');
+        }
+        var selectionKey =
+            String(selected.date) +
+            '|' +
+            String(selected.time) +
+            '|' +
+            String(selected.agent_id) +
+            '|' +
+            String(selected.servicesSignature);
+
+        var sameSelection =
+            slotHoldState.holdPublicId &&
+            slotHoldState.date === selected.date &&
+            slotHoldState.time === selected.time &&
+            slotHoldState.agentId === selected.agent_id &&
+            slotHoldState.servicesSignature === selected.servicesSignature &&
+            new Date(slotHoldState.expiresAt).getTime() > Date.now() + 15000;
+        if (sameSelection) {
+            renderSlotHoldBanner();
+            return Promise.resolve();
+        }
+
+        if (slotHoldAcquirePromise) {
+            if (slotHoldAcquireKey === selectionKey) {
+                return slotHoldAcquirePromise;
+            }
+            return slotHoldAcquirePromise.finally(function () {
+                return ensureSlotHoldForCurrentSelection();
+            });
+        }
+
+        var urls = getSlotHoldUrls();
+        if (!urls || !urls.acquireUrl) {
+            return Promise.resolve();
+        }
+        var token = ensureSlotHoldSessionToken();
+        slotHoldAcquireKey = selectionKey;
+        slotHoldAcquirePromise = postJsonWithCsrf(urls.acquireUrl, {
+            date: selected.date,
+            time: selected.time,
+            agent_id: selected.agent_id,
+            services: selected.services,
+            hold_session_token: token,
+        }).then(function (res) {
+            slotHoldState.holdPublicId = res.hold_public_id || '';
+            slotHoldState.expiresAt = res.expires_at || '';
+            slotHoldState.date = selected.date;
+            slotHoldState.time = selected.time;
+            slotHoldState.agentId = selected.agent_id;
+            slotHoldState.servicesSignature = selected.servicesSignature;
+            persistSlotHoldState();
+            startSlotHoldTimer();
+            renderSummary();
+        }).catch(function (err) {
+            releaseSlotHold('acquire_failed');
+            var conflictMsg =
+                err && err.message
+                    ? err.message
+                    : 'Esta hora já está reservada, por favor seleccione outra hora.';
+            if (!suppressSlotHoldUiErrors) {
+                setDateTimeSlotsNotice('error', conflictMsg);
+            }
+            saveDateTimeSelection({ date: selected.date, time: '' });
+            if (syncBookingDateTimeSlotFromStorage) {
+                syncBookingDateTimeSlotFromStorage();
+            }
+            renderSummary();
+            if (bookingRefreshDateTimeSlotsFn) {
+                pendingDateTimeSlotsErrorNotice = conflictMsg;
+                bookingRefreshDateTimeSlotsFn();
+            }
+        }).finally(function () {
+            slotHoldAcquirePromise = null;
+            slotHoldAcquireKey = '';
+        });
+        return slotHoldAcquirePromise;
+    }
+
+    function bindSlotHoldExpiredModal() {
+        if (!els.slotHoldExpiredModal || !window.bootstrap || !window.bootstrap.Modal) {
+            return;
+        }
+        var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal);
+        if (els.slotHoldRestartBtn) {
+            els.slotHoldRestartBtn.addEventListener('click', function () {
+                suppressSlotHoldUiErrors = true;
+                slotHoldShowZeroDuringExpiredModal = false;
+                releaseSlotHold('expired_restart').finally(function () {
+                    clearTechnicianSelection();
+                    saveDateTimeSelection({ date: '', time: '' });
+                    modal.hide();
+                    window.location.href = document.body.getAttribute('data-booking-index-url') || '/booking';
+                });
+            });
+        }
+        if (els.slotHoldExtendBtn) {
+            els.slotHoldExtendBtn.addEventListener('click', function () {
+                var urls = getSlotHoldUrls();
+                var holdId = slotHoldState.holdPublicId;
+                var token = ensureSlotHoldSessionToken();
+                if (!urls || !urls.extendUrl || !holdId) {
+                    return;
+                }
+                els.slotHoldExtendBtn.disabled = true;
+                postJsonWithCsrf(urls.extendUrl, {
+                    hold_public_id: holdId,
+                    hold_session_token: token,
+                }).then(function (res) {
+                    slotHoldShowZeroDuringExpiredModal = false;
+                    slotHoldState.expiresAt = res.expires_at || slotHoldState.expiresAt;
+                    persistSlotHoldState();
+                    startSlotHoldTimer();
+                    modal.hide();
+                }).catch(function (err) {
+                    var msg = err && err.message ? err.message : 'Não foi possível prolongar a reserva.';
+                    var slotTakenByOther =
+                        msg.indexOf('Este horário acabou de ser reservado por outro cliente') !== -1;
+                    if (slotTakenByOther) {
+                        var savedDate = slotHoldState.date || '';
+                        slotHoldShowZeroDuringExpiredModal = false;
+                        clearSlotHoldState();
+                        stopSlotHoldTimer();
+                        renderSlotHoldBanner();
+                        modal.hide();
+                        setCheckoutError('');
+                        setDateTimeSlotsNotice('error', msg);
+                        pendingDateTimeSlotsErrorNotice = msg;
+                        saveDateTimeSelection({ date: savedDate, time: '' });
+                        if (syncBookingDateTimeSlotFromStorage) {
+                            syncBookingDateTimeSlotFromStorage();
+                        }
+                        renderSummary();
+                        if (bookingRefreshDateTimeSlotsFn) {
+                            bookingRefreshDateTimeSlotsFn();
+                        }
+                    } else {
+                        setCheckoutError(msg);
+                    }
+                }).finally(function () {
+                    els.slotHoldExtendBtn.disabled = false;
+                });
+            });
+        }
     }
 
     function mountStripePaymentElement() {
@@ -2384,12 +2884,15 @@
                         bookingStorage.removeItem(DATETIME_STORAGE_KEY);
                         bookingStorage.removeItem(CONTACT_STORAGE_KEY);
                         bookingStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+                        bookingStorage.removeItem(SLOT_HOLD_STORAGE_KEY);
                         if (window.location.search.indexOf('payment_intent=') !== -1) {
                             window.history.replaceState({}, '', window.location.pathname);
                         }
                     } catch (e) {
                         /* ignore */
                     }
+                    stopSlotHoldTimer();
+                    clearSlotHoldState();
                     resetCheckoutPaymentUi();
                     window.location.href = res.data.redirect;
                     return;
@@ -2455,9 +2958,12 @@
                 bookingStorage.removeItem(DATETIME_STORAGE_KEY);
                 bookingStorage.removeItem(CONTACT_STORAGE_KEY);
                 bookingStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+                bookingStorage.removeItem(SLOT_HOLD_STORAGE_KEY);
             } catch (e) {
                 /* ignore */
             }
+            stopSlotHoldTimer();
+            clearSlotHoldState();
             resetCheckoutPaymentUi();
             window.location.href = res.data.redirect;
             return;
@@ -2540,6 +3046,11 @@
             setCheckoutError('Falta informação. Volta atrás e completa todos os passos.');
             return;
         }
+        if (!slotHoldState.holdPublicId || !slotHoldState.expiresAt || new Date(slotHoldState.expiresAt).getTime() <= Date.now()) {
+            setCheckoutError('A reserva temporária expirou. Escolhe novamente data e hora.');
+            onSlotHoldExpired();
+            return;
+        }
         hideCheckoutError();
         setStripeInlineError('');
         var payload = {
@@ -2558,6 +3069,12 @@
                 return row;
             }),
         };
+        if (slotHoldState.holdPublicId) {
+            payload.slot_hold_public_id = slotHoldState.holdPublicId;
+        }
+        if (slotHoldState.sessionToken) {
+            payload.slot_hold_token = slotHoldState.sessionToken;
+        }
 
         if (!isCheckoutPaymentRequired()) {
             setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
@@ -3377,6 +3894,7 @@
 
     function init() {
         cacheElements();
+        loadSlotHoldState();
         syncSummaryScrollPlacement();
         loadFromStorage();
         renderSummary();
@@ -3388,6 +3906,9 @@
         bindCategoryChipsScroll();
         initBookingNavbarAuth(getBookingAuthModal());
         tryOpenBookingAuthFromUrl(getBookingAuthModal());
+        bindSlotHoldExpiredModal();
+        startSlotHoldTimer();
+        ensureSlotHoldForCurrentSelection();
         bindNext();
         bindSummaryDrawerToggle();
         bindSummaryLayoutResize();

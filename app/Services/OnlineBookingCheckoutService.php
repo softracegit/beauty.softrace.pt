@@ -53,6 +53,23 @@ class OnlineBookingCheckoutService
     }
 
     /**
+     * Validation rules for temporary slot hold (no checkout contact fields yet).
+     *
+     * @return array<string, mixed>
+     */
+    public function slotHoldRules(): array
+    {
+        return [
+            'date' => ['required', 'date_format:Y-m-d'],
+            'time' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'agent_id' => ['required', 'string'],
+            'services' => ['required', 'array', 'min:1'],
+            'services.*.id' => ['required', 'integer', 'exists:services,id'],
+            'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
+        ];
+    }
+
+    /**
      * Validate HTTP request input (JSON body from the booking wizard).
      *
      * @return array<string, mixed>
@@ -95,6 +112,54 @@ class OnlineBookingCheckoutService
      */
     public function resolveValidatedBookingPayload(array $validated): array
     {
+        $slot = $this->resolveSlotCandidateCore($validated);
+        $bookingLines = $slot['bookingLines'];
+        $userId = $slot['userId'];
+        $startForDb = $slot['startForDb'];
+        $endForDb = $slot['endForDb'];
+
+        $totalPrice = round(
+            (float) array_sum(array_map(fn (array $line): float => (float) $line['price'], $bookingLines)),
+            2,
+        );
+
+        return [
+            'validated' => $validated,
+            'bookingLines' => $bookingLines,
+            'userId' => $userId,
+            'startForDb' => $startForDb,
+            'endForDb' => $endForDb,
+            'totalPrice' => $totalPrice,
+        ];
+    }
+
+    /**
+     * Resolve candidate technician and slot window for temporary hold.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{
+     *     bookingLines: list<array{service: Service, option: ?ServiceOption, duration: int, price: float, original_price: float, display_name: string}>,
+     *     userId: int,
+     *     startForDb: Carbon,
+     *     endForDb: Carbon
+     * }
+     */
+    public function resolveSlotCandidateForHold(array $validated): array
+    {
+        return $this->resolveSlotCandidateCore($validated);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{
+     *     bookingLines: list<array{service: Service, option: ?ServiceOption, duration: int, price: float, original_price: float, display_name: string}>,
+     *     userId: int,
+     *     startForDb: Carbon,
+     *     endForDb: Carbon
+     * }
+     */
+    private function resolveSlotCandidateCore(array $validated): array
+    {
         $agentKey = $validated['agent_id'];
         if ($agentKey !== 'any' && ! ctype_digit((string) $agentKey)) {
             throw ValidationException::withMessages([
@@ -115,7 +180,6 @@ class OnlineBookingCheckoutService
             fn (array $line): int => (int) $line['service']->id,
             $bookingLines,
         )));
-
         $totalDuration = (int) array_sum(array_map(fn (array $line): int => (int) $line['duration'], $bookingLines));
         if ($totalDuration <= 0) {
             throw ValidationException::withMessages([
@@ -125,6 +189,13 @@ class OnlineBookingCheckoutService
 
         $startLocal = Carbon::createFromFormat('Y-m-d H:i', $validated['date'].' '.$validated['time'], $tz);
         $endLocal = $startLocal->copy()->addMinutes($totalDuration);
+        $minLeadMinutes = max(0, (int) config('booking.min_lead_minutes', 30));
+        $leadLimit = now($tz)->addMinutes($minLeadMinutes);
+        if ($startLocal->lt($leadLimit)) {
+            throw ValidationException::withMessages([
+                'time' => ['Esta marcação deve ser feita com pelo menos '.$minLeadMinutes.' minutos de antecedência.'],
+            ]);
+        }
         $tzApp = (string) config('app.timezone');
         $startForDb = $startLocal->copy()->timezone($tzApp);
         $endForDb = $endLocal->copy()->timezone($tzApp);
@@ -170,18 +241,11 @@ class OnlineBookingCheckoutService
             ]);
         }
 
-        $totalPrice = round(
-            (float) array_sum(array_map(fn (array $line): float => (float) $line['price'], $bookingLines)),
-            2,
-        );
-
         return [
-            'validated' => $validated,
             'bookingLines' => $bookingLines,
             'userId' => $userId,
             'startForDb' => $startForDb,
             'endForDb' => $endForDb,
-            'totalPrice' => $totalPrice,
         ];
     }
 

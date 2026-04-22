@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\BookingSlotHold;
 use App\Models\CalendarEvent;
 use App\Models\Category;
 use App\Models\CrmSetting;
@@ -70,6 +71,7 @@ class BookingController extends Controller
         $agentKey = $request->query('agent_id', 'any');
         $duration = (int) $request->query('duration', 30);
         $duration = max(5, min(24 * 60, $duration));
+        $holdSessionToken = trim((string) $request->query('hold_session_token', ''));
 
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
             return response()->json(['slots' => []], 422);
@@ -89,9 +91,24 @@ class BookingController extends Controller
 
         $storeStart = Agent::timeStringToMinutes(self::STORE_OPEN);
         $storeEnd = Agent::timeStringToMinutes(self::STORE_CLOSE);
+        $minLeadMinutes = max(0, (int) config('booking.min_lead_minutes', 30));
+        $nowLocal = now($tz);
+        $isToday = $day->isSameDay($nowLocal);
+        $minLeadStart = null;
+        if ($isToday) {
+            $leadMoment = $nowLocal->copy()->addMinutes($minLeadMinutes);
+            $minLeadStart = ((int) $leadMoment->hour * 60) + (int) $leadMoment->minute;
+        }
 
         if ($agentKey === 'any' || $agentKey === '' || $agentKey === null) {
-            $slots = $this->buildAvailableSlots($storeStart, $storeEnd, $duration, []);
+            $winStart = $storeStart;
+            if ($minLeadStart !== null) {
+                $winStart = max($winStart, (int) $minLeadStart);
+            }
+            if ($winStart >= $storeEnd) {
+                return response()->json(['slots' => []]);
+            }
+            $slots = $this->buildAvailableSlots($winStart, $storeEnd, $duration, []);
 
             return response()->json(['slots' => $slots]);
         }
@@ -120,9 +137,17 @@ class BookingController extends Controller
         if ($window === null) {
             return response()->json(['slots' => []]);
         }
+        $winStart = (int) $window[0];
+        $winEnd = (int) $window[1];
+        if ($minLeadStart !== null) {
+            $winStart = max($winStart, (int) $minLeadStart);
+        }
+        if ($winStart >= $winEnd) {
+            return response()->json(['slots' => []]);
+        }
 
-        $busy = $this->busyIntervalsForUserOnDay((int) $agent->user_id, $day);
-        $slots = $this->buildAvailableSlots($window[0], $window[1], $duration, $busy);
+        $busy = $this->busyIntervalsForUserOnDay((int) $agent->user_id, $day, $holdSessionToken !== '' ? $holdSessionToken : null);
+        $slots = $this->buildAvailableSlots($winStart, $winEnd, $duration, $busy);
 
         return response()->json(['slots' => $slots]);
     }
@@ -277,7 +302,7 @@ class BookingController extends Controller
     /**
      * @return list<array{0: int, 1: int}> Intervalos ocupados em minutos desde meia-noite (dia local), [início, fim).
      */
-    private function busyIntervalsForUserOnDay(int $userId, Carbon $day): array
+    private function busyIntervalsForUserOnDay(int $userId, Carbon $day, ?string $excludeHoldSessionToken = null): array
     {
         $tz = (string) config('booking.business_timezone');
         $rangeStart = $day->copy()->timezone($tz)->startOfDay();
@@ -311,6 +336,32 @@ class BookingController extends Controller
             }
             $sMin = (int) floor(($evStart - $rangeStart->timestamp) / 60);
             $eMin = (int) ceil(($evEnd - $rangeStart->timestamp) / 60);
+            if ($eMin > $sMin) {
+                $out[] = [$sMin, $eMin];
+            }
+        }
+
+        $holdQuery = BookingSlotHold::query()
+            ->active()
+            ->where('selected_user_id', $userId)
+            ->where('slot_start_at', '<', $rangeEnd)
+            ->where('slot_end_at', '>', $rangeStart);
+        if (is_string($excludeHoldSessionToken) && $excludeHoldSessionToken !== '') {
+            $holdQuery->where('session_token', '!=', $excludeHoldSessionToken);
+        }
+        foreach ($holdQuery->get(['slot_start_at', 'slot_end_at']) as $hold) {
+            if (! $hold->slot_start_at || ! $hold->slot_end_at) {
+                continue;
+            }
+            $st = $hold->slot_start_at->copy()->timezone($tz);
+            $en = $hold->slot_end_at->copy()->timezone($tz);
+            $holdStart = max($st->timestamp, $rangeStart->timestamp);
+            $holdEnd = min($en->timestamp, $rangeEnd->timestamp);
+            if ($holdEnd <= $holdStart) {
+                continue;
+            }
+            $sMin = (int) floor(($holdStart - $rangeStart->timestamp) / 60);
+            $eMin = (int) ceil(($holdEnd - $rangeStart->timestamp) / 60);
             if ($eMin > $sMin) {
                 $out[] = [$sMin, $eMin];
             }

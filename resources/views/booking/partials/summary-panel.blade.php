@@ -7,6 +7,7 @@
     $showBackButton = $showBackButton ?? false;
     $backUrl = $backUrl ?? route('booking.index');
     $nextRequires = $nextRequires ?? null;
+    $slotHoldSeconds = max(10, \App\Models\CrmSetting::bookingSlotHoldMinutes() * 60);
 @endphp
 
 <aside class="pt-1 booking-summary-panel" aria-label="Resumo da marcação">
@@ -15,6 +16,11 @@
         <div class="card-body booking-summary-card__body">
             <div class="booking-summary-scroll" id="booking-summary-scroll">
                 @include('booking.partials.summary-store')
+                <section id="booking-summary-slot-hold" class="booking-summary-extra booking-summary-slot-hold is-hidden" aria-live="polite">
+                    <p class="mb-0 small text-dark">
+                        Marcação reservada por <strong id="booking-summary-slot-hold-time">{{ str_pad((string) (int) floor($slotHoldSeconds / 60), 2, '0', STR_PAD_LEFT) }}:{{ str_pad((string) ($slotHoldSeconds % 60), 2, '0', STR_PAD_LEFT) }}</strong>
+                    </p>
+                </section>
 
                 <section id="booking-summary-technician" class="booking-summary-extra is-hidden" aria-label="Técnica selecionada">
                     <div class="booking-summary-tech">

@@ -40,7 +40,27 @@ class DefinicoesController extends Controller
     {
         return view('definicoes.agendamentos', [
             'pageTitle' => 'Agendamentos',
+            'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes(),
         ]);
+    }
+
+    public function updateAgendamentos(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
+        ], [
+            'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
+            'booking_slot_hold_minutes.max' => 'O tempo de reserva não pode exceder 240 minutos.',
+        ]);
+
+        CrmSetting::setInt(
+            CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES,
+            (int) $validated['booking_slot_hold_minutes']
+        );
+
+        return redirect()
+            ->route('definicoes.agendamentos')
+            ->with('status', 'Definições de agendamentos guardadas.');
     }
 
     public function vendas(): View

@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\BookingSlotHoldService;
 use App\Services\OnlineBookingCheckoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class BookingPaymentController extends Controller
 {
     public function __construct(
         private OnlineBookingCheckoutService $checkout,
+        private BookingSlotHoldService $slotHolds,
     ) {}
 
     /**
@@ -37,6 +39,11 @@ class BookingPaymentController extends Controller
         }
 
         $validated = $this->checkout->validateBookingRequest($request);
+        $slotHoldPublicId = trim((string) $request->input('slot_hold_public_id', ''));
+        $slotHoldToken = trim((string) $request->input('slot_hold_token', ''));
+        $this->slotHolds->assertCheckoutHold($validated, $slotHoldPublicId, $slotHoldToken, $request->user());
+        $validated['slot_hold_public_id'] = $slotHoldPublicId;
+        $validated['slot_hold_token'] = $slotHoldToken;
         $resolved = $this->checkout->resolveValidatedBookingPayload($validated);
         $this->checkout->assertPayableBookingState($request->user(), $validated);
 
@@ -234,6 +241,8 @@ class BookingPaymentController extends Controller
 
             $validated = $this->checkout->validateStoredPayload($booking->request_payload ?? []);
             $resolved = $this->checkout->resolveValidatedBookingPayload($validated);
+            $holdPublicId = trim((string) ($booking->request_payload['slot_hold_public_id'] ?? ''));
+            $holdToken = trim((string) ($booking->request_payload['slot_hold_token'] ?? ''));
 
             $actor = $request->user();
             $clientBundle = $this->checkout->resolveClientForBooking(
@@ -256,6 +265,7 @@ class BookingPaymentController extends Controller
                 'status' => Payment::STATUS_SUCCEEDED,
                 'failure_message' => null,
             ]);
+            $this->slotHolds->release($holdPublicId, $holdToken, 'booked');
 
             DB::commit();
         } catch (ValidationException $e) {
@@ -298,6 +308,9 @@ class BookingPaymentController extends Controller
         }
 
         $validated = $this->checkout->validateBookingRequest($request);
+        $slotHoldPublicId = trim((string) $request->input('slot_hold_public_id', ''));
+        $slotHoldToken = trim((string) $request->input('slot_hold_token', ''));
+        $hold = $this->slotHolds->assertCheckoutHold($validated, $slotHoldPublicId, $slotHoldToken, $request->user());
         $resolved = $this->checkout->resolveValidatedBookingPayload($validated);
         $this->checkout->assertPayableBookingState($request->user(), $validated);
 
@@ -317,6 +330,7 @@ class BookingPaymentController extends Controller
 
             $event = $this->checkout->persistMarcacao($resolved, $client);
             $resolvedUserId = $resolved['userId'];
+            $this->slotHolds->release((string) $hold->public_id, $slotHoldToken, 'booked');
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
