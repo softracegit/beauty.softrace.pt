@@ -25,43 +25,39 @@
                 <div class="row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row">
                     <div class="col-lg-8">
                         <main class="pt-1">
-                            <h1 class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1">Informação de contacto</h1>
+                            <div class="d-flex align-items-center mb-3 ps-1 booking-page-main-heading">
+                                @include('booking.partials.page-back-mobile', ['backUrl' => route('booking.datetime')])
+                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">Informação de contacto</h1>
+                            </div>
 
                             <section class="booking-category-section mb-4 pb-1">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
                                         <div id="booking-checkout-error" class="alert alert-danger py-2 px-3 small mb-3 d-none" role="alert"></div>
-                                        <div id="booking-checkout-magic-wrap" class="small mb-3 d-none">
-                                            <a id="booking-checkout-magic-link" href="{{ $acessoUrl }}" class="fw-semibold">Pedir link de acesso por email</a>
-                                        </div>
 
                                         @if($bookingClient ?? null)
-                                            <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
-                                                <p class="small text-muted mb-0">Sessão iniciada como <span class="text-dark fw-semibold">{{ $bookingClient->name }}</span></p>
-                                                <form method="post" action="{{ route('logout') }}" class="m-0">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-link btn-sm text-muted p-0">Sair</button>
-                                                </form>
-                                            </div>
+                                            <h2 class="h5 fw-semibold text-dark mb-3">Bem-vindo {{ $bookingClient->name }}</h2>
                                             <form id="booking-checkout-form" novalidate>
                                                 <input type="hidden" name="name" value="{{ e($bookingClient->name) }}">
                                                 <input type="hidden" name="email" value="{{ e($bookingClient->email ?? '') }}">
                                                 <input type="hidden" name="phone" value="{{ e($bookingClient->phone ?? '') }}">
                                                 <div class="rounded-3 bg-light border px-3 py-3 mb-3 small">
-                                                    <div class="mb-2"><span class="text-muted">Email</span><br><span class="text-dark fw-medium">{{ $bookingClient->email ?: '—' }}</span></div>
-                                                    <div class="mb-0"><span class="text-muted">Telemóvel</span><br><span class="text-dark fw-medium">{{ $bookingClient->formatted_phone ?? $bookingClient->phone ?? '—' }}</span></div>
+                                                    <div class="mb-2"><span class="text-dark fw-medium">{{ $bookingClient->email ?: '—' }}</span></div>
+                                                    <div class="mb-0"><span class="text-dark fw-medium">{{ $bookingClient->formatted_phone ?? $bookingClient->phone ?? '—' }}</span></div>
                                                 </div>
                                                 <div class="mb-0">
                                                     <label for="booking-contact-notes" class="form-label small text-muted mb-1">Observações</label>
                                                     <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="Alergias, preferências, observações..."></textarea>
                                                 </div>
                                             </form>
-                                            @if($definirPasswordUrl ?? null)
-                                                <p class="small text-muted mt-3 mb-0">
-                                                    <a href="{{ $definirPasswordUrl }}" class="text-decoration-none fw-semibold">Definir ou alterar password</a>
-                                                    <span class="text-muted"> (opcional — também podes usar só o link por email)</span>
-                                                </p>
-                                            @endif
+                                            <section class="booking-category-section mt-4" aria-label="Política de cancelamento">
+                                                <div class="card border shadow-sm rounded-3 booking-category-card">
+                                                    <div class="card-body">
+                                                        <h3 class="h6 fw-semibold text-dark mb-2">Política de cancelamento</h3>
+                                                        <p class="small text-muted mb-0">Por favor, note que as reservas só podem ser canceladas com um aviso prévio de 3 horas.</p>
+                                                    </div>
+                                                </div>
+                                            </section>
                                         @else
                                             <form id="booking-checkout-form" novalidate>
                                                 <div class="mb-3">
@@ -89,9 +85,7 @@
 
                                             <p class="small text-muted mt-3 mb-0">
                                                 Já tens conta?
-                                                <a href="{{ $acessoUrl }}" class="text-decoration-none fw-semibold">Link por email</a>
-                                                <span class="text-muted"> · </span>
-                                                <a href="{{ route('booking.login') }}" class="text-decoration-none fw-semibold">Login com password</a>
+                                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none fw-semibold js-booking-open-auth-modal">Login com password</button>
                                             </p>
                                         @endif
 

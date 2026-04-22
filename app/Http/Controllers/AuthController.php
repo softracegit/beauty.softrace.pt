@@ -47,7 +47,7 @@ class AuthController extends Controller
                 $request->session()->regenerate();
 
                 throw ValidationException::withMessages([
-                    'email' => ['Contas de marcação online iniciam sessão na página de login da marcação: '.route('booking.login').'.'],
+                    'email' => ['Contas de marcação online iniciam sessão na marcação (botão «Iniciar sessão»): '.route('booking.index', ['open_auth' => '1']).'.'],
                 ]);
             }
 

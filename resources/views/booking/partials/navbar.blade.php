@@ -1,4 +1,17 @@
 @php
+    $bookingClientAuthed = auth()->check()
+        && auth()->user() instanceof \App\Models\User
+        && auth()->user()->isBookingClient();
+    $bookingUserDisplayName = '';
+    if ($bookingClientAuthed) {
+        $bookingUserDisplayName = trim((string) auth()->user()->name);
+        if ($bookingUserDisplayName === '') {
+            $bookingUserDisplayName = trim((string) (auth()->user()->email ?? ''));
+        }
+        if ($bookingUserDisplayName === '') {
+            $bookingUserDisplayName = 'Conta';
+        }
+    }
     $bookingRouteName = request()->route()?->getName();
     $bookingFlowRoutes = ['booking.index', 'booking.technician', 'booking.datetime', 'booking.step3', 'booking.confirm'];
     $showBookingSteps = $bookingRouteName && in_array($bookingRouteName, $bookingFlowRoutes, true);
@@ -20,7 +33,15 @@
 <nav class="navbar navbar-light bg-white border-bottom fixed-top booking-navbar shadow-sm py-0">
     <div class="container booking-container-wide py-2 booking-navbar__inner px-3">
         <div class="booking-navbar__cell booking-navbar__cell--start">
-            <span class="navbar-brand mb-0 fw-semibold text-dark text-truncate d-inline-block booking-navbar__brand">{{ $businessName }}</span>
+            <span class="navbar-brand mb-0 d-inline-flex align-items-center booking-navbar__brand" aria-label="{{ $businessName }}">
+                <img
+                    src="{{ asset('booking-assets/img/logo-fada.png') }}"
+                    alt="{{ $businessName }}"
+                    class="booking-navbar__brand-logo"
+                    loading="eager"
+                    decoding="async"
+                >
+            </span>
         </div>
         @if ($showBookingSteps)
             <div class="booking-navbar__cell booking-navbar__cell--center">
@@ -52,17 +73,67 @@
         @else
             <div class="booking-navbar__cell booking-navbar__cell--center booking-navbar__cell--center--empty" aria-hidden="true"></div>
         @endif
-        <div class="booking-navbar__cell booking-navbar__cell--end">
-            <button
-                type="button"
-                class="btn btn-link text-dark p-0 rounded-2 booking-navbar__menu-btn"
-                data-bs-toggle="offcanvas"
-                data-bs-target="#bookingStoreDetails"
-                aria-controls="bookingStoreDetails"
-                aria-label="Abrir menu"
-            >
-                <i class="bi bi-list fs-4"></i>
-            </button>
+        <div class="booking-navbar__cell booking-navbar__cell--end d-flex align-items-center gap-2">
+            @if ($bookingClientAuthed)
+                <div class="dropdown booking-navbar-account">
+                    <button
+                        type="button"
+                        class="btn btn-outline-dark btn-sm dropdown-toggle rounded-pill booking-navbar-account__toggle"
+                        id="booking-navbar-account-menu"
+                        data-bs-toggle="dropdown"
+                        data-bs-display="static"
+                        aria-expanded="false"
+                        aria-haspopup="menu"
+                        aria-controls="booking-navbar-account-dropdown"
+                        aria-label="Menu da conta de {{ $bookingUserDisplayName }}"
+                    >
+                        <span class="booking-navbar-account__toggle-inner">
+                            <i class="bi bi-person booking-navbar-account__toggle-icon" aria-hidden="true"></i>
+                            <span class="booking-navbar-account__name">{{ $bookingUserDisplayName }}</span>
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end booking-navbar-account__menu" id="booking-navbar-account-dropdown" aria-labelledby="booking-navbar-account-menu">
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}">
+                                <i class="bi bi-person booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                <span>Perfil</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index') }}">
+                                <i class="bi bi-calendar3 booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                <span>Marcações</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}#carteira">
+                                <i class="bi bi-wallet2 booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                <span>Carteira</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.password.edit') }}">
+                                <i class="bi bi-gear booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                <span>Definições</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{{ route('logout') }}" class="px-0 mb-0">
+                                @csrf
+                                <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 w-100 text-start border-0 bg-transparent">
+                                    <i class="bi bi-box-arrow-right booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                    <span>Terminar sessão</span>
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            @else
+                <button type="button" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap js-booking-open-auth-modal" id="booking-navbar-open-auth">
+                    Iniciar sessão
+                </button>
+            @endif
         </div>
     </div>
 </nav>

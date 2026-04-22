@@ -14,12 +14,7 @@
     <div class="card border shadow-sm rounded-3 booking-summary-card">
         <div class="card-body booking-summary-card__body">
             <div class="booking-summary-scroll" id="booking-summary-scroll">
-                <div id="booking-summary-empty" class="booking-summary-empty">
-                    <p class="mb-1">Nenhum serviço selecionado.</p>
-                    <p class="booking-summary-empty__hint mb-0">Escolhe um serviço à esquerda para começar.</p>
-                </div>
-
-                <ul id="booking-summary-list" class="booking-summary-list list-unstyled is-hidden" role="list"></ul>
+                @include('booking.partials.summary-store')
 
                 <section id="booking-summary-technician" class="booking-summary-extra is-hidden" aria-label="Técnica selecionada">
                     <div class="booking-summary-tech">
@@ -42,6 +37,14 @@
                         </div>
                     </div>
                 </section>
+
+                <div class="booking-summary-services booking-summary-extra">
+                    <div id="booking-summary-empty" class="booking-summary-empty">
+                        <p class="mb-0">Nenhum serviço selecionado.</p>
+                    </div>
+
+                    <ul id="booking-summary-list" class="booking-summary-list list-unstyled is-hidden" role="list"></ul>
+                </div>
             </div>
 
             <div class="booking-summary-footer">
@@ -50,7 +53,7 @@
                     id="booking-summary-mobile-drawer"
                     class="booking-summary-mobile-drawer d-lg-none"
                     role="region"
-                    aria-label="Serviços na marcação"
+                    aria-label="Resumo da marcação"
                     aria-hidden="true"
                 ></div>
 
@@ -70,9 +73,6 @@
                         <div class="booking-summary-actions d-flex gap-2 align-items-center">
                             @if($showBackButton)
                                 <a href="{{ $backUrl }}" class="btn btn-outline-secondary d-none d-lg-inline-flex justify-content-center align-items-center booking-summary-back-btn booking-summary-back-desktop" aria-label="Voltar">
-                                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
-                                </a>
-                                <a href="{{ $backUrl }}" class="btn btn-outline-secondary d-inline-flex d-lg-none justify-content-center align-items-center booking-summary-back-btn booking-summary-back-mobile flex-shrink-0" aria-label="Voltar">
                                     <i class="bi bi-chevron-left" aria-hidden="true"></i>
                                 </a>
                             @endif

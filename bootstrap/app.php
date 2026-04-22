@@ -22,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->redirectGuestsTo(function (Request $request) {
             if ($request->is('booking/conta*')) {
-                return route('booking.acesso');
+                return route('booking.index', ['open_auth' => '1']);
             }
 
             return route('login');

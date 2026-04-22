@@ -13,7 +13,10 @@
                 <div class="row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row">
                     <div class="col-lg-8">
                         <main class="pt-1">
-                            <h1 class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1">Escolha uma técnica para a marcação</h1>
+                            <div class="d-flex align-items-center mb-3 ps-1 booking-page-main-heading">
+                                @include('booking.partials.page-back-mobile', ['backUrl' => route('booking.index')])
+                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">Escolha o staff</h1>
+                            </div>
 
                             <section class="booking-category-section mb-4 pb-1">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
@@ -40,7 +43,19 @@
                                                             @if($tech['avatar'])
                                                                 <img src="{{ $tech['avatar'] }}" alt="{{ $tech['name'] }}" loading="lazy">
                                                             @else
-                                                                <span class="booking-technician-row__avatar-fallback">{{ mb_strtoupper(mb_substr($tech['name'], 0, 1)) }}</span>
+                                                                @php
+                                                                    $nameParts = preg_split('/\s+/u', trim((string) $tech['name'])) ?: [];
+                                                                    $nameParts = array_values(array_filter($nameParts, fn ($p) => $p !== ''));
+                                                                    $firstInitial = $nameParts[0] ?? '';
+                                                                    $lastInitial = count($nameParts) > 1 ? ($nameParts[count($nameParts) - 1] ?? '') : '';
+                                                                    $avatarInitials = mb_strtoupper(
+                                                                        mb_substr($firstInitial, 0, 1).mb_substr($lastInitial, 0, 1)
+                                                                    );
+                                                                    if ($avatarInitials === '') {
+                                                                        $avatarInitials = mb_strtoupper(mb_substr((string) $tech['name'], 0, 1));
+                                                                    }
+                                                                @endphp
+                                                                <span class="booking-technician-row__avatar-fallback">{{ $avatarInitials }}</span>
                                                             @endif
                                                         </div>
                                                         <div class="booking-technician-row__text">

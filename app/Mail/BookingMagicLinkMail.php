@@ -16,12 +16,15 @@ class BookingMagicLinkMail extends Mailable
     public function __construct(
         public User $user,
         public string $loginUrl,
+        public string $purpose = 'login',
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Acesso à tua conta de marcação — '.config('app.name'),
+            subject: $this->purpose === 'password'
+                ? 'Recuperar password da tua conta de marcação — '.config('app.name')
+                : 'Acesso à tua conta de marcação — '.config('app.name'),
         );
     }
 

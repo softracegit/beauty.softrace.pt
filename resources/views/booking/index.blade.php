@@ -13,6 +13,12 @@
 
         <div class="flex-grow-1 booking-main-body">
             <div class="container booking-container-wide px-3 pb-3 pt-0">
+                @if (session('status'))
+                    <div class="alert alert-success py-2 px-3 small mt-2 mb-2" role="status">{{ session('status') }}</div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert-danger py-2 px-3 small mt-2 mb-2" role="alert">{{ session('error') }}</div>
+                @endif
                 @if(!$hasCategories)
                     <div class="row mt-4">
                         <div class="col-12">

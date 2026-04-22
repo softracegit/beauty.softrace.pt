@@ -10,6 +10,7 @@ use App\Models\Service;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -162,10 +163,14 @@ class BookingController extends Controller
     /**
      * Passo 3 do fluxo público (placeholder).
      */
-    public function step3(): View
+    public function step3(): View|RedirectResponse
     {
         $user = auth()->user();
         $isBookingClient = $user instanceof User && $user->isBookingClient();
+        if (! $isBookingClient) {
+            return redirect()->route('booking.index');
+        }
+
         $client = $isBookingClient ? $user->loadMissing('client')->client : null;
         $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired();
 
@@ -173,7 +178,6 @@ class BookingController extends Controller
             'businessName' => config('app.name'),
             'bookingClientUser' => $isBookingClient ? $user : null,
             'bookingClient' => $client,
-            'acessoUrl' => route('booking.acesso'),
             'definirPasswordUrl' => $isBookingClient ? route('booking.conta.password.edit') : null,
             'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired,
             'bookingPaymentIntentUrl' => route('booking.payment.intent'),

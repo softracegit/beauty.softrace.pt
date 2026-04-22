@@ -711,7 +711,7 @@ class OnlineBookingCheckoutService
         $exists = User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->exists();
         if ($exists) {
             throw ValidationException::withMessages([
-                'email' => ['Este email já está associado a uma conta. Usa o acesso por link ou inicia sessão.'],
+                'email' => ['Este email já está associado a uma conta. Inicia sessão para continuar.'],
             ]);
         }
     }

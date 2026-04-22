@@ -55,17 +55,48 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
 
     Route::get('/acesso', [BookingClientAuthController::class, 'showAcesso'])->name('acesso');
     Route::post('/acesso/link', [BookingClientAuthController::class, 'sendMagicLink'])
-        ->middleware('throttle:5,60')
+        ->middleware('throttle:10,60')
         ->name('acesso.link');
     Route::get('/entrada/{token}', [BookingClientAuthController::class, 'consumeMagicLink'])
         ->where('token', '[a-fA-F0-9]{64}')
         ->name('login.magic');
+    Route::get('/password/reset/{token}', [BookingClientAuthController::class, 'showPasswordResetForm'])
+        ->where('token', '[a-fA-F0-9]{64}')
+        ->name('password.reset.form');
+    Route::post('/password/reset', [BookingClientAuthController::class, 'resetPasswordWithToken'])
+        ->middleware('throttle:8,10')
+        ->name('password.reset.perform');
+
+    Route::get('/login', function (\Illuminate\Http\Request $request) {
+        $user = $request->user();
+        if ($user instanceof \App\Models\User && $user->isBookingClient()) {
+            return redirect()->route('booking.conta.index');
+        }
+        if ($user) {
+            return redirect()->route('dashboard');
+        }
+        $email = (string) $request->query('email', '');
+        $params = ['open_auth' => '1'];
+        if ($email !== '') {
+            $params['email'] = $email;
+        }
+
+        return redirect()->route('booking.index', $params);
+    })->name('login');
 
     Route::middleware('guest')->group(function () {
-        Route::get('/login', [BookingClientAuthController::class, 'showPasswordLogin'])->name('login');
-        Route::post('/login', [BookingClientAuthController::class, 'loginWithPassword'])
+        Route::post('/auth/check-email', [BookingClientAuthController::class, 'checkEmailForAuthModal'])
+            ->middleware('throttle:20,1')
+            ->name('auth.check_email');
+        Route::post('/auth/login', [BookingClientAuthController::class, 'loginFromAuthModal'])
             ->middleware('throttle:10,1')
-            ->name('login.perform');
+            ->name('auth.login');
+        Route::post('/auth/register', [BookingClientAuthController::class, 'registerFromAuthModal'])
+            ->middleware('throttle:10,1')
+            ->name('auth.register');
+        Route::post('/auth/password-link', [BookingClientAuthController::class, 'sendPasswordSetupLinkFromAuthModal'])
+            ->middleware('throttle:10,60')
+            ->name('auth.password_link');
     });
 
     Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {

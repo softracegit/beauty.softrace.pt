@@ -35,7 +35,7 @@ class BookingMagicLoginToken extends Model
     /**
      * Revoga tokens anteriores e envia um novo link mágico por email.
      */
-    public static function sendFreshLink(User $user): void
+    public static function sendFreshLink(User $user, string $purpose = 'login'): void
     {
         if (! $user->isBookingClient()) {
             return;
@@ -52,10 +52,14 @@ class BookingMagicLoginToken extends Model
             'expires_at' => now()->addMinutes($ttl),
         ]);
 
-        $url = route('booking.login.magic', ['token' => $plain], absolute: true);
+        if ($purpose === 'password') {
+            $url = route('booking.password.reset.form', ['token' => $plain], absolute: true);
+        } else {
+            $url = route('booking.login.magic', ['token' => $plain], absolute: true);
+        }
 
         try {
-            Mail::mailer('booking')->to($user->email)->send(new BookingMagicLinkMail($user, $url));
+            Mail::mailer('booking')->to($user->email)->send(new BookingMagicLinkMail($user, $url, $purpose));
         } catch (\Throwable $e) {
             Log::error('Envio do email de magic link (booking) falhou.', [
                 'user_id' => $user->id,

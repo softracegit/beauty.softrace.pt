@@ -22,12 +22,27 @@
                     </div>
                     @if (! empty($primeiraMarcacao))
                         <div class="alert alert-info small py-2 px-3 mb-4 text-start" role="status">
-                            Foi criada a tua <strong>conta de marcação</strong>. Verifica o email — enviámos um <strong>link para iniciares sessão</strong>. Nas próximas vezes os teus dados aparecem automaticamente no checkout.
-                            <div class="mt-2 mb-0">
-                                <a href="{{ route('booking.acesso') }}" class="alert-link fw-semibold">Não recebeste? Pedir novo link</a>
-                            </div>
+                            Foi criada a tua <strong>conta de marcação</strong>. Nas próximas vezes inicia sessão com email e password para preencheres os dados mais rapidamente.
                         </div>
                     @endif
+                    <div class="card border shadow-sm rounded-3 mb-3">
+                        <div class="card-body py-3">
+                            <ul class="list-unstyled mb-0">
+                                <li class="border-bottom pb-2 mb-2">
+                                    <a href="{{ route('booking.conta.index') }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
+                                        <span>A minha conta</span>
+                                        <i class="bi bi-chevron-right text-muted" aria-hidden="true"></i>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ route('booking.conta.index') }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
+                                        <span>As minhas marcações</span>
+                                        <i class="bi bi-chevron-right text-muted" aria-hidden="true"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                     <div class="d-grid gap-2">
                         <a href="{{ route('booking.index') }}" class="btn btn-dark">Nova marcação</a>
                     </div>

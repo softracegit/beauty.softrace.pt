@@ -7,11 +7,25 @@
 </head>
 <body style="font-family: system-ui, sans-serif; line-height: 1.5; color: #222; max-width: 36rem; margin: 0 auto; padding: 1.5rem;">
     <p>Olá, {{ $user->name }},</p>
-    <p>Clica no link abaixo para iniciar sessão no site de marcação. O link expira em cerca de {{ (int) config('booking.magic_link_ttl_minutes', 60) }} minutos.</p>
+    @if(($purpose ?? 'login') === 'password')
+        <p>Recebemos um pedido para redefinir a password da tua conta de marcação. Clica no botão abaixo para criar uma nova password. O link expira em cerca de {{ (int) config('booking.magic_link_ttl_minutes', 60) }} minutos.</p>
+    @else
+        <p>Clica no link abaixo para iniciar sessão no site de marcação. O link expira em cerca de {{ (int) config('booking.magic_link_ttl_minutes', 60) }} minutos.</p>
+    @endif
     <p style="margin: 1.5rem 0;">
-        <a href="{{ $loginUrl }}" style="display: inline-block; background: #198754; color: #fff; text-decoration: none; padding: 0.65rem 1.25rem; border-radius: 0.375rem; font-weight: 600;">Iniciar sessão</a>
+        <a href="{{ $loginUrl }}" style="display: inline-block; background: #198754; color: #fff; text-decoration: none; padding: 0.65rem 1.25rem; border-radius: 0.375rem; font-weight: 600;">
+            @if(($purpose ?? 'login') === 'password')
+                Redefinir password
+            @else
+                Iniciar sessão
+            @endif
+        </a>
     </p>
-    <p style="font-size: 0.875rem; color: #666;">Se não pediste este email, ignora esta mensagem.</p>
+    @if(($purpose ?? 'login') === 'password')
+        <p style="font-size: 0.875rem; color: #666;">Se não pediste esta recuperação de password, ignora este email.</p>
+    @else
+        <p style="font-size: 0.875rem; color: #666;">Se não pediste este email, ignora esta mensagem.</p>
+    @endif
     <p style="margin-top: 1.5rem;">{{ config('app.name') }}</p>
 </body>
 </html>

@@ -36,6 +36,6 @@ class BookingPasswordController extends Controller
         $user->save();
 
         return redirect()->route('booking.step3')
-            ->with('status', 'Password atualizada. Nas próximas vezes podes iniciar sessão em '.route('booking.login').' com email e password.');
+            ->with('status', 'Password atualizada. Nas próximas vezes podes iniciar sessão na marcação online com email e password.');
     }
 }

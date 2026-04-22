@@ -17,7 +17,10 @@
                 <div class="row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row">
                     <div class="col-lg-8">
                         <main class="pt-1">
-                            <h1 class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1">Escolha uma data e hora para a marcação</h1>
+                            <div class="d-flex align-items-center mb-3 ps-1 booking-page-main-heading">
+                                @include('booking.partials.page-back-mobile', ['backUrl' => route('booking.technician')])
+                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">Dia e hora da marcação</h1>
+                            </div>
 
                             <section class="booking-category-section mb-4 pb-1">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
@@ -44,7 +47,12 @@
 
                                             <div id="booking-slots-status" class="booking-slots__status small mb-3" aria-live="polite"></div>
 
-                                            <div id="booking-slots-periods">
+                                            <div id="booking-slots-suggested-wrap" class="booking-slots-suggested-wrap mb-3 d-none">
+                                                <p class="booking-slots-suggested-wrap__label small fw-semibold text-dark mb-2">Próximos horários sugeridos</p>
+                                                <div id="booking-slots-suggested-list" class="booking-slots__list"></div>
+                                            </div>
+
+                                            <div id="booking-slots-periods" class="d-none">
                                                 <div class="booking-slots__period mb-3">
                                                     <h3 class="booking-slots__period-title small text-muted mb-2">Manhã</h3>
                                                     <div id="booking-slots-morning" class="booking-slots__list"></div>
@@ -55,6 +63,10 @@
                                                     <div id="booking-slots-afternoon" class="booking-slots__list"></div>
                                                 </div>
                                             </div>
+
+                                            <button type="button" id="booking-slots-more" class="btn btn-link btn-sm px-0 text-decoration-none booking-slots-more d-none" aria-expanded="false" aria-controls="booking-slots-periods">
+                                                Ver mais horários
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

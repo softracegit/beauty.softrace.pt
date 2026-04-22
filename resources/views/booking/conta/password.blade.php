@@ -16,7 +16,7 @@
                     </h1>
                     <p class="text-muted small mb-4">
                         @if ($mustSetPassword)
-                            Opcional: após definires password, podes iniciar sessão em <a href="{{ route('booking.login') }}">login da marcação</a> com email e password.
+                            Opcional: após definires password, podes iniciar sessão na <a href="{{ route('booking.index', ['open_auth' => '1']) }}">marcação online</a> com email e password.
                         @else
                             Introduz a password atual e a nova password.
                         @endif

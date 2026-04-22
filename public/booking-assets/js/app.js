@@ -877,7 +877,24 @@
         var afternoonWrap = document.getElementById('booking-slots-afternoon');
         var slotsStatus = document.getElementById('booking-slots-status');
         var slotsPeriods = document.getElementById('booking-slots-periods');
-        if (!calendarInput || !weekView || !weekDays || !weekTitle || !weekPrev || !weekNext || !calendarViewToggle || !dayTitle || !morningWrap || !afternoonWrap) {
+        var suggestedWrap = document.getElementById('booking-slots-suggested-wrap');
+        var suggestedList = document.getElementById('booking-slots-suggested-list');
+        var moreBtn = document.getElementById('booking-slots-more');
+        if (
+            !calendarInput ||
+            !weekView ||
+            !weekDays ||
+            !weekTitle ||
+            !weekPrev ||
+            !weekNext ||
+            !calendarViewToggle ||
+            !dayTitle ||
+            !morningWrap ||
+            !afternoonWrap ||
+            !suggestedWrap ||
+            !suggestedList ||
+            !moreBtn
+        ) {
             return;
         }
         if (typeof flatpickr === 'undefined') {
@@ -894,6 +911,16 @@
         var bookingApp = document.querySelector('.booking-app[data-booking-availability-url]');
         var availabilityUrl = bookingApp ? bookingApp.getAttribute('data-booking-availability-url') : '';
         var availabilityAbort = null;
+        var cachedFilteredSlots = [];
+        var slotsUiExpanded = false;
+        var suggestedMorningSlots = 2;
+        var suggestedAfternoonSlots = 2;
+
+        /** Até 2 da manhã + 2 da tarde (ordem: manhã, depois tarde). */
+        function pickSuggestedSlotTimes(filtered) {
+            var split = splitSlotsMorningAfternoon(filtered);
+            return split.morning.slice(0, suggestedMorningSlots).concat(split.afternoon.slice(0, suggestedAfternoonSlots));
+        }
 
         var selected = getDateTimeSelection();
         var selectedDate = selected ? selected.date : null;
@@ -980,7 +1007,7 @@
 
         function setSlotsPeriodsWrapperVisible(show) {
             if (slotsPeriods) {
-                slotsPeriods.style.display = show ? '' : 'none';
+                slotsPeriods.classList.toggle('d-none', !show);
             }
         }
 
@@ -1025,12 +1052,17 @@
                     all.forEach(function (el) {
                         el.classList.remove('is-active');
                     });
-                    btn.classList.add('is-active');
+                    all.forEach(function (el) {
+                        if (el.getAttribute('data-slot-time') === selectedTime) {
+                            el.classList.add('is-active');
+                        }
+                    });
                     saveDateTimeSelection({
                         date: selectedDate,
                         time: selectedTime,
                     });
                     renderSummary();
+                    layoutSlotsPanels();
                 });
                 container.appendChild(btn);
             });
@@ -1048,14 +1080,71 @@
             renderSlotButtons(container, slots);
         }
 
-        function applySlotsToDom(date, slotList) {
-            clearSlotsStatus();
-            setSlotsPeriodsWrapperVisible(true);
-            var filtered = filterSlotsForSelectedDay(date, slotList);
-            if (filtered.length === 0) {
-                selectedTime = null;
+        function layoutSlotsPanels() {
+            var filtered = cachedFilteredSlots;
+            if (!filtered || filtered.length === 0) {
+                return;
+            }
+
+            var split = splitSlotsMorningAfternoon(filtered);
+            var suggestedTimes = pickSuggestedSlotTimes(filtered);
+            var suggestedSet = {};
+            suggestedTimes.forEach(function (t) {
+                suggestedSet[t] = true;
+            });
+            var needMoreSlots = filtered.some(function (t) {
+                return !suggestedSet[t];
+            });
+
+            suggestedWrap.classList.remove('d-none');
+            renderSlotButtons(suggestedList, suggestedTimes);
+
+            if (!needMoreSlots) {
+                moreBtn.classList.add('d-none');
+                setSlotsPeriodsWrapperVisible(false);
                 fillSlotPeriod(morningWrap, []);
                 fillSlotPeriod(afternoonWrap, []);
+                return;
+            }
+
+            if (!slotsUiExpanded) {
+                moreBtn.classList.remove('d-none');
+                moreBtn.textContent = 'Ver mais horários';
+                moreBtn.setAttribute('aria-expanded', 'false');
+                setSlotsPeriodsWrapperVisible(false);
+                fillSlotPeriod(morningWrap, []);
+                fillSlotPeriod(afternoonWrap, []);
+                return;
+            }
+
+            setSlotsPeriodsWrapperVisible(true);
+            fillSlotPeriod(morningWrap, split.morning);
+            fillSlotPeriod(afternoonWrap, split.afternoon);
+
+            var cannotCollapse = selectedTime && !suggestedSet[selectedTime];
+            if (cannotCollapse) {
+                moreBtn.classList.add('d-none');
+            } else {
+                moreBtn.classList.remove('d-none');
+                moreBtn.textContent = 'Ver menos horários';
+                moreBtn.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        function applySlotsToDom(date, slotList) {
+            clearSlotsStatus();
+            var filtered = filterSlotsForSelectedDay(date, slotList);
+            cachedFilteredSlots = filtered.slice();
+
+            if (filtered.length === 0) {
+                selectedTime = null;
+                slotsUiExpanded = false;
+                suggestedWrap.classList.add('d-none');
+                suggestedList.innerHTML = '';
+                moreBtn.classList.add('d-none');
+                fillSlotPeriod(morningWrap, []);
+                fillSlotPeriod(afternoonWrap, []);
+                setSlotsPeriodsWrapperVisible(true);
                 saveDateTimeSelection({
                     date: selectedDate,
                     time: '',
@@ -1063,21 +1152,17 @@
                 renderSummary();
                 return;
             }
-            var split = splitSlotsMorningAfternoon(filtered);
-            var mSlots = split.morning;
-            var aSlots = split.afternoon;
+
             var valid = {};
-            mSlots.forEach(function (t) {
-                valid[t] = true;
-            });
-            aSlots.forEach(function (t) {
+            filtered.forEach(function (t) {
                 valid[t] = true;
             });
             if (selectedTime && !valid[selectedTime]) {
                 selectedTime = null;
             }
-            fillSlotPeriod(morningWrap, mSlots);
-            fillSlotPeriod(afternoonWrap, aSlots);
+
+            layoutSlotsPanels();
+
             if (!selectedTime) {
                 saveDateTimeSelection({
                     date: selectedDate,
@@ -1104,8 +1189,12 @@
 
             morningWrap.innerHTML = '';
             afternoonWrap.innerHTML = '';
+            slotsUiExpanded = false;
+            suggestedWrap.classList.add('d-none');
+            suggestedList.innerHTML = '';
+            moreBtn.classList.add('d-none');
             showSlotsStatus('loading', 'A carregar horários…');
-            setSlotsPeriodsWrapperVisible(true);
+            setSlotsPeriodsWrapperVisible(false);
 
             if (availabilityAbort) {
                 availabilityAbort.abort();
@@ -1131,6 +1220,11 @@
                         'error',
                         'Não foi possível carregar os horários. Atualiza a página e tenta novamente.'
                     );
+                    slotsUiExpanded = false;
+                    cachedFilteredSlots = [];
+                    suggestedWrap.classList.add('d-none');
+                    suggestedList.innerHTML = '';
+                    moreBtn.classList.add('d-none');
                     setSlotsPeriodsWrapperVisible(true);
                     fillSlotPeriod(morningWrap, []);
                     fillSlotPeriod(afternoonWrap, []);
@@ -1259,6 +1353,32 @@
 
         calendarViewToggle.addEventListener('click', function () {
             setCalendarView(calendarView === 'week' ? 'month' : 'week');
+        });
+
+        moreBtn.addEventListener('click', function () {
+            var list = cachedFilteredSlots;
+            if (!list || !list.length) {
+                return;
+            }
+            var sug = pickSuggestedSlotTimes(list);
+            var sugSet = {};
+            sug.forEach(function (t) {
+                sugSet[t] = true;
+            });
+            if (!list.some(function (t) {
+                return !sugSet[t];
+            })) {
+                return;
+            }
+            if (slotsUiExpanded) {
+                if (selectedTime && !sugSet[selectedTime]) {
+                    return;
+                }
+                slotsUiExpanded = false;
+            } else {
+                slotsUiExpanded = true;
+            }
+            layoutSlotsPanels();
         });
 
         bookingRefreshDateTimeSlotsFn = function () {
@@ -2064,10 +2184,6 @@
 
     function hideCheckoutError() {
         setCheckoutError('');
-        var magicWrap = document.getElementById('booking-checkout-magic-wrap');
-        if (magicWrap) {
-            magicWrap.classList.add('d-none');
-        }
     }
 
     function isCheckoutPaymentRequired() {
@@ -2296,14 +2412,6 @@
                         msg = lines.join(' ');
                     }
                 }
-                var magicWrap = document.getElementById('booking-checkout-magic-wrap');
-                if (magicWrap) {
-                    if (res.data && res.data.requires_login) {
-                        magicWrap.classList.remove('d-none');
-                    } else {
-                        magicWrap.classList.add('d-none');
-                    }
-                }
                 setCheckoutError(msg);
                 setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
                 renderSummary();
@@ -2370,14 +2478,6 @@
             });
             if (lines.length) {
                 msg = lines.join(' ');
-            }
-        }
-        var magicWrap = document.getElementById('booking-checkout-magic-wrap');
-        if (magicWrap) {
-            if (res.data && res.data.requires_login) {
-                magicWrap.classList.remove('d-none');
-            } else {
-                magicWrap.classList.add('d-none');
             }
         }
         setCheckoutError(msg);
@@ -2512,14 +2612,6 @@
                         });
                         if (lines.length) {
                             msg = lines.join(' ');
-                        }
-                    }
-                    var magicWrap = document.getElementById('booking-checkout-magic-wrap');
-                    if (magicWrap) {
-                        if (res.data && res.data.requires_login) {
-                            magicWrap.classList.remove('d-none');
-                        } else {
-                            magicWrap.classList.add('d-none');
                         }
                     }
                     setCheckoutError(msg);
@@ -2759,10 +2851,479 @@
         }
     }
 
+    function initBookingAuthModal() {
+        var authRoot = document.body;
+        var modalEl = document.getElementById('booking-auth-modal');
+        if (!authRoot || !modalEl || !window.bootstrap || !window.bootstrap.Modal) {
+            return null;
+        }
+        var checkUrl = authRoot.getAttribute('data-booking-auth-check-email-url') || '';
+        var loginUrl = authRoot.getAttribute('data-booking-auth-login-url') || '';
+        var registerUrl = authRoot.getAttribute('data-booking-auth-register-url') || '';
+        var passwordLinkUrl = authRoot.getAttribute('data-booking-auth-password-link-url') || '';
+        var isAuthed = authRoot.getAttribute('data-booking-authenticated-client') === '1';
+        var reloadAfterAuthSuccess = false;
+        if (!checkUrl || !loginUrl || !registerUrl || !passwordLinkUrl) {
+            return null;
+        }
+
+        var modal = new window.bootstrap.Modal(modalEl);
+        var stepEmail = document.getElementById('booking-auth-step-email');
+        var stepLogin = document.getElementById('booking-auth-step-login');
+        var stepForgot = document.getElementById('booking-auth-step-forgot');
+        var stepRegister = document.getElementById('booking-auth-step-register');
+        var errorBox = document.getElementById('booking-auth-modal-error');
+        var modalBackBtn = document.getElementById('booking-auth-modal-back');
+        var modalTitle = document.getElementById('booking-auth-modal-title');
+        var modalSubtitle = document.getElementById('booking-auth-modal-subtitle');
+        var emailInput = document.getElementById('booking-auth-email');
+        var emailNextBtn = document.getElementById('booking-auth-email-next');
+        var loginPass = document.getElementById('booking-auth-login-password');
+        var loginPassError = document.getElementById('booking-auth-login-password-error');
+        var loginBtn = document.getElementById('booking-auth-login-submit');
+        var forgotBtn = document.getElementById('booking-auth-forgot');
+        var forgotBackLoginBtn = document.getElementById('booking-auth-forgot-back-login');
+        var forgotFormWrap = document.getElementById('booking-auth-forgot-form');
+        var forgotEmailInput = document.getElementById('booking-auth-forgot-email');
+        var forgotSubmitBtn = document.getElementById('booking-auth-forgot-submit');
+        var forgotSuccess = document.getElementById('booking-auth-forgot-success');
+        var forgotSuccessText = document.getElementById('booking-auth-forgot-success-text');
+        var regName = document.getElementById('booking-auth-register-name');
+        var regPhone = document.getElementById('booking-auth-register-phone');
+        var regPass = document.getElementById('booking-auth-register-password');
+        var regBtn = document.getElementById('booking-auth-register-submit');
+        var regPrivacy = document.getElementById('booking-auth-privacy');
+        var regTerms = document.getElementById('booking-auth-terms');
+        var passRuleLen = document.getElementById('booking-auth-pass-rule-len');
+        var passRuleNum = document.getElementById('booking-auth-pass-rule-num');
+        var toggleLoginPassBtn = document.getElementById('booking-auth-toggle-login-password');
+        var toggleRegisterPassBtn = document.getElementById('booking-auth-toggle-register-password');
+
+        if (!stepEmail || !stepLogin || !stepForgot || !stepRegister || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !emailInput || !emailNextBtn || !loginPass || !loginPassError || !loginBtn || !forgotBtn || !forgotBackLoginBtn || !forgotFormWrap || !forgotEmailInput || !forgotSubmitBtn || !forgotSuccess || !forgotSuccessText || !regName || !regPhone || !regPass || !regBtn || !regPrivacy || !regTerms) {
+            return null;
+        }
+
+        var currentEmail = '';
+        var submittedResolver = null;
+        var phoneIti = null;
+        var currentStep = 'email';
+        var intlPtBase = 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/i18n/pt';
+        var loadPtI18n = Promise.all([
+            import(intlPtBase + '/countries.js'),
+            import(intlPtBase + '/interface.js'),
+        ])
+            .then(function (mods) {
+                return Object.assign({}, mods[0].default, mods[1].default);
+            })
+            .catch(function () {
+                return {};
+            });
+
+        function showError(msg) {
+            clearInlineErrors();
+            errorBox.textContent = msg || '';
+            errorBox.classList.toggle('d-none', !msg);
+        }
+        function showLoginPasswordError(msg) {
+            errorBox.classList.add('d-none');
+            loginPass.classList.add('is-invalid');
+            loginPassError.textContent = msg || '';
+            loginPassError.classList.remove('d-none');
+        }
+        function clearInlineErrors() {
+            loginPass.classList.remove('is-invalid');
+            loginPassError.textContent = '';
+            loginPassError.classList.add('d-none');
+        }
+        function setLoading(btn, loading, labelLoading, labelDefault) {
+            if (!btn) return;
+            if (loading) {
+                btn.disabled = true;
+                btn.setAttribute('data-prev-text', btn.textContent || '');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' + (labelLoading || 'A processar...');
+            } else {
+                btn.disabled = false;
+                btn.textContent = labelDefault || btn.getAttribute('data-prev-text') || 'Seguinte';
+            }
+        }
+        function setStep(mode) {
+            currentStep = mode;
+            stepEmail.classList.toggle('d-none', mode !== 'email');
+            stepLogin.classList.toggle('d-none', mode !== 'login');
+            stepForgot.classList.toggle('d-none', mode !== 'forgot');
+            stepRegister.classList.toggle('d-none', mode !== 'register');
+            modalBackBtn.classList.toggle('d-none', mode === 'email');
+            clearInlineErrors();
+            errorBox.classList.add('d-none');
+            errorBox.textContent = '';
+            if (mode === 'email') {
+                modalTitle.textContent = 'Iniciar sessão ou registar-se';
+                modalSubtitle.textContent = 'Entre ou registe-se para concluir a sua marcação.';
+            } else if (mode === 'login') {
+                modalTitle.textContent = 'Que bom ter-te de volta!';
+                modalSubtitle.textContent = 'Digite a sua password para entrar como ' + currentEmail + '.';
+            } else if (mode === 'register') {
+                modalTitle.textContent = 'Criar conta';
+                modalSubtitle.textContent = 'Crie a sua nova conta para ' + currentEmail + ' preenchendo estes dados.';
+            } else if (mode === 'forgot') {
+                modalTitle.textContent = 'Recuperar password';
+                modalSubtitle.textContent = 'Indique o email para receber o link de recuperação.';
+            }
+        }
+        function updatePasswordRules() {
+            var value = regPass.value || '';
+            var hasLen = value.length >= 8;
+            var hasNum = /\d/.test(value);
+            passRuleLen.classList.toggle('text-success', hasLen);
+            passRuleLen.classList.toggle('text-muted', !hasLen);
+            passRuleNum.classList.toggle('text-success', hasNum);
+            passRuleNum.classList.toggle('text-muted', !hasNum);
+            return hasLen && hasNum;
+        }
+        function bindPasswordToggle(btn, input) {
+            if (!btn || !input) {
+                return;
+            }
+            btn.addEventListener('click', function () {
+                var showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                var icon = btn.querySelector('i');
+                if (icon) {
+                    icon.className = showing ? 'bi bi-eye' : 'bi bi-eye-slash';
+                }
+                btn.setAttribute('aria-label', showing ? 'Mostrar password' : 'Ocultar password');
+            });
+        }
+        function bindPhoneIti() {
+            if (!regPhone || typeof window.intlTelInput !== 'function' || phoneIti) return;
+            loadPtI18n.then(function (ptI18n) {
+                if (phoneIti) {
+                    return;
+                }
+                phoneIti = window.intlTelInput(regPhone, {
+                    initialCountry: 'pt',
+                    countryOrder: ['pt', 'br', 'es', 'fr', 'gb', 'de'],
+                    separateDialCode: true,
+                    strictMode: true,
+                    validationNumberType: 'MOBILE',
+                    utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/utils.js',
+                    i18n: Object.assign({}, ptI18n, {
+                        searchPlaceholder: 'Pesquisar',
+                        zeroSearchResults: 'Nenhum resultado',
+                    }),
+                });
+            });
+        }
+        function getPhoneE164() {
+            if (!phoneIti) return '';
+            if (typeof phoneIti.isValidNumber === 'function' && !phoneIti.isValidNumber()) {
+                return '';
+            }
+            return phoneIti.getNumber ? phoneIti.getNumber() : '';
+        }
+        function postJson(url, payload) {
+            return fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(payload || {}),
+            }).then(function (r) {
+                return r.json().catch(function () { return {}; }).then(function (data) {
+                    if (!r.ok) {
+                        var msg = data && data.message ? data.message : 'Não foi possível processar o pedido.';
+                        if (data && data.errors) {
+                            var firstKey = Object.keys(data.errors)[0];
+                            if (firstKey && Array.isArray(data.errors[firstKey]) && data.errors[firstKey][0]) {
+                                msg = data.errors[firstKey][0];
+                            }
+                        }
+                        throw new Error(msg);
+                    }
+                    return data || {};
+                });
+            });
+        }
+        function resetModal() {
+            reloadAfterAuthSuccess = false;
+            currentEmail = '';
+            emailInput.value = '';
+            loginPass.value = '';
+            regName.value = '';
+            regPhone.value = '';
+            regPass.value = '';
+            regPrivacy.checked = false;
+            regTerms.checked = false;
+            forgotEmailInput.value = '';
+            forgotSuccess.classList.add('d-none');
+            forgotSuccessText.textContent = '';
+            forgotFormWrap.classList.remove('d-none');
+            forgotSubmitBtn.classList.remove('d-none');
+            updatePasswordRules();
+            setStep('email');
+        }
+
+        bindPasswordToggle(toggleLoginPassBtn, loginPass);
+        bindPasswordToggle(toggleRegisterPassBtn, regPass);
+        modalBackBtn.addEventListener('click', function () {
+            if (currentStep === 'login' || currentStep === 'register') {
+                setStep('email');
+                emailInput.focus();
+                return;
+            }
+            if (currentStep === 'forgot') {
+                setStep('login');
+                loginPass.focus();
+            }
+        });
+
+        emailNextBtn.addEventListener('click', function () {
+            var email = String(emailInput.value || '').trim().toLowerCase();
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Indica um email válido.');
+                return;
+            }
+            setLoading(emailNextBtn, true, 'A validar...', 'Seguinte');
+            postJson(checkUrl, { email: email })
+                .then(function (res) {
+                    currentEmail = email;
+                    if (res && res.exists) {
+                        setStep('login');
+                        loginPass.focus();
+                    } else {
+                        setStep('register');
+                        bindPhoneIti();
+                        regName.focus();
+                    }
+                })
+                .catch(function (err) {
+                    showError(err.message);
+                })
+                .finally(function () {
+                    setLoading(emailNextBtn, false, '', 'Seguinte');
+                });
+        });
+
+        loginBtn.addEventListener('click', function () {
+            var pwd = String(loginPass.value || '');
+            if (!pwd) {
+                showLoginPasswordError('Indica a tua password.');
+                return;
+            }
+            clearInlineErrors();
+            setLoading(loginBtn, true, 'A entrar...', 'Entrar');
+            postJson(loginUrl, { email: currentEmail, password: pwd })
+                .then(function () {
+                    var doReload = reloadAfterAuthSuccess;
+                    modal.hide();
+                    if (submittedResolver) submittedResolver(true);
+                    if (doReload) {
+                        window.location.reload();
+                    }
+                })
+                .catch(function (err) {
+                    if (err && err.message) {
+                        showLoginPasswordError(err.message);
+                    } else {
+                        showError('Não foi possível iniciar sessão.');
+                    }
+                })
+                .finally(function () {
+                    setLoading(loginBtn, false, '', 'Entrar');
+                });
+        });
+
+        forgotBtn.addEventListener('click', function () {
+            forgotEmailInput.value = currentEmail || '';
+            forgotSuccess.classList.add('d-none');
+            forgotSuccessText.textContent = '';
+            forgotFormWrap.classList.remove('d-none');
+            forgotSubmitBtn.classList.remove('d-none');
+            setStep('forgot');
+            forgotEmailInput.focus();
+        });
+
+        forgotSubmitBtn.addEventListener('click', function () {
+            var forgotEmail = String(forgotEmailInput.value || '').trim().toLowerCase();
+            if (!forgotEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
+                showError('Indica um email válido.');
+                return;
+            }
+            setLoading(forgotSubmitBtn, true, 'A enviar link...', 'Recuperar');
+            postJson(passwordLinkUrl, { email: forgotEmail })
+                .then(function () {
+                    forgotFormWrap.classList.add('d-none');
+                    forgotSubmitBtn.classList.add('d-none');
+                    forgotSuccessText.textContent = 'O email de recuperação de password foi enviado para ' + forgotEmail + '. Verifique o seu email. Se não recebeu o email, verifique a pasta de Spam.';
+                    forgotSuccess.classList.remove('d-none');
+                    showError('');
+                })
+                .catch(function (err) {
+                    showError(err.message);
+                })
+                .finally(function () {
+                    setLoading(forgotSubmitBtn, false, '', 'Recuperar');
+                });
+        });
+
+        forgotBackLoginBtn.addEventListener('click', function () {
+            setStep('login');
+            loginPass.focus();
+        });
+
+        regPass.addEventListener('input', updatePasswordRules);
+        regBtn.addEventListener('click', function () {
+            if (!currentEmail) {
+                showError('Valida primeiro o email.');
+                setStep('email');
+                return;
+            }
+            if (!regName.value.trim()) {
+                showError('Indica o teu nome.');
+                return;
+            }
+            var phoneE164 = getPhoneE164();
+            if (!phoneE164) {
+                showError('Indica um telemóvel válido.');
+                return;
+            }
+            var passOk = updatePasswordRules();
+            if (!passOk) {
+                showError('A password não cumpre os requisitos.');
+                return;
+            }
+            if (!regPrivacy.checked || !regTerms.checked) {
+                showError('É necessário aceitar a política de privacidade e os termos.');
+                return;
+            }
+            setLoading(regBtn, true, 'A criar conta...', 'Criar conta e continuar');
+            postJson(registerUrl, {
+                email: currentEmail,
+                name: regName.value.trim(),
+                phone: phoneE164,
+                password: regPass.value,
+                privacy: true,
+                terms: true,
+            })
+                .then(function () {
+                    var doReload = reloadAfterAuthSuccess;
+                    modal.hide();
+                    if (submittedResolver) submittedResolver(true);
+                    if (doReload) {
+                        window.location.reload();
+                    }
+                })
+                .catch(function (err) {
+                    showError(err.message);
+                })
+                .finally(function () {
+                    setLoading(regBtn, false, '', 'Criar conta e continuar');
+                });
+        });
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (submittedResolver) {
+                submittedResolver(false);
+                submittedResolver = null;
+            }
+            resetModal();
+        });
+
+        return {
+            ensureAuth: function () {
+                if (isAuthed) {
+                    return Promise.resolve(true);
+                }
+                resetModal();
+                modal.show();
+                return new Promise(function (resolve) {
+                    submittedResolver = function (ok) {
+                        submittedResolver = null;
+                        if (ok) {
+                            isAuthed = true;
+                        }
+                        resolve(ok);
+                    };
+                });
+            },
+            openLoginModal: function (opts) {
+                opts = opts || {};
+                if (isAuthed) {
+                    return;
+                }
+                resetModal();
+                if (opts.email) {
+                    emailInput.value = opts.email;
+                }
+                reloadAfterAuthSuccess = opts.reloadOnSuccess !== false;
+                modal.show();
+            },
+            isAuthed: function () {
+                return isAuthed;
+            },
+        };
+    }
+
+    var bookingAuthModalApiCache;
+
+    function getBookingAuthModal() {
+        if (bookingAuthModalApiCache === undefined) {
+            bookingAuthModalApiCache = initBookingAuthModal();
+        }
+        return bookingAuthModalApiCache || null;
+    }
+
+    function initBookingNavbarAuth(authApi) {
+        if (!authApi || typeof authApi.openLoginModal !== 'function') {
+            return;
+        }
+        document.querySelectorAll('.js-booking-open-auth-modal').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                authApi.openLoginModal({});
+                var oc = document.getElementById('bookingStoreDetails');
+                if (oc && window.bootstrap && window.bootstrap.Offcanvas) {
+                    var inst = window.bootstrap.Offcanvas.getInstance(oc);
+                    if (inst) {
+                        inst.hide();
+                    }
+                }
+            });
+        });
+    }
+
+    function tryOpenBookingAuthFromUrl(authApi) {
+        if (!authApi || typeof authApi.openLoginModal !== 'function' || authApi.isAuthed()) {
+            return;
+        }
+        try {
+            var u = new URL(window.location.href);
+            if (u.searchParams.get('open_auth') !== '1') {
+                return;
+            }
+            var email = u.searchParams.get('email') || '';
+            authApi.openLoginModal({ email: email, reloadOnSuccess: false });
+            u.searchParams.delete('open_auth');
+            u.searchParams.delete('email');
+            var qs = u.searchParams.toString();
+            var newUrl = u.pathname + (qs ? '?' + qs : '') + u.hash;
+            var cur = window.location.pathname + window.location.search + window.location.hash;
+            if (newUrl !== cur) {
+                window.history.replaceState({}, '', newUrl);
+            }
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
     function bindNext() {
         if (!els.nextBtn) {
             return;
         }
+        var authModalFlow = getBookingAuthModal();
         els.nextBtn.addEventListener('click', function () {
             if (state.items.length === 0) {
                 return;
@@ -2794,8 +3355,20 @@
                 submitBookingCheckout();
                 return;
             }
-            persist();
             var url = els.nextBtn.getAttribute('data-next-url');
+            if (requirement === 'datetime' && authModalFlow) {
+                authModalFlow.ensureAuth().then(function (ok) {
+                    if (!ok) {
+                        return;
+                    }
+                    persist();
+                    if (url && url !== '#') {
+                        window.location.href = url;
+                    }
+                });
+                return;
+            }
+            persist();
             if (url && url !== '#') {
                 window.location.href = url;
             }
@@ -2813,6 +3386,8 @@
         bindServiceButtons();
         bindModal();
         bindCategoryChipsScroll();
+        initBookingNavbarAuth(getBookingAuthModal());
+        tryOpenBookingAuthFromUrl(getBookingAuthModal());
         bindNext();
         bindSummaryDrawerToggle();
         bindSummaryLayoutResize();

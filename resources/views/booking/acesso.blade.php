@@ -39,7 +39,7 @@
 
                     <p class="small text-muted mt-4 mb-2">
                         Já tens password?
-                        <a href="{{ route('booking.login') }}" class="text-decoration-none fw-semibold">Iniciar sessão</a>
+                        <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none fw-semibold js-booking-open-auth-modal">Iniciar sessão</button>
                     </p>
                     <p class="small text-muted mb-0">
                         <a href="{{ route('booking.index') }}" class="text-decoration-none">← Voltar à marcação</a>
