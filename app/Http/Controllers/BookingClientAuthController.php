@@ -25,7 +25,9 @@ class BookingClientAuthController extends Controller
 
         $email = strtolower(trim($validated['email']));
         $user = $this->resolveBookingClientUserForEmail($email);
-        $targetEmail = $user ? strtolower(trim((string) $user->email)) : $email;
+        // O código deve ser enviado para o email introduzido no booking.
+        // Isto evita conflitos em contas legadas onde users.email != clients.email.
+        $targetEmail = $email;
         $ttlMinutes = max(3, (int) config('booking.auth_code_ttl_minutes', 10));
         $code = (string) random_int(100000, 999999);
 
@@ -72,16 +74,27 @@ class BookingClientAuthController extends Controller
         $emailInput = strtolower(trim((string) $validated['email']));
         $code = trim((string) $validated['code']);
         $resolved = $this->resolveBookingClientUserForEmail($emailInput);
-        $targetEmail = $resolved instanceof User
-            ? strtolower(trim((string) $resolved->email))
-            : $emailInput;
 
         $authCode = BookingAuthCode::query()
-            ->whereRaw('LOWER(email) = ?', [$targetEmail])
+            ->whereRaw('LOWER(email) = ?', [$emailInput])
             ->whereNull('consumed_at')
             ->where('expires_at', '>', now())
             ->latest('id')
             ->first();
+
+        // Compatibilidade temporária: permite validar códigos emitidos antes desta alteração
+        // quando o código foi enviado para users.email em vez do email introduzido.
+        if (! $authCode && $resolved instanceof User) {
+            $resolvedUserEmail = strtolower(trim((string) $resolved->email));
+            if ($resolvedUserEmail !== '' && $resolvedUserEmail !== $emailInput) {
+                $authCode = BookingAuthCode::query()
+                    ->whereRaw('LOWER(email) = ?', [$resolvedUserEmail])
+                    ->whereNull('consumed_at')
+                    ->where('expires_at', '>', now())
+                    ->latest('id')
+                    ->first();
+            }
+        }
 
         if (! $authCode) {
             throw ValidationException::withMessages([
@@ -100,7 +113,7 @@ class BookingClientAuthController extends Controller
         $authCode->consumed_at = now();
         $authCode->save();
 
-        $user = $resolved ?: $this->createPasswordlessBookingUserFromEmail($targetEmail);
+        $user = $resolved ?: $this->createPasswordlessBookingUserFromEmail($emailInput);
         Auth::login($user, true);
         $request->session()->regenerate();
 
