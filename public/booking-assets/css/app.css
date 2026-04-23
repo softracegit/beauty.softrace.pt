@@ -2016,13 +2016,13 @@ button.booking-offcanvas-nav__link {
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.3s ease;
-        border-top: 1px solid transparent;
+        border-bottom: 1px solid transparent;
         background: #fff;
     }
 
     .booking-summary-footer.is-drawer-open .booking-summary-mobile-drawer {
         max-height: var(--booking-mobile-drawer-max);
-        border-top-color: var(--booking-border);
+        border-bottom-color: var(--booking-border);
     }
 
     /* Alinhar com .booking-summary-footer-bar (padding da barra fixa) */
