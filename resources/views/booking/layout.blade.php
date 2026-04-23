@@ -21,10 +21,8 @@
 <body
     class="booking-body @yield('body_class')"
     data-booking-index-url="{{ route('booking.index') }}"
-    data-booking-auth-check-email-url="{{ route('booking.auth.check_email') }}"
-    data-booking-auth-login-url="{{ route('booking.auth.login') }}"
-    data-booking-auth-register-url="{{ route('booking.auth.register') }}"
-    data-booking-auth-password-link-url="{{ route('booking.auth.password_link') }}"
+    data-booking-auth-request-code-url="{{ route('booking.auth.request_code') }}"
+    data-booking-auth-verify-code-url="{{ route('booking.auth.verify_code') }}"
     data-booking-slot-hold-acquire-url="{{ route('booking.slot_hold.acquire') }}"
     data-booking-slot-hold-extend-url="{{ route('booking.slot_hold.extend') }}"
     data-booking-slot-hold-release-url="{{ route('booking.slot_hold.release') }}"

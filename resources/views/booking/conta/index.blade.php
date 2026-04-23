@@ -20,12 +20,6 @@
                         <div class="card-body py-3">
                             <p class="small fw-semibold text-uppercase text-muted mb-2">Conta</p>
                             <ul class="list-unstyled mb-0">
-                                <li class="border-bottom pb-2 mb-2">
-                                    <a href="{{ route('booking.conta.password.edit') }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
-                                        <span>Password</span>
-                                        <i class="bi bi-chevron-right text-muted" aria-hidden="true"></i>
-                                    </a>
-                                </li>
                                 <li>
                                     <a href="{{ route('booking.index') }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
                                         <span>Nova marcação</span>

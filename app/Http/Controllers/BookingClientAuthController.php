@@ -2,32 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\BookingAuthCodeMail;
 use App\Models\Client;
-use App\Models\BookingMagicLoginToken;
+use App\Models\BookingAuthCode;
 use App\Models\User;
-use App\Support\PhoneDisplay;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Validation\Rules\Password;
-use Illuminate\View\View;
 
 class BookingClientAuthController extends Controller
 {
-    public function showAcesso(Request $request): View
-    {
-        return view('booking.acesso', [
-            'businessName' => config('app.name'),
-            'email' => old('email', (string) $request->query('email', '')),
-            'status' => session('status'),
-            'error' => session('error'),
-        ]);
-    }
-
-    public function sendMagicLink(Request $request): RedirectResponse
+    public function requestCodeFromAuthModal(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'email' => ['required', 'email', 'max:255'],
@@ -35,262 +25,134 @@ class BookingClientAuthController extends Controller
 
         $email = strtolower(trim($validated['email']));
         $user = $this->resolveBookingClientUserForEmail($email);
+        $targetEmail = $user ? strtolower(trim((string) $user->email)) : $email;
+        $ttlMinutes = max(3, (int) config('booking.auth_code_ttl_minutes', 10));
+        $code = (string) random_int(100000, 999999);
 
-        if ($user) {
-            BookingMagicLoginToken::sendFreshLink($user);
+        BookingAuthCode::query()
+            ->whereRaw('LOWER(email) = ?', [$targetEmail])
+            ->whereNull('consumed_at')
+            ->delete();
+
+        BookingAuthCode::query()->create([
+            'email' => $targetEmail,
+            'code_hash' => hash('sha256', $code),
+            'expires_at' => now()->addMinutes($ttlMinutes),
+            'requested_ip' => $request->ip(),
+            'requested_user_agent' => Str::limit((string) $request->userAgent(), 255, ''),
+        ]);
+
+        try {
+            Mail::mailer('booking')->to($targetEmail)->send(new BookingAuthCodeMail($code, $ttlMinutes));
+        } catch (\Throwable $e) {
+            Log::error('Envio do código de acesso (booking) falhou.', [
+                'email' => $targetEmail,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+            throw ValidationException::withMessages([
+                'email' => ['Não foi possível enviar o código agora. Tente novamente em instantes.'],
+            ]);
         }
 
-        return back()->with('status', 'Se existir uma conta com este email, foi enviado um email de recuperação de password.');
+        return response()->json([
+            'ok' => true,
+            'email' => $targetEmail,
+            'expires_in' => $ttlMinutes * 60,
+        ]);
     }
 
-    public function checkEmailForAuthModal(Request $request): JsonResponse
+    public function verifyCodeFromAuthModal(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-        ]);
-
-        $email = strtolower(trim($validated['email']));
-        $user = $this->resolveBookingClientUserForEmail($email);
-
-        return response()->json([
-            'exists' => (bool) $user,
-            'email' => $email,
-            'login_email' => $user ? strtolower(trim((string) $user->email)) : '',
-        ]);
-    }
-
-    public function loginFromAuthModal(Request $request): JsonResponse
-    {
-        $request->validate([
             'email' => ['required', 'email'],
-            'password' => ['required'],
+            'code' => ['required', 'digits:6'],
         ]);
 
-        $emailInput = strtolower(trim((string) $request->input('email')));
+        $emailInput = strtolower(trim((string) $validated['email']));
+        $code = trim((string) $validated['code']);
         $resolved = $this->resolveBookingClientUserForEmail($emailInput);
-        $emailForAttempt = $resolved instanceof User
+        $targetEmail = $resolved instanceof User
             ? strtolower(trim((string) $resolved->email))
             : $emailInput;
 
-        $credentials = [
-            'email' => $emailForAttempt,
-            'password' => (string) $request->input('password'),
-        ];
+        $authCode = BookingAuthCode::query()
+            ->whereRaw('LOWER(email) = ?', [$targetEmail])
+            ->whereNull('consumed_at')
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->first();
 
-        if (! Auth::attempt($credentials, true)) {
+        if (! $authCode) {
             throw ValidationException::withMessages([
-                'password' => ['Password incorreta. Tenta novamente.'],
+                'code' => ['Código inválido ou expirado. Solicite um novo código.'],
             ]);
         }
 
-        $user = Auth::user();
-        if (! $user instanceof User || ! $user->isBookingClient()) {
-            Auth::logout();
-            $request->session()->regenerate();
-
+        $authCode->attempts = (int) $authCode->attempts + 1;
+        $isValid = hash_equals((string) $authCode->code_hash, hash('sha256', $code));
+        if (! $isValid) {
+            $authCode->save();
             throw ValidationException::withMessages([
-                'email' => ['Esta conta não é válida para a marcação online.'],
+                'code' => ['Código inválido. Verifique e tente novamente.'],
             ]);
         }
+        $authCode->consumed_at = now();
+        $authCode->save();
 
+        $user = $resolved ?: $this->createPasswordlessBookingUserFromEmail($targetEmail);
+        Auth::login($user, true);
         $request->session()->regenerate();
 
         return response()->json([
             'ok' => true,
+            'is_new_account' => ! $resolved,
         ]);
     }
 
-    public function registerFromAuthModal(Request $request): JsonResponse
+    private function createPasswordlessBookingUserFromEmail(string $emailNorm): User
     {
-        $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:40'],
-            'password' => ['required', 'string', 'min:8', 'regex:/\d/'],
-            'privacy' => ['accepted'],
-            'terms' => ['accepted'],
-        ], [
-            'password.regex' => 'A password deve incluir pelo menos um número.',
-        ]);
-
-        $emailNorm = strtolower(trim($validated['email']));
-        $phoneE164 = PhoneDisplay::toE164(trim($validated['phone']));
-        if ($phoneE164 === null || $phoneE164 === '') {
+        $emailNorm = strtolower(trim($emailNorm));
+        if ($emailNorm === '') {
             throw ValidationException::withMessages([
-                'phone' => ['Telemóvel inválido para o país selecionado.'],
+                'email' => ['Email inválido para criar conta.'],
             ]);
         }
 
-        if ($this->resolveBookingClientUserForEmail($emailNorm)) {
-            throw ValidationException::withMessages([
-                'email' => ['Este email já está associado a uma conta. Inicia sessão.'],
-            ]);
+        $existing = User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->first();
+        if ($existing instanceof User) {
+            if (! $existing->isBookingClient()) {
+                throw ValidationException::withMessages([
+                    'email' => ['Este email já está associado a outro tipo de conta. Use outro email.'],
+                ]);
+            }
+
+            return $existing;
         }
 
-        if (User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->exists()) {
-            throw ValidationException::withMessages([
-                'email' => ['Este email já está associado a uma conta. Inicia sessão.'],
-            ]);
-        }
-
-        if (Client::existsWithSamePhoneAs($phoneE164)) {
-            throw ValidationException::withMessages([
-                'phone' => ['Este telemóvel já está associado a uma conta existente. Inicia sessão com o email.'],
-            ]);
-        }
+        $localPart = explode('@', $emailNorm)[0] ?? 'cliente';
+        $baseName = trim((string) preg_replace('/[\._\-]+/', ' ', $localPart));
+        $displayName = Str::title($baseName !== '' ? $baseName : 'Cliente');
 
         $client = Client::query()->create([
-            'name' => $validated['name'],
+            'name' => $displayName,
             'email' => $emailNorm,
-            'phone' => $phoneE164,
+            'phone' => null,
             'type' => Client::TYPE_POTENCIAL_CLIENTE,
         ]);
 
         $user = User::query()->create([
-            'name' => $validated['name'],
+            'name' => $displayName,
             'email' => $emailNorm,
-            'password' => Hash::make($validated['password']),
+            'password' => Hash::make(Str::random(64)),
             'role' => User::ROLE_CLIENTE,
             'client_id' => $client->id,
             'must_set_password' => false,
         ]);
 
-        Auth::login($user, true);
-        $request->session()->regenerate();
+        $user->forceFill(['email_verified_at' => now()])->save();
 
-        return response()->json([
-            'ok' => true,
-        ]);
-    }
-
-    public function sendPasswordSetupLinkFromAuthModal(Request $request): JsonResponse|RedirectResponse
-    {
-        $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-        ]);
-
-        $email = strtolower(trim($validated['email']));
-        $user = $this->resolveBookingClientUserForEmail($email);
-
-        if ($user) {
-            BookingMagicLoginToken::sendFreshLink($user, 'password');
-        }
-
-        $message = 'Se o email existir, enviámos um link seguro para definires uma nova password.';
-        if ($request->expectsJson()) {
-            return response()->json([
-                'ok' => true,
-                'message' => $message,
-            ]);
-        }
-
-        return back()->with('status', $message);
-    }
-
-    public function consumeMagicLink(Request $request, string $token): RedirectResponse
-    {
-        $token = trim($token);
-        if ($token === '' || strlen($token) > 128) {
-            return redirect()->route('booking.acesso')
-                ->with('error', 'Link inválido.');
-        }
-
-        $record = BookingMagicLoginToken::query()
-            ->where('token', $token)
-            ->whereNull('used_at')
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if (! $record) {
-            return redirect()->route('booking.acesso')
-                ->with('error', 'Este link expirou ou já foi utilizado. Pede um novo link.');
-        }
-
-        $user = User::query()->find($record->user_id);
-        if (! $user || ! $user->isBookingClient()) {
-            return redirect()->route('booking.acesso')
-                ->with('error', 'Conta inválida.');
-        }
-
-        $record->used_at = now();
-        $record->save();
-
-        Auth::login($user, true);
-        $request->session()->regenerate();
-
-        return redirect()->route('booking.step3');
-    }
-
-    public function showPasswordResetForm(Request $request, string $token): View|RedirectResponse
-    {
-        $token = trim($token);
-        if ($token === '' || strlen($token) > 128) {
-            return redirect()->route('booking.index', ['open_auth' => '1'])
-                ->with('error', 'Link de recuperação inválido.');
-        }
-
-        $record = BookingMagicLoginToken::query()
-            ->where('token', $token)
-            ->whereNull('used_at')
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if (! $record) {
-            return redirect()->route('booking.index', ['open_auth' => '1'])
-                ->with('error', 'Este link de recuperação expirou ou já foi utilizado.');
-        }
-
-        $user = User::query()->find($record->user_id);
-        if (! $user || ! $user->isBookingClient()) {
-            return redirect()->route('booking.index', ['open_auth' => '1'])
-                ->with('error', 'Conta inválida para recuperação de password.');
-        }
-
-        return view('booking.password-reset', [
-            'businessName' => config('app.name'),
-            'email' => (string) $user->email,
-            'token' => $token,
-        ]);
-    }
-
-    public function resetPasswordWithToken(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'token' => ['required', 'string', 'max:128'],
-            'password' => ['required', 'confirmed', Password::min(8)->numbers()],
-        ], [
-            'password.confirmed' => 'A confirmação da password não coincide.',
-        ]);
-
-        $token = trim((string) $validated['token']);
-        $record = BookingMagicLoginToken::query()
-            ->where('token', $token)
-            ->whereNull('used_at')
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if (! $record) {
-            return redirect()->route('booking.index', ['open_auth' => '1'])
-                ->with('error', 'Este link de recuperação expirou ou já foi utilizado.');
-        }
-
-        $user = User::query()->find($record->user_id);
-        if (! $user || ! $user->isBookingClient()) {
-            return redirect()->route('booking.index', ['open_auth' => '1'])
-                ->with('error', 'Conta inválida para recuperação de password.');
-        }
-
-        $user->password = Hash::make((string) $validated['password']);
-        $user->must_set_password = false;
-        $user->save();
-
-        $record->used_at = now();
-        $record->save();
-
-        return redirect()->route('booking.index', [
-            'open_auth' => '1',
-            'email' => $user->email,
-        ])->with('status', 'Password atualizada com sucesso. Inicia sessão com a nova password.');
+        return $user;
     }
 
     /**

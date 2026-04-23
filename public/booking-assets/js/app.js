@@ -2246,11 +2246,28 @@
         }
 
         var existing = getContactSelection();
+        var lockedEmail = '';
+        if (emailInput && emailInput.readOnly) {
+            lockedEmail = String(emailInput.value || '').trim().toLowerCase();
+        }
+        if (lockedEmail && existing && existing.email) {
+            var existingEmail = String(existing.email || '').trim().toLowerCase();
+            if (existingEmail && existingEmail !== lockedEmail) {
+                existing = null;
+                saveContactSelection({
+                    name: nameInput ? nameInput.value.trim() : '',
+                    phone: phoneE164Input ? phoneE164Input.value.trim() : '',
+                    phoneDisplay: phoneInput ? phoneInput.value.trim() : '',
+                    email: lockedEmail,
+                    notes: notesInput ? notesInput.value.trim() : '',
+                });
+            }
+        }
         if (existing) {
             if (nameInput) nameInput.value = existing.name || '';
             if (phoneInput) phoneInput.value = existing.phoneDisplay || existing.phone || '';
             if (phoneE164Input) phoneE164Input.value = existing.phone || '';
-            if (emailInput) emailInput.value = existing.email || '';
+            if (emailInput && !emailInput.readOnly) emailInput.value = existing.email || '';
             if (notesInput) notesInput.value = existing.notes || '';
         }
 
@@ -3396,83 +3413,40 @@
         if (!authRoot || !modalEl || !window.bootstrap || !window.bootstrap.Modal) {
             return null;
         }
-        var checkUrl = authRoot.getAttribute('data-booking-auth-check-email-url') || '';
-        var loginUrl = authRoot.getAttribute('data-booking-auth-login-url') || '';
-        var registerUrl = authRoot.getAttribute('data-booking-auth-register-url') || '';
-        var passwordLinkUrl = authRoot.getAttribute('data-booking-auth-password-link-url') || '';
+        var requestCodeUrl = authRoot.getAttribute('data-booking-auth-request-code-url') || '';
+        var verifyCodeUrl = authRoot.getAttribute('data-booking-auth-verify-code-url') || '';
         var isAuthed = authRoot.getAttribute('data-booking-authenticated-client') === '1';
         var reloadAfterAuthSuccess = false;
-        if (!checkUrl || !loginUrl || !registerUrl || !passwordLinkUrl) {
+        if (!requestCodeUrl || !verifyCodeUrl) {
             return null;
         }
 
         var modal = new window.bootstrap.Modal(modalEl);
         var stepEmail = document.getElementById('booking-auth-step-email');
-        var stepLogin = document.getElementById('booking-auth-step-login');
-        var stepForgot = document.getElementById('booking-auth-step-forgot');
-        var stepRegister = document.getElementById('booking-auth-step-register');
+        var stepCode = document.getElementById('booking-auth-step-code');
         var errorBox = document.getElementById('booking-auth-modal-error');
         var modalBackBtn = document.getElementById('booking-auth-modal-back');
         var modalTitle = document.getElementById('booking-auth-modal-title');
         var modalSubtitle = document.getElementById('booking-auth-modal-subtitle');
         var emailInput = document.getElementById('booking-auth-email');
         var emailNextBtn = document.getElementById('booking-auth-email-next');
-        var loginPass = document.getElementById('booking-auth-login-password');
-        var loginPassError = document.getElementById('booking-auth-login-password-error');
-        var loginBtn = document.getElementById('booking-auth-login-submit');
-        var forgotBtn = document.getElementById('booking-auth-forgot');
-        var forgotBackLoginBtn = document.getElementById('booking-auth-forgot-back-login');
-        var forgotFormWrap = document.getElementById('booking-auth-forgot-form');
-        var forgotEmailInput = document.getElementById('booking-auth-forgot-email');
-        var forgotSubmitBtn = document.getElementById('booking-auth-forgot-submit');
-        var forgotSuccess = document.getElementById('booking-auth-forgot-success');
-        var forgotSuccessText = document.getElementById('booking-auth-forgot-success-text');
-        var regName = document.getElementById('booking-auth-register-name');
-        var regPhone = document.getElementById('booking-auth-register-phone');
-        var regPass = document.getElementById('booking-auth-register-password');
-        var regBtn = document.getElementById('booking-auth-register-submit');
-        var regPrivacy = document.getElementById('booking-auth-privacy');
-        var regTerms = document.getElementById('booking-auth-terms');
-        var passRuleLen = document.getElementById('booking-auth-pass-rule-len');
-        var passRuleNum = document.getElementById('booking-auth-pass-rule-num');
-        var toggleLoginPassBtn = document.getElementById('booking-auth-toggle-login-password');
-        var toggleRegisterPassBtn = document.getElementById('booking-auth-toggle-register-password');
+        var codeInput = document.getElementById('booking-auth-code');
+        var codeSubmitBtn = document.getElementById('booking-auth-code-submit');
+        var codeResendBtn = document.getElementById('booking-auth-code-resend');
+        var codeStatus = document.getElementById('booking-auth-code-status');
 
-        if (!stepEmail || !stepLogin || !stepForgot || !stepRegister || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !emailInput || !emailNextBtn || !loginPass || !loginPassError || !loginBtn || !forgotBtn || !forgotBackLoginBtn || !forgotFormWrap || !forgotEmailInput || !forgotSubmitBtn || !forgotSuccess || !forgotSuccessText || !regName || !regPhone || !regPass || !regBtn || !regPrivacy || !regTerms) {
+        if (!stepEmail || !stepCode || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !emailInput || !emailNextBtn || !codeInput || !codeSubmitBtn || !codeResendBtn || !codeStatus) {
             return null;
         }
 
         var currentEmail = '';
         var submittedResolver = null;
-        var phoneIti = null;
         var currentStep = 'email';
-        var intlPtBase = 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/i18n/pt';
-        var loadPtI18n = Promise.all([
-            import(intlPtBase + '/countries.js'),
-            import(intlPtBase + '/interface.js'),
-        ])
-            .then(function (mods) {
-                return Object.assign({}, mods[0].default, mods[1].default);
-            })
-            .catch(function () {
-                return {};
-            });
+        var lastCodeRequestAt = 0;
 
         function showError(msg) {
-            clearInlineErrors();
             errorBox.textContent = msg || '';
             errorBox.classList.toggle('d-none', !msg);
-        }
-        function showLoginPasswordError(msg) {
-            errorBox.classList.add('d-none');
-            loginPass.classList.add('is-invalid');
-            loginPassError.textContent = msg || '';
-            loginPassError.classList.remove('d-none');
-        }
-        function clearInlineErrors() {
-            loginPass.classList.remove('is-invalid');
-            loginPassError.textContent = '';
-            loginPassError.classList.add('d-none');
         }
         function setLoading(btn, loading, labelLoading, labelDefault) {
             if (!btn) return;
@@ -3488,77 +3462,17 @@
         function setStep(mode) {
             currentStep = mode;
             stepEmail.classList.toggle('d-none', mode !== 'email');
-            stepLogin.classList.toggle('d-none', mode !== 'login');
-            stepForgot.classList.toggle('d-none', mode !== 'forgot');
-            stepRegister.classList.toggle('d-none', mode !== 'register');
+            stepCode.classList.toggle('d-none', mode !== 'code');
             modalBackBtn.classList.toggle('d-none', mode === 'email');
-            clearInlineErrors();
             errorBox.classList.add('d-none');
             errorBox.textContent = '';
             if (mode === 'email') {
-                modalTitle.textContent = 'Iniciar sessão ou registar-se';
-                modalSubtitle.textContent = 'Entre ou registe-se para concluir a sua marcação.';
-            } else if (mode === 'login') {
-                modalTitle.textContent = 'Que bom ter-te de volta!';
-                modalSubtitle.textContent = 'Digite a sua password para entrar como ' + currentEmail + '.';
-            } else if (mode === 'register') {
-                modalTitle.textContent = 'Criar conta';
-                modalSubtitle.textContent = 'Crie a sua nova conta para ' + currentEmail + ' preenchendo estes dados.';
-            } else if (mode === 'forgot') {
-                modalTitle.textContent = 'Recuperar password';
-                modalSubtitle.textContent = 'Indique o email para receber o link de recuperação.';
+                modalTitle.textContent = 'Entrar sem password';
+                modalSubtitle.textContent = 'Recebe um código por email para entrar.';
+            } else if (mode === 'code') {
+                modalTitle.textContent = 'Introduza o código';
+                modalSubtitle.textContent = 'Enviámos um código para ' + currentEmail + '.';
             }
-        }
-        function updatePasswordRules() {
-            var value = regPass.value || '';
-            var hasLen = value.length >= 8;
-            var hasNum = /\d/.test(value);
-            passRuleLen.classList.toggle('text-success', hasLen);
-            passRuleLen.classList.toggle('text-muted', !hasLen);
-            passRuleNum.classList.toggle('text-success', hasNum);
-            passRuleNum.classList.toggle('text-muted', !hasNum);
-            return hasLen && hasNum;
-        }
-        function bindPasswordToggle(btn, input) {
-            if (!btn || !input) {
-                return;
-            }
-            btn.addEventListener('click', function () {
-                var showing = input.type === 'text';
-                input.type = showing ? 'password' : 'text';
-                var icon = btn.querySelector('i');
-                if (icon) {
-                    icon.className = showing ? 'bi bi-eye' : 'bi bi-eye-slash';
-                }
-                btn.setAttribute('aria-label', showing ? 'Mostrar password' : 'Ocultar password');
-            });
-        }
-        function bindPhoneIti() {
-            if (!regPhone || typeof window.intlTelInput !== 'function' || phoneIti) return;
-            loadPtI18n.then(function (ptI18n) {
-                if (phoneIti) {
-                    return;
-                }
-                phoneIti = window.intlTelInput(regPhone, {
-                    initialCountry: 'pt',
-                    countryOrder: ['pt', 'br', 'es', 'fr', 'gb', 'de'],
-                    separateDialCode: true,
-                    strictMode: true,
-                    validationNumberType: 'MOBILE',
-                    utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/utils.js',
-                    i18n: Object.assign({}, ptI18n, {
-                        searchPlaceholder: 'Pesquisar',
-                        zeroSearchResults: 'Nenhum resultado',
-                    }),
-                });
-            });
-        }
-        function getPhoneE164() {
-            if (!phoneIti) return '';
-            if (typeof phoneIti.isValidNumber === 'function' && !phoneIti.isValidNumber()) {
-                return '';
-            }
-            return phoneIti.getNumber ? phoneIti.getNumber() : '';
         }
         function postJson(url, payload) {
             return fetch(url, {
@@ -3587,171 +3501,69 @@
                 });
             });
         }
+        function showCodeStatus(message) {
+            codeStatus.textContent = message || '';
+            codeStatus.classList.toggle('d-none', !message);
+        }
+        function requestCode(email) {
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showError('Indica um email válido.');
+                return Promise.reject(new Error('invalid_email'));
+            }
+            currentEmail = email;
+            setLoading(emailNextBtn, true, 'A enviar...', 'Enviar código');
+            setLoading(codeResendBtn, true, 'A enviar...', 'Reenviar código');
+            return postJson(requestCodeUrl, { email: currentEmail })
+                .then(function (res) {
+                    currentEmail = res && res.email ? String(res.email).trim().toLowerCase() : currentEmail;
+                    lastCodeRequestAt = Date.now();
+                    showCodeStatus('Código enviado. Verifique a sua caixa de email.');
+                    setStep('code');
+                    codeInput.focus();
+                    return res;
+                })
+                .finally(function () {
+                    setLoading(emailNextBtn, false, '', 'Enviar código');
+                    setLoading(codeResendBtn, false, '', 'Reenviar código');
+                });
+        }
         function resetModal() {
             reloadAfterAuthSuccess = false;
             currentEmail = '';
             emailInput.value = '';
-            loginPass.value = '';
-            regName.value = '';
-            regPhone.value = '';
-            regPass.value = '';
-            regPrivacy.checked = false;
-            regTerms.checked = false;
-            forgotEmailInput.value = '';
-            forgotSuccess.classList.add('d-none');
-            forgotSuccessText.textContent = '';
-            forgotFormWrap.classList.remove('d-none');
-            forgotSubmitBtn.classList.remove('d-none');
-            updatePasswordRules();
+            codeInput.value = '';
+            showCodeStatus('');
             setStep('email');
         }
-
-        bindPasswordToggle(toggleLoginPassBtn, loginPass);
-        bindPasswordToggle(toggleRegisterPassBtn, regPass);
         modalBackBtn.addEventListener('click', function () {
-            if (currentStep === 'login' || currentStep === 'register') {
+            if (currentStep === 'code') {
                 setStep('email');
                 emailInput.focus();
-                return;
-            }
-            if (currentStep === 'forgot') {
-                setStep('login');
-                loginPass.focus();
             }
         });
 
         emailNextBtn.addEventListener('click', function () {
             var email = String(emailInput.value || '').trim().toLowerCase();
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showError('Indica um email válido.');
-                return;
-            }
-            setLoading(emailNextBtn, true, 'A validar...', 'Seguinte');
-            postJson(checkUrl, { email: email })
-                .then(function (res) {
-                    currentEmail = email;
-                    if (res && res.exists) {
-                        var canonical = res.login_email ? String(res.login_email).trim().toLowerCase() : '';
-                        if (canonical) {
-                            currentEmail = canonical;
-                        }
-                        setStep('login');
-                        loginPass.focus();
-                    } else {
-                        setStep('register');
-                        bindPhoneIti();
-                        regName.focus();
-                    }
-                })
+            requestCode(email)
                 .catch(function (err) {
-                    showError(err.message);
-                })
-                .finally(function () {
-                    setLoading(emailNextBtn, false, '', 'Seguinte');
+                    if (err && err.message && err.message !== 'invalid_email') {
+                        showError(err.message);
+                    }
                 });
         });
 
-        loginBtn.addEventListener('click', function () {
-            var pwd = String(loginPass.value || '');
-            if (!pwd) {
-                showLoginPasswordError('Indica a tua password.');
+        codeSubmitBtn.addEventListener('click', function () {
+            var code = String(codeInput.value || '').replace(/\D/g, '');
+            if (code.length !== 6) {
+                showError('Indique o código de 6 dígitos.');
                 return;
             }
-            clearInlineErrors();
-            setLoading(loginBtn, true, 'A entrar...', 'Entrar');
-            postJson(loginUrl, { email: currentEmail, password: pwd })
-                .then(function () {
-                    var doReload = reloadAfterAuthSuccess;
-                    modal.hide();
-                    if (submittedResolver) submittedResolver(true);
-                    if (doReload) {
-                        window.location.reload();
-                    }
-                })
-                .catch(function (err) {
-                    if (err && err.message) {
-                        showLoginPasswordError(err.message);
-                    } else {
-                        showError('Não foi possível iniciar sessão.');
-                    }
-                })
-                .finally(function () {
-                    setLoading(loginBtn, false, '', 'Entrar');
-                });
-        });
-
-        forgotBtn.addEventListener('click', function () {
-            forgotEmailInput.value = currentEmail || '';
-            forgotSuccess.classList.add('d-none');
-            forgotSuccessText.textContent = '';
-            forgotFormWrap.classList.remove('d-none');
-            forgotSubmitBtn.classList.remove('d-none');
-            setStep('forgot');
-            forgotEmailInput.focus();
-        });
-
-        forgotSubmitBtn.addEventListener('click', function () {
-            var forgotEmail = String(forgotEmailInput.value || '').trim().toLowerCase();
-            if (!forgotEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail)) {
-                showError('Indica um email válido.');
-                return;
-            }
-            setLoading(forgotSubmitBtn, true, 'A enviar link...', 'Recuperar');
-            postJson(passwordLinkUrl, { email: forgotEmail })
-                .then(function () {
-                    forgotFormWrap.classList.add('d-none');
-                    forgotSubmitBtn.classList.add('d-none');
-                    forgotSuccessText.textContent = 'O email de recuperação de password foi enviado para ' + forgotEmail + '. Verifique o seu email. Se não recebeu o email, verifique a pasta de Spam.';
-                    forgotSuccess.classList.remove('d-none');
-                    showError('');
-                })
-                .catch(function (err) {
-                    showError(err.message);
-                })
-                .finally(function () {
-                    setLoading(forgotSubmitBtn, false, '', 'Recuperar');
-                });
-        });
-
-        forgotBackLoginBtn.addEventListener('click', function () {
-            setStep('login');
-            loginPass.focus();
-        });
-
-        regPass.addEventListener('input', updatePasswordRules);
-        regBtn.addEventListener('click', function () {
             if (!currentEmail) {
-                showError('Valida primeiro o email.');
                 setStep('email');
                 return;
             }
-            if (!regName.value.trim()) {
-                showError('Indica o teu nome.');
-                return;
-            }
-            var phoneE164 = getPhoneE164();
-            if (!phoneE164) {
-                showError('Indica um telemóvel válido.');
-                return;
-            }
-            var passOk = updatePasswordRules();
-            if (!passOk) {
-                showError('A password não cumpre os requisitos.');
-                return;
-            }
-            if (!regPrivacy.checked || !regTerms.checked) {
-                showError('É necessário aceitar a política de privacidade e os termos.');
-                return;
-            }
-            setLoading(regBtn, true, 'A criar conta...', 'Criar conta e continuar');
-            postJson(registerUrl, {
-                email: currentEmail,
-                name: regName.value.trim(),
-                phone: phoneE164,
-                password: regPass.value,
-                privacy: true,
-                terms: true,
-            })
+            setLoading(codeSubmitBtn, true, 'A validar...', 'Entrar');
+            postJson(verifyCodeUrl, { email: currentEmail, code: code })
                 .then(function () {
                     var doReload = reloadAfterAuthSuccess;
                     modal.hide();
@@ -3761,11 +3573,35 @@
                     }
                 })
                 .catch(function (err) {
-                    showError(err.message);
+                    showError(err && err.message ? err.message : 'Não foi possível validar o código.');
                 })
                 .finally(function () {
-                    setLoading(regBtn, false, '', 'Criar conta e continuar');
+                    setLoading(codeSubmitBtn, false, '', 'Entrar');
                 });
+        });
+
+        codeResendBtn.addEventListener('click', function () {
+            if (!currentEmail) {
+                setStep('email');
+                return;
+            }
+            if (Date.now() - lastCodeRequestAt < 3000) {
+                showCodeStatus('Aguarde 3 segundos antes de pedir um novo código.');
+                return;
+            }
+            requestCode(currentEmail)
+                .catch(function (err) {
+                    if (err && err.message && err.message !== 'invalid_email') {
+                        showError(err.message);
+                    }
+                });
+        });
+
+        codeInput.addEventListener('input', function () {
+            var clean = String(codeInput.value || '').replace(/\D/g, '');
+            if (clean !== codeInput.value) {
+                codeInput.value = clean;
+            }
         });
 
         modalEl.addEventListener('hidden.bs.modal', function () {

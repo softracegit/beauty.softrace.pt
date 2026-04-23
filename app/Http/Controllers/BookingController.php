@@ -203,7 +203,6 @@ class BookingController extends Controller
             'businessName' => config('app.name'),
             'bookingClientUser' => $isBookingClient ? $user : null,
             'bookingClient' => $client,
-            'definirPasswordUrl' => $isBookingClient ? route('booking.conta.password.edit') : null,
             'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired,
             'bookingPaymentIntentUrl' => route('booking.payment.intent'),
             'bookingPaymentCompleteUrl' => route('booking.payment.complete'),

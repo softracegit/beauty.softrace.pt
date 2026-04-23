@@ -9,7 +9,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body pt-2">
-                <p id="booking-auth-modal-subtitle" class="text-muted small mb-3">Entre ou registe-se para concluir a sua marcação.</p>
+                <p id="booking-auth-modal-subtitle" class="text-muted small mb-3">Recebe um código por email para entrar sem password.</p>
                 <div id="booking-auth-modal-error" class="alert alert-danger py-2 px-3 small d-none mb-3" role="alert"></div>
 
                 <div id="booking-auth-step-email">
@@ -17,70 +17,24 @@
                         <label for="booking-auth-email" class="form-label small text-muted mb-1">Email</label>
                         <input id="booking-auth-email" type="email" class="form-control" autocomplete="email" required>
                     </div>
-                    <button type="button" id="booking-auth-email-next" class="btn btn-dark w-100">Seguinte</button>
+                    <button type="button" id="booking-auth-email-next" class="btn btn-dark w-100">Enviar código</button>
                 </div>
 
-                <div id="booking-auth-step-login" class="d-none">
+                <div id="booking-auth-step-code" class="d-none">
                     <div class="mb-3">
-                        <label for="booking-auth-login-password" class="form-label small text-muted mb-1">Password</label>
-                        <div class="input-group">
-                            <input id="booking-auth-login-password" type="password" class="form-control" autocomplete="current-password">
-                            <button type="button" class="btn btn-outline-secondary" id="booking-auth-toggle-login-password" aria-label="Mostrar password">
-                                <i class="bi bi-eye" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                        <div id="booking-auth-login-password-error" class="invalid-feedback d-block d-none"></div>
+                        <label for="booking-auth-code" class="form-label small text-muted mb-1">Código de acesso</label>
+                        <input id="booking-auth-code" type="text" inputmode="numeric" maxlength="6" class="form-control" autocomplete="one-time-code" placeholder="000000">
+                        <div class="form-text">Introduza o código de 6 dígitos enviado para o seu email.</div>
                     </div>
-                    <button type="button" id="booking-auth-forgot" class="btn btn-link btn-sm px-0 text-decoration-none mb-2">Esqueceu a password?</button>
-                    <button type="button" id="booking-auth-login-submit" class="btn btn-dark w-100">Entrar</button>
-                    <p id="booking-auth-forgot-msg" class="small text-muted d-none mb-0">Enviaremos um link seguro para este email para criar uma senha.</p>
-                </div>
-
-                <div id="booking-auth-step-forgot" class="d-none">
-                    <div id="booking-auth-forgot-form" class="mb-3">
-                        <label for="booking-auth-forgot-email" class="form-label small text-muted mb-1">Email</label>
-                        <input id="booking-auth-forgot-email" type="email" class="form-control" autocomplete="email">
-                    </div>
-                    <button type="button" id="booking-auth-forgot-submit" class="btn btn-dark w-100 mb-2">Recuperar</button>
-                    <div id="booking-auth-forgot-success" class="d-none">
-                        <h3 class="h6 fw-semibold text-dark mb-2">Verifique seu e-mail</h3>
-                        <p id="booking-auth-forgot-success-text" class="small text-muted mb-3"></p>
-                        <button type="button" id="booking-auth-forgot-back-login" class="btn btn-outline-secondary w-100">Voltar ao login</button>
-                    </div>
+                    <button type="button" id="booking-auth-code-submit" class="btn btn-dark w-100 mb-2">Entrar</button>
+                    <button type="button" id="booking-auth-code-resend" class="btn btn-outline-secondary w-100">Reenviar código</button>
+                    <div id="booking-auth-code-status" class="small text-muted mt-2 d-none"></div>
                 </div>
 
                 <div id="booking-auth-step-register" class="d-none">
-                    <div class="mb-3">
-                        <label for="booking-auth-register-name" class="form-label small text-muted mb-1">Nome</label>
-                        <input id="booking-auth-register-name" type="text" class="form-control" autocomplete="name">
+                    <div class="alert alert-light border small mb-0">
+                        Conta criada sem password. Pode concluir os dados no checkout.
                     </div>
-                    <div class="mb-3">
-                        <label for="booking-auth-register-phone" class="form-label small text-muted d-block mb-1">Telemóvel</label>
-                        <input id="booking-auth-register-phone" type="tel" class="form-control" autocomplete="tel">
-                        <input id="booking-auth-register-phone-e164" type="hidden">
-                    </div>
-                    <div class="mb-2">
-                        <label for="booking-auth-register-password" class="form-label small text-muted mb-1">Password</label>
-                        <div class="input-group">
-                            <input id="booking-auth-register-password" type="password" class="form-control" autocomplete="new-password">
-                            <button type="button" class="btn btn-outline-secondary" id="booking-auth-toggle-register-password" aria-label="Mostrar password">
-                                <i class="bi bi-eye" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <ul class="small text-muted ps-3 mb-3 booking-auth-password-rules">
-                        <li id="booking-auth-pass-rule-len">Mínimo de 8 caracteres</li>
-                        <li id="booking-auth-pass-rule-num">Pelo menos 1 número</li>
-                    </ul>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="booking-auth-privacy">
-                        <label class="form-check-label small" for="booking-auth-privacy">Eu concordo com a política de privacidade</label>
-                    </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="booking-auth-terms">
-                        <label class="form-check-label small" for="booking-auth-terms">Eu aceito os termos e condições</label>
-                    </div>
-                    <button type="button" id="booking-auth-register-submit" class="btn btn-dark w-100">Criar conta e continuar</button>
                 </div>
             </div>
         </div>

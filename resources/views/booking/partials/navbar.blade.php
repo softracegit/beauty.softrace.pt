@@ -112,7 +112,7 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.password.edit') }}">
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}">
                                 <i class="bi bi-gear booking-navbar-account__item-icon" aria-hidden="true"></i>
                                 <span>Definições</span>
                             </a>

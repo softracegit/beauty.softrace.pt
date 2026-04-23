@@ -7,10 +7,12 @@ use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Payment;
 use App\Models\User;
+use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Services\BookingSlotHoldService;
 use App\Services\OnlineBookingCheckoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -285,6 +287,9 @@ class BookingPaymentController extends Controller
         if ($event !== null && $resolvedUserId !== null) {
             $this->checkout->notifyTechnician($event, $resolvedUserId);
         }
+        if ($event !== null && $event->client) {
+            $this->notifyClientAppointmentCreated($event->id, $event->client->email);
+        }
 
         if ($createdBookingUser) {
             $confirmParams['primeira_marcacao'] = '1';
@@ -341,6 +346,9 @@ class BookingPaymentController extends Controller
 
         if ($event !== null && $resolvedUserId !== null) {
             $this->checkout->notifyTechnician($event, $resolvedUserId);
+        }
+        if ($event !== null && $event->client) {
+            $this->notifyClientAppointmentCreated($event->id, $event->client->email);
         }
 
         if ($createdBookingUser) {
@@ -416,6 +424,40 @@ class BookingPaymentController extends Controller
             'mbway', 'mb-way' => 'mb_way',
             default => $type,
         };
+    }
+
+    private function notifyClientAppointmentCreated(int $eventId, ?string $clientEmail): void
+    {
+        $email = $this->resolveClientNotificationRecipientEmail($clientEmail);
+        if (! is_string($email) || trim($email) === '') {
+            return;
+        }
+        try {
+            Notification::route('mail', $email)->notify(new ClientAppointmentCreatedNotification($eventId));
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao enviar email de marcacao confirmada ao cliente.', [
+                'calendar_event_id' => $eventId,
+                'email' => $email,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Evita enviar emails de testes para clientes reais.
+     * Em produção, mantém o email original; noutros ambientes, redireciona para suporte.
+     */
+    private function resolveClientNotificationRecipientEmail(?string $originalEmail): string
+    {
+        $originalEmail = trim((string) ($originalEmail ?? ''));
+        $supportEmail = (string) env('MAIL_CLIENT_TEST_REDIRECT_TO', 'suporte@softrace.pt');
+
+        if (app()->environment('production')) {
+            return $originalEmail;
+        }
+
+        return $supportEmail;
     }
 
     private function resolveStripeCustomerIdForBookingActor(mixed $actor): ?string

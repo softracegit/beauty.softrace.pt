@@ -108,13 +108,22 @@ class AppointmentNotification extends Notification implements ShouldQueue
     private function buildBody(CalendarEvent $event): string
     {
         $client = $event->client?->name ?? 'Cliente não indicado';
+        $services = $event->eventServices->isNotEmpty()
+            ? $event->eventServices
+                ->map(function ($service) {
+                    $optionName = trim((string) ($service->pivot->option_name ?? ''));
+
+                    return $optionName !== '' ? $optionName : $service->name;
+                })
+                ->implode(', ')
+            : ($event->service?->name ?? 'Serviço não indicado');
 
         return match ($this->type) {
-            'assigned' => "Foi-lhe atribuída uma marcação: {$client}.",
-            'reassigned' => "Uma marcação foi transferida para si: {$client}.",
-            'rescheduled' => "A data ou hora da marcação de {$client} foi alterada.",
+            'assigned' => "Foi-lhe atribuída uma marcação: {$client} ({$services}).",
+            'reassigned' => "Uma marcação foi transferida para si: {$client} ({$services}).",
+            'rescheduled' => "A data ou hora da marcação de {$client} ({$services}) foi alterada.",
             'status_changed' => $this->buildStatusChangedBody($event, $client),
-            default => "Marcação ({$client}).",
+            default => "Marcação ({$client}) - {$services}.",
         };
     }
 

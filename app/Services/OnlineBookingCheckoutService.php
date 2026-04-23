@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Agent;
-use App\Models\BookingMagicLoginToken;
 use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\Service;
@@ -374,6 +373,24 @@ class OnlineBookingCheckoutService
 
         if ($isBookingClient) {
             $client = Client::query()->findOrFail((int) $actor->client_id);
+            $name = trim((string) ($validated['name'] ?? ''));
+            $emailNorm = strtolower(trim((string) ($validated['email'] ?? '')));
+            $phoneE164 = PhoneDisplay::toE164(trim((string) ($validated['phone'] ?? '')));
+            if ($phoneE164 === null || $phoneE164 === '') {
+                throw ValidationException::withMessages([
+                    'phone' => ['Telemóvel inválido.'],
+                ]);
+            }
+            if ($name !== '') {
+                $client->name = $name;
+                $actor->name = $name;
+            }
+            if ($emailNorm !== '') {
+                $client->email = $emailNorm;
+            }
+            $client->phone = $phoneE164;
+            $client->save();
+            $actor->save();
             $this->appendOnlineBookingNotes($client, $validated['notes'] ?? null);
 
             return ['client' => $client, 'created_booking_user' => false];
@@ -693,14 +710,6 @@ class OnlineBookingCheckoutService
             }
 
             $this->attachBookingUserToLegacyClient($client, $name, $emailNorm, $phoneE164, $notes);
-            $user = User::query()
-                ->where('role', User::ROLE_CLIENTE)
-                ->where('client_id', $client->id)
-                ->first();
-            if ($user) {
-                BookingMagicLoginToken::sendFreshLink($user);
-            }
-
             return ['client' => $client->fresh(), 'created_booking_user' => true];
         }
 
@@ -726,16 +735,14 @@ class OnlineBookingCheckoutService
             'type' => Client::TYPE_POTENCIAL_CLIENTE,
         ]);
 
-        $user = User::create([
+        User::create([
             'name' => $name,
             'email' => $emailNorm,
             'password' => Hash::make(Str::random(64)),
             'role' => User::ROLE_CLIENTE,
             'client_id' => $client->id,
-            'must_set_password' => true,
+            'must_set_password' => false,
         ]);
-
-        BookingMagicLoginToken::sendFreshLink($user);
 
         return ['client' => $client, 'created_booking_user' => true];
     }
@@ -766,7 +773,7 @@ class OnlineBookingCheckoutService
             'password' => Hash::make(Str::random(64)),
             'role' => User::ROLE_CLIENTE,
             'client_id' => $client->id,
-            'must_set_password' => true,
+            'must_set_password' => false,
         ]);
     }
 

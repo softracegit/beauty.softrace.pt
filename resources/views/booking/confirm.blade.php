@@ -22,7 +22,7 @@
                     </div>
                     @if (! empty($primeiraMarcacao))
                         <div class="alert alert-info small py-2 px-3 mb-4 text-start" role="status">
-                            Foi criada a tua <strong>conta de marcação</strong>. Nas próximas vezes inicia sessão com email e password para preencheres os dados mais rapidamente.
+                            Foi criada a tua <strong>conta de marcação</strong>. Nas próximas vezes entra com código enviado por email para preencheres os dados mais rapidamente.
                         </div>
                     @endif
                     <div class="card border shadow-sm rounded-3 mb-3">

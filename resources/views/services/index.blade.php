@@ -134,6 +134,18 @@
 .service-item-duration {
     margin-top: 0;
 }
+.service-item-row--has-options .service-item-right {
+    padding-top: 0.1rem;
+}
+.service-options-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+.service-options-actions .btn-link {
+    text-decoration: none;
+}
 .contacts-groups-list {
     padding: var(--spacing-sm) var(--spacing-sm) !important;
 }
@@ -455,13 +467,16 @@
                                         <th style="width:7rem">Duração (min)</th>
                                         <th style="width:7rem">Preço (€)</th>
                                         <th style="width:7rem">Preço online (€)</th>
-                                        <th style="width:3rem"></th>
+                                        <th style="width:7.5rem"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="addServiceOptionsTbody"></tbody>
                             </table>
                         </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addServiceAddOptionRow">Adicionar opção</button>
+                        <div class="d-flex gap-2 mt-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="addServiceAddOptionRow">Adicionar opção</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="addServiceClearOptionRows">Remover todas</button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Membros da Equipa</label>
@@ -567,13 +582,16 @@
                                         <th style="width:7rem">Duração (min)</th>
                                         <th style="width:7rem">Preço (€)</th>
                                         <th style="width:7rem">Preço online (€)</th>
-                                        <th style="width:3rem"></th>
+                                        <th style="width:7.5rem"></th>
                                     </tr>
                                 </thead>
                                 <tbody id="editServiceOptionsTbody"></tbody>
                             </table>
                         </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="editServiceAddOptionRow">Adicionar opção</button>
+                        <div class="d-flex gap-2 mt-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="editServiceAddOptionRow">Adicionar opção</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="editServiceClearOptionRows">Remover todas</button>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Membros da Equipa</label>

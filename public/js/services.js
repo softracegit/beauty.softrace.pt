@@ -60,9 +60,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function buildOptionRowHtml(isBaseline, nameVal, durationVal, priceVal, onlineVal, sortIdx, optionId) {
         const idAttr = optionId ? ' data-option-id="' + String(optionId) + '"' : '';
-        const removeCell = isBaseline
-            ? '<span class="text-muted small">Base</span>'
-            : '<button type="button" class="btn btn-link text-danger p-0 option-remove-btn" title="Remover">×</button>';
+        const removeBtn = isBaseline
+            ? ''
+            : '<button type="button" class="btn btn-link text-danger p-0 option-remove-btn" title="Remover"><i class="ph ph-x"></i></button>';
+        const moveUpBtn = isBaseline
+            ? '<button type="button" class="btn btn-link text-muted p-0 option-move-up-btn" title="Mover para cima" disabled><i class="ph ph-caret-up"></i></button>'
+            : '<button type="button" class="btn btn-link text-muted p-0 option-move-up-btn" title="Mover para cima"><i class="ph ph-caret-up"></i></button>';
+        const moveDownBtn = isBaseline
+            ? '<button type="button" class="btn btn-link text-muted p-0 option-move-down-btn" title="Mover para baixo" disabled><i class="ph ph-caret-down"></i></button>'
+            : '<button type="button" class="btn btn-link text-muted p-0 option-move-down-btn" title="Mover para baixo"><i class="ph ph-caret-down"></i></button>';
+        const actionsCell = '<div class="service-options-actions">' + moveUpBtn + moveDownBtn + removeBtn + '</div>';
         const nameCell =
             '<input type="text" class="form-control form-control-sm" data-field="name" value="' +
             escapeHtml(nameVal) +
@@ -75,9 +82,33 @@ document.addEventListener('DOMContentLoaded', function() {
             '<td><input type="number" class="form-control form-control-sm" data-field="duration" min="1" step="1" required value="' + escapeHtml(String(durationVal)) + '"></td>' +
             '<td><input type="number" class="form-control form-control-sm" data-field="price" min="0" step="0.01" required value="' + escapeHtml(String(priceVal)) + '"></td>' +
             '<td><input type="number" class="form-control form-control-sm" data-field="online_price" min="0" step="0.01" required value="' + escapeHtml(String(onlineVal)) + '"></td>' +
-            '<td class="text-end">' + removeCell + '</td>' +
+            '<td class="text-end">' + actionsCell + '</td>' +
             '</tr>'
         );
+    }
+
+    function refreshOptionRowsMetadata(tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) {
+            return;
+        }
+        const rows = Array.from(tbody.querySelectorAll('tr[data-baseline]'));
+        rows.forEach(function (tr, idx) {
+            tr.setAttribute('data-sort', String(idx));
+        });
+        const movableRows = rows.filter(function (tr) {
+            return tr.getAttribute('data-baseline') !== '1';
+        });
+        movableRows.forEach(function (tr, idx) {
+            const upBtn = tr.querySelector('.option-move-up-btn');
+            const downBtn = tr.querySelector('.option-move-down-btn');
+            if (upBtn) {
+                upBtn.disabled = idx === 0;
+            }
+            if (downBtn) {
+                downBtn.disabled = idx === movableRows.length - 1;
+            }
+        });
     }
 
     function seedAddOptionsTableIfNeeded() {
@@ -92,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tb.innerHTML =
             buildOptionRowHtml(true, nm, d, p, o, 0, null) +
             buildOptionRowHtml(false, '', d, p, o, 1, null);
+        refreshOptionRowsMetadata('addServiceOptionsTbody');
     }
 
     function renderEditOptionsFromService(service) {
@@ -110,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const rowHtml = buildOptionRowHtml(isB, nm, opt.duration, opt.price, opt.online_price, idx, opt.id);
             tb.insertAdjacentHTML('beforeend', rowHtml);
         });
+        refreshOptionRowsMetadata('editServiceOptionsTbody');
     }
 
     function toggleAddServiceOptionsUi() {
@@ -158,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const nm = document.getElementById('editServiceName') ? document.getElementById('editServiceName').value : '';
                 tb.innerHTML =
                     buildOptionRowHtml(true, nm, d, p, o, 0, null) + buildOptionRowHtml(false, '', d, p, o, 1, null);
+                refreshOptionRowsMetadata('editServiceOptionsTbody');
             }
         }
     }
@@ -367,6 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const o = onEl && onEl.value !== '' ? onEl.value : '';
         const n = tb.querySelectorAll('tr').length;
         tb.insertAdjacentHTML('beforeend', buildOptionRowHtml(false, '', d, p, o, n, null));
+        refreshOptionRowsMetadata(tbodyId);
     }
 
     document.getElementById('addServiceAddOptionRow')?.addEventListener('click', function () {
@@ -376,30 +411,120 @@ document.addEventListener('DOMContentLoaded', function() {
         addOptionRowToTbody('editServiceOptionsTbody');
     });
 
-    function bindOptionRemoveClick(modalEl) {
-        if (!modalEl || modalEl.dataset.optionRemoveBound === '1') {
+    function syncSimplePricingFromOptions(prefix, tbodyId) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) {
             return;
         }
-        modalEl.dataset.optionRemoveBound = '1';
+        const rows = Array.from(tbody.querySelectorAll('tr[data-baseline]'));
+        if (!rows.length) {
+            return;
+        }
+        const baseline = rows.find(function (tr) {
+            return tr.getAttribute('data-baseline') === '1';
+        }) || rows[0];
+        const durationInputOption = baseline.querySelector('[data-field="duration"]');
+        const priceInputOption = baseline.querySelector('[data-field="price"]');
+        const onlineInputOption = baseline.querySelector('[data-field="online_price"]');
+        const durationVal = durationInputOption ? durationInputOption.value : '';
+        const priceVal = priceInputOption ? priceInputOption.value : '';
+        const onlineVal = onlineInputOption ? onlineInputOption.value : '';
+        const durationInput = document.getElementById(prefix + 'ServiceDuration');
+        const priceInput = document.getElementById(prefix + 'ServicePrice');
+        const onlineInput = document.getElementById(prefix + 'ServiceOnlinePrice');
+        if (durationInput) {
+            durationInput.value = durationVal;
+        }
+        if (priceInput) {
+            priceInput.value = priceVal;
+        }
+        if (onlineInput) {
+            onlineInput.value = onlineVal;
+        }
+    }
+
+    function bindOptionTableActions(modalEl) {
+        if (!modalEl || modalEl.dataset.optionActionsBound === '1') {
+            return;
+        }
+        modalEl.dataset.optionActionsBound = '1';
         modalEl.addEventListener('click', function (e) {
             const btn = e.target.closest('.option-remove-btn');
-            if (!btn) {
-                return;
-            }
-            const tr = btn.closest('tr');
-            const tbody = tr && tr.parentElement;
+            const moveUpBtn = e.target.closest('.option-move-up-btn');
+            const moveDownBtn = e.target.closest('.option-move-down-btn');
+            const tr = (btn || moveUpBtn || moveDownBtn) ? (btn || moveUpBtn || moveDownBtn).closest('tr') : null;
+            const tbody = tr ? tr.parentElement : null;
             if (!tbody || !tr) {
                 return;
             }
-            if (tbody.querySelectorAll('tr').length <= 2) {
-                showToast('É necessário pelo menos duas opções.', 'error');
+            if (btn) {
+                if (tbody.querySelectorAll('tr').length <= 2) {
+                    showToast('Use "Remover todas" para voltar ao serviço simples.', 'error');
+                    return;
+                }
+                tr.remove();
+                refreshOptionRowsMetadata(tbody.id);
                 return;
             }
-            tr.remove();
+            const isBaseline = tr.getAttribute('data-baseline') === '1';
+            if (isBaseline) {
+                return;
+            }
+            if (moveUpBtn) {
+                let prev = tr.previousElementSibling;
+                while (prev && prev.getAttribute('data-baseline') === '1') {
+                    prev = prev.previousElementSibling;
+                }
+                if (prev) {
+                    tbody.insertBefore(tr, prev);
+                    refreshOptionRowsMetadata(tbody.id);
+                }
+                return;
+            }
+            if (moveDownBtn) {
+                let next = tr.nextElementSibling;
+                while (next && next.getAttribute('data-baseline') === '1') {
+                    next = next.nextElementSibling;
+                }
+                if (next) {
+                    tbody.insertBefore(next, tr);
+                    refreshOptionRowsMetadata(tbody.id);
+                }
+            }
         });
     }
-    bindOptionRemoveClick(document.getElementById('addServiceModal'));
-    bindOptionRemoveClick(document.getElementById('editServiceModal'));
+    bindOptionTableActions(document.getElementById('addServiceModal'));
+    bindOptionTableActions(document.getElementById('editServiceModal'));
+
+    function bindClearOptionsButton(buttonId, checkboxId, tbodyId, prefix, toggleFn) {
+        const btn = document.getElementById(buttonId);
+        if (!btn) {
+            return;
+        }
+        btn.addEventListener('click', function () {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody || !tbody.querySelector('tr')) {
+                const cb = document.getElementById(checkboxId);
+                if (cb) {
+                    cb.checked = false;
+                }
+                toggleFn();
+                return;
+            }
+            if (!confirm('Remover todas as opções e voltar ao serviço simples?')) {
+                return;
+            }
+            syncSimplePricingFromOptions(prefix, tbodyId);
+            tbody.innerHTML = '';
+            const cb = document.getElementById(checkboxId);
+            if (cb) {
+                cb.checked = false;
+            }
+            toggleFn();
+        });
+    }
+    bindClearOptionsButton('addServiceClearOptionRows', 'addServiceHasOptions', 'addServiceOptionsTbody', 'add', toggleAddServiceOptionsUi);
+    bindClearOptionsButton('editServiceClearOptionRows', 'editServiceHasOptions', 'editServiceOptionsTbody', 'edit', toggleEditServiceOptionsUi);
 
     // --- Sidebar (mobile) e seleção de categoria ---
     const sidebarToggle = document.getElementById('servicesSidebarToggle');
@@ -707,15 +832,18 @@ document.addEventListener('DOMContentLoaded', function() {
                       .join('')}</ul>`
                 : '';
             const priceAside = hasOpts
-                ? `<span class="service-item-price text-muted"><span class="small fw-normal">desde</span> ${formatPrice(fromOnline)}</span>`
+                ? `<span class="service-item-price"><span class="small fw-normal">desde</span> ${formatPrice(fromOnline)}</span>`
                 : `<span class="service-item-price">${formatPrice(service.price)}</span>`;
+            const rowHasOptionsClass = hasOpts ? ' service-item-row--has-options' : '';
+            const bodyAlignClass = hasOpts ? 'align-items-start' : 'align-items-center';
+            const rightAlignClass = hasOpts ? 'align-items-start' : 'align-items-center';
             return `
-            <div class="service-item-row" data-service-id="${service.id}">
+            <div class="service-item-row${rowHasOptionsClass}" data-service-id="${service.id}">
                 <div class="service-drag-handle" aria-label="Arrastar para reordenar">
                     <span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
                 </div>
                 <div class="card service-item service-item-clickable" style="--service-category-color: ${borderColor};">
-                    <div class="card-body d-flex justify-content-between align-items-center gap-3 py-2 pe-2">
+                    <div class="card-body d-flex justify-content-between ${bodyAlignClass} gap-3 py-2 pe-2">
                         <div class="service-item-left">
                             <h6 class="mb-0 service-item-name">${escapeHtml(service.name)}</h6>
                             ${service.description ? `<p class="text-muted small mb-1">${escapeHtml(service.description.substring(0, 100))}${service.description.length > 100 ? '...' : ''}</p>` : ''}
@@ -725,7 +853,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             ${optionList}
                         </div>
-                        <div class="d-flex align-items-center gap-2 flex-shrink-0 service-item-right">${priceAside}</div>
+                        <div class="d-flex ${rightAlignClass} gap-2 flex-shrink-0 service-item-right">${priceAside}</div>
                     </div>
                 </div>
             </div>

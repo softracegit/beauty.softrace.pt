@@ -5,7 +5,6 @@ use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingClientAuthController;
 use App\Http\Controllers\BookingController;
-use App\Http\Controllers\BookingPasswordController;
 use App\Http\Controllers\BookingPaymentController;
 use App\Http\Controllers\BookingSlotHoldController;
 use App\Http\Controllers\CalendarController;
@@ -54,19 +53,6 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
     Route::get('/confirmacao', [BookingController::class, 'confirm'])->name('confirm');
     Route::get('/servico/{service}', [BookingController::class, 'showService'])->name('service');
 
-    Route::get('/acesso', [BookingClientAuthController::class, 'showAcesso'])->name('acesso');
-    Route::post('/acesso/link', [BookingClientAuthController::class, 'sendMagicLink'])
-        ->middleware('throttle:10,60')
-        ->name('acesso.link');
-    Route::get('/entrada/{token}', [BookingClientAuthController::class, 'consumeMagicLink'])
-        ->where('token', '[a-fA-F0-9]{64}')
-        ->name('login.magic');
-    Route::get('/password/reset/{token}', [BookingClientAuthController::class, 'showPasswordResetForm'])
-        ->where('token', '[a-fA-F0-9]{64}')
-        ->name('password.reset.form');
-    Route::post('/password/reset', [BookingClientAuthController::class, 'resetPasswordWithToken'])
-        ->middleware('throttle:8,10')
-        ->name('password.reset.perform');
     Route::post('/slot-hold/acquire', [BookingSlotHoldController::class, 'acquire'])
         ->middleware('throttle:30,1')
         ->name('slot_hold.acquire');
@@ -95,27 +81,19 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
     })->name('login');
 
     /*
-     * Sem middleware `guest`: com sessão CRM (staff) aberta no mesmo browser, `guest` faz redirect
-     * e o fetch recebe HTML em vez de JSON — o modal interpretava `exists` como falso e ia para "criar conta".
-     * Estas rotas devolvem JSON e têm throttle; login/register validam no controller.
+     * Passwordless booking auth (código por email).
+     * Sem middleware `guest`: com sessão CRM (staff) aberta no mesmo browser, `guest` faria redirect
+     * e o fetch receberia HTML em vez de JSON.
      */
-    Route::post('/auth/check-email', [BookingClientAuthController::class, 'checkEmailForAuthModal'])
+    Route::post('/auth/request-code', [BookingClientAuthController::class, 'requestCodeFromAuthModal'])
         ->middleware('throttle:20,1')
-        ->name('auth.check_email');
-    Route::post('/auth/login', [BookingClientAuthController::class, 'loginFromAuthModal'])
+        ->name('auth.request_code');
+    Route::post('/auth/verify-code', [BookingClientAuthController::class, 'verifyCodeFromAuthModal'])
         ->middleware('throttle:10,1')
-        ->name('auth.login');
-    Route::post('/auth/register', [BookingClientAuthController::class, 'registerFromAuthModal'])
-        ->middleware('throttle:10,1')
-        ->name('auth.register');
-    Route::post('/auth/password-link', [BookingClientAuthController::class, 'sendPasswordSetupLinkFromAuthModal'])
-        ->middleware('throttle:10,60')
-        ->name('auth.password_link');
+        ->name('auth.verify_code');
 
     Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {
         Route::get('/', [BookingController::class, 'account'])->name('index');
-        Route::get('password', [BookingPasswordController::class, 'edit'])->name('password.edit');
-        Route::post('password', [BookingPasswordController::class, 'update'])->name('password.update');
     });
 });
 
