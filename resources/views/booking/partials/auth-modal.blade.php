@@ -23,7 +23,7 @@
                 <div id="booking-auth-step-code" class="d-none">
                     <div class="mb-3">
                         <label for="booking-auth-code" class="form-label small text-muted mb-1">Código de acesso</label>
-                        <input id="booking-auth-code" type="text" inputmode="numeric" maxlength="6" class="form-control" autocomplete="one-time-code" placeholder="000000">
+                        <input id="booking-auth-code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" class="form-control" autocomplete="one-time-code" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="000000">
                         <div class="form-text">Introduza o código de 6 dígitos enviado para o seu email.</div>
                     </div>
                     <button type="button" id="booking-auth-code-submit" class="btn btn-dark w-100 mb-2">Entrar</button>
