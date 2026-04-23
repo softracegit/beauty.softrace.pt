@@ -34,10 +34,7 @@ class BookingClientAuthController extends Controller
         ]);
 
         $email = strtolower(trim($validated['email']));
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->where('role', User::ROLE_CLIENTE)
-            ->first();
+        $user = $this->resolveBookingClientUserForEmail($email);
 
         if ($user) {
             BookingMagicLoginToken::sendFreshLink($user);
@@ -53,14 +50,12 @@ class BookingClientAuthController extends Controller
         ]);
 
         $email = strtolower(trim($validated['email']));
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->where('role', User::ROLE_CLIENTE)
-            ->first();
+        $user = $this->resolveBookingClientUserForEmail($email);
 
         return response()->json([
             'exists' => (bool) $user,
             'email' => $email,
+            'login_email' => $user ? strtolower(trim((string) $user->email)) : '',
         ]);
     }
 
@@ -71,9 +66,14 @@ class BookingClientAuthController extends Controller
             'password' => ['required'],
         ]);
 
-        $email = strtolower(trim((string) $request->input('email')));
+        $emailInput = strtolower(trim((string) $request->input('email')));
+        $resolved = $this->resolveBookingClientUserForEmail($emailInput);
+        $emailForAttempt = $resolved instanceof User
+            ? strtolower(trim((string) $resolved->email))
+            : $emailInput;
+
         $credentials = [
-            'email' => $email,
+            'email' => $emailForAttempt,
             'password' => (string) $request->input('password'),
         ];
 
@@ -121,6 +121,12 @@ class BookingClientAuthController extends Controller
             ]);
         }
 
+        if ($this->resolveBookingClientUserForEmail($emailNorm)) {
+            throw ValidationException::withMessages([
+                'email' => ['Este email já está associado a uma conta. Inicia sessão.'],
+            ]);
+        }
+
         if (User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->exists()) {
             throw ValidationException::withMessages([
                 'email' => ['Este email já está associado a uma conta. Inicia sessão.'],
@@ -164,10 +170,7 @@ class BookingClientAuthController extends Controller
         ]);
 
         $email = strtolower(trim($validated['email']));
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->where('role', User::ROLE_CLIENTE)
-            ->first();
+        $user = $this->resolveBookingClientUserForEmail($email);
 
         if ($user) {
             BookingMagicLoginToken::sendFreshLink($user, 'password');
@@ -288,5 +291,34 @@ class BookingClientAuthController extends Controller
             'open_auth' => '1',
             'email' => $user->email,
         ])->with('status', 'Password atualizada com sucesso. Inicia sessão com a nova password.');
+    }
+
+    /**
+     * Conta de marcação online: email em `users.email` ou na ficha `clients.email` (dados legados / CRM).
+     */
+    private function resolveBookingClientUserForEmail(string $emailNorm): ?User
+    {
+        if ($emailNorm === '') {
+            return null;
+        }
+
+        $byUserEmail = User::query()
+            ->whereRaw('LOWER(email) = ?', [$emailNorm])
+            ->where('role', User::ROLE_CLIENTE)
+            ->first();
+
+        if ($byUserEmail instanceof User) {
+            return $byUserEmail;
+        }
+
+        return User::query()
+            ->where('role', User::ROLE_CLIENTE)
+            ->whereNotNull('client_id')
+            ->whereHas('client', function ($q) use ($emailNorm): void {
+                $q->whereNotNull('email')
+                    ->where('email', '!=', '')
+                    ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm]);
+            })
+            ->first();
     }
 }

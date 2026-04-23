@@ -3609,6 +3609,10 @@
                 .then(function (res) {
                     currentEmail = email;
                     if (res && res.exists) {
+                        var canonical = res.login_email ? String(res.login_email).trim().toLowerCase() : '';
+                        if (canonical) {
+                            currentEmail = canonical;
+                        }
                         setStep('login');
                         loginPass.focus();
                     } else {

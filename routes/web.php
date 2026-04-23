@@ -94,20 +94,23 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
         return redirect()->route('booking.index', $params);
     })->name('login');
 
-    Route::middleware('guest')->group(function () {
-        Route::post('/auth/check-email', [BookingClientAuthController::class, 'checkEmailForAuthModal'])
-            ->middleware('throttle:20,1')
-            ->name('auth.check_email');
-        Route::post('/auth/login', [BookingClientAuthController::class, 'loginFromAuthModal'])
-            ->middleware('throttle:10,1')
-            ->name('auth.login');
-        Route::post('/auth/register', [BookingClientAuthController::class, 'registerFromAuthModal'])
-            ->middleware('throttle:10,1')
-            ->name('auth.register');
-        Route::post('/auth/password-link', [BookingClientAuthController::class, 'sendPasswordSetupLinkFromAuthModal'])
-            ->middleware('throttle:10,60')
-            ->name('auth.password_link');
-    });
+    /*
+     * Sem middleware `guest`: com sessão CRM (staff) aberta no mesmo browser, `guest` faz redirect
+     * e o fetch recebe HTML em vez de JSON — o modal interpretava `exists` como falso e ia para "criar conta".
+     * Estas rotas devolvem JSON e têm throttle; login/register validam no controller.
+     */
+    Route::post('/auth/check-email', [BookingClientAuthController::class, 'checkEmailForAuthModal'])
+        ->middleware('throttle:20,1')
+        ->name('auth.check_email');
+    Route::post('/auth/login', [BookingClientAuthController::class, 'loginFromAuthModal'])
+        ->middleware('throttle:10,1')
+        ->name('auth.login');
+    Route::post('/auth/register', [BookingClientAuthController::class, 'registerFromAuthModal'])
+        ->middleware('throttle:10,1')
+        ->name('auth.register');
+    Route::post('/auth/password-link', [BookingClientAuthController::class, 'sendPasswordSetupLinkFromAuthModal'])
+        ->middleware('throttle:10,60')
+        ->name('auth.password_link');
 
     Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {
         Route::get('/', [BookingController::class, 'account'])->name('index');
