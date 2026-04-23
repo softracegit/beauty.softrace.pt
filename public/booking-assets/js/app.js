@@ -1043,6 +1043,25 @@
             return split.morning.slice(0, suggestedMorningSlots).concat(split.afternoon.slice(0, suggestedAfternoonSlots));
         }
 
+        /** Hora escolhida está fora dos sugeridos — ao voltar ao passo data/hora, abrir "outros horários" por defeito. */
+        function shouldOpenMoreSlotsForSelection(filtered, time) {
+            if (!time || !filtered || !filtered.length) {
+                return false;
+            }
+            var suggestedTimes = pickSuggestedSlotTimes(filtered);
+            var suggestedSet = {};
+            suggestedTimes.forEach(function (t) {
+                suggestedSet[t] = true;
+            });
+            var needMoreSlots = filtered.some(function (t) {
+                return !suggestedSet[t];
+            });
+            if (!needMoreSlots) {
+                return false;
+            }
+            return !suggestedSet[time];
+        }
+
         var selected = getDateTimeSelection();
         var selectedDate = selected ? selected.date : null;
         var selectedTime = selected ? selected.time : null;
@@ -1310,6 +1329,9 @@
                 selectedTime = null;
                 releaseSlotHold('slot_invalidated');
             }
+
+            slotsUiExpanded =
+                slotsUiExpanded || shouldOpenMoreSlotsForSelection(filtered, selectedTime);
 
             layoutSlotsPanels();
 
