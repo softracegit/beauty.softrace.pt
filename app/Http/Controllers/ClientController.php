@@ -542,6 +542,7 @@ class ClientController extends Controller
      */
     public function update(Request $request, Client $cliente)
     {
+        $currentClientEmail = strtolower(trim((string) ($cliente->email ?? '')));
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($cliente->id)],
@@ -573,7 +574,41 @@ class ClientController extends Controller
         } else {
             unset($validated['avatar']);
         }
+
+        $newClientEmail = strtolower(trim((string) ($validated['email'] ?? '')));
+        $clientEmailChanged = $newClientEmail !== $currentClientEmail;
+        $linkedBookingUser = User::query()
+            ->where('client_id', $cliente->id)
+            ->where('role', User::ROLE_CLIENTE)
+            ->first();
+
+        if ($clientEmailChanged && $linkedBookingUser instanceof User) {
+            if ($newClientEmail === '') {
+                return back()
+                    ->withErrors(['email' => 'Este cliente está ligado a login online. O email não pode ficar vazio.'])
+                    ->withInput();
+            }
+
+            $emailConflict = User::query()
+                ->whereRaw('LOWER(email) = ?', [$newClientEmail])
+                ->where('id', '!=', $linkedBookingUser->id)
+                ->exists();
+
+            if ($emailConflict) {
+                return back()
+                    ->withErrors(['email' => 'Este email já está em uso noutro utilizador.'])
+                    ->withInput();
+            }
+        }
+
         $cliente->update($validated);
+
+        if ($clientEmailChanged && $linkedBookingUser instanceof User) {
+            $linkedBookingUser->forceFill([
+                'email' => $newClientEmail,
+                'email_verified_at' => now(),
+            ])->save();
+        }
 
         return redirect()->route('clientes.show', $cliente)
             ->with('success', 'Cliente atualizado com sucesso.');
