@@ -126,7 +126,7 @@
         $sectionLabels = [
             'definicoes.conta' => 'Conta',
             'definicoes.negocio' => 'Negócio',
-            'definicoes.agendamentos' => 'Agendamentos',
+            'definicoes.marcacoes' => 'Marcações',
             'definicoes.vendas' => 'Vendas',
             'definicoes.clientes' => 'Clientes',
             'definicoes.equipa' => 'Equipa',

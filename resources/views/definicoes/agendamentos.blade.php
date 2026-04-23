@@ -3,14 +3,14 @@
 @section('definicoes_content')
   <div class="card">
     <div class="card-header">
-      <h5 class="card-title mb-0">Agendamentos</h5>
+      <h5 class="card-title mb-0">Marcações</h5>
     </div>
     <div class="card-body">
       <p class="text-muted small mb-4">
         Define o tempo de bloqueio temporário do horário durante o checkout das marcações online.
       </p>
 
-      <form method="post" action="{{ route('definicoes.agendamentos.update') }}">
+      <form method="post" action="{{ route('definicoes.marcacoes.update') }}">
         @csrf
 
         <div class="row g-3 align-items-end">

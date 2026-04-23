@@ -135,8 +135,8 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
         Route::get('conta', [DefinicoesController::class, 'conta'])->name('conta');
         Route::post('conta', [DefinicoesController::class, 'updateConta'])->name('conta.update');
         Route::get('negocio', [DefinicoesController::class, 'negocio'])->name('negocio');
-        Route::get('agendamentos', [DefinicoesController::class, 'agendamentos'])->name('agendamentos');
-        Route::post('agendamentos', [DefinicoesController::class, 'updateAgendamentos'])->name('agendamentos.update');
+        Route::get('marcacoes', [DefinicoesController::class, 'marcacoes'])->name('marcacoes');
+        Route::post('marcacoes', [DefinicoesController::class, 'updateMarcacoes'])->name('marcacoes.update');
         Route::get('vendas', [DefinicoesController::class, 'vendas'])->name('vendas');
         Route::get('clientes', [DefinicoesController::class, 'clientes'])->name('clientes');
         Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');

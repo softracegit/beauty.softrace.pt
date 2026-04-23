@@ -2596,6 +2596,13 @@
         if (!els.slotHoldExpiredModal || !window.bootstrap || !window.bootstrap.Modal) {
             return;
         }
+        var authModalEl = document.getElementById('booking-auth-modal');
+        if (authModalEl && window.bootstrap && window.bootstrap.Modal) {
+            var authModal = window.bootstrap.Modal.getInstance(authModalEl);
+            if (authModalEl.classList.contains('show') && authModal) {
+                authModal.hide();
+            }
+        }
         slotHoldTimer.expiredModalShown = true;
         var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal);
         modal.show();

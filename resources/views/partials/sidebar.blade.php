@@ -256,8 +256,8 @@
           </a>
         </li>
         <li>
-          <a class="panel-link {{ request()->routeIs('definicoes.agendamentos') ? 'active' : '' }}" href="{{ route('definicoes.agendamentos') }}">
-            Agendamentos
+          <a class="panel-link {{ request()->routeIs('definicoes.marcacoes') ? 'active' : '' }}" href="{{ route('definicoes.marcacoes') }}">
+            Marcações
           </a>
         </li>
         <li>

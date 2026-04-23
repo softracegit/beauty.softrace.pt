@@ -36,15 +36,15 @@ class DefinicoesController extends Controller
         ]);
     }
 
-    public function agendamentos(): View
+    public function marcacoes(): View
     {
         return view('definicoes.agendamentos', [
-            'pageTitle' => 'Agendamentos',
+            'pageTitle' => 'Marcações',
             'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes(),
         ]);
     }
 
-    public function updateAgendamentos(Request $request): RedirectResponse
+    public function updateMarcacoes(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
@@ -59,8 +59,8 @@ class DefinicoesController extends Controller
         );
 
         return redirect()
-            ->route('definicoes.agendamentos')
-            ->with('status', 'Definições de agendamentos guardadas.');
+            ->route('definicoes.marcacoes')
+            ->with('status', 'Definições de marcações guardadas.');
     }
 
     public function vendas(): View
