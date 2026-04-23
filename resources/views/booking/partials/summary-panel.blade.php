@@ -68,6 +68,7 @@
                         <div class="booking-summary-total__meta">
                             <span id="booking-summary-total-count" class="booking-summary-total__label">0 serviços</span>
                             <span id="booking-summary-total-duration" class="booking-summary-total__duration">0min</span>
+                            <span id="booking-summary-total-mobile-meta" class="booking-summary-total__mobile-meta d-none d-lg-none" aria-live="polite">0min • 0,00&nbsp;€ • 0:00</span>
                         </div>
                         <span id="booking-summary-total-value" class="booking-summary-total__value"></span>
                         <span class="d-lg-none booking-summary-total__toggle" aria-hidden="true">

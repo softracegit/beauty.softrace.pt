@@ -161,6 +161,7 @@
         els.summaryTotalValue = document.getElementById('booking-summary-total-value');
         els.summaryTotalCount = document.getElementById('booking-summary-total-count');
         els.summaryTotalDuration = document.getElementById('booking-summary-total-duration');
+        els.summaryTotalMobileMeta = document.getElementById('booking-summary-total-mobile-meta');
         els.summaryTech = document.getElementById('booking-summary-technician');
         els.summaryTechAvatar = document.getElementById('booking-summary-tech-avatar');
         els.summaryTechName = document.getElementById('booking-summary-tech-name');
@@ -2540,23 +2541,42 @@
         if (!els.summarySlotHold || !els.summarySlotHoldTime) {
             return;
         }
+        function renderMobileMetaLine(timerLabel) {
+            if (!els.summaryTotalMobileMeta) {
+                return;
+            }
+            var durationLabel = formatDurationPT(getTotalDurationMinutes());
+            var priceLabel = formatMoneyEUR(getTotalAmount());
+            var timerPart = timerLabel || '--:--';
+            els.summaryTotalMobileMeta.innerHTML = durationLabel
+                + '<span class="booking-summary-total__sep" aria-hidden="true">•</span>'
+                + priceLabel
+                + '<span class="booking-summary-total__sep" aria-hidden="true">•</span>'
+                + timerPart;
+            els.summaryTotalMobileMeta.classList.toggle('d-none', !state.items.length);
+        }
         if (slotHoldShowZeroDuringExpiredModal) {
             els.summarySlotHoldTime.textContent = '0:00';
             els.summarySlotHold.classList.remove('is-hidden');
+            renderMobileMetaLine('0:00');
             return;
         }
         if (!slotHoldState.expiresAt || !slotHoldState.holdPublicId) {
             els.summarySlotHold.classList.add('is-hidden');
+            renderMobileMetaLine('--:--');
             return;
         }
         var remaining = new Date(slotHoldState.expiresAt).getTime() - Date.now();
         if (!Number.isFinite(remaining) || remaining <= 0) {
             els.summarySlotHoldTime.textContent = '0:00';
             els.summarySlotHold.classList.remove('is-hidden');
+            renderMobileMetaLine('0:00');
             return;
         }
-        els.summarySlotHoldTime.textContent = formatHoldRemainingLabel(remaining);
+        var holdLabel = formatHoldRemainingLabel(remaining);
+        els.summarySlotHoldTime.textContent = holdLabel;
         els.summarySlotHold.classList.remove('is-hidden');
+        renderMobileMetaLine(holdLabel);
     }
 
     function stopSlotHoldTimer() {
@@ -3474,7 +3494,7 @@
             errorBox.classList.add('d-none');
             errorBox.textContent = '';
             if (mode === 'email') {
-                modalTitle.textContent = 'Entrar sem password';
+                modalTitle.textContent = 'Entrar na sua conta';
                 modalSubtitle.textContent = 'Recebe um código por email para entrar.';
             } else if (mode === 'code') {
                 modalTitle.textContent = 'Introduza o código';
@@ -3524,7 +3544,7 @@
                 .then(function (res) {
                     currentEmail = res && res.email ? String(res.email).trim().toLowerCase() : currentEmail;
                     lastCodeRequestAt = Date.now();
-                    showCodeStatus('Código enviado. Verifique a sua caixa de email.');
+                    showCodeStatus('');
                     setStep('code');
                     codeInput.focus();
                     return res;
