@@ -114,6 +114,7 @@ class BookingClientAuthController extends Controller
         $authCode->save();
 
         $user = $resolved ?: $this->createPasswordlessBookingUserFromEmail($emailInput);
+        $this->syncBookingUserEmailAfterVerifiedCode($user, $emailInput);
         Auth::login($user, true);
         $request->session()->regenerate();
 
@@ -195,5 +196,47 @@ class BookingClientAuthController extends Controller
                     ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm]);
             })
             ->first();
+    }
+
+    /**
+     * Após validação do código, mantém users.email alinhado com o email verificado no booking
+     * quando a conta cliente foi resolvida por clients.email (dados legados).
+     */
+    private function syncBookingUserEmailAfterVerifiedCode(User $user, string $verifiedEmail): void
+    {
+        $verifiedEmail = strtolower(trim($verifiedEmail));
+        if ($verifiedEmail === '' || ! $user->isBookingClient()) {
+            return;
+        }
+
+        $currentUserEmail = strtolower(trim((string) $user->email));
+        if ($currentUserEmail === $verifiedEmail) {
+            return;
+        }
+
+        $clientEmail = strtolower(trim((string) ($user->client?->email ?? '')));
+        if ($clientEmail !== $verifiedEmail) {
+            return;
+        }
+
+        $emailConflict = User::query()
+            ->whereRaw('LOWER(email) = ?', [$verifiedEmail])
+            ->where('id', '!=', $user->id)
+            ->exists();
+
+        if ($emailConflict) {
+            Log::warning('Sincronização users.email ignorada por conflito.', [
+                'user_id' => $user->id,
+                'client_id' => $user->client_id,
+                'verified_email' => $verifiedEmail,
+            ]);
+
+            return;
+        }
+
+        $user->forceFill([
+            'email' => $verifiedEmail,
+            'email_verified_at' => now(),
+        ])->save();
     }
 }
