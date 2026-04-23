@@ -2547,12 +2547,13 @@
             }
             var durationLabel = formatDurationPT(getTotalDurationMinutes());
             var priceLabel = formatMoneyEUR(getTotalAmount());
-            var timerPart = timerLabel || '--:--';
-            els.summaryTotalMobileMeta.innerHTML = durationLabel
+            var html = durationLabel
                 + '<span class="booking-summary-total__sep" aria-hidden="true">•</span>'
-                + priceLabel
-                + '<span class="booking-summary-total__sep" aria-hidden="true">•</span>'
-                + timerPart;
+                + priceLabel;
+            if (timerLabel) {
+                html += '<span class="booking-summary-total__sep" aria-hidden="true">•</span>' + timerLabel;
+            }
+            els.summaryTotalMobileMeta.innerHTML = html;
             els.summaryTotalMobileMeta.classList.toggle('d-none', !state.items.length);
         }
         if (slotHoldShowZeroDuringExpiredModal) {
@@ -2563,7 +2564,7 @@
         }
         if (!slotHoldState.expiresAt || !slotHoldState.holdPublicId) {
             els.summarySlotHold.classList.add('is-hidden');
-            renderMobileMetaLine('--:--');
+            renderMobileMetaLine('');
             return;
         }
         var remaining = new Date(slotHoldState.expiresAt).getTime() - Date.now();
@@ -3266,6 +3267,7 @@
         var footer = document.querySelector('.booking-summary-footer');
         var drawer = document.getElementById('booking-summary-mobile-drawer');
         var btn = document.getElementById('booking-summary-total');
+        var overlay = document.getElementById('booking-summary-mobile-overlay');
         if (footer) {
             footer.classList.remove('is-drawer-open');
         }
@@ -3275,22 +3277,33 @@
         if (btn) {
             btn.setAttribute('aria-expanded', 'false');
         }
+        if (overlay) {
+            overlay.classList.remove('is-visible');
+            overlay.setAttribute('aria-hidden', 'true');
+        }
     }
 
     function bindSummaryDrawerToggle() {
         var btn = document.getElementById('booking-summary-total');
         var footer = document.querySelector('.booking-summary-footer');
         var drawer = document.getElementById('booking-summary-mobile-drawer');
-        if (!btn || !footer || !drawer) {
+        var overlay = document.getElementById('booking-summary-mobile-overlay');
+        if (!btn || !footer || !drawer || !overlay) {
             return;
+        }
+        function setDrawerState(open) {
+            footer.classList.toggle('is-drawer-open', open);
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+            overlay.classList.toggle('is-visible', open);
+            overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
         }
         function toggleDrawer() {
             if (!window.matchMedia('(max-width: 991.98px)').matches) {
                 return;
             }
-            var open = footer.classList.toggle('is-drawer-open');
-            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-            drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+            var open = !footer.classList.contains('is-drawer-open');
+            setDrawerState(open);
         }
         btn.addEventListener('click', toggleDrawer);
         btn.addEventListener('keydown', function (ev) {
@@ -3298,6 +3311,9 @@
                 ev.preventDefault();
                 toggleDrawer();
             }
+        });
+        overlay.addEventListener('click', function () {
+            setDrawerState(false);
         });
     }
 

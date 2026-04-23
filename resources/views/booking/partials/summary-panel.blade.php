@@ -91,7 +91,14 @@
                         </div>
                     @endif
                 </div>
+
             </div>
+
+            <div
+                id="booking-summary-mobile-overlay"
+                class="booking-summary-mobile-overlay d-lg-none"
+                aria-hidden="true"
+            ></div>
         </div>
     </div>
 </aside>

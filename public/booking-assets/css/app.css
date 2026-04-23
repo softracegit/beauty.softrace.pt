@@ -1983,7 +1983,7 @@ button.booking-offcanvas-nav__link {
         left: 0;
         right: 0;
         bottom: 0;
-        z-index: 1020;
+        z-index: 1040 !important;
         flex-direction: column;
         align-items: stretch;
         justify-content: flex-end;
@@ -1998,6 +1998,7 @@ button.booking-offcanvas-nav__link {
 
     .booking-summary-footer-bar {
         position: relative;
+        z-index: 1040 !important;
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
@@ -2008,13 +2009,15 @@ button.booking-offcanvas-nav__link {
     }
 
     .booking-summary-mobile-drawer {
+        position: relative;
+        z-index: 1040 !important;
         width: 100%;
         min-height: 0;
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.3s ease;
         border-top: 1px solid transparent;
-        background: #f8f9fa;
+        background: #fff;
     }
 
     .booking-summary-footer.is-drawer-open .booking-summary-mobile-drawer {
@@ -2027,6 +2030,24 @@ button.booking-offcanvas-nav__link {
         max-height: var(--booking-mobile-drawer-max);
         margin-top: 0;
         padding: 0.72rem max(0.88rem, env(safe-area-inset-right, 0px)) 0.85rem max(0.88rem, env(safe-area-inset-left, 0px));
+        background: #fff;
+    }
+
+    .booking-summary-mobile-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.34);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 1031 !important;
+    }
+
+    .booking-summary-mobile-overlay.is-visible {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
     }
 
     /* Carrinho vazio: sem barra de resumo no ecrã */
