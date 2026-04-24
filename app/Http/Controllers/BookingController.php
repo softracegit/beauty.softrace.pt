@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\BookingSavedCard;
 use App\Models\BookingSlotHold;
 use App\Models\CalendarEvent;
 use App\Models\Category;
@@ -197,12 +198,22 @@ class BookingController extends Controller
         }
 
         $client = $isBookingClient ? $user->loadMissing('client')->client : null;
+        $savedCards = collect();
+        if ($client) {
+            $savedCards = BookingSavedCard::query()
+                ->where('client_id', $client->id)
+                ->whereNull('detached_at')
+                ->orderByDesc('is_default')
+                ->orderByDesc('updated_at')
+                ->get();
+        }
         $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired();
 
         return view('booking.step3', [
             'businessName' => config('app.name'),
             'bookingClientUser' => $isBookingClient ? $user : null,
             'bookingClient' => $client,
+            'savedCards' => $savedCards,
             'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired,
             'bookingPaymentIntentUrl' => route('booking.payment.intent'),
             'bookingPaymentCompleteUrl' => route('booking.payment.complete'),
@@ -237,9 +248,23 @@ class BookingController extends Controller
      */
     public function account(Request $request): View
     {
+        $user = $request->user();
+        $client = $user?->loadMissing('client')->client;
+        $cards = collect();
+        if ($client) {
+            $cards = BookingSavedCard::query()
+                ->where('client_id', $client->id)
+                ->whereNull('detached_at')
+                ->orderByDesc('is_default')
+                ->orderByDesc('updated_at')
+                ->get();
+        }
+
         return view('booking.conta.index', [
             'businessName' => config('app.name'),
-            'user' => $request->user(),
+            'user' => $user,
+            'savedCards' => $cards,
+            'stripePublishableKey' => (string) config('stripe.key'),
         ]);
     }
 

@@ -156,6 +156,11 @@ class Client extends Model
             ->where('role', User::ROLE_CLIENTE);
     }
 
+    public function bookingSavedCards(): HasMany
+    {
+        return $this->hasMany(BookingSavedCard::class);
+    }
+
     /**
      * Get all notes for this client
      */

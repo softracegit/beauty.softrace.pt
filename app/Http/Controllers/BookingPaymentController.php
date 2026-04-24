@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\BookingSavedCard;
 use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Payment;
@@ -12,13 +13,15 @@ use App\Services\BookingSlotHoldService;
 use App\Services\OnlineBookingCheckoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 use Stripe\Customer;
+use Stripe\CustomerSession;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
+use Stripe\PaymentMethod;
 use Stripe\Stripe;
 
 class BookingPaymentController extends Controller
@@ -77,7 +80,6 @@ class BookingPaymentController extends Controller
 
         $actor = $request->user();
         $authenticatedId = $actor instanceof User && $actor->isBookingClient() ? $actor->id : null;
-
         $this->configureStripeSdk();
         $stripeCustomerId = $this->resolveStripeCustomerIdForBookingActor($actor);
 
@@ -144,6 +146,7 @@ class BookingPaymentController extends Controller
 
         return response()->json([
             'client_secret' => $intent->client_secret,
+            'customer_session_client_secret' => $this->createCustomerSessionClientSecret($stripeCustomerId),
             'publishable_key' => $publishable,
             'booking_public_id' => $booking->public_id,
             'currency' => strtoupper($currency),
@@ -267,6 +270,9 @@ class BookingPaymentController extends Controller
                 'status' => Payment::STATUS_SUCCEEDED,
                 'failure_message' => null,
             ]);
+            if ($actor instanceof User && $actor->isBookingClient()) {
+                $this->syncSavedCardFromIntent($intent, $actor);
+            }
             $this->slotHolds->release($holdPublicId, $holdToken, 'booked');
 
             DB::commit();
@@ -424,6 +430,100 @@ class BookingPaymentController extends Controller
             'mbway', 'mb-way' => 'mb_way',
             default => $type,
         };
+    }
+
+    private function syncSavedCardFromIntent(PaymentIntent $intent, User $actor): void
+    {
+        $customerId = is_string($intent->customer ?? null) ? $intent->customer : '';
+        $paymentMethodId = is_string($intent->payment_method ?? null) ? $intent->payment_method : '';
+        if ($customerId === '' || $paymentMethodId === '') {
+            return;
+        }
+
+        /** @var Client|null $client */
+        $client = $actor->loadMissing('client')->client;
+        if (! $client || trim((string) ($client->stripe_customer_id ?? '')) !== $customerId) {
+            return;
+        }
+
+        try {
+            $method = PaymentMethod::retrieve($paymentMethodId);
+            try {
+                PaymentMethod::update($paymentMethodId, [
+                    'allow_redisplay' => 'always',
+                ]);
+                $method = PaymentMethod::retrieve($paymentMethodId);
+            } catch (\Throwable) {
+                // Campo opcional conforme versão/conta; não bloquear marcação.
+            }
+        } catch (ApiErrorException) {
+            return;
+        }
+        if (($method->type ?? null) !== 'card' || ! isset($method->card)) {
+            return;
+        }
+
+        DB::transaction(function () use ($client, $customerId, $method): void {
+            $row = BookingSavedCard::query()->updateOrCreate(
+                ['stripe_payment_method_id' => (string) $method->id],
+                [
+                    'client_id' => $client->id,
+                    'stripe_customer_id' => $customerId,
+                    'brand' => (string) ($method->card->brand ?? ''),
+                    'last4' => (string) ($method->card->last4 ?? ''),
+                    'exp_month' => (int) ($method->card->exp_month ?? 0) ?: null,
+                    'exp_year' => (int) ($method->card->exp_year ?? 0) ?: null,
+                    'fingerprint' => (string) ($method->card->fingerprint ?? ''),
+                    'detached_at' => null,
+                ]
+            );
+            $hasDefault = BookingSavedCard::query()
+                ->where('client_id', $client->id)
+                ->whereNull('detached_at')
+                ->where('is_default', true)
+                ->exists();
+            if (! $hasDefault) {
+                BookingSavedCard::query()
+                    ->where('client_id', $client->id)
+                    ->whereNull('detached_at')
+                    ->update(['is_default' => false]);
+                $row->update(['is_default' => true]);
+            }
+        });
+    }
+
+    private function createCustomerSessionClientSecret(?string $stripeCustomerId): ?string
+    {
+        if (! is_string($stripeCustomerId) || trim($stripeCustomerId) === '') {
+            return null;
+        }
+
+        try {
+            $session = CustomerSession::create([
+                'customer' => $stripeCustomerId,
+                'components' => [
+                    'payment_element' => [
+                        'enabled' => true,
+                        'features' => [
+                            'payment_method_redisplay' => 'enabled',
+                            'payment_method_allow_redisplay_filters' => ['always', 'limited', 'unspecified'],
+                            'payment_method_save' => 'enabled',
+                            'payment_method_save_usage' => 'off_session',
+                            'payment_method_remove' => 'enabled',
+                        ],
+                    ],
+                ],
+            ]);
+
+            return is_string($session->client_secret ?? null) ? $session->client_secret : null;
+        } catch (\Throwable $e) {
+            Log::warning('Stripe CustomerSession::create falhou no checkout booking.', [
+                'customer_id' => $stripeCustomerId,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     private function notifyClientAppointmentCreated(int $eventId, ?string $clientEmail): void

@@ -95,14 +95,6 @@
                                                     </div>
                                                 </form>
                                             @endif
-                                            <section class="booking-category-section mt-4" aria-label="Política de cancelamento">
-                                                <div class="card border shadow-sm rounded-3 booking-category-card">
-                                                    <div class="card-body">
-                                                        <h3 class="h6 fw-semibold text-dark mb-2">Política de cancelamento</h3>
-                                                        <p class="small text-muted mb-0">Por favor, note que as reservas só podem ser canceladas com um aviso prévio de 3 horas.</p>
-                                                    </div>
-                                                </div>
-                                            </section>
                                         @else
                                             <form id="booking-checkout-form" novalidate>
                                                 <div class="mb-3">
@@ -134,21 +126,30 @@
                                             </p>
                                         @endif
 
-                                        <div id="booking-payment-panel" class="mt-4 pt-3 border-top d-none"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif>
-                                            <h2 class="h6 fw-semibold text-dark mb-2 ps-1">Pagamento (depósito)</h2>
-                                            <p class="small text-muted mb-2">
-                                                Pagamento seguro com cartão (Stripe). Pagas hoje
-                                                <strong id="booking-pay-deposit-amount">—</strong>
-                                                (<span id="booking-pay-deposit-pct">—</span>% do total). O restante
-                                                <strong id="booking-pay-remaining-amount">—</strong>
-                                                paga-se na loja no dia do serviço.
-                                            </p>
-                                            <p id="booking-payment-stripe-hint" class="small text-muted mb-3">
-                                                Clica em <strong>Marcar</strong> no resumo para preparar o pagamento com cartão (valores abaixo são estimados até confirmares com o servidor).
-                                            </p>
-                                            <div id="booking-stripe-mount" class="mb-2"></div>
-                                            <p id="booking-stripe-error" class="small text-danger mb-0 d-none" role="alert"></p>
-                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="booking-category-section mb-4 pb-1"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif>
+                                <div id="booking-payment-panel" class="card border shadow-sm rounded-3 booking-category-card d-none">
+                                    <div class="card-body">
+                                        <h2 class="h6 fw-semibold text-dark mb-2">Pagamento</h2>
+                                        <p class="small text-muted mb-2">
+                                            Pagamento de reserva no valor de <strong id="booking-pay-deposit-amount">—</strong>
+                                            (<span id="booking-pay-deposit-pct">—</span>% do total). O restante
+                                            <strong id="booking-pay-remaining-amount">—</strong> paga na loja no dia do serviço.
+                                        </p>
+                                        <div id="booking-stripe-mount" class="mb-2"></div>
+                                        <p id="booking-stripe-error" class="small text-danger mb-0 d-none" role="alert"></p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="booking-category-section mb-4 pb-1" aria-label="Política de cancelamento">
+                                <div class="card border shadow-sm rounded-3 booking-category-card">
+                                    <div class="card-body">
+                                        <h3 class="h6 fw-semibold text-dark mb-2">Política de cancelamento</h3>
+                                        <p class="small text-muted mb-0">Por favor, note que as reservas só podem ser canceladas com um aviso prévio de 3 horas.</p>
                                     </div>
                                 </div>
                             </section>

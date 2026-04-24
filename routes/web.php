@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingClientAuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingPaymentController;
+use App\Http\Controllers\BookingSavedCardController;
 use App\Http\Controllers\BookingSlotHoldController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CategoryController;
@@ -94,6 +95,10 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
 
     Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {
         Route::get('/', [BookingController::class, 'account'])->name('index');
+        Route::post('/cartoes/setup-intent', [BookingSavedCardController::class, 'createSetupIntent'])->name('cards.setup_intent');
+        Route::post('/cartoes/sync', [BookingSavedCardController::class, 'syncAfterSetupIntent'])->name('cards.sync');
+        Route::post('/cartoes/{card}/default', [BookingSavedCardController::class, 'makeDefault'])->name('cards.default');
+        Route::delete('/cartoes/{card}', [BookingSavedCardController::class, 'destroy'])->name('cards.destroy');
     });
 });
 

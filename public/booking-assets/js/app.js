@@ -19,6 +19,7 @@
 
     var checkoutPaymentState = {
         clientSecret: null,
+        customerSessionClientSecret: null,
         publishableKey: null,
         bookingPublicId: null,
         stripe: null,
@@ -2491,6 +2492,7 @@
 
     function resetCheckoutPaymentUi() {
         checkoutPaymentState.clientSecret = null;
+        checkoutPaymentState.customerSessionClientSecret = null;
         checkoutPaymentState.publishableKey = null;
         checkoutPaymentState.bookingPublicId = null;
         checkoutPaymentState.stripe = null;
@@ -2836,9 +2838,16 @@
                     clientSecret: checkoutPaymentState.clientSecret,
                     appearance: { theme: 'stripe' },
                     loader: 'auto',
+                    customerSessionClientSecret: checkoutPaymentState.customerSessionClientSecret || undefined,
                 });
                 checkoutPaymentState.elements = elements;
-                var paymentEl = elements.create('payment');
+                var paymentEl = elements.create('payment', {
+                    layout: {
+                        type: 'accordion',
+                        defaultCollapsed: false,
+                        radios: true,
+                    },
+                });
                 paymentEl.mount(mount);
                 paymentEl.on('ready', function () {
                     setStripeInlineError('');
@@ -2910,6 +2919,26 @@
                 setStripeInlineError('Erro ao confirmar o pagamento. Tenta novamente.');
                 setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
             });
+    }
+
+    function maybeAutoPrepareCheckoutPayment() {
+        if (!document.body || !document.body.classList.contains('booking-page--step3')) {
+            return;
+        }
+        if (!isCheckoutPaymentRequired()) {
+            return;
+        }
+        if (checkoutPaymentState.clientSecret) {
+            return;
+        }
+        if (!hasCheckoutContact() || !state.items.length) {
+            return;
+        }
+        if (!slotHoldState.holdPublicId || !slotHoldState.expiresAt || new Date(slotHoldState.expiresAt).getTime() <= Date.now()) {
+            return;
+        }
+        setCheckoutNextBtnLoading(true, 'A preparar pagamento...');
+        submitBookingCheckout();
     }
 
     function finalizeBookingAfterPayment(bookingPublicId, paymentIntentId) {
@@ -3206,6 +3235,7 @@
                 }
                 var d = res.data;
                 checkoutPaymentState.clientSecret = d.client_secret;
+                checkoutPaymentState.customerSessionClientSecret = d.customer_session_client_secret || null;
                 checkoutPaymentState.publishableKey = d.publishable_key;
                 checkoutPaymentState.bookingPublicId = d.booking_public_id;
                 try {
@@ -3820,6 +3850,7 @@
         bindBookingSummaryFooterVisualViewport();
         if (document.body && document.body.classList.contains('booking-page--step3')) {
             tryResumeStripeRedirectOnCheckout();
+            setTimeout(maybeAutoPrepareCheckoutPayment, 150);
         }
     }
 
