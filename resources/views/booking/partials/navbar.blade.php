@@ -100,19 +100,19 @@
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index') }}">
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.marcacoes') }}">
                                 <i class="bi bi-calendar3 booking-navbar-account__item-icon" aria-hidden="true"></i>
                                 <span>Marcações</span>
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}#carteira">
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="#!">
                                 <i class="bi bi-wallet2 booking-navbar-account__item-icon" aria-hidden="true"></i>
                                 <span>Carteira</span>
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}">
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.settings') }}">
                                 <i class="bi bi-gear booking-navbar-account__item-icon" aria-hidden="true"></i>
                                 <span>Definições</span>
                             </a>
