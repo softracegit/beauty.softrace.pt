@@ -1372,6 +1372,39 @@ button.booking-offcanvas-nav__link {
     padding-bottom: 1rem;
 }
 
+@media (max-width: 575.98px) {
+    .booking-auth-modal .modal-dialog {
+        margin: 0.75rem;
+    }
+
+    .booking-auth-modal .modal-content {
+        border-radius: 1rem;
+    }
+
+    .booking-auth-modal .modal-body {
+        padding-top: 0.75rem;
+        padding-bottom: 1rem;
+    }
+
+    .booking-auth-modal .form-control,
+    .booking-auth-modal .form-select,
+    .booking-auth-modal .btn {
+        min-height: 3rem;
+        font-size: 1rem;
+    }
+
+    .booking-auth-modal .btn {
+        font-weight: 600;
+    }
+
+    .booking-auth-modal .booking-auth-otp-input {
+        min-height: 3.25rem;
+        font-size: 1.2rem;
+        padding-top: 0.8rem;
+        padding-bottom: 0.8rem;
+    }
+}
+
 .booking-account-layout {
     display: grid;
     grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);

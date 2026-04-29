@@ -3808,6 +3808,11 @@
                 });
         });
 
+        if (codeDigitInputs[0]) {
+            // iOS OTP autofill may inject all digits into first field.
+            codeDigitInputs[0].setAttribute('maxlength', '6');
+        }
+
         codeDigitInputs.forEach(function (input, idx) {
             input.addEventListener('input', function () {
                 var clean = String(input.value || '').replace(/\D/g, '');
@@ -3815,7 +3820,7 @@
                     var merged = getOtpCode();
                     merged = merged.slice(0, idx) + clean + merged.slice(idx + 1);
                     setOtpCode(merged);
-                    var focusPos = Math.min(5, idx + clean.length);
+                    var focusPos = Math.min(5, idx + clean.length - 1);
                     codeDigitInputs[focusPos].focus();
                 } else {
                     input.value = clean;
@@ -3823,9 +3828,9 @@
                     if (clean && idx < 5) {
                         codeDigitInputs[idx + 1].focus();
                     }
-                    if (getOtpCode().length === 6) {
-                        submitOtpCode();
-                    }
+                }
+                if (getOtpCode().length === 6) {
+                    submitOtpCode();
                 }
             });
             input.addEventListener('keydown', function (ev) {

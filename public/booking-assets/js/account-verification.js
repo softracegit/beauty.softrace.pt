@@ -198,6 +198,11 @@
                 });
         });
 
+        if (digits[0]) {
+            // iOS OTP autofill may inject all digits into first field.
+            digits[0].setAttribute('maxlength', '6');
+        }
+
         digits.forEach(function (input, idx) {
             input.addEventListener('input', function () {
                 var clean = String(input.value || '').replace(/\D/g, '');
@@ -205,7 +210,7 @@
                     var merged = getCode();
                     merged = merged.slice(0, idx) + clean + merged.slice(idx + 1);
                     setCode(merged);
-                    digits[Math.min(5, idx + clean.length)].focus();
+                    digits[Math.min(5, idx + clean.length - 1)].focus();
                 } else {
                     input.value = clean;
                     codeHidden.value = getCode();
