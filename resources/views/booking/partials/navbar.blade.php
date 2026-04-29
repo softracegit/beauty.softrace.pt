@@ -3,6 +3,7 @@
         && auth()->user() instanceof \App\Models\User
         && auth()->user()->isBookingClient();
     $bookingUserDisplayName = '';
+    $bookingUserInitials = '';
     if ($bookingClientAuthed) {
         $bookingUserDisplayName = trim((string) auth()->user()->name);
         if ($bookingUserDisplayName === '') {
@@ -10,6 +11,30 @@
         }
         if ($bookingUserDisplayName === '') {
             $bookingUserDisplayName = 'Conta';
+        }
+
+        $nameForInitials = trim((string) auth()->user()->name);
+        if ($nameForInitials !== '') {
+            $parts = preg_split('/\s+/u', $nameForInitials, -1, PREG_SPLIT_NO_EMPTY);
+            if (count($parts) >= 2) {
+                $first = (string) ($parts[0] ?? '');
+                $last = (string) ($parts[count($parts) - 1] ?? '');
+                $bookingUserInitials = strtoupper(mb_substr($first, 0, 1).mb_substr($last, 0, 1));
+            } else {
+                $compact = preg_replace('/\s+/u', '', $nameForInitials);
+                $bookingUserInitials = strtoupper(mb_substr($compact, 0, 2));
+            }
+        }
+        if ($bookingUserInitials === '') {
+            $emailRaw = trim((string) (auth()->user()->email ?? ''));
+            if ($emailRaw !== '' && str_contains($emailRaw, '@')) {
+                $local = explode('@', $emailRaw, 2)[0];
+                $local = preg_replace('/[^a-zA-Z0-9]/u', '', $local);
+                $bookingUserInitials = strtoupper(mb_substr($local, 0, 2));
+            }
+        }
+        if ($bookingUserInitials === '') {
+            $bookingUserInitials = '?';
         }
     }
     $bookingRouteName = request()->route()?->getName();
@@ -75,66 +100,77 @@
         @endif
         <div class="booking-navbar__cell booking-navbar__cell--end d-flex align-items-center gap-2">
             @if ($bookingClientAuthed)
-                <div class="dropdown booking-navbar-account">
-                    <button
-                        type="button"
-                        class="btn btn-outline-dark btn-sm dropdown-toggle rounded-pill booking-navbar-account__toggle"
-                        id="booking-navbar-account-menu"
-                        data-bs-toggle="dropdown"
-                        data-bs-display="static"
-                        aria-expanded="false"
-                        aria-haspopup="menu"
-                        aria-controls="booking-navbar-account-dropdown"
-                        aria-label="Menu da conta de {{ $bookingUserDisplayName }}"
+                <div class="d-flex align-items-center gap-1 gap-md-2">
+                    <a
+                        href="{{ route('booking.index') }}"
+                        class="booking-navbar-new-booking"
+                        aria-label="Nova marcação"
                     >
-                        <span class="booking-navbar-account__toggle-inner">
-                            <i class="bi bi-person booking-navbar-account__toggle-icon" aria-hidden="true"></i>
-                            <span class="booking-navbar-account__name">{{ $bookingUserDisplayName }}</span>
-                        </span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end booking-navbar-account__menu" id="booking-navbar-account-dropdown" aria-labelledby="booking-navbar-account-menu">
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index') }}">
-                                <i class="bi bi-plus-circle booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                <span>Nova marcação</span>
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}">
-                                <i class="bi bi-person booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                <span>Perfil</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.marcacoes') }}">
-                                <i class="bi bi-calendar3 booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                <span>Marcações</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="#!">
-                                <i class="bi bi-wallet2 booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                <span>Carteira</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.settings') }}">
-                                <i class="bi bi-gear booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                <span>Definições</span>
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li>
-                            <form method="post" action="{{ route('logout') }}" class="px-0 mb-0">
-                                @csrf
-                                <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 w-100 text-start border-0 bg-transparent">
-                                    <i class="bi bi-box-arrow-right booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                    <span>Terminar sessão</span>
-                                </button>
-                            </form>
-                        </li>
-                    </ul>
+                        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        <span class="d-none d-md-inline">Nova marcação</span>
+                    </a>
+                    <div class="dropdown booking-navbar-account">
+                        <button
+                            type="button"
+                            class="btn btn-outline-dark btn-sm dropdown-toggle rounded-pill booking-navbar-account__toggle"
+                            id="booking-navbar-account-menu"
+                            data-bs-toggle="dropdown"
+                            data-bs-display="static"
+                            aria-expanded="false"
+                            aria-haspopup="menu"
+                            aria-controls="booking-navbar-account-dropdown"
+                            aria-label="Menu da conta de {{ $bookingUserDisplayName }}"
+                        >
+                            <span class="booking-navbar-account__toggle-inner">
+                                <i class="bi bi-person booking-navbar-account__toggle-icon" aria-hidden="true"></i>
+                                <span class="booking-navbar-account__name d-none d-md-inline">{{ $bookingUserDisplayName }}</span>
+                                <span class="booking-navbar-account__initials d-md-none" aria-hidden="true">{{ $bookingUserInitials }}</span>
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end booking-navbar-account__menu" id="booking-navbar-account-dropdown" aria-labelledby="booking-navbar-account-menu">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index') }}">
+                                    <i class="bi bi-plus-circle booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                    <span>Nova marcação</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}">
+                                    <i class="bi bi-person booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                    <span>Perfil</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.marcacoes') }}">
+                                    <i class="bi bi-calendar3 booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                    <span>Marcações</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="#!">
+                                    <i class="bi bi-wallet2 booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                    <span>Carteira</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.settings') }}">
+                                    <i class="bi bi-gear booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                    <span>Definições</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="post" action="{{ route('logout') }}" class="px-0 mb-0">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 w-100 text-start border-0 bg-transparent">
+                                        <i class="bi bi-box-arrow-right booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                        <span>Terminar sessão</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             @else
                 <button type="button" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap js-booking-open-auth-modal" id="booking-navbar-open-auth">

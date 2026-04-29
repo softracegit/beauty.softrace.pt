@@ -235,12 +235,23 @@ class BookingController extends Controller
 
     /**
      * Confirmação após marcação online criada com sucesso.
+     * Clientes autenticados são enviados para a listagem de marcações com o mesmo resumo visual.
      */
-    public function confirm(): View
+    public function confirm(Request $request): View|RedirectResponse
     {
+        $user = $request->user();
+        if ($user instanceof User && $user->isBookingClient()) {
+            $query = ['marcacao_confirmada' => '1'];
+            if ($request->boolean('primeira_marcacao')) {
+                $query['primeira_marcacao'] = '1';
+            }
+
+            return redirect()->route('booking.conta.marcacoes', $query);
+        }
+
         return view('booking.confirm', [
             'businessName' => config('app.name'),
-            'primeiraMarcacao' => request()->boolean('primeira_marcacao'),
+            'primeiraMarcacao' => $request->boolean('primeira_marcacao'),
         ]);
     }
 
@@ -307,9 +318,11 @@ class BookingController extends Controller
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->with([
                 'user:id,name',
-                'service:id,name',
-                'eventServiceItems.service:id,name',
-                'onlineBooking.payments',
+                'service:id,name,category_id',
+                'service.category:id,name',
+                'eventServiceItems.service:id,name,category_id',
+                'eventServiceItems.service.category:id,name',
+                'onlineBooking',
                 'sale',
             ])
             ->orderByDesc('start_at')

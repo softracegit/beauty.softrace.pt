@@ -1,7 +1,5 @@
 @php
-    use App\Models\Booking;
     use App\Models\CalendarEvent;
-    use App\Models\Payment;
     use App\Models\Sale;
 
     $marcacoes = $marcacoes ?? collect();
@@ -9,34 +7,22 @@
     $fmtMoney = static function ($value): string {
         return number_format((float) $value, 2, ',', ' ').' €';
     };
-    $bookingPaymentLabel = static function (?string $status): string {
-        return match ($status) {
-            Booking::PAYMENT_PAID => 'Pagamento online: concluído',
-            Booking::PAYMENT_PENDING => 'Pagamento online: pendente',
-            Booking::PAYMENT_FAILED => 'Pagamento online: falhou',
-            default => $status ? 'Pagamento online: '.$status : '—',
-        };
-    };
-    $paymentIntentStatusLabel = static function (?string $status): string {
-        return match ($status) {
-            Payment::STATUS_SUCCEEDED => 'Stripe: concluído',
-            Payment::STATUS_PENDING => 'Stripe: pendente',
-            Payment::STATUS_FAILED => 'Stripe: falhou',
-            Payment::STATUS_CANCELED => 'Stripe: cancelado',
-            default => $status ? 'Stripe: '.$status : '',
-        };
-    };
 @endphp
 
 <section id="marcacoes" class="booking-account-marcacoes mb-3">
-    <div class="card border shadow-sm rounded-3">
-        <div class="card-body py-3">
-            <p class="small fw-semibold text-uppercase text-muted mb-3">Histórico de marcações</p>
+    <div class="card border shadow-sm rounded-3 booking-account-marcacoes__shell">
+        <div class="card-body p-3 p-md-4">
+            <header class="booking-account-marcacoes__head mb-3 mb-md-4">
+                <h2 class="h6 fw-semibold text-dark mb-1">Histórico de marcações</h2>
+                <p class="small text-muted mb-0">Resumo das tuas marcações, valores e estado.</p>
+            </header>
 
             @if ($marcacoes->isEmpty())
-                <p class="small text-muted mb-0">Ainda não tens marcações registadas nesta conta.</p>
+                <div class="booking-marcacao-empty text-center py-5 px-3 rounded-3 border bg-light bg-opacity-50">
+                    <p class="small text-muted mb-0">Ainda não tens marcações registadas nesta conta.</p>
+                </div>
             @else
-                <div class="d-flex flex-column gap-3">
+                <div class="booking-marcacao-list d-flex flex-column gap-3 gap-md-4">
                     @foreach ($marcacoes as $ev)
                         @php
                             $start = $ev->start_at?->copy()->timezone($bookingTz);
@@ -45,25 +31,13 @@
                             $statusKey = (string) ($ev->status ?? CalendarEvent::STATUS_AGENDADO);
                             $statusLabel = CalendarEvent::statuses()[$statusKey] ?? $statusKey;
 
-                            $lines = collect();
-                            foreach ($ev->eventServiceItems as $row) {
-                                $base = trim((string) ($row->service?->name ?? ''));
-                                if ($base === '') {
-                                    $base = 'Serviço';
-                                }
-                                if ($row->option_name) {
-                                    $base .= ' — '.$row->option_name;
-                                }
-                                $lines->push($base);
-                            }
-                            if ($lines->isEmpty() && trim((string) ($ev->title ?? '')) !== '') {
-                                $lines->push(trim((string) $ev->title));
-                            }
-                            if ($lines->isEmpty()) {
-                                $lines->push('Marcação');
+                            $tec = trim((string) ($ev->user?->name ?? ''));
+                            if ($tec === '') {
+                                $tec = '—';
                             }
 
-                            $pivotTotal = (float) $ev->eventServiceItems->sum(fn ($r) => (float) ($r->price ?? 0));
+                            $serviceRows = $ev->eventServiceItems;
+                            $pivotTotal = (float) $serviceRows->sum(fn ($r) => (float) ($r->price ?? 0));
 
                             $isLocked = in_array($statusKey, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true);
                             $isDone = $statusKey === CalendarEvent::STATUS_COMPLETO;
@@ -82,155 +56,231 @@
                                 }
                             }
 
-                            $tec = trim((string) ($ev->user?->name ?? ''));
-                            if ($tec === '') {
-                                $tec = '—';
-                            }
-
                             $ob = $ev->onlineBooking;
                             $sale = $ev->sale;
+
+                            $gorjeta = $sale ? (float) ($sale->gorjeta ?? 0) : 0.0;
+                            $pagoOnline = $ob ? (float) ($ob->paid_amount ?? 0) : 0.0;
+                            $pagoLoja = 0.0;
+                            if ($sale) {
+                                $vp = (float) ($sale->valor_pago ?? 0);
+                                $pagoLoja = max(0, $vp - $gorjeta - $pagoOnline);
+                            }
+                            $totalPago = $sale
+                                ? (float) ($sale->valor_pago ?? 0)
+                                : ($pagoOnline > 0 ? $pagoOnline : $pivotTotal);
+
+                            $showFaltaLoja = $ob
+                                && (float) ($ob->remaining_amount ?? 0) > 0.004
+                                && $statusKey !== CalendarEvent::STATUS_COMPLETO;
+
+                            $metodoOnlineLabel = '—';
+                            if ($pagoOnline > 0.004) {
+                                if ($ob && trim((string) ($ob->stripe_payment_intent_id ?? '')) !== '') {
+                                    $metodoOnlineLabel = 'Cartão online';
+                                } elseif ($ob) {
+                                    $metodoOnlineLabel = 'Online';
+                                }
+                            }
+
+                            $metodoLojaLabel = '—';
+                            if ($pagoLoja > 0.004 && $sale) {
+                                $pm = trim((string) ($sale->payment_method ?? ''));
+                                if ($pm !== '') {
+                                    $metodoLojaLabel = Sale::paymentMethods()[$pm] ?? $pm;
+                                }
+                            }
+
+                            $totalComGorjeta = $pivotTotal + $gorjeta;
                         @endphp
 
-                        <article class="booking-marcacao-card border rounded-3 p-3 bg-white">
-                            <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-2">
-                                <div class="min-w-0">
-                                    <div class="small fw-semibold text-dark">
+                        <article class="booking-marcacao-card">
+                            <header class="booking-marcacao-card__header">
+                                <div class="booking-marcacao-card__when">
+                                    <div class="booking-marcacao-card__date text-dark fw-semibold">
                                         @if ($start)
                                             {{ $start->copy()->locale('pt')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}
                                         @else
                                             —
                                         @endif
                                     </div>
-                                    <div class="small text-muted">
-                                        {{ $start?->format('H:i') ?? '—' }}
-                                        @if ($end)
-                                            — {{ $end->format('H:i') }}
-                                        @endif
-                                        <span class="text-muted">({{ $bookingTz }})</span>
+                                    <div class="booking-marcacao-card__time text-muted small d-flex align-items-center gap-1 flex-wrap">
+                                        <i class="bi bi-clock" aria-hidden="true"></i>
+                                        <span>
+                                            {{ $start?->format('H:i') ?? '—' }}
+                                            @if ($end)
+                                                – {{ $end->format('H:i') }}
+                                            @endif
+                                        </span>
                                     </div>
                                 </div>
-                                <div class="d-flex flex-wrap gap-1 justify-content-end">
-                                    <span class="badge rounded-pill text-bg-light text-dark border booking-marcacao-badge">{{ $whenLabel }}</span>
-                                    <span class="badge rounded-pill text-bg-secondary booking-marcacao-badge">{{ $statusLabel }}</span>
+                                <div class="booking-marcacao-card__badges d-flex flex-wrap gap-1 justify-content-md-end">
+                                    <span class="badge rounded-pill booking-marcacao-card__badge booking-marcacao-card__badge--muted">{{ $whenLabel }}</span>
+                                    <span class="badge rounded-pill booking-marcacao-card__badge booking-marcacao-card__badge--status">{{ $statusLabel }}</span>
                                 </div>
-                            </div>
+                            </header>
 
-                            <dl class="row small mb-0 booking-marcacao-dl">
-                                <dt class="col-sm-4 col-lg-3 text-muted">Serviços</dt>
-                                <dd class="col-sm-8 col-lg-9 mb-2">
-                                    <ul class="mb-0 ps-3">
-                                        @foreach ($lines as $line)
-                                            <li>{{ $line }}</li>
-                                        @endforeach
-                                    </ul>
-                                </dd>
+                            <div class="booking-marcacao-card__body">
+                                <div class="booking-marcacao-card__services-stack d-flex flex-column gap-2 mb-3">
+                                    <div class="booking-marcacao-card__services-list">
+                                        @forelse ($serviceRows as $row)
+                                            @php
+                                                $parentName = trim((string) ($row->service?->name ?? ''));
+                                                $optName = trim((string) ($row->option_name ?? ''));
+                                                if ($optName !== '') {
+                                                    $displayName = $optName;
+                                                } else {
+                                                    $displayName = $parentName !== '' ? $parentName : 'Serviço';
+                                                }
+                                                $linePrice = (float) ($row->price ?? 0);
+                                                $catLabel = trim((string) ($row->service?->category?->name ?? ''));
+                                            @endphp
+                                            <div class="booking-marcacao-card__service-row">
+                                                <div class="booking-marcacao-card__svc-main min-w-0">
+                                                    <div class="booking-marcacao-card__svc-name text-dark fw-semibold small">{{ $displayName }}</div>
+                                                    @if ($catLabel !== '' || $tec !== '—')
+                                                        <div class="booking-marcacao-card__service-row-meta">
+                                                            @if ($catLabel !== '')
+                                                                <span class="booking-marcacao-card__service-row-cat">{{ $catLabel }}</span>
+                                                            @endif
+                                                            @if ($catLabel !== '' && $tec !== '—')
+                                                                <span class="text-muted" aria-hidden="true">·</span>
+                                                            @endif
+                                                            @if ($tec !== '—')
+                                                                <span class="booking-marcacao-card__service-row-tech">{{ $tec }}</span>
+                                                            @endif
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <div class="booking-marcacao-card__svc-price text-dark fw-semibold small text-nowrap ps-2">{{ $fmtMoney($linePrice) }}</div>
+                                            </div>
+                                        @empty
+                                            @php
+                                                $fallbackName = trim((string) ($ev->title ?? ''));
+                                                if ($fallbackName === '') {
+                                                    $fallbackName = 'Marcação';
+                                                }
+                                                $fallbackCat = trim((string) ($ev->service?->category?->name ?? ''));
+                                            @endphp
+                                            <div class="booking-marcacao-card__service-row">
+                                                <div class="booking-marcacao-card__svc-main min-w-0">
+                                                    <div class="booking-marcacao-card__svc-name text-dark fw-semibold small">{{ $fallbackName }}</div>
+                                                    @if ($fallbackCat !== '' || $tec !== '—')
+                                                        <div class="booking-marcacao-card__service-row-meta">
+                                                            @if ($fallbackCat !== '')
+                                                                <span class="booking-marcacao-card__service-row-cat">{{ $fallbackCat }}</span>
+                                                            @endif
+                                                            @if ($fallbackCat !== '' && $tec !== '—')
+                                                                <span class="text-muted" aria-hidden="true">·</span>
+                                                            @endif
+                                                            @if ($tec !== '—')
+                                                                <span class="booking-marcacao-card__service-row-tech">{{ $tec }}</span>
+                                                            @endif
+                                                        </div>
+                                                    @endif
+                                                </div>
+                                                <div class="booking-marcacao-card__svc-price text-dark fw-semibold small text-nowrap ps-2">{{ $fmtMoney($pivotTotal) }}</div>
+                                            </div>
+                                        @endforelse
+                                    </div>
 
-                                <dt class="col-sm-4 col-lg-3 text-muted">Técnico</dt>
-                                <dd class="col-sm-8 col-lg-9 mb-2">{{ $tec }}</dd>
+                                    <div class="booking-marcacao-card__section booking-marcacao-card__section--boxed booking-marcacao-card__section--total-snapshot">
+                                        <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--lead">
+                                            <span class="booking-marcacao-card__total-line__label">Total</span>
+                                            <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($pivotTotal) }}</span>
+                                        </div>
+                                        @if ($gorjeta > 0.004)
+                                            <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--split">
+                                                <span class="booking-marcacao-card__total-line__label">Gorjeta</span>
+                                                <span class="booking-marcacao-card__total-line__value booking-marcacao-card__total-line__value--soft">{{ $fmtMoney($gorjeta) }}</span>
+                                            </div>
+                                            <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--grand">
+                                                <span class="booking-marcacao-card__total-line__label booking-marcacao-card__total-line__label--grand">Total (serviços + gorjeta)</span>
+                                                <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($totalComGorjeta) }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
 
                                 @if ($ev->description)
-                                    <dt class="col-sm-4 col-lg-3 text-muted">Notas</dt>
-                                    <dd class="col-sm-8 col-lg-9 mb-2 text-break">{{ \Illuminate\Support\Str::limit(strip_tags((string) $ev->description), 400) }}</dd>
+                                    <div class="booking-marcacao-card__section booking-marcacao-card__section--notes">
+                                        <h3 class="booking-marcacao-card__label">Notas</h3>
+                                        <p class="booking-marcacao-card__notes small text-muted mb-0">{{ \Illuminate\Support\Str::limit(strip_tags((string) $ev->description), 400) }}</p>
+                                    </div>
                                 @endif
 
-                                <dt class="col-sm-4 col-lg-3 text-muted">Valores (serviços)</dt>
-                                <dd class="col-sm-8 col-lg-9 mb-2">
-                                    Total linhas: {{ $fmtMoney($pivotTotal) }}
-                                    @if ($ob)
-                                        <span class="text-muted"> · Total reserva online: {{ $fmtMoney($ob->total_price) }}</span>
+                                <div class="booking-marcacao-card__section booking-marcacao-card__section--boxed">
+                                    <h3 class="booking-marcacao-card__label">Pagamentos</h3>
+                                    <div class="booking-marcacao-stats @unless ($showFaltaLoja) booking-marcacao-stats--four @endunless">
+                                        @unless ($showFaltaLoja)
+                                            <div class="booking-marcacao-stat">
+                                                <span class="booking-marcacao-stat__label">Valor pago</span>
+                                                <span class="booking-marcacao-stat__value booking-marcacao-stat__value--total">{{ $fmtMoney($totalPago) }}</span>
+                                            </div>
+                                        @endunless
+                                        <div class="booking-marcacao-stat">
+                                            <span class="booking-marcacao-stat__label">Pago online</span>
+                                            <div class="booking-marcacao-stat__amount-block">
+                                                <span class="booking-marcacao-stat__value">
+                                                    {{ $fmtMoney($pagoOnline) }}
+                                                    @if ($ob && $ob->deposit_percent_used)
+                                                        <span class="booking-marcacao-stat__suffix">{{ (int) $ob->deposit_percent_used }}%</span>
+                                                    @endif
+                                                </span>
+                                                <span class="booking-marcacao-stat__method">{{ $metodoOnlineLabel }}</span>
+                                            </div>
+                                        </div>
+                                        @if ($showFaltaLoja)
+                                            <div class="booking-marcacao-stat">
+                                                <span class="booking-marcacao-stat__label">Falta</span>
+                                                <div class="booking-marcacao-stat__amount-block">
+                                                    <span class="booking-marcacao-stat__value text-warning">{{ $fmtMoney($ob->remaining_amount) }}</span>
+                                                    <span class="booking-marcacao-stat__method">Por pagar na loja</span>
+                                                </div>
+                                            </div>
+                                        @else
+                                            <div class="booking-marcacao-stat">
+                                                <span class="booking-marcacao-stat__label">Pago em loja</span>
+                                                <div class="booking-marcacao-stat__amount-block">
+                                                    <span class="booking-marcacao-stat__value">{{ $fmtMoney($pagoLoja) }}</span>
+                                                    <span class="booking-marcacao-stat__method">{{ $metodoLojaLabel }}</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                        @unless ($showFaltaLoja)
+                                            <div class="booking-marcacao-stat">
+                                                <span class="booking-marcacao-stat__label">Gorjeta</span>
+                                                <span class="booking-marcacao-stat__value">{{ $fmtMoney($gorjeta) }}</span>
+                                            </div>
+                                        @endunless
+                                    </div>
+
+                                    @if (! $ob)
+                                        <p class="small text-muted mb-0 mt-2">Sem registo de depósito online (marcação sem pagamento antecipado ou criada na receção).</p>
                                     @endif
-                                </dd>
-
-                                @if ($ob)
-                                    <dt class="col-sm-4 col-lg-3 text-muted">Reserva online</dt>
-                                    <dd class="col-sm-8 col-lg-9 mb-2">
-                                        <div>{{ $bookingPaymentLabel($ob->payment_status) }}</div>
-                                        <div class="mt-1">Pago online (depósito): <strong>{{ $fmtMoney($ob->paid_amount) }}</strong></div>
-                                        <div>
-                                            Falta (loja / saldo):
-                                            @if ((float) $ob->remaining_amount > 0 && $ob->payment_status === Booking::PAYMENT_PAID)
-                                                <strong class="text-warning">{{ $fmtMoney($ob->remaining_amount) }}</strong>
-                                                <span class="small text-muted">(a liquidar na loja)</span>
-                                            @else
-                                                <strong>{{ $fmtMoney($ob->remaining_amount) }}</strong>
-                                            @endif
-                                        </div>
-                                        @if ($ob->deposit_percent_used)
-                                            <div class="text-muted small mt-1">Depósito cobrado: {{ (int) $ob->deposit_percent_used }}% do total.</div>
-                                        @endif
-                                        @if ($ob->payments->isNotEmpty())
-                                            <ul class="mb-0 mt-2 ps-3 text-muted small">
-                                                @foreach ($ob->payments as $pay)
-                                                    <li>
-                                                        {{ $fmtMoney($pay->amount) }}
-                                                        @if ($pay->stripe_payment_intent_id)
-                                                            <span class="text-break"> · PI {{ \Illuminate\Support\Str::limit($pay->stripe_payment_intent_id, 24) }}</span>
-                                                        @endif
-                                                        @if ($pay->status)
-                                                            · {{ $paymentIntentStatusLabel($pay->status) }}
-                                                        @endif
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-                                        @endif
-                                    </dd>
-                                @else
-                                    <dt class="col-sm-4 col-lg-3 text-muted">Reserva online</dt>
-                                    <dd class="col-sm-8 col-lg-9 mb-2 text-muted">Sem registo de depósito online (ex.: marcação sem pagamento antecipado ou criada na receção).</dd>
-                                @endif
-
-                                @if ($sale)
-                                    <dt class="col-sm-4 col-lg-3 text-muted">Fatura / loja</dt>
-                                    <dd class="col-sm-8 col-lg-9 mb-2">
-                                        <div>
-                                            @if ($sale->numero_fatura)
-                                                Doc. {{ $sale->numero_fatura }}
-                                                @if ($sale->data_emissao)
-                                                    · {{ $sale->data_emissao->format('d/m/Y') }}
-                                                @endif
-                                            @else
-                                                Venda registada
-                                            @endif
-                                        </div>
-                                        <div class="mt-1">Total: {{ $fmtMoney($sale->total) }} · Valor pago: {{ $fmtMoney($sale->valor_pago) }}</div>
-                                        @if ((float) $sale->desconto > 0)
-                                            <div class="small text-muted">Desconto: {{ $fmtMoney($sale->desconto) }}</div>
-                                        @endif
-                                        @if ((float) $sale->gorjeta > 0)
-                                            <div class="small text-muted">Gorjeta: {{ $fmtMoney($sale->gorjeta) }}</div>
-                                        @endif
-                                        <div class="small text-muted mt-1">
-                                            Estado: {{ Sale::statuses()[$sale->status] ?? $sale->status }}
-                                            @if ($sale->payment_method)
-                                                · {{ Sale::paymentMethods()[$sale->payment_method] ?? $sale->payment_method }}
-                                            @endif
-                                        </div>
-                                    </dd>
-                                @endif
+                                </div>
 
                                 @if ($isLocked)
-                                    <dt class="col-sm-4 col-lg-3 text-muted">Cancelamento / falta</dt>
-                                    <dd class="col-sm-8 col-lg-9 mb-2">
+                                    <div class="booking-marcacao-card__alert small">
+                                        <div class="fw-semibold text-dark mb-1">Cancelamento / falta</div>
                                         @if ($ev->cancellation_type)
-                                            <div>Tipo: {{ $ev->cancellation_type === 'faltou' ? 'Faltou' : 'Cancelamento' }}</div>
+                                            <div class="text-muted">Tipo: {{ $ev->cancellation_type === 'faltou' ? 'Faltou' : 'Cancelamento' }}</div>
                                         @endif
                                         @if ($ev->cancellation_reason)
-                                            <div class="text-break mt-1">Motivo: {{ $ev->cancellation_reason }}</div>
+                                            <div class="text-break mt-1">{{ $ev->cancellation_reason }}</div>
                                         @endif
-                                        <div class="small text-muted mt-1">
+                                        <div class="text-muted mt-2 small">
                                             @if ($ev->avisou_dentro_prazo !== null)
-                                                Aviso dentro do prazo: {{ $ev->avisou_dentro_prazo ? 'Sim' : 'Não' }}
+                                                Aviso no prazo: {{ $ev->avisou_dentro_prazo ? 'Sim' : 'Não' }}
                                             @endif
                                             @if ($ev->refund_reserva !== null)
-                                                · Reembolso reserva: {{ $ev->refund_reserva ? 'Sim' : 'Não' }}
+                                                @if ($ev->avisou_dentro_prazo !== null) · @endif
+                                                Reembolso reserva: {{ $ev->refund_reserva ? 'Sim' : 'Não' }}
                                             @endif
                                         </div>
-                                    </dd>
+                                    </div>
                                 @endif
-
-                                <dt class="col-sm-4 col-lg-3 text-muted">Referência</dt>
-                                <dd class="col-sm-8 col-lg-9 mb-0 text-muted small">Evento #{{ $ev->id }}@if ($ob && $ob->public_id) · Reserva {{ $ob->public_id }}@endif</dd>
-                            </dl>
+                            </div>
                         </article>
                     @endforeach
                 </div>

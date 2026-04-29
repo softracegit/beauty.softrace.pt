@@ -119,6 +119,73 @@ html {
     padding-right: 0.85rem;
 }
 
+.booking-navbar-new-booking {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.55rem;
+    border: 0;
+    border-radius: 50rem;
+    background: transparent;
+    color: #111827;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+    flex-shrink: 0;
+    margin-right: 0.35rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.booking-navbar-new-booking:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.booking-navbar-new-booking:focus-visible {
+    outline: 2px solid #111827;
+    outline-offset: 2px;
+}
+
+.booking-navbar-new-booking .bi {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+@media (max-width: 767.98px) {
+    .booking-navbar-new-booking {
+        width: 2.5rem;
+        height: 2.5rem;
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+        padding: 0;
+        gap: 0;
+        border: 1px solid #d1d5db;
+        border-radius: 50%;
+        box-sizing: border-box;
+        margin-right: 0.65rem;
+    }
+
+    .booking-navbar-account__toggle {
+        height: 2.5rem;
+        min-height: 2.5rem;
+        padding-top: 0;
+        padding-bottom: 0;
+        padding-left: 0.55rem;
+        padding-right: 0.55rem;
+        box-sizing: border-box;
+        align-items: center;
+    }
+}
+
+.booking-navbar-account__initials {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
 .booking-navbar-account__toggle {
     flex-shrink: 0;
     max-width: min(52vw, 15rem);
@@ -127,6 +194,13 @@ html {
     gap: 0.25rem;
     padding-left: 0.65rem;
     padding-right: 0.65rem;
+    border-color: #d1d5db !important;
+}
+
+.booking-navbar-account .booking-navbar-account__toggle.btn-outline-dark:hover,
+.booking-navbar-account .booking-navbar-account__toggle.btn-outline-dark:focus-visible,
+.booking-navbar-account .booking-navbar-account__toggle.btn-outline-dark:active {
+    border-color: #d1d5db !important;
 }
 
 .booking-navbar-account__toggle-inner {
@@ -1489,23 +1563,342 @@ button.booking-offcanvas-nav__link {
     color: #111827 !important;
 }
 
-.booking-account-marcacoes .booking-marcacao-card {
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+.booking-account-marcacoes__shell {
+    background: linear-gradient(180deg, #fafafa 0%, #fff 3.5rem);
 }
 
-.booking-marcacao-badge {
-    font-weight: 500;
-    font-size: 0.75rem;
+.booking-account-marcacoes__head {
+    border-bottom: 1px solid #eef0f3;
+    padding-bottom: 0.75rem;
 }
 
-.booking-marcacao-dl dt {
-    font-weight: 500;
+.booking-marcacao-list {
+    margin-top: 0.25rem;
+}
+
+.booking-marcacao-empty {
+    border-color: #e8eaef !important;
+}
+
+.booking-marcacao-card {
+    overflow: hidden;
+    border-radius: 0.85rem;
+    border: 1px solid #e8eaef;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.booking-marcacao-card:hover {
+    border-color: #dde1e8;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
+.booking-marcacao-card__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    padding: 1rem 1.1rem 0.85rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+    border-bottom: 1px solid #eef0f3;
+}
+
+.booking-marcacao-card__when {
+    min-width: 0;
+    flex: 1 1 12rem;
+}
+
+.booking-marcacao-card__date {
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+.booking-marcacao-card__time {
+    margin-top: 0.2rem;
+}
+
+.booking-marcacao-card__badges {
+    flex: 0 1 auto;
+}
+
+.booking-marcacao-card__badge {
+    font-weight: 600;
+    font-size: 0.7rem;
+    padding: 0.35em 0.65em;
+}
+
+.booking-marcacao-card__badge--muted {
+    background: #f3f4f6 !important;
+    color: #374151 !important;
+    border: 1px solid #e5e7eb;
+}
+
+.booking-marcacao-card__badge--status {
+    background: #111827 !important;
+    color: #fff !important;
+}
+
+.booking-marcacao-card__body {
+    padding: 1rem 1.1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.booking-marcacao-card__section--notes .booking-marcacao-card__notes {
+    line-height: 1.45;
+}
+
+.booking-marcacao-card__label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 0.4rem;
+}
+
+.booking-marcacao-card__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem 1rem;
 }
 
 @media (min-width: 576px) {
-    .booking-marcacao-dl dt {
-        text-align: right;
+    .booking-marcacao-card__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+.booking-marcacao-card__kv {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.5rem;
+    background: #f9fafb;
+    border: 1px solid #f0f1f4;
+}
+
+.booking-marcacao-card__kv--service {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.booking-marcacao-card__svc-name {
+    line-height: 1.35;
+}
+
+.booking-marcacao-card__svc-tech {
+    margin-top: 0.2rem;
+    line-height: 1.3;
+}
+
+.booking-marcacao-card__k {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+}
+
+.booking-marcacao-card__v {
+    font-size: 0.875rem;
+    color: #111827;
+}
+
+.booking-marcacao-card__section--boxed {
+    padding: 0.85rem 0.95rem;
+    border-radius: 0.65rem;
+    background: #fafbfc;
+    border: 1px solid #eef0f3;
+}
+
+.booking-marcacao-card__section--total-snapshot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.booking-marcacao-card__total-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.booking-marcacao-card__total-line__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+}
+
+.booking-marcacao-card__total-line__value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #111827;
+    white-space: nowrap;
+}
+
+.booking-marcacao-card__total-line--lead .booking-marcacao-card__total-line__value {
+    font-size: 1.12rem;
+}
+
+.booking-marcacao-card__total-line__value--soft {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.booking-marcacao-card__total-line--split {
+    padding-top: 0.35rem;
+    border-top: 1px solid #eef0f3;
+}
+
+.booking-marcacao-card__total-line--grand {
+    margin-top: 0.1rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 0.45rem;
+    background: #f3f4f6;
+}
+
+.booking-marcacao-card__total-line__label--grand {
+    text-transform: none;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #111827;
+    letter-spacing: normal;
+}
+
+.booking-marcacao-card__total-line--grand .booking-marcacao-card__total-line__value {
+    font-size: 0.9rem;
+}
+
+.booking-marcacao-card__services-list {
+    border-radius: 0.5rem;
+    border: 1px solid #f0f1f4;
+    background: #f9fafb;
+    overflow: hidden;
+}
+
+.booking-marcacao-card__service-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.55rem 0.65rem;
+    border-bottom: 1px solid #eef0f3;
+}
+
+.booking-marcacao-card__service-row:last-child {
+    border-bottom: none;
+}
+
+.booking-marcacao-card__service-row-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 0.35rem;
+    margin-top: 0.2rem;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+}
+
+.booking-marcacao-card__service-row-cat {
+    color: #6b7280;
+}
+
+.booking-marcacao-card__service-row-tech {
+    color: #6b7280;
+}
+
+.booking-marcacao-card__hint {
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #f9fafb;
+    border: 1px dashed #e5e7eb;
+}
+
+.booking-marcacao-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.booking-marcacao-stats--four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+    .booking-marcacao-stats--four {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.booking-marcacao-stat--full {
+    grid-column: 1 / -1;
+}
+
+.booking-marcacao-stat {
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.5rem;
+    background: #fff;
+    border: 1px solid #e8eaef;
+}
+
+.booking-marcacao-stat__label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 0.2rem;
+}
+
+.booking-marcacao-stat__value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.booking-marcacao-stat__value--total {
+    font-size: 1.35rem;
+}
+
+.booking-marcacao-stat__amount-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.booking-marcacao-stat__method {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.3;
+    color: #6b7280;
+}
+
+.booking-marcacao-stat__suffix {
+    display: inline-block;
+    margin-left: 0.35rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.booking-marcacao-card__alert {
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.5rem;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #78350f;
 }
 
 .booking-account-content section {

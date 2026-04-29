@@ -15,6 +15,7 @@ use App\Services\BookingSlotHoldService;
 use App\Services\OnlineBookingCheckoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -206,7 +207,11 @@ class BookingPaymentController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'redirect' => route('booking.confirm', $confirmParams),
+                    'redirect' => $this->bookingSuccessRedirect(
+                        $request,
+                        (int) ($booking->client_id ?? 0) ?: null,
+                        $confirmParams,
+                    ),
                 ]);
             }
 
@@ -306,7 +311,11 @@ class BookingPaymentController extends Controller
 
         return response()->json([
             'success' => true,
-            'redirect' => route('booking.confirm', $confirmParams),
+            'redirect' => $this->bookingSuccessRedirect(
+                $request,
+                (int) ($booking->client_id ?? 0) ?: null,
+                $confirmParams,
+            ),
         ]);
     }
 
@@ -366,8 +375,52 @@ class BookingPaymentController extends Controller
 
         return response()->json([
             'success' => true,
-            'redirect' => route('booking.confirm', $confirmParams),
+            'redirect' => $this->bookingSuccessRedirect(
+                $request,
+                (int) $client->id,
+                $confirmParams,
+            ),
         ]);
+    }
+
+    /**
+     * @param  array<string, string>  $confirmParams
+     */
+    private function bookingSuccessRedirect(Request $request, ?int $clientId, array $confirmParams): string
+    {
+        $actor = $request->user();
+        if ($actor instanceof User && $actor->isBookingClient()) {
+            return $this->bookingMarcacoesConfirmedUrl($confirmParams);
+        }
+
+        if ($actor === null && $clientId !== null && $clientId > 0) {
+            $bookingUser = User::query()
+                ->where('role', User::ROLE_CLIENTE)
+                ->where('client_id', $clientId)
+                ->orderByDesc('id')
+                ->first();
+            if ($bookingUser !== null) {
+                Auth::login($bookingUser, true);
+                $request->session()->regenerate();
+
+                return $this->bookingMarcacoesConfirmedUrl($confirmParams);
+            }
+        }
+
+        return route('booking.confirm', $confirmParams);
+    }
+
+    /**
+     * @param  array<string, string>  $confirmParams
+     */
+    private function bookingMarcacoesConfirmedUrl(array $confirmParams): string
+    {
+        $query = ['marcacao_confirmada' => '1'];
+        if (($confirmParams['primeira_marcacao'] ?? '') === '1') {
+            $query['primeira_marcacao'] = '1';
+        }
+
+        return route('booking.conta.marcacoes', $query);
     }
 
     /**
