@@ -209,7 +209,7 @@
                                     </div>
                                 @endif
 
-                                <div class="booking-marcacao-card__section booking-marcacao-card__section--boxed">
+                                <div class="booking-marcacao-card__section booking-marcacao-card__section--payments">
                                     <h3 class="booking-marcacao-card__label">Pagamentos</h3>
                                     <div class="booking-marcacao-stats @unless ($showFaltaLoja) booking-marcacao-stats--four @endunless">
                                         @unless ($showFaltaLoja)

@@ -1718,6 +1718,12 @@ button.booking-offcanvas-nav__link {
     border: 1px solid #eef0f3;
 }
 
+/* Pagamentos: mesmos cards de estatística, sem caixa exterior (fora do --boxed) */
+.booking-marcacao-card__section--payments {
+    margin: 0;
+    padding: 0;
+}
+
 .booking-marcacao-card__section--total-snapshot {
     display: flex;
     flex-direction: column;
