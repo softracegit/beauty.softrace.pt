@@ -184,22 +184,24 @@
                                         @endforelse
                                     </div>
 
-                                    <div class="booking-marcacao-card__section booking-marcacao-card__section--boxed booking-marcacao-card__section--total-snapshot">
-                                        <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--lead">
-                                            <span class="booking-marcacao-card__total-line__label">Total</span>
-                                            <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($pivotTotal) }}</span>
+                                    @if ($serviceRows->count() > 1)
+                                        <div class="booking-marcacao-card__section booking-marcacao-card__section--boxed booking-marcacao-card__section--total-snapshot">
+                                            <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--lead">
+                                                <span class="booking-marcacao-card__total-line__label">Total</span>
+                                                <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($pivotTotal) }}</span>
+                                            </div>
+                                            @if ($gorjeta > 0.004)
+                                                <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--split">
+                                                    <span class="booking-marcacao-card__total-line__label">Gorjeta</span>
+                                                    <span class="booking-marcacao-card__total-line__value booking-marcacao-card__total-line__value--soft">{{ $fmtMoney($gorjeta) }}</span>
+                                                </div>
+                                                <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--grand">
+                                                    <span class="booking-marcacao-card__total-line__label booking-marcacao-card__total-line__label--grand">Total (serviços + gorjeta)</span>
+                                                    <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($totalComGorjeta) }}</span>
+                                                </div>
+                                            @endif
                                         </div>
-                                        @if ($gorjeta > 0.004)
-                                            <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--split">
-                                                <span class="booking-marcacao-card__total-line__label">Gorjeta</span>
-                                                <span class="booking-marcacao-card__total-line__value booking-marcacao-card__total-line__value--soft">{{ $fmtMoney($gorjeta) }}</span>
-                                            </div>
-                                            <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--grand">
-                                                <span class="booking-marcacao-card__total-line__label booking-marcacao-card__total-line__label--grand">Total (serviços + gorjeta)</span>
-                                                <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($totalComGorjeta) }}</span>
-                                            </div>
-                                        @endif
-                                    </div>
+                                    @endif
                                 </div>
 
                                 @if ($ev->description)
