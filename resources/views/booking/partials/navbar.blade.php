@@ -33,7 +33,7 @@
 <nav class="navbar navbar-light bg-white border-bottom fixed-top booking-navbar shadow-sm py-0">
     <div class="container booking-container-wide py-2 booking-navbar__inner px-3">
         <div class="booking-navbar__cell booking-navbar__cell--start">
-            <span class="navbar-brand mb-0 d-inline-flex align-items-center booking-navbar__brand" aria-label="{{ $businessName }}">
+            <a href="{{ route('booking.index') }}" class="navbar-brand mb-0 d-inline-flex align-items-center booking-navbar__brand" aria-label="{{ $businessName }}">
                 <img
                     src="{{ asset('booking-assets/img/logo-fada.png') }}"
                     alt="{{ $businessName }}"
@@ -41,7 +41,7 @@
                     loading="eager"
                     decoding="async"
                 >
-            </span>
+            </a>
         </div>
         @if ($showBookingSteps)
             <div class="booking-navbar__cell booking-navbar__cell--center">
@@ -93,6 +93,13 @@
                         </span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end booking-navbar-account__menu" id="booking-navbar-account-dropdown" aria-labelledby="booking-navbar-account-menu">
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index') }}">
+                                <i class="bi bi-plus-circle booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                <span>Nova marcação</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
                         <li>
                             <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}">
                                 <i class="bi bi-person booking-navbar-account__item-icon" aria-hidden="true"></i>

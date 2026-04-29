@@ -379,14 +379,15 @@ class RelatoriosController extends Controller
 
         $headers = [
             'Data emissão',
-            'N.º fatura',
+            $vendasModo === 'venda' ? 'Faturas' : 'N.º fatura',
             'Cliente',
             'NIF',
             'Técnico',
             'Serviço',
             'Qtd',
-            'Desconto (€)',
-            'Valor (€)',
+            'Total (€)',
+            'Reserva (€)',
+            'Gorjeta (€)',
             'Em dívida (€)',
             'Estado venda',
         ];
@@ -403,16 +404,20 @@ class RelatoriosController extends Controller
                     $linha->tecnico,
                     $linha->servico,
                     $linha->quantidade,
-                    round((float) ($linha->desconto ?? 0), 2),
-                    round($linha->valor, 2),
+                    round((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2),
+                    $vendasModo === 'venda' ? round((float) ($linha->reserva_pago ?? 0), 2) : null,
+                    round((float) ($linha->gorjeta ?? 0), 2),
                     round((float) ($linha->pendente ?? 0), 2),
-                    Sale::statuses()[$linha->sale_status] ?? $linha->sale_status,
+                    ($linha->sale_display_status ?? 'pago') === 'anulado'
+                        ? 'Anulado'
+                        : (($linha->sale_display_status ?? 'pago') === 'parcial' ? 'Parcial' : 'Pago'),
                 ],
             ], null, 'A'.$rowIndex);
             $rowIndex++;
         }
 
         $totais = $this->vendasTotaisRodape($lines);
+        $totalReserva = (float) $lines->sum(fn ($linha) => (float) ($linha->reserva_pago ?? 0));
         $sheet->fromArray([
             [
                 '',
@@ -422,14 +427,15 @@ class RelatoriosController extends Controller
                 '',
                 'Total',
                 $totais['num_vendas'],
-                round($totais['total_desconto'], 2),
-                round($totais['total_valor'], 2),
+                round($totais['total_valor_com_gorjeta'], 2),
+                $vendasModo === 'venda' ? round($totalReserva, 2) : null,
+                round($totais['total_gorjeta'], 2),
                 round($totais['total_divida'], 2),
                 '',
             ],
         ], null, 'A'.$rowIndex);
 
-        foreach (range('A', 'K') as $col) {
+        foreach (range('A', 'L') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -460,6 +466,7 @@ class RelatoriosController extends Controller
             'appName' => config('app.name'),
             'totalLinhas' => $lines->count(),
             'vendasTotais' => $this->vendasTotaisRodape($lines),
+            'vendasModo' => $vendasModo,
         ])->setPaper('a4', 'landscape');
 
         $filename = 'vendas_'.now()->format('Y-m-d_His').'.pdf';

@@ -21,7 +21,7 @@
 </head>
 <body>
   <div class="header">
-    <h1>Relatório de vendas (linhas)</h1>
+    <h1>Relatório de vendas</h1>
     <div class="meta">{{ $appName ?? config('app.name') }} · Gerado em {{ now()->format('d/m/Y H:i') }} · {{ $totalLinhas }} linha(s)</div>
   </div>
 
@@ -38,16 +38,17 @@
     <thead>
       <tr>
         <th style="width:8%">Data</th>
-        <th style="width:10%">N.º fatura</th>
-        <th style="width:14%">Cliente</th>
-        <th style="width:9%">NIF</th>
-        <th style="width:11%">Técnico</th>
-        <th style="width:18%">Serviço</th>
-        <th class="text-center" style="width:5%">Qtd</th>
-        <th class="text-end text-nowrap" style="width:7%">Desconto</th>
-        <th class="text-end text-nowrap" style="width:7%">Valor</th>
+        <th style="width:10%">{{ ($vendasModo ?? 'venda') === 'venda' ? 'Faturas' : 'N.º fatura' }}</th>
+        <th style="width:12%">Cliente</th>
+        <th style="width:8%">NIF</th>
+        <th style="width:10%">Técnico</th>
+        <th style="width:15%">Serviço</th>
+        <th class="text-center" style="width:4%">Qtd</th>
+        <th class="text-end text-nowrap" style="width:8%">Total</th>
+        <th class="text-end text-nowrap" style="width:7%">Reserva</th>
+        <th class="text-end text-nowrap" style="width:7%">Gorjeta</th>
         <th class="text-end text-nowrap" style="width:7%">Em dívida</th>
-        <th style="width:7%">Estado</th>
+        <th style="width:6%">Estado</th>
       </tr>
     </thead>
     <tbody>
@@ -58,12 +59,21 @@
           <td>{{ $linha->cliente }}</td>
           <td>{{ $linha->nif !== '' && $linha->nif !== null ? $linha->nif : '—' }}</td>
           <td>{{ $linha->tecnico }}</td>
-          <td>{{ $linha->servico }}@if(($linha->tipo_item ?? '') === \App\Models\SaleItem::TIPO_EXTRA) (Extra)@endif</td>
+          <td>{{ $linha->servico }}</td>
           <td class="text-center">{{ $linha->quantidade }}</td>
-          <td class="text-end text-nowrap">@if((float)($linha->desconto ?? 0) > 0){{ number_format((float) $linha->desconto, 2, ',', ' ') }}€@else—@endif</td>
-          <td class="text-end text-nowrap">{{ number_format($linha->valor, 2, ',', ' ') }}€</td>
+          <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>
+          <td class="text-end text-nowrap">@if(($vendasModo ?? 'venda') === 'venda' && (float) ($linha->reserva_pago ?? 0) > 0){{ number_format((float) $linha->reserva_pago, 2, ',', ' ') }}€@else—@endif</td>
+          <td class="text-end text-nowrap">@if((float)($linha->gorjeta ?? 0) > 0){{ number_format((float) $linha->gorjeta, 2, ',', ' ') }}€@else—@endif</td>
           <td class="text-end text-nowrap">@if((float)($linha->pendente ?? 0) > 0){{ number_format((float) $linha->pendente, 2, ',', ' ') }}€@else—@endif</td>
-          <td>{{ \App\Models\Sale::statuses()[$linha->sale_status] ?? $linha->sale_status }}</td>
+          <td>
+            @if(($linha->sale_display_status ?? '') === 'anulado')
+              Anulado
+            @elseif(($linha->sale_display_status ?? '') === 'parcial')
+              Parcial
+            @else
+              Pago
+            @endif
+          </td>
         </tr>
       @endforeach
     </tbody>
@@ -72,8 +82,15 @@
         <tr>
           <td colspan="6" class="text-end" style="font-weight:bold;">Totais (filtro)</td>
           <td class="text-center" style="font-weight:bold;">{{ $vendasTotais['num_vendas'] ?? 0 }}</td>
-          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_desconto'] ?? 0, 2, ',', ' ') }}€</td>
-          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_valor'] ?? 0, 2, ',', ' ') }}€</td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_valor_com_gorjeta'] ?? (($vendasTotais['total_valor'] ?? 0) + ($vendasTotais['total_gorjeta'] ?? 0)), 2, ',', ' ') }}€</td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">
+            @if(($vendasModo ?? 'venda') === 'venda')
+              {{ number_format((float) $linhas->sum(fn ($linha) => (float) ($linha->reserva_pago ?? 0)), 2, ',', ' ') }}€
+            @else
+              —
+            @endif
+          </td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_gorjeta'] ?? 0, 2, ',', ' ') }}€</td>
           <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_divida'] ?? 0, 2, ',', ' ') }}€</td>
           <td></td>
         </tr>
@@ -86,7 +103,7 @@
   @endif
 
   <div class="footer">
-    Uma linha por item faturado. Use o PDF individual de cada fatura no CRM para o documento oficial.
+    Relatório de apoio. Use o PDF individual de cada fatura no CRM para documento oficial.
   </div>
 </body>
 </html>
