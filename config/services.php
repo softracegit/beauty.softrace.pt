@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'twilio' => [
+        'account_sid' => env('APP_ENV') === 'local'
+            ? env('TWILIO_ACCOUNT_SID_SANDBOX', env('TWILIO_ACCOUNT_SID', env('TWILIO_SID')))
+            : env('TWILIO_ACCOUNT_SID', env('TWILIO_SID')),
+        'auth_token' => env('APP_ENV') === 'local'
+            ? env('TWILIO_AUTH_TOKEN_SANDBOX', env('TWILIO_AUTH_TOKEN', env('TWILIO_TOKEN')))
+            : env('TWILIO_AUTH_TOKEN', env('TWILIO_TOKEN')),
+        'sms_from' => env('TWILIO_SMS_FROM', env('TWILIO_FROM')),
+    ],
+
 ];

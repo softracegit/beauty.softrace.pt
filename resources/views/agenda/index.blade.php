@@ -520,7 +520,6 @@
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label d-block">Meio de pagamento</label>
                     <div class="tempo-pessoal-type-toggle-wrapper" role="group" id="paymentMethodToggleGroup">
                         <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="dinheiro">
                             <i class="ph ph-money tempo-pessoal-type-card-icon"></i>
@@ -534,10 +533,6 @@
                             <i class="ph ph-device-mobile tempo-pessoal-type-card-icon"></i>
                             <span class="fw-semibold tempo-pessoal-type-card-name">MB Way</span>
                         </button>
-                        <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="multibanco">
-                            <i class="ph ph-bank tempo-pessoal-type-card-icon"></i>
-                            <span class="fw-semibold tempo-pessoal-type-card-name">Multibanco</span>
-                        </button>
                     </div>
                     <input type="hidden" id="paymentMethodValue" value="">
                 </div>
@@ -545,10 +540,17 @@
                     <label for="paymentGorjeta" class="form-label">Gorjeta (€)</label>
                     <input type="number" step="0.01" min="0" class="form-control" id="paymentGorjeta" value="0" placeholder="0,00">
                 </div>
+                <div class="mb-3 d-none" id="paymentMbwayPhoneWrap">
+                    <label for="paymentMbwayPhone" class="form-label">Telemóvel MB WAY</label>
+                    <input type="tel" class="form-control" id="paymentMbwayPhone" placeholder="+3519XXXXXXXX">
+                    <div class="form-text">Se a ficha do cliente não tiver telemóvel, este número ficará guardado.</div>
+                </div>
                 <div class="border-top pt-2">
                     <div class="d-flex justify-content-between small text-muted"><span>Subtotal</span><span id="paymentSubtotalDisplay">0,00 €</span></div>
+                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentOnlinePaidLine"><span>Já pago online</span><span id="paymentOnlinePaidDisplay">0,00 €</span></div>
+                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentServicesDueLine"><span>Valor em falta</span><span id="paymentServicesDueDisplay">0,00 €</span></div>
                     <div class="d-flex justify-content-between small text-muted d-none" id="paymentGorjetaLine"><span>Gorjeta</span><span id="paymentGorjetaDisplay">0,00 €</span></div>
-                    <div class="d-flex justify-content-between fw-semibold mt-1"><span>Total</span><span id="paymentTotalDisplay">0,00 €</span></div>
+                    <div class="d-flex justify-content-between fw-semibold mt-1"><span>A cobrar agora</span><span id="paymentTotalDisplay">0,00 €</span></div>
                 </div>
             </div>
             <div class="modal-footer pt-3 pb-3">
@@ -592,6 +594,8 @@ window.AGENDA_CONFIG = {
     urlEvents: @json(url('agenda/events')),
     urlEventsStore: @json(route('agenda.events.store')),
     agendaCheckoutStoreUrl: @json(route('agenda.checkout.store')),
+    agendaCheckoutMbwayIntentUrl: @json(route('agenda.checkout.mbway.intent')),
+    agendaCheckoutMbwayFinalizeUrl: @json(route('agenda.checkout.mbway.finalize')),
     salesRevertUrl: @json(url('sales')),
     urlOpportunities: @json(url('opportunities')),
     urlLeads: @json(url('leads')),

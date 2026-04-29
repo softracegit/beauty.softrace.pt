@@ -64,7 +64,7 @@
                                                     </div>
                                                     <div class="mb-0">
                                                         <label for="booking-contact-notes" class="form-label small text-muted mb-1">Observações</label>
-                                                        <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="Alergias, preferências, observações..."></textarea>
+                                                        <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="Deseja incluir mais alguma informação?"></textarea>
                                                     </div>
                                                 </form>
                                             @else

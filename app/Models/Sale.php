@@ -24,6 +24,12 @@ class Sale extends Model
 
     public const PAYMENT_OUTRO = 'outro';
 
+    public const SCOPE_REGULAR = 'regular';
+
+    public const SCOPE_BOOKING_RESERVA = 'booking_reserva';
+
+    public const SCOPE_CAIXA_LIQUIDACAO = 'caixa_liquidacao';
+
     protected $fillable = [
         'calendar_event_id',
         'client_id',
@@ -35,6 +41,7 @@ class Sale extends Model
         'valor_pago',
         'iva_total',
         'payment_method',
+        'scope',
         'status',
     ];
 
@@ -51,6 +58,7 @@ class Sale extends Model
 
     protected $attributes = [
         'status' => self::STATUS_PAGO,
+        'scope' => self::SCOPE_REGULAR,
     ];
 
     public static function statuses(): array

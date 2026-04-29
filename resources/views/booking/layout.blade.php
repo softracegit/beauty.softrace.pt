@@ -23,6 +23,7 @@
     data-booking-index-url="{{ route('booking.index') }}"
     data-booking-auth-request-code-url="{{ route('booking.auth.request_code') }}"
     data-booking-auth-verify-code-url="{{ route('booking.auth.verify_code') }}"
+    data-booking-auth-complete-registration-url="{{ route('booking.auth.complete_registration') }}"
     data-booking-slot-hold-acquire-url="{{ route('booking.slot_hold.acquire') }}"
     data-booking-slot-hold-extend-url="{{ route('booking.slot_hold.extend') }}"
     data-booking-slot-hold-release-url="{{ route('booking.slot_hold.release') }}"

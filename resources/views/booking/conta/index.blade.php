@@ -10,83 +10,269 @@
 
         <div class="flex-grow-1 booking-main-body">
             <div class="container booking-container-wide px-3 pb-4 pt-0">
-                <main class="pt-1 mx-auto" style="max-width: 28rem;">
-                    <h1 class="booking-services-heading h6 fw-semibold text-dark mb-2">A minha conta</h1>
-                    <p class="text-muted small mb-4">
-                        Sessão iniciada como <span class="fw-semibold text-dark">{{ $user->email }}</span>
-                    </p>
-
-                    <div class="card border shadow-sm rounded-3 mb-3">
-                        <div class="card-body py-3">
-                            <p class="small fw-semibold text-uppercase text-muted mb-2">Conta</p>
-                            <ul class="list-unstyled mb-0">
-                                <li>
-                                    <a href="{{ route('booking.index') }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
-                                        <span>Nova marcação</span>
-                                        <i class="bi bi-chevron-right text-muted" aria-hidden="true"></i>
-                                    </a>
-                                </li>
-                            </ul>
+                <main class="pt-1 booking-account-layout">
+                    @if ($errors->any())
+                        <div class="alert alert-danger small mb-3">
+                            {{ $errors->first() }}
                         </div>
-                    </div>
+                    @endif
+                    @if (session('success'))
+                        <div class="alert alert-success small mb-3">
+                            {{ session('success') }}
+                        </div>
+                    @endif
 
-                    <section id="carteira" class="booking-category-section mb-3">
-                        <div
-                            class="card border shadow-sm rounded-3"
-                            id="booking-cards-wallet"
-                            data-setup-intent-url="{{ route('booking.conta.cards.setup_intent') }}"
-                            data-sync-url="{{ route('booking.conta.cards.sync') }}"
-                            data-default-url-template="{{ route('booking.conta.cards.default', ['card' => '__CARD__']) }}"
-                            data-destroy-url-template="{{ route('booking.conta.cards.destroy', ['card' => '__CARD__']) }}"
-                            data-publishable-key="{{ $stripePublishableKey }}"
-                        >
-                            <div class="card-body py-3">
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <p class="small fw-semibold text-uppercase text-muted mb-0">Cartões</p>
-                                    <button type="button" class="btn btn-sm btn-outline-dark" id="booking-card-open-add">
-                                        Adicionar cartão
-                                    </button>
+                    @php
+                        $emailVerified = !empty($user->email_verified_at);
+                        $phoneVerified = !empty($client?->phone_verified_at);
+                        $hasProfileName = trim((string) ($client?->name ?? '')) !== '';
+                        $hasProfileGender = $client?->gender && isset(\App\Models\Client::genders()[$client->gender]);
+                        $hasProfileBirth = !empty($client?->birth_date);
+                        $profileSteps = [
+                            'name' => $hasProfileName,
+                            'gender' => $hasProfileGender,
+                            'birth' => $hasProfileBirth,
+                            'email' => $emailVerified,
+                            'phone' => $phoneVerified,
+                        ];
+                        $profileDone = count(array_filter($profileSteps));
+                        $profileTotal = count($profileSteps);
+                        $profilePercent = $profileTotal > 0 ? (int) round(($profileDone / $profileTotal) * 100) : 0;
+                        $profilePersonalMissing = [];
+                        if (!$hasProfileName) {
+                            $profilePersonalMissing[] = 'nome';
+                        }
+                        if (!$hasProfileGender) {
+                            $profilePersonalMissing[] = 'género';
+                        }
+                        if (!$hasProfileBirth) {
+                            $profilePersonalMissing[] = 'data de nascimento';
+                        }
+                    @endphp
+
+                    @include('booking.conta.partials.sidebar', ['accountNavActive' => 'perfil'])
+
+                    <div class="booking-account-content">
+                        <section id="perfil" class="mb-3">
+                            <div class="card border shadow-sm rounded-3 mb-3 booking-profile-completion">
+                                <div class="card-body py-3">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                        <div class="d-flex align-items-center gap-1 min-w-0">
+                                            <p class="small fw-semibold text-uppercase text-muted mb-0">Conclusão do perfil</p>
+                                            @if ($profilePercent < 100)
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-link btn-sm text-muted p-0 lh-1 booking-profile-completion__info"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#booking-profile-completion-suggestions-modal"
+                                                    aria-label="Ver sugestões para completar o perfil"
+                                                >
+                                                    <i class="bi bi-info-circle" aria-hidden="true"></i>
+                                                </button>
+                                            @endif
+                                        </div>
+                                        <span class="small fw-semibold text-dark">{{ $profilePercent }}%</span>
+                                    </div>
+                                    <div class="booking-profile-completion__bar {{ $profilePercent >= 100 ? 'mb-2' : 'mb-0' }}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $profilePercent }}" aria-label="Perfil completo em {{ $profilePercent }} por cento">
+                                        <div class="booking-profile-completion__fill" style="width: {{ $profilePercent }}%;"></div>
+                                    </div>
+                                    @if ($profilePercent >= 100)
+                                        <p class="small text-success mb-0"><i class="bi bi-check-circle-fill me-1"></i>Perfil completo. Obrigado por manter os seus dados atualizados.</p>
+                                    @endif
                                 </div>
+                            </div>
 
-                                <div id="booking-cards-list">
-                                    @forelse($savedCards as $card)
-                                        <div class="d-flex align-items-center justify-content-between gap-2 py-2 border-top">
-                                            <div class="small">
-                                                <div class="fw-semibold text-dark">{{ strtoupper((string) $card->brand) }} •••• {{ $card->last4 }}</div>
-                                                <div class="text-muted">Validade {{ str_pad((string) $card->exp_month, 2, '0', STR_PAD_LEFT) }}/{{ $card->exp_year }}</div>
+                            @if ($profilePercent < 100)
+                                <div class="modal fade booking-auth-modal" id="booking-profile-completion-suggestions-modal" tabindex="-1" aria-labelledby="booking-profile-completion-suggestions-title" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                                        <div class="modal-content border-0 shadow">
+                                            <div class="modal-header border-0 pb-0">
+                                                <h2 class="h5 mb-0" id="booking-profile-completion-suggestions-title">Completar o perfil</h2>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                                             </div>
-                                            <div class="d-flex align-items-center gap-2">
-                                                @if($card->is_default)
-                                                    <span class="badge text-bg-success">Principal</span>
-                                                @else
-                                                    <button type="button" class="btn btn-link btn-sm p-0 js-card-default" data-card-id="{{ $card->id }}">Definir principal</button>
-                                                @endif
-                                                <button type="button" class="btn btn-link btn-sm text-danger p-0 js-card-remove" data-card-id="{{ $card->id }}">Remover</button>
+                                            <div class="modal-body pt-2">
+                                                <p class="small text-muted mb-3">Sugestões para uma experiência mais segura e personalizada.</p>
+                                                <ul class="list-unstyled small mb-0 text-muted">
+                                                    @if (count($profilePersonalMissing) > 0)
+                                                        <li class="py-2 border-bottom">Ainda falta: <strong class="text-dark">{{ implode(', ', $profilePersonalMissing) }}</strong>.</li>
+                                                    @endif
+                                                    @if (!$emailVerified)
+                                                        <li class="py-2 border-bottom"><strong class="text-dark">Verifique o email</strong> com o código que enviamos.</li>
+                                                    @endif
+                                                    @if (!$phoneVerified)
+                                                        <li class="py-2"><strong class="text-dark">Verifique o telemóvel</strong> por SMS.</li>
+                                                    @endif
+                                                </ul>
                                             </div>
                                         </div>
-                                    @empty
-                                        <p class="small text-muted mb-0">Sem cartões guardados.</p>
-                                    @endforelse
+                                    </div>
                                 </div>
+                            @endif
 
-                                <div id="booking-card-add-wrap" class="mt-3 border-top pt-3 d-none">
-                                    <p class="small text-muted mb-2">Adicione um cartão. Apenas os últimos 4 dígitos ficam visíveis na sua conta.</p>
-                                    <div id="booking-card-add-element" class="mb-2"></div>
-                                    <p id="booking-card-add-error" class="small text-danger mb-2 d-none"></p>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-dark btn-sm" id="booking-card-add-submit">Guardar cartão</button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="booking-card-add-cancel">Cancelar</button>
+                            <div class="card border shadow-sm rounded-3 mb-3" id="booking-dados-pessoais">
+                                <div class="card-body py-3">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                        <p class="small fw-semibold text-uppercase text-muted mb-0">Dados Pessoais</p>
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-dark btn-sm flex-shrink-0"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#booking-profile-personal-modal"
+                                        >
+                                            Editar
+                                        </button>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start gap-2 py-2 border-top">
+                                        <div>
+                                            <div class="small fw-semibold text-dark">Nome</div>
+                                            <div class="small text-muted">{{ trim((string) ($client?->name ?? '')) !== '' ? $client->name : '—' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start gap-2 py-2 border-top">
+                                        <div>
+                                            <div class="small fw-semibold text-dark">Género</div>
+                                            <div class="small text-muted">
+                                                {{ ($client?->gender && isset(\App\Models\Client::genders()[$client->gender])) ? \App\Models\Client::genders()[$client->gender] : '—' }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-start gap-2 py-2 border-top">
+                                        <div>
+                                            <div class="small fw-semibold text-dark">Data de nascimento</div>
+                                            <div class="small text-muted">{{ $client?->birth_date?->format('d/m/Y') ?? '—' }}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </section>
 
-                    <form method="post" action="{{ route('logout') }}" class="d-grid">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-secondary btn-sm">Terminar sessão</button>
-                    </form>
+                            <div
+                                class="card border shadow-sm rounded-3"
+                                id="booking-contact-verification"
+                                data-request-url="{{ route('booking.conta.verification.request') }}"
+                                data-confirm-url="{{ route('booking.conta.verification.confirm') }}"
+                            >
+                                <div class="card-body py-3">
+                                    <p class="small fw-semibold text-uppercase text-muted mb-2">Contactos</p>
+
+                                    <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-top">
+                                        <div>
+                                            <div class="small fw-semibold text-dark">Email</div>
+                                            <div class="small text-muted">{{ $user->email }}</div>
+                                        </div>
+                                        @if($emailVerified)
+                                            <span class="badge text-bg-success booking-contact-status-badge"><i class="bi bi-check-circle-fill me-1"></i>Verificado</span>
+                                        @else
+                                            <div class="d-flex align-items-center gap-2">
+                                                <button type="button" class="btn btn-outline-dark btn-sm booking-contact-verify-btn js-open-contact-verification" data-channel="email">Verificar</button>
+                                                <span class="badge text-bg-warning text-dark booking-contact-status-badge">Por verificar</span>
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-top">
+                                        <div>
+                                            <div class="small fw-semibold text-dark">Telemóvel</div>
+                                            <div class="small text-muted">{{ $client?->formatted_phone ?: 'Sem telemóvel definido' }}</div>
+                                        </div>
+                                        @if($phoneVerified)
+                                            <span class="badge text-bg-success booking-contact-status-badge"><i class="bi bi-check-circle-fill me-1"></i>Verificado</span>
+                                        @else
+                                            <div class="d-flex align-items-center gap-2">
+                                                <button type="button" class="btn btn-outline-dark btn-sm booking-contact-verify-btn js-open-contact-verification" data-channel="phone">Verificar</button>
+                                                <span class="badge text-bg-warning text-dark booking-contact-status-badge">Por verificar</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                    </div>
                 </main>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade booking-auth-modal" id="booking-profile-personal-modal" tabindex="-1" aria-labelledby="booking-profile-personal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h5 mb-0" id="booking-profile-personal-title">Editar dados pessoais</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <div id="booking-profile-personal-error" class="alert alert-danger py-2 px-3 small d-none mb-3" role="alert"></div>
+                    <form id="booking-profile-personal-form" action="{{ route('booking.conta.profile.personal') }}" method="post" novalidate>
+                        @csrf
+                        <div class="mb-3">
+                            <label for="booking-profile-personal-name" class="form-label small fw-semibold">Nome</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="booking-profile-personal-name"
+                                name="name"
+                                value="{{ old('name', $client?->name ?? '') }}"
+                                required
+                                maxlength="255"
+                                autocomplete="name"
+                            >
+                        </div>
+                        <div class="mb-3">
+                            <label for="booking-profile-personal-gender" class="form-label small fw-semibold">Género</label>
+                            <select class="form-select" id="booking-profile-personal-gender" name="gender" required>
+                                <option value="" disabled {{ old('gender', $client?->gender) ? '' : 'selected' }}>Selecionar…</option>
+                                @foreach (\App\Models\Client::genders() as $gKey => $gLabel)
+                                    <option value="{{ $gKey }}" {{ old('gender', $client?->gender) === $gKey ? 'selected' : '' }}>{{ $gLabel }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="booking-profile-personal-birth" class="form-label small fw-semibold">Data de nascimento</label>
+                            <input
+                                type="date"
+                                class="form-control"
+                                id="booking-profile-personal-birth"
+                                name="birth_date"
+                                value="{{ old('birth_date', $client?->birth_date?->format('Y-m-d') ?? '') }}"
+                                required
+                                max="{{ now()->format('Y-m-d') }}"
+                                min="1900-01-01"
+                            >
+                        </div>
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-dark" id="booking-profile-personal-submit">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade booking-auth-modal" id="booking-contact-verification-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h2 class="h5 mb-0" id="booking-contact-verification-title">Verificar contacto</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="text-muted small mb-3" id="booking-contact-verification-subtitle"></p>
+                    <div id="booking-contact-verification-error" class="alert alert-danger py-2 px-3 small d-none mb-3" role="alert"></div>
+                    <input id="booking-contact-verification-code" type="hidden" autocomplete="one-time-code">
+                    <div class="booking-auth-otp-inputs mb-3" aria-label="Código de 6 dígitos">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="form-control booking-auth-otp-input js-booking-contact-code-digit" data-idx="0" autocomplete="one-time-code">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="form-control booking-auth-otp-input js-booking-contact-code-digit" data-idx="1" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="form-control booking-auth-otp-input js-booking-contact-code-digit" data-idx="2" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="form-control booking-auth-otp-input js-booking-contact-code-digit" data-idx="3" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="form-control booking-auth-otp-input js-booking-contact-code-digit" data-idx="4" autocomplete="off">
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="form-control booking-auth-otp-input js-booking-contact-code-digit" data-idx="5" autocomplete="off">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-dark w-100" id="booking-contact-verification-submit">Confirmar</button>
+                        <button type="button" class="btn btn-outline-secondary" id="booking-contact-verification-resend">Reenviar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -95,6 +281,6 @@
 @endsection
 
 @push('scripts')
-    <script src="https://js.stripe.com/v3/"></script>
-    <script src="{{ asset('booking-assets/js/account-cards.js') }}?v={{ file_exists(public_path('booking-assets/js/account-cards.js')) ? filemtime(public_path('booking-assets/js/account-cards.js')) : time() }}" defer></script>
+    <script src="{{ asset('booking-assets/js/account-profile-personal.js') }}?v={{ file_exists(public_path('booking-assets/js/account-profile-personal.js')) ? filemtime(public_path('booking-assets/js/account-profile-personal.js')) : time() }}" defer></script>
+    <script src="{{ asset('booking-assets/js/account-verification.js') }}?v={{ file_exists(public_path('booking-assets/js/account-verification.js')) ? filemtime(public_path('booking-assets/js/account-verification.js')) : time() }}" defer></script>
 @endpush

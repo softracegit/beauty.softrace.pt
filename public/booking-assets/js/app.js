@@ -176,6 +176,7 @@
         els.slotHoldExpiredModal = document.getElementById('booking-slot-hold-expired-modal');
         els.slotHoldRestartBtn = document.getElementById('booking-slot-hold-restart');
         els.slotHoldExtendBtn = document.getElementById('booking-slot-hold-extend');
+        els.slotHoldFeedback = document.getElementById('booking-slot-hold-feedback');
     }
 
     function getModalInstance() {
@@ -2627,8 +2628,21 @@
             }
         }
         slotHoldTimer.expiredModalShown = true;
+        if (els.slotHoldFeedback) {
+            els.slotHoldFeedback.textContent = '';
+            els.slotHoldFeedback.classList.add('d-none');
+        }
         var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal);
         modal.show();
+    }
+
+    function setSlotHoldModalFeedback(message) {
+        if (!els.slotHoldFeedback) {
+            return;
+        }
+        var msg = String(message || '').trim();
+        els.slotHoldFeedback.textContent = msg;
+        els.slotHoldFeedback.classList.toggle('d-none', msg === '');
     }
 
     function onSlotHoldExpired() {
@@ -2753,6 +2767,7 @@
         var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal);
         if (els.slotHoldRestartBtn) {
             els.slotHoldRestartBtn.addEventListener('click', function () {
+                setSlotHoldModalFeedback('');
                 suppressSlotHoldUiErrors = true;
                 slotHoldShowZeroDuringExpiredModal = false;
                 releaseSlotHold('expired_restart').finally(function () {
@@ -2769,8 +2784,10 @@
                 var holdId = slotHoldState.holdPublicId;
                 var token = ensureSlotHoldSessionToken();
                 if (!urls || !urls.extendUrl || !holdId) {
+                    setSlotHoldModalFeedback('Não foi possível prolongar agora. Volte ao início para escolher novamente o horário.');
                     return;
                 }
+                setSlotHoldModalFeedback('');
                 els.slotHoldExtendBtn.disabled = true;
                 postJsonWithCsrf(urls.extendUrl, {
                     hold_public_id: holdId,
@@ -2805,6 +2822,7 @@
                         }
                     } else {
                         setCheckoutError(msg);
+                        setSlotHoldModalFeedback(msg);
                     }
                 }).finally(function () {
                     els.slotHoldExtendBtn.disabled = false;
@@ -3488,9 +3506,10 @@
         }
         var requestCodeUrl = authRoot.getAttribute('data-booking-auth-request-code-url') || '';
         var verifyCodeUrl = authRoot.getAttribute('data-booking-auth-verify-code-url') || '';
+        var completeRegistrationUrl = authRoot.getAttribute('data-booking-auth-complete-registration-url') || '';
         var isAuthed = authRoot.getAttribute('data-booking-authenticated-client') === '1';
         var reloadAfterAuthSuccess = false;
-        if (!requestCodeUrl || !verifyCodeUrl) {
+        if (!requestCodeUrl || !verifyCodeUrl || !completeRegistrationUrl) {
             return null;
         }
 
@@ -3501,21 +3520,31 @@
         var modalBackBtn = document.getElementById('booking-auth-modal-back');
         var modalTitle = document.getElementById('booking-auth-modal-title');
         var modalSubtitle = document.getElementById('booking-auth-modal-subtitle');
-        var emailInput = document.getElementById('booking-auth-email');
+        var loginInput = document.getElementById('booking-auth-login');
         var emailNextBtn = document.getElementById('booking-auth-email-next');
         var codeInput = document.getElementById('booking-auth-code');
+        var codeDigitInputs = Array.prototype.slice.call(document.querySelectorAll('.js-booking-auth-code-digit'));
         var codeSubmitBtn = document.getElementById('booking-auth-code-submit');
         var codeResendBtn = document.getElementById('booking-auth-code-resend');
         var codeStatus = document.getElementById('booking-auth-code-status');
+        var stepRegister = document.getElementById('booking-auth-step-register');
+        var registerNameInput = document.getElementById('booking-auth-register-name');
+        var registerEmailWrap = document.getElementById('booking-auth-register-email-wrap');
+        var registerEmailInput = document.getElementById('booking-auth-register-email');
+        var registerPhoneWrap = document.getElementById('booking-auth-register-phone-wrap');
+        var registerPhoneInput = document.getElementById('booking-auth-register-phone');
+        var registerSubmitBtn = document.getElementById('booking-auth-register-submit');
 
-        if (!stepEmail || !stepCode || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !emailInput || !emailNextBtn || !codeInput || !codeSubmitBtn || !codeResendBtn || !codeStatus) {
+        if (!stepEmail || !stepCode || !stepRegister || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !loginInput || !emailNextBtn || !codeInput || !codeSubmitBtn || !codeResendBtn || !codeStatus || !registerNameInput || !registerEmailWrap || !registerEmailInput || !registerPhoneWrap || !registerPhoneInput || !registerSubmitBtn || codeDigitInputs.length !== 6) {
             return null;
         }
 
-        var currentEmail = '';
+        var currentAuthIdentifier = '';
+        var currentAuthChannel = 'email';
         var submittedResolver = null;
         var currentStep = 'email';
         var lastCodeRequestAt = 0;
+        var isSubmittingCode = false;
 
         function showError(msg) {
             errorBox.textContent = msg || '';
@@ -3536,16 +3565,28 @@
             currentStep = mode;
             stepEmail.classList.toggle('d-none', mode !== 'email');
             stepCode.classList.toggle('d-none', mode !== 'code');
+            stepRegister.classList.toggle('d-none', mode !== 'register');
             modalBackBtn.classList.toggle('d-none', mode === 'email');
             errorBox.classList.add('d-none');
             errorBox.textContent = '';
             if (mode === 'email') {
-                modalTitle.textContent = 'Entrar na sua conta';
-                modalSubtitle.textContent = 'Recebe um código por email para entrar.';
+                modalTitle.textContent = 'Iniciar sessão ou Criar conta';
+                modalSubtitle.textContent = 'Recebe um código por email ou SMS para entrar.';
             } else if (mode === 'code') {
                 modalTitle.textContent = 'Introduza o código';
-                modalSubtitle.textContent = 'Enviámos um código para ' + currentEmail + '.';
+                modalSubtitle.textContent = 'Enviámos um código para ' + currentAuthIdentifier + '.';
+            } else if (mode === 'register') {
+                modalTitle.textContent = 'Criar conta';
+                modalSubtitle.textContent = 'Preencha os dados para concluir o registo.';
             }
+        }
+        function setRegisterMode(channel) {
+            var byPhone = channel === 'phone';
+            registerEmailWrap.classList.toggle('d-none', !byPhone);
+            registerPhoneWrap.classList.toggle('d-none', byPhone);
+            registerEmailInput.value = '';
+            registerPhoneInput.value = '';
+            registerNameInput.value = '';
         }
         function postJson(url, payload) {
             return fetch(url, {
@@ -3578,66 +3619,31 @@
             codeStatus.textContent = message || '';
             codeStatus.classList.toggle('d-none', !message);
         }
-        function requestCode(email) {
-            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showError('Indica um email válido.');
-                return Promise.reject(new Error('invalid_email'));
+        function submitOtpCode() {
+            if (isSubmittingCode) {
+                return;
             }
-            currentEmail = email;
-            setLoading(emailNextBtn, true, 'A enviar...', 'Enviar código');
-            setLoading(codeResendBtn, true, 'A enviar...', 'Reenviar código');
-            return postJson(requestCodeUrl, { email: currentEmail })
-                .then(function (res) {
-                    currentEmail = res && res.email ? String(res.email).trim().toLowerCase() : currentEmail;
-                    lastCodeRequestAt = Date.now();
-                    showCodeStatus('');
-                    setStep('code');
-                    codeInput.focus();
-                    return res;
-                })
-                .finally(function () {
-                    setLoading(emailNextBtn, false, '', 'Enviar código');
-                    setLoading(codeResendBtn, false, '', 'Reenviar código');
-                });
-        }
-        function resetModal() {
-            reloadAfterAuthSuccess = false;
-            currentEmail = '';
-            emailInput.value = '';
-            codeInput.value = '';
-            showCodeStatus('');
-            setStep('email');
-        }
-        modalBackBtn.addEventListener('click', function () {
-            if (currentStep === 'code') {
-                setStep('email');
-                emailInput.focus();
-            }
-        });
-
-        emailNextBtn.addEventListener('click', function () {
-            var email = String(emailInput.value || '').trim().toLowerCase();
-            requestCode(email)
-                .catch(function (err) {
-                    if (err && err.message && err.message !== 'invalid_email') {
-                        showError(err.message);
-                    }
-                });
-        });
-
-        codeSubmitBtn.addEventListener('click', function () {
-            var code = String(codeInput.value || '').replace(/\D/g, '');
+            var code = getOtpCode();
             if (code.length !== 6) {
                 showError('Indique o código de 6 dígitos.');
                 return;
             }
-            if (!currentEmail) {
+            if (!currentAuthIdentifier) {
                 setStep('email');
                 return;
             }
+            isSubmittingCode = true;
             setLoading(codeSubmitBtn, true, 'A validar...', 'Entrar');
-            postJson(verifyCodeUrl, { email: currentEmail, code: code })
-                .then(function () {
+            postJson(verifyCodeUrl, currentAuthChannel === 'email'
+                ? { email: currentAuthIdentifier, code: code }
+                : { phone: currentAuthIdentifier, code: code })
+                .then(function (res) {
+                    if (res && res.requires_registration) {
+                        setRegisterMode(currentAuthChannel);
+                        setStep('register');
+                        registerNameInput.focus();
+                        return;
+                    }
                     var doReload = reloadAfterAuthSuccess;
                     modal.hide();
                     if (submittedResolver) submittedResolver(true);
@@ -3649,12 +3655,144 @@
                     showError(err && err.message ? err.message : 'Não foi possível validar o código.');
                 })
                 .finally(function () {
+                    isSubmittingCode = false;
                     setLoading(codeSubmitBtn, false, '', 'Entrar');
+                });
+        }
+        function getOtpCode() {
+            return codeDigitInputs.map(function (input) {
+                return String(input.value || '').replace(/\D/g, '').slice(0, 1);
+            }).join('');
+        }
+        function setOtpCode(rawCode) {
+            var clean = String(rawCode || '').replace(/\D/g, '').slice(0, 6);
+            codeDigitInputs.forEach(function (input, idx) {
+                input.value = clean[idx] || '';
+            });
+            codeInput.value = clean;
+            return clean;
+        }
+        function clearOtpCode() {
+            setOtpCode('');
+        }
+        function parseLoginInput(rawLogin) {
+            var value = String(rawLogin || '').trim();
+            if (!value) {
+                return null;
+            }
+
+            if (value.indexOf('@') !== -1) {
+                var email = value;
+                var emailNorm = email.toLowerCase();
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) {
+                    return { error: 'Indica um email válido.' };
+                }
+                return { channel: 'email', identifier: emailNorm, payload: { email: emailNorm } };
+            }
+
+            var compact = value.replace(/\s+/g, '');
+            return { channel: 'phone', identifier: compact, payload: { phone: compact } };
+        }
+        function requestCode(loginRaw) {
+            var parsed = parseLoginInput(loginRaw);
+            if (!parsed) {
+                showError('Indica o email ou telemóvel.');
+                return Promise.reject(new Error('invalid_login'));
+            }
+            if (parsed.error) {
+                showError(parsed.error);
+                return Promise.reject(new Error('invalid_login'));
+            }
+
+            currentAuthIdentifier = parsed.identifier;
+            currentAuthChannel = parsed.channel;
+            setLoading(emailNextBtn, true, 'A enviar...', 'Enviar código');
+            setLoading(codeResendBtn, true, 'A enviar...', 'Reenviar código');
+            return postJson(requestCodeUrl, parsed.payload)
+                .then(function (res) {
+                    if (res && res.identifier) {
+                        currentAuthIdentifier = String(res.identifier).trim();
+                    }
+                    if (res && res.channel) {
+                        currentAuthChannel = String(res.channel).trim();
+                    }
+                    lastCodeRequestAt = Date.now();
+                    showCodeStatus('');
+                    setStep('code');
+                    clearOtpCode();
+                    codeDigitInputs[0].focus();
+                    return res;
+                })
+                .finally(function () {
+                    setLoading(emailNextBtn, false, '', 'Enviar código');
+                    setLoading(codeResendBtn, false, '', 'Reenviar código');
+                });
+        }
+        function resetModal() {
+            reloadAfterAuthSuccess = false;
+            currentAuthIdentifier = '';
+            currentAuthChannel = 'email';
+            loginInput.value = '';
+            clearOtpCode();
+            registerNameInput.value = '';
+            registerEmailInput.value = '';
+            registerPhoneInput.value = '';
+            showCodeStatus('');
+            setStep('email');
+        }
+        modalBackBtn.addEventListener('click', function () {
+            if (currentStep === 'code') {
+                setStep('email');
+                loginInput.focus();
+            } else if (currentStep === 'register') {
+                setStep('code');
+                codeDigitInputs[0].focus();
+            }
+        });
+
+        emailNextBtn.addEventListener('click', function () {
+            var login = String(loginInput.value || '').trim();
+            requestCode(login)
+                .catch(function (err) {
+                    if (err && err.message && err.message !== 'invalid_login') {
+                        showError(err.message);
+                    }
+                });
+        });
+
+        codeSubmitBtn.addEventListener('click', function () {
+            submitOtpCode();
+        });
+        registerSubmitBtn.addEventListener('click', function () {
+            var payload = {
+                name: String(registerNameInput.value || '').trim(),
+            };
+            if (currentAuthChannel === 'phone') {
+                payload.email = String(registerEmailInput.value || '').trim().toLowerCase();
+            } else {
+                payload.phone = String(registerPhoneInput.value || '').trim();
+            }
+
+            setLoading(registerSubmitBtn, true, 'A criar...', 'Criar conta');
+            postJson(completeRegistrationUrl, payload)
+                .then(function () {
+                    var doReload = reloadAfterAuthSuccess;
+                    modal.hide();
+                    if (submittedResolver) submittedResolver(true);
+                    if (doReload) {
+                        window.location.reload();
+                    }
+                })
+                .catch(function (err) {
+                    showError(err && err.message ? err.message : 'Não foi possível criar a conta.');
+                })
+                .finally(function () {
+                    setLoading(registerSubmitBtn, false, '', 'Criar conta');
                 });
         });
 
         codeResendBtn.addEventListener('click', function () {
-            if (!currentEmail) {
+            if (!currentAuthIdentifier) {
                 setStep('email');
                 return;
             }
@@ -3662,19 +3800,65 @@
                 showCodeStatus('Aguarde 3 segundos antes de pedir um novo código.');
                 return;
             }
-            requestCode(currentEmail)
+            requestCode(currentAuthIdentifier)
                 .catch(function (err) {
-                    if (err && err.message && err.message !== 'invalid_email') {
+                    if (err && err.message && err.message !== 'invalid_login') {
                         showError(err.message);
                     }
                 });
         });
 
-        codeInput.addEventListener('input', function () {
-            var clean = String(codeInput.value || '').replace(/\D/g, '');
-            if (clean !== codeInput.value) {
-                codeInput.value = clean;
-            }
+        codeDigitInputs.forEach(function (input, idx) {
+            input.addEventListener('input', function () {
+                var clean = String(input.value || '').replace(/\D/g, '');
+                if (clean.length > 1) {
+                    var merged = getOtpCode();
+                    merged = merged.slice(0, idx) + clean + merged.slice(idx + 1);
+                    setOtpCode(merged);
+                    var focusPos = Math.min(5, idx + clean.length);
+                    codeDigitInputs[focusPos].focus();
+                } else {
+                    input.value = clean;
+                    codeInput.value = getOtpCode();
+                    if (clean && idx < 5) {
+                        codeDigitInputs[idx + 1].focus();
+                    }
+                    if (getOtpCode().length === 6) {
+                        submitOtpCode();
+                    }
+                }
+            });
+            input.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Backspace') {
+                    if (input.value === '' && idx > 0) {
+                        codeDigitInputs[idx - 1].focus();
+                        codeDigitInputs[idx - 1].value = '';
+                        codeInput.value = getOtpCode();
+                        ev.preventDefault();
+                    }
+                    return;
+                }
+                if (ev.key === 'ArrowLeft' && idx > 0) {
+                    codeDigitInputs[idx - 1].focus();
+                    ev.preventDefault();
+                } else if (ev.key === 'ArrowRight' && idx < 5) {
+                    codeDigitInputs[idx + 1].focus();
+                    ev.preventDefault();
+                }
+            });
+            input.addEventListener('paste', function (ev) {
+                var txt = (ev.clipboardData || window.clipboardData).getData('text') || '';
+                var clean = txt.replace(/\D/g, '').slice(0, 6);
+                if (!clean) {
+                    return;
+                }
+                ev.preventDefault();
+                setOtpCode(clean);
+                codeDigitInputs[Math.min(5, clean.length - 1)].focus();
+                if (clean.length === 6) {
+                    submitOtpCode();
+                }
+            });
         });
 
         modalEl.addEventListener('hidden.bs.modal', function () {
@@ -3709,7 +3893,7 @@
                 }
                 resetModal();
                 if (opts.email) {
-                    emailInput.value = opts.email;
+                    loginInput.value = opts.email;
                 }
                 reloadAfterAuthSuccess = opts.reloadOnSuccess !== false;
                 modal.show();

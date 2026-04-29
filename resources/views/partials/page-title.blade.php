@@ -140,6 +140,19 @@
                 'active' => true
             ];
         }
+    } elseif (str_starts_with($currentRoute, 'marketing.')) {
+        $breadcrumbs[] = [
+            'label' => 'Marketing',
+            'url' => route('marketing.campanhas-sms'),
+            'active' => in_array($currentRoute, ['marketing.campanhas-sms'], true),
+        ];
+        if ($currentRoute === 'marketing.campanhas-sms') {
+            $breadcrumbs[] = [
+                'label' => 'Campanhas SMS',
+                'url' => null,
+                'active' => true,
+            ];
+        }
     } elseif (str_starts_with($currentRoute, 'relatorios.')) {
         $breadcrumbs[] = [
             'label' => 'Relatórios',

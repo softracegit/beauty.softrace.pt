@@ -7,6 +7,8 @@ use App\Models\BookingSavedCard;
 use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Payment;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\User;
 use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Services\BookingSlotHoldService;
@@ -270,6 +272,7 @@ class BookingPaymentController extends Controller
                 'status' => Payment::STATUS_SUCCEEDED,
                 'failure_message' => null,
             ]);
+            $this->createPartialSaleForBooking($booking, $resolved, $client, $intent);
             if ($actor instanceof User && $actor->isBookingClient()) {
                 $this->syncSavedCardFromIntent($intent, $actor);
             }
@@ -524,6 +527,86 @@ class BookingPaymentController extends Controller
 
             return null;
         }
+    }
+
+    /**
+     * Cria venda parcial (adiantamento) no momento do depósito online.
+     *
+     * @param  array{
+     *     bookingLines: list<array{
+     *         service: \App\Models\Service,
+     *         option: \App\Models\ServiceOption|null,
+     *         duration: int,
+     *         price: float,
+     *         original_price: float,
+     *         display_name: string
+     *     }>
+     * }  $resolved
+     */
+    private function createPartialSaleForBooking(Booking $booking, array $resolved, Client $client, PaymentIntent $intent): void
+    {
+        $eventId = (int) ($booking->calendar_event_id ?? 0);
+        if ($eventId <= 0) {
+            return;
+        }
+
+        $activeSale = Sale::query()
+            ->where('calendar_event_id', $eventId)
+            ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->first();
+        if ($activeSale) {
+            return;
+        }
+
+        $now = now();
+        $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'));
+        $paymentMethod = $this->salePaymentMethodFromIntent($intent);
+        $total = round((float) $booking->total_price, 2);
+        $valorPago = round((float) $booking->paid_amount, 2);
+
+        $sale = Sale::create([
+            'calendar_event_id' => $eventId,
+            'client_id' => $client->id,
+            'numero_fatura' => $numeroFatura,
+            'data_emissao' => $now->toDateString(),
+            'total' => min($valorPago, $total),
+            'gorjeta' => null,
+            'desconto' => null,
+            'valor_pago' => min($valorPago, $total),
+            'iva_total' => null,
+            'payment_method' => $paymentMethod,
+            'scope' => Sale::SCOPE_BOOKING_RESERVA,
+            'status' => Sale::STATUS_PAGO,
+        ]);
+
+        $sort = 0;
+        SaleItem::create([
+            'sale_id' => $sale->id,
+            'tipo' => SaleItem::TIPO_SERVICO,
+            'calendar_event_service_id' => null,
+            'service_id' => null,
+            'extra_id' => null,
+            'descricao' => 'Adiantamento de reserva (marcação online)',
+            'quantidade' => 1,
+            'preco_unitario' => min($valorPago, $total),
+            'subtotal' => min($valorPago, $total),
+            'desconto' => null,
+            'sort_order' => $sort++,
+        ]);
+    }
+
+    private function salePaymentMethodFromIntent(PaymentIntent $intent): string
+    {
+        $types = $intent->payment_method_types ?? [];
+        $first = is_array($types) && isset($types[0]) ? strtolower((string) $types[0]) : '';
+
+        return match ($first) {
+            'card' => Sale::PAYMENT_CARTAO,
+            'mb_way' => Sale::PAYMENT_MBWAY,
+            'multibanco' => Sale::PAYMENT_MULTIBANCO,
+            default => Sale::PAYMENT_OUTRO,
+        };
     }
 
     private function notifyClientAppointmentCreated(int $eventId, ?string $clientEmail): void

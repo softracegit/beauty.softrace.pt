@@ -17,6 +17,7 @@
                 </p>
             </div>
             <div class="modal-footer border-0 pt-0">
+                <p id="booking-slot-hold-feedback" class="small text-danger mb-2 w-100 d-none"></p>
                 <button type="button" class="btn btn-outline-secondary" id="booking-slot-hold-restart">
                     Voltar ao início
                 </button>

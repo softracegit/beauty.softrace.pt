@@ -74,8 +74,8 @@
     <div class="uview-filter-field uview-filter-select">
       <label class="form-label small text-muted mb-0">Modo</label>
       <select name="vendas_modo" class="form-select form-select-sm">
-        <option value="detalhe" {{ ($vendasModo ?? 'detalhe') === 'detalhe' ? 'selected' : '' }}>Detalhe (linhas)</option>
-        <option value="resumo" {{ ($vendasModo ?? 'detalhe') === 'resumo' ? 'selected' : '' }}>Resumo por venda</option>
+        <option value="venda" {{ ($vendasModo ?? 'venda') === 'venda' ? 'selected' : '' }}>Venda (agrupado por marcação)</option>
+        <option value="resumo" {{ ($vendasModo ?? 'venda') === 'resumo' ? 'selected' : '' }}>Resumo por fatura</option>
       </select>
     </div>
     <div class="uview-filter-submit">
@@ -91,17 +91,17 @@
         <thead>
           <tr>
             <th>Data</th>
-            <th>N.º fatura</th>
+            <th>{{ ($vendasModo ?? 'venda') === 'venda' ? 'Faturas' : 'N.º fatura' }}</th>
             <th>Cliente</th>
             <th>NIF</th>
             <th>Técnico</th>
             <th>Serviço</th>
             <th class="text-center">Qtd</th>
-            <th class="text-end text-nowrap">Desconto</th>
-            <th class="text-end text-nowrap">Valor serviço</th>
-            <th class="text-end text-nowrap">Gorjeta</th>
             <th class="text-end text-nowrap">Total</th>
+            <th class="text-end text-nowrap">Reserva</th>
+            <th class="text-end text-nowrap">Gorjeta</th>
             <th class="text-end text-nowrap">Em dívida</th>
+            <th class="text-center text-nowrap">Estado</th>
             <th class="text-end"></th>
           </tr>
         </thead>
@@ -120,14 +120,14 @@
                 @endif
               </td>
               <td class="text-center">{{ $linha->quantidade }}</td>
+              <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>
               <td class="text-end text-nowrap">
-                @if((float) ($linha->desconto ?? 0) > 0)
-                  {{ number_format((float) $linha->desconto, 2, ',', ' ') }}€
+                @if(($vendasModo ?? 'venda') === 'venda' && (float) ($linha->reserva_pago ?? 0) > 0)
+                  {{ number_format((float) $linha->reserva_pago, 2, ',', ' ') }}€
                 @else
                   
                 @endif
               </td>
-              <td class="text-end text-nowrap">{{ number_format($linha->valor, 2, ',', ' ') }}€</td>
               <td class="text-end text-nowrap">
                 @if((float) ($linha->gorjeta ?? 0) > 0)
                   {{ number_format((float) $linha->gorjeta, 2, ',', ' ') }}€
@@ -135,12 +135,20 @@
                   
                 @endif
               </td>
-              <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>
               <td class="text-end text-nowrap">
                 @if((float) ($linha->pendente ?? 0) > 0)
                   {{ number_format((float) $linha->pendente, 2, ',', ' ') }}€
                 @else
                   
+                @endif
+              </td>
+              <td class="text-center text-nowrap">
+                @if(($linha->sale_display_status ?? '') === 'anulado')
+                  <span class="badge bg-danger-subtle text-danger">Anulado</span>
+                @elseif(($linha->sale_display_status ?? '') === 'parcial')
+                  <span class="badge bg-warning-subtle text-warning">Parcial</span>
+                @else
+                  <span class="badge bg-success-subtle text-success">Pago</span>
                 @endif
               </td>
               <td class="text-end p-1">
@@ -168,7 +176,7 @@
                     @else
                       <li><span class="dropdown-item-text text-muted small">Sem marcação associada</span></li>
                     @endif
-                    @if(($linha->sale_status ?? '') === \App\Models\Sale::STATUS_PAGO)
+                    @if(($vendasModo ?? 'venda') !== 'venda' && ($linha->sale_status ?? '') === \App\Models\Sale::STATUS_PAGO)
                       <li><hr class="dropdown-divider"></li>
                       <li>
                         <button type="button" class="dropdown-item text-danger js-sale-revert" data-revert-url="{{ route('sales.revert', $linha->sale) }}">
@@ -185,12 +193,16 @@
         <tfoot class="table-light">
           <tr class="fw-semibold">
             <td colspan="6" class="text-end"></td>
-            <td class="text-center">{{ ($vendasModo ?? 'detalhe') === 'resumo' ? ($vendasTotais['num_vendas'] ?? 0) : ($vendasTotais['total_servicos'] ?? 0) }}</td>
-            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_desconto'] ?? 0, 2, ',', ' ') }}€</td>
-            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_valor'] ?? 0, 2, ',', ' ') }}€</td>
-            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_gorjeta'] ?? 0, 2, ',', ' ') }}€</td>
+            <td class="text-center">{{ $vendasTotais['num_vendas'] ?? 0 }}</td>
             <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_valor_com_gorjeta'] ?? (($vendasTotais['total_valor'] ?? 0) + ($vendasTotais['total_gorjeta'] ?? 0)), 2, ',', ' ') }}€</td>
+              <td class="text-end text-nowrap">
+                @if(($vendasModo ?? 'venda') === 'venda')
+                  {{ number_format((float) $vendas->getCollection()->sum(fn ($linha) => (float) ($linha->reserva_pago ?? 0)), 2, ',', ' ') }}€
+                @endif
+              </td>
+            <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_gorjeta'] ?? 0, 2, ',', ' ') }}€</td>
             <td class="text-end text-nowrap">{{ number_format($vendasTotais['total_divida'] ?? 0, 2, ',', ' ') }}€</td>
+            <td></td>
             <td></td>
           </tr>
         </tfoot>

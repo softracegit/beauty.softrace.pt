@@ -1437,6 +1437,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     var eventDetailExistingSale = null;
+    var eventDetailBookingPaidAmount = 0;
 
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
         var payBtn = $id('eventDetailPaymentBtn');
@@ -1446,10 +1447,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var closeWithoutSaveBtn = $id('eventDetailCloseWithoutSaveBtn');
         var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
         var stLocked = status === 'completo' || status === 'faltou' || status === 'cancelado';
-        var readonly = !!existingSale || !!stLocked;
+        var isPartialSale = !!(existingSale && existingSale.is_partial);
+        var readonly = (!!existingSale && !isPartialSale) || !!stLocked;
         if (payBtn) payBtn.classList.toggle('d-none', readonly || eventType !== 'marcacao' || servicesCount === 0);
         if (verFatura) {
-            if (existingSale) {
+            if (existingSale && !isPartialSale) {
                 verFatura.href = existingSale.pdf_url || '#';
                 verFatura.classList.remove('d-none');
             } else {
@@ -1457,8 +1459,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         if (revertBtn) {
-            revertBtn.classList.toggle('d-none', !existingSale);
-            if (existingSale) revertBtn.dataset.saleId = String(existingSale.id);
+            revertBtn.classList.toggle('d-none', !existingSale || isPartialSale);
+            if (existingSale && !isPartialSale) revertBtn.dataset.saleId = String(existingSale.id);
         }
         if (saveBtn) {
             saveBtn.disabled = readonly;
@@ -1542,6 +1544,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window._eventDetailOcPopulating = true;
         eventDetailCurrentData = data;
         eventDetailExistingSale = data.existing_sale || null;
+        eventDetailBookingPaidAmount = Math.max(0, parseFloat(data.booking_paid_amount) || 0);
         eventDetailOriginalStartAt = data.start_at || null;
         eventDetailOriginalEndAt = data.end_at || null;
         eventDetailTrustServicesSumForDuration = false;
@@ -3694,13 +3697,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function paymentModalUpdateTotals() {
         var sub = paymentModalSubtotal();
+        var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
+        var servicesDue = Math.max(0, sub - paidOnline);
         var gorjeta = parseFloat($id('paymentGorjeta').value) || 0;
         if (gorjeta < 0) gorjeta = 0;
         $id('paymentSubtotalDisplay').textContent = sub.toFixed(2).replace('.', ',') + ' €';
+        var paidLine = $id('paymentOnlinePaidLine');
+        var paidDisplay = $id('paymentOnlinePaidDisplay');
+        if (paidDisplay) paidDisplay.textContent = '-' + paidOnline.toFixed(2).replace('.', ',') + ' €';
+        if (paidLine) paidLine.classList.toggle('d-none', paidOnline <= 0);
+        var dueLine = $id('paymentServicesDueLine');
+        var dueDisplay = $id('paymentServicesDueDisplay');
+        if (dueDisplay) dueDisplay.textContent = servicesDue.toFixed(2).replace('.', ',') + ' €';
+        if (dueLine) dueLine.classList.toggle('d-none', paidOnline <= 0);
         $id('paymentGorjetaDisplay').textContent = gorjeta.toFixed(2).replace('.', ',') + ' €';
         var gorjetaLine = $id('paymentGorjetaLine');
         if (gorjetaLine) gorjetaLine.classList.toggle('d-none', gorjeta <= 0);
-        $id('paymentTotalDisplay').textContent = (sub + gorjeta).toFixed(2).replace('.', ',') + ' €';
+        $id('paymentTotalDisplay').textContent = (servicesDue + gorjeta).toFixed(2).replace('.', ',') + ' €';
     }
 
     $id('eventDetailPaymentBtn').addEventListener('click', function() {
@@ -3714,6 +3727,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         var firstCard = cards[0];
         $id('paymentMethodValue').value = firstCard ? (firstCard.dataset.method || 'dinheiro') : 'dinheiro';
+        var phoneWrap = $id('paymentMbwayPhoneWrap');
+        var phoneInput = $id('paymentMbwayPhone');
+        if (phoneWrap && phoneInput) {
+            phoneWrap.classList.add('d-none');
+            var rawPhone = '';
+            if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
+                rawPhone = String(eventDetailSelectedClient.phone || '');
+            }
+            phoneInput.value = rawPhone;
+        }
         bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
     });
 
@@ -3722,7 +3745,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!card) return;
         $$('#paymentMethodToggleGroup .payment-method-card').forEach(function(c) { c.classList.remove('active'); });
         card.classList.add('active');
-        $id('paymentMethodValue').value = card.dataset.method || '';
+        var method = card.dataset.method || '';
+        $id('paymentMethodValue').value = method;
+        var phoneWrap = $id('paymentMbwayPhoneWrap');
+        if (phoneWrap) {
+            phoneWrap.classList.toggle('d-none', method !== 'mbway');
+        }
     });
 
     $id('paymentGorjeta').addEventListener('input', paymentModalUpdateTotals);
@@ -3757,6 +3785,93 @@ document.addEventListener('DOMContentLoaded', function() {
         var btn = $id('paymentConfirmBtn');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A faturar...';
+        if (method === 'mbway') {
+            var mbwayPhoneInput = $id('paymentMbwayPhone');
+            var mbwayPhone = mbwayPhoneInput ? String(mbwayPhoneInput.value || '').trim() : '';
+            fetch(C.agendaCheckoutMbwayIntentUrl || '', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify({ event_id: eventId, gorjeta: gorjeta, items: items, mbway_phone: mbwayPhone })
+            })
+            .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
+            .then(function(_) {
+                var ok = _.ok;
+                var res = _.res || {};
+                if (!ok) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Confirmar e faturar';
+                    showToast(res.error || res.message || 'Erro ao gerar pedido MB WAY.', 'error');
+                    return;
+                }
+                showToast(res.message || 'Pedido MB WAY enviado para o cliente.', 'success');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A aguardar confirmação MB WAY...';
+                var paymentIntentId = res.payment_intent_id;
+                if (!paymentIntentId) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Confirmar e faturar';
+                    showToast('Resposta MB WAY inválida.', 'error');
+                    return;
+                }
+                var tries = 0;
+                var maxTries = 30; // ~90s
+                var iv = setInterval(function() {
+                    tries += 1;
+                    fetch(C.agendaCheckoutMbwayFinalizeUrl || '', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                        body: JSON.stringify({ payment_intent_id: paymentIntentId, event_id: eventId, gorjeta: gorjeta, items: items })
+                    })
+                    .then(function(r) { return r.json().then(function(res2) { return { ok: r.ok, status: r.status, res: res2 || {} }; }); })
+                    .then(function(pack) {
+                        if (pack.ok && pack.res && pack.res.success) {
+                            clearInterval(iv);
+                            btn.disabled = false;
+                            btn.innerHTML = 'Confirmar e faturar';
+                            bootstrap.Modal.getInstance($id('paymentModal')).hide();
+                            showToast('Pagamento MB WAY confirmado e venda registada.', 'success');
+                            if (typeof calendar !== 'undefined') {
+                                calendar.refetchEvents();
+                            }
+                            eventDetailModalLoading = true;
+                            fetch((C.urlEvents || '') + '/' + eventId, { headers: { 'Accept': 'application/json' } })
+                            .then(function(r2) { return r2.json(); })
+                            .then(function(data) {
+                                populateEventDetailEditModal(data);
+                                setEventDetailPaymentAndReadOnly(data.existing_sale || null, 'marcacao', eventDetailSelectedServices.length);
+                            })
+                            .finally(function() { eventDetailModalLoading = false; });
+                            return;
+                        }
+                        if (pack.status === 202) {
+                            if (tries >= maxTries) {
+                                clearInterval(iv);
+                                btn.disabled = false;
+                                btn.innerHTML = 'Confirmar e faturar';
+                                showToast('Pedido MB WAY enviado. Ainda pendente; pode confirmar mais tarde.', 'warning');
+                            }
+                            return;
+                        }
+                        clearInterval(iv);
+                        btn.disabled = false;
+                        btn.innerHTML = 'Confirmar e faturar';
+                        showToast((pack.res && (pack.res.error || pack.res.message)) || 'Falha ao confirmar pagamento MB WAY.', 'error');
+                    })
+                    .catch(function() {
+                        clearInterval(iv);
+                        btn.disabled = false;
+                        btn.innerHTML = 'Confirmar e faturar';
+                        showToast('Erro de ligação ao validar MB WAY.', 'error');
+                    });
+                }, 3000);
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.innerHTML = 'Confirmar e faturar';
+                showToast('Erro de ligação ao gerar pedido MB WAY.', 'error');
+            });
+            return;
+        }
+
         fetch(C.agendaCheckoutStoreUrl || '', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },

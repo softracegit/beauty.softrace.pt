@@ -4,6 +4,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingClientAuthController;
+use App\Http\Controllers\BookingContactVerificationController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingPaymentController;
 use App\Http\Controllers\BookingSavedCardController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\DealController;
 use App\Http\Controllers\DefinicoesController;
 use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\MarketingSmsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\PropertyController;
@@ -92,9 +94,19 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
     Route::post('/auth/verify-code', [BookingClientAuthController::class, 'verifyCodeFromAuthModal'])
         ->middleware('throttle:10,1')
         ->name('auth.verify_code');
+    Route::post('/auth/complete-registration', [BookingClientAuthController::class, 'completeRegistrationFromAuthModal'])
+        ->middleware('throttle:10,1')
+        ->name('auth.complete_registration');
 
     Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {
         Route::get('/', [BookingController::class, 'account'])->name('index');
+        Route::get('/marcacoes', [BookingController::class, 'appointments'])->name('marcacoes');
+        Route::get('/definicoes', [BookingController::class, 'settings'])->name('settings');
+        Route::post('/dados-pessoais', [BookingController::class, 'updateProfilePersonal'])
+            ->middleware('throttle:30,1')
+            ->name('profile.personal');
+        Route::post('/verificacao/request', [BookingContactVerificationController::class, 'requestCode'])->name('verification.request');
+        Route::post('/verificacao/confirm', [BookingContactVerificationController::class, 'confirmCode'])->name('verification.confirm');
         Route::post('/cartoes/setup-intent', [BookingSavedCardController::class, 'createSetupIntent'])->name('cards.setup_intent');
         Route::post('/cartoes/sync', [BookingSavedCardController::class, 'syncAfterSetupIntent'])->name('cards.sync');
         Route::post('/cartoes/{card}/default', [BookingSavedCardController::class, 'makeDefault'])->name('cards.default');
@@ -213,6 +225,8 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
     Route::get('agenda/events/{calendarEvent}/checkout', [CheckoutController::class, 'checkout'])->name('agenda.checkout');
     Route::post('agenda/checkout', [CheckoutController::class, 'store'])->name('agenda.checkout.store');
+    Route::post('agenda/checkout/mbway/intent', [CheckoutController::class, 'createMbwayIntent'])->name('agenda.checkout.mbway.intent');
+    Route::post('agenda/checkout/mbway/finalize', [CheckoutController::class, 'finalizeMbway'])->name('agenda.checkout.mbway.finalize');
     Route::get('sales/{sale}/pdf', [CheckoutController::class, 'pdf'])->name('sales.pdf');
     Route::post('sales/{sale}/revert', [CheckoutController::class, 'revert'])->name('sales.revert');
 
@@ -247,6 +261,13 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::post('extra-categories', [ExtraController::class, 'storeCategory'])->name('extras.categories.store');
     Route::match(['put', 'patch'], 'extra-categories/{extraCategory}', [ExtraController::class, 'updateCategory'])->name('extras.categories.update');
     Route::delete('extra-categories/{extraCategory}', [ExtraController::class, 'destroyCategory'])->name('extras.categories.destroy');
+
+    Route::prefix('marketing')->name('marketing.')->group(function () {
+        Route::get('campanhas-sms', [MarketingSmsController::class, 'index'])->name('campanhas-sms');
+        Route::post('campanhas-sms/enviar', [MarketingSmsController::class, 'send'])
+            ->middleware('throttle:20,1')
+            ->name('campanhas-sms.send');
+    });
 
     Route::prefix('relatorios')->name('relatorios.')->group(function () {
         Route::get('marcacoes/export', [RelatoriosController::class, 'marcacoesExport'])->name('marcacoes.export');

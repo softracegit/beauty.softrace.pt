@@ -31,9 +31,9 @@
           </a>
         </li>
         <li>
-          <button class="iconbar-item" data-panel="marketing" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Marketing" aria-label="Marketing">
+          <a href="{{ route('marketing.campanhas-sms') }}" class="iconbar-item {{ request()->routeIs('marketing.*') ? 'active' : '' }}" data-panel="marketing" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Marketing" aria-label="Marketing">
             <i class="ph ph-megaphone"></i>
-          </button>
+          </a>
         </li>
         <li>
           <a href="{{ route('equipa.index') }}" class="iconbar-item {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-panel="agentes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
@@ -167,14 +167,14 @@
       </ul>
     </div>
 
-    <div class="sidebar-panel-section" data-section="marketing">
+    <div class="sidebar-panel-section {{ request()->routeIs('marketing.*') ? 'active' : '' }}" data-section="marketing">
       <div class="sidebar-panel-header">
         <h6>Marketing</h6>
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link" href="#!">
+          <a class="panel-link {{ request()->routeIs('marketing.campanhas-sms') ? 'active' : '' }}" href="{{ route('marketing.campanhas-sms') }}">
             Campanhas SMS
           </a>
         </li>

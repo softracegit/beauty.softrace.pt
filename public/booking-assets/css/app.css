@@ -14,7 +14,7 @@
     --booking-border: #e8e8e8;
     --booking-accent: #0d6efd;
     --booking-radius: 0.75rem;
-    --booking-split-max: 80rem;
+    --booking-split-max: 70rem;
     /* Navbar fixa — alinhar com .booking-navbar__inner */
     --booking-navbar-height: 3.5rem;
     /* Espaço extra entre a navbar e o conteúdo (resumo sticky usa o mesmo offset) */
@@ -1353,6 +1353,144 @@ button.booking-offcanvas-nav__link {
 .booking-auth-modal__back i {
     font-size: 1.1rem;
     line-height: 1;
+}
+
+.booking-auth-otp-inputs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.booking-auth-otp-input {
+    text-align: center;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.booking-account-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: 3rem;
+    align-items: start;
+}
+
+.booking-account-sidebar {
+    position: sticky;
+    top: 5rem;
+}
+
+.booking-account-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.booking-account-nav__link {
+    display: block;
+    padding: 0.75rem 0.65rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: #111827;
+    font-size: 0.98rem;
+    font-weight: 500;
+}
+
+.booking-account-nav__link:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.booking-account-nav__link.is-active {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.booking-account-nav__link--danger {
+    border: 0;
+    background: transparent;
+    color: #b42318;
+}
+
+.booking-account-nav__link--danger:hover {
+    background: #fef3f2;
+    color: #912018;
+}
+
+.booking-contact-status-badge {
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.booking-contact-verify-btn {
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.booking-profile-completion__bar {
+    height: 0.5rem;
+    border-radius: 999px;
+    background: #e5e7eb;
+    overflow: hidden;
+}
+
+.booking-profile-completion__fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #111827, #4b5563);
+    transition: width 0.35s ease;
+}
+
+.booking-profile-completion__info {
+    text-decoration: none;
+}
+
+.booking-profile-completion__info:hover,
+.booking-profile-completion__info:focus {
+    color: #111827 !important;
+}
+
+.booking-account-marcacoes .booking-marcacao-card {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.booking-marcacao-badge {
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+.booking-marcacao-dl dt {
+    font-weight: 500;
+}
+
+@media (min-width: 576px) {
+    .booking-marcacao-dl dt {
+        text-align: right;
+    }
+}
+
+.booking-account-content section {
+    scroll-margin-top: 6rem;
+}
+
+.booking-account-content .card + .card {
+    margin-top: 2.5rem;
+}
+
+@media (max-width: 991.98px) {
+    .booking-account-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .booking-account-sidebar {
+        display: none;
+    }
 }
 
 .booking-page--login .booking-login__header {

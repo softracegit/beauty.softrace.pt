@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\Booking;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Client;
@@ -554,13 +555,36 @@ class CalendarController extends Controller
                     'formatted_duration' => $calendarEvent->personalTimeType->formatted_duration,
                 ] : null,
                 'existing_sale' => null,
+                'booking_paid_amount' => 0.0,
             ];
+
+            $subtotal = (float) collect($payload['event_services'] ?? [])->sum(function (array $row): float {
+                $base = (float) ($row['price'] ?? 0);
+                $extras = collect($row['extras'] ?? [])->sum(fn (array $ex): float => (float) ($ex['price'] ?? 0));
+
+                return $base + $extras;
+            });
+            $salesPaid = (float) Sale::query()
+                ->where('calendar_event_id', $calendarEvent->id)
+                ->where('status', '!=', Sale::STATUS_ANULADO)
+                ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
+            $bookingPaid = (float) Booking::query()
+                ->where('calendar_event_id', $calendarEvent->id)
+                ->where('payment_status', Booking::PAYMENT_PAID)
+                ->orderByDesc('id')
+                ->value('paid_amount');
+            $alreadyPaid = round(max($salesPaid, $bookingPaid, 0.0), 2);
+            $payload['booking_paid_amount'] = $alreadyPaid;
+            $amountDue = max(0.0, round($subtotal - $alreadyPaid, 2));
+            $isPartial = $alreadyPaid > 0.00001 && $amountDue > 0.00001;
 
             $sale = $calendarEvent->sale;
             if ($sale && $sale->status !== Sale::STATUS_ANULADO) {
                 $payload['existing_sale'] = [
                     'id' => $sale->id,
                     'numero_fatura' => $sale->numero_fatura,
+                    'amount_due' => $amountDue,
+                    'is_partial' => $isPartial,
                     'pdf_url' => route('sales.pdf', $sale),
                 ];
             }

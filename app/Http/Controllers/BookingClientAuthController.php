@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Mail\BookingAuthCodeMail;
-use App\Models\Client;
 use App\Models\BookingAuthCode;
+use App\Models\Client;
 use App\Models\User;
+use App\Services\TwilioSmsService;
+use App\Support\PhoneDisplay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,27 +19,31 @@ use Illuminate\Validation\ValidationException;
 
 class BookingClientAuthController extends Controller
 {
+    private const PENDING_REG_CHANNEL_KEY = 'booking_auth.pending_registration.channel';
+
+    private const PENDING_REG_IDENTIFIER_KEY = 'booking_auth.pending_registration.identifier';
+
+    public function __construct(
+        private readonly TwilioSmsService $twilioSmsService
+    ) {}
+
     public function requestCodeFromAuthModal(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-        ]);
-
-        $email = strtolower(trim($validated['email']));
-        $user = $this->resolveBookingClientUserForEmail($email);
-        // O código deve ser enviado para o email introduzido no booking.
-        // Isto evita conflitos em contas legadas onde users.email != clients.email.
-        $targetEmail = $email;
+        $target = $this->resolveAuthTargetFromRequest($request, validateOnly: false);
+        $user = $target['channel'] === 'email'
+            ? $this->resolveBookingClientUserForEmail($target['identifier'])
+            : $this->resolveBookingClientUserForPhone($target['identifier']);
         $ttlMinutes = max(3, (int) config('booking.auth_code_ttl_minutes', 10));
         $code = (string) random_int(100000, 999999);
 
         BookingAuthCode::query()
-            ->whereRaw('LOWER(email) = ?', [$targetEmail])
+            ->whereRaw('LOWER(email) = ?', [strtolower($target['identifier'])])
             ->whereNull('consumed_at')
             ->delete();
 
         BookingAuthCode::query()->create([
-            'email' => $targetEmail,
+            // Coluna "email" é usada como identificador (email ou telemóvel E.164).
+            'email' => $target['identifier'],
             'code_hash' => hash('sha256', $code),
             'expires_at' => now()->addMinutes($ttlMinutes),
             'requested_ip' => $request->ip(),
@@ -45,46 +51,54 @@ class BookingClientAuthController extends Controller
         ]);
 
         try {
-            Mail::mailer('booking')->to($targetEmail)->send(new BookingAuthCodeMail($code, $ttlMinutes));
+            if ($target['channel'] === 'email') {
+                Mail::mailer('booking')->to($target['identifier'])->send(new BookingAuthCodeMail($code, $ttlMinutes));
+            } else {
+                $this->twilioSmsService->send(
+                    $target['identifier'],
+                    sprintf('O seu código de acesso é %s. Expira em %d minutos.', $code, $ttlMinutes)
+                );
+            }
         } catch (\Throwable $e) {
             Log::error('Envio do código de acesso (booking) falhou.', [
-                'email' => $targetEmail,
+                'channel' => $target['channel'],
+                'target' => $target['identifier'],
                 'exception' => $e::class,
                 'message' => $e->getMessage(),
             ]);
             throw ValidationException::withMessages([
-                'email' => ['Não foi possível enviar o código agora. Tente novamente em instantes.'],
+                'login' => ['Não foi possível enviar o código agora. Tente novamente em instantes.'],
             ]);
         }
 
         return response()->json([
             'ok' => true,
-            'email' => $targetEmail,
+            'channel' => $target['channel'],
+            'identifier' => $target['identifier'],
             'expires_in' => $ttlMinutes * 60,
+            'known_account' => $user instanceof User,
         ]);
     }
 
     public function verifyCodeFromAuthModal(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'code' => ['required', 'digits:6'],
-        ]);
-
-        $emailInput = strtolower(trim((string) $validated['email']));
+        $validated = $request->validate(['code' => ['required', 'digits:6']]);
+        $target = $this->resolveAuthTargetFromRequest($request, validateOnly: false);
         $code = trim((string) $validated['code']);
-        $resolved = $this->resolveBookingClientUserForEmail($emailInput);
+        $resolved = $target['channel'] === 'email'
+            ? $this->resolveBookingClientUserForEmail($target['identifier'])
+            : $this->resolveBookingClientUserForPhone($target['identifier']);
 
         $authCode = BookingAuthCode::query()
-            ->whereRaw('LOWER(email) = ?', [$emailInput])
+            ->whereRaw('LOWER(email) = ?', [strtolower($target['identifier'])])
             ->whereNull('consumed_at')
             ->where('expires_at', '>', now())
             ->latest('id')
             ->first();
 
-        // Compatibilidade temporária: permite validar códigos emitidos antes desta alteração
-        // quando o código foi enviado para users.email em vez do email introduzido.
-        if (! $authCode && $resolved instanceof User) {
+        // Compatibilidade temporária com códigos emitidos antes da unificação.
+        if (! $authCode && $resolved instanceof User && $target['channel'] === 'email') {
+            $emailInput = strtolower($target['identifier']);
             $resolvedUserEmail = strtolower(trim((string) $resolved->email));
             if ($resolvedUserEmail !== '' && $resolvedUserEmail !== $emailInput) {
                 $authCode = BookingAuthCode::query()
@@ -113,51 +127,155 @@ class BookingClientAuthController extends Controller
         $authCode->consumed_at = now();
         $authCode->save();
 
-        $user = $resolved ?: $this->createPasswordlessBookingUserFromEmail($emailInput);
-        $this->syncBookingUserEmailAfterVerifiedCode($user, $emailInput);
+        if (! $resolved instanceof User) {
+            $request->session()->put(self::PENDING_REG_CHANNEL_KEY, $target['channel']);
+            $request->session()->put(self::PENDING_REG_IDENTIFIER_KEY, $target['identifier']);
+
+            return response()->json([
+                'ok' => true,
+                'requires_registration' => true,
+                'channel' => $target['channel'],
+                'identifier' => $target['identifier'],
+            ]);
+        }
+
+        $user = $resolved;
+        $this->clearPendingRegistration($request);
+
+        if ($target['channel'] === 'email') {
+            $this->syncBookingUserEmailAfterVerifiedCode($user, $target['identifier']);
+        } else {
+            $this->syncBookingUserPhoneAfterVerifiedCode($user, $target['identifier']);
+        }
+
         Auth::login($user, true);
         $request->session()->regenerate();
 
         return response()->json([
             'ok' => true,
-            'is_new_account' => ! $resolved,
+            'is_new_account' => false,
         ]);
     }
 
-    private function createPasswordlessBookingUserFromEmail(string $emailNorm): User
+    public function completeRegistrationFromAuthModal(Request $request): JsonResponse
     {
-        $emailNorm = strtolower(trim($emailNorm));
-        if ($emailNorm === '') {
+        $channel = (string) $request->session()->get(self::PENDING_REG_CHANNEL_KEY, '');
+        $identifier = (string) $request->session()->get(self::PENDING_REG_IDENTIFIER_KEY, '');
+        if ($channel === '' || $identifier === '') {
             throw ValidationException::withMessages([
-                'email' => ['Email inválido para criar conta.'],
+                'login' => ['A sessão de registo expirou. Peça um novo código.'],
             ]);
         }
 
-        $existing = User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->first();
-        if ($existing instanceof User) {
-            if (! $existing->isBookingClient()) {
-                throw ValidationException::withMessages([
-                    'email' => ['Este email já está associado a outro tipo de conta. Use outro email.'],
-                ]);
-            }
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:32'],
+        ]);
 
-            return $existing;
+        $name = trim((string) $validated['name']);
+        if ($name === '') {
+            throw ValidationException::withMessages([
+                'name' => ['Indique o nome.'],
+            ]);
         }
 
-        $localPart = explode('@', $emailNorm)[0] ?? 'cliente';
-        $baseName = trim((string) preg_replace('/[\._\-]+/', ' ', $localPart));
-        $displayName = Str::title($baseName !== '' ? $baseName : 'Cliente');
+        if ($channel === 'phone') {
+            $emailNorm = strtolower(trim((string) ($validated['email'] ?? '')));
+            if ($emailNorm === '') {
+                throw ValidationException::withMessages([
+                    'email' => ['Indique o email para criar a conta.'],
+                ]);
+            }
+            $this->assertEmailIsFullyUnique($emailNorm);
+            $phoneE164 = $identifier;
+        } else {
+            $phoneE164 = PhoneDisplay::toE164((string) ($validated['phone'] ?? ''));
+            if ($phoneE164 === null) {
+                throw ValidationException::withMessages([
+                    'phone' => ['Indique um telemóvel válido para criar a conta.'],
+                ]);
+            }
+            $this->assertPhoneIsFullyUnique($phoneE164);
+            $emailNorm = $identifier;
+        }
 
         $client = Client::query()->create([
-            'name' => $displayName,
+            'name' => $name,
             'email' => $emailNorm,
-            'phone' => null,
+            'phone' => $phoneE164,
             'type' => Client::TYPE_POTENCIAL_CLIENTE,
         ]);
 
+        $user = $this->createBookingUserForClient($client, $emailNorm);
+        $this->clearPendingRegistration($request);
+
+        Auth::login($user, true);
+        $request->session()->regenerate();
+
+        return response()->json([
+            'ok' => true,
+            'is_new_account' => true,
+        ]);
+    }
+
+    /**
+     * @return array{channel: 'email'|'phone', identifier: string}
+     */
+    private function resolveAuthTargetFromRequest(Request $request, bool $validateOnly): array
+    {
+        $request->validate([
+            'login' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        $rawLogin = trim((string) ($request->input('login') ?? ''));
+        if ($rawLogin === '') {
+            $rawLogin = trim((string) ($request->input('email') ?? ''));
+        }
+        if ($rawLogin === '') {
+            $rawLogin = trim((string) ($request->input('phone') ?? ''));
+        }
+
+        if ($rawLogin === '') {
+            throw ValidationException::withMessages([
+                'login' => ['Indique o email ou telemóvel.'],
+            ]);
+        }
+
+        if (str_contains($rawLogin, '@')) {
+            $email = strtolower($rawLogin);
+            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw ValidationException::withMessages([
+                    'login' => ['Indique um email válido.'],
+                ]);
+            }
+
+            return ['channel' => 'email', 'identifier' => $email];
+        }
+
+        $phone = PhoneDisplay::toE164($rawLogin);
+        if ($phone === null) {
+            throw ValidationException::withMessages([
+                'login' => ['Indique um telemóvel válido (ex.: +351912345678).'],
+            ]);
+        }
+
+        if (! $validateOnly) {
+            $this->assertNoPhoneConflictForBookingAuth($phone);
+        }
+
+        return ['channel' => 'phone', 'identifier' => $phone];
+    }
+
+    private function createBookingUserForClient(Client $client, string $userEmail): User
+    {
+        $displayName = trim((string) $client->name) !== '' ? (string) $client->name : 'Cliente';
+
         $user = User::query()->create([
             'name' => $displayName,
-            'email' => $emailNorm,
+            'email' => $userEmail,
             'password' => Hash::make(Str::random(64)),
             'role' => User::ROLE_CLIENTE,
             'client_id' => $client->id,
@@ -196,6 +314,132 @@ class BookingClientAuthController extends Controller
                     ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm]);
             })
             ->first();
+    }
+
+    private function resolveBookingClientUserForPhone(string $phoneE164): ?User
+    {
+        $phoneE164 = trim($phoneE164);
+        if ($phoneE164 === '') {
+            return null;
+        }
+
+        $clientIds = Client::query()
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->get(['id', 'phone'])
+            ->filter(function (Client $client) use ($phoneE164): bool {
+                return PhoneDisplay::toE164((string) $client->phone) === $phoneE164;
+            })
+            ->pluck('id')
+            ->values();
+
+        if ($clientIds->isEmpty()) {
+            return null;
+        }
+        if ($clientIds->count() > 1) {
+            throw ValidationException::withMessages([
+                'login' => ['Existe mais do que um cliente com este telemóvel. Contacte o suporte para unificar os registos.'],
+            ]);
+        }
+
+        return User::query()
+            ->where('role', User::ROLE_CLIENTE)
+            ->where('client_id', (int) $clientIds->first())
+            ->first();
+    }
+
+    private function assertNoEmailConflictForBookingAuth(string $emailNorm): void
+    {
+        $emailNorm = strtolower(trim($emailNorm));
+        $matchingUsers = User::query()
+            ->whereRaw('LOWER(email) = ?', [$emailNorm])
+            ->get();
+        if ($matchingUsers->count() > 1) {
+            throw ValidationException::withMessages([
+                'login' => ['Este email está duplicado em utilizadores. Contacte o suporte.'],
+            ]);
+        }
+        $single = $matchingUsers->first();
+        if ($single instanceof User && ! $single->isBookingClient()) {
+            throw ValidationException::withMessages([
+                'login' => ['Este email já está associado a outro tipo de conta. Use outro email.'],
+            ]);
+        }
+
+        $clients = Client::query()
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])
+            ->count();
+        if ($clients > 1) {
+            throw ValidationException::withMessages([
+                'login' => ['Existe mais do que um cliente com este email. Contacte o suporte para unificar os registos.'],
+            ]);
+        }
+    }
+
+    private function assertNoPhoneConflictForBookingAuth(string $phoneE164): void
+    {
+        $matches = Client::query()
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->get(['id', 'phone'])
+            ->filter(fn (Client $client): bool => PhoneDisplay::toE164((string) $client->phone) === $phoneE164)
+            ->values();
+
+        if ($matches->count() > 1) {
+            throw ValidationException::withMessages([
+                'login' => ['Existe mais do que um cliente com este telemóvel. Contacte o suporte para unificar os registos.'],
+            ]);
+        }
+    }
+
+    private function assertEmailIsFullyUnique(string $emailNorm): void
+    {
+        $emailNorm = strtolower(trim($emailNorm));
+        if ($emailNorm === '') {
+            throw ValidationException::withMessages([
+                'email' => ['Indique um email válido.'],
+            ]);
+        }
+        if (User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => ['Este email já pertence a um utilizador. Indique um email diferente.'],
+            ]);
+        }
+        if (Client::query()->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])->exists()) {
+            throw ValidationException::withMessages([
+                'email' => ['Este email já pertence a um cliente. Indique um email diferente.'],
+            ]);
+        }
+    }
+
+    private function assertPhoneIsFullyUnique(string $phoneE164): void
+    {
+        $phoneE164 = trim($phoneE164);
+        if ($phoneE164 === '') {
+            throw ValidationException::withMessages([
+                'phone' => ['Indique um telemóvel válido.'],
+            ]);
+        }
+        $phoneExists = Client::query()
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->get(['phone'])
+            ->contains(fn (Client $client): bool => PhoneDisplay::toE164((string) $client->phone) === $phoneE164);
+        if ($phoneExists) {
+            throw ValidationException::withMessages([
+                'phone' => ['Este telemóvel já pertence a um cliente. Indique um telemóvel diferente.'],
+            ]);
+        }
+    }
+
+    private function clearPendingRegistration(Request $request): void
+    {
+        $request->session()->forget([
+            self::PENDING_REG_CHANNEL_KEY,
+            self::PENDING_REG_IDENTIFIER_KEY,
+        ]);
     }
 
     /**
@@ -238,5 +482,37 @@ class BookingClientAuthController extends Controller
             'email' => $verifiedEmail,
             'email_verified_at' => now(),
         ])->save();
+    }
+
+    private function syncBookingUserPhoneAfterVerifiedCode(User $user, string $verifiedPhoneE164): void
+    {
+        $verifiedPhoneE164 = trim($verifiedPhoneE164);
+        if ($verifiedPhoneE164 === '' || ! $user->isBookingClient() || ! ($user->client instanceof Client)) {
+            return;
+        }
+
+        $currentPhone = PhoneDisplay::toE164((string) ($user->client->phone ?? ''));
+        if ($currentPhone === $verifiedPhoneE164) {
+            return;
+        }
+
+        $conflict = Client::query()
+            ->where('id', '!=', $user->client->id)
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->get(['id', 'phone'])
+            ->contains(fn (Client $client): bool => PhoneDisplay::toE164((string) $client->phone) === $verifiedPhoneE164);
+
+        if ($conflict) {
+            Log::warning('Sincronização clients.phone ignorada por conflito.', [
+                'user_id' => $user->id,
+                'client_id' => $user->client->id,
+                'verified_phone' => $verifiedPhoneE164,
+            ]);
+
+            return;
+        }
+
+        $user->client->forceFill(['phone' => $verifiedPhoneE164])->save();
     }
 }

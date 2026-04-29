@@ -21,6 +21,35 @@
     </style>
 </head>
 <body>
+    @php
+        $amountDue = method_exists($sale, 'amountDue') ? (float) $sale->amountDue() : max(0, (float) $sale->total - (float) ($sale->valor_pago ?? 0));
+        $isPartial = ($sale->scope ?? null) === \App\Models\Sale::SCOPE_BOOKING_RESERVA;
+        $partialPaid = (float) ($sale->valor_pago ?? 0);
+        $isSettlement = ($sale->scope ?? null) === \App\Models\Sale::SCOPE_CAIXA_LIQUIDACAO;
+        $previousPaid = 0.0;
+        if ($isSettlement && $sale->calendar_event_id) {
+            $previousPaid = (float) \App\Models\Sale::query()
+                ->where('calendar_event_id', $sale->calendar_event_id)
+                ->where('status', '!=', \App\Models\Sale::STATUS_ANULADO)
+                ->where('id', '<', $sale->id)
+                ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
+        }
+        $subtotal = (float) $sale->items->sum('subtotal');
+        $serviceGrossTotal = 0.0;
+        if ($sale->calendarEvent) {
+            foreach ($sale->calendarEvent->eventServiceItems as $esi) {
+                $serviceGrossTotal += (float) ($esi->price ?? 0);
+                foreach ($esi->extras as $ex) {
+                    $serviceGrossTotal += (float) ($ex->price ?? $ex->extra?->price ?? 0);
+                }
+            }
+        }
+        if ($serviceGrossTotal <= 0.00001) {
+            $serviceGrossTotal = $isSettlement ? max($subtotal, $sale->total + $previousPaid) : max((float) $sale->total, $partialPaid);
+        }
+        $serviceGrossTotal = round($serviceGrossTotal, 2);
+        $remainingAfterDeposit = max(0.0, round($serviceGrossTotal - $partialPaid, 2));
+    @endphp
     <div class="header">
         <h1>Fatura</h1>
         <div class="sub">Nº {{ $sale->numero_fatura }} · Data de emissão: {{ $sale->data_emissao?->format('d/m/Y') }}</div>
@@ -45,34 +74,83 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($sale->items as $item)
-            <tr>
-                <td>{{ $item->descricao }}</td>
-                <td class="text-right">{{ $item->quantidade }}</td>
-                <td class="text-right">{{ number_format($item->preco_unitario, 2, ',', ' ') }} €</td>
-                <td class="text-right">{{ number_format($item->subtotal, 2, ',', ' ') }} €</td>
-            </tr>
-            @endforeach
+            @if($isPartial)
+                <tr>
+                    <td>Adiantamento de reserva (marcação online)</td>
+                    <td class="text-right">1</td>
+                    <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>
+                    <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>
+                </tr>
+            @elseif($isSettlement)
+                @foreach($sale->items as $item)
+                <tr>
+                    <td>{{ $item->descricao }}</td>
+                    <td class="text-right">{{ $item->quantidade }}</td>
+                    <td class="text-right">{{ number_format($item->preco_unitario, 2, ',', ' ') }} €</td>
+                    <td class="text-right">{{ number_format($item->subtotal, 2, ',', ' ') }} €</td>
+                </tr>
+                @endforeach
+            @else
+                @foreach($sale->items as $item)
+                <tr>
+                    <td>{{ $item->descricao }}</td>
+                    <td class="text-right">{{ $item->quantidade }}</td>
+                    <td class="text-right">{{ number_format($item->preco_unitario, 2, ',', ' ') }} €</td>
+                    <td class="text-right">{{ number_format($item->subtotal, 2, ',', ' ') }} €</td>
+                </tr>
+                @endforeach
+            @endif
         </tbody>
     </table>
 
     <div class="totals">
         <table>
-            @php $subtotal = $sale->items->sum('subtotal'); @endphp
-            @if($sale->gorjeta && $sale->gorjeta > 0)
-            <tr>
-                <td>Subtotal</td>
-                <td class="text-right">{{ number_format($subtotal, 2, ',', ' ') }} €</td>
-            </tr>
-            <tr>
-                <td>Gorjeta</td>
-                <td class="text-right">{{ number_format($sale->gorjeta, 2, ',', ' ') }} €</td>
-            </tr>
+            @if($isPartial)
+                <tr>
+                    <td>Valor total do serviço</td>
+                    <td class="text-right">{{ number_format($serviceGrossTotal, 2, ',', ' ') }} €</td>
+                </tr>
+                <tr class="total-row">
+                    <td>Total adiantamento pago</td>
+                    <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>
+                </tr>
+                <tr>
+                    <td>Valor em falta (dia da marcação)</td>
+                    <td class="text-right">{{ number_format($remainingAfterDeposit, 2, ',', ' ') }} €</td>
+                </tr>
+            @elseif($isSettlement)
+                <tr>
+                    <td>Valor total do serviço</td>
+                    <td class="text-right">{{ number_format($serviceGrossTotal, 2, ',', ' ') }} €</td>
+                </tr>
+                @if($previousPaid > 0.00001)
+                <tr>
+                    <td>Valor da reserva</td>
+                    <td class="text-right">-{{ number_format($previousPaid, 2, ',', ' ') }} €</td>
+                </tr>
+                @endif
+                @if($sale->gorjeta && $sale->gorjeta > 0)
+                <tr>
+                    <td>Gorjeta</td>
+                    <td class="text-right">{{ number_format($sale->gorjeta, 2, ',', ' ') }} €</td>
+                </tr>
+                @endif
+                @if($sale->desconto && $sale->desconto > 0)
+                <tr>
+                    <td>Desconto</td>
+                    <td class="text-right">-{{ number_format($sale->desconto, 2, ',', ' ') }} €</td>
+                </tr>
+                @endif
+                <tr class="total-row">
+                    <td>Total liquidação</td>
+                    <td class="text-right">{{ number_format($sale->total, 2, ',', ' ') }} €</td>
+                </tr>
+            @else
+                <tr class="total-row">
+                    <td>Total</td>
+                    <td class="text-right">{{ number_format($sale->total, 2, ',', ' ') }} €</td>
+                </tr>
             @endif
-            <tr class="total-row">
-                <td>Total</td>
-                <td class="text-right">{{ number_format($sale->total, 2, ',', ' ') }} €</td>
-            </tr>
             @if($sale->iva_total)
             <tr>
                 <td>IVA</td>

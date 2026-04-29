@@ -7,6 +7,7 @@ use App\Models\BookingSavedCard;
 use App\Models\BookingSlotHold;
 use App\Models\CalendarEvent;
 use App\Models\Category;
+use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Service;
 use App\Models\User;
@@ -250,6 +251,32 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $client = $user?->loadMissing('client')->client;
+
+        return view('booking.conta.index', [
+            'businessName' => config('app.name'),
+            'user' => $user,
+            'client' => $client,
+        ]);
+    }
+
+    public function appointments(Request $request): View
+    {
+        $user = $request->user();
+        $client = $user?->loadMissing('client')->client;
+        $marcacoes = $this->loadClientMarcacoes($client?->id);
+
+        return view('booking.conta.marcacoes', [
+            'businessName' => config('app.name'),
+            'user' => $user,
+            'client' => $client,
+            'marcacoes' => $marcacoes,
+        ]);
+    }
+
+    public function settings(Request $request): View
+    {
+        $user = $request->user();
+        $client = $user?->loadMissing('client')->client;
         $cards = collect();
         if ($client) {
             $cards = BookingSavedCard::query()
@@ -260,12 +287,74 @@ class BookingController extends Controller
                 ->get();
         }
 
-        return view('booking.conta.index', [
+        return view('booking.conta.settings', [
             'businessName' => config('app.name'),
             'user' => $user,
+            'client' => $client,
             'savedCards' => $cards,
             'stripePublishableKey' => (string) config('stripe.key'),
         ]);
+    }
+
+    private function loadClientMarcacoes(?int $clientId)
+    {
+        if (! $clientId) {
+            return collect();
+        }
+
+        return CalendarEvent::query()
+            ->where('client_id', $clientId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->with([
+                'user:id,name',
+                'service:id,name',
+                'eventServiceItems.service:id,name',
+                'onlineBooking.payments',
+                'sale',
+            ])
+            ->orderByDesc('start_at')
+            ->limit(100)
+            ->get();
+    }
+
+    /**
+     * Atualiza nome, género e data de nascimento (ficha de cliente da marcação online).
+     */
+    public function updateProfilePersonal(Request $request): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        $client = $user?->client;
+
+        if (! $client instanceof Client) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'gender' => ['required', 'string', 'in:M,F,O'],
+            'birth_date' => ['required', 'date', 'after_or_equal:1900-01-01', 'before_or_equal:today'],
+        ]);
+
+        $client->name = $validated['name'];
+        $client->gender = $validated['gender'];
+        $client->birth_date = $validated['birth_date'];
+        $client->save();
+
+        $trimmedName = trim($validated['name']);
+        if ($trimmedName !== '' && $user->name !== $trimmedName) {
+            $user->name = $trimmedName;
+            $user->save();
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Dados pessoais guardados.',
+            ]);
+        }
+
+        return redirect()
+            ->route('booking.conta.index')
+            ->with('success', 'Dados pessoais guardados.');
     }
 
     private function carbonToWeekdayKey(Carbon $day): string

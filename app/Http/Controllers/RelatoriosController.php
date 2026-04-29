@@ -316,17 +316,13 @@ class RelatoriosController extends Controller
     public function vendas(Request $request): View
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra', 'items.calendarEventService.service'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
 
-        $vendasModo = in_array((string) $request->get('vendas_modo', 'detalhe'), ['detalhe', 'resumo'], true)
-            ? (string) $request->get('vendas_modo', 'detalhe')
-            : 'detalhe';
-        $allLines = $vendasModo === 'resumo'
-            ? $this->vendasResumoCollection($sales, $request->get('vendas_servico'))
-            : $this->vendasLinhasCollection($sales, $request->get('vendas_servico'));
+        $vendasModo = $this->resolveVendasModo($request->get('vendas_modo'));
+        $allLines = $this->vendasCollectionForMode($sales, $request->get('vendas_servico'), $vendasModo);
 
         $page = max(1, (int) $request->get('page', 1));
         $perPage = 100;
@@ -369,12 +365,13 @@ class RelatoriosController extends Controller
     public function vendasExport(Request $request): StreamedResponse
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra', 'items.calendarEventService.service'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
 
-        $lines = $this->vendasLinhasCollection($sales, $request->get('vendas_servico'));
+        $vendasModo = $this->resolveVendasModo($request->get('vendas_modo'));
+        $lines = $this->vendasCollectionForMode($sales, $request->get('vendas_servico'), $vendasModo);
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
@@ -449,12 +446,13 @@ class RelatoriosController extends Controller
     public function vendasPdf(Request $request)
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'items.service', 'items.extra', 'items.calendarEventService.service'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
 
-        $lines = $this->vendasLinhasCollection($sales, $request->get('vendas_servico'));
+        $vendasModo = $this->resolveVendasModo($request->get('vendas_modo'));
+        $lines = $this->vendasCollectionForMode($sales, $request->get('vendas_servico'), $vendasModo);
 
         $pdf = Pdf::loadView('relatorios.pdf.vendas', [
             'linhas' => $lines,
@@ -598,84 +596,18 @@ class RelatoriosController extends Controller
         ];
     }
 
-    /**
-     * Uma linha por item de venda (serviço ou extra), alinhado à ficha cliente — Vendas.
-     *
-     * @return Collection<int, object>
-     */
-    private function vendasLinhasCollection(Collection $sales, ?string $vendasServico): Collection
+    private function resolveVendasModo(mixed $requested): string
     {
-        $servicoFilter = $vendasServico !== null && $vendasServico !== '' ? (int) $vendasServico : null;
+        return in_array((string) $requested, ['resumo', 'venda'], true)
+            ? (string) $requested
+            : 'venda';
+    }
 
-        return $sales->flatMap(function (Sale $sale) use ($servicoFilter) {
-            $filteredCesIds = null;
-            if ($servicoFilter) {
-                $filteredCesIds = $sale->items
-                    ->where('tipo', SaleItem::TIPO_SERVICO)
-                    ->where('service_id', $servicoFilter)
-                    ->pluck('calendar_event_service_id')
-                    ->filter()
-                    ->all();
-            }
-
-            $event = $sale->calendarEvent;
-            $client = $sale->client;
-            $tecName = $event?->user?->name ?? '—';
-            $dataEmissao = $sale->data_emissao;
-
-            $visibleItems = [];
-            foreach ($sale->items as $item) {
-                if ($servicoFilter) {
-                    if ($item->tipo === SaleItem::TIPO_SERVICO && (int) $item->service_id !== $servicoFilter) {
-                        continue;
-                    }
-                    if ($item->tipo === SaleItem::TIPO_EXTRA && $filteredCesIds !== null
-                        && ! in_array($item->calendar_event_service_id, $filteredCesIds, true)) {
-                        continue;
-                    }
-                }
-                $visibleItems[] = $item;
-            }
-
-            $pendente = $sale->status === Sale::STATUS_ANULADO
-                ? 0.0
-                : $sale->amountDue();
-
-            $out = [];
-            foreach ($visibleItems as $i => $item) {
-                $label = $item->descricao;
-                if ($item->tipo === SaleItem::TIPO_SERVICO) {
-                    $label = $this->serviceLabelForSaleItem($item);
-                } elseif ($item->tipo === SaleItem::TIPO_EXTRA && $item->extra) {
-                    $label = $item->extra->name;
-                }
-
-                $lineDisc = (float) ($item->desconto ?? 0);
-                $docDisc = ($i === 0) ? (float) ($sale->desconto ?? 0) : 0.0;
-                $descontoCol = round($lineDisc + $docDisc, 2);
-
-                $out[] = (object) [
-                    'sale' => $sale,
-                    'sale_id' => $sale->id,
-                    'sale_status' => $sale->status,
-                    'data' => $dataEmissao,
-                    'numero_fatura' => $sale->numero_fatura,
-                    'cliente' => $client?->name ?? '—',
-                    'nif' => $client?->nif ?? '',
-                    'tecnico' => $tecName,
-                    'servico' => $label ?? '—',
-                    'quantidade' => (int) $item->quantidade,
-                    'valor' => (float) $item->subtotal,
-                    'tipo_item' => $item->tipo,
-                    'desconto' => $descontoCol,
-                    'gorjeta' => $i === 0 ? (float) ($sale->gorjeta ?? 0) : 0.0,
-                    'pendente' => $pendente,
-                    'calendar_event_id' => $sale->calendar_event_id,
-                ];
-            }
-
-            return $out;
-        })->values();
+    private function vendasCollectionForMode(Collection $sales, ?string $vendasServico, string $vendasModo): Collection
+    {
+        return $vendasModo === 'resumo'
+            ? $this->vendasResumoCollection($sales, $vendasServico)
+            : $this->vendasAgrupadoCollection($sales, $vendasServico);
     }
 
     /**
@@ -708,6 +640,9 @@ class RelatoriosController extends Controller
                 'sale' => $sale,
                 'sale_id' => $sale->id,
                 'sale_status' => $sale->status,
+                'sale_display_status' => $sale->status === Sale::STATUS_ANULADO
+                    ? 'anulado'
+                    : ($sale->amountDue() > 0.00001 ? 'parcial' : 'pago'),
                 'data' => $sale->data_emissao,
                 'numero_fatura' => $sale->numero_fatura,
                 'cliente' => $client?->name ?? '—',
@@ -723,6 +658,114 @@ class RelatoriosController extends Controller
                 'calendar_event_id' => $sale->calendar_event_id,
             ];
         })->filter()->values();
+    }
+
+    /**
+     * Uma linha por venda de negócio (marcação), agregando várias faturas/pagamentos.
+     *
+     * @return Collection<int, object>
+     */
+    private function vendasAgrupadoCollection(Collection $sales, ?string $vendasServico): Collection
+    {
+        $servicoFilter = $vendasServico !== null && $vendasServico !== '' ? (int) $vendasServico : null;
+
+        return $sales
+            ->groupBy(fn (Sale $sale) => (int) ($sale->calendar_event_id ?? 0))
+            ->map(function (Collection $group, int $eventId) use ($servicoFilter) {
+                /** @var Sale|null $base */
+                $base = $group->sortByDesc('id')->first();
+                if (! $base) {
+                    return null;
+                }
+
+                // Se houver filtro de serviço, mantém só vendas com esse serviço.
+                if ($servicoFilter) {
+                    $hasSvc = $group->contains(function (Sale $sale) use ($servicoFilter): bool {
+                        return $sale->items
+                            ->where('tipo', SaleItem::TIPO_SERVICO)
+                            ->contains(fn (SaleItem $item) => (int) $item->service_id === $servicoFilter);
+                    });
+                    if (! $hasSvc) {
+                        return null;
+                    }
+                }
+
+                $active = $group->where('status', '!=', Sale::STATUS_ANULADO)->values();
+                $allAnulado = $active->isEmpty();
+
+                $serviceTotal = $this->calendarEventServicesTotal($base->calendarEvent);
+                $sumTotal = (float) $active->sum(fn (Sale $s) => (float) $s->total);
+                $sumPaid = (float) $active->sum(fn (Sale $s) => (float) $s->effectiveAmountPaid());
+                $sumGorjeta = (float) $active->sum(fn (Sale $s) => (float) ($s->gorjeta ?? 0));
+                $sumDesconto = (float) $active->sum(fn (Sale $s) => (float) ($s->desconto ?? 0));
+                $reservaPaid = (float) $active
+                    ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
+                    ->sum(fn (Sale $s) => (float) $s->effectiveAmountPaid());
+                $grossTotal = $serviceTotal > 0 ? $serviceTotal : $sumTotal;
+                $due = $allAnulado ? 0.0 : max(0.0, round($grossTotal - $sumPaid, 2));
+
+                $serviceLabels = $group
+                    ->flatMap(fn (Sale $sale) => $sale->items->where('tipo', SaleItem::TIPO_SERVICO))
+                    ->map(fn (SaleItem $item) => $this->serviceLabelForSaleItem($item))
+                    ->filter(fn (?string $s) => is_string($s) && trim($s) !== '')
+                    ->unique()
+                    ->values();
+
+                $displayStatus = $allAnulado
+                    ? 'anulado'
+                    : ($due > 0.00001 ? 'parcial' : 'pago');
+
+                $invoiceList = $group
+                    ->sortByDesc('id')
+                    ->pluck('numero_fatura')
+                    ->filter()
+                    ->values();
+                $numeroDisplay = $invoiceList->take(2)->implode(', ');
+                if ($invoiceList->count() > 2) {
+                    $numeroDisplay .= ' +'.($invoiceList->count() - 2);
+                }
+
+                return (object) [
+                    'sale' => $base,
+                    'sale_id' => 'event-'.$eventId,
+                    'sale_status' => $base->status,
+                    'sale_display_status' => $displayStatus,
+                    'data' => $base->data_emissao,
+                    'numero_fatura' => $numeroDisplay !== '' ? $numeroDisplay : '—',
+                    'cliente' => $base->client?->name ?? '—',
+                    'nif' => $base->client?->nif ?? '',
+                    'tecnico' => $base->calendarEvent?->user?->name ?? '—',
+                    'servico' => $serviceLabels->implode(', '),
+                    'quantidade' => (int) $serviceLabels->count(),
+                    'valor' => round($grossTotal, 2),
+                    'tipo_item' => 'venda',
+                    'desconto' => round($sumDesconto, 2),
+                    'reserva_pago' => round($reservaPaid, 2),
+                    'gorjeta' => round($sumGorjeta, 2),
+                    'pendente' => round($due, 2),
+                    'calendar_event_id' => $base->calendar_event_id,
+                ];
+            })
+            ->filter()
+            ->sortByDesc(fn ($row) => optional($row->data)->timestamp ?? 0)
+            ->values();
+    }
+
+    private function calendarEventServicesTotal(?CalendarEvent $event): float
+    {
+        if (! $event) {
+            return 0.0;
+        }
+
+        $total = 0.0;
+        foreach ($event->eventServiceItems as $esi) {
+            $total += (float) ($esi->price ?? 0);
+            foreach ($esi->extras as $ex) {
+                $total += (float) ($ex->price ?? $ex->extra?->price ?? 0);
+            }
+        }
+
+        return round(max(0.0, $total), 2);
     }
 
     private function serviceLabelForSaleItem(SaleItem $item): string
