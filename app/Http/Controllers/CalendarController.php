@@ -30,13 +30,15 @@ class CalendarController extends Controller
     {
         $eventTypes = CalendarEvent::eventTypes();
         $personalTimeTypes = PersonalTimeType::where('is_active', true)->orderBy('sort_order')->get();
-        // Mostrar apenas users com agent ativo; excluir Administradores da agenda (select de membros)
+        // Mostrar apenas users com agent ativo e visível na agenda; excluir Administradores.
         $users = User::whereHas('agent', function ($query) {
-            $query->where('status', Agent::STATUS_ACTIVE);
+            $query->where('status', Agent::STATUS_ACTIVE)
+                ->where('visible_in_agenda', true);
         })
             ->with('agent')
             ->whereNotIn('role', [User::ROLE_ADMIN])
-            ->orderBy('name')
+            ->orderByRaw('(select agenda_order from agents where agents.user_id = users.id limit 1)')
+            ->orderBy('users.name')
             ->get();
 
         $today = now();
@@ -108,10 +110,12 @@ class CalendarController extends Controller
      */
     public function resources(Request $request)
     {
-        // Mostrar apenas agents ativos como recursos; excluir Administradores da vista Por Consultor
+        // Mostrar apenas agents ativos e visíveis na agenda como recursos.
         $agents = Agent::where('status', Agent::STATUS_ACTIVE)
+            ->where('visible_in_agenda', true)
             ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
             ->with('user')
+            ->orderBy('agenda_order')
             ->orderBy('name')
             ->get();
 
@@ -166,6 +170,7 @@ class CalendarController extends Controller
         $canViewAll = auth()->user()->canManageAgents();
 
         $activeAgentUserIds = Agent::where('status', Agent::STATUS_ACTIVE)
+            ->where('visible_in_agenda', true)
             ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
             ->pluck('user_id')
             ->filter()
@@ -192,6 +197,8 @@ class CalendarController extends Controller
             // Se pode ver todos (admin/diretor), mostrar todos os eventos
             if (! $canViewAll) {
                 $query->where('user_id', auth()->id());
+            } else {
+                $query->whereIn('user_id', $activeAgentUserIds);
             }
         } else {
             // Na vista por recurso (dia), só eventos de consultores ativos (excluir Administradores)
@@ -382,7 +389,7 @@ class CalendarController extends Controller
         if ($clientId) {
             $client = \App\Models\Client::find($clientId);
             if ($client) {
-                $arr = $client->only(['id', 'name', 'email', 'phone']);
+                $arr = $client->only(['id', 'name', 'email', 'phone', 'nif']);
                 $arr['formatted_phone'] = $client->formatted_phone;
                 $arr['avatar_url'] = $client->avatar ? asset('storage/'.$client->avatar) : null;
 
@@ -402,9 +409,9 @@ class CalendarController extends Controller
             });
         }
 
-        $clients = $query->get(['id', 'name', 'email', 'phone', 'avatar']);
+        $clients = $query->get(['id', 'name', 'email', 'phone', 'nif', 'avatar']);
         $result = $clients->map(function ($c) {
-            $arr = $c->only(['id', 'name', 'email', 'phone']);
+            $arr = $c->only(['id', 'name', 'email', 'phone', 'nif']);
             $arr['formatted_phone'] = $c->formatted_phone;
             $arr['avatar_url'] = $c->avatar ? asset('storage/'.$c->avatar) : null;
 
@@ -453,11 +460,35 @@ class CalendarController extends Controller
             'name' => $client->name,
             'email' => $client->email,
             'phone' => $client->phone,
+            'nif' => $client->nif,
             'formatted_phone' => $client->formatted_phone,
             'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
         ];
 
         return response()->json($result);
+    }
+
+    public function updateClientNif(Request $request, Client $client)
+    {
+        $validated = $request->validate([
+            'nif' => ['required', 'digits:9'],
+        ], [
+            'nif.required' => 'Indique o NIF do cliente.',
+            'nif.digits' => 'O NIF deve ter 9 dígitos.',
+        ]);
+
+        $client->nif = $validated['nif'];
+        $client->save();
+
+        return response()->json([
+            'id' => (string) $client->id,
+            'name' => $client->name,
+            'email' => $client->email,
+            'phone' => $client->phone,
+            'nif' => $client->nif,
+            'formatted_phone' => $client->formatted_phone,
+            'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
+        ]);
     }
 
     /**
@@ -512,6 +543,7 @@ class CalendarController extends Controller
                 'client_has_email' => (bool) ($calendarEvent->client_id && $calendarEvent->client?->email && filter_var($calendarEvent->client->email, FILTER_VALIDATE_EMAIL)),
                 'client_email' => $calendarEvent->client?->email,
                 'client_phone' => $calendarEvent->client?->phone,
+                'client_nif' => $calendarEvent->client?->nif,
                 'client_formatted_phone' => $calendarEvent->client?->formatted_phone,
                 'client_avatar_url' => $calendarEvent->client?->avatar ? asset('storage/'.$calendarEvent->client->avatar) : null,
                 'event_services' => $calendarEvent->eventServices->map(function ($s) {
@@ -759,8 +791,7 @@ class CalendarController extends Controller
      */
     public function update(Request $request, CalendarEvent $calendarEvent)
     {
-        $sale = $calendarEvent->sale;
-        if ($sale && $sale->status !== Sale::STATUS_ANULADO) {
+        if ($this->isMarcacaoFullySettled($calendarEvent)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Marcação faturada; reverta a venda para editar.',
@@ -1039,8 +1070,7 @@ class CalendarController extends Controller
      */
     public function updateStatus(Request $request, CalendarEvent $calendarEvent)
     {
-        $sale = $calendarEvent->sale;
-        if ($sale && $sale->status !== Sale::STATUS_ANULADO) {
+        if ($this->isMarcacaoFullySettled($calendarEvent)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Marcação faturada; reverta a venda para editar.',
@@ -1504,5 +1534,40 @@ class CalendarController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function isMarcacaoFullySettled(CalendarEvent $calendarEvent): bool
+    {
+        if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+            return false;
+        }
+
+        $sale = $calendarEvent->sale;
+        if (! $sale || $sale->status === Sale::STATUS_ANULADO) {
+            return false;
+        }
+
+        $serviceItems = $calendarEvent->eventServiceItems()->with('extras.extra')->get();
+        $subtotal = (float) $serviceItems->sum(function (CalendarEventService $item): float {
+            $base = (float) ($item->price ?? 0);
+            $extras = (float) $item->extras->sum(fn ($ex): float => (float) ($ex->price ?? $ex->extra?->price ?? 0));
+
+            return $base + $extras;
+        });
+
+        $salesPaid = (float) Sale::query()
+            ->where('calendar_event_id', $calendarEvent->id)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
+        $bookingPaid = (float) Booking::query()
+            ->where('calendar_event_id', $calendarEvent->id)
+            ->where('payment_status', Booking::PAYMENT_PAID)
+            ->orderByDesc('id')
+            ->value('paid_amount');
+
+        $alreadyPaid = round(max($salesPaid, $bookingPaid, 0.0), 2);
+        $amountDue = max(0.0, round($subtotal - $alreadyPaid, 2));
+
+        return $amountDue <= 0.00001;
     }
 }

@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Agent;
 use App\Models\CrmSetting;
+use App\Models\User;
 use App\Models\UserNotificationPreference;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DefinicoesController extends Controller
@@ -41,6 +44,8 @@ class DefinicoesController extends Controller
         return view('definicoes.agendamentos', [
             'pageTitle' => 'Marcações',
             'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes(),
+            'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRules(),
+            'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule(),
         ]);
     }
 
@@ -48,14 +53,32 @@ class DefinicoesController extends Controller
     {
         $validated = $request->validate([
             'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
+            'booking_any_staff_rule' => ['nullable', 'string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
+            'booking_any_staff_rule_options' => ['nullable', 'array', 'min:1', 'max:1'],
+            'booking_any_staff_rule_options.*' => ['string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
         ], [
             'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
             'booking_slot_hold_minutes.max' => 'O tempo de reserva não pode exceder 240 minutos.',
+            'booking_any_staff_rule_options.max' => 'Selecione apenas uma regra de atribuição.',
         ]);
+
+        $selectedRule = null;
+        if (! empty($validated['booking_any_staff_rule_options']) && is_array($validated['booking_any_staff_rule_options'])) {
+            $selectedRule = (string) ($validated['booking_any_staff_rule_options'][0] ?? '');
+        } elseif (! empty($validated['booking_any_staff_rule'])) {
+            $selectedRule = (string) $validated['booking_any_staff_rule'];
+        }
+        if ($selectedRule === null || $selectedRule === '') {
+            $selectedRule = CrmSetting::bookingAnyStaffRule();
+        }
 
         CrmSetting::setInt(
             CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES,
             (int) $validated['booking_slot_hold_minutes']
+        );
+        CrmSetting::setString(
+            CrmSetting::KEY_BOOKING_ANY_STAFF_RULE,
+            $selectedRule
         );
 
         return redirect()
@@ -79,9 +102,82 @@ class DefinicoesController extends Controller
 
     public function equipa(): View
     {
+        $agents = Agent::query()
+            ->with('user:id,name,role')
+            ->whereHas('user')
+            ->orderBy('agenda_order')
+            ->orderBy('name')
+            ->get();
+
         return view('definicoes.equipa', [
             'pageTitle' => 'Equipa',
+            'agents' => $agents,
+            'roles' => User::roles(),
         ]);
+    }
+
+    public function updateEquipa(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'members' => ['required', 'array'],
+            'members.*.role' => ['required', 'string', 'in:'.implode(',', array_keys(User::roles()))],
+            'members.*.visible_in_agenda' => ['nullable', 'boolean'],
+            'members.*.visible_in_booking' => ['nullable', 'boolean'],
+            'members.*.agenda_order' => ['nullable', 'integer', 'min:1', 'max:9999'],
+        ]);
+
+        $rows = $validated['members'] ?? [];
+        foreach ($rows as $agentId => $row) {
+            $isVisibleInAgenda = (bool) ($row['visible_in_agenda'] ?? false);
+            $agendaOrder = $row['agenda_order'] ?? null;
+            if ($isVisibleInAgenda && ($agendaOrder === null || $agendaOrder === '')) {
+                return redirect()
+                    ->route('definicoes.equipa')
+                    ->withErrors([
+                        "members.$agentId.agenda_order" => 'Indique a ordem na agenda para membros visíveis na agenda.',
+                    ])
+                    ->withInput();
+            }
+        }
+
+        $agentIds = array_map('intval', array_keys($rows));
+        if ($agentIds === []) {
+            return redirect()->route('definicoes.equipa')->with('status', 'Nada para atualizar.');
+        }
+
+        $agents = Agent::query()
+            ->with('user:id,role')
+            ->whereIn('id', $agentIds)
+            ->get()
+            ->keyBy('id');
+
+        DB::transaction(function () use ($rows, $agents): void {
+            foreach ($rows as $agentId => $row) {
+                $agentIdInt = (int) $agentId;
+                $agent = $agents->get($agentIdInt);
+                if (! $agent || ! $agent->user) {
+                    continue;
+                }
+
+                $role = (string) ($row['role'] ?? $agent->user->role);
+                if ($agent->user->role !== $role) {
+                    $agent->user->role = $role;
+                    $agent->user->save();
+                }
+
+                $agent->update([
+                    'visible_in_agenda' => (bool) ($row['visible_in_agenda'] ?? false),
+                    'visible_in_booking' => (bool) ($row['visible_in_booking'] ?? false),
+                    'agenda_order' => (bool) ($row['visible_in_agenda'] ?? false)
+                        ? (int) ($row['agenda_order'] ?? 0)
+                        : 0,
+                ]);
+            }
+        });
+
+        return redirect()
+            ->route('definicoes.equipa')
+            ->with('status', 'Configuração da equipa atualizada.');
     }
 
     public function pagamentos(): View

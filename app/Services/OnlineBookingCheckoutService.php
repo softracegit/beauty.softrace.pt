@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Agent;
 use App\Models\CalendarEvent;
 use App\Models\Client;
+use App\Models\CrmSetting;
 use App\Models\Service;
 use App\Models\ServiceOption;
 use App\Models\User;
@@ -221,7 +222,7 @@ class OnlineBookingCheckoutService
             }
             $userId = (int) $agent->user_id;
         } else {
-            foreach ($eligible->sortBy('name') as $agent) {
+            foreach ($this->rankAnyStaffCandidates($eligible, $startLocal) as $agent) {
                 if ($this->slotFitsAgentSchedule($agent, $startLocal, $endLocal)) {
                     $userId = (int) $agent->user_id;
                     break;
@@ -529,6 +530,7 @@ class OnlineBookingCheckoutService
 
         return Agent::query()
             ->where('status', Agent::STATUS_ACTIVE)
+            ->where('visible_in_booking', true)
             ->whereHas('user', function ($q): void {
                 $q->whereIn('role', [
                     User::ROLE_PRESTADOR,
@@ -536,6 +538,7 @@ class OnlineBookingCheckoutService
                 ]);
             })
             ->with(['services:id'])
+            ->orderBy('agenda_order')
             ->orderBy('name')
             ->get()
             ->filter(function (Agent $agent) use ($ids): bool {
@@ -549,6 +552,112 @@ class OnlineBookingCheckoutService
                 return true;
             })
             ->values();
+    }
+
+    /**
+     * @param  Collection<int, Agent>  $eligible
+     * @return Collection<int, Agent>
+     */
+    private function rankAnyStaffCandidates(Collection $eligible, Carbon $startLocal): Collection
+    {
+        if ($eligible->isEmpty()) {
+            return $eligible;
+        }
+
+        $rule = CrmSetting::bookingAnyStaffRule();
+        $userIds = $eligible
+            ->pluck('user_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        if ($userIds === []) {
+            return $eligible->sortBy('agenda_order')->sortBy('name')->values();
+        }
+
+        $tz = (string) config('booking.business_timezone');
+        $dayStart = $startLocal->copy()->timezone($tz)->startOfDay();
+        $dayEnd = $startLocal->copy()->timezone($tz)->endOfDay();
+        $monthStart = $startLocal->copy()->timezone($tz)->startOfMonth();
+        $monthEnd = $startLocal->copy()->timezone($tz)->endOfMonth();
+
+        $dayLoads = CalendarEvent::query()
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->whereNotIn('status', [CalendarEvent::STATUS_CANCELADO])
+            ->whereIn('user_id', $userIds)
+            ->whereBetween('start_at', [$dayStart->copy()->timezone(config('app.timezone')), $dayEnd->copy()->timezone(config('app.timezone'))])
+            ->selectRaw('user_id, COUNT(*) as total')
+            ->groupBy('user_id')
+            ->pluck('total', 'user_id');
+
+        $monthLoads = CalendarEvent::query()
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->whereNotIn('status', [CalendarEvent::STATUS_CANCELADO])
+            ->whereIn('user_id', $userIds)
+            ->whereBetween('start_at', [$monthStart->copy()->timezone(config('app.timezone')), $monthEnd->copy()->timezone(config('app.timezone'))])
+            ->selectRaw('user_id, COUNT(*) as total')
+            ->groupBy('user_id')
+            ->pluck('total', 'user_id');
+
+        $ordered = $eligible->sort(function (Agent $a, Agent $b) use ($rule, $dayLoads, $monthLoads): int {
+            $aUid = (int) $a->user_id;
+            $bUid = (int) $b->user_id;
+            $aAgendaOrder = (int) ($a->agenda_order ?? 0);
+            $bAgendaOrder = (int) ($b->agenda_order ?? 0);
+            $aDay = (int) ($dayLoads[$aUid] ?? 0);
+            $bDay = (int) ($dayLoads[$bUid] ?? 0);
+            $aMonth = (int) ($monthLoads[$aUid] ?? 0);
+            $bMonth = (int) ($monthLoads[$bUid] ?? 0);
+
+            $cmp = 0;
+            switch ($rule) {
+                case CrmSetting::BOOKING_ANY_STAFF_RULE_B:
+                    $cmp = $aAgendaOrder <=> $bAgendaOrder;
+                    if ($cmp !== 0) {
+                        return $cmp;
+                    }
+
+                    $cmp = $aDay <=> $bDay;
+                    break;
+
+                case CrmSetting::BOOKING_ANY_STAFF_RULE_C:
+                    $cmp = $aMonth <=> $bMonth;
+                    if ($cmp !== 0) {
+                        return $cmp;
+                    }
+
+                    $cmp = $aAgendaOrder <=> $bAgendaOrder;
+                    break;
+
+                case CrmSetting::BOOKING_ANY_STAFF_RULE_D:
+                    $cmp = $aAgendaOrder <=> $bAgendaOrder;
+                    if ($cmp !== 0) {
+                        return $cmp;
+                    }
+
+                    $cmp = $aMonth <=> $bMonth;
+                    break;
+
+                case CrmSetting::BOOKING_ANY_STAFF_RULE_A:
+                default:
+                    $cmp = $aDay <=> $bDay;
+                    if ($cmp !== 0) {
+                        return $cmp;
+                    }
+
+                    $cmp = $aAgendaOrder <=> $bAgendaOrder;
+                    break;
+            }
+
+            if ($cmp !== 0) {
+                return $cmp;
+            }
+
+            return strcasecmp((string) $a->name, (string) $b->name);
+        });
+
+        return $ordered->values();
     }
 
     /**

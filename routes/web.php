@@ -157,6 +157,7 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
         Route::get('vendas', [DefinicoesController::class, 'vendas'])->name('vendas');
         Route::get('clientes', [DefinicoesController::class, 'clientes'])->name('clientes');
         Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');
+        Route::post('equipa', [DefinicoesController::class, 'updateEquipa'])->name('equipa.update');
         Route::get('notificacoes', [DefinicoesController::class, 'notificacoes'])->name('notificacoes');
         Route::post('notificacoes', [DefinicoesController::class, 'updateNotificacoes'])->name('notificacoes.update');
         Route::get('pagamentos', [DefinicoesController::class, 'pagamentos'])->name('pagamentos');
@@ -216,6 +217,7 @@ Route::middleware(['auth', 'has.agent'])->group(function () {
     Route::get('agenda/members/{user}/services', [CalendarController::class, 'memberServices'])->name('agenda.members.services');
     Route::get('agenda/clients', [CalendarController::class, 'clients'])->name('agenda.clients');
     Route::post('agenda/clients', [CalendarController::class, 'storeClient'])->name('agenda.clients.store');
+    Route::put('agenda/clients/{client}/nif', [CalendarController::class, 'updateClientNif'])->name('agenda.clients.nif');
     Route::get('agenda/events', [CalendarController::class, 'events'])->name('agenda.events');
     Route::get('agenda/events/{calendarEvent}', [CalendarController::class, 'show'])->name('agenda.events.show');
     Route::post('agenda/events', [CalendarController::class, 'store'])->name('agenda.events.store');

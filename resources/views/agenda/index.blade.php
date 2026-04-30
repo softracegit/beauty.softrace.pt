@@ -389,24 +389,29 @@
             <div id="eventDetailOcMarcacaoSection">
                 <div class="agenda-oc-field" style="order:1">
                     <div id="eventDetailOcClientNotSelectedWrap">
-                        <ul class="nav nav-pills agenda-oc-client-tabs flex-wrap gap-2 mb-2" id="eventDetailOcClientTabs" role="tablist">
-                            <li class="nav-item flex-shrink-0" role="presentation">
-                                <button class="nav-link active" id="eventDetailOcTabExistingBtn" data-bs-toggle="tab" data-bs-target="#eventDetailOcTabExisting" type="button" role="tab" aria-controls="eventDetailOcTabExisting" aria-selected="true">
-                                    <span class="d-inline-flex align-items-center justify-content-center gap-2">
-                                        <i class="ph ph-magnifying-glass flex-shrink-0" aria-hidden="true"></i>
-                                        <span>Cliente existente</span>
-                                    </span>
-                                </button>
-                            </li>
-                            <li class="nav-item flex-shrink-0" role="presentation">
-                                <button class="nav-link" id="eventDetailOcTabNewBtn" data-bs-toggle="tab" data-bs-target="#eventDetailOcTabNew" type="button" role="tab" aria-controls="eventDetailOcTabNew" aria-selected="false">
-                                    <span class="d-inline-flex align-items-center justify-content-center gap-2">
-                                        <i class="ph ph-user-plus flex-shrink-0" aria-hidden="true"></i>
-                                        <span>Novo cliente</span>
-                                    </span>
-                                </button>
-                            </li>
-                        </ul>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <ul class="nav nav-pills agenda-oc-client-tabs flex-wrap gap-2 mb-0" id="eventDetailOcClientTabs" role="tablist">
+                                <li class="nav-item flex-shrink-0" role="presentation">
+                                    <button class="nav-link active" id="eventDetailOcTabExistingBtn" data-bs-toggle="tab" data-bs-target="#eventDetailOcTabExisting" type="button" role="tab" aria-controls="eventDetailOcTabExisting" aria-selected="true">
+                                        <span class="d-inline-flex align-items-center justify-content-center gap-2">
+                                            <i class="ph ph-magnifying-glass flex-shrink-0" aria-hidden="true"></i>
+                                            <span>Cliente existente</span>
+                                        </span>
+                                    </button>
+                                </li>
+                                <li class="nav-item flex-shrink-0" role="presentation">
+                                    <button class="nav-link" id="eventDetailOcTabNewBtn" data-bs-toggle="tab" data-bs-target="#eventDetailOcTabNew" type="button" role="tab" aria-controls="eventDetailOcTabNew" aria-selected="false">
+                                        <span class="d-inline-flex align-items-center justify-content-center gap-2">
+                                            <i class="ph ph-user-plus flex-shrink-0" aria-hidden="true"></i>
+                                            <span>Novo cliente</span>
+                                        </span>
+                                    </button>
+                                </li>
+                            </ul>
+                            <button type="button" class="btn btn-link p-1 pt-2 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn d-none" id="eventDetailOcClientCancelEditBtn" title="Cancelar alteração de cliente" aria-label="Cancelar alteração de cliente">
+                                <i class="ph ph-x" aria-hidden="true"></i>
+                            </button>
+                        </div>
                         <div class="tab-content" id="eventDetailOcClientTabContent">
                             <div class="tab-pane fade show active" id="eventDetailOcTabExisting" role="tabpanel" aria-labelledby="eventDetailOcTabExistingBtn" tabindex="0">
                                 <div id="eventDetailOcClientSearchWrap">
@@ -435,12 +440,29 @@
                     <div id="eventDetailOcClientSelectedCard" class="agenda-oc-client-selected-card d-none mt-1">
                         <div class="d-flex align-items-start gap-3">
                             <div class="flex-shrink-0 agenda-oc-client-col-avatar">
-                                <img id="eventDetailOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="56" height="56">
-                                <div id="eventDetailOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:56px;height:56px;font-size:1rem;">…</div>
+                                <img id="eventDetailOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="75" height="75">
+                                <div id="eventDetailOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:75px;height:75px;font-size:1rem;">…</div>
                             </div>
                             <div class="flex-grow-1 min-w-0 agenda-oc-client-col-text">
                                 <strong id="eventDetailOcClientSelectedName" class="d-block text-truncate">…</strong>
                                 <span id="eventDetailOcClientSelectedPhone" class="d-block small text-muted mt-1">…</span>
+                                <div class="agenda-oc-client-nif-row position-relative mt-1">
+                                    <span id="eventDetailOcClientNifDisplayWrap" class="d-inline-flex align-items-center gap-1 small text-muted agenda-oc-client-nif-display">
+                                        <span id="eventDetailOcClientSelectedNif">NIF Sem NIF</span>
+                                        <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-nif-edit-btn" id="eventDetailOcClientNifEditBtn" title="Editar NIF" aria-label="Editar NIF">
+                                            <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                                        </button>
+                                    </span>
+                                    <span id="eventDetailOcClientNifInputWrap" class="d-none agenda-oc-client-nif-input-wrap">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <input type="text" id="eventDetailOcClientNifInput" class="form-control form-control-sm agenda-oc-client-nif-input" maxlength="9" inputmode="numeric" pattern="[0-9]*" placeholder="NIF (9 dígitos)">
+                                            <button type="button" class="btn btn-sm btn-primary px-2 py-1" id="eventDetailOcClientNifSaveBtn">OK</button>
+                                            <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary text-decoration-none" id="eventDetailOcClientNifCancelBtn" title="Cancelar edição de NIF" aria-label="Cancelar edição de NIF">
+                                                <i class="ph ph-x" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </span>
+                                </div>
                             </div>
                             <div class="flex-shrink-0 d-inline-flex agenda-oc-client-col-actions">
                                 <a id="eventDetailOcClientProfileLink" href="#" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-profile-btn d-none text-decoration-none" title="Ver perfil" aria-label="Ver perfil">
@@ -496,7 +518,10 @@
     <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch">
         <div class="d-flex justify-content-between align-items-center px-1 pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
             <span class="text-black fw-bold">Total</span>
-            <span class="fw-semibold" id="eventDetailTotalPrice">0,00 €</span>
+            <div class="d-inline-flex align-items-baseline gap-2">
+                <span class="small text-muted"><span id="eventDetailTotalPriceNoVat">0,00 €</span> s/IVA</span>
+                <span class="fw-semibold" id="eventDetailTotalPrice">0,00 €</span>
+            </div>
         </div>
         <div class="d-flex flex-wrap gap-2 justify-content-end">
             <button type="button" class="btn btn-light btn-sm" id="eventDetailCloseWithoutSaveBtn" data-bs-dismiss="offcanvas">Fechar sem guardar</button>

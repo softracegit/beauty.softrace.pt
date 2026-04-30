@@ -73,6 +73,10 @@ class BookingController extends Controller
         $agentKey = $request->query('agent_id', 'any');
         $duration = (int) $request->query('duration', 30);
         $duration = max(5, min(24 * 60, $duration));
+        $serviceIdsRaw = trim((string) $request->query('service_ids', ''));
+        $serviceIds = $serviceIdsRaw !== ''
+            ? array_values(array_unique(array_filter(array_map('intval', explode(',', $serviceIdsRaw)))))
+            : [];
         $holdSessionToken = trim((string) $request->query('hold_session_token', ''));
 
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
@@ -110,7 +114,34 @@ class BookingController extends Controller
             if ($winStart >= $storeEnd) {
                 return response()->json(['slots' => []]);
             }
-            $slots = $this->buildAvailableSlots($winStart, $storeEnd, $duration, []);
+
+            $eligibleAgents = $this->bookingEligibleAgentsForServices($serviceIds);
+            if ($eligibleAgents->isEmpty()) {
+                return response()->json(['slots' => []]);
+            }
+
+            $candidateSlots = $this->buildAvailableSlots($winStart, $storeEnd, $duration, []);
+            $slots = array_values(array_filter($candidateSlots, function (string $time) use ($eligibleAgents, $day, $duration, $storeStart, $storeEnd, $holdSessionToken): bool {
+                [$h, $m] = array_map('intval', explode(':', $time));
+                $slotStartMin = $h * 60 + $m;
+                $slotEndMin = $slotStartMin + $duration;
+                $dayKey = $this->carbonToWeekdayKey($day);
+                foreach ($eligibleAgents as $agent) {
+                    $window = $this->resolveAgentDayWindow($agent->weekly_schedule, $dayKey, $storeStart, $storeEnd);
+                    if ($window === null) {
+                        continue;
+                    }
+                    if ($slotStartMin < (int) $window[0] || $slotEndMin > (int) $window[1]) {
+                        continue;
+                    }
+                    $busy = $this->busyIntervalsForUserOnDay((int) $agent->user_id, $day, $holdSessionToken !== '' ? $holdSessionToken : null);
+                    if (! $this->proposalOverlapsBusy($slotStartMin, $slotEndMin, $busy)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }));
 
             return response()->json(['slots' => $slots]);
         }
@@ -121,6 +152,7 @@ class BookingController extends Controller
 
         $agent = Agent::query()
             ->where('status', Agent::STATUS_ACTIVE)
+            ->where('visible_in_booking', true)
             ->whereHas('user', function ($q): void {
                 $q->whereIn('role', [
                     User::ROLE_PRESTADOR,
@@ -161,6 +193,7 @@ class BookingController extends Controller
     {
         $technicians = Agent::query()
             ->where('status', Agent::STATUS_ACTIVE)
+            ->where('visible_in_booking', true)
             ->whereHas('user', function ($q): void {
                 $q->whereIn('role', [
                     User::ROLE_PRESTADOR,
@@ -168,6 +201,7 @@ class BookingController extends Controller
                 ]);
             })
             ->with(['services:id'])
+            ->orderBy('agenda_order')
             ->orderBy('name')
             ->get()
             ->map(function (Agent $agent): array {
@@ -530,5 +564,41 @@ class BookingController extends Controller
         }
 
         return false;
+    }
+
+    /**
+     * @param  list<int>  $serviceIds
+     * @return \Illuminate\Support\Collection<int, Agent>
+     */
+    private function bookingEligibleAgentsForServices(array $serviceIds)
+    {
+        $query = Agent::query()
+            ->where('status', Agent::STATUS_ACTIVE)
+            ->where('visible_in_booking', true)
+            ->whereHas('user', function ($q): void {
+                $q->whereIn('role', [
+                    User::ROLE_PRESTADOR,
+                    User::ROLE_TECNICO,
+                ]);
+            })
+            ->with(['services:id'])
+            ->orderBy('agenda_order')
+            ->orderBy('name');
+
+        $agents = $query->get();
+        if ($serviceIds === []) {
+            return $agents;
+        }
+
+        return $agents->filter(function (Agent $agent) use ($serviceIds): bool {
+            $techIds = $agent->services->pluck('id')->map(fn ($id) => (int) $id)->all();
+            foreach ($serviceIds as $sid) {
+                if (! in_array((int) $sid, $techIds, true)) {
+                    return false;
+                }
+            }
+
+            return true;
+        })->values();
     }
 }

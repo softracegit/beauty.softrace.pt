@@ -1173,6 +1173,7 @@
             if (!availabilityUrl) {
                 return Promise.resolve([]);
             }
+            var serviceIds = getSelectedServiceIds();
             var url =
                 availabilityUrl +
                 '?date=' +
@@ -1181,6 +1182,9 @@
                 encodeURIComponent(agentId) +
                 '&duration=' +
                 encodeURIComponent(String(durationMinutes));
+            if (Array.isArray(serviceIds) && serviceIds.length) {
+                url += '&service_ids=' + encodeURIComponent(serviceIds.join(','));
+            }
             var holdToken = ensureSlotHoldSessionToken();
             if (holdToken) {
                 url += '&hold_session_token=' + encodeURIComponent(holdToken);

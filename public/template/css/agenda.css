@@ -150,6 +150,27 @@
 .agenda-marcacao-test-offcanvas .agenda-oc-client-profile-btn:hover {
     color: var(--bs-primary) !important;
 }
+.agenda-marcacao-test-offcanvas .agenda-oc-client-selected-card .agenda-avatar-img,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-selected-card .agenda-avatar-fallback {
+    width: 75px;
+    height: 75px;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-row {
+    min-height: 32px;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-display,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input-wrap {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-edit-btn {
+    font-size: 0.9rem;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input {
+    width: 120px;
+    max-width: 120px;
+}
 .agenda-marcacao-test-offcanvas #agendaOcDate,
 .agenda-marcacao-test-offcanvas input.flatpickr-input {
     cursor: pointer !important;

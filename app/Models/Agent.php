@@ -19,7 +19,7 @@ class Agent extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'status', 'weekly_schedule'])
+            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'status', 'visible_in_agenda', 'visible_in_booking', 'agenda_order', 'weekly_schedule'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Membro criado',
@@ -48,6 +48,9 @@ class Agent extends Model
         'commission_rate',
         'commission_unit',
         'status',
+        'visible_in_agenda',
+        'visible_in_booking',
+        'agenda_order',
         'color',
         'avatar',
         'weekly_schedule',
@@ -56,6 +59,9 @@ class Agent extends Model
     protected $casts = [
         'birth_date' => 'date',
         'commission_rate' => 'decimal:2',
+        'visible_in_agenda' => 'boolean',
+        'visible_in_booking' => 'boolean',
+        'agenda_order' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'weekly_schedule' => 'array',

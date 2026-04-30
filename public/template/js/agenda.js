@@ -1351,6 +1351,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (c.formatted_phone) return c.formatted_phone;
         return c.phone || '…';
     }
+    function agendaClientNifLabel(c) {
+        if (!c) return 'NIF Sem NIF';
+        var nif = String(c.nif || '').trim();
+        return nif !== '' ? ('NIF ' + nif) : 'NIF Sem NIF';
+    }
     /** Mensagem a partir da resposta 422 do POST de cliente rápido (agenda). */
     function agendaStoreClientCreateErrorMessage(data) {
         var msg = 'Erro ao criar cliente.';
@@ -1476,6 +1481,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var ocTime = $id('eventDetailOcTime');
         var ocServiceWrap = $id('eventDetailOcServiceSelectWrap');
         var ocClientEdit = $id('eventDetailOcClientEditBtn');
+        var ocClientCancelEdit = $id('eventDetailOcClientCancelEditBtn');
+        var ocClientNifEdit = $id('eventDetailOcClientNifEditBtn');
+        var ocClientNifInput = $id('eventDetailOcClientNifInput');
+        var ocClientNifSave = $id('eventDetailOcClientNifSaveBtn');
+        var ocClientNifCancel = $id('eventDetailOcClientNifCancelBtn');
         var ocClientProfile = $id('eventDetailOcClientProfileLink');
         var ocClientTabs = $id('eventDetailOcClientTabs');
         var ocNotSel = $id('eventDetailOcClientNotSelectedWrap');
@@ -1530,6 +1540,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (ocServiceWrap) ocServiceWrap.style.pointerEvents = readonly ? 'none' : '';
         if (ocClientEdit) ocClientEdit.style.pointerEvents = readonly ? 'none' : '';
+        if (ocClientCancelEdit) ocClientCancelEdit.style.pointerEvents = readonly ? 'none' : '';
+        if (ocClientNifEdit) ocClientNifEdit.style.pointerEvents = readonly ? 'none' : '';
+        if (ocClientNifInput) ocClientNifInput.disabled = readonly;
+        if (ocClientNifSave) ocClientNifSave.disabled = readonly;
+        if (ocClientNifCancel) ocClientNifCancel.disabled = readonly;
         if (ocClientProfile) ocClientProfile.style.pointerEvents = '';
         if (ocClientTabs) ocClientTabs.style.pointerEvents = readonly ? 'none' : '';
         if (ocNotSel) ocNotSel.style.pointerEvents = readonly ? 'none' : '';
@@ -1638,6 +1653,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: data.client_name,
                 email: data.client_email || '',
                 phone: data.client_phone || '',
+                nif: data.client_nif || '',
                 formatted_phone: data.client_formatted_phone || '',
                 avatar_url: data.client_avatar_url || ''
             };
@@ -1700,6 +1716,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailOcClientSearchTimer = null;
     var eventDetailOcClientRemoteSearchBound = false;
     var eventDetailOcClientChangeBound = false;
+    var eventDetailOcClientBeforeEdit = null;
+    var eventDetailOcClientNifEditing = false;
+    var eventDetailOcClientNifSaving = false;
     var eventDetailOcFormBound = false;
 
     function eventDetailOcDestroyChoices() {
@@ -1793,6 +1812,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var card = $id('eventDetailOcClientSelectedCard');
         if (notSel) notSel.classList.remove('d-none');
         if (card) card.classList.add('d-none');
+        eventDetailOcSetNifInlineMode(false);
         eventDetailSelectedClient = null;
         eventDetailOcClearNewClientForm();
         var tabBtn = $id('eventDetailOcTabExistingBtn');
@@ -1806,6 +1826,7 @@ document.addEventListener('DOMContentLoaded', function() {
             id: String(c.id),
             name: c.name || '',
             phone: c.phone || '',
+            nif: c.nif || '',
             formatted_phone: c.formatted_phone || '',
             email: c.email || '',
             avatar_url: c.avatar_url || ''
@@ -1814,6 +1835,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var fb = $id('eventDetailOcClientAvatarFallback');
         $id('eventDetailOcClientSelectedName').textContent = c.name || '';
         $id('eventDetailOcClientSelectedPhone').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
+        var nifEl = $id('eventDetailOcClientSelectedNif');
+        if (nifEl) nifEl.textContent = agendaClientNifLabel(eventDetailSelectedClient);
+        var nifInput = $id('eventDetailOcClientNifInput');
+        if (nifInput) nifInput.value = String(eventDetailSelectedClient.nif || '').trim();
         var pl = $id('eventDetailOcClientProfileLink');
         if (pl) {
             pl.href = clientesBaseUrl + '/' + c.id;
@@ -1833,6 +1858,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var sc = $id('eventDetailOcClientSelectedCard');
         if (notSel) notSel.classList.add('d-none');
         if (sc) sc.classList.remove('d-none');
+        var cedit = $id('eventDetailOcClientEditBtn');
+        var ceditCancel = $id('eventDetailOcClientCancelEditBtn');
+        if (cedit) cedit.classList.remove('d-none');
+        if (ceditCancel) ceditCancel.classList.add('d-none');
+        eventDetailOcSetNifInlineMode(false);
+        eventDetailOcClientBeforeEdit = null;
     }
     function eventDetailOcInitClientChoicesSelect() {
         var clientSel = $id('eventDetailOcClient');
@@ -1845,12 +1876,17 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcChoicesInstances.client = new Choices(clientSel, eventDetailOcClientChoicesOpts());
     }
     function eventDetailOcEnterClientSearchMode() {
+        eventDetailOcClientBeforeEdit = eventDetailSelectedClient ? Object.assign({}, eventDetailSelectedClient) : null;
         eventDetailSelectedClient = null;
         eventDetailOcClearNewClientForm();
         var notSel = $id('eventDetailOcClientNotSelectedWrap');
         var card = $id('eventDetailOcClientSelectedCard');
+        var cedit = $id('eventDetailOcClientEditBtn');
+        var ceditCancel = $id('eventDetailOcClientCancelEditBtn');
         if (card) card.classList.add('d-none');
         if (notSel) notSel.classList.remove('d-none');
+        if (cedit) cedit.classList.add('d-none');
+        if (ceditCancel) ceditCancel.classList.remove('d-none');
         var tabBtn = $id('eventDetailOcTabExistingBtn');
         if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
             try { bootstrap.Tab.getOrCreateInstance(tabBtn).show(); } catch (err) { /* ignore */ }
@@ -1861,12 +1897,96 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('eventDetailOcClient').addEventListener('search', eventDetailOcOnClientSearchEvent);
         }
     }
+    function eventDetailOcCancelClientEdit() {
+        var cedit = $id('eventDetailOcClientEditBtn');
+        var ceditCancel = $id('eventDetailOcClientCancelEditBtn');
+        if (cedit) cedit.classList.remove('d-none');
+        if (ceditCancel) ceditCancel.classList.add('d-none');
+        if (eventDetailOcClientBeforeEdit) {
+            eventDetailOcApplyClientFromApi(eventDetailOcClientBeforeEdit);
+            return;
+        }
+        eventDetailOcResetClientUi();
+    }
+    function eventDetailOcSetNifInlineMode(enabled) {
+        var disp = $id('eventDetailOcClientNifDisplayWrap');
+        var inputWrap = $id('eventDetailOcClientNifInputWrap');
+        if (disp) disp.classList.toggle('d-none', !!enabled);
+        if (inputWrap) inputWrap.classList.toggle('d-none', !enabled);
+        eventDetailOcClientNifEditing = !!enabled;
+    }
+    function eventDetailOcStartClientNifEdit() {
+        if (!eventDetailSelectedClient || !eventDetailSelectedClient.id) {
+            showToast('Selecione um cliente primeiro.', 'error');
+            return;
+        }
+        var input = $id('eventDetailOcClientNifInput');
+        if (!input) return;
+        input.value = String(eventDetailSelectedClient.nif || '').trim();
+        eventDetailOcSetNifInlineMode(true);
+        setTimeout(function() {
+            try {
+                input.focus();
+                input.select();
+            } catch (e) { /* ignore */ }
+        }, 0);
+    }
+    function eventDetailOcCancelClientNifEdit() {
+        if (eventDetailOcClientNifSaving) return;
+        eventDetailOcSetNifInlineMode(false);
+        var nifEl = $id('eventDetailOcClientSelectedNif');
+        if (nifEl) nifEl.textContent = agendaClientNifLabel(eventDetailSelectedClient);
+    }
+    function eventDetailOcSaveClientNifInline() {
+        if (eventDetailOcClientNifSaving) return;
+        if (!eventDetailSelectedClient || !eventDetailSelectedClient.id) return;
+        var input = $id('eventDetailOcClientNifInput');
+        if (!input) return;
+        var nif = String(input.value || '').trim();
+        if (!/^\d{9}$/.test(nif)) {
+            showToast('O NIF deve ter 9 dígitos.', 'error');
+            try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+            return;
+        }
+        var saveBtn = $id('eventDetailOcClientNifSaveBtn');
+        var cancelBtn = $id('eventDetailOcClientNifCancelBtn');
+        eventDetailOcClientNifSaving = true;
+        input.disabled = true;
+        if (saveBtn) saveBtn.disabled = true;
+        if (cancelBtn) cancelBtn.disabled = true;
+        fetch(agendaClientsUrl + '/' + encodeURIComponent(eventDetailSelectedClient.id) + '/nif', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ nif: nif })
+        })
+            .then(function(r) {
+                return r.json().then(function(data) {
+                    if (!r.ok) throw new Error((data && data.message) ? data.message : 'Não foi possível atualizar o NIF.');
+                    return data;
+                });
+            })
+            .then(function(client) {
+                eventDetailOcApplyClientFromApi(client);
+                eventDetailOcSetNifInlineMode(false);
+                showToast('NIF atualizado com sucesso.', 'success');
+            })
+            .catch(function(err) {
+                showToast((err && err.message) ? err.message : 'Não foi possível atualizar o NIF.', 'error');
+            })
+            .finally(function() {
+                eventDetailOcClientNifSaving = false;
+                input.disabled = false;
+                if (saveBtn) saveBtn.disabled = false;
+                if (cancelBtn) cancelBtn.disabled = false;
+            });
+    }
     function eventDetailOcApplyServiceFieldVisibility() {
         var selWrap = $id('eventDetailOcServiceSelectWrap');
         var addWrap = $id('eventDetailOcAddMoreServicesWrap');
         if (!selWrap || !addWrap) return;
         var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
-        var readonly = !!eventDetailExistingSale || status === 'completo' || status === 'faltou' || status === 'cancelado';
+        var isPartialSale = !!(eventDetailExistingSale && eventDetailExistingSale.is_partial);
+        var readonly = (!!eventDetailExistingSale && !isPartialSale) || status === 'completo' || status === 'faltou' || status === 'cancelado';
         if (readonly) {
             selWrap.classList.add('d-none');
             addWrap.classList.add('d-none');
@@ -2292,6 +2412,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var cedit = $id('eventDetailOcClientEditBtn');
         if (cedit) cedit.addEventListener('click', function() { eventDetailOcEnterClientSearchMode(); });
+        var ceditCancel = $id('eventDetailOcClientCancelEditBtn');
+        if (ceditCancel) ceditCancel.addEventListener('click', function() { eventDetailOcCancelClientEdit(); });
+        var ceditNif = $id('eventDetailOcClientNifEditBtn');
+        if (ceditNif) ceditNif.addEventListener('click', function() { eventDetailOcStartClientNifEdit(); });
+        var nifSaveBtn = $id('eventDetailOcClientNifSaveBtn');
+        if (nifSaveBtn) nifSaveBtn.addEventListener('click', function() { eventDetailOcSaveClientNifInline(); });
+        var nifCancelBtn = $id('eventDetailOcClientNifCancelBtn');
+        if (nifCancelBtn) nifCancelBtn.addEventListener('click', function() { eventDetailOcCancelClientNifEdit(); });
+        var nifInput = $id('eventDetailOcClientNifInput');
+        if (nifInput) {
+            nifInput.addEventListener('keydown', function(ev) {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    eventDetailOcSaveClientNifInline();
+                }
+            });
+            nifInput.addEventListener('blur', function() {
+                if (!eventDetailOcClientNifEditing || eventDetailOcClientNifSaving) return;
+                var value = String(nifInput.value || '').trim();
+                var current = String((eventDetailSelectedClient && eventDetailSelectedClient.nif) || '').trim();
+                if (value === current) {
+                    eventDetailOcCancelClientNifEdit();
+                }
+            });
+        }
         if (!eventDetailOcClientChangeBound) {
             eventDetailOcClientChangeBound = true;
             $id('eventDetailOcClient').addEventListener('change', function() {
@@ -2446,6 +2591,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return sum + p;
         }, 0);
         $id('eventDetailTotalPrice').textContent = total.toFixed(2).replace('.', ',') + ' €';
+        var totalNoVatEl = $id('eventDetailTotalPriceNoVat');
+        if (totalNoVatEl) {
+            var totalNoVat = total / 1.23;
+            totalNoVatEl.textContent = totalNoVat.toFixed(2).replace('.', ',') + ' €';
+        }
     }
 
     EventDetail.updateEndTime = function() {
@@ -3675,6 +3825,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     var ep = res.event.extendedProps || {};
                     Object.keys(ep).forEach(function(k) { ev.setExtendedProp(k, ep[k]); });
                 }
+                // Garante atualização visual imediata da duração no calendário
+                // (especialmente quando há alterações de serviços/extras).
+                calendar.refetchEvents();
                 bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
             } else {
                 showToast(res.message || 'Erro ao guardar.', 'error');
@@ -6687,6 +6840,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (ev && res.event) {
                     applyAgendaEventFromServer(ev, res.event);
                 }
+                // No fluxo com confirmação de notificação (agendaDragConfirm),
+                // garantir re-sync completo para refletir a nova duração em tempo real.
+                calendar.refetchEvents();
                 eventDetailWasSaved = true;
                 bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
                 scheduleStackedEventClassRefresh();
