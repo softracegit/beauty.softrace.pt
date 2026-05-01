@@ -44,7 +44,7 @@ class DefinicoesController extends Controller
         return view('definicoes.agendamentos', [
             'pageTitle' => 'Marcações',
             'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes(),
-            'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRules(),
+            'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRulesUi(),
             'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule(),
         ]);
     }

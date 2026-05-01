@@ -7,11 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class CrmSetting extends Model
 {
     public const KEY_BOOKING_ONLINE_PAYMENT_REQUIRED = 'booking.online_payment_required';
+
     public const KEY_BOOKING_SLOT_HOLD_MINUTES = 'booking.slot_hold_minutes';
+
     public const KEY_BOOKING_ANY_STAFF_RULE = 'booking.any_staff_rule';
+
     public const BOOKING_ANY_STAFF_RULE_A = 'day_load_then_agenda_order';
+
     public const BOOKING_ANY_STAFF_RULE_B = 'agenda_order_then_day_load';
+
     public const BOOKING_ANY_STAFF_RULE_C = 'month_load_then_agenda_order';
+
     public const BOOKING_ANY_STAFF_RULE_D = 'agenda_order_then_month_load';
 
     protected $fillable = [
@@ -90,21 +96,45 @@ class CrmSetting extends Model
     }
 
     /**
-     * @return array<string, string>
+     * Textos para o ecrã de definições (título + descrição).
+     *
+     * @return array<string, array{title: string, description: string}>
+     */
+    public static function bookingAnyStaffRulesUi(): array
+    {
+        return [
+            self::BOOKING_ANY_STAFF_RULE_A => [
+                'title' => 'Equilibrar o dia entre colaboradores.',
+                'description' => 'Distribui as marcações por quem tem menos clientes hoje.',
+            ],
+            self::BOOKING_ANY_STAFF_RULE_B => [
+                'title' => 'Atender o cliente o mais cedo possível',
+                'description' => 'Escolhe sempre o horário disponível mais próximo.',
+            ],
+            self::BOOKING_ANY_STAFF_RULE_C => [
+                'title' => 'Equilibrar o trabalho ao longo do mês',
+                'description' => 'Dá prioridade a quem teve menos clientes este mês.',
+            ],
+            self::BOOKING_ANY_STAFF_RULE_D => [
+                'title' => 'Atender cedo, mantendo equilíbrio mensal',
+                'description' => 'Escolhe o horário mais cedo e, em caso de empate, equilibra entre colaboradores.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string> mapa id da regra → título (uma linha)
      */
     public static function bookingAnyStaffRules(): array
     {
-        return [
-            self::BOOKING_ANY_STAFF_RULE_A => 'Regra A — Menos marcações no dia, depois ordem da agenda',
-            self::BOOKING_ANY_STAFF_RULE_B => 'Regra B — Ordem da agenda, depois menos marcações no dia',
-            self::BOOKING_ANY_STAFF_RULE_C => 'Regra C — Menos marcações no mês, depois ordem da agenda',
-            self::BOOKING_ANY_STAFF_RULE_D => 'Regra D — Ordem da agenda, depois menos marcações no mês',
-        ];
+        $ui = self::bookingAnyStaffRulesUi();
+
+        return array_map(fn (array $row): string => $row['title'], $ui);
     }
 
     public static function bookingAnyStaffRule(): string
     {
-        $rules = self::bookingAnyStaffRules();
+        $rules = self::bookingAnyStaffRulesUi();
         $default = self::BOOKING_ANY_STAFF_RULE_A;
         $value = self::getString(self::KEY_BOOKING_ANY_STAFF_RULE, $default);
 

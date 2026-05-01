@@ -1,20 +1,17 @@
 <x-mail::message>
 # Olá,
 
-Recebemos um pedido de acesso a sua conta de marcacao.
+Recebemos um pedido de acesso à sua conta de marcação.
 
-O seu codigo de verificacao e:
+O seu código de verificação é:
 
 <p style="margin: 14px 0 18px 0; font-size: 28px; font-weight: 800; letter-spacing: 0.08em; color: #111827;">
 {{ $code }}
 </p>
 
-Codigo: {{ $code }}
+Este código expira em {{ $ttlMinutes }} minutos.
 
-Este codigo expira em {{ $ttlMinutes }} minutos.
-
-Se nao pediu este codigo, ignore este email.
+Se não pediu este código, ignore este e-mail.
 
 {{ config('app.name') }}
 </x-mail::message>
-

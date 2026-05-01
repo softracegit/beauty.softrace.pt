@@ -62,17 +62,20 @@
 
         <div class="mb-2">
           <label class="form-label fw-semibold d-block">Regra de atribuição</label>
-          <div id="bookingAnyStaffRuleGroup" class="d-flex flex-column gap-2">
-            @foreach(($bookingAnyStaffRules ?? []) as $value => $label)
-              <label class="form-check">
+          <div id="bookingAnyStaffRuleGroup" class="d-flex flex-column gap-3">
+            @foreach(($bookingAnyStaffRules ?? []) as $value => $rule)
+              <label class="form-check d-flex align-items-start gap-2 mb-0">
                 <input
-                  class="form-check-input"
+                  class="form-check-input mt-1 flex-shrink-0"
                   type="radio"
                   name="booking_any_staff_rule"
                   value="{{ $value }}"
                   @checked(old('booking_any_staff_rule', $bookingAnyStaffRule ?? '') === $value)
                 >
-                <span class="form-check-label">{{ $label }}</span>
+                <span class="form-check-label">
+                  <span class="d-block fw-semibold text-body">{{ $rule['title'] }}</span>
+                  <span class="d-block small text-muted mt-1 lh-sm">{{ $rule['description'] }}</span>
+                </span>
               </label>
             @endforeach
           </div>

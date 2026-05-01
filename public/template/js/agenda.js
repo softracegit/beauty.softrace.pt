@@ -1352,9 +1352,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return c.phone || '…';
     }
     function agendaClientNifLabel(c) {
-        if (!c) return 'NIF Sem NIF';
+        if (!c) return 'Sem NIF';
         var nif = String(c.nif || '').trim();
-        return nif !== '' ? ('NIF ' + nif) : 'NIF Sem NIF';
+        return nif !== '' ? ('NIF ' + nif) : 'Sem NIF';
     }
     /** Mensagem a partir da resposta 422 do POST de cliente rápido (agenda). */
     function agendaStoreClientCreateErrorMessage(data) {

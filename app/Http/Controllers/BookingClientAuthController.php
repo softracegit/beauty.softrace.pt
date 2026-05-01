@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Services\TwilioSmsService;
 use App\Support\PhoneDisplay;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -187,27 +188,85 @@ class BookingClientAuthController extends Controller
                     'email' => ['Indique o email para criar a conta.'],
                 ]);
             }
-            $this->assertEmailIsFullyUnique($emailNorm);
-            $phoneE164 = $identifier;
+            $phoneE164 = trim((string) $identifier);
         } else {
+            $emailNorm = strtolower(trim((string) $identifier));
             $phoneE164 = PhoneDisplay::toE164((string) ($validated['phone'] ?? ''));
             if ($phoneE164 === null) {
                 throw ValidationException::withMessages([
                     'phone' => ['Indique um telemóvel válido para criar a conta.'],
                 ]);
             }
-            $this->assertPhoneIsFullyUnique($phoneE164);
-            $emailNorm = $identifier;
         }
 
-        $client = Client::query()->create([
-            'name' => $name,
-            'email' => $emailNorm,
-            'phone' => $phoneE164,
-            'type' => Client::TYPE_POTENCIAL_CLIENTE,
-        ]);
+        $existingClient = $this->findLegacyClientForPendingBookingRegistration($channel, $phoneE164, $emailNorm);
 
-        $user = $this->createBookingUserForClient($client, $emailNorm);
+        if ($existingClient instanceof Client) {
+            if ($this->bookingUserExistsForClient($existingClient)) {
+                Log::warning('Registo booking: cliente já tem utilizador de marcação.', [
+                    'client_id' => $existingClient->id,
+                ]);
+                throw ValidationException::withMessages([
+                    'login' => ['Esta conta já existe. Inicie sessão com o código enviado.'],
+                ]);
+            }
+
+            $this->assertEmailAvailableForBookingRegistration($emailNorm, $existingClient);
+            $this->assertPhoneAvailableForBookingRegistration($phoneE164, $existingClient);
+
+            if ($channel === 'phone') {
+                $clientEmail = strtolower(trim((string) ($existingClient->email ?? '')));
+                if ($clientEmail !== '' && $clientEmail !== $emailNorm) {
+                    throw ValidationException::withMessages([
+                        'email' => ['Este telemóvel já está associado a outro email na loja. Use o contacto habitual ou fale com a loja.'],
+                    ]);
+                }
+            } else {
+                $rawPhone = trim((string) ($existingClient->phone ?? ''));
+                if ($rawPhone !== '' && ! $this->clientPhoneMatchesE164($existingClient, $phoneE164)) {
+                    throw ValidationException::withMessages([
+                        'phone' => ['Este telemóvel não coincide com o email na nossa base de dados.'],
+                    ]);
+                }
+            }
+
+            $existingClient->name = $name;
+            $existingClient->phone = $phoneE164;
+            if (trim((string) ($existingClient->email ?? '')) === '') {
+                $existingClient->email = $emailNorm;
+            }
+
+            try {
+                $existingClient->save();
+            } catch (QueryException $e) {
+                $this->throwFriendlyDuplicateEntryIfApplicable($e);
+                throw $e;
+            }
+
+            $client = $existingClient->fresh();
+        } else {
+            $this->assertEmailAvailableForBookingRegistration($emailNorm, null);
+            $this->assertPhoneAvailableForBookingRegistration($phoneE164, null);
+
+            try {
+                $client = Client::query()->create([
+                    'name' => $name,
+                    'email' => $emailNorm,
+                    'phone' => $phoneE164,
+                    'type' => Client::TYPE_POTENCIAL_CLIENTE,
+                ]);
+            } catch (QueryException $e) {
+                $this->throwFriendlyDuplicateEntryIfApplicable($e);
+                throw $e;
+            }
+        }
+
+        try {
+            $user = $this->createBookingUserForClient($client, $emailNorm);
+        } catch (QueryException $e) {
+            $this->throwFriendlyDuplicateEntryIfApplicable($e);
+            throw $e;
+        }
         $this->clearPendingRegistration($request);
 
         Auth::login($user, true);
@@ -394,7 +453,53 @@ class BookingClientAuthController extends Controller
         }
     }
 
-    private function assertEmailIsFullyUnique(string $emailNorm): void
+    private function findLegacyClientForPendingBookingRegistration(string $channel, string $phoneE164, string $emailNorm): ?Client
+    {
+        $phoneE164 = trim($phoneE164);
+        if ($channel === 'phone') {
+            $matches = Client::query()
+                ->whereNotNull('phone')
+                ->where('phone', '!=', '')
+                ->get(['id', 'phone'])
+                ->filter(fn (Client $c): bool => PhoneDisplay::toE164((string) $c->phone) === $phoneE164)
+                ->values();
+
+            if ($matches->count() > 1) {
+                throw ValidationException::withMessages([
+                    'login' => ['Existe mais do que um cliente com este telemóvel. Contacte o suporte para unificar os registos.'],
+                ]);
+            }
+
+            $first = $matches->first();
+            if (! $first instanceof Client) {
+                return null;
+            }
+
+            // `get(['id','phone'])` não carrega `email`; sem `fresh()` a validação de conflito falha em silêncio.
+            return $first->fresh();
+        }
+
+        $emailNorm = strtolower(trim($emailNorm));
+        if ($emailNorm === '') {
+            return null;
+        }
+
+        return Client::query()
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])
+            ->first();
+    }
+
+    private function bookingUserExistsForClient(Client $client): bool
+    {
+        return User::query()
+            ->where('role', User::ROLE_CLIENTE)
+            ->where('client_id', $client->id)
+            ->exists();
+    }
+
+    private function assertEmailAvailableForBookingRegistration(string $emailNorm, ?Client $except): void
     {
         $emailNorm = strtolower(trim($emailNorm));
         if ($emailNorm === '') {
@@ -402,19 +507,30 @@ class BookingClientAuthController extends Controller
                 'email' => ['Indique um email válido.'],
             ]);
         }
+
         if (User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->exists()) {
             throw ValidationException::withMessages([
-                'email' => ['Este email já pertence a um utilizador. Indique um email diferente.'],
+                'email' => ['Este email já está associado a uma conta. Use outro email ou inicie sessão.'],
             ]);
         }
-        if (Client::query()->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])->exists()) {
+
+        $q = Client::query()
+            ->whereNotNull('email')
+            ->where('email', '!=', '')
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm]);
+
+        if ($except instanceof Client) {
+            $q->where('id', '!=', $except->id);
+        }
+
+        if ($q->exists()) {
             throw ValidationException::withMessages([
-                'email' => ['Este email já pertence a um cliente. Indique um email diferente.'],
+                'email' => ['Este email já está associado a um cliente. Use outro email ou inicie sessão.'],
             ]);
         }
     }
 
-    private function assertPhoneIsFullyUnique(string $phoneE164): void
+    private function assertPhoneAvailableForBookingRegistration(string $phoneE164, ?Client $except): void
     {
         $phoneE164 = trim($phoneE164);
         if ($phoneE164 === '') {
@@ -422,14 +538,47 @@ class BookingClientAuthController extends Controller
                 'phone' => ['Indique um telemóvel válido.'],
             ]);
         }
-        $phoneExists = Client::query()
+
+        $conflict = Client::query()
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
-            ->get(['phone'])
-            ->contains(fn (Client $client): bool => PhoneDisplay::toE164((string) $client->phone) === $phoneE164);
-        if ($phoneExists) {
+            ->when($except instanceof Client, fn ($q) => $q->where('id', '!=', $except->id))
+            ->get(['id', 'phone'])
+            ->contains(fn (Client $c): bool => PhoneDisplay::toE164((string) $c->phone) === $phoneE164);
+
+        if ($conflict) {
             throw ValidationException::withMessages([
-                'phone' => ['Este telemóvel já pertence a um cliente. Indique um telemóvel diferente.'],
+                'phone' => ['Este telemóvel já está associado a outro cliente. Indique outro número ou inicie sessão.'],
+            ]);
+        }
+    }
+
+    private function clientPhoneMatchesE164(Client $client, string $phoneE164): bool
+    {
+        $raw = trim((string) ($client->phone ?? ''));
+        if ($raw === '') {
+            return false;
+        }
+
+        $ex = PhoneDisplay::toE164($raw);
+        $n = PhoneDisplay::toE164($phoneE164);
+        if ($ex !== null && $n !== null) {
+            return $ex === $n;
+        }
+
+        return $raw === trim($phoneE164);
+    }
+
+    private function throwFriendlyDuplicateEntryIfApplicable(QueryException $e): void
+    {
+        $sqlState = (string) ($e->errorInfo[0] ?? '');
+        $driverCode = (int) ($e->errorInfo[1] ?? 0);
+        if ($sqlState === '23000' && $driverCode === 1062) {
+            Log::notice('Conflito de unicidade na BD ao registar conta de booking; resposta genérica ao utilizador.', [
+                'exception' => $e::class,
+            ]);
+            throw ValidationException::withMessages([
+                'login' => ['Não foi possível concluir o registo. Se já tiver conta, inicie sessão; caso contrário, contacte a loja.'],
             ]);
         }
     }

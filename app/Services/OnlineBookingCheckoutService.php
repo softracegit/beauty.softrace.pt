@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Notifications\AppointmentNotification;
 use App\Support\PhoneDisplay;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -819,6 +820,7 @@ class OnlineBookingCheckoutService
             }
 
             $this->attachBookingUserToLegacyClient($client, $name, $emailNorm, $phoneE164, $notes);
+
             return ['client' => $client->fresh(), 'created_booking_user' => true];
         }
 
@@ -836,22 +838,32 @@ class OnlineBookingCheckoutService
             ? '[Marcação online] '.trim($notes)
             : null;
 
-        $client = Client::create([
-            'name' => $name,
-            'email' => $emailNorm,
-            'phone' => $phoneE164,
-            'preferences_notes' => $notesBlock,
-            'type' => Client::TYPE_POTENCIAL_CLIENTE,
-        ]);
+        try {
+            $client = Client::create([
+                'name' => $name,
+                'email' => $emailNorm,
+                'phone' => $phoneE164,
+                'preferences_notes' => $notesBlock,
+                'type' => Client::TYPE_POTENCIAL_CLIENTE,
+            ]);
+        } catch (QueryException $e) {
+            $this->throwFriendlyBookingDuplicateIntegrity($e);
+            throw $e;
+        }
 
-        User::create([
-            'name' => $name,
-            'email' => $emailNorm,
-            'password' => Hash::make(Str::random(64)),
-            'role' => User::ROLE_CLIENTE,
-            'client_id' => $client->id,
-            'must_set_password' => false,
-        ]);
+        try {
+            User::create([
+                'name' => $name,
+                'email' => $emailNorm,
+                'password' => Hash::make(Str::random(64)),
+                'role' => User::ROLE_CLIENTE,
+                'client_id' => $client->id,
+                'must_set_password' => false,
+            ]);
+        } catch (QueryException $e) {
+            $this->throwFriendlyBookingDuplicateIntegrity($e);
+            throw $e;
+        }
 
         return ['client' => $client, 'created_booking_user' => true];
     }
@@ -874,16 +886,38 @@ class OnlineBookingCheckoutService
         if ($client->email === null || trim((string) $client->email) === '') {
             $client->email = $emailNorm;
         }
-        $client->save();
 
-        User::create([
-            'name' => $name,
-            'email' => $emailNorm,
-            'password' => Hash::make(Str::random(64)),
-            'role' => User::ROLE_CLIENTE,
-            'client_id' => $client->id,
-            'must_set_password' => false,
-        ]);
+        try {
+            $client->save();
+        } catch (QueryException $e) {
+            $this->throwFriendlyBookingDuplicateIntegrity($e);
+            throw $e;
+        }
+
+        try {
+            User::create([
+                'name' => $name,
+                'email' => $emailNorm,
+                'password' => Hash::make(Str::random(64)),
+                'role' => User::ROLE_CLIENTE,
+                'client_id' => $client->id,
+                'must_set_password' => false,
+            ]);
+        } catch (QueryException $e) {
+            $this->throwFriendlyBookingDuplicateIntegrity($e);
+            throw $e;
+        }
+    }
+
+    private function throwFriendlyBookingDuplicateIntegrity(QueryException $e): void
+    {
+        $sqlState = (string) ($e->errorInfo[0] ?? '');
+        $driverCode = (int) ($e->errorInfo[1] ?? 0);
+        if ($sqlState === '23000' && $driverCode === 1062) {
+            throw ValidationException::withMessages([
+                'email' => ['Não foi possível guardar os dados. Se o email ou telemóvel já estiverem registados, inicie sessão ou contacte a loja.'],
+            ]);
+        }
     }
 
     private function assertEmailAvailableForBookingUser(string $emailNorm): void

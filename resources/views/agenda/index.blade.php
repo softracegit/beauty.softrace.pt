@@ -448,7 +448,7 @@
                                 <span id="eventDetailOcClientSelectedPhone" class="d-block small text-muted mt-1">…</span>
                                 <div class="agenda-oc-client-nif-row position-relative mt-1">
                                     <span id="eventDetailOcClientNifDisplayWrap" class="d-inline-flex align-items-center gap-1 small text-muted agenda-oc-client-nif-display">
-                                        <span id="eventDetailOcClientSelectedNif">NIF Sem NIF</span>
+                                        <span id="eventDetailOcClientSelectedNif">Sem NIF</span>
                                         <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-nif-edit-btn" id="eventDetailOcClientNifEditBtn" title="Editar NIF" aria-label="Editar NIF">
                                             <i class="ph ph-pencil-simple" aria-hidden="true"></i>
                                         </button>
