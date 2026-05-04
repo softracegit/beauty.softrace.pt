@@ -13,5 +13,11 @@ Este código expira em {{ $ttlMinutes }} minutos.
 
 Se não pediu este código, ignore este e-mail.
 
+@if (! empty($continueUrl))
+<x-mail::button :url="$continueUrl">
+Continuar na marcação online
+</x-mail::button>
+@endif
+
 {{ config('app.name') }}
 </x-mail::message>

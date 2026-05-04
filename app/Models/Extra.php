@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\CurrentStore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -50,9 +51,22 @@ class Extra extends Model
         return $this->belongsToMany(Service::class, 'service_extra');
     }
 
+    /**
+     * Extras vivem na categoria; a loja vem de {@see ExtraCategory::store_id}.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field = $field ?? $this->getRouteKeyName();
+
+        return static::query()
+            ->where($field, $value)
+            ->whereHas('extraCategory', fn ($q) => $q->where('store_id', app(CurrentStore::class)->id()))
+            ->firstOrFail();
+    }
+
     public function getFormattedPriceAttribute(): string
     {
-        return number_format($this->price, 2, ',', '.') . ' €';
+        return number_format($this->price, 2, ',', '.').' €';
     }
 
     public function getFormattedDurationAttribute(): string
@@ -63,11 +77,12 @@ class Extra extends Model
         $hours = floor($this->duration / 60);
         $minutes = $this->duration % 60;
         if ($hours > 0 && $minutes > 0) {
-            return $hours . 'h ' . $minutes . 'min';
+            return $hours.'h '.$minutes.'min';
         }
         if ($hours > 0) {
-            return $hours . 'h';
+            return $hours.'h';
         }
-        return $minutes . 'min';
+
+        return $minutes.'min';
     }
 }

@@ -3,8 +3,15 @@
 namespace App\Providers;
 
 use App\Models\Agent;
+use App\Models\Organization;
+use App\Models\Service;
+use App\Models\Store;
 use App\Policies\AgentPolicy;
+use App\Policies\OrganizationPolicy;
+use App\Policies\StorePolicy;
+use App\Support\CurrentStore;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -16,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     protected $policies = [
         Agent::class => AgentPolicy::class,
+        Organization::class => OrganizationPolicy::class,
+        Store::class => StorePolicy::class,
     ];
 
     /**
@@ -23,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(CurrentStore::class, fn () => new CurrentStore);
     }
 
     /**
@@ -35,6 +44,34 @@ class AppServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         $this->registerBookingMailer();
+
+        Route::bind('service', function (string $value, \Illuminate\Routing\Route $route): Service {
+            $name = $route->getName() ?? '';
+            if (! is_string($name) || ! str_starts_with($name, 'booking.')) {
+                return Service::query()->whereKey($value)->firstOrFail();
+            }
+
+            $store = $route->parameter('store');
+            if (! $store instanceof Store) {
+                $raw = $store;
+                $slug = is_string($raw) || is_numeric($raw) ? trim((string) $raw) : '';
+                $store = $slug !== '' ? Store::query()->where('slug', $slug)->first() : null;
+            }
+            if (! $store instanceof Store) {
+                abort(404);
+            }
+
+            $service = Service::query()
+                ->where('store_id', $store->id)
+                ->whereKey($value)
+                ->first();
+
+            if (! $service) {
+                abort(404);
+            }
+
+            return $service;
+        });
     }
 
     /**

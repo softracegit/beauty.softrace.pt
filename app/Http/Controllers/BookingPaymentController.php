@@ -4,15 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\BookingSavedCard;
+use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Store;
 use App\Models\User;
 use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Services\BookingSlotHoldService;
 use App\Services\OnlineBookingCheckoutService;
+use App\Support\CurrentStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -40,13 +43,15 @@ class BookingPaymentController extends Controller
      */
     public function createIntent(Request $request): JsonResponse
     {
-        if (! CrmSetting::onlineBookingPaymentRequired()) {
+        $validated = $this->checkout->validateBookingRequest($request);
+        $this->checkout->assertPublicBookingServicesBelongToUrlStore($validated['services'] ?? [], $request);
+        $storeId = $this->checkout->storeIdFromBookingServices($validated['services']);
+
+        if (! CrmSetting::onlineBookingPaymentRequired($storeId)) {
             return response()->json([
                 'message' => 'O pagamento online está desactivado. Confirma a marcação sem pagamento.',
             ], 422);
         }
-
-        $validated = $this->checkout->validateBookingRequest($request);
         $slotHoldPublicId = trim((string) $request->input('slot_hold_public_id', ''));
         $slotHoldToken = trim((string) $request->input('slot_hold_token', ''));
         $this->slotHolds->assertCheckoutHold($validated, $slotHoldPublicId, $slotHoldToken, $request->user());
@@ -88,6 +93,7 @@ class BookingPaymentController extends Controller
 
         try {
             $booking = Booking::query()->create([
+                'store_id' => $storeId,
                 'public_id' => (string) \Illuminate\Support\Str::ulid(),
                 'total_price' => $total,
                 'paid_amount' => $paidAmount,
@@ -190,6 +196,13 @@ class BookingPaymentController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            $routeStore = $request->route('store');
+            if ($routeStore instanceof Store && (int) $booking->store_id !== (int) $routeStore->id) {
+                DB::rollBack();
+
+                return response()->json(['message' => 'Esta marcação não pertence a esta loja.'], 403);
+            }
+
             if ($booking->authenticated_booking_user_id !== null) {
                 $uid = $request->user()?->id;
                 if ((int) $booking->authenticated_booking_user_id !== (int) $uid) {
@@ -252,6 +265,7 @@ class BookingPaymentController extends Controller
             }
 
             $validated = $this->checkout->validateStoredPayload($booking->request_payload ?? []);
+            $this->checkout->assertPublicBookingServicesBelongToUrlStore($validated['services'] ?? [], $request);
             $resolved = $this->checkout->resolveValidatedBookingPayload($validated);
             $holdPublicId = trim((string) ($booking->request_payload['slot_hold_public_id'] ?? ''));
             $holdToken = trim((string) ($booking->request_payload['slot_hold_token'] ?? ''));
@@ -324,13 +338,15 @@ class BookingPaymentController extends Controller
      */
     public function confirmWithoutPayment(Request $request): JsonResponse
     {
-        if (CrmSetting::onlineBookingPaymentRequired()) {
+        $validated = $this->checkout->validateBookingRequest($request);
+        $this->checkout->assertPublicBookingServicesBelongToUrlStore($validated['services'] ?? [], $request);
+        $storeId = $this->checkout->storeIdFromBookingServices($validated['services']);
+
+        if (CrmSetting::onlineBookingPaymentRequired($storeId)) {
             return response()->json([
                 'message' => 'O pagamento online está activo. Usa o fluxo normal de checkout.',
             ], 422);
         }
-
-        $validated = $this->checkout->validateBookingRequest($request);
         $slotHoldPublicId = trim((string) $request->input('slot_hold_public_id', ''));
         $slotHoldToken = trim((string) $request->input('slot_hold_token', ''));
         $hold = $this->slotHolds->assertCheckoutHold($validated, $slotHoldPublicId, $slotHoldToken, $request->user());
@@ -407,7 +423,7 @@ class BookingPaymentController extends Controller
             }
         }
 
-        return route('booking.confirm', $confirmParams);
+        return route('booking.confirm', array_merge(['store' => $this->bookingStoreSlug()], $confirmParams));
     }
 
     /**
@@ -420,7 +436,7 @@ class BookingPaymentController extends Controller
             $query['primeira_marcacao'] = '1';
         }
 
-        return route('booking.conta.marcacoes', $query);
+        return route('booking.conta.marcacoes', array_merge(['store' => $this->bookingStoreSlug()], $query));
     }
 
     /**
@@ -613,12 +629,14 @@ class BookingPaymentController extends Controller
         }
 
         $now = now();
-        $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'));
+        $storeId = (int) ($booking->store_id ?: CalendarEvent::query()->whereKey($eventId)->value('store_id'));
+        $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'), $storeId);
         $paymentMethod = $this->salePaymentMethodFromIntent($intent);
         $total = round((float) $booking->total_price, 2);
         $valorPago = round((float) $booking->paid_amount, 2);
 
         $sale = Sale::create([
+            'store_id' => $storeId,
             'calendar_event_id' => $eventId,
             'client_id' => $client->id,
             'numero_fatura' => $numeroFatura,
@@ -742,6 +760,11 @@ class BookingPaymentController extends Controller
         $client->save();
 
         return $customer->id;
+    }
+
+    private function bookingStoreSlug(): string
+    {
+        return (string) app(CurrentStore::class)->get()->slug;
     }
 
     /**

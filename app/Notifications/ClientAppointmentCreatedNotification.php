@@ -28,7 +28,7 @@ class ClientAppointmentCreatedNotification extends Notification implements Shoul
     public function toMail(object $notifiable): MailMessage
     {
         $event = CalendarEvent::query()
-            ->with(['client', 'service', 'eventServices'])
+            ->with(['client', 'service', 'eventServices', 'store'])
             ->findOrFail($this->calendarEventId);
 
         $tz = config('app.timezone');
@@ -52,13 +52,19 @@ class ClientAppointmentCreatedNotification extends Notification implements Shoul
                 ->implode(', ')
             : ($event->service?->name ?? 'Marcação');
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Marcação confirmada')
             ->greeting($greetingName !== '' ? 'Olá '.$greetingName.',' : 'Olá,')
             ->line("A sua marcação de «{$services}» foi confirmada.")
             ->line("Data/hora: {$start} – {$end}.")
-            ->line('Se tiver questões, contacte-nos.')
-            ->salutation(config('app.name'));
+            ->line('Se tiver questões, contacte-nos.');
+
+        $storeSlug = $event->store?->slug;
+        if (is_string($storeSlug) && $storeSlug !== '') {
+            $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
+        }
+
+        return $mail->salutation(config('app.name'));
     }
 }
 

@@ -4,12 +4,60 @@
 (function () {
     'use strict';
 
-    var STORAGE_KEY = 'booking_cart_v1';
-    var TECH_STORAGE_KEY = 'booking_technician_v1';
-    var DATETIME_STORAGE_KEY = 'booking_datetime_v1';
-    var CONTACT_STORAGE_KEY = 'booking_contact_v1';
-    var STRIPE_CHECKOUT_PUBLIC_ID_KEY = 'booking_checkout_public_id';
-    var SLOT_HOLD_STORAGE_KEY = 'booking_slot_hold_v1';
+    function readBookingStoreSlug() {
+        var body = typeof document !== 'undefined' ? document.body : null;
+        if (!body) {
+            return 'default';
+        }
+        var attr = body.getAttribute('data-booking-store-slug');
+        if (attr && String(attr).trim() !== '') {
+            return String(attr).trim();
+        }
+        var idx = body.getAttribute('data-booking-index-url');
+        if (idx && typeof idx === 'string') {
+            var path = idx.replace(/^https?:\/\/[^/]+/i, '');
+            var parts = path.split('/').filter(function (p) {
+                return p.length > 0;
+            });
+            if (parts.length >= 2 && parts[0] === 'booking') {
+                return parts[1];
+            }
+        }
+        return 'default';
+    }
+
+    var BOOKING_STORE_SLUG = readBookingStoreSlug();
+    var STORAGE_KEY = 'booking_cart_v1:' + BOOKING_STORE_SLUG;
+    var TECH_STORAGE_KEY = 'booking_technician_v1:' + BOOKING_STORE_SLUG;
+    var DATETIME_STORAGE_KEY = 'booking_datetime_v1:' + BOOKING_STORE_SLUG;
+    var CONTACT_STORAGE_KEY = 'booking_contact_v1:' + BOOKING_STORE_SLUG;
+    var STRIPE_CHECKOUT_PUBLIC_ID_KEY = 'booking_checkout_public_id:' + BOOKING_STORE_SLUG;
+    var SLOT_HOLD_STORAGE_KEY = 'booking_slot_hold_v1:' + BOOKING_STORE_SLUG;
+
+    (function migrateLegacyBookingStorageKeys() {
+        if (BOOKING_STORE_SLUG !== 'default') {
+            return;
+        }
+        var map = [
+            ['booking_cart_v1', STORAGE_KEY],
+            ['booking_technician_v1', TECH_STORAGE_KEY],
+            ['booking_datetime_v1', DATETIME_STORAGE_KEY],
+            ['booking_contact_v1', CONTACT_STORAGE_KEY],
+            ['booking_checkout_public_id', STRIPE_CHECKOUT_PUBLIC_ID_KEY],
+            ['booking_slot_hold_v1', SLOT_HOLD_STORAGE_KEY],
+        ];
+        try {
+            map.forEach(function (pair) {
+                var legacy = localStorage.getItem(pair[0]);
+                if (legacy != null && legacy !== '' && !localStorage.getItem(pair[1])) {
+                    localStorage.setItem(pair[1], legacy);
+                }
+            });
+        } catch (e) {
+            /* ignore */
+        }
+    })();
+
     var bookingStorage = createBookingStorage();
     var dateTimeInitAttempts = 0;
     /** Definido em initDateTimeStep: volta a pedir horários com a duração atual do carrinho. */
@@ -940,6 +988,16 @@
         }
     }
 
+    function slotTimeToMinutes(time) {
+        var parts = String(time).split(':');
+        var h = parseInt(parts[0], 10);
+        var m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) {
+            return 0;
+        }
+        return h * 60 + m;
+    }
+
     /** Manhã antes das 13:00; tarde a partir das 13:00 (horário contínuo 9h–20h). */
     function splitSlotsMorningAfternoon(timeStrings) {
         var splitMin = 13 * 60;
@@ -954,38 +1012,6 @@
             }
         });
         return { morning: morning, afternoon: afternoon };
-    }
-
-    function isSameCalendarDay(a, b) {
-        return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-    }
-
-    function minutesSinceMidnight(date) {
-        return date.getHours() * 60 + date.getMinutes();
-    }
-
-    function slotTimeToMinutes(time) {
-        var parts = String(time).split(':');
-        var h = parseInt(parts[0], 10);
-        var m = parseInt(parts[1], 10);
-        if (isNaN(h) || isNaN(m)) {
-            return 0;
-        }
-        return h * 60 + m;
-    }
-
-    /** For today, keep only slots at/after now + min lead minutes (default 30). */
-    function filterSlotsForSelectedDay(selectedDate, slots) {
-        var now = new Date();
-        if (!isSameCalendarDay(selectedDate, now)) {
-            return slots;
-        }
-        var leadMinutes = 30;
-        var leadTarget = new Date(now.getTime() + leadMinutes * 60 * 1000);
-        var nowMin = minutesSinceMidnight(leadTarget);
-        return slots.filter(function (time) {
-            return slotTimeToMinutes(time) >= nowMin;
-        });
     }
 
     function initDateTimeStep() {
@@ -1034,6 +1060,24 @@
 
         var bookingApp = document.querySelector('.booking-app[data-booking-availability-url]');
         var availabilityUrl = bookingApp ? bookingApp.getAttribute('data-booking-availability-url') : '';
+        var validAgentIdsRaw = bookingApp ? bookingApp.getAttribute('data-booking-valid-agent-ids') || '' : '';
+        var validAgentSet = {};
+        validAgentIdsRaw.split(',').forEach(function (piece) {
+            var id = String(piece).trim();
+            if (id !== '') {
+                validAgentSet[id] = true;
+            }
+        });
+        var techStaleCheck = getTechnicianSelection();
+        if (
+            techStaleCheck &&
+            techStaleCheck.id != null &&
+            String(techStaleCheck.id) !== '' &&
+            Object.keys(validAgentSet).length &&
+            !validAgentSet[String(techStaleCheck.id)]
+        ) {
+            clearTechnicianSelection();
+        }
         var availabilityAbort = null;
         var cachedFilteredSlots = [];
         var slotsUiExpanded = false;
@@ -1191,13 +1235,24 @@
             }
             return fetch(url, { credentials: 'same-origin', signal: signal })
                 .then(function (r) {
-                    if (!r.ok) {
-                        throw new Error('availability HTTP ' + r.status);
-                    }
-                    return r.json();
-                })
-                .then(function (data) {
-                    return Array.isArray(data.slots) ? data.slots : [];
+                    return r.json().then(
+                        function (data) {
+                            var slots = data && Array.isArray(data.slots) ? data.slots : [];
+                            if (!r.ok && !data) {
+                                throw new Error('availability HTTP ' + r.status);
+                            }
+                            if (!r.ok && data && !Array.isArray(data.slots)) {
+                                throw new Error('availability HTTP ' + r.status);
+                            }
+                            return slots;
+                        },
+                        function () {
+                            if (!r.ok) {
+                                throw new Error('availability HTTP ' + r.status);
+                            }
+                            return [];
+                        }
+                    );
                 });
         }
 
@@ -1307,7 +1362,8 @@
                 showSlotsStatus('error', pendingDateTimeSlotsErrorNotice);
                 pendingDateTimeSlotsErrorNotice = '';
             }
-            var filtered = filterSlotsForSelectedDay(date, slotList);
+            /** Slots já vêm filtrados no servidor (antecedência mínima, fusos da loja). Não filtrar aqui com `Date` do browser — mistura fusos e esvazia a lista. */
+            var filtered = slotList.slice();
             cachedFilteredSlots = filtered.slice();
 
             if (filtered.length === 0) {
@@ -2778,7 +2834,8 @@
                     clearTechnicianSelection();
                     saveDateTimeSelection({ date: '', time: '' });
                     modal.hide();
-                    window.location.href = document.body.getAttribute('data-booking-index-url') || '/booking';
+                    window.location.href = document.body.getAttribute('data-booking-index-url')
+                        || ('/booking/' + encodeURIComponent(BOOKING_STORE_SLUG));
                 });
             });
         }

@@ -141,7 +141,9 @@ class CheckoutController extends Controller
             'valor_pago' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $calendarEvent = CalendarEvent::findOrFail($validated['event_id']);
+        $calendarEvent = CalendarEvent::query()
+            ->forStore(current_store_id())
+            ->findOrFail((int) $validated['event_id']);
         if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
             return response()->json(['error' => 'Apenas marcações podem ir a checkout.'], 422);
         }
@@ -181,12 +183,14 @@ class CheckoutController extends Controller
         $valorPago = min($valorPago, $total);
 
         $now = now();
-        $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'));
+        $storeId = (int) $calendarEvent->store_id;
+        $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'), $storeId);
 
         try {
             DB::beginTransaction();
 
             $sale = Sale::create([
+                'store_id' => $storeId,
                 'calendar_event_id' => $calendarEvent->id,
                 'client_id' => $calendarEvent->client_id,
                 'numero_fatura' => $numeroFatura,
@@ -259,7 +263,10 @@ class CheckoutController extends Controller
             'mbway_phone' => ['nullable', 'string', 'max:40'],
         ]);
 
-        $calendarEvent = CalendarEvent::query()->with(['client'])->findOrFail((int) $validated['event_id']);
+        $calendarEvent = CalendarEvent::query()
+            ->forStore(current_store_id())
+            ->with(['client'])
+            ->findOrFail((int) $validated['event_id']);
         if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
             return response()->json(['error' => 'Apenas marcações podem ir a checkout.'], 422);
         }

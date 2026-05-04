@@ -18,6 +18,7 @@ class Booking extends Model
     public const PAYMENT_FAILED = 'failed';
 
     protected $fillable = [
+        'store_id',
         'public_id',
         'calendar_event_id',
         'client_id',
@@ -37,6 +38,11 @@ class Booking extends Model
         'paid_amount' => 'decimal:2',
         'remaining_amount' => 'decimal:2',
     ];
+
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
 
     public function calendarEvent(): BelongsTo
     {

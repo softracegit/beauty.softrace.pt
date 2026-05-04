@@ -71,6 +71,45 @@
         </div>
       </div>
     </div>
+    @isset($activeStore, $selectableStores)
+    <div class="header-action dropdown store-selector-dropdown">
+      <button
+        class="dropdown-toggle d-inline-flex align-items-center gap-1"
+        type="button"
+        data-bs-toggle="dropdown"
+        data-bs-display="static"
+        aria-expanded="false"
+        title="Loja activa"
+      >
+        <i class="ph ph-storefront" aria-hidden="true"></i>
+        <span class="d-none d-xl-inline text-truncate" style="max-width: 12rem">{{ $activeStore->name }}</span>
+      </button>
+      <div class="dropdown-menu">
+        <div class="px-3 py-2 small text-muted text-uppercase">Loja</div>
+        @if ($selectableStores->count() > 1)
+          @foreach ($selectableStores as $store)
+            @if ((int) $store->id === (int) $activeStore->id)
+              <span class="dropdown-item active d-flex align-items-center gap-2" aria-current="true">
+                <i class="ph ph-check fw-bold" aria-hidden="true"></i>
+                <span class="text-truncate">{{ $store->name }}</span>
+              </span>
+            @else
+              <form method="POST" action="{{ route('current-store.update') }}" class="m-0">
+                @csrf
+                <input type="hidden" name="store_id" value="{{ $store->id }}">
+                <button type="submit" class="dropdown-item d-flex align-items-center gap-2 w-100 text-start border-0 bg-transparent">
+                  <span class="visually-hidden">Mudar para </span>
+                  <span class="text-truncate">{{ $store->name }}</span>
+                </button>
+              </form>
+            @endif
+          @endforeach
+        @else
+          <div class="dropdown-item-text small text-body-secondary text-truncate">{{ $activeStore->name }}</div>
+        @endif
+      </div>
+    </div>
+    @endisset
   </div>
 
   <!-- Header Search -->
@@ -204,6 +243,28 @@
       <i class="bi bi-fullscreen"></i>
       <span class="mobile-menu-label">Ecrã inteiro</span>
     </button>
+    @isset($activeStore, $selectableStores)
+      @if ($selectableStores->count() > 1)
+        <div class="px-3 pt-2 pb-0 small text-muted text-uppercase">Loja</div>
+        @foreach ($selectableStores as $store)
+          @if ((int) $store->id === (int) $activeStore->id)
+            <div class="mobile-menu-item text-body-secondary pe-none">
+              <i class="ph ph-check" aria-hidden="true"></i>
+              <span class="mobile-menu-label text-truncate">{{ $store->name }}</span>
+            </div>
+          @else
+            <form method="POST" action="{{ route('current-store.update') }}" class="w-100 m-0">
+              @csrf
+              <input type="hidden" name="store_id" value="{{ $store->id }}">
+              <button type="submit" class="mobile-menu-item w-100 text-start border-0 bg-transparent">
+                <i class="ph ph-storefront" aria-hidden="true"></i>
+                <span class="mobile-menu-label text-truncate">{{ $store->name }}</span>
+              </button>
+            </form>
+          @endif
+        @endforeach
+      @endif
+    @endisset
     <a href="{{ route('dashboard') }}" class="mobile-menu-item">
       <i class="bi bi-speedometer2"></i>
       <span class="mobile-menu-label">Dashboard</span>

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Client;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -13,11 +14,17 @@ class BookingClientAuthRegistrationTest extends TestCase
 
     private const PHONE_E164 = '+351934567890';
 
+    private function bookingBasePath(): string
+    {
+        return '/booking/'.Store::defaultPublicBookingStoreSlug();
+    }
+
     public function test_complete_registration_phone_channel_attaches_booking_user_to_existing_client(): void
     {
         $sharedEmail = 'legacy-booking-client@example.test';
 
         $client = Client::query()->create([
+            'store_id' => Store::defaultPublicBookingStoreId(),
             'name' => 'Cliente CRM',
             'email' => $sharedEmail,
             'phone' => self::PHONE_E164,
@@ -27,7 +34,7 @@ class BookingClientAuthRegistrationTest extends TestCase
         $response = $this->withSession([
             'booking_auth.pending_registration.channel' => 'phone',
             'booking_auth.pending_registration.identifier' => self::PHONE_E164,
-        ])->postJson('/booking/auth/complete-registration', [
+        ])->postJson($this->bookingBasePath().'/auth/complete-registration', [
             'name' => 'Nome Actualizado',
             'email' => $sharedEmail,
             'phone' => '',
@@ -54,7 +61,7 @@ class BookingClientAuthRegistrationTest extends TestCase
         $response = $this->withSession([
             'booking_auth.pending_registration.channel' => 'phone',
             'booking_auth.pending_registration.identifier' => self::PHONE_E164,
-        ])->postJson('/booking/auth/complete-registration', [
+        ])->postJson($this->bookingBasePath().'/auth/complete-registration', [
             'name' => 'Cliente Novo',
             'email' => $email,
             'phone' => '',
@@ -76,6 +83,7 @@ class BookingClientAuthRegistrationTest extends TestCase
     public function test_complete_registration_phone_channel_rejects_conflicting_email_on_existing_phone(): void
     {
         Client::query()->create([
+            'store_id' => Store::defaultPublicBookingStoreId(),
             'name' => 'Outro',
             'email' => 'existing-on-file@example.test',
             'phone' => self::PHONE_E164,
@@ -85,7 +93,7 @@ class BookingClientAuthRegistrationTest extends TestCase
         $response = $this->withSession([
             'booking_auth.pending_registration.channel' => 'phone',
             'booking_auth.pending_registration.identifier' => self::PHONE_E164,
-        ])->postJson('/booking/auth/complete-registration', [
+        ])->postJson($this->bookingBasePath().'/auth/complete-registration', [
             'name' => 'Tentativa',
             'email' => 'different@example.test',
             'phone' => '',
@@ -97,7 +105,7 @@ class BookingClientAuthRegistrationTest extends TestCase
 
     public function test_complete_registration_rejects_when_pending_session_missing(): void
     {
-        $response = $this->postJson('/booking/auth/complete-registration', [
+        $response = $this->postJson($this->bookingBasePath().'/auth/complete-registration', [
             'name' => 'Sem Sessão',
             'email' => 'orphan@example.test',
             'phone' => '',

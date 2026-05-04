@@ -41,11 +41,13 @@ class DefinicoesController extends Controller
 
     public function marcacoes(): View
     {
+        $storeId = current_store_id();
+
         return view('definicoes.agendamentos', [
             'pageTitle' => 'Marcações',
-            'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes(),
+            'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes($storeId),
             'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRulesUi(),
-            'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule(),
+            'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule($storeId),
         ]);
     }
 
@@ -68,17 +70,21 @@ class DefinicoesController extends Controller
         } elseif (! empty($validated['booking_any_staff_rule'])) {
             $selectedRule = (string) $validated['booking_any_staff_rule'];
         }
+        $storeId = current_store_id();
+
         if ($selectedRule === null || $selectedRule === '') {
-            $selectedRule = CrmSetting::bookingAnyStaffRule();
+            $selectedRule = CrmSetting::bookingAnyStaffRule($storeId);
         }
 
         CrmSetting::setInt(
             CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES,
-            (int) $validated['booking_slot_hold_minutes']
+            (int) $validated['booking_slot_hold_minutes'],
+            $storeId
         );
         CrmSetting::setString(
             CrmSetting::KEY_BOOKING_ANY_STAFF_RULE,
-            $selectedRule
+            $selectedRule,
+            $storeId
         );
 
         return redirect()
@@ -103,6 +109,7 @@ class DefinicoesController extends Controller
     public function equipa(): View
     {
         $agents = Agent::query()
+            ->where('store_id', current_store_id())
             ->with('user:id,name,role')
             ->whereHas('user')
             ->orderBy('agenda_order')
@@ -146,6 +153,7 @@ class DefinicoesController extends Controller
         }
 
         $agents = Agent::query()
+            ->where('store_id', current_store_id())
             ->with('user:id,role')
             ->whereIn('id', $agentIds)
             ->get()
@@ -182,9 +190,11 @@ class DefinicoesController extends Controller
 
     public function pagamentos(): View
     {
+        $storeId = current_store_id();
+
         return view('definicoes.pagamentos', [
             'pageTitle' => 'Pagamentos',
-            'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired(),
+            'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired($storeId),
         ]);
     }
 
@@ -193,6 +203,7 @@ class DefinicoesController extends Controller
         CrmSetting::setBool(
             CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED,
             $request->boolean('online_booking_payment_required'),
+            current_store_id(),
         );
 
         return redirect()

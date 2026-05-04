@@ -58,7 +58,7 @@
 <nav class="navbar navbar-light bg-white border-bottom fixed-top booking-navbar shadow-sm py-0">
     <div class="container booking-container-wide py-2 booking-navbar__inner px-3">
         <div class="booking-navbar__cell booking-navbar__cell--start">
-            <a href="{{ route('booking.index') }}" class="navbar-brand mb-0 d-inline-flex align-items-center booking-navbar__brand" aria-label="{{ $businessName }}">
+            <a href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}" class="navbar-brand mb-0 d-inline-flex align-items-center booking-navbar__brand" aria-label="{{ $businessName }}">
                 <img
                     src="{{ asset('booking-assets/img/logo-fada.png') }}"
                     alt="{{ $businessName }}"
@@ -78,7 +78,7 @@
                             $isPast = $bookingStepActive !== null && ($isConfirm || $stepNum < $bookingStepActive);
                             $isCurrent = ! $isConfirm && $bookingStepActive !== null && $stepNum === $bookingStepActive;
                             $isFuture = ! $isConfirm && $bookingStepActive !== null && $stepNum > $bookingStepActive;
-                            $stepUrl = route($step['route']);
+                            $stepUrl = route($step['route'], ['store' => $bookingStoreSlug], false);
                         @endphp
                         <li class="booking-navbar-steps__item">
                             @if ($idx > 0)
@@ -102,7 +102,7 @@
             @if ($bookingClientAuthed)
                 <div class="d-flex align-items-center gap-1 gap-md-2">
                     <a
-                        href="{{ route('booking.index') }}"
+                        href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"
                         class="booking-navbar-new-booking"
                         aria-label="Nova marcação"
                     >
@@ -129,20 +129,20 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end booking-navbar-account__menu" id="booking-navbar-account-dropdown" aria-labelledby="booking-navbar-account-menu">
                             <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index') }}">
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-plus-circle booking-navbar-account__item-icon" aria-hidden="true"></i>
                                     <span>Nova marcação</span>
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index') }}">
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-person booking-navbar-account__item-icon" aria-hidden="true"></i>
                                     <span>Perfil</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.marcacoes') }}">
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.marcacoes', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-calendar3 booking-navbar-account__item-icon" aria-hidden="true"></i>
                                     <span>Marcações</span>
                                 </a>
@@ -154,20 +154,17 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.settings') }}">
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.settings', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-gear booking-navbar-account__item-icon" aria-hidden="true"></i>
                                     <span>Definições</span>
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <form method="post" action="{{ route('logout') }}" class="px-0 mb-0">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item text-danger d-flex align-items-center gap-2 w-100 text-start border-0 bg-transparent">
-                                        <i class="bi bi-box-arrow-right booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                        <span>Terminar sessão</span>
-                                    </button>
-                                </form>
+                                <a class="dropdown-item text-danger d-flex align-items-center gap-2" href="{{ route('booking.logout', ['store' => $bookingStoreSlug], false) }}">
+                                    <i class="bi bi-box-arrow-right booking-navbar-account__item-icon" aria-hidden="true"></i>
+                                    <span>Terminar sessão</span>
+                                </a>
                             </li>
                         </ul>
                     </div>

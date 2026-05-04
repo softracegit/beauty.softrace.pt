@@ -1,5 +1,6 @@
 @php
-    $backUrl = $backUrl ?? route('booking.index');
+    $bookingStoreKey = $bookingStoreSlug ?? \App\Models\Store::defaultPublicBookingStoreSlug();
+    $backUrl = $backUrl ?? route('booking.index', ['store' => $bookingStoreKey], false);
 @endphp
 <a
     href="{{ $backUrl }}"

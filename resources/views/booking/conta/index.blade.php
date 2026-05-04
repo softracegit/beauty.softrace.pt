@@ -148,8 +148,8 @@
                             <div
                                 class="card border shadow-sm rounded-3"
                                 id="booking-contact-verification"
-                                data-request-url="{{ route('booking.conta.verification.request') }}"
-                                data-confirm-url="{{ route('booking.conta.verification.confirm') }}"
+                                data-request-url="{{ route('booking.conta.verification.request', ['store' => $bookingStoreSlug], false) }}"
+                                data-confirm-url="{{ route('booking.conta.verification.confirm', ['store' => $bookingStoreSlug], false) }}"
                             >
                                 <div class="card-body py-3">
                                     <p class="small fw-semibold text-uppercase text-muted mb-2">Contactos</p>
@@ -202,7 +202,7 @@
                 </div>
                 <div class="modal-body pt-2">
                     <div id="booking-profile-personal-error" class="alert alert-danger py-2 px-3 small d-none mb-3" role="alert"></div>
-                    <form id="booking-profile-personal-form" action="{{ route('booking.conta.profile.personal') }}" method="post" novalidate>
+                    <form id="booking-profile-personal-form" action="{{ route('booking.conta.profile.personal', ['store' => $bookingStoreSlug], false) }}" method="post" novalidate>
                         @csrf
                         <div class="mb-3">
                             <label for="booking-profile-personal-name" class="form-label small fw-semibold">Nome</label>

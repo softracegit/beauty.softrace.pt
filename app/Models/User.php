@@ -3,7 +3,11 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -22,6 +26,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'organization_id',
         'client_id',
         'must_set_password',
     ];
@@ -64,6 +69,9 @@ class User extends Authenticatable
     /** Conta de cliente para marcação online (magic link / password opcional). */
     public const ROLE_CLIENTE = 'cliente';
 
+    /** Operador da plataforma (área Super Admin). Não consta em {@see roles()} — não atribuir como papel de equipa. */
+    public const ROLE_SUPER_ADMIN = 'super_admin';
+
     public static function roles(): array
     {
         return [
@@ -86,11 +94,41 @@ class User extends Authenticatable
     }
 
     /**
+     * Marcação online: qualquer membro com ficha de agente pode ser técnica, excepto cliente e admin
+     * (admin continua bloqueado no finalize do checkout por regra de negócio).
+     */
+    public function scopeEligibleForPublicBooking(Builder $query): Builder
+    {
+        return $query->whereNotIn($query->getModel()->getTable().'.role', [
+            self::ROLE_CLIENTE,
+            self::ROLE_ADMIN,
+        ]);
+    }
+
+    /**
      * Get the agent associated with this user (1-1 relationship)
      */
     public function agent()
     {
         return $this->hasOne(Agent::class);
+    }
+
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
+    /**
+     * Lojas às quais o utilizador tem acesso explícito (técnicos/recepção; admin/gestor vê todas via organização).
+     *
+     * @return BelongsToMany<Store, $this>
+     */
+    public function stores(): BelongsToMany
+    {
+        return $this->belongsToMany(Store::class)->withTimestamps();
     }
 
     /**
@@ -104,6 +142,27 @@ class User extends Authenticatable
     public function isBookingClient(): bool
     {
         return $this->role === self::ROLE_CLIENTE && $this->client_id !== null;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    /**
+     * Slug da loja pública de marcação (conta cliente ligada ao CRM por loja).
+     */
+    public function bookingPublicHomeStoreSlug(): string
+    {
+        if ($this->isBookingClient()) {
+            $this->loadMissing('client.store');
+            $slug = $this->client?->store?->slug;
+            if (is_string($slug) && $slug !== '') {
+                return $slug;
+            }
+        }
+
+        return Store::defaultPublicBookingStoreSlug();
     }
 
     /**
@@ -152,5 +211,43 @@ class User extends Authenticatable
     public function canManageAgents(): bool
     {
         return $this->isAdmin() || $this->isGerente();
+    }
+
+    /**
+     * Lojas que o utilizador pode seleccionar no backoffice (mesma organização para admins/gestores; pivot + loja do agente para os restantes).
+     *
+     * @return Collection<int, Store>
+     */
+    public function accessibleStores(): Collection
+    {
+        $organizationId = $this->organization_id;
+        if ($organizationId === null) {
+            $this->loadMissing('agent.store');
+            $organizationId = $this->agent?->store?->organization_id;
+        }
+        if ($organizationId === null) {
+            return new Collection;
+        }
+
+        if ($this->canManageAgents()) {
+            return Store::query()
+                ->where('organization_id', $organizationId)
+                ->orderBy('name')
+                ->get();
+        }
+
+        $this->loadMissing('stores');
+        $fromPivot = $this->stores;
+        if ($fromPivot->isNotEmpty()) {
+            return $fromPivot->sortBy('name')->values();
+        }
+
+        $this->loadMissing('agent.store');
+        $home = $this->agent?->store;
+        if ($home && (int) $home->organization_id === (int) $organizationId) {
+            return new Collection([$home]);
+        }
+
+        return new Collection;
     }
 }

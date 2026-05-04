@@ -11,6 +11,9 @@
     <p style="font-size: 28px; font-weight: 700; letter-spacing: 4px; margin: 16px 0;">{{ $code }}</p>
     <p>Este código expira em {{ $ttlMinutes }} minutos.</p>
     <p>Se não pediu esta verificação, ignore este email.</p>
+    @if (! empty($continueUrl))
+        <p style="margin-top: 20px;"><a href="{{ $continueUrl }}" style="color: #111827; font-weight: 600;">Continuar na marcação online</a></p>
+    @endif
 </body>
 </html>
 

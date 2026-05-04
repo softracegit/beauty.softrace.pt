@@ -30,7 +30,7 @@ class ClientAppointmentRescheduledNotification extends Notification implements S
     public function toMail(object $notifiable): MailMessage
     {
         $event = CalendarEvent::query()
-            ->with(['client', 'service', 'eventServices'])
+            ->with(['client', 'service', 'eventServices', 'store'])
             ->findOrFail($this->calendarEventId);
 
         $tz = config('app.timezone');
@@ -63,13 +63,19 @@ class ClientAppointmentRescheduledNotification extends Notification implements S
 
         $subject = 'Marcação alterada';
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject($subject)
             ->greeting($greetingName !== '' ? 'Olá '.$greetingName.',' : 'Olá,')
             ->line("A sua marcação de «{$services}» foi alterada.")
             ->line('Antes: '.$prevStart.' – '.$prevEnd.'.')
             ->line('Nova data/hora: '.$newStart.' – '.$newEnd.'.')
-            ->line('Se tiver questões, contacte-nos.')
-            ->salutation(config('app.name'));
+            ->line('Se tiver questões, contacte-nos.');
+
+        $storeSlug = $event->store?->slug;
+        if (is_string($storeSlug) && $storeSlug !== '') {
+            $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
+        }
+
+        return $mail->salutation(config('app.name'));
     }
 }

@@ -7,6 +7,7 @@ use App\Models\BookingContactVerificationCode;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\TwilioSmsService;
+use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -75,7 +76,8 @@ class BookingContactVerificationController extends Controller
 
         try {
             if ($channel === 'email') {
-                Mail::mailer('booking')->to($target)->send(new BookingContactVerificationCodeMail($code, $ttlMinutes));
+                $continueUrl = route('booking.index', ['store' => app(CurrentStore::class)->get()->slug]);
+                Mail::mailer('booking')->to($target)->send(new BookingContactVerificationCodeMail($code, $ttlMinutes, $continueUrl));
             } else {
                 $this->twilioSmsService->send($target, sprintf('Código de verificação da conta: %s. Expira em %d minutos.', $code, $ttlMinutes));
             }

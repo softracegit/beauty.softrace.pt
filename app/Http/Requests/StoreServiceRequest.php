@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\ExtraCategory;
 use App\Models\User;
 use App\Support\ServiceOptionValidation;
 use Illuminate\Foundation\Http\FormRequest;
@@ -41,7 +42,7 @@ class StoreServiceRequest extends FormRequest
         $hasOptions = $this->boolean('has_options');
 
         $rules = [
-            'category_id' => ['required', 'exists:categories,id'],
+            'category_id' => ['required', Rule::exists('categories', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'has_options' => ['sometimes', 'boolean'],
@@ -49,15 +50,21 @@ class StoreServiceRequest extends FormRequest
             'agent_ids.*' => [
                 'integer',
                 Rule::exists('agents', 'id')->where(function ($query): void {
-                    $query->whereIn('user_id', function ($q): void {
-                        $q->select('id')
-                            ->from((new User)->getTable())
-                            ->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]);
-                    });
+                    $query->where('store_id', current_store_id())
+                        ->whereIn('user_id', function ($q): void {
+                            $q->select('id')
+                                ->from((new User)->getTable())
+                                ->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]);
+                        });
                 }),
             ],
             'extra_ids' => ['nullable', 'array'],
-            'extra_ids.*' => ['exists:extras,id'],
+            'extra_ids.*' => [
+                Rule::exists('extras', 'id')->where(fn ($q) => $q->whereIn(
+                    'extra_category_id',
+                    ExtraCategory::query()->forStore(current_store_id())->select('id')
+                )),
+            ],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
 

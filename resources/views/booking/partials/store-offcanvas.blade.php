@@ -1,4 +1,5 @@
 @php
+    $bookingStoreSlug = $bookingStoreSlug ?? \App\Models\Store::defaultPublicBookingStoreSlug();
     $isBookingClientUser = auth()->check()
         && auth()->user() instanceof \App\Models\User
         && auth()->user()->isBookingClient();
@@ -87,14 +88,11 @@
 
         <footer class="booking-offcanvas__footer mt-auto" aria-label="Conta">
             @if ($isBookingClientUser)
-                <a href="{{ route('booking.conta.index') }}" class="booking-offcanvas-nav__link">
+                <a href="{{ route('booking.conta.index', ['store' => $bookingStoreSlug], false) }}" class="booking-offcanvas-nav__link">
                     A minha conta
                     <i class="bi bi-chevron-right" aria-hidden="true"></i>
                 </a>
-                <form method="post" action="{{ route('logout') }}" class="mt-2">
-                    @csrf
-                    <button type="submit" class="btn btn-link booking-offcanvas__logout p-0 text-decoration-none">Terminar sessão</button>
-                </form>
+                <a href="{{ route('booking.logout', ['store' => $bookingStoreSlug], false) }}" class="btn btn-link booking-offcanvas__logout p-0 text-decoration-none mt-2 d-inline-block">Terminar sessão</a>
             @else
                 <button type="button" class="booking-offcanvas-nav__link btn btn-link text-start w-100 p-0 border-0 js-booking-open-auth-modal">
                     Iniciar sessão

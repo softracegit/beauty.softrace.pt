@@ -14,7 +14,8 @@ class BookingContactVerificationCodeMail extends Mailable
 
     public function __construct(
         public readonly string $code,
-        public readonly int $ttlMinutes
+        public readonly int $ttlMinutes,
+        public readonly ?string $continueUrl = null,
     ) {}
 
     public function envelope(): Envelope
@@ -31,6 +32,7 @@ class BookingContactVerificationCodeMail extends Mailable
             with: [
                 'code' => $this->code,
                 'ttlMinutes' => $this->ttlMinutes,
+                'continueUrl' => $this->continueUrl,
             ]
         );
     }

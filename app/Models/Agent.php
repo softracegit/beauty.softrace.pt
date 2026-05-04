@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToStore;
 use App\Support\PhoneDisplay;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +16,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Agent extends Model
 {
-    use HasFactory, LogsActivity;
+    use BelongsToStore, HasFactory, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -31,6 +33,7 @@ class Agent extends Model
 
     protected $fillable = [
         'user_id',
+        'store_id',
         'name',
         'phone',
         'nif',
@@ -272,6 +275,14 @@ class Agent extends Model
     }
 
     /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
+
+    /**
      * Get the email from the associated user
      */
     public function getEmailAttribute(): ?string
@@ -293,5 +304,20 @@ class Agent extends Model
     public function services(): BelongsToMany
     {
         return $this->belongsToMany(Service::class);
+    }
+
+    /**
+     * Eager load serviços da mesma loja (evita pivots cruzados e problemas com `services:id` no many-to-many).
+     *
+     * @param  Builder<Agent>  $query
+     * @return Builder<Agent>
+     */
+    public function scopeWithServicesForStore(Builder $query, int $storeId): Builder
+    {
+        return $query->with([
+            'services' => function (BelongsToMany $q) use ($storeId): void {
+                $q->where('services.store_id', $storeId);
+            },
+        ]);
     }
 }

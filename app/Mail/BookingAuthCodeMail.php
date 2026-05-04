@@ -15,6 +15,7 @@ class BookingAuthCodeMail extends Mailable
     public function __construct(
         public string $code,
         public int $ttlMinutes,
+        public ?string $continueUrl = null,
     ) {}
 
     public function envelope(): Envelope

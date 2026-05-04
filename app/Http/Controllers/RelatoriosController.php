@@ -32,8 +32,10 @@ class RelatoriosController extends Controller
             ->withQueryString();
 
         $servicosOpts = Service::query()
+            ->forStore(current_store_id())
             ->join('calendar_event_services', 'services.id', '=', 'calendar_event_services.service_id')
             ->join('calendar_events', 'calendar_events.id', '=', 'calendar_event_services.calendar_event_id')
+            ->where('calendar_events.store_id', current_store_id())
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->select('services.id', 'services.name')
             ->distinct()
@@ -42,6 +44,7 @@ class RelatoriosController extends Controller
 
         $tecnicosOpts = User::query()
             ->join('calendar_events', 'calendar_events.user_id', '=', 'users.id')
+            ->where('calendar_events.store_id', current_store_id())
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->select('users.id', 'users.name')
             ->distinct()
@@ -49,7 +52,9 @@ class RelatoriosController extends Controller
             ->get();
 
         $clientesOpts = Client::query()
+            ->forStore(current_store_id())
             ->join('calendar_events', 'calendar_events.client_id', '=', 'clients.id')
+            ->where('calendar_events.store_id', current_store_id())
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->select('clients.id', 'clients.name')
             ->distinct()
@@ -202,13 +207,15 @@ class RelatoriosController extends Controller
         ];
 
         if ($cid = $request->get('marcacoes_cliente')) {
-            $lines[] = 'Cliente: '.(Client::query()->find($cid)?->name ?? '—');
+            $lines[] = 'Cliente: '.(Client::query()->forStore(current_store_id())->find($cid)?->name ?? '—');
         }
         if ($sid = $request->get('marcacoes_servico')) {
-            $lines[] = 'Serviço: '.(Service::query()->find($sid)?->name ?? '—');
+            $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $request->get('marcacoes_tecnico')) {
-            $lines[] = 'Técnico: '.(User::query()->find($tid)?->name ?? '—');
+            $lines[] = 'Técnico: '.(User::query()
+                ->whereHas('agent', fn ($q) => $q->where('store_id', current_store_id()))
+                ->find($tid)?->name ?? '—');
         }
         if ($est = $request->get('marcacoes_estado')) {
             $lines[] = 'Estado: '.(CalendarEvent::statuses()[$est] ?? $est);
@@ -240,6 +247,7 @@ class RelatoriosController extends Controller
         }
 
         $marcacoesQuery = CalendarEvent::query()
+            ->forStore(current_store_id())
             ->where('event_type', CalendarEvent::TYPE_MARCACAO);
 
         if ($marcacoesDesde) {
@@ -489,13 +497,15 @@ class RelatoriosController extends Controller
         ];
 
         if ($cid = $request->get('vendas_cliente')) {
-            $lines[] = 'Cliente: '.(Client::query()->find($cid)?->name ?? '—');
+            $lines[] = 'Cliente: '.(Client::query()->forStore(current_store_id())->find($cid)?->name ?? '—');
         }
         if ($sid = $request->get('vendas_servico')) {
-            $lines[] = 'Serviço: '.(Service::query()->find($sid)?->name ?? '—');
+            $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $request->get('vendas_tecnico')) {
-            $lines[] = 'Técnico: '.(User::query()->find($tid)?->name ?? '—');
+            $lines[] = 'Técnico: '.(User::query()
+                ->whereHas('agent', fn ($q) => $q->where('store_id', current_store_id()))
+                ->find($tid)?->name ?? '—');
         }
         if ($est = $request->get('vendas_estado')) {
             $lines[] = 'Estado da venda: '.(Sale::statuses()[$est] ?? $est);
@@ -526,8 +536,10 @@ class RelatoriosController extends Controller
         }
 
         $q = Sale::query()
+            ->where('store_id', current_store_id())
             ->whereHas('calendarEvent', function (Builder $cq) {
-                $cq->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $cq->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             });
 
@@ -550,7 +562,7 @@ class RelatoriosController extends Controller
             });
         }
         if ($tecnico) {
-            $q->whereHas('calendarEvent', fn (Builder $cq) => $cq->where('user_id', $tecnico));
+            $q->whereHas('calendarEvent', fn (Builder $cq) => $cq->where('store_id', current_store_id())->where('user_id', $tecnico));
         }
 
         return $q;
@@ -797,11 +809,14 @@ class RelatoriosController extends Controller
     private function vendasClientesOpts(): Collection
     {
         return Client::query()
+            ->forStore(current_store_id())
             ->whereExists(function ($q) {
                 $q->selectRaw('1')
                     ->from('sales')
                     ->join('calendar_events', 'calendar_events.id', '=', 'sales.calendar_event_id')
                     ->whereColumn('sales.client_id', 'clients.id')
+                    ->where('sales.store_id', current_store_id())
+                    ->where('calendar_events.store_id', current_store_id())
                     ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO);
             })
@@ -812,9 +827,12 @@ class RelatoriosController extends Controller
     private function vendasServicosOpts(): Collection
     {
         return Service::query()
+            ->forStore(current_store_id())
             ->join('sale_items', 'services.id', '=', 'sale_items.service_id')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
+            ->where('sales.store_id', current_store_id())
+            ->where('calendar_events.store_id', current_store_id())
             ->where('sale_items.tipo', SaleItem::TIPO_SERVICO)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
@@ -829,6 +847,8 @@ class RelatoriosController extends Controller
         return User::query()
             ->join('calendar_events', 'calendar_events.user_id', '=', 'users.id')
             ->join('sales', 'sales.calendar_event_id', '=', 'calendar_events.id')
+            ->where('calendar_events.store_id', current_store_id())
+            ->where('sales.store_id', current_store_id())
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->select('users.id', 'users.name')

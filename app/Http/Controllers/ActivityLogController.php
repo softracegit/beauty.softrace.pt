@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Activity;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Spatie\Activitylog\Models\Activity;
-use Carbon\Carbon;
 
 class ActivityLogController extends Controller
 {
@@ -21,7 +22,7 @@ class ActivityLogController extends Controller
 
         $userMorphClass = (new User())->getMorphClass();
 
-        $baseQuery = Activity::query();
+        $baseQuery = $this->scopedActivityQuery();
 
         // Most activity pages are on event updates, so default excludes null events (legacy rows).
         if ($event) {
@@ -101,7 +102,7 @@ class ActivityLogController extends Controller
         $lastActivityAt = $lastActivityAtRaw ? Carbon::parse((string) $lastActivityAtRaw) : null;
 
         // Subject type dropdown options (within the date/event/causer filters, but without subject_type filter).
-        $subjectTypesQuery = Activity::query();
+        $subjectTypesQuery = $this->scopedActivityQuery();
         if ($event) {
             $subjectTypesQuery->where('event', $event);
         } else {
@@ -157,6 +158,20 @@ class ActivityLogController extends Controller
             'subjectTypeOptions',
             'mostActiveSubjectsRows'
         ));
+    }
+
+    /**
+     * @return Builder<\App\Models\Activity>
+     */
+    protected function scopedActivityQuery(): Builder
+    {
+        $query = Activity::query();
+        $user = auth()->user();
+        if ($user instanceof User && $user->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->where('store_id', current_store_id());
     }
 }
 

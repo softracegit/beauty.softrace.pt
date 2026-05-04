@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Client;
 use App\Models\Agent;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\CalendarEventServiceExtra;
-use App\Models\Service;
+use App\Models\Client;
 use App\Models\Sale;
 use Carbon\Carbon;
 
@@ -25,7 +23,7 @@ class DashboardController extends Controller
         $startOfMonth = $today->copy()->startOfMonth();
         $endOfMonth = $today->copy()->endOfMonth();
 
-        $marcacoesBase = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $marcacoesBase = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
 
         $marcacoesHoje = (clone $marcacoesBase)->whereDate('start_at', $today)->count();
@@ -52,10 +50,10 @@ class DashboardController extends Controller
             ? round((($receitaEsteMes - $receitaMesAnterior) / $receitaMesAnterior) * 100, 1)
             : ($receitaEsteMes > 0 ? 100 : 0);
 
-        $totalClientes = Client::count();
-        $totalTecnicos = Agent::where('status', Agent::STATUS_ACTIVE)->count();
+        $totalClientes = Client::forStore(current_store_id())->count();
+        $totalTecnicos = Agent::forStore(current_store_id())->where('status', Agent::STATUS_ACTIVE)->count();
 
-        $proximasMarcacoes = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $proximasMarcacoes = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->where('start_at', '>=', $today)
             ->with(['client', 'user', 'eventServices'])
@@ -63,7 +61,7 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
-        $marcacoesRecentes = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $marcacoesRecentes = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->with(['client', 'user', 'eventServices'])
             ->orderBy('start_at', 'desc')
@@ -74,6 +72,8 @@ class DashboardController extends Controller
         $porServico = CalendarEventService::query()
             ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
             ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
+            ->where('calendar_events.store_id', current_store_id())
+            ->where('services.store_id', current_store_id())
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->groupBy('services.id', 'services.name')
@@ -82,7 +82,7 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
-        $porTecnico = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $porTecnico = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->selectRaw('user_id, count(*) as total')
             ->groupBy('user_id')
@@ -93,8 +93,10 @@ class DashboardController extends Controller
 
         // Receita por técnico: apenas vendas pagas de marcações concluídas
         $receitaPorTecnico = Sale::query()
+            ->where('sales.store_id', current_store_id())
             ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
             ->where('sales.status', Sale::STATUS_PAGO)
+            ->where('calendar_events.store_id', current_store_id())
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', CalendarEvent::STATUS_COMPLETO)
             ->groupBy('calendar_events.user_id')
@@ -102,7 +104,7 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('user_id');
 
-        $porEstado = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $porEstado = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status')
@@ -154,9 +156,11 @@ class DashboardController extends Controller
     private function receitaMarcacoesEntre(Carbon $start, Carbon $end): float
     {
         return (float) Sale::query()
+            ->where('store_id', current_store_id())
             ->where('status', Sale::STATUS_PAGO)
             ->whereHas('calendarEvent', function ($q) use ($start, $end) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', CalendarEvent::STATUS_COMPLETO)
                     ->whereBetween('start_at', [$start, $end]);
             })
@@ -188,14 +192,14 @@ class DashboardController extends Controller
         $startOfMonth = $today->copy()->startOfMonth();
         $endOfMonth = $today->copy()->endOfMonth();
 
-        $marcacoesBase = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $marcacoesBase = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id');
 
-        $totalClientes = Client::count();
+        $totalClientes = Client::forStore(current_store_id())->count();
         $totalClientesComMarcacao = (clone $marcacoesBase)->distinct('client_id')->count('client_id');
 
-        $clientesEsteMes = Client::whereMonth('created_at', $today->month)
+        $clientesEsteMes = Client::forStore(current_store_id())->whereMonth('created_at', $today->month)
             ->whereYear('created_at', $today->year)
             ->count();
 
@@ -203,7 +207,7 @@ class DashboardController extends Controller
             ->whereBetween('start_at', [$startOfMonth, $endOfMonth])
             ->get();
 
-        $primeiraMarcacaoPorCliente = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $primeiraMarcacaoPorCliente = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
             ->selectRaw('client_id, min(start_at) as primeira')
@@ -216,6 +220,7 @@ class DashboardController extends Controller
             $primeira = $primeiraMarcacaoPorCliente[$ev->client_id] ?? null;
             if ($primeira === null) {
                 $marcacoesRecorrentes++;
+
                 continue;
             }
             $primeiraDt = $primeira instanceof \Carbon\Carbon ? $primeira : Carbon::parse($primeira);
@@ -227,7 +232,7 @@ class DashboardController extends Controller
         }
 
         $clientesComUmaOuMais = (clone $marcacoesBase)->distinct('client_id')->pluck('client_id');
-        $clientesComDuasOuMais = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $clientesComDuasOuMais = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
             ->selectRaw('client_id, count(*) as total')
@@ -240,9 +245,11 @@ class DashboardController extends Controller
 
         $receitaPorCliente = $this->receitaPorCliente();
         $topClientesPorMarcacoes = Client::query()
+            ->forStore(current_store_id())
             ->whereIn('id', $clientesComUmaOuMais)
             ->withCount(['calendarEvents as marcacoes_count' => function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             }])
             ->orderByDesc('marcacoes_count')
@@ -250,13 +257,16 @@ class DashboardController extends Controller
             ->get()
             ->map(function ($c) use ($receitaPorCliente) {
                 $c->receita = $receitaPorCliente->get($c->id, 0);
+
                 return $c;
             });
 
         $topClientesPorReceita = Client::query()
+            ->forStore(current_store_id())
             ->whereIn('id', $receitaPorCliente->keys())
             ->withCount(['calendarEvents as marcacoes_count' => function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             }])
             ->get()
@@ -265,6 +275,7 @@ class DashboardController extends Controller
             ->values()
             ->map(function ($c) use ($receitaPorCliente) {
                 $c->receita = $receitaPorCliente->get($c->id, 0);
+
                 return $c;
             });
 
@@ -275,11 +286,11 @@ class DashboardController extends Controller
             $date = Carbon::now()->subMonths($i);
             $monthlyGrowth[] = [
                 'month' => $date->locale('pt_PT')->translatedFormat('M'),
-                'count' => Client::whereMonth('created_at', $date->month)->whereYear('created_at', $date->year)->count(),
+                'count' => Client::forStore(current_store_id())->whereMonth('created_at', $date->month)->whereYear('created_at', $date->year)->count(),
             ];
         }
 
-        $recentClients = Client::orderBy('created_at', 'desc')->limit(10)->get();
+        $recentClients = Client::forStore(current_store_id())->orderBy('created_at', 'desc')->limit(10)->get();
 
         return view('dashboard.clientes', compact(
             'totalClientes',
@@ -302,10 +313,12 @@ class DashboardController extends Controller
     private function receitaPorCliente()
     {
         return Sale::query()
+            ->where('store_id', current_store_id())
             ->where('status', Sale::STATUS_PAGO)
             ->whereNotNull('client_id')
             ->whereHas('calendarEvent', function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', CalendarEvent::STATUS_COMPLETO);
             })
             ->groupBy('client_id')
@@ -321,7 +334,7 @@ class DashboardController extends Controller
      */
     private function intervaloMedioEntreVisitas(): ?float
     {
-        $clientIds = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $clientIds = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
             ->selectRaw('client_id, count(*) as c')
@@ -336,7 +349,7 @@ class DashboardController extends Controller
         $somas = 0;
         $n = 0;
         foreach ($clientIds as $clientId) {
-            $datas = CalendarEvent::where('client_id', $clientId)
+            $datas = CalendarEvent::forStore(current_store_id())->where('client_id', $clientId)
                 ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                 ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
                 ->orderBy('start_at')
@@ -356,8 +369,11 @@ class DashboardController extends Controller
      * Regras para cálculo de slots (ocupação): duração do slot em minutos, hora início/fim, dias úteis (1=Seg a 6=Sáb).
      */
     private const SLOT_DURATION_MINUTES = 60;
+
     private const OCCUPANCY_HOUR_START = 9;
+
     private const OCCUPANCY_HOUR_END = 19;
+
     private const OCCUPANCY_WORK_DAYS = [1, 2, 3, 4, 5, 6]; // Seg a Sáb
 
     /**
@@ -371,7 +387,7 @@ class DashboardController extends Controller
         $startOfWeek = $today->copy()->startOfWeek();
         $endOfWeek = $today->copy()->endOfWeek();
 
-        $numTecnicos = Agent::where('status', Agent::STATUS_ACTIVE)->count();
+        $numTecnicos = Agent::forStore(current_store_id())->where('status', Agent::STATUS_ACTIVE)->count();
         $slotsPerDayPerTech = ((self::OCCUPANCY_HOUR_END - self::OCCUPANCY_HOUR_START) * 60) / self::SLOT_DURATION_MINUTES;
 
         $workDaysThisMonth = $this->countWorkDaysBetween($startOfMonth, $endOfMonth);
@@ -385,7 +401,7 @@ class DashboardController extends Controller
         $taxaOcupacaoMes = $totalSlotsMonth > 0 ? round(min(100, ($filledSlotsMonth / $totalSlotsMonth) * 100), 1) : 0;
         $taxaOcupacaoSemana = $totalSlotsWeek > 0 ? round(min(100, ($filledSlotsWeek / $totalSlotsWeek) * 100), 1) : 0;
 
-        $marcacoesBase = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $marcacoesBase = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
 
         $porHora = [];
@@ -404,7 +420,8 @@ class DashboardController extends Controller
 
         $duracaoMediaGeral = CalendarEventService::query()
             ->whereHas('event', function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             })
             ->selectRaw('calendar_event_id, sum(duration) as total_min')
@@ -414,10 +431,12 @@ class DashboardController extends Controller
 
         $duracaoMediaPorServico = CalendarEventService::query()
             ->whereHas('event', function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             })
             ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
+            ->where('services.store_id', current_store_id())
             ->selectRaw('services.id, services.name as service_name, count(*) as qtd, avg(calendar_event_services.duration) as media_min')
             ->groupBy('services.id', 'services.name')
             ->orderByDesc('qtd')
@@ -460,12 +479,13 @@ class DashboardController extends Controller
             }
             $d->addDay();
         }
+
         return $n;
     }
 
     private function filledSlotsBetween(Carbon $start, Carbon $end): float
     {
-        $eventIds = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $eventIds = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereBetween('start_at', [$start, $end])
             ->pluck('id');
@@ -475,6 +495,7 @@ class DashboardController extends Controller
         $extraMinutes = CalendarEventServiceExtra::whereIn('calendar_event_service_id', $cesIds)->sum('duration');
 
         $total = (int) $totalMinutes + (int) $extraMinutes;
+
         return ceil($total / self::SLOT_DURATION_MINUTES);
     }
 
@@ -485,6 +506,7 @@ class DashboardController extends Controller
 
         $filledByUser = CalendarEventService::query()
             ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
+            ->where('calendar_events.store_id', current_store_id())
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereBetween('calendar_events.start_at', [$start, $end])
@@ -494,7 +516,7 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('user_id');
 
-        $agentUserIds = Agent::where('status', Agent::STATUS_ACTIVE)->pluck('user_id')->filter();
+        $agentUserIds = Agent::forStore(current_store_id())->where('status', Agent::STATUS_ACTIVE)->pluck('user_id')->filter();
         $users = \App\Models\User::whereIn('id', $agentUserIds)->get()->keyBy('id');
 
         return $agentUserIds->map(function ($userId) use ($filledByUser, $totalSlotsPerTech, $users) {
@@ -502,6 +524,7 @@ class DashboardController extends Controller
             $totalMin = $row ? (int) $row->total_min : 0;
             $filledSlots = ceil($totalMin / self::SLOT_DURATION_MINUTES);
             $taxa = $totalSlotsPerTech > 0 ? round(min(100, ($filledSlots / $totalSlotsPerTech) * 100), 1) : 0;
+
             return (object) [
                 'user_id' => $userId,
                 'name' => $users->get($userId)?->name ?? 'N/A',
@@ -518,7 +541,7 @@ class DashboardController extends Controller
     public function page($page)
     {
         $allowedPages = [
-            'index',      
+            'index',
             'apps-calendar',
             'apps-chat',
             'apps-email',
@@ -566,8 +589,8 @@ class DashboardController extends Controller
             'pages-billing-subscription',
             'pages-blog-create',
             'pages-blog-details',
-            'pages-blog-list',          
-            'pages-faqs',       
+            'pages-blog-list',
+            'pages-faqs',
             'pages-pricing',
             'pages-privacy-policy',
             'pages-profile',
@@ -632,7 +655,7 @@ class DashboardController extends Controller
             'ui-treeview',
             'ui-typography',
             'ui-utilities',
-            'under-maintenance'
+            'under-maintenance',
         ];
 
         if (in_array($page, $allowedPages) && view()->exists($page)) {

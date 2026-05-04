@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToStore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -9,12 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Spatie\Activitylog\LogOptions;
-use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class CalendarEvent extends Model
 {
-    use LogsActivity;
+    use BelongsToStore, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -149,6 +149,7 @@ class CalendarEvent extends Model
     public const STATUS_COMPLETO = 'completo';
 
     protected $fillable = [
+        'store_id',
         'title',
         'start_at',
         'end_at',
@@ -202,6 +203,14 @@ class CalendarEvent extends Model
             self::TYPE_LEAD => 'bg-info',
             self::TYPE_OUTRO => 'bg-secondary',
         ];
+    }
+
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
     }
 
     public function user(): BelongsTo

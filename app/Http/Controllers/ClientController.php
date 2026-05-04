@@ -40,16 +40,16 @@ class ClientController extends Controller
         $clients = $query->paginate($perPage)->withQueryString();
 
         // Estatísticas iguais ao Dashboard de Clientes
-        $marcacoesBase = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $marcacoesBase = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id');
-        $totalClientes = Client::count();
+        $totalClientes = Client::forStore(current_store_id())->count();
         $totalClientesComMarcacao = (clone $marcacoesBase)->distinct('client_id')->count('client_id');
-        $clientesEsteMes = Client::whereMonth('created_at', now()->month)
+        $clientesEsteMes = Client::forStore(current_store_id())->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
         $clientesComUmaOuMais = (clone $marcacoesBase)->distinct('client_id')->pluck('client_id');
-        $clientesComDuasOuMais = CalendarEvent::where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $clientesComDuasOuMais = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
             ->selectRaw('client_id, count(*) as total')
@@ -151,7 +151,7 @@ class ClientController extends Controller
             $sortDir = $sortBy === 'created_at' ? 'desc' : 'asc';
         }
 
-        $query = Client::query()->orderBy($allowedSorts[$sortBy], $sortDir);
+        $query = Client::query()->forStore(current_store_id())->orderBy($allowedSorts[$sortBy], $sortDir);
         if ($sortBy !== 'created_at') {
             // Desempate consistente: mais recentes primeiro.
             $query->orderByDesc('created_at');
@@ -195,7 +195,7 @@ class ClientController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'phone' => ['required', 'string', 'max:50'],
             'nif' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date', 'before:today'],
@@ -220,7 +220,7 @@ class ClientController extends Controller
         if ($request->hasFile('avatar')) {
             $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
-        $cliente = Client::create($data);
+        $cliente = Client::create(array_merge($data, ['store_id' => current_store_id()]));
 
         return redirect()->route('clientes.index')
             ->with('success', 'Cliente criado com sucesso.');
@@ -305,9 +305,11 @@ class ClientController extends Controller
 
         // Base query vendas: marcações não canceladas; estado da venda filtrável (Todos = pago + anulado)
         $vendasQuery = Sale::query()
+            ->where('store_id', current_store_id())
             ->where('client_id', $cliente->id)
             ->whereHas('calendarEvent', function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             });
         if ($vendasEstado) {
@@ -396,6 +398,7 @@ class ClientController extends Controller
 
         // Opções para dropdowns (serviços e técnicos presentes nos dados do cliente)
         $servicosCliente = \App\Models\Service::query()
+            ->forStore(current_store_id())
             ->join('calendar_event_services', 'services.id', '=', 'calendar_event_services.service_id')
             ->join('calendar_events', 'calendar_events.id', '=', 'calendar_event_services.calendar_event_id')
             ->where('calendar_events.client_id', $cliente->id)
@@ -407,6 +410,7 @@ class ClientController extends Controller
 
         $tecnicosCliente = \App\Models\User::query()
             ->join('calendar_events', 'calendar_events.user_id', '=', 'users.id')
+            ->where('calendar_events.store_id', current_store_id())
             ->where('calendar_events.client_id', $cliente->id)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->select('users.id', 'users.name')
@@ -418,19 +422,23 @@ class ClientController extends Controller
 
         // KPIs de receita: considerar apenas marcações com vendas concluídas (pagas)
         $totalGasto = Sale::query()
+            ->where('store_id', current_store_id())
             ->where('client_id', $cliente->id)
             ->where('status', Sale::STATUS_PAGO)
             ->whereHas('calendarEvent', function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             })
             ->sum('total');
 
         $totalMarcacoesComVenda = Sale::query()
+            ->where('store_id', current_store_id())
             ->where('client_id', $cliente->id)
             ->where('status', Sale::STATUS_PAGO)
             ->whereHas('calendarEvent', function ($q) {
-                $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                $q->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             })
             ->distinct('calendar_event_id')
@@ -440,7 +448,7 @@ class ClientController extends Controller
             ? (float) $totalGasto / $totalMarcacoesComVenda
             : null;
 
-        $agents = Agent::where('status', Agent::STATUS_ACTIVE)
+        $agents = Agent::forStore(current_store_id())->where('status', Agent::STATUS_ACTIVE)
             ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
             ->with('user')
             ->orderBy('name')
@@ -545,7 +553,7 @@ class ClientController extends Controller
         $currentClientEmail = strtolower(trim((string) ($cliente->email ?? '')));
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($cliente->id)],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($cliente->id)->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'phone' => ['required', 'string', 'max:50'],
             'nif' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date', 'before:today'],
@@ -631,6 +639,7 @@ class ClientController extends Controller
     private function buildClientStats(Client $cliente): object
     {
         $marcacoesBase = $cliente->calendarEvents()
+            ->where('store_id', current_store_id())
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
 
@@ -645,10 +654,12 @@ class ClientController extends Controller
 
             // Receita mensal: apenas marcações com vendas concluídas (pagas)
             $receita = Sale::query()
+                ->where('store_id', current_store_id())
                 ->where('client_id', $cliente->id)
                 ->where('status', Sale::STATUS_PAGO)
                 ->whereHas('calendarEvent', function ($q) use ($start, $end) {
-                    $q->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    $q->where('store_id', current_store_id())
+                        ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                         ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
                         ->whereBetween('start_at', [$start, $end]);
                 })
@@ -663,6 +674,7 @@ class ClientController extends Controller
         $topServicos = CalendarEventService::query()
             ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
             ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
+            ->where('calendar_events.store_id', current_store_id())
             ->where('calendar_events.client_id', $cliente->id)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
@@ -672,7 +684,7 @@ class ClientController extends Controller
             ->limit(5)
             ->get();
 
-        $tecnicoPreferidoRow = CalendarEvent::where('client_id', $cliente->id)
+        $tecnicoPreferidoRow = CalendarEvent::forStore(current_store_id())->where('client_id', $cliente->id)
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('user_id')

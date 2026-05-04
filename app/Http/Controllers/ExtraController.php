@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreExtraCategoryRequest;
+use App\Http\Requests\StoreExtraRequest;
+use App\Http\Requests\UpdateExtraCategoryRequest;
+use App\Http\Requests\UpdateExtraRequest;
 use App\Models\Category;
 use App\Models\Extra;
 use App\Models\ExtraCategory;
 use App\Models\Service;
-use App\Http\Requests\StoreExtraRequest;
-use App\Http\Requests\UpdateExtraRequest;
-use App\Http\Requests\StoreExtraCategoryRequest;
-use App\Http\Requests\UpdateExtraCategoryRequest;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ExtraController extends Controller
@@ -22,15 +22,15 @@ class ExtraController extends Controller
     public function index(Request $request): View
     {
         $selectedCategory = null;
-        $categories = ExtraCategory::orderBy('sort_order')
+        $categories = ExtraCategory::forStore(current_store_id())->orderBy('sort_order')
             ->withCount('extras')
             ->with(['extras' => fn ($q) => $q->with('extraCategory', 'services')->orderBy('sort_order')])
             ->get();
 
         $categoryId = $request->get('category_id');
         if ($categoryId && $categoryId !== 'all') {
-            $selectedCategory = $categories->firstWhere('id', (int) $categoryId) ?? ExtraCategory::find($categoryId);
-            if ($selectedCategory && !$selectedCategory->relationLoaded('extras')) {
+            $selectedCategory = $categories->firstWhere('id', (int) $categoryId) ?? ExtraCategory::forStore(current_store_id())->find($categoryId);
+            if ($selectedCategory && ! $selectedCategory->relationLoaded('extras')) {
                 $selectedCategory->load(['extras' => fn ($q) => $q->with('extraCategory', 'services')->orderBy('sort_order')]);
             }
         }
@@ -39,8 +39,8 @@ class ExtraController extends Controller
             ? $selectedCategory->extras
             : collect();
 
-        $services = Service::with('category')->orderBy('name')->get();
-        $serviceCategories = Category::orderBy('sort_order')
+        $services = Service::forStore(current_store_id())->with('category')->orderBy('name')->get();
+        $serviceCategories = Category::forStore(current_store_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
@@ -55,8 +55,9 @@ class ExtraController extends Controller
 
     public function create(): View
     {
-        $categories = ExtraCategory::orderBy('sort_order')->get();
-        $services = Service::with('category')->orderBy('name')->get();
+        $categories = ExtraCategory::forStore(current_store_id())->orderBy('sort_order')->get();
+        $services = Service::forStore(current_store_id())->with('category')->orderBy('name')->get();
+
         return view('extras.create', compact('categories', 'services'));
     }
 
@@ -66,7 +67,7 @@ class ExtraController extends Controller
         $serviceIds = $data['service_ids'] ?? null;
         unset($data['service_ids']);
 
-        if (!isset($data['sort_order'])) {
+        if (! isset($data['sort_order'])) {
             $max = Extra::where('extra_category_id', $data['extra_category_id'])->max('sort_order') ?? 0;
             $data['sort_order'] = $max + 1;
         }
@@ -100,14 +101,16 @@ class ExtraController extends Controller
                 'service_ids' => $extra->services->pluck('id')->toArray(),
             ]);
         }
+
         return redirect()->route('extras.edit', $extra);
     }
 
     public function edit(Extra $extra): View
     {
         $extra->load('services');
-        $categories = ExtraCategory::orderBy('sort_order')->get();
-        $services = Service::with('category')->orderBy('name')->get();
+        $categories = ExtraCategory::forStore(current_store_id())->orderBy('sort_order')->get();
+        $services = Service::forStore(current_store_id())->with('category')->orderBy('name')->get();
+
         return view('extras.edit', compact('extra', 'categories', 'services'));
     }
 
@@ -132,6 +135,7 @@ class ExtraController extends Controller
     public function destroy(Extra $extra): JsonResponse
     {
         $extra->delete();
+
         return response()->json([
             'success' => true,
             'message' => 'Extra eliminado com sucesso.',
@@ -144,11 +148,15 @@ class ExtraController extends Controller
     public function list(Request $request): JsonResponse
     {
         $categoryId = $request->get('extra_category_id');
-        $query = Extra::with('extraCategory')->orderBy('sort_order');
+        $query = Extra::query()
+            ->whereHas('extraCategory', fn ($q) => $q->where('store_id', current_store_id()))
+            ->with('extraCategory')
+            ->orderBy('sort_order');
         if ($categoryId) {
             $query->where('extra_category_id', $categoryId);
         }
         $extras = $query->get();
+
         return response()->json($extras);
     }
 
@@ -166,10 +174,12 @@ class ExtraController extends Controller
     public function storeCategory(StoreExtraCategoryRequest $request): JsonResponse
     {
         $data = $request->validated();
-        if (!isset($data['sort_order'])) {
-            $data['sort_order'] = (ExtraCategory::max('sort_order') ?? 0) + 1;
+        if (! isset($data['sort_order'])) {
+            $data['sort_order'] = (ExtraCategory::forStore(current_store_id())->max('sort_order') ?? 0) + 1;
         }
+        $data['store_id'] = current_store_id();
         $category = ExtraCategory::create($data);
+
         return response()->json([
             'success' => true,
             'message' => 'Categoria criada com sucesso.',
@@ -180,6 +190,7 @@ class ExtraController extends Controller
     public function updateCategory(UpdateExtraCategoryRequest $request, ExtraCategory $extraCategory): JsonResponse
     {
         $extraCategory->update($request->validated());
+
         return response()->json([
             'success' => true,
             'message' => 'Categoria atualizada com sucesso.',
@@ -190,6 +201,7 @@ class ExtraController extends Controller
     public function destroyCategory(ExtraCategory $extraCategory): JsonResponse
     {
         $extraCategory->delete();
+
         return response()->json([
             'success' => true,
             'message' => 'Categoria eliminada com sucesso.',

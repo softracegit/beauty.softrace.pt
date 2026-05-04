@@ -16,7 +16,9 @@ class BookingSlotHoldService
     public function acquire(array $validatedHold, string $sessionToken, ?User $actor): BookingSlotHold
     {
         return DB::transaction(function () use ($validatedHold, $sessionToken, $actor) {
-            $candidate = app(OnlineBookingCheckoutService::class)->resolveSlotCandidateForHold($validatedHold);
+            $checkout = app(OnlineBookingCheckoutService::class);
+            $storeId = $checkout->storeIdFromBookingServices($validatedHold['services'] ?? []);
+            $candidate = $checkout->resolveSlotCandidateForHold($validatedHold);
             $selectedUserId = (int) $candidate['userId'];
             $slotStart = $candidate['startForDb'];
             $slotEnd = $candidate['endForDb'];
@@ -24,7 +26,7 @@ class BookingSlotHoldService
             $duration = max(1, (int) $slotStart->diffInMinutes($slotEnd));
             $servicesSignature = $this->servicesSignature($validatedHold['services'] ?? []);
             $now = now();
-            $expiresAt = $now->copy()->addSeconds($this->holdSeconds());
+            $expiresAt = $now->copy()->addSeconds($this->holdSeconds($storeId));
 
             BookingSlotHold::query()
                 ->where('session_token', $sessionToken)
@@ -38,7 +40,9 @@ class BookingSlotHoldService
                 $selectedUserId,
                 $slotStart,
                 $slotEnd,
-                $sessionToken
+                $sessionToken,
+                null,
+                $storeId
             );
             if ($conflict) {
                 throw ValidationException::withMessages([
@@ -47,6 +51,7 @@ class BookingSlotHoldService
             }
 
             return BookingSlotHold::query()->create([
+                'store_id' => $storeId,
                 'public_id' => (string) Str::ulid(),
                 'session_token' => $sessionToken,
                 'booking_user_id' => $actor?->isBookingClient() ? $actor->id : null,
@@ -94,7 +99,8 @@ class BookingSlotHoldService
                 Carbon::parse((string) $hold->slot_start_at),
                 Carbon::parse((string) $hold->slot_end_at),
                 $sessionToken,
-                $publicId
+                $publicId,
+                (int) $hold->store_id
             );
             if ($conflict) {
                 $hold->released_at = $now;
@@ -106,7 +112,9 @@ class BookingSlotHoldService
                 ]);
             }
 
-            $hold->expires_at = $now->copy()->addSeconds($this->holdSeconds());
+            $services = is_array($hold->meta['services'] ?? null) ? $hold->meta['services'] : [];
+            $storeId = app(OnlineBookingCheckoutService::class)->storeIdFromBookingServices($services);
+            $hold->expires_at = $now->copy()->addSeconds($this->holdSeconds($storeId));
             $hold->save();
 
             return $hold;
@@ -148,6 +156,13 @@ class BookingSlotHoldService
             ]);
         }
 
+        $urlStore = request()->route('store');
+        if ($urlStore instanceof \App\Models\Store && (int) $hold->store_id !== (int) $urlStore->id) {
+            throw ValidationException::withMessages([
+                'time' => ['A reserva temporária não é válida para esta loja.'],
+            ]);
+        }
+
         if ($actor instanceof User && $actor->isBookingClient()) {
             if ($hold->booking_user_id !== null && (int) $hold->booking_user_id !== (int) $actor->id) {
                 throw ValidationException::withMessages([
@@ -156,7 +171,8 @@ class BookingSlotHoldService
             }
         }
 
-        $candidate = app(OnlineBookingCheckoutService::class)->resolveSlotCandidateForHold($validatedBookingPayload);
+        $checkout = app(OnlineBookingCheckoutService::class);
+        $candidate = $checkout->resolveSlotCandidateForHold($validatedBookingPayload);
         $candidateStart = Carbon::parse((string) $candidate['startForDb']);
         $candidateEnd = Carbon::parse((string) $candidate['endForDb']);
         $candidateServicesSig = $this->servicesSignature($validatedBookingPayload['services'] ?? []);
@@ -221,10 +237,12 @@ class BookingSlotHoldService
         CarbonInterface $slotStart,
         CarbonInterface $slotEnd,
         string $sessionToken,
-        ?string $excludePublicId = null
+        ?string $excludePublicId = null,
+        ?int $storeId = null
     ): bool {
         $q = BookingSlotHold::query()
             ->active()
+            ->when($storeId !== null, fn ($b) => $b->where('store_id', $storeId))
             ->where('selected_user_id', $selectedUserId)
             ->where('session_token', '!=', $sessionToken)
             ->where('slot_start_at', '<', $slotEnd)
@@ -265,9 +283,8 @@ class BookingSlotHoldService
         return hash('sha256', json_encode($normalized));
     }
 
-    private function holdSeconds(): int
+    private function holdSeconds(?int $storeId = null): int
     {
-        return max(10, CrmSetting::bookingSlotHoldMinutes() * 60);
+        return max(10, CrmSetting::bookingSlotHoldMinutes($storeId) * 60);
     }
 }
-

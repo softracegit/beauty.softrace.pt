@@ -10,7 +10,10 @@ use App\Models\Category;
 use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Service;
+use App\Models\Store;
 use App\Models\User;
+use App\Support\CurrentStore;
+use App\Support\WeeklyScheduleWindow;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,22 +35,25 @@ class BookingController extends Controller
      */
     public function index(): View
     {
+        $storeId = $this->bookingStoreId();
         $categories = Category::query()
+            ->where('store_id', $storeId)
             ->with([
-                'services' => function ($q) {
-                    $q->orderBy('sort_order')
+                'services' => function ($q) use ($storeId) {
+                    $q->where('store_id', $storeId)
+                        ->orderBy('sort_order')
                         ->with(['options' => function ($oq) {
                             $oq->orderBy('sort_order');
                         }]);
                 },
             ])
-            ->whereHas('services')
+            ->whereHas('services', fn ($q) => $q->where('store_id', $storeId))
             ->orderBy('sort_order')
             ->get();
 
         return view('booking.index', [
             'categories' => $categories,
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
         ]);
     }
 
@@ -56,8 +62,22 @@ class BookingController extends Controller
      */
     public function datetime(): View
     {
+        $storeId = $this->bookingStoreId();
+        $validAgentIds = Agent::query()
+            ->where('store_id', $storeId)
+            ->where('status', Agent::STATUS_ACTIVE)
+            ->where('visible_in_booking', true)
+            ->whereHas('user', function ($q): void {
+                $q->eligibleForPublicBooking();
+            })
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
         return view('booking.datetime', [
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
+            'bookingValidAgentIds' => $validAgentIds,
         ]);
     }
 
@@ -77,10 +97,11 @@ class BookingController extends Controller
         $serviceIds = $serviceIdsRaw !== ''
             ? array_values(array_unique(array_filter(array_map('intval', explode(',', $serviceIdsRaw)))))
             : [];
+        $serviceIds = $this->serviceIdsBelongingToBookingStore($serviceIds);
         $holdSessionToken = trim((string) $request->query('hold_session_token', ''));
 
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
-            return response()->json(['slots' => []], 422);
+            return response()->json(['slots' => []]);
         }
 
         /** Fuso da loja / cliente — ver config/booking.php (não altera APP_TIMEZONE do CRM). */
@@ -88,7 +109,7 @@ class BookingController extends Controller
         try {
             $day = Carbon::parse($dateStr, $tz)->startOfDay()->timezone($tz);
         } catch (\Throwable) {
-            return response()->json(['slots' => []], 422);
+            return response()->json(['slots' => []]);
         }
 
         if ($day->lt(now($tz)->startOfDay())) {
@@ -115,7 +136,7 @@ class BookingController extends Controller
                 return response()->json(['slots' => []]);
             }
 
-            $eligibleAgents = $this->bookingEligibleAgentsForServices($serviceIds);
+            $eligibleAgents = $this->bookingEligibleAgentsForServices($serviceIds, $this->bookingStoreId());
             if ($eligibleAgents->isEmpty()) {
                 return response()->json(['slots' => []]);
             }
@@ -127,14 +148,14 @@ class BookingController extends Controller
                 $slotEndMin = $slotStartMin + $duration;
                 $dayKey = $this->carbonToWeekdayKey($day);
                 foreach ($eligibleAgents as $agent) {
-                    $window = $this->resolveAgentDayWindow($agent->weekly_schedule, $dayKey, $storeStart, $storeEnd);
+                    $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dayKey, $storeStart, $storeEnd);
                     if ($window === null) {
                         continue;
                     }
                     if ($slotStartMin < (int) $window[0] || $slotEndMin > (int) $window[1]) {
                         continue;
                     }
-                    $busy = $this->busyIntervalsForUserOnDay((int) $agent->user_id, $day, $holdSessionToken !== '' ? $holdSessionToken : null);
+                    $busy = $this->busyIntervalsForUserOnDay((int) $agent->user_id, $day, $holdSessionToken !== '' ? $holdSessionToken : null, $this->bookingStoreId());
                     if (! $this->proposalOverlapsBusy($slotStartMin, $slotEndMin, $busy)) {
                         return true;
                     }
@@ -147,27 +168,25 @@ class BookingController extends Controller
         }
 
         if (! ctype_digit((string) $agentKey)) {
-            return response()->json(['slots' => []], 422);
+            return response()->json(['slots' => []]);
         }
 
         $agent = Agent::query()
+            ->where('store_id', $this->bookingStoreId())
             ->where('status', Agent::STATUS_ACTIVE)
             ->where('visible_in_booking', true)
             ->whereHas('user', function ($q): void {
-                $q->whereIn('role', [
-                    User::ROLE_PRESTADOR,
-                    User::ROLE_TECNICO,
-                ]);
+                $q->eligibleForPublicBooking();
             })
             ->with('user:id')
             ->find((int) $agentKey);
 
         if (! $agent || ! $agent->user_id) {
-            return response()->json(['slots' => []], 404);
+            return response()->json(['slots' => []]);
         }
 
         $dowKey = $this->carbonToWeekdayKey($day);
-        $window = $this->resolveAgentDayWindow($agent->weekly_schedule, $dowKey, $storeStart, $storeEnd);
+        $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dowKey, $storeStart, $storeEnd);
         if ($window === null) {
             return response()->json(['slots' => []]);
         }
@@ -180,7 +199,7 @@ class BookingController extends Controller
             return response()->json(['slots' => []]);
         }
 
-        $busy = $this->busyIntervalsForUserOnDay((int) $agent->user_id, $day, $holdSessionToken !== '' ? $holdSessionToken : null);
+        $busy = $this->busyIntervalsForUserOnDay((int) $agent->user_id, $day, $holdSessionToken !== '' ? $holdSessionToken : null, $this->bookingStoreId());
         $slots = $this->buildAvailableSlots($winStart, $winEnd, $duration, $busy);
 
         return response()->json(['slots' => $slots]);
@@ -192,15 +211,13 @@ class BookingController extends Controller
     public function technician(): View
     {
         $technicians = Agent::query()
+            ->where('store_id', $this->bookingStoreId())
             ->where('status', Agent::STATUS_ACTIVE)
             ->where('visible_in_booking', true)
             ->whereHas('user', function ($q): void {
-                $q->whereIn('role', [
-                    User::ROLE_PRESTADOR,
-                    User::ROLE_TECNICO,
-                ]);
+                $q->eligibleForPublicBooking();
             })
-            ->with(['services:id'])
+            ->withServicesForStore($this->bookingStoreId())
             ->orderBy('agenda_order')
             ->orderBy('name')
             ->get()
@@ -216,7 +233,7 @@ class BookingController extends Controller
             ->values();
 
         return view('booking.technician', [
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
             'technicians' => $technicians,
         ]);
     }
@@ -229,10 +246,14 @@ class BookingController extends Controller
         $user = auth()->user();
         $isBookingClient = $user instanceof User && $user->isBookingClient();
         if (! $isBookingClient) {
-            return redirect()->route('booking.index');
+            return redirect()->route('booking.index', ['store' => $this->bookingStoreSlug()]);
         }
 
         $client = $isBookingClient ? $user->loadMissing('client')->client : null;
+        if ($client && (int) $client->store_id !== $this->bookingStoreId()) {
+            return redirect()->route('booking.index', ['store' => $this->bookingStoreSlug()]);
+        }
+
         $savedCards = collect();
         if ($client) {
             $savedCards = BookingSavedCard::query()
@@ -242,28 +263,30 @@ class BookingController extends Controller
                 ->orderByDesc('updated_at')
                 ->get();
         }
-        $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired();
+        $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired($this->bookingStoreId());
 
         return view('booking.step3', [
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
             'bookingClientUser' => $isBookingClient ? $user : null,
             'bookingClient' => $client,
             'savedCards' => $savedCards,
             'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired,
-            'bookingPaymentIntentUrl' => route('booking.payment.intent'),
-            'bookingPaymentCompleteUrl' => route('booking.payment.complete'),
-            'bookingConfirmWithoutPaymentUrl' => route('booking.confirm.without_payment'),
+            'bookingPaymentIntentUrl' => route('booking.payment.intent', ['store' => $this->bookingStoreSlug()]),
+            'bookingPaymentCompleteUrl' => route('booking.payment.complete', ['store' => $this->bookingStoreSlug()]),
+            'bookingConfirmWithoutPaymentUrl' => route('booking.confirm.without_payment', ['store' => $this->bookingStoreSlug()]),
         ]);
     }
 
     /**
      * Passo seguinte após escolher serviço (data / técnico — a completar).
      */
-    public function showService(Service $service): View
+    public function showService(Store $store, Service $service): View
     {
+        abort_unless((int) $store->id === (int) $service->store_id, 404);
+
         return view('booking.service', [
             'service' => $service,
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
         ]);
     }
 
@@ -280,11 +303,11 @@ class BookingController extends Controller
                 $query['primeira_marcacao'] = '1';
             }
 
-            return redirect()->route('booking.conta.marcacoes', $query);
+            return redirect()->route('booking.conta.marcacoes', array_merge(['store' => $this->bookingStoreSlug()], $query));
         }
 
         return view('booking.confirm', [
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
             'primeiraMarcacao' => $request->boolean('primeira_marcacao'),
         ]);
     }
@@ -297,8 +320,12 @@ class BookingController extends Controller
         $user = $request->user();
         $client = $user?->loadMissing('client')->client;
 
+        if ($client && (int) $client->store_id !== $this->bookingStoreId()) {
+            abort(404);
+        }
+
         return view('booking.conta.index', [
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
             'user' => $user,
             'client' => $client,
         ]);
@@ -308,10 +335,14 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $client = $user?->loadMissing('client')->client;
+        if ($client && (int) $client->store_id !== $this->bookingStoreId()) {
+            abort(404);
+        }
+
         $marcacoes = $this->loadClientMarcacoes($client?->id);
 
         return view('booking.conta.marcacoes', [
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
             'user' => $user,
             'client' => $client,
             'marcacoes' => $marcacoes,
@@ -322,6 +353,10 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $client = $user?->loadMissing('client')->client;
+        if ($client && (int) $client->store_id !== $this->bookingStoreId()) {
+            abort(404);
+        }
+
         $cards = collect();
         if ($client) {
             $cards = BookingSavedCard::query()
@@ -333,7 +368,7 @@ class BookingController extends Controller
         }
 
         return view('booking.conta.settings', [
-            'businessName' => config('app.name'),
+            'businessName' => $this->bookingBusinessName(),
             'user' => $user,
             'client' => $client,
             'savedCards' => $cards,
@@ -348,6 +383,7 @@ class BookingController extends Controller
         }
 
         return CalendarEvent::query()
+            ->where('store_id', $this->bookingStoreId())
             ->where('client_id', $clientId)
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->with([
@@ -376,6 +412,10 @@ class BookingController extends Controller
             abort(404);
         }
 
+        if ((int) $client->store_id !== $this->bookingStoreId()) {
+            abort(404);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', 'string', 'in:M,F,O'],
@@ -400,7 +440,7 @@ class BookingController extends Controller
         }
 
         return redirect()
-            ->route('booking.conta.index')
+            ->route('booking.conta.index', ['store' => $this->bookingStoreSlug()])
             ->with('success', 'Dados pessoais guardados.');
     }
 
@@ -420,55 +460,16 @@ class BookingController extends Controller
     }
 
     /**
-     * @return array{0: int, 1: int}|null Minutos desde meia-noite [início, fim) da janela útil.
-     */
-    private function resolveAgentDayWindow(?array $weeklySchedule, string $dayKey, int $storeStartMin, int $storeEndMin): ?array
-    {
-        $defaultDay = ['enabled' => true, 'start' => self::STORE_OPEN, 'end' => self::STORE_CLOSE];
-        if (! is_array($weeklySchedule)) {
-            $day = $defaultDay;
-        } else {
-            $v = $weeklySchedule[$dayKey] ?? null;
-            if (! is_array($v)) {
-                $day = $defaultDay;
-            } elseif (empty($v['enabled'])) {
-                return null;
-            } else {
-                $day = [
-                    'start' => is_string($v['start'] ?? null) ? $v['start'] : $defaultDay['start'],
-                    'end' => is_string($v['end'] ?? null) ? $v['end'] : $defaultDay['end'],
-                ];
-            }
-        }
-
-        $timePattern = '/^([01]\d|2[0-3]):(00|15|30|45)$/';
-        if (! preg_match($timePattern, $day['start']) || ! preg_match($timePattern, $day['end'])) {
-            $techStart = $storeStartMin;
-            $techEnd = $storeEndMin;
-        } else {
-            $techStart = Agent::timeStringToMinutes($day['start']);
-            $techEnd = Agent::timeStringToMinutes($day['end']);
-        }
-
-        $winStart = max($techStart, $storeStartMin);
-        $winEnd = min($techEnd, $storeEndMin);
-        if ($winStart >= $winEnd) {
-            return null;
-        }
-
-        return [$winStart, $winEnd];
-    }
-
-    /**
      * @return list<array{0: int, 1: int}> Intervalos ocupados em minutos desde meia-noite (dia local), [início, fim).
      */
-    private function busyIntervalsForUserOnDay(int $userId, Carbon $day, ?string $excludeHoldSessionToken = null): array
+    private function busyIntervalsForUserOnDay(int $userId, Carbon $day, ?string $excludeHoldSessionToken = null, ?int $storeId = null): array
     {
         $tz = (string) config('booking.business_timezone');
         $rangeStart = $day->copy()->timezone($tz)->startOfDay();
         $rangeEnd = $rangeStart->copy()->addDay();
 
         $events = CalendarEvent::query()
+            ->when($storeId !== null, fn ($q) => $q->where('store_id', $storeId))
             ->where('user_id', $userId)
             ->where(function ($q): void {
                 $q->whereNull('status')
@@ -502,6 +503,7 @@ class BookingController extends Controller
         }
 
         $holdQuery = BookingSlotHold::query()
+            ->when($storeId !== null, fn ($q) => $q->where('store_id', $storeId))
             ->active()
             ->where('selected_user_id', $userId)
             ->where('slot_start_at', '<', $rangeEnd)
@@ -570,18 +572,16 @@ class BookingController extends Controller
      * @param  list<int>  $serviceIds
      * @return \Illuminate\Support\Collection<int, Agent>
      */
-    private function bookingEligibleAgentsForServices(array $serviceIds)
+    private function bookingEligibleAgentsForServices(array $serviceIds, int $storeId)
     {
         $query = Agent::query()
+            ->where('store_id', $storeId)
             ->where('status', Agent::STATUS_ACTIVE)
             ->where('visible_in_booking', true)
             ->whereHas('user', function ($q): void {
-                $q->whereIn('role', [
-                    User::ROLE_PRESTADOR,
-                    User::ROLE_TECNICO,
-                ]);
+                $q->eligibleForPublicBooking();
             })
-            ->with(['services:id'])
+            ->withServicesForStore($storeId)
             ->orderBy('agenda_order')
             ->orderBy('name');
 
@@ -600,5 +600,43 @@ class BookingController extends Controller
 
             return true;
         })->values();
+    }
+
+    private function bookingStoreId(): int
+    {
+        return app(CurrentStore::class)->id();
+    }
+
+    private function bookingStoreSlug(): string
+    {
+        return (string) app(CurrentStore::class)->get()->slug;
+    }
+
+    private function bookingBusinessName(): string
+    {
+        return (string) app(CurrentStore::class)->get()->name;
+    }
+
+    /**
+     * Ignora IDs do carrinho que não pertencem à loja da URL (ex.: localStorage partilhado entre lojas).
+     *
+     * @param  list<int>  $serviceIds
+     * @return list<int>
+     */
+    private function serviceIdsBelongingToBookingStore(array $serviceIds): array
+    {
+        if ($serviceIds === []) {
+            return [];
+        }
+
+        $storeId = $this->bookingStoreId();
+
+        return Service::query()
+            ->where('store_id', $storeId)
+            ->whereIn('id', $serviceIds)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
     }
 }

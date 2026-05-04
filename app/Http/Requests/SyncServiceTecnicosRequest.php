@@ -20,6 +20,7 @@ class SyncServiceTecnicosRequest extends FormRequest
     protected function allowedTechnicianAgentIds(): array
     {
         return Agent::query()
+            ->forStore(current_store_id())
             ->whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
             ->pluck('id')
             ->map(fn ($id) => (int) $id)

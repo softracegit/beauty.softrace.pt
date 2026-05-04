@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToStore;
 use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,7 +14,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Client extends Model
 {
-    use LogsActivity;
+    use BelongsToStore, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -29,6 +30,7 @@ class Client extends Model
     }
 
     protected $fillable = [
+        'store_id',
         'name',
         'email',
         'phone',
@@ -52,6 +54,14 @@ class Client extends Model
         'preferences_notes',
         'stripe_customer_id',
     ];
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Store, $this>
+     */
+    public function store(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
 
     protected $casts = [
         'birth_date' => 'date',
@@ -197,15 +207,19 @@ class Client extends Model
     /**
      * Verifica se já existe cliente com o mesmo número (E.164 quando analisável; senão comparação literal).
      */
-    public static function existsWithSamePhoneAs(string $phone): bool
+    public static function existsWithSamePhoneAs(string $phone, ?int $storeId = null): bool
     {
         $phone = trim($phone);
         if ($phone === '') {
             return false;
         }
+        if ($storeId === null) {
+            $storeId = current_store_id();
+        }
         $inputE164 = PhoneDisplay::toE164($phone);
 
         return static::query()
+            ->forStore($storeId)
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->pluck('phone')

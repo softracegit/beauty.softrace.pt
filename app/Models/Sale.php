@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToStore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sale extends Model
 {
+    use BelongsToStore;
     public const STATUS_PAGO = 'pago';
 
     public const STATUS_ANULADO = 'anulado';
@@ -31,6 +33,7 @@ class Sale extends Model
     public const SCOPE_CAIXA_LIQUIDACAO = 'caixa_liquidacao';
 
     protected $fillable = [
+        'store_id',
         'calendar_event_id',
         'client_id',
         'numero_fatura',
@@ -81,6 +84,14 @@ class Sale extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
+
     public function calendarEvent(): BelongsTo
     {
         return $this->belongsTo(CalendarEvent::class);
@@ -117,20 +128,20 @@ class Sale extends Model
     }
 
     /**
-     * Generate next invoice number for the given year/month (e.g. 2026/03-001).
+     * Generate next invoice number for the given year/month (e.g. 2026/03-001), por loja.
      */
-    public static function nextNumeroFatura(int $year, int $month): string
+    public static function nextNumeroFatura(int $year, int $month, int $storeId): string
     {
         $prefix = sprintf('%04d/%02d-', $year, $month);
-        $last = static::where('numero_fatura', 'like', $prefix.'%')
-            ->orderByRaw('CAST(SUBSTRING(numero_fatura FROM '.(strlen($prefix) + 1).') AS UNSIGNED) DESC')
-            ->value('numero_fatura');
+        $maxSeq = static::query()
+            ->forStore($storeId)
+            ->where('numero_fatura', 'like', $prefix.'%')
+            ->pluck('numero_fatura')
+            ->map(fn (string $n) => (int) substr($n, strlen($prefix)))
+            ->max();
 
-        if (! $last) {
-            return $prefix.'001';
-        }
-        $num = (int) substr($last, strrpos($last, '-') + 1);
+        $next = ($maxSeq ?? 0) + 1;
 
-        return $prefix.str_pad((string) ($num + 1), 3, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 }

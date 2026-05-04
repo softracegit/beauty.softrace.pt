@@ -18,15 +18,17 @@
     <link rel="stylesheet" href="{{ asset('booking-assets/css/app.css') }}?v={{ file_exists(public_path('booking-assets/css/app.css')) ? filemtime(public_path('booking-assets/css/app.css')) : time() }}">
     @stack('head')
 </head>
+@php($bookingStoreSlug = $bookingStoreSlug ?? \App\Models\Store::defaultPublicBookingStoreSlug())
 <body
     class="booking-body @yield('body_class')"
-    data-booking-index-url="{{ route('booking.index') }}"
-    data-booking-auth-request-code-url="{{ route('booking.auth.request_code') }}"
-    data-booking-auth-verify-code-url="{{ route('booking.auth.verify_code') }}"
-    data-booking-auth-complete-registration-url="{{ route('booking.auth.complete_registration') }}"
-    data-booking-slot-hold-acquire-url="{{ route('booking.slot_hold.acquire') }}"
-    data-booking-slot-hold-extend-url="{{ route('booking.slot_hold.extend') }}"
-    data-booking-slot-hold-release-url="{{ route('booking.slot_hold.release') }}"
+    data-booking-store-slug="{{ $bookingStoreSlug }}"
+    data-booking-index-url="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"
+    data-booking-auth-request-code-url="{{ route('booking.auth.request_code', ['store' => $bookingStoreSlug], false) }}"
+    data-booking-auth-verify-code-url="{{ route('booking.auth.verify_code', ['store' => $bookingStoreSlug], false) }}"
+    data-booking-auth-complete-registration-url="{{ route('booking.auth.complete_registration', ['store' => $bookingStoreSlug], false) }}"
+    data-booking-slot-hold-acquire-url="{{ route('booking.slot_hold.acquire', ['store' => $bookingStoreSlug], false) }}"
+    data-booking-slot-hold-extend-url="{{ route('booking.slot_hold.extend', ['store' => $bookingStoreSlug], false) }}"
+    data-booking-slot-hold-release-url="{{ route('booking.slot_hold.release', ['store' => $bookingStoreSlug], false) }}"
     data-booking-slot-hold-seconds="{{ max(10, \App\Models\CrmSetting::bookingSlotHoldMinutes() * 60) }}"
     data-booking-authenticated-client="{{ (auth()->user() instanceof \App\Models\User && auth()->user()->isBookingClient()) ? '1' : '0' }}"
 >

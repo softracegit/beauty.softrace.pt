@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\CurrentStore;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CrmSetting extends Model
 {
@@ -21,13 +23,40 @@ class CrmSetting extends Model
     public const BOOKING_ANY_STAFF_RULE_D = 'agenda_order_then_month_load';
 
     protected $fillable = [
+        'store_id',
         'key',
         'value',
     ];
 
-    public static function getBool(string $key, bool $default = false): bool
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
     {
-        $raw = static::query()->where('key', $key)->value('value');
+        return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * Backoffice: loja da sessão. Booking público: passar $storeId ou usar {@see Store::defaultPublicBookingStoreId()}.
+     */
+    public static function resolveStoreId(?int $storeId = null): int
+    {
+        if ($storeId !== null) {
+            return $storeId;
+        }
+
+        $try = app(CurrentStore::class)->tryId();
+        if ($try !== null) {
+            return $try;
+        }
+
+        return Store::defaultPublicBookingStoreId();
+    }
+
+    public static function getBool(string $key, bool $default = false, ?int $storeId = null): bool
+    {
+        $sid = self::resolveStoreId($storeId);
+        $raw = static::query()->where('store_id', $sid)->where('key', $key)->value('value');
         if ($raw === null || $raw === '') {
             return $default;
         }
@@ -36,22 +65,24 @@ class CrmSetting extends Model
         return in_array($s, ['1', 'true', 'yes', 'on'], true);
     }
 
-    public static function setBool(string $key, bool $value): void
+    public static function setBool(string $key, bool $value, ?int $storeId = null): void
     {
+        $sid = self::resolveStoreId($storeId);
         static::query()->updateOrCreate(
-            ['key' => $key],
+            ['store_id' => $sid, 'key' => $key],
             ['value' => $value ? '1' : '0'],
         );
     }
 
-    public static function onlineBookingPaymentRequired(): bool
+    public static function onlineBookingPaymentRequired(?int $storeId = null): bool
     {
-        return self::getBool(self::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, true);
+        return self::getBool(self::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, true, $storeId);
     }
 
-    public static function getInt(string $key, int $default = 0): int
+    public static function getInt(string $key, int $default = 0, ?int $storeId = null): int
     {
-        $raw = static::query()->where('key', $key)->value('value');
+        $sid = self::resolveStoreId($storeId);
+        $raw = static::query()->where('store_id', $sid)->where('key', $key)->value('value');
         if ($raw === null || trim((string) $raw) === '') {
             return $default;
         }
@@ -62,17 +93,19 @@ class CrmSetting extends Model
         return (int) $raw;
     }
 
-    public static function setInt(string $key, int $value): void
+    public static function setInt(string $key, int $value, ?int $storeId = null): void
     {
+        $sid = self::resolveStoreId($storeId);
         static::query()->updateOrCreate(
-            ['key' => $key],
+            ['store_id' => $sid, 'key' => $key],
             ['value' => (string) $value],
         );
     }
 
-    public static function getString(string $key, string $default = ''): string
+    public static function getString(string $key, string $default = '', ?int $storeId = null): string
     {
-        $raw = static::query()->where('key', $key)->value('value');
+        $sid = self::resolveStoreId($storeId);
+        $raw = static::query()->where('store_id', $sid)->where('key', $key)->value('value');
         if ($raw === null) {
             return $default;
         }
@@ -82,17 +115,18 @@ class CrmSetting extends Model
         return $value !== '' ? $value : $default;
     }
 
-    public static function setString(string $key, string $value): void
+    public static function setString(string $key, string $value, ?int $storeId = null): void
     {
+        $sid = self::resolveStoreId($storeId);
         static::query()->updateOrCreate(
-            ['key' => $key],
+            ['store_id' => $sid, 'key' => $key],
             ['value' => trim($value)],
         );
     }
 
-    public static function bookingSlotHoldMinutes(): int
+    public static function bookingSlotHoldMinutes(?int $storeId = null): int
     {
-        return max(1, self::getInt(self::KEY_BOOKING_SLOT_HOLD_MINUTES, 6));
+        return max(1, self::getInt(self::KEY_BOOKING_SLOT_HOLD_MINUTES, 6, $storeId));
     }
 
     /**
@@ -132,11 +166,11 @@ class CrmSetting extends Model
         return array_map(fn (array $row): string => $row['title'], $ui);
     }
 
-    public static function bookingAnyStaffRule(): string
+    public static function bookingAnyStaffRule(?int $storeId = null): string
     {
         $rules = self::bookingAnyStaffRulesUi();
         $default = self::BOOKING_ANY_STAFF_RULE_A;
-        $value = self::getString(self::KEY_BOOKING_ANY_STAFF_RULE, $default);
+        $value = self::getString(self::KEY_BOOKING_ANY_STAFF_RULE, $default, $storeId);
 
         return array_key_exists($value, $rules) ? $value : $default;
     }

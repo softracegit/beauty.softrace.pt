@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class BookingAuthCode extends Model
 {
     protected $fillable = [
+        'store_id',
         'email',
         'code_hash',
         'expires_at',
@@ -25,4 +26,3 @@ class BookingAuthCode extends Model
         ];
     }
 }
-

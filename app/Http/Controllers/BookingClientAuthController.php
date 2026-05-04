@@ -7,6 +7,7 @@ use App\Models\BookingAuthCode;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\TwilioSmsService;
+use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -37,12 +38,16 @@ class BookingClientAuthController extends Controller
         $ttlMinutes = max(3, (int) config('booking.auth_code_ttl_minutes', 10));
         $code = (string) random_int(100000, 999999);
 
+        $storeId = $this->bookingPublicStoreId();
+
         BookingAuthCode::query()
+            ->where('store_id', $storeId)
             ->whereRaw('LOWER(email) = ?', [strtolower($target['identifier'])])
             ->whereNull('consumed_at')
             ->delete();
 
         BookingAuthCode::query()->create([
+            'store_id' => $storeId,
             // Coluna "email" é usada como identificador (email ou telemóvel E.164).
             'email' => $target['identifier'],
             'code_hash' => hash('sha256', $code),
@@ -53,7 +58,8 @@ class BookingClientAuthController extends Controller
 
         try {
             if ($target['channel'] === 'email') {
-                Mail::mailer('booking')->to($target['identifier'])->send(new BookingAuthCodeMail($code, $ttlMinutes));
+                $continueUrl = route('booking.index', ['store' => app(CurrentStore::class)->get()->slug]);
+                Mail::mailer('booking')->to($target['identifier'])->send(new BookingAuthCodeMail($code, $ttlMinutes, $continueUrl));
             } else {
                 $this->twilioSmsService->send(
                     $target['identifier'],
@@ -90,7 +96,10 @@ class BookingClientAuthController extends Controller
             ? $this->resolveBookingClientUserForEmail($target['identifier'])
             : $this->resolveBookingClientUserForPhone($target['identifier']);
 
+        $storeId = $this->bookingPublicStoreId();
+
         $authCode = BookingAuthCode::query()
+            ->where('store_id', $storeId)
             ->whereRaw('LOWER(email) = ?', [strtolower($target['identifier'])])
             ->whereNull('consumed_at')
             ->where('expires_at', '>', now())
@@ -103,6 +112,7 @@ class BookingClientAuthController extends Controller
             $resolvedUserEmail = strtolower(trim((string) $resolved->email));
             if ($resolvedUserEmail !== '' && $resolvedUserEmail !== $emailInput) {
                 $authCode = BookingAuthCode::query()
+                    ->where('store_id', $storeId)
                     ->whereRaw('LOWER(email) = ?', [$resolvedUserEmail])
                     ->whereNull('consumed_at')
                     ->where('expires_at', '>', now())
@@ -250,6 +260,7 @@ class BookingClientAuthController extends Controller
 
             try {
                 $client = Client::query()->create([
+                    'store_id' => $this->bookingPublicStoreId(),
                     'name' => $name,
                     'email' => $emailNorm,
                     'phone' => $phoneE164,
@@ -332,11 +343,13 @@ class BookingClientAuthController extends Controller
     {
         $displayName = trim((string) $client->name) !== '' ? (string) $client->name : 'Cliente';
 
+        $client->loadMissing('store');
         $user = User::query()->create([
             'name' => $displayName,
             'email' => $userEmail,
             'password' => Hash::make(Str::random(64)),
             'role' => User::ROLE_CLIENTE,
+            'organization_id' => $client->store?->organization_id,
             'client_id' => $client->id,
             'must_set_password' => false,
         ]);
@@ -355,9 +368,12 @@ class BookingClientAuthController extends Controller
             return null;
         }
 
+        $storeId = $this->bookingPublicStoreId();
+
         $byUserEmail = User::query()
             ->whereRaw('LOWER(email) = ?', [$emailNorm])
             ->where('role', User::ROLE_CLIENTE)
+            ->whereHas('client', fn ($c) => $c->where('store_id', $storeId))
             ->first();
 
         if ($byUserEmail instanceof User) {
@@ -367,8 +383,9 @@ class BookingClientAuthController extends Controller
         return User::query()
             ->where('role', User::ROLE_CLIENTE)
             ->whereNotNull('client_id')
-            ->whereHas('client', function ($q) use ($emailNorm): void {
-                $q->whereNotNull('email')
+            ->whereHas('client', function ($q) use ($emailNorm, $storeId): void {
+                $q->where('store_id', $storeId)
+                    ->whereNotNull('email')
                     ->where('email', '!=', '')
                     ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm]);
             })
@@ -383,6 +400,7 @@ class BookingClientAuthController extends Controller
         }
 
         $clientIds = Client::query()
+            ->where('store_id', $this->bookingPublicStoreId())
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->get(['id', 'phone'])
@@ -426,6 +444,7 @@ class BookingClientAuthController extends Controller
         }
 
         $clients = Client::query()
+            ->where('store_id', $this->bookingPublicStoreId())
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])
@@ -440,6 +459,7 @@ class BookingClientAuthController extends Controller
     private function assertNoPhoneConflictForBookingAuth(string $phoneE164): void
     {
         $matches = Client::query()
+            ->where('store_id', $this->bookingPublicStoreId())
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->get(['id', 'phone'])
@@ -458,6 +478,7 @@ class BookingClientAuthController extends Controller
         $phoneE164 = trim($phoneE164);
         if ($channel === 'phone') {
             $matches = Client::query()
+                ->where('store_id', $this->bookingPublicStoreId())
                 ->whereNotNull('phone')
                 ->where('phone', '!=', '')
                 ->get(['id', 'phone'])
@@ -485,6 +506,7 @@ class BookingClientAuthController extends Controller
         }
 
         return Client::query()
+            ->where('store_id', $this->bookingPublicStoreId())
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])
@@ -515,6 +537,7 @@ class BookingClientAuthController extends Controller
         }
 
         $q = Client::query()
+            ->where('store_id', $this->bookingPublicStoreId())
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm]);
@@ -540,6 +563,7 @@ class BookingClientAuthController extends Controller
         }
 
         $conflict = Client::query()
+            ->where('store_id', $this->bookingPublicStoreId())
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->when($except instanceof Client, fn ($q) => $q->where('id', '!=', $except->id))
@@ -589,6 +613,11 @@ class BookingClientAuthController extends Controller
             self::PENDING_REG_CHANNEL_KEY,
             self::PENDING_REG_IDENTIFIER_KEY,
         ]);
+    }
+
+    private function bookingPublicStoreId(): int
+    {
+        return app(CurrentStore::class)->id();
     }
 
     /**

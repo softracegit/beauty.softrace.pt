@@ -23,8 +23,14 @@ class EnsureUserHasAgent
             return redirect()->route('login');
         }
 
+        if ($user instanceof User && $user->isSuperAdmin()) {
+            return redirect()->route('super-admin.dashboard');
+        }
+
         if ($user instanceof User && $user->isBookingClient()) {
-            return redirect()->route('booking.index');
+            return redirect()->route('booking.index', [
+                'store' => $user->bookingPublicHomeStoreSlug(),
+            ]);
         }
 
         // Se o user não tem agent associado, redirecionar para uma página de erro ou logout
@@ -34,7 +40,25 @@ class EnsureUserHasAgent
             return redirect()->route('login')
                 ->with('error', 'A sua conta não está associada a um agente. Contacte o administrador.');
         }
-        
+
+        $user->loadMissing('agent.store');
+        $orgFromAgentStore = $user->agent->store?->organization_id;
+        if ($orgFromAgentStore === null) {
+            auth()->logout();
+
+            return redirect()->route('login')
+                ->with('error', 'A sua conta não está associada a uma loja. Contacte o administrador.');
+        }
+
+        if ($user->organization_id === null) {
+            $user->forceFill(['organization_id' => $orgFromAgentStore])->saveQuietly();
+        } elseif ((int) $user->organization_id !== (int) $orgFromAgentStore) {
+            auth()->logout();
+
+            return redirect()->route('login')
+                ->with('error', 'A organização da conta não coincide com a loja do agente. Contacte o administrador.');
+        }
+
         return $next($request);
     }
 }

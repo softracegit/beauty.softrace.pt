@@ -21,21 +21,26 @@ class CategoryController extends Controller
     {
         // Only return JSON if explicitly requested via AJAX (lista + counts para badges)
         if ($request->ajax() && $request->header('X-Requested-With') === 'XMLHttpRequest') {
-            $categories = Category::orderBy('sort_order')->withCount('services')->get();
+            $categories = Category::forStore(current_store_id())->orderBy('sort_order')->withCount('services')->get();
 
             return response()->json($categories);
         }
 
         $selectedCategory = null; // por defeito: "Todas as categorias"
-        $categories = Category::orderBy('sort_order')
+        $categories = Category::forStore(current_store_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->with('agents', 'extras', 'options')->orderBy('sort_order')])
             ->withCount('services')
             ->get();
-        $agents = Agent::whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
+        $agents = Agent::forStore(current_store_id())->whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
             ->orderBy('name')
             ->get();
-        $extras = Extra::with('extraCategory')->orderBy('extra_category_id')->orderBy('sort_order')->get();
-        $extraCategories = ExtraCategory::orderBy('sort_order')
+        $extras = Extra::query()
+            ->whereHas('extraCategory', fn ($q) => $q->where('store_id', current_store_id()))
+            ->with('extraCategory')
+            ->orderBy('extra_category_id')
+            ->orderBy('sort_order')
+            ->get();
+        $extraCategories = ExtraCategory::forStore(current_store_id())->orderBy('sort_order')
             ->with(['extras' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
@@ -69,10 +74,11 @@ class CategoryController extends Controller
 
         // Set sort_order if not provided
         if (! isset($data['sort_order'])) {
-            $maxOrder = Category::max('sort_order') ?? 0;
+            $maxOrder = Category::forStore(current_store_id())->max('sort_order') ?? 0;
             $data['sort_order'] = $maxOrder + 1;
         }
 
+        $data['store_id'] = current_store_id();
         $category = Category::create($data);
 
         // Check if it's an AJAX request by checking headers
@@ -148,8 +154,19 @@ class CategoryController extends Controller
             'order.*' => ['required', 'integer', 'exists:categories,id'],
         ]);
 
+        $idsInStore = Category::forStore(current_store_id())
+            ->whereIn('id', $request->order)
+            ->pluck('id')
+            ->count();
+        if ($idsInStore !== count($request->order)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ordem inválida para esta loja.',
+            ], 422);
+        }
+
         foreach ($request->order as $index => $categoryId) {
-            Category::where('id', $categoryId)->update(['sort_order' => $index + 1]);
+            Category::forStore(current_store_id())->whereKey($categoryId)->update(['sort_order' => $index + 1]);
         }
 
         return response()->json([

@@ -16,13 +16,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // Aplicar middleware para garantir que apenas users com agent podem aceder
         $middleware->alias([
             'has.agent' => \App\Http\Middleware\EnsureUserHasAgent::class,
+            'set.current.store' => \App\Http\Middleware\SetCurrentStore::class,
+            'super.admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'booking' => \App\Http\Middleware\BookingContext::class,
             'booking.client' => \App\Http\Middleware\EnsureUserIsBookingClient::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request) {
-            if ($request->is('booking/conta*')) {
-                return route('booking.index', ['open_auth' => '1']);
+            if (preg_match('#^booking/([^/]+)/conta#', $request->path(), $m)) {
+                return route('booking.index', [
+                    'store' => $m[1],
+                    'open_auth' => '1',
+                ]);
             }
 
             return route('login');
@@ -31,7 +36,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(function (Request $request) {
             $user = $request->user();
             if ($user instanceof User && $user->isBookingClient()) {
-                return route('booking.index');
+                return route('booking.index', [
+                    'store' => $user->bookingPublicHomeStoreSlug(),
+                ]);
+            }
+            if ($user instanceof User && $user->isSuperAdmin()) {
+                return route('super-admin.dashboard');
             }
 
             return route('dashboard');

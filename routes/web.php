@@ -13,6 +13,7 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\CurrentStoreController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\DefinicoesController;
@@ -26,7 +27,10 @@ use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\RelatoriosController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\SuperAdmin\OrganizationController as SuperAdminOrganizationController;
+use App\Http\Controllers\SuperAdmin\OrganizationStoreController;
 use App\Http\Controllers\VisitController;
+use App\Models\Store;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,7 +42,13 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
 
-Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(function () {
+Route::get('/booking', function () {
+    return redirect()->route('booking.index', [
+        'store' => Store::defaultPublicBookingStoreSlug(),
+    ]);
+});
+
+Route::prefix('booking/{store:slug}')->middleware(['booking'])->name('booking.')->group(function () {
     Route::get('/', [BookingController::class, 'index'])->name('index');
     Route::get('/staff', [BookingController::class, 'technician'])->name('technician');
     Route::get('/disponiblidade', [BookingController::class, 'datetime'])->name('datetime');
@@ -68,14 +78,19 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
 
     Route::get('/login', function (\Illuminate\Http\Request $request) {
         $user = $request->user();
+        $store = $request->route('store');
+        $storeSlug = $store instanceof Store ? $store->slug : null;
+        if ($storeSlug === null) {
+            $storeSlug = Store::defaultPublicBookingStoreSlug();
+        }
         if ($user instanceof \App\Models\User && $user->isBookingClient()) {
-            return redirect()->route('booking.conta.index');
+            return redirect()->route('booking.conta.index', ['store' => $storeSlug]);
         }
         if ($user) {
             return redirect()->route('dashboard');
         }
         $email = (string) $request->query('email', '');
-        $params = ['open_auth' => '1'];
+        $params = ['store' => $storeSlug, 'open_auth' => '1'];
         if ($email !== '') {
             $params['email'] = $email;
         }
@@ -97,6 +112,15 @@ Route::prefix('booking')->middleware(['booking'])->name('booking.')->group(funct
     Route::post('/auth/complete-registration', [BookingClientAuthController::class, 'completeRegistrationFromAuthModal'])
         ->middleware('throttle:10,1')
         ->name('auth.complete_registration');
+
+    /*
+     * Logout por GET: evita 419 quando o separador fica aberto muito tempo (token CSRF do POST expira).
+     * Apenas `booking.client`; o backoffice continua a usar POST /logout com @csrf.
+     */
+    Route::middleware(['auth', 'booking.client'])
+        ->get('/sair', [AuthController::class, 'logout'])
+        ->middleware('throttle:30,1')
+        ->name('logout');
 
     Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {
         Route::get('/', [BookingController::class, 'account'])->name('index');
@@ -126,8 +150,20 @@ Route::middleware('guest')->group(function () {
 // Logout (autenticado)
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+Route::middleware(['auth', 'super.admin'])->prefix('super-admin')->name('super-admin.')->group(function () {
+    Route::get('/', function () {
+        return redirect()->route('super-admin.organizations.index');
+    })->name('dashboard');
+    Route::resource('organizations.stores', OrganizationStoreController::class)
+        ->scoped()
+        ->except(['index', 'show']);
+    Route::resource('organizations', SuperAdminOrganizationController::class);
+});
+
 // Rotas protegidas (requerem autenticação e agent associado)
-Route::middleware(['auth', 'has.agent'])->group(function () {
+Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function () {
+    Route::post('loja-activa', [CurrentStoreController::class, 'update'])->name('current-store.update');
+
     Route::get('/', function () {
         return redirect()->route('dashboard');
     });

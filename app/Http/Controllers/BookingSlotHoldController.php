@@ -22,6 +22,8 @@ class BookingSlotHoldController extends Controller
             'hold_session_token' => ['required', 'string', 'min:16', 'max:80'],
         ]);
 
+        $this->checkout->assertPublicBookingServicesBelongToUrlStore($validated['services'] ?? [], $request);
+
         $hold = $this->holds->acquire(
             $validated,
             (string) $validated['hold_session_token'],
@@ -70,14 +72,15 @@ class BookingSlotHoldController extends Controller
     private function holdPayload(\App\Models\BookingSlotHold $hold): array
     {
         $expiresAt = $hold->expires_at instanceof Carbon ? $hold->expires_at : Carbon::parse((string) $hold->expires_at);
+        $services = is_array($hold->meta['services'] ?? null) ? $hold->meta['services'] : [];
+        $storeId = $this->checkout->storeIdFromBookingServices($services);
 
         return [
             'ok' => true,
             'hold_public_id' => (string) $hold->public_id,
             'expires_at' => $expiresAt->toIso8601String(),
             'server_now' => now()->toIso8601String(),
-            'hold_seconds' => max(10, CrmSetting::bookingSlotHoldMinutes() * 60),
+            'hold_seconds' => max(10, CrmSetting::bookingSlotHoldMinutes($storeId) * 60),
         ];
     }
 }
-

@@ -29,13 +29,13 @@
                         <div class="card-body py-3">
                             <ul class="list-unstyled mb-0">
                                 <li class="border-bottom pb-2 mb-2">
-                                    <a href="{{ route('booking.conta.index') }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
+                                    <a href="{{ route('booking.conta.index', ['store' => $bookingStoreSlug], false) }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
                                         <span>A minha conta</span>
                                         <i class="bi bi-chevron-right text-muted" aria-hidden="true"></i>
                                     </a>
                                 </li>
                                 <li>
-                                    <a href="{{ route('booking.conta.index') }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
+                                    <a href="{{ route('booking.conta.marcacoes', ['store' => $bookingStoreSlug], false) }}" class="text-decoration-none d-flex align-items-center justify-content-between gap-2 text-dark">
                                         <span>As minhas marcações</span>
                                         <i class="bi bi-chevron-right text-muted" aria-hidden="true"></i>
                                     </a>
@@ -44,7 +44,7 @@
                         </div>
                     </div>
                     <div class="d-grid gap-2">
-                        <a href="{{ route('booking.index') }}" class="btn btn-dark">Nova marcação</a>
+                        <a href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}" class="btn btn-dark">Nova marcação</a>
                     </div>
                 </main>
             </div>

@@ -26,7 +26,7 @@
             </div>
         </div>
         <p class="small mt-3 mb-0">
-            <a href="{{ route('booking.step3') }}">← Voltar ao passo 3 real</a>
+            <a href="{{ route('booking.step3', ['store' => $bookingStoreSlug], false) }}">← Voltar ao passo 3 real</a>
         </p>
     </div>
 @endsection

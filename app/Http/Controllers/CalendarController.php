@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Client;
+use App\Models\ExtraCategory;
 use App\Models\PersonalTimeType;
 use App\Models\Sale;
 use App\Models\Service;
@@ -29,10 +30,11 @@ class CalendarController extends Controller
     public function index()
     {
         $eventTypes = CalendarEvent::eventTypes();
-        $personalTimeTypes = PersonalTimeType::where('is_active', true)->orderBy('sort_order')->get();
+        $personalTimeTypes = PersonalTimeType::forStore(current_store_id())->where('is_active', true)->orderBy('sort_order')->get();
         // Mostrar apenas users com agent ativo e visível na agenda; excluir Administradores.
         $users = User::whereHas('agent', function ($query) {
-            $query->where('status', Agent::STATUS_ACTIVE)
+            $query->where('store_id', current_store_id())
+                ->where('status', Agent::STATUS_ACTIVE)
                 ->where('visible_in_agenda', true);
         })
             ->with('agent')
@@ -111,7 +113,7 @@ class CalendarController extends Controller
     public function resources(Request $request)
     {
         // Mostrar apenas agents ativos e visíveis na agenda como recursos.
-        $agents = Agent::where('status', Agent::STATUS_ACTIVE)
+        $agents = Agent::forStore(current_store_id())->where('status', Agent::STATUS_ACTIVE)
             ->where('visible_in_agenda', true)
             ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
             ->with('user')
@@ -150,6 +152,7 @@ class CalendarController extends Controller
         $forResources = $request->boolean('for_resources');
 
         $query = CalendarEvent::query()
+            ->forStore(current_store_id())
             ->with([
                 'user.agent',
                 'service',
@@ -169,7 +172,7 @@ class CalendarController extends Controller
         // Verificar se o utilizador pode ver todos os eventos (admin ou diretor)
         $canViewAll = auth()->user()->canManageAgents();
 
-        $activeAgentUserIds = Agent::where('status', Agent::STATUS_ACTIVE)
+        $activeAgentUserIds = Agent::forStore(current_store_id())->where('status', Agent::STATUS_ACTIVE)
             ->where('visible_in_agenda', true)
             ->whereHas('user', fn ($q) => $q->where('role', '!=', User::ROLE_ADMIN))
             ->pluck('user_id')
@@ -312,7 +315,10 @@ class CalendarController extends Controller
      */
     public function memberServices(User $user)
     {
-        $agent = $user->agent;
+        $agent = Agent::query()
+            ->forStore(current_store_id())
+            ->where('user_id', $user->id)
+            ->first();
         if (! $agent) {
             return response()->json(['categories' => []]);
         }
@@ -335,8 +341,8 @@ class CalendarController extends Controller
             return $s->category_id ?: 0;
         });
 
-        $categoryNames = \App\Models\Category::whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('name', 'id');
-        $categoryColors = \App\Models\Category::whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('color', 'id');
+        $categoryNames = \App\Models\Category::forStore(current_store_id())->whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('name', 'id');
+        $categoryColors = \App\Models\Category::forStore(current_store_id())->whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('color', 'id');
 
         $categories = [];
         foreach ($byCategory as $categoryId => $items) {
@@ -387,7 +393,7 @@ class CalendarController extends Controller
         $clientId = $request->get('client_id');
 
         if ($clientId) {
-            $client = \App\Models\Client::find($clientId);
+            $client = \App\Models\Client::forStore(current_store_id())->whereKey($clientId)->first();
             if ($client) {
                 $arr = $client->only(['id', 'name', 'email', 'phone', 'nif']);
                 $arr['formatted_phone'] = $client->formatted_phone;
@@ -399,7 +405,7 @@ class CalendarController extends Controller
             return response()->json([]);
         }
 
-        $query = \App\Models\Client::query()->orderBy('name')->limit(50);
+        $query = \App\Models\Client::query()->forStore(current_store_id())->orderBy('name')->limit(50);
 
         if (strlen($search) >= 1) {
             $query->where(function ($q) use ($search) {
@@ -444,12 +450,13 @@ class CalendarController extends Controller
         }
 
         $validated = array_merge($validated, $request->validate([
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->where(fn ($q) => $q->where('store_id', current_store_id()))],
         ], [
             'email.unique' => 'Este email já está associado a um cliente.',
         ]));
 
         $client = Client::create([
+            'store_id' => current_store_id(),
             'name' => $validated['name'],
             'email' => $validated['email'] ?? null,
             'phone' => $validated['phone'],
@@ -677,22 +684,28 @@ class CalendarController extends Controller
     {
         $rules = [
             'title' => ['required_without:personal_time_type_id', 'nullable', 'string', 'max:255'],
-            'personal_time_type_id' => ['nullable', 'exists:personal_time_types,id'],
+            'personal_time_type_id' => ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after_or_equal:start_at'],
             'description' => ['nullable', 'string'],
             'event_type' => ['required', 'in:manual,outro,marcacao,tempo_pessoal'],
-            'user_id' => ['nullable', 'exists:users,id'],
-            'client_id' => ['nullable', 'exists:clients,id'],
-            'service_id' => ['nullable', 'exists:services,id'],
+            'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'service_id' => ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'services' => ['nullable', 'array'],
-            'services.*.service_id' => ['required_with:services', 'exists:services,id'],
+            'services.*.service_id' => ['required_with:services', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
             'services.*.original_price' => ['nullable', 'numeric', 'min:0'],
             'services.*.extras' => ['nullable', 'array'],
-            'services.*.extras.*.extra_id' => ['nullable', 'exists:extras,id'],
+            'services.*.extras.*.extra_id' => [
+                'nullable',
+                Rule::exists('extras', 'id')->where(fn ($q) => $q->whereIn(
+                    'extra_category_id',
+                    ExtraCategory::query()->forStore(current_store_id())->select('id')
+                )),
+            ],
             'services.*.extras.*.duration' => ['nullable', 'integer', 'min:0'],
             'services.*.extras.*.price' => ['nullable', 'numeric', 'min:0'],
         ];
@@ -706,7 +719,7 @@ class CalendarController extends Controller
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL) {
             $personalTypeId = $validated['personal_time_type_id'] ?? null;
             if ($personalTypeId) {
-                $type = PersonalTimeType::find($personalTypeId);
+                $type = PersonalTimeType::forStore(current_store_id())->find($personalTypeId);
                 $validated['title'] = $type?->name ?? $validated['title'] ?? 'Tempo pessoal';
                 $validated['personal_time_type_id'] = (int) $personalTypeId;
             } else {
@@ -718,7 +731,7 @@ class CalendarController extends Controller
             if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
             } else {
-                $request->validate(['service_id' => ['required', 'exists:services,id']]);
+                $request->validate(['service_id' => ['required', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))]]);
                 $validated['service_id'] = $request->input('service_id');
             }
         } else {
@@ -734,11 +747,13 @@ class CalendarController extends Controller
             ], 422);
         }
         $validated['status'] = $validated['status'] ?? CalendarEvent::STATUS_AGENDADO;
+        $validated['store_id'] = current_store_id();
 
         $event = CalendarEvent::create($validated);
 
         if (! empty($servicesPayload)) {
             $servicesById = Service::query()
+                ->forStore(current_store_id())
                 ->whereIn('id', array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload))))
                 ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
                 ->get()
@@ -808,21 +823,27 @@ class CalendarController extends Controller
         $rules = [
             'start_at' => ['sometimes', 'date'],
             'end_at' => ['sometimes', 'date'],
-            'user_id' => ['nullable', 'exists:users,id'],
+            'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'status' => ['sometimes', 'string', 'in:agendado,confirmado,chegou,iniciado,terminado,faltou,cancelado'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'refund_reserva' => ['nullable', 'boolean'],
             'avisou_dentro_prazo' => ['nullable', 'boolean'],
-            'client_id' => ['nullable', 'exists:clients,id'],
+            'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'services' => ['nullable', 'array'],
-            'services.*.service_id' => ['required_with:services', 'exists:services,id'],
+            'services.*.service_id' => ['required_with:services', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
             'services.*.original_price' => ['nullable', 'numeric', 'min:0'],
             'services.*.extras' => ['nullable', 'array'],
-            'services.*.extras.*.extra_id' => ['nullable', 'exists:extras,id'],
+            'services.*.extras.*.extra_id' => [
+                'nullable',
+                Rule::exists('extras', 'id')->where(fn ($q) => $q->whereIn(
+                    'extra_category_id',
+                    ExtraCategory::query()->forStore(current_store_id())->select('id')
+                )),
+            ],
             'services.*.extras.*.duration' => ['nullable', 'integer', 'min:0'],
             'services.*.extras.*.price' => ['nullable', 'numeric', 'min:0'],
             'notify_client' => ['sometimes', 'boolean'],
@@ -830,10 +851,10 @@ class CalendarController extends Controller
 
         if ($calendarEvent->isSourceEditable()) {
             $rules['title'] = ['sometimes', 'string', 'max:255'];
-            $rules['personal_time_type_id'] = ['nullable', 'exists:personal_time_types,id'];
+            $rules['personal_time_type_id'] = ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))];
             $rules['description'] = ['nullable', 'string'];
             $rules['event_type'] = ['sometimes', 'in:manual,outro,marcacao,tempo_pessoal'];
-            $rules['service_id'] = ['nullable', 'exists:services,id'];
+            $rules['service_id'] = ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))];
         }
 
         $validated = $request->validate($rules);
@@ -853,7 +874,7 @@ class CalendarController extends Controller
             if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
             } elseif (! array_key_exists('service_id', $validated)) {
-                $request->validate(['service_id' => ['required', 'exists:services,id']]);
+                $request->validate(['service_id' => ['required', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))]]);
                 $validated['service_id'] = $request->input('service_id');
             }
         } elseif (isset($validated['event_type']) && $validated['event_type'] !== CalendarEvent::TYPE_MARCACAO) {
@@ -943,7 +964,7 @@ class CalendarController extends Controller
             $allowed = ['title', 'description', 'event_type', 'service_id', 'client_id', 'personal_time_type_id'];
             $toUpdate = array_filter($validated, fn ($k) => in_array($k, $allowed, true), ARRAY_FILTER_USE_KEY);
             if (isset($toUpdate['personal_time_type_id']) && $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {
-                $type = PersonalTimeType::find($toUpdate['personal_time_type_id']);
+                $type = PersonalTimeType::forStore(current_store_id())->find($toUpdate['personal_time_type_id']);
                 if ($type) {
                     $toUpdate['title'] = $type->name;
                 }
@@ -959,6 +980,7 @@ class CalendarController extends Controller
                 if (json_encode($beforeSnapshot) !== json_encode($afterSnapshot)) {
                     $calendarEvent->eventServices()->detach();
                     $servicesById = Service::query()
+                        ->forStore(current_store_id())
                         ->whereIn('id', array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload))))
                         ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
                         ->get()
@@ -1402,6 +1424,7 @@ class CalendarController extends Controller
         $serviceIds = array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload)));
         $serviceIds = array_values(array_filter($serviceIds, fn (int $id) => $id > 0));
         $services = Service::query()
+            ->forStore(current_store_id())
             ->whereIn('id', $serviceIds)
             ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
             ->get()

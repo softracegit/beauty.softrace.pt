@@ -8,9 +8,12 @@ use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Service;
 use App\Models\ServiceOption;
+use App\Models\Store;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
+use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
+use App\Support\WeeklyScheduleWindow;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -89,6 +92,59 @@ class OnlineBookingCheckoutService
     public function validateStoredPayload(array $payload): array
     {
         return Validator::make($payload, $this->bookingRequestRules())->validate();
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $servicesInput
+     */
+    public function storeIdFromBookingServices(array $servicesInput): int
+    {
+        $ids = [];
+        foreach ($servicesInput as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        $ids = array_values(array_unique($ids));
+        if ($ids === []) {
+            return Store::defaultPublicBookingStoreId();
+        }
+
+        $storeIds = Service::query()->whereIn('id', $ids)->pluck('store_id')->unique()->values();
+        if ($storeIds->isEmpty()) {
+            return Store::defaultPublicBookingStoreId();
+        }
+        if ($storeIds->count() > 1) {
+            throw ValidationException::withMessages([
+                'services' => ['Os serviços não pertencem à mesma loja.'],
+            ]);
+        }
+
+        return (int) $storeIds->first();
+    }
+
+    /**
+     * Garante que os serviços do pedido pertencem à loja do segmento /booking/{store}.
+     */
+    public function assertPublicBookingServicesBelongToUrlStore(array $servicesInput, ?Request $request = null): void
+    {
+        $request ??= request();
+        $store = $request->route('store');
+        if (! $store instanceof Store) {
+            return;
+        }
+
+        $expected = (int) $store->id;
+        $fromServices = $this->storeIdFromBookingServices($servicesInput);
+        if ($fromServices !== $expected) {
+            throw ValidationException::withMessages([
+                'services' => ['Os serviços não pertencem a esta loja.'],
+            ]);
+        }
     }
 
     /**
@@ -188,6 +244,8 @@ class OnlineBookingCheckoutService
             ]);
         }
 
+        $storeId = (int) $bookingLines[0]['service']->store_id;
+
         $startLocal = Carbon::createFromFormat('Y-m-d H:i', $validated['date'].' '.$validated['time'], $tz);
         $endLocal = $startLocal->copy()->addMinutes($totalDuration);
         $minLeadMinutes = max(0, (int) config('booking.min_lead_minutes', 30));
@@ -223,7 +281,7 @@ class OnlineBookingCheckoutService
             }
             $userId = (int) $agent->user_id;
         } else {
-            foreach ($this->rankAnyStaffCandidates($eligible, $startLocal) as $agent) {
+            foreach ($this->rankAnyStaffCandidates($eligible, $startLocal, $storeId) as $agent) {
                 if ($this->slotFitsAgentSchedule($agent, $startLocal, $endLocal)) {
                     $userId = (int) $agent->user_id;
                     break;
@@ -403,6 +461,7 @@ class OnlineBookingCheckoutService
             $validated['email'],
             $validated['phone'],
             $validated['notes'] ?? null,
+            $this->storeIdFromBookingServices($validated['services']),
         );
         $client = $resolved['client'];
         $createdBookingUser = $resolved['created_booking_user'];
@@ -529,16 +588,23 @@ class OnlineBookingCheckoutService
     {
         $ids = array_values(array_unique(array_map('intval', $serviceIds)));
 
-        return Agent::query()
+        $storeId = app(CurrentStore::class)->tryId();
+
+        $query = Agent::query()
+            ->when($storeId !== null, fn ($q) => $q->where('store_id', $storeId))
             ->where('status', Agent::STATUS_ACTIVE)
             ->where('visible_in_booking', true)
             ->whereHas('user', function ($q): void {
-                $q->whereIn('role', [
-                    User::ROLE_PRESTADOR,
-                    User::ROLE_TECNICO,
-                ]);
-            })
-            ->with(['services:id'])
+                $q->eligibleForPublicBooking();
+            });
+
+        if ($storeId !== null) {
+            $query->withServicesForStore($storeId);
+        } else {
+            $query->with('services');
+        }
+
+        return $query
             ->orderBy('agenda_order')
             ->orderBy('name')
             ->get()
@@ -559,13 +625,13 @@ class OnlineBookingCheckoutService
      * @param  Collection<int, Agent>  $eligible
      * @return Collection<int, Agent>
      */
-    private function rankAnyStaffCandidates(Collection $eligible, Carbon $startLocal): Collection
+    private function rankAnyStaffCandidates(Collection $eligible, Carbon $startLocal, int $storeId): Collection
     {
         if ($eligible->isEmpty()) {
             return $eligible;
         }
 
-        $rule = CrmSetting::bookingAnyStaffRule();
+        $rule = CrmSetting::bookingAnyStaffRule($storeId);
         $userIds = $eligible
             ->pluck('user_id')
             ->filter()
@@ -755,7 +821,7 @@ class OnlineBookingCheckoutService
     /**
      * @return array{client: Client, created_booking_user: bool}
      */
-    private function resolveGuestBookingClient(string $name, string $email, string $phoneRaw, ?string $notes): array
+    private function resolveGuestBookingClient(string $name, string $email, string $phoneRaw, ?string $notes, int $storeId): array
     {
         $phoneE164 = PhoneDisplay::toE164(trim($phoneRaw));
         if ($phoneE164 === null || $phoneE164 === '') {
@@ -824,13 +890,13 @@ class OnlineBookingCheckoutService
             return ['client' => $client->fresh(), 'created_booking_user' => true];
         }
 
-        return $this->createNewClientAndBookingUser($name, $emailNorm, $phoneE164, $notes);
+        return $this->createNewClientAndBookingUser($name, $emailNorm, $phoneE164, $notes, $storeId);
     }
 
     /**
      * @return array{client: Client, created_booking_user: bool}
      */
-    private function createNewClientAndBookingUser(string $name, string $emailNorm, string $phoneE164, ?string $notes): array
+    private function createNewClientAndBookingUser(string $name, string $emailNorm, string $phoneE164, ?string $notes, int $storeId): array
     {
         $this->assertEmailAvailableForBookingUser($emailNorm);
 
@@ -838,8 +904,11 @@ class OnlineBookingCheckoutService
             ? '[Marcação online] '.trim($notes)
             : null;
 
+        $organizationId = Store::query()->whereKey($storeId)->value('organization_id');
+
         try {
             $client = Client::create([
+                'store_id' => $storeId,
                 'name' => $name,
                 'email' => $emailNorm,
                 'phone' => $phoneE164,
@@ -857,6 +926,7 @@ class OnlineBookingCheckoutService
                 'email' => $emailNorm,
                 'password' => Hash::make(Str::random(64)),
                 'role' => User::ROLE_CLIENTE,
+                'organization_id' => $organizationId,
                 'client_id' => $client->id,
                 'must_set_password' => false,
             ]);
@@ -894,12 +964,17 @@ class OnlineBookingCheckoutService
             throw $e;
         }
 
+        $organizationId = $client->store_id
+            ? Store::query()->whereKey($client->store_id)->value('organization_id')
+            : null;
+
         try {
             User::create([
                 'name' => $name,
                 'email' => $emailNorm,
                 'password' => Hash::make(Str::random(64)),
                 'role' => User::ROLE_CLIENTE,
+                'organization_id' => $organizationId,
                 'client_id' => $client->id,
                 'must_set_password' => false,
             ]);
@@ -985,46 +1060,6 @@ class OnlineBookingCheckoutService
         return $map[$day->dayOfWeekIso] ?? 'mon';
     }
 
-    /**
-     * @return array{0: int, 1: int}|null Minutos desde meia-noite [início, fim) da janela útil.
-     */
-    private function resolveAgentDayWindow(?array $weeklySchedule, string $dayKey, int $storeStartMin, int $storeEndMin): ?array
-    {
-        $defaultDay = ['enabled' => true, 'start' => self::STORE_OPEN, 'end' => self::STORE_CLOSE];
-        if (! is_array($weeklySchedule)) {
-            $day = $defaultDay;
-        } else {
-            $v = $weeklySchedule[$dayKey] ?? null;
-            if (! is_array($v)) {
-                $day = $defaultDay;
-            } elseif (empty($v['enabled'])) {
-                return null;
-            } else {
-                $day = [
-                    'start' => is_string($v['start'] ?? null) ? $v['start'] : $defaultDay['start'],
-                    'end' => is_string($v['end'] ?? null) ? $v['end'] : $defaultDay['end'],
-                ];
-            }
-        }
-
-        $timePattern = '/^([01]\d|2[0-3]):(00|15|30|45)$/';
-        if (! preg_match($timePattern, $day['start']) || ! preg_match($timePattern, $day['end'])) {
-            $techStart = $storeStartMin;
-            $techEnd = $storeEndMin;
-        } else {
-            $techStart = Agent::timeStringToMinutes($day['start']);
-            $techEnd = Agent::timeStringToMinutes($day['end']);
-        }
-
-        $winStart = max($techStart, $storeStartMin);
-        $winEnd = min($techEnd, $storeEndMin);
-        if ($winStart >= $winEnd) {
-            return null;
-        }
-
-        return [$winStart, $winEnd];
-    }
-
     private function slotFitsAgentSchedule(Agent $agent, Carbon $start, Carbon $end): bool
     {
         if (! $agent->user_id) {
@@ -1036,7 +1071,7 @@ class OnlineBookingCheckoutService
         $dowKey = $this->carbonToWeekdayKey($day);
         $storeStart = Agent::timeStringToMinutes(self::STORE_OPEN);
         $storeEnd = Agent::timeStringToMinutes(self::STORE_CLOSE);
-        $window = $this->resolveAgentDayWindow($agent->weekly_schedule, $dowKey, $storeStart, $storeEnd);
+        $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dowKey, $storeStart, $storeEnd);
         if ($window === null) {
             return false;
         }

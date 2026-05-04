@@ -1,11 +1,12 @@
 @php
     $summaryTitle = $summaryTitle ?? 'Resumo da marcação';
     $showNextButton = $showNextButton ?? true;
-    $nextUrl = $nextUrl ?? route('booking.datetime');
+    $bookingStoreKey = $bookingStoreSlug ?? \App\Models\Store::defaultPublicBookingStoreSlug();
+    $nextUrl = $nextUrl ?? route('booking.datetime', ['store' => $bookingStoreKey], false);
     $nextLabel = $nextLabel ?? 'Seguinte';
     $nextClass = $nextClass ?? 'btn-dark';
     $showBackButton = $showBackButton ?? false;
-    $backUrl = $backUrl ?? route('booking.index');
+    $backUrl = $backUrl ?? route('booking.index', ['store' => $bookingStoreKey], false);
     $nextRequires = $nextRequires ?? null;
     $slotHoldSeconds = max(10, \App\Models\CrmSetting::bookingSlotHoldMinutes() * 60);
 @endphp

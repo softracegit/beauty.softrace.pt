@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Agent;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -18,18 +19,25 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Administrador com agente associado (middleware has.agent exige agente)
+        $storeId = Store::defaultPublicBookingStoreId();
+        $organizationId = Store::query()->whereKey($storeId)->value('organization_id');
+
         $user = User::create([
             'name' => 'Administrador',
             'email' => 'admin@imobiliaria.pt',
             'password' => Hash::make('password'),
             'role' => User::ROLE_ADMIN,
+            'organization_id' => $organizationId,
         ]);
 
         Agent::create([
             'user_id' => $user->id,
+            'store_id' => $storeId,
             'name' => 'Administrador',
             'status' => Agent::STATUS_ACTIVE,
         ]);
+
+        $user->stores()->sync([$storeId]);
 
         // Seeders de referência
         $this->call(PropertyTypeSeeder::class);
@@ -38,7 +46,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PropertyFeatureSeeder::class);
         $this->call(TransactionTypeSeeder::class);
         $this->call(PropertyConditionSeeder::class);
-        
+
         // Seeder de clientes
         $this->call(ClientSeeder::class);
     }

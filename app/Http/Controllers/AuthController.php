@@ -18,7 +18,12 @@ class AuthController extends Controller
         if (Auth::check()) {
             $user = Auth::user();
             if ($user instanceof User && $user->isBookingClient()) {
-                return redirect()->route('booking.index');
+                return redirect()->route('booking.index', [
+                    'store' => $user->bookingPublicHomeStoreSlug(),
+                ]);
+            }
+            if ($user instanceof User && $user->isSuperAdmin()) {
+                return redirect()->route('super-admin.dashboard');
             }
 
             return redirect()->route('dashboard');
@@ -47,11 +52,18 @@ class AuthController extends Controller
                 $request->session()->regenerate();
 
                 throw ValidationException::withMessages([
-                    'email' => ['Contas de marcação online iniciam sessão na marcação (botão «Iniciar sessão»): '.route('booking.index', ['open_auth' => '1']).'.'],
+                    'email' => ['Contas de marcação online iniciam sessão na marcação (botão «Iniciar sessão»): '.route('booking.index', [
+                        'store' => $user->bookingPublicHomeStoreSlug(),
+                        'open_auth' => '1',
+                    ]).'.'],
                 ]);
             }
 
             $request->session()->regenerate();
+
+            if ($user instanceof User && $user->isSuperAdmin()) {
+                return redirect()->intended(route('super-admin.dashboard'));
+            }
 
             return redirect()->intended(route('dashboard'));
         }
@@ -69,7 +81,12 @@ class AuthController extends Controller
         if (Auth::check()) {
             $user = Auth::user();
             if ($user instanceof User && $user->isBookingClient()) {
-                return redirect()->route('booking.index');
+                return redirect()->route('booking.index', [
+                    'store' => $user->bookingPublicHomeStoreSlug(),
+                ]);
+            }
+            if ($user instanceof User && $user->isSuperAdmin()) {
+                return redirect()->route('super-admin.dashboard');
             }
 
             return redirect()->route('dashboard');
@@ -113,15 +130,19 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $wasBookingClient = Auth::user() instanceof User && Auth::user()->isBookingClient();
+        $user = Auth::user();
+        $wasBookingClient = $user instanceof User && $user->isBookingClient();
+        $bookingStoreSlug = $wasBookingClient && $user instanceof User
+            ? $user->bookingPublicHomeStoreSlug()
+            : null;
 
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        if ($wasBookingClient) {
-            return redirect()->route('booking.index');
+        if ($wasBookingClient && $bookingStoreSlug !== null) {
+            return redirect()->route('booking.index', ['store' => $bookingStoreSlug]);
         }
 
         return redirect()->route('login');

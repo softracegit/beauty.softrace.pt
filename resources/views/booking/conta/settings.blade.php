@@ -29,10 +29,10 @@
                             <div
                                 class="card border shadow-sm rounded-3"
                                 id="booking-cards-wallet"
-                                data-setup-intent-url="{{ route('booking.conta.cards.setup_intent') }}"
-                                data-sync-url="{{ route('booking.conta.cards.sync') }}"
-                                data-default-url-template="{{ route('booking.conta.cards.default', ['card' => '__CARD__']) }}"
-                                data-destroy-url-template="{{ route('booking.conta.cards.destroy', ['card' => '__CARD__']) }}"
+                                data-setup-intent-url="{{ route('booking.conta.cards.setup_intent', ['store' => $bookingStoreSlug], false) }}"
+                                data-sync-url="{{ route('booking.conta.cards.sync', ['store' => $bookingStoreSlug], false) }}"
+                                data-default-url-template="{{ route('booking.conta.cards.default', ['store' => $bookingStoreSlug, 'card' => '__CARD__'], false) }}"
+                                data-destroy-url-template="{{ route('booking.conta.cards.destroy', ['store' => $bookingStoreSlug, 'card' => '__CARD__'], false) }}"
                                 data-publishable-key="{{ $stripePublishableKey }}"
                             >
                                 <div class="card-body py-3">

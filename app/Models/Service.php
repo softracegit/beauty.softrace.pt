@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToStore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,7 +12,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Service extends Model
 {
-    use LogsActivity;
+    use BelongsToStore, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -27,6 +28,7 @@ class Service extends Model
     }
 
     protected $fillable = [
+        'store_id',
         'category_id',
         'name',
         'description',
@@ -42,6 +44,14 @@ class Service extends Model
         'online_price' => 'decimal:2',
         'sort_order' => 'integer',
     ];
+
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
 
     /**
      * Get the category that owns the service

@@ -12,7 +12,7 @@
         @include('booking.partials.navbar')
 
         <div class="flex-grow-1 booking-main-body">
-            <div class="container booking-container-wide px-3 pb-3 pt-0">
+            <div class="container booking-container-wide px-3 pb-2 pt-0">
                 @if (session('status'))
                     <div class="alert alert-success py-2 px-3 small mt-2 mb-2" role="status">{{ session('status') }}</div>
                 @endif
@@ -169,7 +169,7 @@
                             @include('booking.partials.summary-panel', [
                                 'summaryTitle' => 'Resumo da marcação',
                                 'showNextButton' => true,
-                                'nextUrl' => route('booking.technician'),
+                                'nextUrl' => route('booking.technician', ['store' => $bookingStoreSlug], false),
                             ])
                         </div>
                     </div>

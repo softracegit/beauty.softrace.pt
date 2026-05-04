@@ -27,7 +27,7 @@ class ServiceController extends Controller
      */
     public function allGrouped(Request $request): JsonResponse
     {
-        $groups = Category::orderBy('sort_order')
+        $groups = Category::forStore(current_store_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->with('agents')->withCount('extras')->with([
                 'options' => fn ($oq) => $oq->orderBy('sort_order'),
             ])->orderBy('sort_order')])
@@ -83,11 +83,12 @@ class ServiceController extends Controller
     public function store(StoreServiceRequest $request): JsonResponse
     {
         $data = $request->serviceAttributes();
+        $data['store_id'] = current_store_id();
         $hasOptions = $request->boolean('has_options');
 
         // Set sort_order if not provided
         if (! isset($data['sort_order'])) {
-            $maxOrder = Service::where('category_id', $data['category_id'])->max('sort_order') ?? 0;
+            $maxOrder = Service::forStore(current_store_id())->where('category_id', $data['category_id'])->max('sort_order') ?? 0;
             $data['sort_order'] = $maxOrder + 1;
         }
 
@@ -183,7 +184,7 @@ class ServiceController extends Controller
         ]);
 
         // Verify all services belong to the category
-        $serviceIds = Service::whereIn('id', $request->order)
+        $serviceIds = Service::forStore(current_store_id())->whereIn('id', $request->order)
             ->where('category_id', $category->id)
             ->pluck('id')
             ->toArray();
@@ -196,7 +197,7 @@ class ServiceController extends Controller
         }
 
         foreach ($request->order as $index => $serviceId) {
-            Service::where('id', $serviceId)->update(['sort_order' => $index + 1]);
+            Service::forStore(current_store_id())->whereKey($serviceId)->update(['sort_order' => $index + 1]);
         }
 
         return response()->json([
@@ -210,11 +211,12 @@ class ServiceController extends Controller
      */
     public function tecnicos(): View
     {
-        $categories = Category::orderBy('sort_order')
+        $categories = Category::forStore(current_store_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->with('agents:id')->orderBy('sort_order')])
             ->get();
 
         $agents = Agent::query()
+            ->forStore(current_store_id())
             ->whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -233,17 +235,18 @@ class ServiceController extends Controller
         $assignments = $request->validated('assignments', []);
 
         $allowedAgentIds = Agent::query()
+            ->forStore(current_store_id())
             ->whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
             ->pluck('id')
             ->all();
 
         DB::transaction(function () use ($assignments, $allowedAgentIds): void {
-            foreach (Service::query()->pluck('id') as $serviceId) {
+            foreach (Service::forStore(current_store_id())->pluck('id') as $serviceId) {
                 $ids = isset($assignments[$serviceId])
                     ? array_values(array_unique(array_map('intval', (array) $assignments[$serviceId])))
                     : [];
                 $ids = array_values(array_intersect($ids, $allowedAgentIds));
-                Service::query()->whereKey($serviceId)->first()?->agents()->sync($ids);
+                Service::forStore(current_store_id())->whereKey($serviceId)->first()?->agents()->sync($ids);
             }
         });
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Agent;
 use App\Models\Category;
 use App\Models\Note;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -20,7 +21,7 @@ class AgentController extends Controller
     public function index(Request $request)
     {
         $this->authorize('viewAny', Agent::class);
-        $query = Agent::query()->orderBy('name');
+        $query = Agent::query()->forStore(current_store_id())->orderBy('name');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -56,7 +57,7 @@ class AgentController extends Controller
     public function create()
     {
         $this->authorize('create', Agent::class);
-        $categories = Category::orderBy('sort_order')
+        $categories = Category::forStore(current_store_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
@@ -96,21 +97,26 @@ class AgentController extends Controller
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'service_ids' => ['nullable', 'array'],
-            'service_ids.*' => ['integer', 'exists:services,id'],
+            'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
         ]);
 
         $validated = $this->applySpecializationByRole($validated);
         $validated = $this->normalizeCommission($validated);
+
+        $storeId = current_store_id();
+        $organizationId = Store::query()->whereKey($storeId)->value('organization_id');
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
+            'organization_id' => $organizationId,
         ]);
 
         $agentData = collect($validated)->except(['email', 'password', 'password_confirmation', 'role', 'avatar', 'service_ids'])->all();
         $agentData['user_id'] = $user->id;
+        $agentData['store_id'] = $storeId;
         $agentData['weekly_schedule'] = $this->validatedWeeklySchedule($request);
 
         if ($request->hasFile('avatar')) {
@@ -118,6 +124,7 @@ class AgentController extends Controller
         }
 
         $agent = Agent::create($agentData);
+        $user->stores()->sync([$storeId]);
         $agent->services()->sync($request->input('service_ids', []));
 
         return redirect()->route('equipa.index')
@@ -143,7 +150,7 @@ class AgentController extends Controller
         $vendas = collect();
 
         if ($agente->user_id) {
-            $marcacoes = \App\Models\CalendarEvent::where('user_id', $agente->user_id)
+            $marcacoes = \App\Models\CalendarEvent::forStore(current_store_id())->where('user_id', $agente->user_id)
                 ->where('event_type', \App\Models\CalendarEvent::TYPE_MARCACAO)
                 ->with(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra'])
                 ->orderByDesc('start_at')
@@ -151,7 +158,7 @@ class AgentController extends Controller
                 ->get();
 
             $today = now()->startOfDay();
-            $vendas = \App\Models\CalendarEvent::where('user_id', $agente->user_id)
+            $vendas = \App\Models\CalendarEvent::forStore(current_store_id())->where('user_id', $agente->user_id)
                 ->where('event_type', \App\Models\CalendarEvent::TYPE_MARCACAO)
                 ->where('status', '!=', \App\Models\CalendarEvent::STATUS_CANCELADO)
                 ->where('start_at', '<', $today)
@@ -222,7 +229,7 @@ class AgentController extends Controller
     {
         $this->authorize('update', $agente);
         $agente->load('services');
-        $categories = Category::orderBy('sort_order')
+        $categories = Category::forStore(current_store_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
@@ -262,7 +269,7 @@ class AgentController extends Controller
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'service_ids' => ['nullable', 'array'],
-            'service_ids.*' => ['integer', 'exists:services,id'],
+            'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
         ]);
 
         $validated = $this->applySpecializationByRole($validated);
