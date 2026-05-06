@@ -160,6 +160,7 @@ class CalendarEvent extends Model
         'event_type',
         'personal_time_type_id',
         'status',
+        'booking_sms_reminder_sent_at',
         'cancellation_reason',
         'cancellation_type',
         'refund_reserva',
@@ -173,6 +174,7 @@ class CalendarEvent extends Model
         'end_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'booking_sms_reminder_sent_at' => 'datetime',
         'refund_reserva' => 'boolean',
         'avisou_dentro_prazo' => 'boolean',
     ];

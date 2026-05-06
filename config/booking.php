@@ -29,6 +29,48 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Código OTP (login booking + verificação de contacto)
+    |--------------------------------------------------------------------------
+    |
+    | Validade do código em minutos. Limite de reenvios: intervalo mínimo entre
+    | envios bem-sucedidos (cooldown), contagem na janela e bloqueio após exceder.
+    |
+    */
+
+    'auth_code_ttl_minutes' => max(3, (int) env('BOOKING_AUTH_CODE_TTL_MINUTES', 10)),
+
+    /** Segundos entre um envio bem-sucedido e o próximo pedido (anti-abuso). */
+    'otp_send_cooldown_seconds' => max(0, (int) env('BOOKING_OTP_SEND_COOLDOWN_SECONDS', 30)),
+
+    /** Máximo de códigos enviados com sucesso na janela (inclui o 1.º envio; ex.: 6 = 1 + 5 reenvios). */
+    'otp_send_max_per_window' => max(0, (int) env('BOOKING_OTP_SEND_MAX_PER_WINDOW', 6)),
+
+    /** Janela em horas para contar os envios (0 no max desativa só o teto — use 1+). */
+    'otp_send_count_window_hours' => max(1, (int) env('BOOKING_OTP_SEND_COUNT_WINDOW_HOURS', 1)),
+
+    /** Horas de bloqueio após atingir o máximo de envios na janela. */
+    'otp_send_lockout_hours' => max(1, (int) env('BOOKING_OTP_SEND_LOCKOUT_HOURS', 2)),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Lembretes SMS de marcação
+    |--------------------------------------------------------------------------
+    |
+    | O comando agendado corre a cada minuto e procura marcações com início
+    | dentro desta antecedência. Ex.: 120 = enviar ~2 horas antes.
+    |
+    */
+
+    'sms_reminder_lead_minutes' => max(1, (int) env('BOOKING_SMS_REMINDER_LEAD_MINUTES', 120)),
+
+    /**
+     * Tolerância (em minutos) para trás no disparo do lembrete.
+     * Evita perder SMS por pequenos atrasos do scheduler/worker.
+     */
+    'sms_reminder_grace_minutes' => max(0, (int) env('BOOKING_SMS_REMINDER_GRACE_MINUTES', 5)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Pagamento online na marcação (Stripe)
     |--------------------------------------------------------------------------
     |

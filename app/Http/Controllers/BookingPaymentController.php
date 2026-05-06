@@ -316,7 +316,7 @@ class BookingPaymentController extends Controller
             $this->checkout->notifyTechnician($event, $resolvedUserId);
         }
         if ($event !== null && $event->client) {
-            $this->notifyClientAppointmentCreated($event->id, $event->client->email);
+            $this->notifyClientAppointmentCreated($event->id, $event->client);
         }
 
         if ($createdBookingUser) {
@@ -382,7 +382,7 @@ class BookingPaymentController extends Controller
             $this->checkout->notifyTechnician($event, $resolvedUserId);
         }
         if ($event !== null && $event->client) {
-            $this->notifyClientAppointmentCreated($event->id, $event->client->email);
+            $this->notifyClientAppointmentCreated($event->id, $event->client);
         }
 
         if ($createdBookingUser) {
@@ -680,9 +680,13 @@ class BookingPaymentController extends Controller
         };
     }
 
-    private function notifyClientAppointmentCreated(int $eventId, ?string $clientEmail): void
+    private function notifyClientAppointmentCreated(int $eventId, Client $client): void
     {
-        $email = $this->resolveClientNotificationRecipientEmail($clientEmail);
+        if (! $this->clientAllowsEmailBookingUpdates($client)) {
+            return;
+        }
+
+        $email = $this->resolveClientNotificationRecipientEmail($client->email);
         if (! is_string($email) || trim($email) === '') {
             return;
         }
@@ -712,6 +716,11 @@ class BookingPaymentController extends Controller
         }
 
         return $supportEmail;
+    }
+
+    private function clientAllowsEmailBookingUpdates(Client $client): bool
+    {
+        return (bool) ($client->notify_email_booking_updates ?? true);
     }
 
     private function resolveStripeCustomerIdForBookingActor(mixed $actor): ?string

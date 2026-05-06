@@ -53,6 +53,9 @@ class Client extends Model
         'preferred_schedule',
         'preferences_notes',
         'stripe_customer_id',
+        'notify_email_booking_updates',
+        'notify_email_booking_reminders',
+        'notify_sms_booking_reminders',
     ];
 
     /**
@@ -68,6 +71,9 @@ class Client extends Model
         'phone_verified_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'notify_email_booking_updates' => 'boolean',
+        'notify_email_booking_reminders' => 'boolean',
+        'notify_sms_booking_reminders' => 'boolean',
     ];
 
     /**

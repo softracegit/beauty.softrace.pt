@@ -6,6 +6,7 @@ use App\Mail\BookingContactVerificationCodeMail;
 use App\Models\BookingContactVerificationCode;
 use App\Models\Client;
 use App\Models\User;
+use App\Services\BookingOtpSendRateLimiter;
 use App\Services\TwilioSmsService;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
@@ -20,7 +21,8 @@ use Illuminate\Validation\ValidationException;
 class BookingContactVerificationController extends Controller
 {
     public function __construct(
-        private readonly TwilioSmsService $twilioSmsService
+        private readonly TwilioSmsService $twilioSmsService,
+        private readonly BookingOtpSendRateLimiter $otpSendRateLimiter,
     ) {}
 
     public function requestCode(Request $request): JsonResponse|RedirectResponse
@@ -56,6 +58,9 @@ class BookingContactVerificationController extends Controller
                 ]);
             }
         }
+
+        $rateBucket = 'vcontact:'.$user->id.':'.$channel;
+        $this->otpSendRateLimiter->assertCanSend($rateBucket, 'verify');
 
         BookingContactVerificationCode::query()
             ->where('user_id', $user->id)
@@ -95,6 +100,8 @@ class BookingContactVerificationController extends Controller
             ]);
         }
 
+        $this->otpSendRateLimiter->recordSuccessfulSend($rateBucket);
+
         $message = $channel === 'email'
             ? 'Código enviado para o email.'
             : 'Código enviado por SMS para o telemóvel.';
@@ -104,6 +111,7 @@ class BookingContactVerificationController extends Controller
                 'ok' => true,
                 'channel' => $channel,
                 'message' => $message,
+                'resend_cooldown_seconds' => max(0, (int) config('booking.otp_send_cooldown_seconds', 30)),
             ]);
         }
 

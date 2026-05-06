@@ -46,6 +46,10 @@ class Sale extends Model
         'payment_method',
         'scope',
         'status',
+        'vendus_sync_status',
+        'vendus_document_id',
+        'vendus_synced_at',
+        'vendus_sync_error',
     ];
 
     protected $casts = [
@@ -57,6 +61,7 @@ class Sale extends Model
         'iva_total' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'vendus_synced_at' => 'datetime',
     ];
 
     protected $attributes = [

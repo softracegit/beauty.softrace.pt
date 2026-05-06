@@ -32,7 +32,11 @@
                                 msg = data.errors[firstKey][0];
                             }
                         }
-                        throw new Error(msg);
+                        var err = new Error(msg);
+                        if (data && data.retry_after_seconds != null && !isNaN(Number(data.retry_after_seconds))) {
+                            err.retry_after_seconds = Number(data.retry_after_seconds);
+                        }
+                        throw err;
                     }
 
                     return data || {};
@@ -81,6 +85,9 @@
         var modal = new window.bootstrap.Modal(modalEl);
         var currentChannel = '';
         var isSubmitting = false;
+        var lastCodeSentAt = 0;
+        var resendCooldownSeconds = 30;
+        var resendCooldownTimerId = null;
 
         function showError(msg) {
             errorBox.textContent = msg || '';
@@ -124,6 +131,60 @@
             currentChannel = '';
             showError('');
             setCode('');
+            lastCodeSentAt = 0;
+            if (resendCooldownTimerId) {
+                clearInterval(resendCooldownTimerId);
+                resendCooldownTimerId = null;
+            }
+            resendBtn.disabled = false;
+            resendBtn.textContent = 'Reenviar';
+        }
+
+        function updateResendCountdown(secondsLeft) {
+            if (secondsLeft > 0) {
+                resendBtn.disabled = true;
+                resendBtn.textContent = 'Reenviar (' + secondsLeft + 's)';
+            } else {
+                if (resendCooldownTimerId) {
+                    clearInterval(resendCooldownTimerId);
+                    resendCooldownTimerId = null;
+                }
+                resendBtn.disabled = false;
+                resendBtn.textContent = 'Reenviar';
+            }
+        }
+
+        function startResendCooldownFromNow() {
+            if (resendCooldownTimerId) {
+                clearInterval(resendCooldownTimerId);
+                resendCooldownTimerId = null;
+            }
+            var total = Math.max(0, parseInt(String(resendCooldownSeconds), 10) || 0);
+            if (total <= 0) {
+                updateResendCountdown(0);
+                return;
+            }
+            var endAt = Date.now() + total * 1000;
+            function tick() {
+                var left = Math.ceil((endAt - Date.now()) / 1000);
+                if (left <= 0) {
+                    updateResendCountdown(0);
+                    return;
+                }
+                updateResendCountdown(left);
+            }
+            tick();
+            resendCooldownTimerId = setInterval(tick, 500);
+        }
+
+        function applySendSuccess(data) {
+            lastCodeSentAt = Date.now();
+            if (data && data.resend_cooldown_seconds != null && !isNaN(Number(data.resend_cooldown_seconds))) {
+                resendCooldownSeconds = Math.max(0, Number(data.resend_cooldown_seconds));
+            }
+            window.setTimeout(function () {
+                startResendCooldownFromNow();
+            }, 0);
         }
 
         function sendCode(channel) {
@@ -169,7 +230,8 @@
                         : 'Enviámos um código por SMS para o seu telemóvel.';
                 setLoading(btn, true, 'A enviar...', 'Verificar');
                 sendCode(channel)
-                    .then(function () {
+                    .then(function (data) {
+                        applySendSuccess(data || {});
                         modal.show();
                         digits[0].focus();
                     })
@@ -188,10 +250,26 @@
             if (!currentChannel) {
                 return;
             }
+            var minMs = Math.max(0, parseInt(String(resendCooldownSeconds), 10) || 0) * 1000;
+            if (minMs > 0 && Date.now() - lastCodeSentAt < minMs) {
+                var waitSec = Math.max(1, Math.ceil((minMs - (Date.now() - lastCodeSentAt)) / 1000));
+                showError('Aguarde ' + waitSec + ' segundos antes de pedir um novo código.');
+                return;
+            }
             setLoading(resendBtn, true, 'A reenviar...', 'Reenviar');
             sendCode(currentChannel)
+                .then(function (data) {
+                    applySendSuccess(data || {});
+                })
                 .catch(function (err) {
                     showError(err && err.message ? err.message : 'Não foi possível reenviar o código.');
+                    if (err && err.retry_after_seconds != null && !isNaN(Number(err.retry_after_seconds))) {
+                        resendCooldownSeconds = Math.max(resendCooldownSeconds, Number(err.retry_after_seconds));
+                        lastCodeSentAt = Date.now();
+                        window.setTimeout(function () {
+                            startResendCooldownFromNow();
+                        }, 0);
+                    }
                 })
                 .finally(function () {
                     setLoading(resendBtn, false, '', 'Reenviar');

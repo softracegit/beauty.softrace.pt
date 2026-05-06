@@ -6,6 +6,7 @@ use App\Mail\BookingAuthCodeMail;
 use App\Models\BookingAuthCode;
 use App\Models\Client;
 use App\Models\User;
+use App\Services\BookingOtpSendRateLimiter;
 use App\Services\TwilioSmsService;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
@@ -26,7 +27,8 @@ class BookingClientAuthController extends Controller
     private const PENDING_REG_IDENTIFIER_KEY = 'booking_auth.pending_registration.identifier';
 
     public function __construct(
-        private readonly TwilioSmsService $twilioSmsService
+        private readonly TwilioSmsService $twilioSmsService,
+        private readonly BookingOtpSendRateLimiter $otpSendRateLimiter,
     ) {}
 
     public function requestCodeFromAuthModal(Request $request): JsonResponse
@@ -39,6 +41,8 @@ class BookingClientAuthController extends Controller
         $code = (string) random_int(100000, 999999);
 
         $storeId = $this->bookingPublicStoreId();
+        $rateBucket = $this->bookingAuthOtpRateBucket($storeId, $target['channel'], $target['identifier']);
+        $this->otpSendRateLimiter->assertCanSend($rateBucket, 'login');
 
         BookingAuthCode::query()
             ->where('store_id', $storeId)
@@ -78,13 +82,26 @@ class BookingClientAuthController extends Controller
             ]);
         }
 
+        $this->otpSendRateLimiter->recordSuccessfulSend($rateBucket);
+
         return response()->json([
             'ok' => true,
             'channel' => $target['channel'],
             'identifier' => $target['identifier'],
             'expires_in' => $ttlMinutes * 60,
             'known_account' => $user instanceof User,
+            'resend_cooldown_seconds' => max(0, (int) config('booking.otp_send_cooldown_seconds', 30)),
         ]);
+    }
+
+    /**
+     * Chave opaca para rate limit do OTP do modal de autenticação (por loja + destino).
+     */
+    private function bookingAuthOtpRateBucket(int $storeId, string $channel, string $identifier): string
+    {
+        $norm = $channel === 'email' ? strtolower(trim($identifier)) : trim($identifier);
+
+        return 'auth:'.$storeId.':'.hash('sha256', $channel.':'.$norm);
     }
 
     public function verifyCodeFromAuthModal(Request $request): JsonResponse

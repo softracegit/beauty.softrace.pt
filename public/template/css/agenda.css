@@ -419,6 +419,9 @@ body .app-wrapper .container-fluid {
 .fc-event .fc-event-status-icon-completo {
     color: #198754;
 }
+.fc-event .fc-event-status-icon.ph-calendar-check {
+    color: #16a34a;
+}
 .agenda-event-status-icon-btn {
     cursor: pointer;
     display: inline-flex;
@@ -1796,6 +1799,11 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     display: block;
     font-size: 1.05em;
     line-height: 1;
+}
+#eventDetailEditModal #eventDetailStatusIcon .ph-calendar-check,
+#eventDetailEditModal #eventDetailStatusStaticIcon .ph-calendar-check,
+#eventDetailEditModal #eventDetailStatusMenu .ph-calendar-check {
+    color: #16a34a;
 }
 
 #eventDetailEditModal #eventDetailStatusLabel,

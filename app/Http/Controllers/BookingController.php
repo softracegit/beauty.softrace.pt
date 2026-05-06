@@ -444,6 +444,45 @@ class BookingController extends Controller
             ->with('success', 'Dados pessoais guardados.');
     }
 
+    /**
+     * Atualiza preferências de notificações do cliente de marcação.
+     */
+    public function updateNotificationPreferences(Request $request): JsonResponse|RedirectResponse
+    {
+        $user = $request->user();
+        $client = $user?->client;
+
+        if (! $client instanceof Client) {
+            abort(404);
+        }
+
+        if ((int) $client->store_id !== $this->bookingStoreId()) {
+            abort(404);
+        }
+
+        $request->validate([
+            'notify_email_booking_updates' => ['nullable', 'boolean'],
+            'notify_email_booking_reminders' => ['nullable', 'boolean'],
+            'notify_sms_booking_reminders' => ['nullable', 'boolean'],
+        ]);
+
+        $client->forceFill([
+            'notify_email_booking_updates' => $request->boolean('notify_email_booking_updates'),
+            'notify_email_booking_reminders' => $request->boolean('notify_email_booking_reminders'),
+            'notify_sms_booking_reminders' => $request->boolean('notify_sms_booking_reminders'),
+        ])->save();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => 'Preferências de notificações guardadas.',
+            ]);
+        }
+
+        return redirect()
+            ->route('booking.conta.settings', ['store' => $this->bookingStoreSlug()])
+            ->with('success', 'Preferências de notificações guardadas.');
+    }
+
     private function carbonToWeekdayKey(Carbon $day): string
     {
         $map = [

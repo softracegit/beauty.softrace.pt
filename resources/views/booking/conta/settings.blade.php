@@ -25,6 +25,73 @@
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'definicoes'])
 
                     <div class="booking-account-content">
+                        <section id="notificacoes" class="booking-category-section mb-3">
+                            <div class="card border shadow-sm rounded-3">
+                                <div class="card-body py-3">
+                                    <p class="small fw-semibold text-uppercase text-muted mb-2">Notificações</p>
+                                    <form
+                                        id="booking-notification-preferences-form"
+                                        action="{{ route('booking.conta.notifications.update', ['store' => $bookingStoreSlug], false) }}"
+                                        method="post"
+                                        novalidate
+                                    >
+                                        @csrf
+                                        <div id="booking-notification-preferences-error" class="alert alert-danger py-2 px-3 small d-none mb-3" role="alert"></div>
+                                        <div id="booking-notification-preferences-success" class="alert alert-success py-2 px-3 small d-none mb-3" role="alert"></div>
+
+                                        <div class="small fw-semibold text-dark border-top pt-3 pb-1">Por email</div>
+                                        <div class="form-check mb-2">
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                id="notify-email-booking-updates"
+                                                name="notify_email_booking_updates"
+                                                value="1"
+                                                {{ old('notify_email_booking_updates', $client?->notify_email_booking_updates ?? true) ? 'checked' : '' }}
+                                            >
+                                            <label class="form-check-label small text-muted" for="notify-email-booking-updates">
+                                                Notificação de marcação agendada, alterada ou cancelada
+                                            </label>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                id="notify-email-booking-reminders"
+                                                name="notify_email_booking_reminders"
+                                                value="1"
+                                                {{ old('notify_email_booking_reminders', $client?->notify_email_booking_reminders ?? true) ? 'checked' : '' }}
+                                            >
+                                            <label class="form-check-label small text-muted" for="notify-email-booking-reminders">
+                                                Notificação a lembrar da marcação agendada (para confirmar se vai ou não)
+                                            </label>
+                                        </div>
+
+                                        <div class="small fw-semibold text-dark border-top pt-3 pb-1">Por SMS</div>
+                                        <div class="form-check mb-3">
+                                            <input
+                                                class="form-check-input"
+                                                type="checkbox"
+                                                id="notify-sms-booking-reminders"
+                                                name="notify_sms_booking_reminders"
+                                                value="1"
+                                                {{ old('notify_sms_booking_reminders', $client?->notify_sms_booking_reminders ?? true) ? 'checked' : '' }}
+                                            >
+                                            <label class="form-check-label small text-muted" for="notify-sms-booking-reminders">
+                                                Notificação a lembrar da marcação agendada (para confirmar se vai ou não)
+                                            </label>
+                                        </div>
+
+                                        <div class="d-flex justify-content-end">
+                                            <button type="submit" class="btn btn-dark btn-sm" id="booking-notification-preferences-submit">
+                                                Guardar preferências
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </section>
+
                         <section id="carteira" class="booking-category-section mb-3">
                             <div
                                 class="card border shadow-sm rounded-3"
@@ -87,6 +154,7 @@
 
 @push('scripts')
     <script src="https://js.stripe.com/v3/"></script>
+    <script src="{{ asset('booking-assets/js/account-notifications.js') }}?v={{ file_exists(public_path('booking-assets/js/account-notifications.js')) ? filemtime(public_path('booking-assets/js/account-notifications.js')) : time() }}" defer></script>
     <script src="{{ asset('booking-assets/js/account-cards.js') }}?v={{ file_exists(public_path('booking-assets/js/account-cards.js')) ? filemtime(public_path('booking-assets/js/account-cards.js')) : time() }}" defer></script>
 @endpush
 

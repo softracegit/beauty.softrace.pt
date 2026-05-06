@@ -45,4 +45,19 @@ return [
         'sms_from' => env('TWILIO_SMS_FROM', env('TWILIO_FROM')),
     ],
 
+    'vendus' => [
+        'api_key' => env('VENDUS_API_KEY'),
+        'base_url' => env('VENDUS_BASE_URL'),
+        // Opcoes: bearer, basic ou query
+        'auth_mode' => env('VENDUS_AUTH_MODE', 'bearer'),
+        'documents_endpoint' => env('VENDUS_DOCUMENTS_ENDPOINT', '/documents/'),
+        'document_type' => env('VENDUS_DOCUMENT_TYPE', 'FT'),
+        'tax_id' => env('VENDUS_TAX_ID', 'NOR'),
+        'category_id' => env('VENDUS_CATEGORY_ID'),
+        'category_title' => env('VENDUS_CATEGORY_TITLE', 'Serviços'),
+        'register_id' => env('VENDUS_REGISTER_ID'),
+        'mode' => env('VENDUS_MODE', 'normal'),
+        'simulate' => env('VENDUS_SIMULATE', false),
+    ],
+
 ];

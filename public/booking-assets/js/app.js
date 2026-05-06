@@ -3605,6 +3605,10 @@
         var submittedResolver = null;
         var currentStep = 'email';
         var lastCodeRequestAt = 0;
+        var lastSuccessfulCodeTarget = '';
+        var otpCooldownEndAt = 0;
+        var resendCooldownSeconds = 30;
+        var resendCooldownTimerId = null;
         var isSubmittingCode = false;
 
         function showError(msg) {
@@ -3670,7 +3674,11 @@
                                 msg = data.errors[firstKey][0];
                             }
                         }
-                        throw new Error(msg);
+                        var err = new Error(msg);
+                        if (data && data.retry_after_seconds != null && !isNaN(Number(data.retry_after_seconds))) {
+                            err.retry_after_seconds = Number(data.retry_after_seconds);
+                        }
+                        throw err;
                     }
                     return data || {};
                 });
@@ -3679,6 +3687,70 @@
         function showCodeStatus(message) {
             codeStatus.textContent = message || '';
             codeStatus.classList.toggle('d-none', !message);
+        }
+        function clearResendCooldownTimer() {
+            if (resendCooldownTimerId) {
+                clearInterval(resendCooldownTimerId);
+                resendCooldownTimerId = null;
+            }
+            otpCooldownEndAt = 0;
+        }
+        function getOtpCooldownSecondsLeft() {
+            if (!otpCooldownEndAt) {
+                return 0;
+            }
+            return Math.max(0, Math.ceil((otpCooldownEndAt - Date.now()) / 1000));
+        }
+        function emailSendMatchesCooldownTarget() {
+            if (!lastSuccessfulCodeTarget) {
+                return false;
+            }
+            var typed = parseLoginInput(String(loginInput.value || '').trim());
+            if (!typed || typed.error) {
+                return false;
+            }
+            return typed.identifier === lastSuccessfulCodeTarget;
+        }
+        function applyOtpCooldownUi() {
+            var left = getOtpCooldownSecondsLeft();
+            var emailBusy = emailNextBtn.querySelector('.spinner-border');
+            if (left <= 0) {
+                clearResendCooldownTimer();
+                codeResendBtn.disabled = false;
+                codeResendBtn.textContent = 'Reenviar código';
+                if (currentStep === 'email' && !emailBusy) {
+                    emailNextBtn.disabled = false;
+                    emailNextBtn.textContent = 'Enviar código';
+                }
+                return;
+            }
+            codeResendBtn.disabled = true;
+            codeResendBtn.textContent = 'Reenviar código (' + left + 's)';
+            if (currentStep === 'email' && emailSendMatchesCooldownTarget() && !emailBusy) {
+                emailNextBtn.disabled = true;
+                emailNextBtn.textContent = 'Enviar código (' + left + 's)';
+            } else if (currentStep === 'email' && !emailBusy) {
+                emailNextBtn.disabled = false;
+                emailNextBtn.textContent = 'Enviar código';
+            }
+        }
+        function startResendCooldownFromNow() {
+            clearResendCooldownTimer();
+            var total = Math.max(0, parseInt(String(resendCooldownSeconds), 10) || 0);
+            if (total <= 0) {
+                applyOtpCooldownUi();
+                return;
+            }
+            otpCooldownEndAt = Date.now() + total * 1000;
+            function tick() {
+                applyOtpCooldownUi();
+                if (getOtpCooldownSecondsLeft() <= 0) {
+                    clearResendCooldownTimer();
+                    applyOtpCooldownUi();
+                }
+            }
+            tick();
+            resendCooldownTimerId = setInterval(tick, 500);
         }
         function submitOtpCode() {
             if (isSubmittingCode) {
@@ -3765,6 +3837,18 @@
                 return Promise.reject(new Error('invalid_login'));
             }
 
+            var minMs = Math.max(0, parseInt(String(resendCooldownSeconds), 10) || 0) * 1000;
+            if (
+                lastSuccessfulCodeTarget &&
+                parsed.identifier === lastSuccessfulCodeTarget &&
+                minMs > 0 &&
+                Date.now() - lastCodeRequestAt < minMs
+            ) {
+                var waitSec = Math.max(1, Math.ceil((minMs - (Date.now() - lastCodeRequestAt)) / 1000));
+                showError('Aguarde ' + waitSec + ' segundos antes de pedir um novo código.');
+                return Promise.reject(new Error('invalid_login'));
+            }
+
             currentAuthIdentifier = parsed.identifier;
             currentAuthChannel = parsed.channel;
             setLoading(emailNextBtn, true, 'A enviar...', 'Enviar código');
@@ -3777,11 +3861,18 @@
                     if (res && res.channel) {
                         currentAuthChannel = String(res.channel).trim();
                     }
+                    lastSuccessfulCodeTarget = currentAuthIdentifier;
                     lastCodeRequestAt = Date.now();
+                    if (res && res.resend_cooldown_seconds != null && !isNaN(Number(res.resend_cooldown_seconds))) {
+                        resendCooldownSeconds = Math.max(0, Number(res.resend_cooldown_seconds));
+                    }
                     showCodeStatus('');
                     setStep('code');
                     clearOtpCode();
                     codeDigitInputs[0].focus();
+                    window.setTimeout(function () {
+                        startResendCooldownFromNow();
+                    }, 0);
                     return res;
                 })
                 .finally(function () {
@@ -3793,21 +3884,31 @@
             reloadAfterAuthSuccess = false;
             currentAuthIdentifier = '';
             currentAuthChannel = 'email';
+            lastSuccessfulCodeTarget = '';
             loginInput.value = '';
             clearOtpCode();
             registerNameInput.value = '';
             registerEmailInput.value = '';
             registerPhoneInput.value = '';
             showCodeStatus('');
+            clearResendCooldownTimer();
+            applyOtpCooldownUi();
             setStep('email');
         }
         modalBackBtn.addEventListener('click', function () {
             if (currentStep === 'code') {
                 setStep('email');
+                applyOtpCooldownUi();
                 loginInput.focus();
             } else if (currentStep === 'register') {
                 setStep('code');
                 codeDigitInputs[0].focus();
+            }
+        });
+
+        loginInput.addEventListener('input', function () {
+            if (getOtpCooldownSecondsLeft() > 0) {
+                applyOtpCooldownUi();
             }
         });
 
@@ -3857,14 +3958,23 @@
                 setStep('email');
                 return;
             }
-            if (Date.now() - lastCodeRequestAt < 3000) {
-                showCodeStatus('Aguarde 3 segundos antes de pedir um novo código.');
+            var minMs = Math.max(0, parseInt(String(resendCooldownSeconds), 10) || 0) * 1000;
+            if (minMs > 0 && Date.now() - lastCodeRequestAt < minMs) {
+                var waitSec = Math.max(1, Math.ceil((minMs - (Date.now() - lastCodeRequestAt)) / 1000));
+                showCodeStatus('Aguarde ' + waitSec + ' segundos antes de pedir um novo código.');
                 return;
             }
             requestCode(currentAuthIdentifier)
                 .catch(function (err) {
                     if (err && err.message && err.message !== 'invalid_login') {
                         showError(err.message);
+                        if (err.retry_after_seconds != null && !isNaN(Number(err.retry_after_seconds))) {
+                            resendCooldownSeconds = Math.max(resendCooldownSeconds, Number(err.retry_after_seconds));
+                            lastCodeRequestAt = Date.now();
+                            window.setTimeout(function () {
+                                startResendCooldownFromNow();
+                            }, 0);
+                        }
                     }
                 });
         });

@@ -13,6 +13,7 @@ use App\Models\Sale;
 use App\Models\Service;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
+use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Notifications\ClientAppointmentRescheduledNotification;
 use Carbon\Carbon;
@@ -791,6 +792,7 @@ class CalendarController extends Controller
         if ($event->event_type === CalendarEvent::TYPE_MARCACAO && $event->user_id) {
             $event->load(['client', 'service', 'eventServices']);
             $this->notifyMarcacaoRecipient((int) $event->user_id, $event, 'assigned');
+            $this->notifyClientAppointmentCreated($event);
         }
 
         return response()->json([
@@ -1037,7 +1039,11 @@ class CalendarController extends Controller
             && $freshEvent->client_id
         ) {
             $clientEmail = $freshEvent->client?->email;
-            if ($clientEmail && filter_var($clientEmail, FILTER_VALIDATE_EMAIL)) {
+            if (
+                $this->clientAllowsEmailBookingUpdates($freshEvent->client)
+                && $clientEmail
+                && filter_var($clientEmail, FILTER_VALIDATE_EMAIL)
+            ) {
                 try {
                     Notification::route('mail', $this->resolveClientNotificationRecipientEmail($clientEmail))->notify(new ClientAppointmentRescheduledNotification(
                         (int) $freshEvent->id,
@@ -1159,7 +1165,11 @@ class CalendarController extends Controller
             ) {
                 $clientEv = $calendarEvent->fresh(['client']);
                 $email = $clientEv?->client?->email;
-                if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                if (
+                    $this->clientAllowsEmailBookingUpdates($clientEv?->client)
+                    && $email
+                    && filter_var($email, FILTER_VALIDATE_EMAIL)
+                ) {
                     try {
                         Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
                             ->notify(new ClientAppointmentCancelledNotification($calendarEvent->id));
@@ -1557,6 +1567,39 @@ class CalendarController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function notifyClientAppointmentCreated(CalendarEvent $event): void
+    {
+        $client = $event->client;
+        if (! $this->clientAllowsEmailBookingUpdates($client)) {
+            return;
+        }
+
+        $email = trim((string) ($client?->email ?? ''));
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        try {
+            Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
+                ->notify(new ClientAppointmentCreatedNotification((int) $event->id));
+        } catch (\Throwable $e) {
+            \Log::warning('Falha ao enviar email de marcacao criada ao cliente.', [
+                'calendar_event_id' => $event->id,
+                'client_email' => $email,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function clientAllowsEmailBookingUpdates(?Client $client): bool
+    {
+        if (! $client instanceof Client) {
+            return false;
+        }
+
+        return (bool) ($client->notify_email_booking_updates ?? true);
     }
 
     private function isMarcacaoFullySettled(CalendarEvent $calendarEvent): bool

@@ -3,6 +3,13 @@
     use App\Models\Sale;
 
     $marcacoes = $marcacoes ?? collect();
+    $sectionTitle = $sectionTitle ?? 'Histórico de marcações';
+    $sectionSubtitle = $sectionSubtitle ?? 'Resumo das tuas marcações, valores e estado.';
+    $emptyMessage = $emptyMessage ?? 'Ainda não tens marcações registadas nesta conta.';
+    $showSectionHeader = $showSectionHeader ?? true;
+    $showStatusBadges = $showStatusBadges ?? true;
+    $showNoOnlineDepositNote = $showNoOnlineDepositNote ?? true;
+    $actionButtons = $actionButtons ?? [];
     $bookingTz = (string) config('booking.business_timezone', config('app.timezone'));
     $fmtMoney = static function ($value): string {
         return number_format((float) $value, 2, ',', ' ').' €';
@@ -12,14 +19,16 @@
 <section id="marcacoes" class="booking-account-marcacoes mb-3">
     <div class="card border shadow-sm rounded-3 booking-account-marcacoes__shell">
         <div class="card-body p-3 p-md-4">
-            <header class="booking-account-marcacoes__head mb-3 mb-md-4">
-                <h2 class="h6 fw-semibold text-dark mb-1">Histórico de marcações</h2>
-                <p class="small text-muted mb-0">Resumo das tuas marcações, valores e estado.</p>
-            </header>
+            @if ($showSectionHeader)
+                <header class="booking-account-marcacoes__head mb-2 mb-md-3">
+                    <h2 class="h6 fw-semibold text-dark mb-1">{{ $sectionTitle }}</h2>
+                    <p class="small text-muted mb-0">{{ $sectionSubtitle }}</p>
+                </header>
+            @endif
 
             @if ($marcacoes->isEmpty())
                 <div class="booking-marcacao-empty text-center py-5 px-3 rounded-3 border bg-light bg-opacity-50">
-                    <p class="small text-muted mb-0">Ainda não tens marcações registadas nesta conta.</p>
+                    <p class="small text-muted mb-0">{{ $emptyMessage }}</p>
                 </div>
             @else
                 <div class="booking-marcacao-list d-flex flex-column gap-3 gap-md-4">
@@ -69,10 +78,18 @@
                             $totalPago = $sale
                                 ? (float) ($sale->valor_pago ?? 0)
                                 : ($pagoOnline > 0 ? $pagoOnline : $pivotTotal);
+                            $hasPaymentRecorded = ($pagoOnline > 0.004) || ($sale !== null);
+                            $primaryAmountLabel = $hasPaymentRecorded ? 'Valor pago' : 'Valor total';
 
                             $showFaltaLoja = $ob
                                 && (float) ($ob->remaining_amount ?? 0) > 0.004
                                 && $statusKey !== CalendarEvent::STATUS_COMPLETO;
+                            if (! $showFaltaLoja && ! $hasPaymentRecorded && $statusKey !== CalendarEvent::STATUS_COMPLETO) {
+                                $showFaltaLoja = true;
+                            }
+                            $faltaAmount = $ob && (float) ($ob->remaining_amount ?? 0) > 0
+                                ? (float) $ob->remaining_amount
+                                : $pivotTotal;
 
                             $metodoOnlineLabel = '—';
                             if ($pagoOnline > 0.004) {
@@ -114,10 +131,12 @@
                                         </span>
                                     </div>
                                 </div>
-                                <div class="booking-marcacao-card__badges d-flex flex-wrap gap-1 justify-content-md-end">
-                                    <span class="badge rounded-pill booking-marcacao-card__badge booking-marcacao-card__badge--muted">{{ $whenLabel }}</span>
-                                    <span class="badge rounded-pill booking-marcacao-card__badge booking-marcacao-card__badge--status">{{ $statusLabel }}</span>
-                                </div>
+                                @if ($showStatusBadges)
+                                    <div class="booking-marcacao-card__badges d-flex flex-wrap gap-1 justify-content-md-end">
+                                        <span class="badge rounded-pill booking-marcacao-card__badge booking-marcacao-card__badge--muted">{{ $whenLabel }}</span>
+                                        <span class="badge rounded-pill booking-marcacao-card__badge booking-marcacao-card__badge--status">{{ $statusLabel }}</span>
+                                    </div>
+                                @endif
                             </header>
 
                             <div class="booking-marcacao-card__body">
@@ -216,7 +235,7 @@
                                     <div class="booking-marcacao-stats @unless ($showFaltaLoja) booking-marcacao-stats--four @endunless">
                                         @unless ($showFaltaLoja)
                                             <div class="booking-marcacao-stat">
-                                                <span class="booking-marcacao-stat__label">Valor pago</span>
+                                                <span class="booking-marcacao-stat__label">{{ $primaryAmountLabel }}</span>
                                                 <span class="booking-marcacao-stat__value booking-marcacao-stat__value--total">{{ $fmtMoney($totalPago) }}</span>
                                             </div>
                                         @endunless
@@ -236,7 +255,7 @@
                                             <div class="booking-marcacao-stat">
                                                 <span class="booking-marcacao-stat__label">Falta</span>
                                                 <div class="booking-marcacao-stat__amount-block">
-                                                    <span class="booking-marcacao-stat__value text-warning">{{ $fmtMoney($ob->remaining_amount) }}</span>
+                                                    <span class="booking-marcacao-stat__value text-warning">{{ $fmtMoney($faltaAmount) }}</span>
                                                     <span class="booking-marcacao-stat__method">Por pagar na loja</span>
                                                 </div>
                                             </div>
@@ -257,7 +276,7 @@
                                         @endunless
                                     </div>
 
-                                    @if (! $ob)
+                                    @if (! $ob && $showNoOnlineDepositNote)
                                         <p class="small text-muted mb-0 mt-2">Sem registo de depósito online (marcação sem pagamento antecipado ou criada na receção).</p>
                                     @endif
                                 </div>
@@ -284,6 +303,28 @@
                                 @endif
                             </div>
                         </article>
+                    @endforeach
+                </div>
+            @endif
+
+            @if (! empty($actionButtons))
+                <div class="d-flex gap-2 flex-wrap mt-3">
+                    @foreach ($actionButtons as $button)
+                        <form
+                            method="{{ strtoupper((string) ($button['method'] ?? 'POST')) === 'GET' ? 'GET' : 'POST' }}"
+                            action="{{ $button['action'] ?? '#' }}"
+                            @if (! empty($button['form_id'])) id="{{ $button['form_id'] }}" @endif
+                            @if (! empty($button['form_class'])) class="{{ $button['form_class'] }}" @endif
+                        >
+                            @if (strtoupper((string) ($button['method'] ?? 'POST')) !== 'GET')
+                                @csrf
+                            @endif
+                            <button
+                                class="{{ $button['class'] ?? 'btn btn-primary btn-sm px-3' }}"
+                                type="{{ $button['type'] ?? 'submit' }}"
+                                @if (! empty($button['button_id'])) id="{{ $button['button_id'] }}" @endif
+                            >{{ $button['label'] ?? 'Confirmar' }}</button>
+                        </form>
                     @endforeach
                 </div>
             @endif

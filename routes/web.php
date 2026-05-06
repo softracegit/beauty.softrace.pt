@@ -7,6 +7,7 @@ use App\Http\Controllers\BookingClientAuthController;
 use App\Http\Controllers\BookingContactVerificationController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingPaymentController;
+use App\Http\Controllers\BookingSmsActionController;
 use App\Http\Controllers\BookingSavedCardController;
 use App\Http\Controllers\BookingSlotHoldController;
 use App\Http\Controllers\CalendarController;
@@ -47,6 +48,16 @@ Route::get('/booking', function () {
         'store' => Store::defaultPublicBookingStoreSlug(),
     ]);
 });
+
+Route::get('/r/{token}', [BookingSmsActionController::class, 'manage'])
+    ->middleware('throttle:60,1')
+    ->name('booking.sms.manage');
+Route::post('/r/{token}/confirm', [BookingSmsActionController::class, 'confirm'])
+    ->middleware('throttle:60,1')
+    ->name('booking.sms.confirm');
+Route::post('/r/{token}/cancel', [BookingSmsActionController::class, 'cancel'])
+    ->middleware('throttle:60,1')
+    ->name('booking.sms.cancel');
 
 Route::prefix('booking/{store:slug}')->middleware(['booking'])->name('booking.')->group(function () {
     Route::get('/', [BookingController::class, 'index'])->name('index');
@@ -129,6 +140,9 @@ Route::prefix('booking/{store:slug}')->middleware(['booking'])->name('booking.')
         Route::post('/dados-pessoais', [BookingController::class, 'updateProfilePersonal'])
             ->middleware('throttle:30,1')
             ->name('profile.personal');
+        Route::post('/notificacoes', [BookingController::class, 'updateNotificationPreferences'])
+            ->middleware('throttle:30,1')
+            ->name('notifications.update');
         Route::post('/verificacao/request', [BookingContactVerificationController::class, 'requestCode'])->name('verification.request');
         Route::post('/verificacao/confirm', [BookingContactVerificationController::class, 'confirmCode'])->name('verification.confirm');
         Route::post('/cartoes/setup-intent', [BookingSavedCardController::class, 'createSetupIntent'])->name('cards.setup_intent');

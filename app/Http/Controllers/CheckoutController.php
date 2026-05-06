@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\CalendarEvent;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Services\VendusInvoiceService;
 use App\Support\PhoneDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ use Stripe\Stripe;
 
 class CheckoutController extends Controller
 {
+    public function __construct(private readonly VendusInvoiceService $vendusInvoiceService) {}
+
     /**
      * GET agenda/events/{event}/checkout – dados do evento para o checkout.
      */
@@ -239,6 +242,7 @@ class CheckoutController extends Controller
         }
 
         $pdfUrl = route('sales.pdf', $sale);
+        $this->syncSaleWithVendus($sale);
 
         return response()->json([
             'success' => true,
@@ -246,6 +250,44 @@ class CheckoutController extends Controller
             'numero_fatura' => $sale->numero_fatura,
             'pdf_url' => $pdfUrl,
         ]);
+    }
+
+    private function syncSaleWithVendus(Sale $sale): void
+    {
+        try {
+            $result = $this->vendusInvoiceService->syncSale($sale);
+            if ($result['ok']) {
+                $sale->forceFill([
+                    'vendus_sync_status' => 'synced',
+                    'vendus_document_id' => $result['document_id'],
+                    'vendus_synced_at' => now(),
+                    'vendus_sync_error' => null,
+                ])->save();
+
+                return;
+            }
+
+            $sale->forceFill([
+                'vendus_sync_status' => 'error',
+                'vendus_sync_error' => $result['message'],
+            ])->save();
+
+            Log::warning('vendus_invoice_sync_failed', [
+                'sale_id' => $sale->id,
+                'status' => $result['status'],
+                'message' => $result['message'],
+            ]);
+        } catch (\Throwable $e) {
+            $sale->forceFill([
+                'vendus_sync_status' => 'error',
+                'vendus_sync_error' => $e->getMessage(),
+            ])->save();
+
+            Log::error('vendus_invoice_sync_exception', [
+                'sale_id' => $sale->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
