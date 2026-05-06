@@ -4117,7 +4117,8 @@
                 return;
             }
             var email = u.searchParams.get('email') || '';
-            authApi.openLoginModal({ email: email, reloadOnSuccess: false });
+            // Recarregar após login para a navbar e o body refletirem a sessão (Blade usa auth() no servidor).
+            authApi.openLoginModal({ email: email, reloadOnSuccess: true });
             u.searchParams.delete('open_auth');
             u.searchParams.delete('email');
             var qs = u.searchParams.toString();
