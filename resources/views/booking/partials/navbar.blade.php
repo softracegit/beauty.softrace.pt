@@ -40,6 +40,7 @@
     $bookingRouteName = request()->route()?->getName();
     $bookingFlowRoutes = ['booking.index', 'booking.technician', 'booking.datetime', 'booking.step3', 'booking.confirm'];
     $showBookingSteps = $bookingRouteName && in_array($bookingRouteName, $bookingFlowRoutes, true);
+    $bookingDisableAuthModal = (bool) ($bookingDisableAuthModal ?? false);
     $bookingStepActive = match ($bookingRouteName) {
         'booking.index' => 1,
         'booking.technician' => 2,
@@ -170,9 +171,15 @@
                     </div>
                 </div>
             @else
-                <button type="button" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap js-booking-open-auth-modal" id="booking-navbar-open-auth">
-                    Iniciar sessão
-                </button>
+                @if ($bookingDisableAuthModal)
+                    <a href="{{ route('booking.login', ['store' => $bookingStoreSlug], false) }}" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap" id="booking-navbar-open-auth">
+                        Iniciar sessão
+                    </a>
+                @else
+                    <button type="button" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap js-booking-open-auth-modal" id="booking-navbar-open-auth">
+                        Iniciar sessão
+                    </button>
+                @endif
             @endif
         </div>
     </div>

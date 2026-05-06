@@ -35,7 +35,7 @@
         $marcacao = collect([$event]);
     @endphp
     <div class="booking-app d-flex flex-column min-vh-100">
-        @include('booking.partials.navbar')
+        @include('booking.partials.navbar', ['bookingDisableAuthModal' => true])
 
         <div class="flex-grow-1 booking-main-body">
             <div class="container booking-container-wide px-3 pb-4 pt-0">
