@@ -133,6 +133,8 @@ class CalendarEvent extends Model
 
     public const STATUS_AGENDADO = 'agendado';
 
+    public const STATUS_NOTIFICADO = 'notificado';
+
     public const STATUS_CONFIRMADO = 'confirmado';
 
     public const STATUS_CHEGOU = 'chegou';
@@ -145,6 +147,8 @@ class CalendarEvent extends Model
     public const STATUS_FALTOU = 'faltou';
 
     public const STATUS_CANCELADO = 'cancelado';
+
+    public const STATUS_ANULADO = 'anulado';
 
     public const STATUS_COMPLETO = 'completo';
 
@@ -278,6 +282,16 @@ class CalendarEvent extends Model
     }
 
     /**
+     * Todas as vendas/faturas desta marcação (reserva + loja, etc.), por ordem cronológica.
+     *
+     * @return HasMany<Sale, $this>
+     */
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class, 'calendar_event_id')->orderBy('id');
+    }
+
+    /**
      * Registo de marcação online (depósito Stripe), quando existir.
      */
     public function onlineBooking(): HasOne
@@ -314,20 +328,22 @@ class CalendarEvent extends Model
             return false;
         }
 
-        return in_array($this->status ?? '', [self::STATUS_FALTOU, self::STATUS_CANCELADO], true);
+        return in_array($this->status ?? '', [self::STATUS_FALTOU, self::STATUS_CANCELADO, self::STATUS_ANULADO], true);
     }
 
     public static function statuses(): array
     {
         return [
             self::STATUS_AGENDADO => 'Agendado',
+            self::STATUS_NOTIFICADO => 'Notificado',
             self::STATUS_CONFIRMADO => 'Confirmado',
             self::STATUS_CHEGOU => 'Chegou',
             self::STATUS_INICIADO => 'Iniciado',
             self::STATUS_TERMINADO => 'Terminado',
             self::STATUS_FALTOU => 'Faltou',
             self::STATUS_CANCELADO => 'Cancelado',
-            self::STATUS_COMPLETO => 'Concluído',
+            self::STATUS_ANULADO => 'Anulado',
+            self::STATUS_COMPLETO => 'Pago',
         ];
     }
 
@@ -340,13 +356,15 @@ class CalendarEvent extends Model
 
         return match ($status) {
             self::STATUS_AGENDADO => 'ph ph-clock',
-            self::STATUS_CONFIRMADO => 'ph ph-calendar-check',
+            self::STATUS_NOTIFICADO => 'ph ph-bell agenda-status-icon-notificado',
+            self::STATUS_CONFIRMADO => 'ph ph-bell agenda-status-icon-confirmado',
             self::STATUS_CHEGOU => 'ph ph-map-pin',
             self::STATUS_INICIADO => 'ph ph-play',
-            self::STATUS_TERMINADO => 'ph ph-check-circle',
+            self::STATUS_TERMINADO => 'ph ph-check-circle agenda-status-icon-confirmado',
             self::STATUS_FALTOU => 'ph ph-prohibit',
             self::STATUS_CANCELADO => 'ph ph-x-circle',
-            self::STATUS_COMPLETO => 'ph ph-seal-check',
+            self::STATUS_ANULADO => 'ph ph-x-circle',
+            self::STATUS_COMPLETO => 'ph ph-check-circle agenda-status-icon-confirmado',
             default => null,
         };
     }
@@ -362,7 +380,7 @@ class CalendarEvent extends Model
             return true;
         }
 
-        if (in_array($currentStatus, [self::STATUS_FALTOU, self::STATUS_CANCELADO], true)) {
+        if (in_array($currentStatus, [self::STATUS_FALTOU, self::STATUS_CANCELADO, self::STATUS_ANULADO], true)) {
             return false;
         }
 
@@ -371,11 +389,11 @@ class CalendarEvent extends Model
         }
 
         if ($newStatus === self::STATUS_COMPLETO) {
-            return ! in_array($currentStatus, [self::STATUS_FALTOU, self::STATUS_CANCELADO], true);
+            return ! in_array($currentStatus, [self::STATUS_FALTOU, self::STATUS_CANCELADO, self::STATUS_ANULADO], true);
         }
 
         // Estados bloqueados não podem transitar diretamente para estados ativos
-        $blockedStates = [self::STATUS_FALTOU, self::STATUS_CANCELADO];
+        $blockedStates = [self::STATUS_FALTOU, self::STATUS_CANCELADO, self::STATUS_ANULADO];
         $activeStates = [self::STATUS_INICIADO, self::STATUS_CHEGOU];
 
         if (in_array($currentStatus, $blockedStates) && in_array($newStatus, $activeStates)) {

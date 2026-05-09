@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Services\BookingSlotHoldService;
 use App\Services\OnlineBookingCheckoutService;
+use App\Services\VendusInvoiceService;
 use App\Support\CurrentStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,6 +36,7 @@ class BookingPaymentController extends Controller
     public function __construct(
         private OnlineBookingCheckoutService $checkout,
         private BookingSlotHoldService $slotHolds,
+        private VendusInvoiceService $vendusInvoiceService,
     ) {}
 
     /**
@@ -187,6 +189,7 @@ class BookingPaymentController extends Controller
         $confirmParams = [];
         $event = null;
         $resolvedUserId = null;
+        $partialSale = null;
 
         DB::beginTransaction();
         try {
@@ -291,7 +294,7 @@ class BookingPaymentController extends Controller
                 'status' => Payment::STATUS_SUCCEEDED,
                 'failure_message' => null,
             ]);
-            $this->createPartialSaleForBooking($booking, $resolved, $client, $intent);
+            $partialSale = $this->createPartialSaleForBooking($booking, $resolved, $client, $intent);
             if ($actor instanceof User && $actor->isBookingClient()) {
                 $this->syncSavedCardFromIntent($intent, $actor);
             }
@@ -317,6 +320,9 @@ class BookingPaymentController extends Controller
         }
         if ($event !== null && $event->client) {
             $this->notifyClientAppointmentCreated($event->id, $event->client);
+        }
+        if ($partialSale instanceof Sale) {
+            $this->syncSaleWithVendus($partialSale);
         }
 
         if ($createdBookingUser) {
@@ -612,11 +618,11 @@ class BookingPaymentController extends Controller
      *     }>
      * }  $resolved
      */
-    private function createPartialSaleForBooking(Booking $booking, array $resolved, Client $client, PaymentIntent $intent): void
+    private function createPartialSaleForBooking(Booking $booking, array $resolved, Client $client, PaymentIntent $intent): ?Sale
     {
         $eventId = (int) ($booking->calendar_event_id ?? 0);
         if ($eventId <= 0) {
-            return;
+            return null;
         }
 
         $activeSale = Sale::query()
@@ -625,7 +631,7 @@ class BookingPaymentController extends Controller
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->first();
         if ($activeSale) {
-            return;
+            return $activeSale;
         }
 
         $now = now();
@@ -634,6 +640,21 @@ class BookingPaymentController extends Controller
         $paymentMethod = $this->salePaymentMethodFromIntent($intent);
         $total = round((float) $booking->total_price, 2);
         $valorPago = round((float) $booking->paid_amount, 2);
+        $eventModel = CalendarEvent::query()
+            ->with(['eventServiceItems' => fn ($q) => $q->orderBy('sort_order')->orderBy('id')])
+            ->find($eventId, ['id', 'title']);
+        $primaryServiceId = null;
+        $firstBookingLine = $resolved['bookingLines'][0] ?? null;
+        if (is_array($firstBookingLine) && isset($firstBookingLine['service'])) {
+            $primaryServiceId = (int) ($firstBookingLine['service']->id ?? 0);
+            if ($primaryServiceId <= 0) {
+                $primaryServiceId = null;
+            }
+        }
+        $primaryEventServiceId = (int) ($eventModel?->eventServiceItems?->first()?->id ?? 0);
+        if ($primaryEventServiceId <= 0) {
+            $primaryEventServiceId = null;
+        }
 
         $sale = Sale::create([
             'store_id' => $storeId,
@@ -651,20 +672,65 @@ class BookingPaymentController extends Controller
             'status' => Sale::STATUS_PAGO,
         ]);
 
+        $eventTitle = trim((string) ($eventModel?->title ?? ''));
+        $descricaoReserva = $eventTitle !== ''
+            ? $eventTitle.' — adiantamento (reserva online)'
+            : 'Adiantamento de reserva (marcação online)';
+
         $sort = 0;
         SaleItem::create([
             'sale_id' => $sale->id,
             'tipo' => SaleItem::TIPO_SERVICO,
-            'calendar_event_service_id' => null,
-            'service_id' => null,
+            'calendar_event_service_id' => $primaryEventServiceId,
+            'service_id' => $primaryServiceId,
             'extra_id' => null,
-            'descricao' => 'Adiantamento de reserva (marcação online)',
+            'descricao' => $descricaoReserva,
             'quantidade' => 1,
             'preco_unitario' => min($valorPago, $total),
             'subtotal' => min($valorPago, $total),
             'desconto' => null,
             'sort_order' => $sort++,
         ]);
+
+        return $sale;
+    }
+
+    private function syncSaleWithVendus(Sale $sale): void
+    {
+        try {
+            $result = $this->vendusInvoiceService->syncSale($sale);
+            if ($result['ok']) {
+                $sale->forceFill([
+                    'vendus_sync_status' => 'synced',
+                    'vendus_document_id' => $result['document_id'],
+                    'vendus_synced_at' => now(),
+                    'vendus_sync_error' => null,
+                ])->save();
+
+                return;
+            }
+
+            $sale->forceFill([
+                'vendus_sync_status' => 'error',
+                'vendus_sync_error' => $result['message'],
+            ])->save();
+
+            Log::warning('vendus_invoice_sync_failed_booking_reserva', [
+                'sale_id' => $sale->id,
+                'status' => $result['status'],
+                'message' => $result['message'],
+            ]);
+        } catch (\Throwable $e) {
+            $sale->forceFill([
+                'vendus_sync_status' => 'error',
+                'vendus_sync_error' => $e->getMessage(),
+            ])->save();
+
+            Log::error('vendus_invoice_sync_exception_booking_reserva', [
+                'sale_id' => $sale->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function salePaymentMethodFromIntent(PaymentIntent $intent): string

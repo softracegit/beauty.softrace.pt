@@ -11,6 +11,7 @@ use App\Support\PhoneDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
@@ -499,7 +500,7 @@ class CheckoutController extends Controller
         $pdf = Pdf::loadView('pdf.invoice', ['sale' => $sale])
             ->setPaper('a4', 'portrait');
 
-        $safeFilename = str_replace(['/', '\\'], '-', $sale->numero_fatura).'-fatura.pdf';
+        $safeFilename = str_replace(['/', '\\'], '-', $sale->numero_fatura).'-fatura-recibo.pdf';
 
         if ($request->boolean('download')) {
             return $pdf->download($safeFilename);
@@ -509,10 +510,83 @@ class CheckoutController extends Controller
     }
 
     /**
+     * GET sales/{sale}/vendus-pdf – devolve o PDF real do documento na Vendus.
+     */
+    public function vendusPdf(Sale $sale)
+    {
+        if ((int) $sale->store_id !== (int) current_store_id()) {
+            abort(404);
+        }
+
+        if (! $sale->vendus_document_id) {
+            return response()->json(['error' => 'Venda ainda sem documento Vendus sincronizado.'], 422);
+        }
+
+        $baseUrl = rtrim((string) config('services.vendus.base_url'), '/');
+        $apiKey = (string) config('services.vendus.api_key');
+        $authMode = strtolower((string) config('services.vendus.auth_mode', 'basic'));
+        $vendusMode = (string) config('services.vendus.mode', 'normal');
+        $documentId = (int) $sale->vendus_document_id;
+
+        if ($baseUrl === '' || $apiKey === '') {
+            return response()->json(['error' => 'Configuração da Vendus incompleta.'], 500);
+        }
+
+        $request = Http::accept('application/pdf,application/json')
+            ->timeout(25);
+
+        $candidatePaths = [
+            "/documents/{$documentId}.pdf?mode=".rawurlencode($vendusMode).'&download=1',
+            "/documents/{$documentId}.pdf?mode=".rawurlencode($vendusMode),
+            "/documents/{$documentId}/?mode=".rawurlencode($vendusMode).'&output=pdf',
+            "/documents/{$documentId}/?mode=".rawurlencode($vendusMode).'&output=pdf_url',
+            "/documents/{$documentId}/?mode=".rawurlencode($vendusMode).'&output=auto',
+            "/documents/{$documentId}/?mode=".rawurlencode($vendusMode),
+        ];
+
+        foreach ($candidatePaths as $path) {
+            $url = $baseUrl.$path;
+            $response = $this->vendusGetWithAuth($request, $url, $apiKey, $authMode);
+            if (! $response->successful()) {
+                continue;
+            }
+
+            $contentType = strtolower((string) $response->header('Content-Type', ''));
+            if (str_contains($contentType, 'application/pdf')) {
+                return response($response->body(), 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="vendus-document-'.$documentId.'.pdf"',
+                ]);
+            }
+
+            $pdfUrl = $this->extractPdfUrlFromVendusPayload($response->json());
+            if ($pdfUrl !== null) {
+                $binary = $this->fetchVendusPdfBinary($request, $pdfUrl, $apiKey, $authMode, $baseUrl);
+                if ($binary !== null) {
+                    return response($binary, 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => 'inline; filename="vendus-document-'.$documentId.'.pdf"',
+                    ]);
+                }
+            }
+        }
+
+        return response()->json([
+            'error' => 'Nao foi possivel obter o PDF oficial da Vendus para este documento.',
+        ], 502);
+    }
+
+    /**
      * POST sales/{sale}/revert – anular a venda e desbloquear a marcação para edição.
      */
-    public function revert(Sale $sale)
+    public function revert(Request $request, Sale $sale)
     {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ], [
+            'reason.required' => 'Indique a razão da anulação.',
+        ]);
+
         if ($sale->status === Sale::STATUS_ANULADO) {
             return response()->json(['error' => 'Esta venda já foi anulada.'], 422);
         }
@@ -522,10 +596,49 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Venda sem marcação associada.'], 422);
         }
 
+        $reason = trim((string) ($validated['reason'] ?? ''));
+        $salesToRevert = Sale::query()
+            ->where('calendar_event_id', $calendarEvent->id)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->orderBy('id')
+            ->get();
+
+        if ($salesToRevert->isEmpty()) {
+            return response()->json(['error' => 'Não existem vendas ativas para anular nesta marcação.'], 422);
+        }
+
+        $creditNotes = [];
+        foreach ($salesToRevert as $candidateSale) {
+            if (! $candidateSale->vendus_document_id) {
+                continue;
+            }
+
+            $cnResult = $this->vendusInvoiceService->createCreditNoteForSale($candidateSale, $reason);
+            if (! ($cnResult['ok'] ?? false)) {
+                return response()->json([
+                    'error' => 'Não foi possível gerar a nota de crédito na Vendus para a venda '.$candidateSale->numero_fatura.'.',
+                    'details' => $cnResult['message'] ?? 'Erro desconhecido na Vendus.',
+                ], 422);
+            }
+
+            $creditNotes[] = [
+                'sale_id' => $candidateSale->id,
+                'sale_numero_fatura' => $candidateSale->numero_fatura,
+                'vendus_document_id' => $candidateSale->vendus_document_id,
+                'vendus_credit_note_id' => $cnResult['credit_note_id'] ?? null,
+            ];
+        }
+
         try {
             DB::beginTransaction();
-            $sale->update(['status' => Sale::STATUS_ANULADO]);
-            $calendarEvent->update(['status' => CalendarEvent::STATUS_INICIADO]);
+            foreach ($salesToRevert as $candidateSale) {
+                $candidateSale->update(['status' => Sale::STATUS_ANULADO]);
+            }
+            $calendarEvent->update([
+                'status' => CalendarEvent::STATUS_TERMINADO,
+                'cancellation_type' => null,
+                'cancellation_reason' => null,
+            ]);
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -534,10 +647,90 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Erro ao reverter a venda.', 'message' => $e->getMessage()], 500);
         }
 
+        Log::info('sale_reverted', [
+            'sale_id' => $sale->id,
+            'calendar_event_id' => $calendarEvent->id,
+            'reverted_sales_count' => $salesToRevert->count(),
+            'reverted_sale_ids' => $salesToRevert->pluck('id')->values()->all(),
+            'reason' => $reason,
+            'vendus_credit_notes' => $creditNotes,
+            'user_id' => auth()->id(),
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Venda anulada. A marcação pode ser editada novamente.',
+            'message' => 'Venda(s) anulada(s). A marcação ficou em estado Terminado.',
             'event_id' => $calendarEvent->id,
+            'reverted_sales_count' => $salesToRevert->count(),
         ]);
+    }
+
+    private function vendusGetWithAuth($request, string $url, string $apiKey, string $authMode): \Illuminate\Http\Client\Response
+    {
+        return match ($authMode) {
+            'bearer' => $request->withToken($apiKey)->get($url),
+            'query' => $request->get($url, ['api_key' => $apiKey]),
+            default => $request->withBasicAuth($apiKey, '')->get($url),
+        };
+    }
+
+    private function extractPdfUrlFromVendusPayload(mixed $payload): ?string
+    {
+        if (! is_array($payload)) {
+            return null;
+        }
+        $urls = $this->extractHttpUrlsRecursively($payload);
+        foreach ($urls as $url) {
+            $u = strtolower($url);
+            if (str_contains($u, '.pdf') || str_contains($u, '/pdf') || str_contains($u, 'download') || str_contains($u, 'print')) {
+                return $url;
+            }
+        }
+
+        return $urls[0] ?? null;
+    }
+
+    /**
+     * @param  array<string, mixed>|list<mixed>  $payload
+     * @return list<string>
+     */
+    private function extractHttpUrlsRecursively(array $payload): array
+    {
+        $urls = [];
+        array_walk_recursive($payload, function (mixed $value) use (&$urls): void {
+            if (! is_string($value)) {
+                return;
+            }
+            if (! str_starts_with($value, 'http')) {
+                return;
+            }
+            if (! in_array($value, $urls, true)) {
+                $urls[] = $value;
+            }
+        });
+
+        return $urls;
+    }
+
+    private function fetchVendusPdfBinary($request, string $pdfUrl, string $apiKey, string $authMode, string $baseUrl): ?string
+    {
+        $candidates = [$pdfUrl];
+        if (str_starts_with($pdfUrl, '/')) {
+            $candidates[] = rtrim($baseUrl, '/').$pdfUrl;
+        }
+
+        foreach ($candidates as $url) {
+            $plain = $request->get($url);
+            if ($plain->successful() && str_contains(strtolower((string) $plain->header('Content-Type', '')), 'application/pdf')) {
+                return $plain->body();
+            }
+
+            $auth = $this->vendusGetWithAuth($request, $url, $apiKey, $authMode);
+            if ($auth->successful() && str_contains(strtolower((string) $auth->header('Content-Type', '')), 'application/pdf')) {
+                return $auth->body();
+            }
+        }
+
+        return null;
     }
 }

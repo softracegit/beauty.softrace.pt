@@ -651,7 +651,7 @@ class OnlineBookingCheckoutService
 
         $dayLoads = CalendarEvent::query()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->whereNotIn('status', [CalendarEvent::STATUS_CANCELADO])
+            ->whereNotIn('status', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO])
             ->whereIn('user_id', $userIds)
             ->whereBetween('start_at', [$dayStart->copy()->timezone(config('app.timezone')), $dayEnd->copy()->timezone(config('app.timezone'))])
             ->selectRaw('user_id, COUNT(*) as total')
@@ -660,7 +660,7 @@ class OnlineBookingCheckoutService
 
         $monthLoads = CalendarEvent::query()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->whereNotIn('status', [CalendarEvent::STATUS_CANCELADO])
+            ->whereNotIn('status', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO])
             ->whereIn('user_id', $userIds)
             ->whereBetween('start_at', [$monthStart->copy()->timezone(config('app.timezone')), $monthEnd->copy()->timezone(config('app.timezone'))])
             ->selectRaw('user_id, COUNT(*) as total')
@@ -1099,6 +1099,7 @@ class OnlineBookingCheckoutService
                 $q->whereNull('status')
                     ->orWhereNotIn('status', [
                         CalendarEvent::STATUS_CANCELADO,
+                        CalendarEvent::STATUS_ANULADO,
                         CalendarEvent::STATUS_FALTOU,
                     ]);
             })

@@ -48,7 +48,7 @@
                             $serviceRows = $ev->eventServiceItems;
                             $pivotTotal = (float) $serviceRows->sum(fn ($r) => (float) ($r->price ?? 0));
 
-                            $isLocked = in_array($statusKey, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true);
+                            $isLocked = in_array($statusKey, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO, CalendarEvent::STATUS_FALTOU], true);
                             $isDone = $statusKey === CalendarEvent::STATUS_COMPLETO;
                             $whenLabel = '—';
                             if ($start) {
@@ -285,7 +285,11 @@
                                     <div class="booking-marcacao-card__alert small">
                                         <div class="fw-semibold text-dark mb-1">Cancelamento / falta</div>
                                         @if ($ev->cancellation_type)
-                                            <div class="text-muted">Tipo: {{ $ev->cancellation_type === 'faltou' ? 'Faltou' : 'Cancelamento' }}</div>
+                                            <div class="text-muted">Tipo:
+                                                {{ $ev->cancellation_type === CalendarEvent::STATUS_FALTOU
+                                                    ? 'Faltou'
+                                                    : ($ev->cancellation_type === CalendarEvent::STATUS_ANULADO ? 'Anulado' : 'Cancelamento') }}
+                                            </div>
                                         @endif
                                         @if ($ev->cancellation_reason)
                                             <div class="text-break mt-1">{{ $ev->cancellation_reason }}</div>

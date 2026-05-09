@@ -344,6 +344,30 @@
     </div>
 </div>
 
+<!-- Modal: Anular venda -->
+<div class="modal fade" id="revertSaleModal" tabindex="-1" aria-labelledby="revertSaleModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header pb-3">
+                <h4 class="modal-title mb-0 fw-semibold" id="revertSaleModalLabel">Anular venda</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="revertSaleId" value="">
+                <p class="text-muted mb-3">Indique a razão para anular esta venda.</p>
+                <div class="mb-0">
+                    <label for="revertSaleReason" class="form-label">Razão da anulação</label>
+                    <textarea class="form-control" id="revertSaleReason" rows="3" maxlength="1000" placeholder="Ex.: valor lançado incorretamente, venda duplicada, etc."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="revertSaleConfirmBtn">Anular venda</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Offcanvas: Ver/Editar marcação (estrutura igual à nova marcação: cliente, serviços, profissional, data, notas) -->
 <div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="eventDetailEditModal" aria-labelledby="eventDetailEditOffcanvasLabel" data-bs-scroll="true">
     <div class="offcanvas-header border-bottom d-flex align-items-center gap-2 py-3">
@@ -357,10 +381,10 @@
                     </span>
                     <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailStatusMenu">
                         <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="agendado"><i class="me-0 ph ph-clock"></i>Agendado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ph ph-calendar-check"></i>Confirmado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="notificado"><i class="me-0 ph ph-bell agenda-status-icon-notificado"></i>Notificado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ph ph-bell agenda-status-icon-confirmado"></i>Confirmado</a>
                         <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ph ph-map-pin"></i>Chegou</a>
                         <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ph ph-play"></i>Iniciado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="terminado"><i class="me-0 ph ph-check-circle"></i>Terminado</a>
                         <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ph ph-x-circle text-danger"></i>Cancelar</a>
                     </div>
                 </span>
@@ -516,21 +540,35 @@
         </form>
     </div>
     <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch">
-        <div class="d-flex justify-content-between align-items-center px-1 pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
-            <span class="text-black fw-bold">Total</span>
-            <div class="d-inline-flex align-items-baseline gap-2">
-                <span class="small text-muted"><span id="eventDetailTotalPriceNoVat">0,00 €</span> s/IVA</span>
+        <div class="d-flex justify-content-between align-items-center pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
+            <div class="d-inline-flex align-items-center gap-2">
+                <span class="text-black fw-bold" id="eventDetailTotalLabel">Total</span>
+                <div class="d-none align-items-center gap-1" id="eventDetailTotalInlineDefault">
+                    <span class="small text-muted">Total:</span>
+                    <span class="fw-semibold" id="eventDetailTotalInlineDefaultPrice">0,00 €</span>
+                </div>
+                <div class="d-none align-items-center gap-2" id="eventDetailReservaSummary">
+                    <span class="small text-muted" id="eventDetailReservaSummaryText">Reserva <span class="fw-semibold" id="eventDetailReservaAmount">0,00 €</span> &bull; Falta pagar <span class="fw-semibold" id="eventDetailFaltaPagarAmount">0,00 €</span></span>
+                </div>
+                <div class="d-none align-items-center gap-2" id="eventDetailPagoSummary">
+                    <span class="small text-muted" id="eventDetailPagoSummaryText">Reserva <span class="fw-semibold" id="eventDetailReservaAmountPaid">0,00 €</span> &bull; Pagamento final <span class="fw-semibold" id="eventDetailPagoAmount">0,00 €</span></span>
+                </div>
+            </div>
+            <div class="d-inline-flex align-items-baseline gap-2" id="eventDetailTotalDefaultRight">
                 <span class="fw-semibold" id="eventDetailTotalPrice">0,00 €</span>
             </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 justify-content-end">
-            <button type="button" class="btn btn-light btn-sm" id="eventDetailCloseWithoutSaveBtn" data-bs-dismiss="offcanvas">Fechar sem guardar</button>
-            <button type="submit" class="btn btn-primary btn-sm" id="eventDetailSaveBtn" form="eventDetailEditForm">Guardar</button>
-            <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end" id="eventDetailPaymentWrap">
-                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Pagamento</button>
-                <a href="#" class="btn btn-outline-primary btn-sm d-none" id="eventDetailVerFaturaLink" target="_blank" rel="noopener">Ver fatura</a>
-                <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="eventDetailReverterFaturaBtn">Reverter fatura</button>
+            <div class="d-none align-items-center gap-1" id="eventDetailTotalCompactRight">
+                <span class="small text-muted">Total:</span>
+                <span class="fw-semibold" id="eventDetailTotalCompactPrice">0,00 €</span>
             </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2 flex-wrap" id="eventDetailPaymentWrap">
+                <div class="d-none d-flex flex-wrap gap-1 justify-content-end" id="eventDetailFaturasWrap"></div>
+                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Pagamento</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="eventDetailReverterFaturaBtn">Anular venda</button>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" id="eventDetailSaveBtn" form="eventDetailEditForm">Guardar</button>
         </div>
     </div>
 </div>
@@ -571,9 +609,15 @@
                     <div class="form-text">Se a ficha do cliente não tiver telemóvel, este número ficará guardado.</div>
                 </div>
                 <div class="border-top pt-2">
-                    <div class="d-flex justify-content-between small text-muted"><span>Subtotal</span><span id="paymentSubtotalDisplay">0,00 €</span></div>
-                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentOnlinePaidLine"><span>Já pago online</span><span id="paymentOnlinePaidDisplay">0,00 €</span></div>
-                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentServicesDueLine"><span>Valor em falta</span><span id="paymentServicesDueDisplay">0,00 €</span></div>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted">Total</span>
+                        <span>
+                            <span class="text-muted me-2">s/IVA: <span id="paymentSubtotalNoVatDisplay">0,00 €</span></span>
+                            <span class="fw-semibold" id="paymentSubtotalDisplay">0,00 €</span>
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentOnlinePaidLine"><span>Reserva</span><span id="paymentOnlinePaidDisplay">0,00 €</span></div>
+                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentServicesDueLine"><span>Falta pagar</span><span id="paymentServicesDueDisplay">0,00 €</span></div>
                     <div class="d-flex justify-content-between small text-muted d-none" id="paymentGorjetaLine"><span>Gorjeta</span><span id="paymentGorjetaDisplay">0,00 €</span></div>
                     <div class="d-flex justify-content-between fw-semibold mt-1"><span>A cobrar agora</span><span id="paymentTotalDisplay">0,00 €</span></div>
                 </div>

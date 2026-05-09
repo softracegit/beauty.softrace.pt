@@ -280,6 +280,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function ()
     Route::post('agenda/checkout/mbway/intent', [CheckoutController::class, 'createMbwayIntent'])->name('agenda.checkout.mbway.intent');
     Route::post('agenda/checkout/mbway/finalize', [CheckoutController::class, 'finalizeMbway'])->name('agenda.checkout.mbway.finalize');
     Route::get('sales/{sale}/pdf', [CheckoutController::class, 'pdf'])->name('sales.pdf');
+    Route::get('sales/{sale}/vendus-pdf', [CheckoutController::class, 'vendusPdf'])->name('sales.vendus.pdf');
     Route::post('sales/{sale}/revert', [CheckoutController::class, 'revert'])->name('sales.revert');
 
     // Serviços e Categorias

@@ -163,11 +163,11 @@ class CalendarController extends Controller
                 'eventServiceItems.extras.extra',
                 'eventable',
                 'personalTimeType',
-                'sale',
+                'sales',
             ])
             ->where(function ($q) {
                 $q->whereNull('status')
-                    ->orWhereNotIn('status', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU]);
+                    ->orWhereNotIn('status', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO, CalendarEvent::STATUS_FALTOU]);
             });
 
         // Verificar se o utilizador pode ver todos os eventos (admin ou diretor)
@@ -234,7 +234,35 @@ class CalendarController extends Controller
 
             $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
             $statusIcon = $isTempoPessoal ? null : $event->status_icon;
-            $hasInvoice = $event->sale && $event->sale->status !== Sale::STATUS_ANULADO;
+            $activeSales = $event->sales->filter(fn (Sale $s) => $s->status !== Sale::STATUS_ANULADO);
+            $hasInvoice = $activeSales->isNotEmpty();
+            $isCompleted = ($event->status ?? CalendarEvent::STATUS_AGENDADO) === CalendarEvent::STATUS_COMPLETO;
+            $subtotal = (float) $serviceItems->sum(function ($item): float {
+                $base = (float) ($item->price ?? 0);
+                $extras = (float) $item->extras->sum(fn ($ex): float => (float) ($ex->price ?? 0));
+
+                return $base + $extras;
+            });
+            $alreadyPaid = round((float) $activeSales->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
+            $bookingPaidAmount = round((float) $activeSales
+                ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
+                ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
+            $amountDue = max(0.0, round($subtotal - $alreadyPaid, 2));
+            $invoiceSettled = $hasInvoice && $alreadyPaid + 0.00001 >= round($subtotal, 2);
+            $paymentMethodLabels = Sale::paymentMethods();
+            $paymentLines = $activeSales->map(function (Sale $s) use ($paymentMethodLabels) {
+                $scopeLabel = match ($s->scope) {
+                    Sale::SCOPE_BOOKING_RESERVA => 'Reserva',
+                    Sale::SCOPE_CAIXA_LIQUIDACAO => 'Pagamento final',
+                    default => 'Pagamento',
+                };
+
+                return [
+                    'label' => $scopeLabel,
+                    'amount' => round((float) $s->effectiveAmountPaid(), 2),
+                    'method' => $paymentMethodLabels[$s->payment_method] ?? 'Outro',
+                ];
+            })->values()->all();
             $statusLocked = ! $isTempoPessoal && $event->isMarcacaoStatusLocked();
 
             $item = [
@@ -244,7 +272,10 @@ class CalendarController extends Controller
                 'end' => $event->end_at->toIso8601String(),
                 'className' => $className,
                 'backgroundColor' => $agentColor ?: ($isTempoPessoal ? '#dee2e6' : null),
-                'editable' => ! $hasInvoice && ! $statusLocked,
+                'editable' => ! $invoiceSettled && ! $statusLocked && ! $isCompleted,
+                'startEditable' => ! $invoiceSettled && ! $statusLocked && ! $isCompleted,
+                'durationEditable' => ! $invoiceSettled && ! $statusLocked && ! $isCompleted,
+                'resourceEditable' => ! $invoiceSettled && ! $statusLocked && ! $isCompleted,
                 'extendedProps' => [
                     'client_name' => $event->client?->name,
                     'client_avatar_url' => $event->client?->avatar ? asset('storage/'.$event->client->avatar) : null,
@@ -287,6 +318,11 @@ class CalendarController extends Controller
                         'formatted_duration' => $event->personalTimeType->formatted_duration,
                     ] : null,
                     'has_invoice' => $hasInvoice,
+                    'invoice_settled' => $invoiceSettled,
+                    'total_amount' => round($subtotal, 2),
+                    'booking_paid_amount' => $bookingPaidAmount,
+                    'amount_due' => $amountDue,
+                    'payment_lines' => $paymentLines,
                     'client_id' => $event->client_id,
                     'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
                 ],
@@ -506,7 +542,7 @@ class CalendarController extends Controller
     public function show(CalendarEvent $calendarEvent)
     {
         try {
-            $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventable', 'personalTimeType', 'sale']);
+            $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventable', 'personalTimeType', 'sales', 'sale']);
             $calendarEvent->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
 
             $userAvatarUrl = null;
@@ -595,7 +631,9 @@ class CalendarController extends Controller
                     'formatted_duration' => $calendarEvent->personalTimeType->formatted_duration,
                 ] : null,
                 'existing_sale' => null,
+                'sales_invoices' => [],
                 'booking_paid_amount' => 0.0,
+                'invoice_settled' => false,
             ];
 
             $subtotal = (float) collect($payload['event_services'] ?? [])->sum(function (array $row): float {
@@ -604,9 +642,13 @@ class CalendarController extends Controller
 
                 return $base + $extras;
             });
+            $isCancelledEvent = in_array(($calendarEvent->status ?? ''), [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true);
             $salesPaid = (float) Sale::query()
                 ->where('calendar_event_id', $calendarEvent->id)
                 ->where('status', '!=', Sale::STATUS_ANULADO)
+                ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
+            $salesPaidHistorical = (float) Sale::query()
+                ->where('calendar_event_id', $calendarEvent->id)
                 ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
             $bookingPaid = (float) Booking::query()
                 ->where('calendar_event_id', $calendarEvent->id)
@@ -614,9 +656,15 @@ class CalendarController extends Controller
                 ->orderByDesc('id')
                 ->value('paid_amount');
             $alreadyPaid = round(max($salesPaid, $bookingPaid, 0.0), 2);
-            $payload['booking_paid_amount'] = $alreadyPaid;
+            $historicalPaid = round(max($salesPaidHistorical, $bookingPaid, 0.0), 2);
+            $payload['booking_paid_amount'] = round(max($bookingPaid, 0.0), 2);
+            $payload['invoice_settled'] = $this->isMarcacaoFullySettled($calendarEvent);
+            if ($isCancelledEvent && $historicalPaid > 0.00001 && $subtotal > 0.00001) {
+                // Em marcações anuladas preservamos o histórico de pagamentos no resumo do offcanvas.
+                $payload['invoice_settled'] = ($historicalPaid + 0.00001) >= $subtotal;
+            }
             $amountDue = max(0.0, round($subtotal - $alreadyPaid, 2));
-            $isPartial = $alreadyPaid > 0.00001 && $amountDue > 0.00001;
+            $isPartial = $payload['booking_paid_amount'] > 0.00001 && $amountDue > 0.00001;
 
             $sale = $calendarEvent->sale;
             if ($sale && $sale->status !== Sale::STATUS_ANULADO) {
@@ -628,6 +676,8 @@ class CalendarController extends Controller
                     'pdf_url' => route('sales.pdf', $sale),
                 ];
             }
+
+            $payload['sales_invoices'] = $this->salesInvoicesForCalendarEvent($calendarEvent->id);
 
             if ($calendarEvent->eventable_type === \App\Models\Visit::class && $calendarEvent->eventable_id && $calendarEvent->eventable) {
                 try {
@@ -826,7 +876,7 @@ class CalendarController extends Controller
             'start_at' => ['sometimes', 'date'],
             'end_at' => ['sometimes', 'date'],
             'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
-            'status' => ['sometimes', 'string', 'in:agendado,confirmado,chegou,iniciado,terminado,faltou,cancelado'],
+            'status' => ['sometimes', 'string', 'in:agendado,notificado,confirmado,chegou,iniciado,terminado,faltou,cancelado'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'refund_reserva' => ['nullable', 'boolean'],
@@ -945,7 +995,7 @@ class CalendarController extends Controller
         if (isset($validated['status'])) {
             $newStatus = $validated['status'];
             $update = ['status' => $newStatus];
-            if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO], true)) {
+            if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true)) {
                 $update['cancellation_reason'] = isset($validated['cancellation_reason']) ? trim($validated['cancellation_reason']) ?: null : null;
                 $update['cancellation_type'] = $validated['cancellation_type'] ?? $newStatus;
                 $update['refund_reserva'] = array_key_exists('refund_reserva', $validated) ? (bool) $validated['refund_reserva'] : null;
@@ -1113,7 +1163,7 @@ class CalendarController extends Controller
         }
 
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:agendado,confirmado,chegou,iniciado,terminado,faltou,cancelado,completo'],
+            'status' => ['required', 'string', 'in:agendado,notificado,confirmado,chegou,iniciado,terminado,faltou,cancelado,completo'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'refund_reserva' => ['nullable', 'boolean'],
@@ -1133,7 +1183,7 @@ class CalendarController extends Controller
         }
 
         $update = ['status' => $newStatus];
-        if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO], true)) {
+        if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true)) {
             $update['cancellation_reason'] = isset($validated['cancellation_reason']) ? trim($validated['cancellation_reason']) ?: null : null;
             $update['cancellation_type'] = $validated['cancellation_type'] ?? $newStatus;
             $update['refund_reserva'] = isset($validated['refund_reserva']) ? (bool) $validated['refund_reserva'] : null;
@@ -1161,7 +1211,7 @@ class CalendarController extends Controller
             $notifyClient = (bool) ($validated['notify_client'] ?? false);
             if (
                 $notifyClient
-                && in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO], true)
+                && in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true)
             ) {
                 $clientEv = $calendarEvent->fresh(['client']);
                 $email = $clientEv?->client?->email;
@@ -1317,7 +1367,7 @@ class CalendarController extends Controller
         $classMap = CalendarEvent::typeClassMap();
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
-        $event->loadMissing(['client', 'eventServices.category', 'user.agent', 'personalTimeType', 'sale']);
+        $event->loadMissing(['client', 'eventServices.category', 'user.agent', 'personalTimeType', 'sales']);
         $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
         $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
         $agentColor = $isTempoPessoal ? null : ($event->user?->agent?->color);
@@ -1364,8 +1414,36 @@ class CalendarController extends Controller
         if ($isTempoPessoal) {
             $className = 'agenda-event-tempo-pessoal';
         }
+        $isCompleted = ($event->status ?? CalendarEvent::STATUS_AGENDADO) === CalendarEvent::STATUS_COMPLETO;
 
-        $hasInvoice = $event->sale && $event->sale->status !== Sale::STATUS_ANULADO;
+        $activeSales = $event->sales->filter(fn (Sale $s) => $s->status !== Sale::STATUS_ANULADO);
+        $hasInvoice = $activeSales->isNotEmpty();
+        $subtotal = (float) collect($eventServicesData)->sum(function (array $row): float {
+            $base = (float) ($row['price'] ?? 0);
+            $extras = (float) collect($row['extras'] ?? [])->sum(fn (array $ex): float => (float) ($ex['price'] ?? 0));
+
+            return $base + $extras;
+        });
+        $alreadyPaid = round((float) $activeSales->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
+        $bookingPaidAmount = round((float) $activeSales
+            ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
+            ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
+        $amountDue = max(0.0, round($subtotal - $alreadyPaid, 2));
+        $invoiceSettled = $hasInvoice && $alreadyPaid + 0.00001 >= round($subtotal, 2);
+        $paymentMethodLabels = Sale::paymentMethods();
+        $paymentLines = $activeSales->map(function (Sale $s) use ($paymentMethodLabels) {
+            $scopeLabel = match ($s->scope) {
+                Sale::SCOPE_BOOKING_RESERVA => 'Reserva',
+                Sale::SCOPE_CAIXA_LIQUIDACAO => 'Pagamento final',
+                default => 'Pagamento',
+            };
+
+            return [
+                'label' => $scopeLabel,
+                'amount' => round((float) $s->effectiveAmountPaid(), 2),
+                'method' => $paymentMethodLabels[$s->payment_method] ?? 'Outro',
+            ];
+        })->values()->all();
         $arr = [
             'id' => (string) $event->id,
             'title' => $event->title,
@@ -1373,7 +1451,10 @@ class CalendarController extends Controller
             'end' => $event->end_at->toIso8601String(),
             'className' => $className,
             'backgroundColor' => $bgColor,
-            'editable' => ! $hasInvoice,
+            'editable' => ! $invoiceSettled && ! $isCompleted,
+            'startEditable' => ! $invoiceSettled && ! $isCompleted,
+            'durationEditable' => ! $invoiceSettled && ! $isCompleted,
+            'resourceEditable' => ! $invoiceSettled && ! $isCompleted,
             'extendedProps' => [
                 'client_id' => $event->client_id,
                 'client_name' => $event->client?->name,
@@ -1406,6 +1487,11 @@ class CalendarController extends Controller
                 'refund_reserva' => $event->refund_reserva,
                 'avisou_dentro_prazo' => $event->avisou_dentro_prazo,
                 'has_invoice' => $hasInvoice,
+                'invoice_settled' => $invoiceSettled,
+                'total_amount' => round($subtotal, 2),
+                'booking_paid_amount' => $bookingPaidAmount,
+                'amount_due' => $amountDue,
+                'payment_lines' => $paymentLines,
             ],
         ];
         if ($withResourceId) {
@@ -1600,6 +1686,31 @@ class CalendarController extends Controller
         }
 
         return (bool) ($client->notify_email_booking_updates ?? true);
+    }
+
+    /**
+     * @return list<array{id: int, label: string, numero_fatura: string, pdf_url: string, scope: string|null, amount: float}>
+     */
+    private function salesInvoicesForCalendarEvent(int $calendarEventId): array
+    {
+        return Sale::query()
+            ->where('calendar_event_id', $calendarEventId)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->orderBy('id')
+            ->get()
+            ->map(function (Sale $s) {
+                return [
+                    'id' => $s->id,
+                    'label' => $s->invoiceListLabel(),
+                    'numero_fatura' => $s->numero_fatura,
+                    'pdf_url' => route('sales.pdf', $s),
+                    'vendus_url' => $s->vendus_document_id ? route('sales.vendus.pdf', $s) : null,
+                    'scope' => $s->scope,
+                    'amount' => round($s->effectiveAmountPaid(), 2),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function isMarcacaoFullySettled(CalendarEvent $calendarEvent): bool

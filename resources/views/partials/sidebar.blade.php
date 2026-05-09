@@ -49,7 +49,7 @@
     </nav>
 
     <div class="sidebar-iconbar-bottom">
-      <a href="{{ route('definicoes.index') }}" class="iconbar-item iconbar-bottom-item {{ request()->routeIs('definicoes.*') ? 'active' : '' }}" data-panel="definicoes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Definições" aria-label="Definições">
+      <a href="{{ route('definicoes.index') }}" class="iconbar-item iconbar-bottom-item {{ request()->routeIs('definicoes.*') || request()->routeIs('activity.*') ? 'active' : '' }}" data-panel="definicoes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Definições" aria-label="Definições">
         <i class="ph ph-gear"></i>
       </a>
       <a href="#!" class="iconbar-item iconbar-bottom-item" data-panel="ajuda" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Ajuda" aria-label="Ajuda">
@@ -239,7 +239,7 @@
       </ul>
     </div>
 
-    <div class="sidebar-panel-section {{ request()->routeIs('definicoes.*') ? 'active' : '' }}" data-section="definicoes">
+    <div class="sidebar-panel-section {{ request()->routeIs('definicoes.*') || request()->routeIs('activity.*') ? 'active' : '' }}" data-section="definicoes">
       <div class="sidebar-panel-header">
         <h6>Definições</h6>
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
@@ -283,6 +283,11 @@
         <li>
           <a class="panel-link {{ request()->routeIs('definicoes.pagamentos') ? 'active' : '' }}" href="{{ route('definicoes.pagamentos') }}">
             Pagamentos
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('activity.*') ? 'active' : '' }}" href="{{ route('activity.index') }}">
+            Activity Log
           </a>
         </li>
       </ul>

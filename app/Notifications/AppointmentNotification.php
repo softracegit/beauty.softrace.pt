@@ -27,6 +27,10 @@ class AppointmentNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
+        if ($this->type === 'status_changed') {
+            return ['database'];
+        }
+
         if (! $notifiable instanceof User) {
             return ['database', 'mail'];
         }
@@ -40,6 +44,10 @@ class AppointmentNotification extends Notification implements ShouldQueue
      */
     public function shouldSend(object $notifiable, string $channel): bool
     {
+        if ($this->type === 'status_changed' && $channel === 'mail') {
+            return false;
+        }
+
         if (! $notifiable instanceof User) {
             return true;
         }

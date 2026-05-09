@@ -90,6 +90,20 @@ class Sale extends Model
     }
 
     /**
+     * Rótulo curto para botões PDF na agenda (reserva vs loja).
+     */
+    public function invoiceListLabel(): string
+    {
+        $num = trim((string) ($this->numero_fatura ?? ''));
+
+        return match ($this->scope) {
+            self::SCOPE_BOOKING_RESERVA => $num !== '' ? 'Reserva online · '.$num : 'Reserva online',
+            self::SCOPE_CAIXA_LIQUIDACAO => $num !== '' ? 'Pagamento em loja · '.$num : 'Pagamento em loja',
+            default => $num !== '' ? 'Fatura · '.$num : 'Fatura',
+        };
+    }
+
+    /**
      * @return BelongsTo<Store, $this>
      */
     public function store(): BelongsTo

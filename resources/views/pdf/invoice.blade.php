@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
     <meta charset="utf-8">
-    <title>Fatura {{ $sale->numero_fatura }}</title>
+    <title>Fatura-recibo {{ $sale->numero_fatura }}</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #333; }
         .header { margin-bottom: 24px; }
@@ -51,7 +51,7 @@
         $remainingAfterDeposit = max(0.0, round($serviceGrossTotal - $partialPaid, 2));
     @endphp
     <div class="header">
-        <h1>Fatura</h1>
+        <h1>Fatura-recibo</h1>
         <div class="sub">Nº {{ $sale->numero_fatura }} · Data de emissão: {{ $sale->data_emissao?->format('d/m/Y') }}</div>
     </div>
 
@@ -76,7 +76,7 @@
         <tbody>
             @if($isPartial)
                 <tr>
-                    <td>Adiantamento de reserva (marcação online)</td>
+                    <td>{{ $sale->items->first()?->descricao ?: 'Adiantamento de reserva (marcação online)' }}</td>
                     <td class="text-right">1</td>
                     <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>
                     <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>

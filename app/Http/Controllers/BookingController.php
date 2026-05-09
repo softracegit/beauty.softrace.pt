@@ -514,6 +514,7 @@ class BookingController extends Controller
                 $q->whereNull('status')
                     ->orWhereNotIn('status', [
                         CalendarEvent::STATUS_CANCELADO,
+                        CalendarEvent::STATUS_ANULADO,
                         CalendarEvent::STATUS_FALTOU,
                     ]);
             })

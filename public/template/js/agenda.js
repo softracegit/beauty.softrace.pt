@@ -77,23 +77,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const STATUS_LABELS = {
         agendado: 'Agendado',
+        notificado: 'Notificado',
         confirmado: 'Confirmado',
         chegou: 'Chegou',
         iniciado: 'Iniciado',
         terminado: 'Terminado',
         faltou: 'Faltou',
         cancelado: 'Cancelado',
-        completo: 'Concluído'
+        anulado: 'Anulado',
+        completo: 'Pago'
     };
     const STATUS_ICONS = {
         agendado: 'ph-clock',
-        confirmado: 'ph-calendar-check',
+        notificado: 'ph-bell agenda-status-icon-notificado',
+        confirmado: 'ph-bell agenda-status-icon-confirmado',
         chegou: 'ph-map-pin',
         iniciado: 'ph-play',
-        terminado: 'ph-check-circle',
+        terminado: 'ph-check-circle agenda-status-icon-confirmado',
         faltou: 'ph-prohibit',
         cancelado: 'ph-x-circle',
-        completo: 'ph-seal-check'
+        anulado: 'ph-x-circle',
+        completo: 'ph-check-circle agenda-status-icon-confirmado'
     };
     const STORE_OPEN_HOUR = 9;
     const STORE_CLOSE_HOUR = 20;
@@ -682,15 +686,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!menu) return;
         var ext = event.extendedProps || {};
         var currentStatus = ext.status || 'agendado';
-        if (currentStatus === 'faltou' || currentStatus === 'cancelado') {
+        if (currentStatus === 'faltou' || currentStatus === 'cancelado' || currentStatus === 'anulado') {
             return;
         }
         var statusOpts = [
             { status: 'agendado', label: 'Agendado', icon: 'ph ph-clock' },
-            { status: 'confirmado', label: 'Confirmado', icon: 'ph ph-calendar-check' },
+            { status: 'notificado', label: 'Notificado', icon: 'ph ph-bell agenda-status-icon-notificado' },
+            { status: 'confirmado', label: 'Confirmado', icon: 'ph ph-bell agenda-status-icon-confirmado' },
             { status: 'chegou', label: 'Chegou', icon: 'ph ph-map-pin' },
             { status: 'iniciado', label: 'Iniciado', icon: 'ph ph-play' },
-            { status: 'terminado', label: 'Terminado', icon: 'ph ph-check-circle' },
             { status: 'cancelar', label: 'Cancelar', icon: 'ph ph-x-circle', isCancelAction: true }
         ];
         function hideMenu() {
@@ -717,7 +721,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var list = document.createElement('div');
         list.className = 'agenda-status-dropdown-list';
         statusOpts.forEach(function(o) {
-            if (o.isCancelAction && (currentStatus === 'faltou' || currentStatus === 'cancelado')) return;
+            if (o.isCancelAction && (currentStatus === 'faltou' || currentStatus === 'cancelado' || currentStatus === 'anulado')) return;
             if (!o.isCancelAction && o.status === currentStatus) return;
             var a = document.createElement('a');
             a.href = '#';
@@ -829,19 +833,24 @@ document.addEventListener('DOMContentLoaded', function() {
         var statusLabels = STATUS_LABELS;
         var statusIcons = {
             agendado: 'ph ph-clock',
-            confirmado: 'ph ph-calendar-check',
+            notificado: 'ph ph-bell agenda-status-icon-notificado',
+            confirmado: 'ph ph-bell agenda-status-icon-confirmado',
             chegou: 'ph ph-map-pin',
             iniciado: 'ph ph-play',
-            terminado: 'ph ph-check-circle',
+            terminado: 'ph ph-check-circle agenda-status-icon-confirmado',
             faltou: 'ph ph-prohibit',
             cancelado: 'ph ph-x-circle',
-            completo: 'ph ph-seal-check'
+            completo: 'ph ph-check-circle agenda-status-icon-confirmado'
         };
         var isTempoPessoal = (ext.event_type || '') === 'tempo_pessoal';
         var personalTimeType = ext.personal_time_type || {};
         var status = ext.status || 'agendado';
         var statusLabel = isTempoPessoal ? 'Tempo pessoal' : (statusLabels[status] || status);
         var statusIcon = isTempoPessoal ? null : (statusIcons[status] || 'ph ph-clock');
+        var invoiceSettled = !!ext.invoice_settled;
+        var hasInvoice = !!ext.has_invoice;
+        if (!isTempoPessoal && hasInvoice && !invoiceSettled) statusIcon = 'ph ph-clock';
+        if (!isTempoPessoal && invoiceSettled) statusIcon = 'ph ph-check-circle';
         var start = event.start;
         var end = event.end;
         var fmt = function(d) { return d ? (String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) : ''; };
@@ -858,23 +867,32 @@ document.addEventListener('DOMContentLoaded', function() {
         var userName = (ext.user_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var eventServices = ext.event_services || [];
         var totalPrice = 0;
-        var totalDuration = 0;
         eventServices.forEach(function(s) {
             var basePrice = parseFloat(s.price) || 0;
-            var baseDuration = parseInt(s.duration || 0, 10) || 0;
             var extras = Array.isArray(s.extras) ? s.extras : [];
             var extrasTotal = 0;
-            var extrasDurationTotal = 0;
             extras.forEach(function(ex) {
                 var exPrice = parseFloat(ex.price) || 0;
-                var exDuration = parseInt(ex.duration || 0, 10) || 0;
                 extrasTotal += exPrice;
-                extrasDurationTotal += exDuration;
             });
             totalPrice += basePrice + extrasTotal;
-            totalDuration += baseDuration + extrasDurationTotal;
         });
         var totalPriceStr = totalPrice > 0 ? (totalPrice.toFixed(2).replace('.', ',') + ' €') : '';
+        var totalAmount = parseFloat(ext.total_amount);
+        if (isNaN(totalAmount)) totalAmount = totalPrice;
+        var totalAmountStr = (totalAmount || 0).toFixed(2).replace('.', ',') + ' €';
+        var bookingPaidAmount = parseFloat(ext.booking_paid_amount || 0) || 0;
+        var finalPaidAmount = Math.max(0, (totalAmount || 0) - bookingPaidAmount);
+        var amountDue = parseFloat(ext.amount_due);
+        if (isNaN(amountDue)) amountDue = Math.max(0, totalAmount - bookingPaidAmount);
+        var formatMinutes = function(minutesRaw) {
+            var minutes = parseInt(minutesRaw || 0, 10) || 0;
+            var h = Math.floor(minutes / 60);
+            var m = minutes % 60;
+            if (h > 0 && m > 0) return h + 'h' + m + 'min';
+            if (h > 0) return h + 'h';
+            return m + 'min';
+        };
 
         var qv = $id('agendaEventQuickview');
         if (!qv) return;
@@ -951,10 +969,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 var meta = document.createElement('div');
                 meta.className = 'agenda-quickview-service-meta';
                 var metaParts = [];
-                if (s.formatted_duration) {
+                if (s.duration) {
+                    metaParts.push(formatMinutes(s.duration));
+                } else if (s.formatted_duration) {
                     metaParts.push(s.formatted_duration);
-                } else if (s.duration) {
-                    metaParts.push((s.duration || 0) + ' min');
                 }
                 meta.textContent = metaParts.join(' · ');
                 if (meta.textContent) {
@@ -984,10 +1002,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     var extraMeta = document.createElement('div');
                     extraMeta.className = 'agenda-quickview-service-meta';
                     var extraMetaParts = [];
-                    if (ex.formatted_duration) {
+                    if (ex.duration) {
+                        extraMetaParts.push(formatMinutes(ex.duration));
+                    } else if (ex.formatted_duration) {
                         extraMetaParts.push(ex.formatted_duration);
-                    } else if (ex.duration) {
-                        extraMetaParts.push((ex.duration || 0) + ' min');
                     }
                     extraMeta.textContent = extraMetaParts.join(' · ');
                     if (extraMeta.textContent) {
@@ -1010,61 +1028,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     body.appendChild(extraRow);
                 });
             });
-
-            // Linha única com duração total (serviços + extras) e preço total
-            if (totalDuration > 0 || totalPriceStr) {
-                var totalRow = document.createElement('div');
-                totalRow.className = 'agenda-quickview-service-row';
-                totalRow.style.marginTop = '0.5rem';
-                totalRow.style.paddingTop = '0.5rem';
-                totalRow.style.borderTop = '1px solid var(--border-color, rgba(0,0,0,0.1))';
-
-                var totalLeft = document.createElement('div');
-                totalLeft.className = 'agenda-quickview-service-left';
-
-                var durationText = '';
-                if (totalDuration > 0) {
-                    var hours = Math.floor(totalDuration / 60);
-                    var mins = totalDuration % 60;
-                    if (hours > 0 && mins > 0) {
-                        durationText = hours + 'h ' + mins + 'min';
-                    } else if (hours > 0) {
-                        durationText = hours + 'h';
-                    } else {
-                        durationText = mins + 'min';
-                    }
-                }
-
-                var durationEl = document.createElement('div');
-                durationEl.className = 'agenda-quickview-service-name';
-                durationEl.textContent = durationText || '';
-                totalLeft.appendChild(durationEl);
-
-                totalRow.appendChild(totalLeft);
-
-                var totalPriceEl = document.createElement('div');
-                totalPriceEl.className = 'agenda-quickview-service-price';
-                totalPriceEl.textContent = totalPriceStr;
-                totalRow.appendChild(totalPriceEl);
-
-                body.appendChild(totalRow);
-            }
-            if (eventServices.length > 1 && totalPriceStr) {
-                var totalRow = document.createElement('div');
-                totalRow.className = 'agenda-quickview-service-row';
-                totalRow.style.marginTop = '0.5rem';
-                totalRow.style.paddingTop = '0.5rem';
-                totalRow.style.borderTop = '1px solid var(--border-color, rgba(0,0,0,0.1))';
-                var totalLeft = document.createElement('div');
-                totalLeft.className = 'agenda-quickview-service-left';
-                totalLeft.textContent = 'Total';
-                totalRow.appendChild(totalLeft);
-                var totalPriceEl = document.createElement('div');
-                totalPriceEl.className = 'agenda-quickview-service-price';
-                totalPriceEl.textContent = totalPriceStr;
-                totalRow.appendChild(totalPriceEl);
-                body.appendChild(totalRow);
-            }
         } else {
             var serviceName = (ext.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             if (serviceName || userName) {
@@ -1094,6 +1057,65 @@ document.addEventListener('DOMContentLoaded', function() {
                     row.appendChild(priceEl);
                 }
                 body.appendChild(row);
+            }
+        }
+
+        if (!isTempoPessoal) {
+            var totalRow = document.createElement('div');
+            totalRow.className = 'agenda-quickview-service-row';
+            totalRow.style.marginTop = '0.5rem';
+            totalRow.style.paddingTop = '0.5rem';
+            totalRow.style.borderTop = '1px solid var(--border-color, rgba(0,0,0,0.1))';
+            var totalLeft = document.createElement('div');
+            totalLeft.className = 'agenda-quickview-service-left';
+            totalLeft.textContent = 'Total';
+            totalRow.appendChild(totalLeft);
+            var totalVal = document.createElement('div');
+            totalVal.className = 'agenda-quickview-service-price';
+            totalVal.textContent = totalAmountStr;
+            totalRow.appendChild(totalVal);
+            body.appendChild(totalRow);
+
+            if (bookingPaidAmount > 0.00001) {
+                var reservaRow = document.createElement('div');
+                reservaRow.className = 'agenda-quickview-service-row';
+                var reservaLeft = document.createElement('div');
+                reservaLeft.className = 'agenda-quickview-service-left';
+                reservaLeft.innerHTML = '<span class="agenda-quickview-inline-badge agenda-quickview-inline-badge-reserva">Reserva</span>';
+                reservaRow.appendChild(reservaLeft);
+                var reservaVal = document.createElement('div');
+                reservaVal.className = 'agenda-quickview-service-price';
+                reservaVal.textContent = bookingPaidAmount.toFixed(2).replace('.', ',') + ' €';
+                reservaRow.appendChild(reservaVal);
+                body.appendChild(reservaRow);
+            }
+
+            if (invoiceSettled) {
+                var paidRow = document.createElement('div');
+                paidRow.className = 'agenda-quickview-service-row';
+                var paidLeft = document.createElement('div');
+                paidLeft.className = 'agenda-quickview-service-left';
+                paidLeft.innerHTML = '<span class="agenda-quickview-inline-badge agenda-quickview-inline-badge-paid">Pagamento final</span>';
+                paidRow.appendChild(paidLeft);
+                var paidVal = document.createElement('div');
+                paidVal.className = 'agenda-quickview-service-price';
+                paidVal.textContent = finalPaidAmount.toFixed(2).replace('.', ',') + ' €';
+                paidRow.appendChild(paidVal);
+                body.appendChild(paidRow);
+            } else {
+                if (bookingPaidAmount > 0.00001) {
+                    var dueRow = document.createElement('div');
+                    dueRow.className = 'agenda-quickview-service-row';
+                    var dueLeft = document.createElement('div');
+                    dueLeft.className = 'agenda-quickview-service-left';
+                    dueLeft.textContent = 'Falta pagar';
+                    dueRow.appendChild(dueLeft);
+                    var dueVal = document.createElement('div');
+                    dueVal.className = 'agenda-quickview-service-price';
+                    dueVal.textContent = amountDue.toFixed(2).replace('.', ',') + ' €';
+                    dueRow.appendChild(dueVal);
+                    body.appendChild(dueRow);
+                }
             }
         }
         qv.appendChild(body);
@@ -1444,25 +1466,80 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailExistingSale = null;
     var eventDetailBookingPaidAmount = 0;
 
+        function syncEventDetailFaturaButtons() {
+        var wrap = $id('eventDetailFaturasWrap');
+        if (!wrap) return;
+        wrap.innerHTML = '';
+        var list = (eventDetailCurrentData && Array.isArray(eventDetailCurrentData.sales_invoices)) ? eventDetailCurrentData.sales_invoices : [];
+        if (!list.length) {
+            wrap.classList.add('d-none');
+            return;
+        }
+        if (list.length === 1) {
+            var inv = list[0];
+            var a = document.createElement('a');
+            a.href = inv.vendus_url || inv.pdf_url || '#';
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.className = 'btn btn-outline-primary btn-sm event-detail-invoice-btn d-inline-flex align-items-center justify-content-center';
+            a.title = 'Ver fatura';
+            a.setAttribute('aria-label', 'Ver fatura');
+            a.innerHTML = '<i class="ph ph-receipt"></i>';
+            if (inv.amount != null && !isNaN(parseFloat(inv.amount))) {
+                var amountTip = parseFloat(inv.amount).toFixed(2).replace('.', ',') + ' €';
+                a.title = 'Ver fatura (' + amountTip + ')';
+            }
+            wrap.appendChild(a);
+            wrap.classList.remove('d-none');
+            return;
+        }
+
+        var dropup = document.createElement('div');
+        dropup.className = 'dropup';
+
+        var toggleBtn = document.createElement('button');
+        toggleBtn.type = 'button';
+        toggleBtn.className = 'btn btn-outline-primary btn-sm event-detail-invoice-btn dropdown-toggle d-inline-flex align-items-center justify-content-center';
+        toggleBtn.setAttribute('data-bs-toggle', 'dropdown');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.setAttribute('aria-label', 'Ver faturas');
+        toggleBtn.title = 'Ver faturas';
+        toggleBtn.innerHTML = '<i class="ph ph-receipt"></i>';
+        dropup.appendChild(toggleBtn);
+
+        var menu = document.createElement('div');
+        menu.className = 'dropdown-menu dropdown-menu-end';
+        list.forEach(function (inv) {
+            var item = document.createElement('a');
+            item.href = inv.vendus_url || inv.pdf_url || '#';
+            item.target = '_blank';
+            item.rel = 'noopener';
+            item.className = 'dropdown-item';
+            if (inv.scope === 'booking_reserva') {
+                item.textContent = 'Reserva';
+            } else if (inv.scope === 'caixa_liquidacao') {
+                item.textContent = 'Pagamento final';
+            } else {
+                item.textContent = inv.label || 'Fatura';
+            }
+            menu.appendChild(item);
+        });
+        dropup.appendChild(menu);
+        wrap.appendChild(dropup);
+        wrap.classList.remove('d-none');
+    }
+
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
         var payBtn = $id('eventDetailPaymentBtn');
-        var verFatura = $id('eventDetailVerFaturaLink');
         var revertBtn = $id('eventDetailReverterFaturaBtn');
         var saveBtn = $id('eventDetailSaveBtn');
         var closeWithoutSaveBtn = $id('eventDetailCloseWithoutSaveBtn');
         var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
-        var stLocked = status === 'completo' || status === 'faltou' || status === 'cancelado';
+        var stLocked = status === 'completo' || status === 'faltou' || status === 'cancelado' || status === 'anulado';
         var isPartialSale = !!(existingSale && existingSale.is_partial);
         var readonly = (!!existingSale && !isPartialSale) || !!stLocked;
         if (payBtn) payBtn.classList.toggle('d-none', readonly || eventType !== 'marcacao' || servicesCount === 0);
-        if (verFatura) {
-            if (existingSale && !isPartialSale) {
-                verFatura.href = existingSale.pdf_url || '#';
-                verFatura.classList.remove('d-none');
-            } else {
-                verFatura.classList.add('d-none');
-            }
-        }
+        syncEventDetailFaturaButtons();
         if (revertBtn) {
             revertBtn.classList.toggle('d-none', !existingSale || isPartialSale);
             if (existingSale && !isPartialSale) revertBtn.dataset.saleId = String(existingSale.id);
@@ -1589,13 +1666,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var statusStatic = $id('eventDetailStatusStatic');
         var statusStaticIcon = $id('eventDetailStatusStaticIcon');
         var statusStaticLabel = $id('eventDetailStatusStaticLabel');
-        var statusStaticOnly = (statusVal === 'completo' || statusVal === 'faltou' || statusVal === 'cancelado');
+        var statusStaticOnly = (statusVal === 'completo' || statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado');
         if (statusStaticOnly) {
             if (statusDropdownWrap) statusDropdownWrap.classList.add('d-none');
             if (statusStatic) {
                 statusStatic.classList.remove('d-none');
                 statusStatic.classList.toggle('text-success', statusVal === 'completo');
-                statusStatic.classList.toggle('text-danger', statusVal === 'faltou' || statusVal === 'cancelado');
+                statusStatic.classList.toggle('text-danger', statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado');
                 if (statusStaticLabel) statusStaticLabel.textContent = STATUS_LABELS[statusVal] || statusVal;
                 if (statusStaticIcon) {
                     var si = statusStaticIcon.querySelector('i');
@@ -1610,7 +1687,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         var cancelOpt = $id('eventDetailStatusMenu')?.querySelector('[data-status="cancelar"]');
-        if (cancelOpt) cancelOpt.style.display = (statusVal === 'faltou' || statusVal === 'cancelado') ? 'none' : '';
+        if (cancelOpt) cancelOpt.style.display = (statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado') ? 'none' : '';
 
         var obsEl = $id('eventDetailOcObs');
         if (obsEl) obsEl.value = data.description || '';
@@ -1986,7 +2063,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!selWrap || !addWrap) return;
         var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
         var isPartialSale = !!(eventDetailExistingSale && eventDetailExistingSale.is_partial);
-        var readonly = (!!eventDetailExistingSale && !isPartialSale) || status === 'completo' || status === 'faltou' || status === 'cancelado';
+        var readonly = (!!eventDetailExistingSale && !isPartialSale) || status === 'completo' || status === 'faltou' || status === 'cancelado' || status === 'anulado';
         if (readonly) {
             selWrap.classList.add('d-none');
             addWrap.classList.add('d-none');
@@ -2590,11 +2667,69 @@ document.addEventListener('DOMContentLoaded', function() {
             var p = (parseFloat(s.price) || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (parseFloat(e.price) || 0); }, 0);
             return sum + p;
         }, 0);
-        $id('eventDetailTotalPrice').textContent = total.toFixed(2).replace('.', ',') + ' €';
-        var totalNoVatEl = $id('eventDetailTotalPriceNoVat');
-        if (totalNoVatEl) {
-            var totalNoVat = total / 1.23;
-            totalNoVatEl.textContent = totalNoVat.toFixed(2).replace('.', ',') + ' €';
+        var totalText = total.toFixed(2).replace('.', ',') + ' €';
+        $id('eventDetailTotalPrice').textContent = totalText;
+        var totalInlineDefaultEl = $id('eventDetailTotalInlineDefaultPrice');
+        if (totalInlineDefaultEl) {
+            totalInlineDefaultEl.textContent = totalText;
+        }
+        var totalCompactEl = $id('eventDetailTotalCompactPrice');
+        if (totalCompactEl) {
+            totalCompactEl.textContent = totalText;
+        }
+        eventDetailSyncOffcanvasPaymentSummary(total);
+    }
+
+    function eventDetailMoney(amount) {
+        return (Math.max(0, parseFloat(amount) || 0)).toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function eventDetailSyncOffcanvasPaymentSummary(total) {
+        var totalLabel = $id('eventDetailTotalLabel');
+        var totalInlineDefault = $id('eventDetailTotalInlineDefault');
+        var reservaSummary = $id('eventDetailReservaSummary');
+        var pagoSummary = $id('eventDetailPagoSummary');
+        var defaultRight = $id('eventDetailTotalDefaultRight');
+        var compactRight = $id('eventDetailTotalCompactRight');
+        if (!totalLabel || !totalInlineDefault || !reservaSummary || !pagoSummary || !defaultRight || !compactRight) {
+            return;
+        }
+
+        var reservaAmount = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
+        var invoiceSettled = !!(eventDetailCurrentData && eventDetailCurrentData.invoice_settled);
+        var finalAmount = Math.max(0, (parseFloat(total) || 0) - reservaAmount);
+
+        var reservaAmountEl = $id('eventDetailReservaAmount');
+        var reservaAmountPaidEl = $id('eventDetailReservaAmountPaid');
+        var faltaAmountEl = $id('eventDetailFaltaPagarAmount');
+        var pagoAmountEl = $id('eventDetailPagoAmount');
+        if (reservaAmountEl) reservaAmountEl.textContent = eventDetailMoney(reservaAmount);
+        if (reservaAmountPaidEl) reservaAmountPaidEl.textContent = eventDetailMoney(reservaAmount);
+        if (faltaAmountEl) faltaAmountEl.textContent = eventDetailMoney(finalAmount);
+        if (pagoAmountEl) pagoAmountEl.textContent = eventDetailMoney(finalAmount);
+
+        // Sem reserva/pagamentos: mantém layout atual.
+        if (reservaAmount <= 0) {
+            totalLabel.classList.add('d-none');
+            totalInlineDefault.classList.remove('d-none');
+            reservaSummary.classList.add('d-none');
+            pagoSummary.classList.add('d-none');
+            defaultRight.classList.add('d-none');
+            compactRight.classList.add('d-none');
+            return;
+        }
+
+        // Com reserva: mostra "Total: X" e resumo tudo do lado esquerdo.
+        totalLabel.classList.add('d-none');
+        totalInlineDefault.classList.remove('d-none');
+        defaultRight.classList.add('d-none');
+        compactRight.classList.add('d-none');
+        if (invoiceSettled) {
+            reservaSummary.classList.add('d-none');
+            pagoSummary.classList.remove('d-none');
+        } else {
+            reservaSummary.classList.remove('d-none');
+            pagoSummary.classList.add('d-none');
         }
     }
 
@@ -3855,6 +3990,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var gorjeta = parseFloat($id('paymentGorjeta').value) || 0;
         if (gorjeta < 0) gorjeta = 0;
         $id('paymentSubtotalDisplay').textContent = sub.toFixed(2).replace('.', ',') + ' €';
+        var subtotalNoVatEl = $id('paymentSubtotalNoVatDisplay');
+        if (subtotalNoVatEl) {
+            subtotalNoVatEl.textContent = (sub / 1.23).toFixed(2).replace('.', ',') + ' €';
+        }
         var paidLine = $id('paymentOnlinePaidLine');
         var paidDisplay = $id('paymentOnlinePaidDisplay');
         if (paidDisplay) paidDisplay.textContent = '-' + paidOnline.toFixed(2).replace('.', ',') + ' €';
@@ -4088,22 +4227,30 @@ document.addEventListener('DOMContentLoaded', function() {
         if (pm) pm.style.zIndex = '1065';
     });
 
-    $id('eventDetailReverterFaturaBtn').addEventListener('click', function() {
-        var saleId = this.dataset.saleId;
-        if (!saleId) return;
+    function executeSaleRevert(saleId, reason) {
         var revertUrl = (C.salesRevertUrl || '').replace(/\/$/, '') + '/' + saleId + '/revert';
-        this.disabled = true;
+        var confirmBtn = $id('revertSaleConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.dataset.originalText = confirmBtn.dataset.originalText || confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>A anular...';
+        }
         fetch(revertUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' }
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ reason: reason })
         })
         .then(function(r) { return r.json(); })
         .then(function(res) {
-            $id('eventDetailReverterFaturaBtn').disabled = false;
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                if (confirmBtn.dataset.originalText) confirmBtn.innerHTML = confirmBtn.dataset.originalText;
+            }
             if (!res.success) {
                 showToast(res.error || res.message || 'Erro ao reverter.', 'error');
                 return;
             }
+            bootstrap.Modal.getInstance($id('revertSaleModal'))?.hide();
             showToast(res.message || 'Venda anulada.', 'success');
             if (typeof calendar !== 'undefined') {
                 calendar.refetchEvents();
@@ -4119,9 +4266,42 @@ document.addEventListener('DOMContentLoaded', function() {
             .finally(function() { eventDetailModalLoading = false; });
         })
         .catch(function() {
-            $id('eventDetailReverterFaturaBtn').disabled = false;
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                if (confirmBtn.dataset.originalText) confirmBtn.innerHTML = confirmBtn.dataset.originalText;
+            }
             showToast('Erro de ligação.', 'error');
         });
+    }
+
+    $id('eventDetailReverterFaturaBtn').addEventListener('click', function() {
+        var saleId = this.dataset.saleId;
+        if (!saleId) return;
+        $id('revertSaleId').value = saleId;
+        $id('revertSaleReason').value = '';
+        bootstrap.Modal.getOrCreateInstance($id('revertSaleModal')).show();
+    });
+
+    $id('revertSaleConfirmBtn').addEventListener('click', function() {
+        var saleId = String($id('revertSaleId').value || '').trim();
+        if (!saleId) return;
+        var reason = String($id('revertSaleReason').value || '').trim();
+        if (!reason) {
+            showToast('Indique a razão da anulação.', 'error');
+            $id('revertSaleReason').focus();
+            return;
+        }
+        executeSaleRevert(saleId, reason);
+    });
+
+    $id('revertSaleModal').addEventListener('hidden.bs.modal', function() {
+        $id('revertSaleId').value = '';
+        $id('revertSaleReason').value = '';
+        var confirmBtn = $id('revertSaleConfirmBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            if (confirmBtn.dataset.originalText) confirmBtn.innerHTML = confirmBtn.dataset.originalText;
+        }
     });
 
     function ensureAgendaSlot24hToggle() {
@@ -4428,16 +4608,21 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             const extrasStr = extrasParts.length ? extrasParts.join(', ') : '';
 
-            // Ícone de estado (clicável para marcações sem fatura; concluídas = só ícone a verde)
+            // Ícone de estado: bloqueia apenas quando faturação está totalmente liquidada.
+            var invoiceSettled = !!(extProps.invoice_settled);
             var hasInvoice = !!(extProps.has_invoice);
+            var effectiveStatusIcon = statusIcon;
+            if (!isTempoPessoal && invoiceSettled) {
+                effectiveStatusIcon = 'ph ph-check-circle';
+            }
             var iconHtml = '';
-            if (statusIcon) {
+            if (effectiveStatusIcon) {
                 if (isTempoPessoal) {
-                    iconHtml = '<i class="' + statusIcon + ' fc-event-status-icon"></i>';
-                } else if (hasInvoice) {
-                    iconHtml = '<span class="fc-event-status-icon-completo"><i class="' + statusIcon + ' fc-event-status-icon"></i></span>';
+                    iconHtml = '<i class="' + effectiveStatusIcon + ' fc-event-status-icon"></i>';
+                } else if (invoiceSettled) {
+                    iconHtml = '<span class="fc-event-status-icon-completo agenda-event-status-icon-btn"><i class="' + effectiveStatusIcon + ' fc-event-status-icon"></i></span>';
                 } else {
-                    iconHtml = '<span class="agenda-event-status-icon-btn" role="button" tabindex="-1" title="Alterar estado"><i class="' + statusIcon + ' fc-event-status-icon"></i></span>';
+                    iconHtml = '<span class="agenda-event-status-icon-btn" role="button" tabindex="-1" title="Alterar estado"><i class="' + effectiveStatusIcon + ' fc-event-status-icon"></i></span>';
                 }
             }
 
@@ -4471,7 +4656,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 contentHtml += '<div class="fc-event-line fc-event-line-3">' + line3Html + '</div>';
             }
 
-            return { html: '<div class="fc-event-content-wrapper">' + contentHtml + '</div>' };
+            var badgeHtml = '';
+            if (!isTempoPessoal && invoiceSettled) {
+                badgeHtml = '<span class="agenda-fc-event-badge agenda-fc-event-badge-paid">Pago</span>';
+            }
+
+            return { html: '<div class="fc-event-content-wrapper">' + badgeHtml + contentHtml + '</div>' };
+        },
+        eventAllow: function(dropInfo, draggedEvent) {
+            var ext = (draggedEvent && draggedEvent.extendedProps) ? draggedEvent.extendedProps : {};
+            var status = String(ext.status || '').toLowerCase();
+            var invoiceSettled = !!ext.invoice_settled;
+            var isTimeEditable = !!ext.is_time_editable;
+
+            // Regra de negócio: marcações concluídas ou totalmente liquidadas nunca podem ser movidas/redimensionadas.
+            if (status === 'completo' || invoiceSettled) {
+                return false;
+            }
+
+            // Se o backend marcou como não editável por estado/origem, bloqueia qualquer drag.
+            return isTimeEditable;
         },
         dayHeaderFormat: function(arg) {
             const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -4792,7 +4996,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         },
         eventDrop: function(info) {
-            if (info.event.extendedProps.has_invoice) { info.revert(); return; }
+            if (info.event.extendedProps.invoice_settled) { info.revert(); return; }
+            if ((info.event.extendedProps.status || '') === 'completo') { info.revert(); return; }
             const timeEditable = info.event.extendedProps.is_time_editable !== false;
             const reassignOnly = info.newResource && isResourceTimeGridDayView(calendar.view.type);
             if (!timeEditable && !reassignOnly) {
@@ -4871,7 +5076,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         },
         eventResize: function(info) {
-            if (info.event.extendedProps.has_invoice) { info.revert(); return; }
+            if (info.event.extendedProps.invoice_settled) { info.revert(); return; }
+            if ((info.event.extendedProps.status || '') === 'completo') { info.revert(); return; }
             if (info.event.extendedProps.is_time_editable === false) { info.revert(); return; }
             const id = info.event.id;
             const start = info.event.start.toISOString();
@@ -5834,7 +6040,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!evEl || !evEl.dataset.eventId) return;
         var ev = calendar.getEventById(evEl.dataset.eventId);
         if (!ev) return;
-        if (ev.extendedProps && ev.extendedProps.has_invoice) return;
+        if (ev.extendedProps && ev.extendedProps.invoice_settled) return;
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -6666,7 +6872,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var previousStatus = $id('eventDetailStatus').value;
             bootstrap.Dropdown.getInstance($id('eventDetailStatusDropdownBtn'))?.hide();
             if (status === 'cancelar') {
-                if (previousStatus === 'faltou' || previousStatus === 'cancelado') return;
+                if (previousStatus === 'faltou' || previousStatus === 'cancelado' || previousStatus === 'anulado') return;
                 window._cancelMarcacaoConfirmed = false;
                 window._cancelMarcacaoPreviousStatus = previousStatus;
                 window._cancelMarcacaoContext = 'edit';
@@ -6934,8 +7140,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window._cancelMarcacaoConfirmed) return;
         var prev = window._cancelMarcacaoPreviousStatus;
         if (prev === undefined) return;
-        var labels = { agendado: 'Agendado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', terminado: 'Terminado', faltou: 'Faltou', cancelado: 'Cancelado' };
-        var icons = { agendado: 'ph-clock', confirmado: 'ph-calendar-check', chegou: 'ph-map-pin', iniciado: 'ph-play', terminado: 'ph-check-circle', faltou: 'ph-prohibit', cancelado: 'ph-x-circle' };
+        var labels = { agendado: 'Agendado', notificado: 'Notificado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', terminado: 'Terminado', faltou: 'Faltou', cancelado: 'Cancelado', anulado: 'Anulado', completo: 'Pago' };
+        var icons = { agendado: 'ph-clock', notificado: 'ph-bell agenda-status-icon-notificado', confirmado: 'ph-bell agenda-status-icon-confirmado', chegou: 'ph-map-pin', iniciado: 'ph-play', terminado: 'ph-check-circle agenda-status-icon-confirmado', faltou: 'ph-prohibit', cancelado: 'ph-x-circle', anulado: 'ph-x-circle', completo: 'ph-check-circle agenda-status-icon-confirmado' };
         $id('eventDetailStatus').value = prev;
         $id('eventDetailStatusLabel').textContent = labels[prev] || prev;
         var iconEl = $id('eventDetailStatusIcon');

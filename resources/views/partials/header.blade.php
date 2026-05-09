@@ -193,11 +193,11 @@
             <a class="dropdown-item" href="{{ route('dashboard') }}">
               <i class="bi bi-speedometer2"></i> Dashboard
             </a>
-            <a class="dropdown-item" href="{{ route('activity.index') }}">
-              <i class="ph ph-clock-counter-clockwise"></i> Activity Log
-            </a>
             <a class="dropdown-item" href="{{ route('definicoes.index') }}">
               <i class="ph ph-gear"></i> Definições
+            </a>
+            <a class="dropdown-item" href="{{ route('activity.index') }}">
+              <i class="ph ph-clock-counter-clockwise"></i> Activity Log
             </a>
           </div>
           <div class="user-dropdown-footer">

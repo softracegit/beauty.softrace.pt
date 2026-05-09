@@ -111,12 +111,6 @@
                 ];
             }
         }
-    } elseif (str_contains($currentRoute, 'activity')) {
-        $breadcrumbs[] = [
-            'label' => 'Activity Log',
-            'url' => route('activity.index'),
-            'active' => true
-        ];
     } elseif (str_contains($currentRoute, 'definicoes')) {
         $breadcrumbs[] = [
             'label' => 'Definições',
@@ -140,6 +134,17 @@
                 'active' => true
             ];
         }
+    } elseif (str_contains($currentRoute, 'activity')) {
+        $breadcrumbs[] = [
+            'label' => 'Definições',
+            'url' => route('definicoes.index'),
+            'active' => false
+        ];
+        $breadcrumbs[] = [
+            'label' => 'Activity Log',
+            'url' => route('activity.index'),
+            'active' => true
+        ];
     } elseif (str_starts_with($currentRoute, 'marketing.')) {
         $breadcrumbs[] = [
             'label' => 'Marketing',

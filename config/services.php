@@ -51,11 +51,14 @@ return [
         // Opcoes: bearer, basic ou query
         'auth_mode' => env('VENDUS_AUTH_MODE', 'bearer'),
         'documents_endpoint' => env('VENDUS_DOCUMENTS_ENDPOINT', '/documents/'),
-        'document_type' => env('VENDUS_DOCUMENT_TYPE', 'FT'),
+        // FR = fatura-recibo (pagamento à emissão). FT = fatura sem liquidação imediata.
+        'document_type' => env('VENDUS_DOCUMENT_TYPE', 'FR'),
         'tax_id' => env('VENDUS_TAX_ID', 'NOR'),
         'category_id' => env('VENDUS_CATEGORY_ID'),
         'category_title' => env('VENDUS_CATEGORY_TITLE', 'Serviços'),
         'register_id' => env('VENDUS_REGISTER_ID'),
+        // Opcional: força o ID do meio de pagamento (ignora resolução automática via API).
+        'payment_method_id' => env('VENDUS_PAYMENT_METHOD_ID'),
         'mode' => env('VENDUS_MODE', 'normal'),
         'simulate' => env('VENDUS_SIMULATE', false),
     ],

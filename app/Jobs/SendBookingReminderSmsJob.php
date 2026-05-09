@@ -93,7 +93,13 @@ class SendBookingReminderSmsJob implements ShouldQueue
             CalendarEvent::query()
                 ->whereKey($event->id)
                 ->whereNull('booking_sms_reminder_sent_at')
-                ->update(['booking_sms_reminder_sent_at' => now()]);
+                ->update([
+                    'booking_sms_reminder_sent_at' => now(),
+                    // "Notificado" representa o momento em que o lembrete SMS é efetivamente enviado.
+                    'status' => ($event->status === CalendarEvent::STATUS_AGENDADO)
+                        ? CalendarEvent::STATUS_NOTIFICADO
+                        : $event->status,
+                ]);
         } catch (\Throwable $e) {
             Log::warning('booking_sms_reminder_failed', [
                 'calendar_event_id' => $this->calendarEventId,
