@@ -26,6 +26,9 @@
                     <span class="{{ $hoursUi['css_class'] }}">{{ $hoursUi['label'] }}</span>{{ $hoursUi['suffix'] }}
                 </span>
             </span>
+            <span class="booking-summary-store__info-badge" aria-hidden="true">
+                <i class="bi bi-info-lg"></i>
+            </span>
         </span>
     </button>
 </section>

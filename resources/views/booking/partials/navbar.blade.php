@@ -83,11 +83,7 @@
             </div>
         </div>
         <div class="booking-navbar__cell booking-navbar__cell--center">
-            <a
-                href="{{ $bookingIndexUrl }}"
-                class="booking-navbar__store-title"
-                aria-label="{{ $bookingBusinessDisplayName }}"
-            >{{ $bookingNavbarStoreTitleUpper }}</a>
+            <span class="booking-navbar__store-title">{{ $bookingNavbarStoreTitleUpper }}</span>
             @if ($showBookingSteps)
                 <ol class="booking-navbar-steps d-none" aria-label="Passos da marcação">
                     @foreach ($bookingSteps as $idx => $step)
@@ -184,19 +180,8 @@
                             </li>
                         </ul>
                     </div>
-                    <button
-                        type="button"
-                        class="booking-navbar__offcanvas-trigger"
-                        data-bs-toggle="offcanvas"
-                        data-bs-target="#bookingStoreDetails"
-                        aria-controls="bookingStoreDetails"
-                        aria-label="Informação da loja, morada e horários"
-                    >
-                        <i class="bi bi-list" aria-hidden="true"></i>
-                    </button>
                 </div>
             @else
-                <div class="d-flex align-items-center gap-1 gap-md-2">
                 @if ($bookingDisableAuthModal)
                     <a href="{{ route('booking.login', ['store' => $bookingStoreSlug], false) }}" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap" id="booking-navbar-open-auth">
                         <i class="bi bi-person d-lg-none booking-navbar__auth-open-icon" aria-hidden="true"></i>
@@ -210,17 +195,6 @@
                         <span class="d-none d-lg-inline">Iniciar sessão</span>
                     </button>
                 @endif
-                    <button
-                        type="button"
-                        class="booking-navbar__offcanvas-trigger"
-                        data-bs-toggle="offcanvas"
-                        data-bs-target="#bookingStoreDetails"
-                        aria-controls="bookingStoreDetails"
-                        aria-label="Informação da loja, morada e horários"
-                    >
-                        <i class="bi bi-list" aria-hidden="true"></i>
-                    </button>
-                </div>
             @endif
         </div>
     </div>
