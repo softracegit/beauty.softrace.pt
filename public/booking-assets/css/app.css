@@ -58,30 +58,42 @@ html {
 
 .booking-navbar__inner {
     min-height: var(--booking-navbar-height);
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    display: flex;
+    flex-direction: row;
     align-items: center;
+    justify-content: space-between;
+    position: relative;
     gap: 0.35rem;
 }
 
 .booking-navbar__cell--start {
-    justify-self: start;
+    flex: 1 1 0;
     min-width: 0;
     max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    position: relative;
+    z-index: 2;
 }
 
 .booking-navbar__cell--center {
-    justify-self: center;
-    max-width: min(22rem, 46vw);
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    overscroll-behavior-x: contain;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    max-width: min(22rem, 78vw);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
 }
 
-.booking-navbar__cell--center::-webkit-scrollbar {
-    display: none;
+.booking-navbar__cell--center > * {
+    pointer-events: auto;
 }
 
 .booking-navbar__cell--center--empty {
@@ -89,11 +101,13 @@ html {
 }
 
 .booking-navbar__cell--end {
-    justify-self: end;
-    align-self: stretch;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    position: relative;
+    z-index: 2;
 }
 
 .booking-navbar__brand {
@@ -153,6 +167,28 @@ html {
     line-height: 1;
 }
 
+.booking-navbar__offcanvas-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #111827;
+    cursor: pointer;
+    line-height: 1;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.booking-navbar__offcanvas-trigger .bi {
+    font-size: 1.25rem;
+    line-height: 1;
+    display: block;
+}
+
 @media (max-width: 767.98px) {
     .booking-navbar-new-booking {
         width: 2.5rem;
@@ -161,8 +197,8 @@ html {
         min-height: 2.5rem;
         padding: 0;
         gap: 0;
-        border: 1px solid #d1d5db;
-        border-radius: 50%;
+        border: 0;
+        border-radius: 0.35rem;
         box-sizing: border-box;
         margin-right: 0.65rem;
     }
@@ -287,7 +323,11 @@ html {
 .booking-offcanvas__close-btn {
     width: 2.35rem;
     height: 2.35rem;
-    border-radius: 0.5rem;
+    min-width: 2.35rem;
+    min-height: 2.35rem;
+    padding: 0;
+    border-radius: 50%;
+    box-sizing: border-box;
     border: 0;
     background: #f3f4f6;
     color: #1d2125;
@@ -630,23 +670,320 @@ button.booking-offcanvas-nav__link {
     cursor: default;
 }
 
-/* Steps temporariamente ocultos em todas as viewports (mantidos no DOM). */
-.booking-navbar__inner {
-    grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.booking-navbar__cell--center {
-    display: none !important;
-}
-
-@media (max-width: 767.98px) {
-    .booking-navbar__inner {
-        grid-template-columns: minmax(0, 1fr) auto;
+/* Desktop (lg+): voltar | nome da loja (texto) ao centro absoluto | ações (+ nova marcação visível) */
+@media (min-width: 992px) {
+    .booking-navbar .booking-navbar__inner {
+        gap: 0.45rem 0.65rem;
     }
 
     .booking-navbar__cell--center {
-        display: none;
+        max-width: min(28rem, 88vw);
     }
+
+    .booking-navbar__lead {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex-shrink: 0;
+        width: 2.75rem;
+    }
+
+    .booking-navbar__lead-spacer {
+        display: block;
+        width: 2.5rem;
+        height: 2.5rem;
+        flex-shrink: 0;
+    }
+
+    .booking-navbar__back {
+        width: 2.5rem;
+        min-width: 2.5rem;
+        max-width: 2.5rem;
+        height: 2.5rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        border: 0;
+        background: transparent;
+        color: var(--booking-text);
+        text-decoration: none;
+        box-shadow: none;
+        border-radius: 50%;
+        box-sizing: border-box;
+    }
+
+    .booking-navbar__back:hover,
+    .booking-navbar__back:focus-visible {
+        color: var(--booking-text);
+        background: rgba(0, 0, 0, 0.06);
+    }
+
+    .booking-navbar__back:focus-visible {
+        outline: 2px solid rgba(0, 0, 0, 0.3);
+        outline-offset: 2px;
+    }
+
+    .booking-navbar__back .bi {
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .booking-navbar__store-title {
+        font-size: 1.0625rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        line-height: 1.2;
+        color: var(--booking-text);
+        text-decoration: none;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        padding: 0 0.35rem;
+    }
+
+    .booking-navbar__store-title:hover,
+    .booking-navbar__store-title:focus-visible {
+        color: var(--booking-text);
+    }
+
+    .booking-navbar-new-booking {
+        width: 2.5rem;
+        height: 2.5rem;
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+        padding: 0;
+        gap: 0;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        box-sizing: border-box;
+    }
+
+    .booking-navbar-new-booking .bi {
+        font-size: 1.25rem;
+    }
+
+    .booking-navbar__offcanvas-trigger {
+        width: 2.5rem;
+        height: 2.5rem;
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+        border-radius: 50%;
+        margin-left: 0.15rem;
+    }
+
+    .booking-navbar__offcanvas-trigger:hover {
+        background: #f3f4f6;
+    }
+
+    .booking-navbar__offcanvas-trigger:active,
+    .booking-navbar__offcanvas-trigger:focus-visible {
+        background: #f3f4f6;
+    }
+
+    .booking-navbar__offcanvas-trigger:focus-visible {
+        outline: 2px solid rgba(17, 24, 39, 0.28);
+        outline-offset: 2px;
+    }
+
+    .booking-navbar__offcanvas-trigger .bi {
+        font-size: 1.3rem;
+    }
+
+}
+
+/* Mobile / tablet: voltar | nome da loja (centro absoluto) | só perfil */
+@media (max-width: 991.98px) {
+    :root {
+        --booking-navbar-height: 3.125rem;
+    }
+
+    .booking-navbar .booking-navbar__inner {
+        gap: 0.25rem 0.4rem;
+        padding-top: 0.4rem !important;
+        padding-bottom: 0.4rem !important;
+        min-height: auto;
+    }
+
+    .booking-navbar__cell--center {
+        max-width: min(19rem, 82vw);
+    }
+
+    .booking-navbar__cell--center .booking-navbar-steps {
+        display: none !important;
+    }
+
+    .booking-navbar__lead {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex-shrink: 0;
+        width: 2.5rem;
+    }
+
+    .booking-navbar__lead-spacer {
+        display: block;
+        width: 2.35rem;
+        height: 2.35rem;
+        flex-shrink: 0;
+    }
+
+    .booking-navbar__back {
+        width: 2.35rem;
+        min-width: 2.35rem;
+        max-width: 2.35rem;
+        height: 2.35rem;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        border: 0;
+        background: transparent;
+        color: var(--booking-text);
+        text-decoration: none;
+        box-shadow: none;
+        border-radius: 50%;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .booking-navbar__back:hover,
+    .booking-navbar__back:active {
+        color: var(--booking-text);
+        background: transparent;
+    }
+
+    .booking-navbar__back:focus-visible {
+        color: var(--booking-text);
+        background: transparent;
+        outline: 2px solid rgba(0, 0, 0, 0.35);
+        outline-offset: 2px;
+    }
+
+    .booking-navbar__back .bi {
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .booking-navbar__store-title {
+        font-size: 0.9375rem;
+        font-weight: 700;
+        letter-spacing: 0.045em;
+        line-height: 1.2;
+        color: var(--booking-text);
+        text-decoration: none;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        padding: 0 0.2rem;
+    }
+
+    .booking-navbar__store-title:hover,
+    .booking-navbar__store-title:focus-visible {
+        color: var(--booking-text);
+    }
+
+    .booking-navbar__auth-open {
+        max-width: none;
+        width: 2.5rem;
+        height: 2.5rem;
+        min-width: 2.5rem;
+        padding-left: 0;
+        padding-right: 0;
+        border-radius: 0.35rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .booking-navbar__auth-open:hover,
+    .booking-navbar__auth-open:active,
+    .booking-navbar__auth-open:focus-visible {
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--booking-text) !important;
+    }
+
+    .booking-navbar__auth-open-icon {
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .booking-navbar .booking-navbar-account__toggle-icon {
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .booking-navbar-account .booking-navbar-account__toggle.btn-outline-dark {
+        border-color: transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .booking-navbar-account .booking-navbar-account__toggle.btn-outline-dark:hover,
+    .booking-navbar-account .booking-navbar-account__toggle.btn-outline-dark:active,
+    .booking-navbar-account .booking-navbar-account__toggle.btn-outline-dark:focus-visible,
+    .booking-navbar-account .booking-navbar-account__toggle.btn-outline-dark.show {
+        border-color: transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--booking-text) !important;
+    }
+
+    /* Só ícone de perfil (sem iniciais nem nome visível) — coluna da direita mais estreita */
+    .booking-navbar .booking-navbar-account__initials,
+    .booking-navbar .booking-navbar-account__name {
+        display: none !important;
+    }
+
+    .booking-navbar-account .booking-navbar-account__toggle {
+        max-width: none;
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Sem caret do Bootstrap no botão de perfil (só ícone) */
+    .booking-navbar .booking-navbar-account__toggle.dropdown-toggle::after {
+        display: none !important;
+    }
+
+    .booking-navbar__offcanvas-trigger {
+        width: 2.5rem;
+        height: 2.5rem;
+        min-width: 2.5rem;
+        min-height: 2.5rem;
+        border-radius: 0.35rem;
+    }
+
+    .booking-navbar__offcanvas-trigger:hover,
+    .booking-navbar__offcanvas-trigger:active,
+    .booking-navbar__offcanvas-trigger:focus-visible {
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--booking-text) !important;
+    }
+
+    .booking-navbar__offcanvas-trigger:focus-visible {
+        outline: 2px solid rgba(0, 0, 0, 0.35);
+        outline-offset: 2px;
+    }
+
+    .booking-navbar__offcanvas-trigger .bi {
+        font-size: 1.35rem;
+    }
+
 }
 
 /*
@@ -1179,12 +1516,33 @@ button.booking-offcanvas-nav__link {
     height: 2.75rem;
     border: none;
     border-radius: 0.5rem;
-    background: #eceff3;
+    background: transparent;
     color: #111827;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.booking-week-view__nav:hover,
+.booking-week-view__nav:active,
+.booking-week-view__nav:focus-visible {
+    background: transparent;
+    color: #111827;
+    box-shadow: none;
+}
+
+.booking-week-view__nav:focus-visible {
+    outline: 2px solid rgba(17, 24, 39, 0.28);
+    outline-offset: 2px;
+}
+
+.booking-week-view__nav:disabled {
+    cursor: not-allowed;
+    color: #a6acb4;
+    background: transparent;
 }
 
 .booking-week-view__days {
@@ -1294,18 +1652,40 @@ button.booking-offcanvas-nav__link {
     padding: 0 !important;
     border-radius: 0.5rem !important;
     border: none !important;
-    background-color: #eceff3 !important;
+    background-color: transparent !important;
     color: #111827 !important;
     opacity: 1 !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease, opacity 0.15s ease;
+    box-shadow: none !important;
+    margin-top: 1px !important;
 }
 
 .booking-page--datetime .flatpickr-calendar.inline .flatpickr-prev-month:hover,
-.booking-page--datetime .flatpickr-calendar.inline .flatpickr-next-month:hover {
-    background-color: #e2e6eb !important;
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-next-month:hover,
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-prev-month:active,
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-next-month:active,
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-prev-month:focus,
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-next-month:focus {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-prev-month:focus-visible,
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-next-month:focus-visible {
+    outline: 2px solid rgba(17, 24, 39, 0.28);
+    outline-offset: 2px;
+}
+
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-prev-month.flatpickr-disabled,
+.booking-page--datetime .flatpickr-calendar.inline .flatpickr-next-month.flatpickr-disabled {
+    cursor: not-allowed;
+    opacity: 0.45 !important;
+    background-color: transparent !important;
 }
 
 .booking-page--datetime .flatpickr-calendar.inline .flatpickr-prev-month svg,
@@ -2133,8 +2513,8 @@ button.booking-offcanvas-nav__link {
 }
 
 .booking-summary-store__photo {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 2.6rem;
     border-radius: 0.4rem;
     overflow: hidden;
     flex-shrink: 0;

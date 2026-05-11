@@ -87,17 +87,18 @@ document.addEventListener('DOMContentLoaded', function() {
         anulado: 'Anulado',
         completo: 'Pago'
     };
+    /** Remix Icon fill (sólido); carregar remixicon.css na vista agenda. */
     const STATUS_ICONS = {
-        agendado: 'ph-clock',
-        notificado: 'ph-bell agenda-status-icon-notificado',
-        confirmado: 'ph-bell agenda-status-icon-confirmado',
-        chegou: 'ph-map-pin',
-        iniciado: 'ph-play',
-        terminado: 'ph-check-circle agenda-status-icon-confirmado',
-        faltou: 'ph-prohibit',
-        cancelado: 'ph-x-circle',
-        anulado: 'ph-x-circle',
-        completo: 'ph-check-circle agenda-status-icon-confirmado'
+        agendado: 'ri-time-fill agenda-status-icon-agendado',
+        notificado: 'ri-notification-3-fill agenda-status-icon-notificado',
+        confirmado: 'ri-notification-3-fill agenda-status-icon-confirmado',
+        chegou: 'ri-map-pin-fill agenda-status-icon-chegou',
+        iniciado: 'ri-play-fill agenda-status-icon-iniciado',
+        terminado: 'ri-checkbox-circle-fill agenda-status-icon-confirmado',
+        faltou: 'ri-forbid-fill',
+        cancelado: 'ri-close-circle-fill',
+        anulado: 'ri-close-circle-fill',
+        completo: 'ri-checkbox-circle-fill agenda-status-icon-confirmado'
     };
     const STORE_OPEN_HOUR = 9;
     const STORE_CLOSE_HOUR = 20;
@@ -561,6 +562,55 @@ document.addEventListener('DOMContentLoaded', function() {
         return wrapper;
     }
 
+    /** Enquanto o quick menu está aberto, o primeiro clique fora só fecha o menu (calendário não recebe a ação). */
+    var agendaQuickMenuOutsideCaptureFn = null;
+    var agendaQuickMenuSwallowUntil = 0;
+
+    function detachAgendaQuickMenuOutsideCapture() {
+        if (!agendaQuickMenuOutsideCaptureFn) return;
+        document.removeEventListener('pointerdown', agendaQuickMenuOutsideCaptureFn, true);
+        document.removeEventListener('click', agendaQuickMenuOutsideCaptureFn, true);
+        document.removeEventListener('mousedown', agendaQuickMenuOutsideCaptureFn, true);
+        agendaQuickMenuOutsideCaptureFn = null;
+        agendaQuickMenuSwallowUntil = 0;
+    }
+
+    function attachAgendaQuickMenuOutsideCapture(hideFn) {
+        detachAgendaQuickMenuOutsideCapture();
+        agendaQuickMenuOutsideCaptureFn = function(e) {
+            var menu = $id('agendaQuickMenu');
+            var t = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            if (e.type === 'click') {
+                if (t < agendaQuickMenuSwallowUntil) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    agendaQuickMenuSwallowUntil = 0;
+                    return;
+                }
+                if (!menu || !menu.classList.contains('is-open')) return;
+                if (menu.contains(e.target)) return;
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                hideFn();
+                return;
+            }
+            if (!menu || !menu.classList.contains('is-open')) return;
+            if (menu.contains(e.target)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            agendaQuickMenuSwallowUntil = t + 900;
+            hideFn();
+        };
+        document.addEventListener('pointerdown', agendaQuickMenuOutsideCaptureFn, true);
+        document.addEventListener('click', agendaQuickMenuOutsideCaptureFn, true);
+        if (!window.PointerEvent) {
+            document.addEventListener('mousedown', agendaQuickMenuOutsideCaptureFn, true);
+        }
+    }
+
     /**
      * Mostra o menu rápido (popup) na posição do rato com as opções dadas.
      * @param {number} clientX - posição X do rato (ex: info.jsEvent.clientX)
@@ -578,8 +628,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!menu || !options || options.length === 0) return;
 
         function hideQuickMenu() {
+            detachAgendaQuickMenuOutsideCapture();
             menu.classList.remove('is-open');
-            document.removeEventListener('click', closeHandler);
             window.removeEventListener('scroll', scrollHandler, true);
             document.removeEventListener('keydown', escHandler);
             clearAgendaCellHighlight();
@@ -590,17 +640,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function scrollHandler() {
-            hideQuickMenu();
-        }
-
-        /** No mobile, o browser dispara um `click` sintético após o toque que abriu o menu; ignoramos esse primeiro “fora” para não fechar logo. */
-        var suppressFirstOutsideClose = true;
-        function closeHandler(e) {
-            if (menu.contains(e.target)) return;
-            if (suppressFirstOutsideClose) {
-                suppressFirstOutsideClose = false;
-                return;
-            }
             hideQuickMenu();
         }
 
@@ -671,7 +710,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         menu.classList.add('is-open');
         setTimeout(function() {
-            document.addEventListener('click', closeHandler);
+            attachAgendaQuickMenuOutsideCapture(hideQuickMenu);
             window.addEventListener('scroll', scrollHandler, true);
             document.addEventListener('keydown', escHandler);
         }, 0);
@@ -690,28 +729,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         var statusOpts = [
-            { status: 'agendado', label: 'Agendado', icon: 'ph ph-clock' },
-            { status: 'notificado', label: 'Notificado', icon: 'ph ph-bell agenda-status-icon-notificado' },
-            { status: 'confirmado', label: 'Confirmado', icon: 'ph ph-bell agenda-status-icon-confirmado' },
-            { status: 'chegou', label: 'Chegou', icon: 'ph ph-map-pin' },
-            { status: 'iniciado', label: 'Iniciado', icon: 'ph ph-play' },
-            { status: 'cancelar', label: 'Cancelar', icon: 'ph ph-x-circle', isCancelAction: true }
+            { status: 'agendado', label: 'Agendado', icon: 'ri-time-fill agenda-status-icon-agendado' },
+            { status: 'notificado', label: 'Notificado', icon: 'ri-notification-3-fill agenda-status-icon-notificado' },
+            { status: 'confirmado', label: 'Confirmado', icon: 'ri-notification-3-fill agenda-status-icon-confirmado' },
+            { status: 'chegou', label: 'Chegou', icon: 'ri-map-pin-fill agenda-status-icon-chegou' },
+            { status: 'iniciado', label: 'Iniciado', icon: 'ri-play-fill agenda-status-icon-iniciado' },
+            { status: 'cancelar', label: 'Cancelar', icon: 'ri-close-circle-fill', isCancelAction: true }
         ];
         function hideMenu() {
+            detachAgendaQuickMenuOutsideCapture();
             menu.classList.remove('is-open');
             menu.classList.remove('agenda-status-dropdown');
             menu.innerHTML = '';
-            document.removeEventListener('click', closeHandler);
             document.removeEventListener('keydown', escHandler);
-        }
-        var suppressFirstOutsideCloseStatus = true;
-        function closeHandler(e) {
-            if (menu.contains(e.target)) return;
-            if (suppressFirstOutsideCloseStatus) {
-                suppressFirstOutsideCloseStatus = false;
-                return;
-            }
-            hideMenu();
         }
         function escHandler(e) {
             if (e.key === 'Escape') hideMenu();
@@ -765,7 +795,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             ev.setExtendedProp('status_label', res.status_label);
                         }
                         var iconBtn = $('.fc-event[data-event-id="' + event.id + '"] .agenda-event-status-icon-btn i');
-                        if (iconBtn) iconBtn.className = (res.status_icon || 'ph ph-clock') + ' fc-event-status-icon';
+                        if (iconBtn) iconBtn.className = (res.status_icon || 'ri-time-fill agenda-status-icon-agendado') + ' fc-event-status-icon';
                         showToast('Estado atualizado.', 'success');
                     } else {
                         showToast(res.message || 'Erro ao atualizar estado.', 'error');
@@ -794,7 +824,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         menu.classList.add('is-open');
         setTimeout(function() {
-            document.addEventListener('click', closeHandler);
+            attachAgendaQuickMenuOutsideCapture(hideMenu);
             document.addEventListener('keydown', escHandler);
         }, 0);
     }
@@ -832,25 +862,25 @@ document.addEventListener('DOMContentLoaded', function() {
         var ext = event.extendedProps || {};
         var statusLabels = STATUS_LABELS;
         var statusIcons = {
-            agendado: 'ph ph-clock',
-            notificado: 'ph ph-bell agenda-status-icon-notificado',
-            confirmado: 'ph ph-bell agenda-status-icon-confirmado',
-            chegou: 'ph ph-map-pin',
-            iniciado: 'ph ph-play',
-            terminado: 'ph ph-check-circle agenda-status-icon-confirmado',
-            faltou: 'ph ph-prohibit',
-            cancelado: 'ph ph-x-circle',
-            completo: 'ph ph-check-circle agenda-status-icon-confirmado'
+            agendado: 'ri-time-fill agenda-status-icon-agendado',
+            notificado: 'ri-notification-3-fill agenda-status-icon-notificado',
+            confirmado: 'ri-notification-3-fill agenda-status-icon-confirmado',
+            chegou: 'ri-map-pin-fill agenda-status-icon-chegou',
+            iniciado: 'ri-play-fill agenda-status-icon-iniciado',
+            terminado: 'ri-checkbox-circle-fill agenda-status-icon-confirmado',
+            faltou: 'ri-forbid-fill',
+            cancelado: 'ri-close-circle-fill',
+            completo: 'ri-checkbox-circle-fill agenda-status-icon-confirmado'
         };
         var isTempoPessoal = (ext.event_type || '') === 'tempo_pessoal';
         var personalTimeType = ext.personal_time_type || {};
         var status = ext.status || 'agendado';
         var statusLabel = isTempoPessoal ? 'Tempo pessoal' : (statusLabels[status] || status);
-        var statusIcon = isTempoPessoal ? null : (statusIcons[status] || 'ph ph-clock');
+        var statusIcon = isTempoPessoal ? null : (statusIcons[status] || 'ri-time-fill agenda-status-icon-agendado');
         var invoiceSettled = !!ext.invoice_settled;
         var hasInvoice = !!ext.has_invoice;
-        if (!isTempoPessoal && hasInvoice && !invoiceSettled) statusIcon = 'ph ph-clock';
-        if (!isTempoPessoal && invoiceSettled) statusIcon = 'ph ph-check-circle';
+        if (!isTempoPessoal && hasInvoice && !invoiceSettled) statusIcon = 'ri-time-fill agenda-status-icon-agendado';
+        if (!isTempoPessoal && invoiceSettled) statusIcon = 'ri-checkbox-circle-fill agenda-status-icon-confirmado';
         var start = event.start;
         var end = event.end;
         var fmt = function(d) { return d ? (String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) : ''; };
@@ -1660,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var iconEl = $id('eventDetailStatusIcon');
         if (iconEl) {
             var ic = iconEl.querySelector('i');
-            if (ic) ic.className = 'ph ' + (STATUS_ICONS[statusVal] || 'ph-clock');
+            if (ic) ic.className = STATUS_ICONS[statusVal] || 'ri-time-fill agenda-status-icon-agendado';
         }
         var statusDropdownWrap = $id('eventDetailStatusDropdownWrap');
         var statusStatic = $id('eventDetailStatusStatic');
@@ -1676,7 +1706,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (statusStaticLabel) statusStaticLabel.textContent = STATUS_LABELS[statusVal] || statusVal;
                 if (statusStaticIcon) {
                     var si = statusStaticIcon.querySelector('i');
-                    if (si) si.className = 'ph ' + (STATUS_ICONS[statusVal] || 'ph-clock');
+                    if (si) si.className = STATUS_ICONS[statusVal] || 'ri-time-fill agenda-status-icon-agendado';
                 }
             }
         } else {
@@ -4613,7 +4643,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var hasInvoice = !!(extProps.has_invoice);
             var effectiveStatusIcon = statusIcon;
             if (!isTempoPessoal && invoiceSettled) {
-                effectiveStatusIcon = 'ph ph-check-circle';
+                effectiveStatusIcon = 'ri-checkbox-circle-fill agenda-status-icon-confirmado';
             }
             var iconHtml = '';
             if (effectiveStatusIcon) {
@@ -6896,7 +6926,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var iconEl = $id('eventDetailStatusIcon');
             if (iconEl) {
                 var ic = iconEl.querySelector('i');
-                if (ic) ic.className = 'ph ' + (icons[status] || 'ph-clock');
+                if (ic) ic.className = icons[status] || 'ri-time-fill agenda-status-icon-agendado';
             }
             if (evId && status !== previousStatus) {
                 var payload = { status: status };
@@ -6920,7 +6950,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         $id('eventDetailStatusLabel').textContent = labels[previousStatus] || previousStatus;
                         if (iconEl) {
                             var ic = iconEl.querySelector('i');
-                            if (ic) ic.className = 'ph ' + (icons[previousStatus] || 'ph-clock');
+                            if (ic) ic.className = icons[previousStatus] || 'ri-time-fill agenda-status-icon-agendado';
                         }
                         showToast(res.message || 'Erro ao atualizar estado.', 'error');
                     }
@@ -6930,7 +6960,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     $id('eventDetailStatusLabel').textContent = labels[previousStatus] || previousStatus;
                     if (iconEl) {
                         var ic = iconEl.querySelector('i');
-                        if (ic) ic.className = 'ph ' + (icons[previousStatus] || 'ph-clock');
+                        if (ic) ic.className = icons[previousStatus] || 'ri-time-fill agenda-status-icon-agendado';
                     }
                     showToast('Erro de ligação.', 'error');
                 });
@@ -7141,13 +7171,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var prev = window._cancelMarcacaoPreviousStatus;
         if (prev === undefined) return;
         var labels = { agendado: 'Agendado', notificado: 'Notificado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', terminado: 'Terminado', faltou: 'Faltou', cancelado: 'Cancelado', anulado: 'Anulado', completo: 'Pago' };
-        var icons = { agendado: 'ph-clock', notificado: 'ph-bell agenda-status-icon-notificado', confirmado: 'ph-bell agenda-status-icon-confirmado', chegou: 'ph-map-pin', iniciado: 'ph-play', terminado: 'ph-check-circle agenda-status-icon-confirmado', faltou: 'ph-prohibit', cancelado: 'ph-x-circle', anulado: 'ph-x-circle', completo: 'ph-check-circle agenda-status-icon-confirmado' };
         $id('eventDetailStatus').value = prev;
         $id('eventDetailStatusLabel').textContent = labels[prev] || prev;
         var iconEl = $id('eventDetailStatusIcon');
         if (iconEl) {
             var ic = iconEl.querySelector('i');
-            if (ic) ic.className = 'ph ' + (icons[prev] || 'ph-clock');
+            if (ic) ic.className = STATUS_ICONS[prev] || 'ri-time-fill agenda-status-icon-agendado';
         }
         window._cancelMarcacaoContext = null;
     });

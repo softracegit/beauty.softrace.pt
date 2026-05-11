@@ -2,7 +2,7 @@
     $store = config('booking.public_store', []);
     $storeName = (string) ($store['name'] ?? 'Loja');
     $rawPhoto = trim((string) ($store['photo'] ?? ''));
-    $fallback = (string) ($store['photo_fallback'] ?? 'booking-assets/img/logo-fada.png');
+    $fallback = (string) ($store['photo_fallback'] ?? 'booking-assets/img/icone.png');
     $storePhotoUrl = $rawPhoto !== ''
         ? (filter_var($rawPhoto, FILTER_VALIDATE_URL) ? $rawPhoto : asset(ltrim($rawPhoto, '/')))
         : asset(ltrim($fallback, '/'));

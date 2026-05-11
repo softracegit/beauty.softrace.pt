@@ -348,23 +348,23 @@ class CalendarEvent extends Model
     }
 
     /**
-     * Get the icon class for the current status (Phosphor Icons).
+     * Get the icon class for the current status (Remix Icon fill + classes de cor em agenda.css).
      */
     public function getStatusIconAttribute(): ?string
     {
         $status = $this->status ?? self::STATUS_AGENDADO;
 
         return match ($status) {
-            self::STATUS_AGENDADO => 'ph ph-clock',
-            self::STATUS_NOTIFICADO => 'ph ph-bell agenda-status-icon-notificado',
-            self::STATUS_CONFIRMADO => 'ph ph-bell agenda-status-icon-confirmado',
-            self::STATUS_CHEGOU => 'ph ph-map-pin',
-            self::STATUS_INICIADO => 'ph ph-play',
-            self::STATUS_TERMINADO => 'ph ph-check-circle agenda-status-icon-confirmado',
-            self::STATUS_FALTOU => 'ph ph-prohibit',
-            self::STATUS_CANCELADO => 'ph ph-x-circle',
-            self::STATUS_ANULADO => 'ph ph-x-circle',
-            self::STATUS_COMPLETO => 'ph ph-check-circle agenda-status-icon-confirmado',
+            self::STATUS_AGENDADO => 'ri-time-fill agenda-status-icon-agendado',
+            self::STATUS_NOTIFICADO => 'ri-notification-3-fill agenda-status-icon-notificado',
+            self::STATUS_CONFIRMADO => 'ri-notification-3-fill agenda-status-icon-confirmado',
+            self::STATUS_CHEGOU => 'ri-map-pin-fill agenda-status-icon-chegou',
+            self::STATUS_INICIADO => 'ri-play-fill agenda-status-icon-iniciado',
+            self::STATUS_TERMINADO => 'ri-checkbox-circle-fill agenda-status-icon-confirmado',
+            self::STATUS_FALTOU => 'ri-forbid-fill',
+            self::STATUS_CANCELADO => 'ri-close-circle-fill',
+            self::STATUS_ANULADO => 'ri-close-circle-fill',
+            self::STATUS_COMPLETO => 'ri-checkbox-circle-fill agenda-status-icon-confirmado',
             default => null,
         };
     }

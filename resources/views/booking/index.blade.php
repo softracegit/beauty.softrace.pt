@@ -47,7 +47,12 @@
                     <div class="row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row">
                         <div class="col-lg-8">
                             <main class="pt-1">
-                                <h2 class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1">Adicione os serviços que pretende</h2>
+                                <h2
+                                    id="booking-services-page-heading"
+                                    class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1"
+                                    data-heading-empty="Adicione os serviços que pretende"
+                                    data-heading-has-items="Adicione mais serviços à sua marcação"
+                                >Adicione os serviços que pretende</h2>
                                 <section class="booking-category-section booking-category-section--chips mb-4 pb-1" aria-label="Atalhos por categoria">
                                     <div class="card border shadow-sm rounded-3 booking-category-card booking-category-card--chips">
                                         <nav class="booking-category-chips" aria-label="Categorias de serviço">

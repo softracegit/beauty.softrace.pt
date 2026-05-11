@@ -14,7 +14,6 @@
                     <div class="col-lg-8">
                         <main class="pt-1">
                             <div class="d-flex align-items-center mb-3 ps-1 booking-page-main-heading">
-                                @include('booking.partials.page-back-mobile', ['backUrl' => route('booking.index', ['store' => $bookingStoreSlug], false)])
                                 <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">Escolha o staff</h1>
                             </div>
 
@@ -78,8 +77,6 @@
                     <div class="col-lg-4 booking-summary-column">
                         @include('booking.partials.summary-panel', [
                             'summaryTitle' => 'Resumo da marcação',
-                            'showBackButton' => true,
-                            'backUrl' => route('booking.index', ['store' => $bookingStoreSlug], false),
                             'showNextButton' => true,
                             'nextUrl' => route('booking.datetime', ['store' => $bookingStoreSlug], false),
                             'nextRequires' => 'technician',

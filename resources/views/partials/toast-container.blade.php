@@ -1,5 +1,5 @@
-<!-- Toast container: bottom center, Bootstrap Toast com soft colors do template -->
-<div id="appToastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;"></div>
+<!-- Toast container: canto inferior esquerdo (evita sobrepor offcanvas à direita) -->
+<div id="appToastContainer" class="toast-container position-fixed bottom-0 start-0 p-3" style="z-index: 9999;"></div>
 <script>
 (function() {
     var icons = { error: 'ph ph-x-circle', success: 'ph ph-check-circle', warning: 'ph ph-warning', info: 'ph ph-info-circle' };

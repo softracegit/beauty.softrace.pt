@@ -437,6 +437,15 @@ body .app-wrapper .container-fluid {
     opacity: 1;
     flex-shrink: 0;
 }
+/* Estados da marcação: Remix Icon fill (remixicon.css na vista agenda) */
+.fc-event-status-icon.ri,
+.event-detail-status-trigger-icon i.ri,
+.agenda-quickview-status i.ri,
+.agenda-status-dropdown .agenda-status-dropdown-item i.ri {
+    font-size: 1em;
+    line-height: 1;
+    vertical-align: -0.08em;
+}
 .fc-event .fc-event-status-icon-completo {
     color: #198754;
 }
@@ -446,13 +455,29 @@ body .app-wrapper .container-fluid {
 .fc-event .fc-event-status-icon.agenda-status-icon-confirmado {
     color: #16a34a;
 }
+.fc-event .fc-event-status-icon.agenda-status-icon-agendado {
+    color: #6c757d;
+}
+.fc-event .fc-event-status-icon.agenda-status-icon-chegou,
+.fc-event .fc-event-status-icon.agenda-status-icon-iniciado {
+    color: var(--accent-color, #0d6efd);
+}
+/* Play ligeiramente maior no cartão (glyph pequeno) */
+.fc-event .fc-event-status-icon.agenda-status-icon-iniciado.ri {
+    font-size: 1.14rem;
+}
 .agenda-event-status-icon-btn {
     cursor: pointer;
     display: inline-flex;
-    padding: 0.1rem;
-    margin: 0;
+    align-items: center;
+    justify-content: center;
     background-color: #fff;
+    padding: 0rem;
+    margin: 0;
     border-radius: 50%;
+    line-height: 0;
+    width: 17px;
+    height: 17px;
 }
 #eventDetailStatusIcon {
     font-size: 1.125rem;
@@ -510,9 +535,42 @@ body .app-wrapper .container-fluid {
     color: #212529; /* preto/neutro */
 }
 
+/* Offcanvas marcação: ícones do menu de estado ligeiramente maiores que o texto */
+#eventDetailEditModal #eventDetailStatusMenu .event-detail-status-opt > i {
+    font-size: 1.08rem;
+}
+#eventDetailEditModal #eventDetailStatusMenu .event-detail-status-opt > i.agenda-status-icon-iniciado {
+    font-size: 1.2rem;
+}
+
 .event-detail-status-opt:hover i,
 .agenda-status-dropdown-item:hover i {
     color: #212529; /* manter preto no hover */
+}
+
+/* Agendado: cinza fixo (não segue o #212529 do hover) */
+.event-detail-status-opt i.agenda-status-icon-agendado,
+.agenda-status-dropdown-item i.agenda-status-icon-agendado,
+.event-detail-status-opt:hover i.agenda-status-icon-agendado,
+.agenda-status-dropdown-item:hover i.agenda-status-icon-agendado {
+    color: #6c757d !important;
+}
+
+/* Chegou / Iniciado: azul (normal + hover) */
+.event-detail-status-opt i.agenda-status-icon-chegou,
+.agenda-status-dropdown-item i.agenda-status-icon-chegou,
+.event-detail-status-opt:hover i.agenda-status-icon-chegou,
+.agenda-status-dropdown-item:hover i.agenda-status-icon-chegou,
+.event-detail-status-opt i.agenda-status-icon-iniciado,
+.agenda-status-dropdown-item i.agenda-status-icon-iniciado,
+.event-detail-status-opt:hover i.agenda-status-icon-iniciado,
+.agenda-status-dropdown-item:hover i.agenda-status-icon-iniciado {
+    color: var(--accent-color, #0d6efd) !important;
+}
+
+.event-detail-status-opt i.agenda-status-icon-iniciado,
+.agenda-status-dropdown-item i.agenda-status-icon-iniciado {
+    font-size: 1.12rem;
 }
 
 /* Exceções: sino por estado (normal + hover) */
@@ -1216,6 +1274,22 @@ body .app-wrapper .container-fluid {
     font-size: 1rem;
     opacity: 0.9;
 }
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-status i.agenda-status-icon-agendado {
+    color: #6c757d;
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-status i.agenda-status-icon-notificado {
+    color: #eab308;
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-status i.agenda-status-icon-confirmado {
+    color: #16a34a;
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-status i.agenda-status-icon-chegou,
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-status i.agenda-status-icon-iniciado {
+    color: var(--accent-color, #0d6efd);
+}
+#agendaEventQuickview .agenda-quickview-header .agenda-quickview-status i.agenda-status-icon-iniciado {
+    font-size: 1.12rem;
+}
 #agendaEventQuickview .agenda-quickview-body {
     padding: 0.75rem 1rem;
 }
@@ -1868,7 +1942,8 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     flex-shrink: 0;
 }
 
-#eventDetailEditModal .event-detail-status-trigger-icon .ph {
+#eventDetailEditModal .event-detail-status-trigger-icon .ph,
+#eventDetailEditModal .event-detail-status-trigger-icon .ri {
     display: block;
     font-size: 1.05em;
     line-height: 1;
@@ -1882,6 +1957,22 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
 #eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-confirmado,
 #eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-confirmado {
     color: #16a34a;
+}
+#eventDetailEditModal #eventDetailStatusIcon .agenda-status-icon-agendado,
+#eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-agendado,
+#eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-agendado {
+    color: #6c757d;
+}
+#eventDetailEditModal #eventDetailStatusIcon .agenda-status-icon-chegou,
+#eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-chegou,
+#eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-chegou,
+#eventDetailEditModal #eventDetailStatusIcon .agenda-status-icon-iniciado,
+#eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-iniciado,
+#eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-iniciado {
+    color: var(--accent-color, #0d6efd);
+}
+#eventDetailEditModal #eventDetailStatusIcon i.agenda-status-icon-iniciado {
+    font-size: 1.15em;
 }
 
 #eventDetailEditModal #eventDetailStatusLabel,
@@ -1995,6 +2086,18 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
 }
 .event-detail-status-toggle i {
     color: inherit;
+}
+
+/* Trigger do estado: agendado/chegou/iniciado não mudam de cor ao hover do botão (evita herdar cinza errado) */
+#eventDetailEditModal #eventDetailStatusDropdownBtn:hover #eventDetailStatusIcon i.agenda-status-icon-agendado,
+#eventDetailEditModal #eventDetailStatusDropdownBtn:focus #eventDetailStatusIcon i.agenda-status-icon-agendado {
+    color: #6c757d !important;
+}
+#eventDetailEditModal #eventDetailStatusDropdownBtn:hover #eventDetailStatusIcon i.agenda-status-icon-chegou,
+#eventDetailEditModal #eventDetailStatusDropdownBtn:focus #eventDetailStatusIcon i.agenda-status-icon-chegou,
+#eventDetailEditModal #eventDetailStatusDropdownBtn:hover #eventDetailStatusIcon i.agenda-status-icon-iniciado,
+#eventDetailEditModal #eventDetailStatusDropdownBtn:focus #eventDetailStatusIcon i.agenda-status-icon-iniciado {
+    color: var(--accent-color, #0d6efd) !important;
 }
 
 /* Ícones ver perfil / editar cliente — sem sublinhado (nova marcação + editar offcanvas) */

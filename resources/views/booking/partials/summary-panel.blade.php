@@ -5,8 +5,6 @@
     $nextUrl = $nextUrl ?? route('booking.datetime', ['store' => $bookingStoreKey], false);
     $nextLabel = $nextLabel ?? 'Seguinte';
     $nextClass = $nextClass ?? 'btn-dark';
-    $showBackButton = $showBackButton ?? false;
-    $backUrl = $backUrl ?? route('booking.index', ['store' => $bookingStoreKey], false);
     $nextRequires = $nextRequires ?? null;
     $slotHoldSeconds = max(10, \App\Models\CrmSetting::bookingSlotHoldMinutes() * 60);
 @endphp
@@ -77,18 +75,11 @@
                         </span>
                     </div>
 
-                    @if($showBackButton || $showNextButton)
+                    @if($showNextButton)
                         <div class="booking-summary-actions d-flex gap-2 align-items-center">
-                            @if($showBackButton)
-                                <a href="{{ $backUrl }}" class="btn btn-outline-secondary d-none d-lg-inline-flex justify-content-center align-items-center booking-summary-back-btn booking-summary-back-desktop" aria-label="Voltar">
-                                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
-                                </a>
-                            @endif
-                            @if($showNextButton)
-                                <button type="button" id="booking-next" class="btn {{ $nextClass }} flex-fill booking-summary-next-btn" disabled data-next-url="{{ $nextUrl }}" @if($nextRequires) data-next-requires="{{ $nextRequires }}" @endif>
-                                    {{ $nextLabel }}
-                                </button>
-                            @endif
+                            <button type="button" id="booking-next" class="btn {{ $nextClass }} flex-fill booking-summary-next-btn" disabled data-next-url="{{ $nextUrl }}" @if($nextRequires) data-next-requires="{{ $nextRequires }}" @endif>
+                                {{ $nextLabel }}
+                            </button>
                         </div>
                     @endif
                 </div>

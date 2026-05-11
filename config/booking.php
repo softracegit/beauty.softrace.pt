@@ -101,7 +101,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Usados no resumo lateral e no offcanvas. `photo`: URL absoluta ou caminho
-    | relativo a public/ (ex.: booking-assets/img/logo-fada.png). Vazio = logo por defeito.
+    | relativo a public/ (ex.: booking-assets/img/icone.png). Vazio = usa `photo_fallback`.
     |
     */
 
@@ -109,7 +109,7 @@ return [
         'name' => env('BOOKING_PUBLIC_STORE_NAME', 'Fada Studio | Beauty Bar Aveiro'),
         'address' => env('BOOKING_PUBLIC_STORE_ADDRESS', 'R. Gustavo Ferreira Pinto Basto 15 A, 3810-119 Aveiro'),
         'photo' => env('BOOKING_PUBLIC_STORE_PHOTO', ''),
-        'photo_fallback' => 'booking-assets/img/logo-fada.png',
+        'photo_fallback' => 'booking-assets/img/icone.png',
         'maps_url' => env('BOOKING_PUBLIC_STORE_MAPS_URL', 'https://maps.google.com/?q=R.%20Gustavo%20Ferreira%20Pinto%20Basto%2015%20A%2C%203810-119%20Aveiro'),
         'phone' => env('BOOKING_PUBLIC_STORE_PHONE', '300 505 149'),
         'phone_tel_href' => env('BOOKING_PUBLIC_STORE_PHONE_TEL', 'tel:+351300505149'),

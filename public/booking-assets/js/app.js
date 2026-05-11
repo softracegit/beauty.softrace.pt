@@ -220,6 +220,7 @@
         els.summaryTimeLabel = document.getElementById('booking-summary-time-label');
         els.summarySlotHold = document.getElementById('booking-summary-slot-hold');
         els.summarySlotHoldTime = document.getElementById('booking-summary-slot-hold-time');
+        els.servicesPageHeading = document.getElementById('booking-services-page-heading');
         els.nextBtn = document.getElementById('booking-next');
         els.slotHoldExpiredModal = document.getElementById('booking-slot-hold-expired-modal');
         els.slotHoldRestartBtn = document.getElementById('booking-slot-hold-restart');
@@ -444,122 +445,139 @@
         });
     }
 
+    function syncBookingServicesPageHeading() {
+        var el = els.servicesPageHeading;
+        if (!el) {
+            return;
+        }
+        var emptyText = el.getAttribute('data-heading-empty') || '';
+        var hasItemsText = el.getAttribute('data-heading-has-items') || '';
+        if (!emptyText || !hasItemsText) {
+            return;
+        }
+        el.textContent = state.items.length > 0 ? hasItemsText : emptyText;
+    }
+
     function renderSummary() {
-        if (!els.summaryList || !els.summaryEmpty || !els.summaryTotal) {
-            return;
-        }
-        renderSlotHoldBanner();
+        try {
+            if (!els.summaryList || !els.summaryEmpty || !els.summaryTotal) {
+                return;
+            }
+            renderSlotHoldBanner();
 
-        if (state.items.length === 0) {
-            els.summaryEmpty.classList.remove('is-hidden');
-            els.summaryList.classList.add('is-hidden');
-            els.summaryList.innerHTML = '';
-            els.summaryTotal.classList.add('is-hidden');
+            if (state.items.length === 0) {
+                els.summaryEmpty.classList.remove('is-hidden');
+                els.summaryList.classList.add('is-hidden');
+                els.summaryList.innerHTML = '';
+                els.summaryTotal.classList.add('is-hidden');
+                if (els.nextBtn) {
+                    els.nextBtn.disabled = true;
+                }
+                renderSummaryExtras();
+                closeSummaryDrawer();
+                releaseSlotHold('cart_empty');
+                scheduleBookingSummaryFooterVisualBottom();
+                return;
+            }
+
+            els.summaryEmpty.classList.add('is-hidden');
+            els.summaryList.classList.remove('is-hidden');
+            els.summaryTotal.classList.remove('is-hidden');
             if (els.nextBtn) {
-                els.nextBtn.disabled = true;
-            }
-            renderSummaryExtras();
-            closeSummaryDrawer();
-            releaseSlotHold('cart_empty');
-            scheduleBookingSummaryFooterVisualBottom();
-            return;
-        }
-
-        els.summaryEmpty.classList.add('is-hidden');
-        els.summaryList.classList.remove('is-hidden');
-        els.summaryTotal.classList.remove('is-hidden');
-        if (els.nextBtn) {
-            var requirement = els.nextBtn.getAttribute('data-next-requires');
-            if (requirement === 'technician') {
-                els.nextBtn.disabled = !hasSelectedTechnician();
-            } else if (requirement === 'datetime') {
-                els.nextBtn.disabled = !hasSelectedDateTime();
-            } else if (requirement === 'checkout') {
-                els.nextBtn.disabled = !hasCheckoutContact();
-            } else {
-                els.nextBtn.disabled = false;
-            }
-        }
-
-        els.summaryList.innerHTML = '';
-        state.items.forEach(function (line) {
-            var li = document.createElement('li');
-            li.className = 'booking-summary-line';
-            li.setAttribute('data-line-id', line.lineId);
-
-            var snap = line.editSnapshot;
-            var hasOption =
-                line.service_option_id != null &&
-                line.service_option_id !== '' &&
-                String(line.service_option_id) !== 'undefined';
-            var parentName = hasOption && snap && snap.name ? snap.name : line.name || '';
-            var optionName =
-                hasOption && snap && snap.name && line.name && line.name !== snap.name ? line.name : '';
-
-            var body = document.createElement('div');
-            body.className = 'booking-summary-line__body';
-
-            var serviceNameEl = document.createElement('span');
-            serviceNameEl.className = 'booking-summary-line__service';
-            serviceNameEl.textContent = parentName;
-            body.appendChild(serviceNameEl);
-
-            if (optionName) {
-                var optionEl = document.createElement('span');
-                optionEl.className = 'booking-summary-line__option';
-                optionEl.textContent = optionName;
-                body.appendChild(optionEl);
+                var requirement = els.nextBtn.getAttribute('data-next-requires');
+                if (requirement === 'technician') {
+                    els.nextBtn.disabled = !hasSelectedTechnician();
+                } else if (requirement === 'datetime') {
+                    els.nextBtn.disabled = !hasSelectedDateTime();
+                } else if (requirement === 'checkout') {
+                    els.nextBtn.disabled = !hasCheckoutContact();
+                } else {
+                    els.nextBtn.disabled = false;
+                }
             }
 
-            var durationEl = document.createElement('span');
-            durationEl.className = 'booking-summary-line__duration';
-            durationEl.textContent = line.duration || '';
-            body.appendChild(durationEl);
+            els.summaryList.innerHTML = '';
+            state.items.forEach(function (line) {
+                var li = document.createElement('li');
+                li.className = 'booking-summary-line';
+                li.setAttribute('data-line-id', line.lineId);
 
-            var side = document.createElement('div');
-            side.className = 'booking-summary-line__side';
+                var snap = line.editSnapshot;
+                var hasOption =
+                    line.service_option_id != null &&
+                    line.service_option_id !== '' &&
+                    String(line.service_option_id) !== 'undefined';
+                var parentName = hasOption && snap && snap.name ? snap.name : line.name || '';
+                var optionName =
+                    hasOption && snap && snap.name && line.name && line.name !== snap.name ? line.name : '';
 
-            var asideStack = document.createElement('div');
-            asideStack.className = 'booking-summary-line__aside-stack';
+                var body = document.createElement('div');
+                body.className = 'booking-summary-line__body';
 
-            var price = document.createElement('span');
-            price.className = 'booking-summary-line__price';
-            price.textContent = line.priceFormatted || formatMoneyEUR(line.price);
+                var serviceNameEl = document.createElement('span');
+                serviceNameEl.className = 'booking-summary-line__service';
+                serviceNameEl.textContent = parentName;
+                body.appendChild(serviceNameEl);
 
-            var editBtn = document.createElement('button');
-            editBtn.type = 'button';
-            editBtn.className = 'booking-summary-line__edit';
-            var editLabel = optionName ? parentName + ' — ' + optionName : parentName;
-            editBtn.setAttribute('aria-label', 'Editar ' + editLabel);
-            editBtn.innerHTML = '<i class="bi bi-pencil-square" aria-hidden="true"></i>';
-            editBtn.addEventListener('click', function () {
-                openEditModal(line);
+                if (optionName) {
+                    var optionEl = document.createElement('span');
+                    optionEl.className = 'booking-summary-line__option';
+                    optionEl.textContent = optionName;
+                    body.appendChild(optionEl);
+                }
+
+                var durationEl = document.createElement('span');
+                durationEl.className = 'booking-summary-line__duration';
+                durationEl.textContent = line.duration || '';
+                body.appendChild(durationEl);
+
+                var side = document.createElement('div');
+                side.className = 'booking-summary-line__side';
+
+                var asideStack = document.createElement('div');
+                asideStack.className = 'booking-summary-line__aside-stack';
+
+                var price = document.createElement('span');
+                price.className = 'booking-summary-line__price';
+                price.textContent = line.priceFormatted || formatMoneyEUR(line.price);
+
+                var editBtn = document.createElement('button');
+                editBtn.type = 'button';
+                editBtn.className = 'booking-summary-line__edit';
+                var editLabel = optionName ? parentName + ' — ' + optionName : parentName;
+                editBtn.setAttribute('aria-label', 'Editar ' + editLabel);
+                editBtn.innerHTML = '<i class="bi bi-pencil-square" aria-hidden="true"></i>';
+                editBtn.addEventListener('click', function () {
+                    openEditModal(line);
+                });
+
+                asideStack.appendChild(price);
+                asideStack.appendChild(editBtn);
+                side.appendChild(asideStack);
+
+                li.appendChild(body);
+                li.appendChild(side);
+                els.summaryList.appendChild(li);
             });
 
-            asideStack.appendChild(price);
-            asideStack.appendChild(editBtn);
-            side.appendChild(asideStack);
-
-            li.appendChild(body);
-            li.appendChild(side);
-            els.summaryList.appendChild(li);
-        });
-
-        if (els.summaryTotalValue) {
-            els.summaryTotalValue.textContent = formatMoneyEUR(getTotalAmount());
+            if (els.summaryTotalValue) {
+                els.summaryTotalValue.textContent = formatMoneyEUR(getTotalAmount());
+            }
+            if (els.summaryTotalCount) {
+                var count = state.items.length;
+                els.summaryTotalCount.textContent = count + ' ' + (count === 1 ? 'serviço' : 'serviços');
+            }
+            if (els.summaryTotalDuration) {
+                els.summaryTotalDuration.textContent = formatDurationPT(getTotalDurationMinutes());
+            }
+            renderSummaryExtras();
+            renderSlotHoldBanner();
+            updateCheckoutPaymentPreview();
+            ensureSlotHoldForCurrentSelection();
+            scheduleBookingSummaryFooterVisualBottom();
+        } finally {
+            syncBookingServicesPageHeading();
         }
-        if (els.summaryTotalCount) {
-            var count = state.items.length;
-            els.summaryTotalCount.textContent = count + ' ' + (count === 1 ? 'serviço' : 'serviços');
-        }
-        if (els.summaryTotalDuration) {
-            els.summaryTotalDuration.textContent = formatDurationPT(getTotalDurationMinutes());
-        }
-        renderSummaryExtras();
-        renderSlotHoldBanner();
-        updateCheckoutPaymentPreview();
-        ensureSlotHoldForCurrentSelection();
-        scheduleBookingSummaryFooterVisualBottom();
     }
 
     function removeLine(lineId) {

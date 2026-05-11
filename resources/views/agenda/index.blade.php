@@ -3,6 +3,7 @@
 @section('css')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/css/intlTelInput.css">
+    <link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('template/css/agenda.css') }}?v={{ file_exists(public_path('template/css/agenda.css')) ? filemtime(public_path('template/css/agenda.css')) : time() }}">
 @endsection
 @section('content')
@@ -376,20 +377,20 @@
             <div class="d-flex align-items-center min-w-0 flex-shrink-0">
                 <span class="dropdown" id="eventDetailStatusDropdownWrap">
                     <span class="event-detail-time-toggle dropdown-toggle event-detail-status-toggle d-inline-flex align-items-center text-muted small text-decoration-none" id="eventDetailStatusDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" role="button">
-                        <span id="eventDetailStatusIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ph ph-clock"></i></span>
+                        <span id="eventDetailStatusIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ri-time-fill agenda-status-icon-agendado"></i></span>
                         <span id="eventDetailStatusLabel">Agendado</span>
                     </span>
                     <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailStatusMenu">
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="agendado"><i class="me-0 ph ph-clock"></i>Agendado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="notificado"><i class="me-0 ph ph-bell agenda-status-icon-notificado"></i>Notificado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ph ph-bell agenda-status-icon-confirmado"></i>Confirmado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ph ph-map-pin"></i>Chegou</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ph ph-play"></i>Iniciado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ph ph-x-circle text-danger"></i>Cancelar</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="agendado"><i class="me-0 ri-time-fill agenda-status-icon-agendado"></i>Agendado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="notificado"><i class="me-0 ri-notification-3-fill agenda-status-icon-notificado"></i>Notificado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ri-notification-3-fill agenda-status-icon-confirmado"></i>Confirmado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ri-map-pin-fill agenda-status-icon-chegou"></i>Chegou</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ri-play-fill agenda-status-icon-iniciado"></i>Iniciado</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ri-close-circle-fill text-danger"></i>Cancelar</a>
                     </div>
                 </span>
                 <span class="d-none event-detail-status-static d-inline-flex align-items-center small text-muted" id="eventDetailStatusStatic">
-                    <span id="eventDetailStatusStaticIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ph ph-seal-check"></i></span>
+                    <span id="eventDetailStatusStaticIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ri-checkbox-circle-fill"></i></span>
                     <span id="eventDetailStatusStaticLabel">Concluído</span>
                 </span>
             </div>

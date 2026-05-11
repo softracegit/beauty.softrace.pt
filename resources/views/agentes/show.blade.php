@@ -26,7 +26,7 @@
         <div class="uview-badges">
             @if($agente->user)
                 <span class="users-role" style="background: color-mix(in srgb, var(--accent-color), transparent 88%); color: var(--accent-color);">
-                    <i class="ph-fill ph-shield-chevron"></i> {{ \App\Models\User::roles()[$agente->user->role] ?? $agente->user->role }}
+                    <i class="ph ph-shield-chevron"></i> {{ \App\Models\User::roles()[$agente->user->role] ?? $agente->user->role }}
                 </span>
             @endif
             <span class="users-status {{ $statusClass }}"><span class="users-status-dot"></span> {{ $statusLabel }}</span>
