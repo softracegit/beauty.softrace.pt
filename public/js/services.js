@@ -1089,7 +1089,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Adicionar agent_ids ao FormData
         const agentIds = Array.from(document.querySelectorAll('#addServiceModal .service-agent-checkbox:checked')).map(cb => cb.value);
         agentIds.forEach(id => formData.append('agent_ids[]', id));
-        const extraIds = Array.from(document.querySelectorAll('#addServiceModal input[name="extra_ids[]"]:checked')).map(cb => cb.value);
+        formData.set('sync_extras', '1');
+        const extraIds = Array.from(document.querySelectorAll('#addServiceModal .service-extra-cb:checked')).map(cb => cb.value);
         extraIds.forEach(id => formData.append('extra_ids[]', id));
 
         fetch('/services', {
@@ -1182,7 +1183,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const agentIds = Array.from(document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit:checked')).map(cb => cb.value);
         formData.delete('agent_ids[]');
         agentIds.forEach(id => formData.append('agent_ids[]', id));
-        const extraIds = Array.from(document.querySelectorAll('#editServiceModal input[name="extra_ids[]"]:checked')).map(cb => cb.value);
+        formData.set('sync_extras', '1');
+        const extraIds = Array.from(document.querySelectorAll('#editServiceModal .service-extra-cb:checked')).map(cb => cb.value);
         formData.delete('extra_ids[]');
         extraIds.forEach(id => formData.append('extra_ids[]', id));
         
@@ -1269,8 +1271,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.querySelectorAll('#editServiceModal .service-agent-checkbox-edit'),
                 ).every(c => c.checked);
                 document.getElementById('editServiceSelectAllAgents').checked = allAgentsChecked;
-                document.querySelectorAll('#editServiceModal input[name="extra_ids[]"]').forEach(cb => {
-                    cb.checked = service.extras && service.extras.some(extra => extra.id === parseInt(cb.value));
+                document.querySelectorAll('#editServiceModal .service-extra-cb').forEach(cb => {
+                    cb.checked =
+                        service.extras &&
+                        service.extras.some(extra => Number(extra.id) === Number(cb.value));
                 });
 
                 new bootstrap.Modal(document.getElementById('editServiceModal')).show();

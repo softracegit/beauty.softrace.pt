@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Support\CurrentStore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -60,7 +59,7 @@ class Extra extends Model
 
         return static::query()
             ->where($field, $value)
-            ->whereHas('extraCategory', fn ($q) => $q->where('store_id', app(CurrentStore::class)->id()))
+            ->whereHas('extraCategory', fn ($q) => $q->where('store_id', current_store_id()))
             ->firstOrFail();
     }
 

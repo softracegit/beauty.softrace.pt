@@ -566,7 +566,7 @@
         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
             <div class="d-flex align-items-center gap-2 flex-wrap" id="eventDetailPaymentWrap">
                 <div class="d-none d-flex flex-wrap gap-1 justify-content-end" id="eventDetailFaturasWrap"></div>
-                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Pagamento</button>
+                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Caixa - Pagamento</button>
                 <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="eventDetailReverterFaturaBtn">Anular venda</button>
             </div>
             <button type="submit" class="btn btn-primary btn-sm" id="eventDetailSaveBtn" form="eventDetailEditForm">Guardar</button>
@@ -574,58 +574,111 @@
     </div>
 </div>
 
-<!-- Modal: Pagamento (abre por cima do offcanvas / marcação) -->
-<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- Modal: Pagamento estilo caixa (abre por cima do offcanvas / marcação) -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true" data-bs-backdrop="static" role="dialog" aria-modal="true" data-pos-gorjeta-enabled="{{ ($posGorjetaEnabled ?? true) ? '1' : '0' }}">
+    <div class="modal-dialog modal-dialog-centered modal-lg payment-pos-modal">
         <div class="modal-content">
-            <div class="modal-header pb-3">
-                <h5 class="modal-title mb-0 fw-semibold" id="paymentModalLabel">Pagamento</h5>
+            <div class="modal-header pb-2 border-bottom-0">
+                <div>
+                    <h5 class="modal-title mb-0 fw-semibold" id="paymentModalLabel">Caixa — pagamento</h5>
+                </div>
                 <button type="button" class="btn-close" id="paymentModalCloseBtn" aria-label="Fechar"></button>
             </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <div class="tempo-pessoal-type-toggle-wrapper" role="group" id="paymentMethodToggleGroup">
-                        <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="dinheiro">
-                            <i class="ph ph-money tempo-pessoal-type-card-icon"></i>
-                            <span class="fw-semibold tempo-pessoal-type-card-name">Dinheiro</span>
-                        </button>
-                        <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="cartao">
-                            <i class="ph ph-credit-card tempo-pessoal-type-card-icon"></i>
-                            <span class="fw-semibold tempo-pessoal-type-card-name">Cartão</span>
-                        </button>
-                        <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="mbway">
-                            <i class="ph ph-device-mobile tempo-pessoal-type-card-icon"></i>
-                            <span class="fw-semibold tempo-pessoal-type-card-name">MB Way</span>
-                        </button>
+            <div class="modal-body pt-3">
+                <div class="payment-pos-total-hero py-3 px-3 mb-3 rounded-3 border bg-body-secondary bg-opacity-50">
+                    <div class="row g-3 align-items-start">
+                        <div class="col-md-6 payment-pos-hero-client">
+                            <div class="d-flex gap-3 align-items-start">
+                                <div class="payment-pos-hero-avatar-wrap flex-shrink-0">
+                                    <img src="" alt="" class="payment-pos-hero-avatar rounded-circle border d-none" id="paymentModalHeroAvatar" width="56" height="56">
+                                    <span class="payment-pos-hero-avatar-fallback rounded-circle border d-none" id="paymentModalHeroAvatarFallback" aria-hidden="true"></span>
+                                </div>
+                                <div class="payment-pos-hero-client-lines text-start flex-grow-1 min-w-0 small">
+                                    <div class="fw-semibold text-body text-break payment-pos-hero-client-line" id="paymentModalHeroName">—</div>
+                                    <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroPhone">—</div>
+                                    <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroEmail">—</div>
+                                    <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroNif">—</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 payment-pos-hero-values text-md-end">
+                            <div class="payment-pos-hero-total-line d-flex flex-wrap align-items-baseline justify-content-start justify-content-md-end gap-2 column-gap-3 row-gap-1">
+                                <span class="text-muted small mb-0" id="paymentHeroPretaxInline">s/ IVA 0,00 €</span>
+                                <span class="fs-2 fw-bold text-body lh-sm" id="paymentTotalHeroDisplay">0,00 €</span>
+                            </div>
+                            <div class="small text-muted mt-2 text-start text-md-end px-md-0">
+                                <div class="d-flex justify-content-between justify-content-md-end gap-3"><span id="paymentSubtotalLineLabel">Total 0 serviços</span><span id="paymentSubtotalDisplay">0,00 €</span></div>
+                                <div class="d-flex justify-content-between justify-content-md-end gap-3 d-none" id="paymentOnlinePaidLine"><span>Reserva paga</span><span id="paymentOnlinePaidDisplay">0,00 €</span></div>
+                                <div class="d-flex justify-content-between justify-content-md-end gap-3 d-none" id="paymentServicesDueLine"><span>A liquidar serviços</span><span id="paymentServicesDueDisplay">0,00 €</span></div>
+                                @if($posGorjetaEnabled ?? true)
+                                <div class="d-flex justify-content-between justify-content-md-end gap-3 d-none" id="paymentGorjetaLine"><span>Gorjeta</span><span id="paymentGorjetaDisplay">0,00 €</span></div>
+                                @endif
+                            </div>
+                            @if($posGorjetaEnabled ?? true)
+                            <div class="d-flex flex-wrap align-items-center justify-content-between justify-content-md-end gap-2 mt-2 pt-2 border-top payment-pos-hero-gorjeta-wrap">
+                                <label for="paymentGorjeta" class="form-label small text-muted mb-0">Gorjeta (€)</label>
+                                <input type="number" step="0.01" min="0" class="form-control form-control-sm payment-pos-hero-gorjeta-input text-end" id="paymentGorjeta" value="0" placeholder="0,00" title="Gorjeta">
+                            </div>
+                            @else
+                            <input type="hidden" id="paymentGorjeta" value="0">
+                            @endif
+                        </div>
                     </div>
-                    <input type="hidden" id="paymentMethodValue" value="">
                 </div>
-                <div class="mb-3">
-                    <label for="paymentGorjeta" class="form-label">Gorjeta (€)</label>
-                    <input type="number" step="0.01" min="0" class="form-control" id="paymentGorjeta" value="0" placeholder="0,00">
+
+                <p class="small fw-semibold text-uppercase text-muted mb-2" id="paymentFaturaSectionLegend">Fatura</p>
+                <div class="tempo-pessoal-type-toggle-wrapper payment-pos-fatura-2x2 mb-2" role="group" aria-labelledby="paymentFaturaSectionLegend" id="paymentFaturaTilesGrid">
+                    <button type="button" role="radio" class="tempo-pessoal-type-card btn border rounded-2 payment-invoice-fiscal-card active" data-fiscal-mode="consumer" aria-checked="true" id="paymentFiscalConsumerBtn">
+                        <i class="ph ph-receipt tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Consumidor final</span>
+                    </button>
+                    <button type="button" role="radio" class="tempo-pessoal-type-card btn border rounded-2 payment-invoice-fiscal-card" data-fiscal-mode="with_nif" aria-checked="false" id="paymentFiscalWithNifBtn">
+                        <i class="ph ph-identification-card tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Com NIF</span>
+                    </button>
+                    <button type="button" role="radio" class="tempo-pessoal-type-card btn border rounded-2 payment-invoice-delivery-card" data-invoice-delivery="email" aria-checked="false" id="paymentInvoiceDeliveryEmailBtn" title="Envia o PDF oficial da Vendus para o email do cliente">
+                        <i class="ph ph-envelope-simple tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Fatura por email</span>
+                    </button>
+                    <button type="button" role="radio" class="tempo-pessoal-type-card btn border rounded-2 payment-invoice-delivery-card active" data-invoice-delivery="print" aria-checked="true" id="paymentInvoiceDeliveryPrintBtn" title="Abre o PDF para imprimir quando concluir">
+                        <i class="ph ph-printer tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Imprimir fatura</span>
+                    </button>
                 </div>
-                <div class="mb-3 d-none" id="paymentMbwayPhoneWrap">
+                <input type="hidden" id="paymentInvoiceFiscalMode" value="consumer">
+                <input type="hidden" id="paymentInvoiceDelivery" value="print">
+                <div class="mb-3 d-none" id="paymentModalNifInlineWrap">
+                    <label for="paymentModalBillingNif" class="form-label small mb-1">NIF nesta fatura (9 dígitos)</label>
+                    <input type="text" class="form-control form-control-sm" id="paymentModalBillingNif" maxlength="9" inputmode="numeric" pattern="[0-9]*" placeholder="123456789" autocomplete="off">
+                    <div class="form-text">Será guardado na ficha do cliente ao concluir o pagamento.</div>
+                </div>
+
+                <p class="small fw-semibold text-uppercase text-muted mb-2 mt-3" id="paymentMethodSectionLegend">Pagamento</p>
+                <div class="tempo-pessoal-type-toggle-wrapper" role="group" aria-labelledby="paymentMethodSectionLegend" id="paymentMethodToggleGroup">
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="dinheiro" aria-pressed="false">
+                        <i class="ph ph-money tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Dinheiro</span>
+                    </button>
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="cartao" aria-pressed="false">
+                        <i class="ph ph-credit-card tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Cartão</span>
+                    </button>
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="mbway" aria-pressed="false">
+                        <i class="ph ph-device-mobile tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">MB Way</span>
+                    </button>
+                </div>
+                <input type="hidden" id="paymentMethodValue" value="">
+
+                <div class="mt-4 d-none" id="paymentMbwayPhoneWrap">
                     <label for="paymentMbwayPhone" class="form-label">Telemóvel MB WAY</label>
                     <input type="tel" class="form-control" id="paymentMbwayPhone" placeholder="+3519XXXXXXXX">
                     <div class="form-text">Se a ficha do cliente não tiver telemóvel, este número ficará guardado.</div>
                 </div>
-                <div class="border-top pt-2">
-                    <div class="d-flex justify-content-between small">
-                        <span class="text-muted">Total</span>
-                        <span>
-                            <span class="text-muted me-2">s/IVA: <span id="paymentSubtotalNoVatDisplay">0,00 €</span></span>
-                            <span class="fw-semibold" id="paymentSubtotalDisplay">0,00 €</span>
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentOnlinePaidLine"><span>Reserva</span><span id="paymentOnlinePaidDisplay">0,00 €</span></div>
-                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentServicesDueLine"><span>Falta pagar</span><span id="paymentServicesDueDisplay">0,00 €</span></div>
-                    <div class="d-flex justify-content-between small text-muted d-none" id="paymentGorjetaLine"><span>Gorjeta</span><span id="paymentGorjetaDisplay">0,00 €</span></div>
-                    <div class="d-flex justify-content-between fw-semibold mt-1"><span>A cobrar agora</span><span id="paymentTotalDisplay">0,00 €</span></div>
-                </div>
             </div>
-            <div class="modal-footer pt-3 pb-3">
-                <button type="button" class="btn btn-light" id="paymentCancelBtn">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="paymentConfirmBtn">Confirmar e faturar</button>
+            <div class="modal-footer pt-2 pb-3 border-top flex-nowrap gap-2">
+                <button type="button" class="btn btn-light flex-shrink-0" id="paymentCancelBtn">Cancelar</button>
+                <button type="button" class="btn btn-success flex-grow-1 fw-semibold py-2" id="paymentConfirmBtn" disabled>Pagar 0,00 €</button>
             </div>
         </div>
     </div>

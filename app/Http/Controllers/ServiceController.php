@@ -104,8 +104,8 @@ class ServiceController extends Controller
         if ($request->has('agent_ids')) {
             $service->agents()->sync($request->agent_ids);
         }
-        if ($request->has('extra_ids')) {
-            $service->extras()->sync($request->extra_ids);
+        if ($request->boolean('sync_extras')) {
+            $service->extras()->sync($request->input('extra_ids', []));
         }
 
         return response()->json([
@@ -142,10 +142,8 @@ class ServiceController extends Controller
         } else {
             $service->agents()->sync([]);
         }
-        if ($request->has('extra_ids')) {
-            $service->extras()->sync($request->extra_ids);
-        } else {
-            $service->extras()->sync([]);
+        if ($request->boolean('sync_extras')) {
+            $service->extras()->sync($request->input('extra_ids', []));
         }
 
         return response()->json([

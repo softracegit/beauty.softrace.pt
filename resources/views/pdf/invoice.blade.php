@@ -60,7 +60,11 @@
         <strong>Cliente</strong>
         {{ $sale->client->name }}<br>
         @if($sale->client->email){{ $sale->client->email }}<br>@endif
-        @if($sale->client->nif)NIF: {{ $sale->client->nif }}@endif
+        @if($sale->issue_without_fiscal_id ?? false)
+            Consumidor final (sem contribuinte neste documento)
+        @elseif($sale->client->nif)
+            NIF: {{ $sale->client->nif }}
+        @endif
     </div>
     @endif
 

@@ -138,7 +138,36 @@ class AgentController extends Controller
     {
         $this->authorize('view', $agente);
 
-        $agente->load(['notes.user', 'user']);
+        $storeId = current_store_id();
+        $agente->load([
+            'notes.user',
+            'user',
+            'services' => function ($q) use ($storeId) {
+                $q->where('services.store_id', $storeId)->with('category');
+            },
+        ]);
+
+        $servicesByCategory = $agente->services
+            ->sort(function (\App\Models\Service $a, \App\Models\Service $b): int {
+                $orderA = $a->category?->sort_order ?? 99999;
+                $orderB = $b->category?->sort_order ?? 99999;
+                if ($orderA !== $orderB) {
+                    return $orderA <=> $orderB;
+                }
+                $idA = $a->category_id ?? 0;
+                $idB = $b->category_id ?? 0;
+                if ($idA !== $idB) {
+                    return $idA <=> $idB;
+                }
+                $sA = $a->sort_order ?? 0;
+                $sB = $b->sort_order ?? 0;
+                if ($sA !== $sB) {
+                    return $sA <=> $sB;
+                }
+
+                return strcmp($a->name, $b->name);
+            })
+            ->groupBy(fn (\App\Models\Service $s) => (string) ($s->category_id ?? '0'));
 
         $activities = $agente->activities()
             ->with('causer')
@@ -192,7 +221,7 @@ class AgentController extends Controller
                 });
         }
 
-        return view('agentes.show', compact('agente', 'activities', 'marcacoes', 'vendas'));
+        return view('agentes.show', compact('agente', 'activities', 'marcacoes', 'vendas', 'servicesByCategory'));
     }
 
     /**

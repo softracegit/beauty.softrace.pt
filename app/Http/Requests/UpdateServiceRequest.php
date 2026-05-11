@@ -51,6 +51,7 @@ class UpdateServiceRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'has_options' => ['sometimes', 'boolean'],
+            'sync_extras' => ['sometimes', 'boolean'],
             'agent_ids' => ['nullable', 'array'],
             'agent_ids.*' => [
                 'integer',

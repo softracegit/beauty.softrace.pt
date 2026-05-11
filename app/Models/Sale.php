@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Sale extends Model
 {
     use BelongsToStore;
+
     public const STATUS_PAGO = 'pago';
 
     public const STATUS_ANULADO = 'anulado';
@@ -50,6 +51,7 @@ class Sale extends Model
         'vendus_document_id',
         'vendus_synced_at',
         'vendus_sync_error',
+        'issue_without_fiscal_id',
     ];
 
     protected $casts = [
@@ -62,6 +64,7 @@ class Sale extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'vendus_synced_at' => 'datetime',
+        'issue_without_fiscal_id' => 'boolean',
     ];
 
     protected $attributes = [

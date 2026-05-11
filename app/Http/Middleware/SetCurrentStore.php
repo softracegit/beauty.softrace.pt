@@ -53,7 +53,7 @@ class SetCurrentStore
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
+        $user = $request->user() ?? auth()->user();
         if (! $user instanceof User) {
             return $next($request);
         }

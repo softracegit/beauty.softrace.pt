@@ -195,11 +195,17 @@ class DefinicoesController extends Controller
         return view('definicoes.pagamentos', [
             'pageTitle' => 'Pagamentos',
             'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired($storeId),
+            'posGorjetaEnabled' => CrmSetting::posGorjetaEnabled($storeId),
         ]);
     }
 
     public function updatePagamentos(Request $request): RedirectResponse
     {
+        CrmSetting::setBool(
+            CrmSetting::KEY_POS_GORJETA_ENABLED,
+            $request->boolean('pos_gorjeta_enabled'),
+            current_store_id(),
+        );
         CrmSetting::setBool(
             CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED,
             $request->boolean('online_booking_payment_required'),

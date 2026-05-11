@@ -7,12 +7,35 @@
     </div>
     <div class="card-body">
       <p class="text-muted small mb-4">
-        Controla se o cliente paga um depósito online (Stripe) antes de confirmar a marcação no site público
+        Opções de pagamento na loja (caixa) e no site público de marcações
         <span class="text-nowrap">(<code>/booking</code>)</span>.
       </p>
 
       <form method="post" action="{{ route('definicoes.pagamentos.update') }}">
         @csrf
+
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 py-3 border-bottom">
+          <div class="flex-grow-1" style="max-width: 36rem;">
+            <div class="fw-semibold mb-1">Gorjeta na caixa</div>
+            <p class="small text-muted mb-0">
+              Quando está desligada, o campo de gorjeta deixa de aparecer no modal «Caixa — pagamento» da agenda e o valor enviado é sempre zero.
+            </p>
+          </div>
+          <div class="form-check form-switch m-0">
+            <input type="hidden" name="pos_gorjeta_enabled" value="0">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              name="pos_gorjeta_enabled"
+              value="1"
+              id="pos_gorjeta_enabled"
+              @checked($posGorjetaEnabled)
+            >
+            <label class="form-check-label visually-hidden" for="pos_gorjeta_enabled">
+              Permitir gorjeta na caixa
+            </label>
+          </div>
+        </div>
 
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 py-3 border-top border-bottom">
           <div class="flex-grow-1" style="max-width: 36rem;">

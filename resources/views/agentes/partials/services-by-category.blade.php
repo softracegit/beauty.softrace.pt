@@ -15,49 +15,70 @@
     .member-services-block .member-service-duration { font-size: 0.8125rem; color: var(--bs-secondary); }
     .member-services-block .member-service-price { font-weight: 600; font-size: 0.95rem; color: var(--heading-color, #1e293b); flex-shrink: 0; }
     .member-services-block .member-service-label { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; margin-bottom: 0; }
+    .member-services-block .member-services-accordion .accordion-button:not(.collapsed) { box-shadow: none; }
+    .member-services-block .member-services-accordion .accordion-button::after { margin-left: auto; }
 </style>
 <div class="uedit-section member-services-block" data-member-services-block>
-    <div class="uedit-section-title">Serviços associados</div>
-    <p class="text-muted small mb-3">Selecione os serviços que este membro pode prestar. Os serviços estão agrupados por categoria.</p>
-
     @if($categories->isEmpty())
+        <div class="uedit-section-title">Serviços associados</div>
         <p class="text-muted mb-0">Nenhuma categoria ou serviço criado ainda. Crie categorias e serviços em <a href="{{ route('services.index') }}">Serviços</a>.</p>
     @else
-        {{-- Todos os serviços --}}
-        <div class="member-services-all-row d-flex align-items-center gap-2">
-            <input type="checkbox" class="form-check-input" id="memberServicesSelectAll" data-member-services-select-all aria-label="Selecionar todos os serviços">
-            <label class="form-check-label member-category-header mb-0" for="memberServicesSelectAll">Todos os serviços</label>
-            <span class="badge bg-light text-dark ms-2">{{ $totalServices }}</span>
-        </div>
-
-        @foreach($categories as $category)
-            <div class="member-category-block" data-category-id="{{ $category->id }}">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <input type="checkbox" class="form-check-input member-category-select-all" id="memberServicesCategory{{ $category->id }}" data-category-id="{{ $category->id }}" aria-label="Selecionar todos em {{ $category->name }}">
-                    <label class="form-check-label member-category-header mb-0 d-flex align-items-center gap-2" for="memberServicesCategory{{ $category->id }}">
-                        {{ $category->name }}
-                    </label>
-                    <span class="badge bg-light text-dark ms-2">{{ $category->services->count() }}</span>
-                </div>
-                <div class="ps-0">
-                    @forelse($category->services as $service)
-                        <div class="member-service-row">
-                            <div class="form-check flex-grow-1 mb-0">
-                                <input class="form-check-input member-service-cb" type="checkbox" name="service_ids[]" value="{{ $service->id }}" id="memberService{{ $service->id }}" data-category-id="{{ $category->id }}" {{ in_array($service->id, $selectedIds) ? 'checked' : '' }}>
-                                <label class="form-check-label member-service-label" for="memberService{{ $service->id }}">
-                                    <div class="member-service-left">
-                                        <div class="member-service-name">{{ $service->name }}</div>
-                                    </div>
-                                    <span class="member-service-price">{{ $service->formatted_price }}</span>
-                                </label>
-                            </div>
+        @php
+            $allServiceIds = $categories->flatMap(fn ($c) => $c->services->pluck('id'))->all();
+            $selectedInListCount = count(array_intersect($selectedIds, $allServiceIds));
+        @endphp
+        <div class="accordion member-services-accordion" id="memberServicesAccordion">
+            <div class="accordion-item border rounded-2 overflow-hidden">
+                <h2 class="accordion-header m-0" id="memberServicesHeading">
+                    <button class="accordion-button collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-target="#memberServicesCollapse" aria-expanded="false" aria-controls="memberServicesCollapse">
+                        <span class="d-flex align-items-center gap-2 flex-wrap me-2">
+                            <span class="fw-semibold">Serviços associados</span>
+                            <span class="badge bg-light text-dark fw-normal" data-member-services-summary>{{ $selectedInListCount }}/{{ $totalServices }} selecionados</span>
+                        </span>
+                    </button>
+                </h2>
+                <div id="memberServicesCollapse" class="accordion-collapse collapse" aria-labelledby="memberServicesHeading" data-bs-parent="#memberServicesAccordion">
+                    <div class="accordion-body pt-0">
+                        <p class="text-muted small mb-3">Selecione os serviços que este membro pode prestar. Os serviços estão agrupados por categoria.</p>
+                        {{-- Todos os serviços --}}
+                        <div class="member-services-all-row d-flex align-items-center gap-2">
+                            <input type="checkbox" class="form-check-input" id="memberServicesSelectAll" data-member-services-select-all aria-label="Selecionar todos os serviços">
+                            <label class="form-check-label member-category-header mb-0" for="memberServicesSelectAll">Todos os serviços</label>
+                            <span class="badge bg-light text-dark ms-2">{{ $totalServices }}</span>
                         </div>
-                    @empty
-                        <p class="text-muted small mb-0 py-2">Nenhum serviço nesta categoria.</p>
-                    @endforelse
+
+                        @foreach($categories as $category)
+                            <div class="member-category-block" data-category-id="{{ $category->id }}">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <input type="checkbox" class="form-check-input member-category-select-all" id="memberServicesCategory{{ $category->id }}" data-category-id="{{ $category->id }}" aria-label="Selecionar todos em {{ $category->name }}">
+                                    <label class="form-check-label member-category-header mb-0 d-flex align-items-center gap-2" for="memberServicesCategory{{ $category->id }}">
+                                        {{ $category->name }}
+                                    </label>
+                                    <span class="badge bg-light text-dark ms-2">{{ $category->services->count() }}</span>
+                                </div>
+                                <div class="ps-0">
+                                    @forelse($category->services as $service)
+                                        <div class="member-service-row">
+                                            <div class="form-check flex-grow-1 mb-0">
+                                                <input class="form-check-input member-service-cb" type="checkbox" name="service_ids[]" value="{{ $service->id }}" id="memberService{{ $service->id }}" data-category-id="{{ $category->id }}" {{ in_array($service->id, $selectedIds) ? 'checked' : '' }}>
+                                                <label class="form-check-label member-service-label" for="memberService{{ $service->id }}">
+                                                    <div class="member-service-left">
+                                                        <div class="member-service-name">{{ $service->name }}</div>
+                                                    </div>
+                                                    <span class="member-service-price">{{ $service->formatted_price }}</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    @empty
+                                        <p class="text-muted small mb-0 py-2">Nenhum serviço nesta categoria.</p>
+                                    @endforelse
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
-        @endforeach
+        </div>
     @endif
 </div>
 
@@ -85,11 +106,15 @@
         selectAll.checked = total > 0 && checked === total;
         selectAll.indeterminate = checked > 0 && checked < total;
         updateCategoryCheckboxes();
+        var summary = block.querySelector('[data-member-services-summary]');
+        if (summary) {
+            summary.textContent = checked + '/' + total + ' selecionados';
+        }
     }
     if (selectAll) {
         selectAll.addEventListener('change', function() {
             serviceCheckboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
-            updateCategoryCheckboxes();
+            updateSelectAll();
         });
     }
     categoryCheckboxes.forEach(function(catCb) {

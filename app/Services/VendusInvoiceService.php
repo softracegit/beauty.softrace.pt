@@ -7,9 +7,9 @@ use App\Models\CalendarEventService;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 
 final class VendusInvoiceService
 {
@@ -206,23 +206,7 @@ final class VendusInvoiceService
             [$fallbackItems] = $this->buildDetailedVendusItems($sale, $categoryId, $taxId);
             $items = $fallbackItems;
         }
-        $client = $sale->client;
-        $clientData = [
-            'name' => (string) ($client?->name ?? 'Cliente'),
-            'email' => (string) ($client?->email ?? ''),
-            'phone' => (string) ($client?->phone ?? ''),
-            'fiscal_id' => (string) ($client?->nif ?? ''),
-            'country' => 'PT',
-        ];
-        if (($clientData['fiscal_id'] ?? '') === '') {
-            unset($clientData['fiscal_id']);
-        }
-        if (($clientData['email'] ?? '') === '') {
-            unset($clientData['email']);
-        }
-        if (($clientData['phone'] ?? '') === '') {
-            unset($clientData['phone']);
-        }
+        $clientData = $this->buildDocumentClientPayloadForVendus($sale);
 
         $fallbackPayload = [
             'type' => strtoupper((string) config('services.vendus.credit_note_type', 'NC')),
@@ -230,7 +214,6 @@ final class VendusInvoiceService
             'mode' => $mode,
             'external_reference' => 'SALE-CN-'.$sale->id,
             'notes' => $note,
-            'client' => $clientData,
             'items' => $items,
             'related_document_id' => $documentId,
             'invoices' => [
@@ -239,6 +222,9 @@ final class VendusInvoiceService
                 ],
             ],
         ];
+        if ($clientData !== null) {
+            $fallbackPayload['client'] = $clientData;
+        }
 
         $documentsEndpoint = trim((string) config('services.vendus.documents_endpoint', '/documents/'));
         $documentsUrl = $baseUrl.'/'.ltrim($documentsEndpoint, '/');
@@ -284,6 +270,40 @@ final class VendusInvoiceService
         };
     }
 
+    /**
+     * Payload `client` para criar documentos na Vendus, ou null para não enviar o bloco.
+     * Sem NIF (consumidor final): a doc. oficial indica que o `client` pode ser omitido se não
+     * houver fiscal_id; enviar nome/email/telefone faz a Vendus associar a um cliente existente
+     * e repor o NIF. Um objeto só com "Consumidor final" chegou a ser rejeitado pela API em testes.
+     */
+    private function buildDocumentClientPayloadForVendus(Sale $sale): ?array
+    {
+        if ((bool) ($sale->issue_without_fiscal_id ?? false)) {
+            return null;
+        }
+
+        $client = $sale->client;
+        $clientData = [
+            'name' => (string) ($client?->name ?? 'Cliente'),
+            'email' => (string) ($client?->email ?? ''),
+            'phone' => (string) ($client?->phone ?? ''),
+            'fiscal_id' => (string) ($client?->nif ?? ''),
+            'country' => 'PT',
+        ];
+
+        if (($clientData['fiscal_id'] ?? '') === '') {
+            unset($clientData['fiscal_id']);
+        }
+        if (($clientData['email'] ?? '') === '') {
+            unset($clientData['email']);
+        }
+        if (($clientData['phone'] ?? '') === '') {
+            unset($clientData['phone']);
+        }
+
+        return $clientData;
+    }
+
     private function buildPayload(Sale $sale, ?int $categoryId): array
     {
         $taxId = (string) config('services.vendus.tax_id', 'NOR');
@@ -307,24 +327,7 @@ final class VendusInvoiceService
             $headerDisc = 0.0;
         }
 
-        $client = $sale->client;
-        $clientData = [
-            'name' => (string) ($client?->name ?? 'Cliente'),
-            'email' => (string) ($client?->email ?? ''),
-            'phone' => (string) ($client?->phone ?? ''),
-            'fiscal_id' => (string) ($client?->nif ?? ''),
-            'country' => 'PT',
-        ];
-
-        if (($clientData['fiscal_id'] ?? '') === '') {
-            unset($clientData['fiscal_id']);
-        }
-        if (($clientData['email'] ?? '') === '') {
-            unset($clientData['email']);
-        }
-        if (($clientData['phone'] ?? '') === '') {
-            unset($clientData['phone']);
-        }
+        $clientData = $this->buildDocumentClientPayloadForVendus($sale);
 
         $docType = strtoupper(trim((string) config('services.vendus.document_type', 'FR')));
 
@@ -333,10 +336,12 @@ final class VendusInvoiceService
             'date' => optional($sale->data_emissao)->format('Y-m-d') ?? now()->toDateString(),
             'external_reference' => 'SALE-'.$sale->id,
             'notes' => 'Origem: agenda / venda #'.$sale->id,
-            'client' => $clientData,
             'items' => $items,
             'mode' => (string) config('services.vendus.mode', 'normal'),
         ];
+        if ($clientData !== null) {
+            $payload['client'] = $clientData;
+        }
 
         $registerId = (int) config('services.vendus.register_id', 0);
         if ($registerId > 0) {
@@ -660,6 +665,7 @@ final class VendusInvoiceService
                     'status' => $response->status(),
                     'body' => mb_strimwidth(trim($response->body()), 0, 1000, '...'),
                 ]);
+
                 return null;
             }
 
@@ -678,6 +684,7 @@ final class VendusInvoiceService
                 if (is_array($json) && isset($json['id']) && is_numeric($json['id'])) {
                     return (int) $json['id'];
                 }
+
                 return null;
             }
 
@@ -895,6 +902,7 @@ final class VendusInvoiceService
                 $item['id'] = $productId;
             } else {
                 $missingRefs[] = $reference !== '' ? $reference : ('row#'.($idx + 1));
+
                 continue;
             }
             $items[] = $item;

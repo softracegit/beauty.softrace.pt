@@ -10,6 +10,9 @@ class CrmSetting extends Model
 {
     public const KEY_BOOKING_ONLINE_PAYMENT_REQUIRED = 'booking.online_payment_required';
 
+    /** Caixa (modal de pagamento na agenda): campo e linha de gorjeta. */
+    public const KEY_POS_GORJETA_ENABLED = 'pos.gorjeta_enabled';
+
     public const KEY_BOOKING_SLOT_HOLD_MINUTES = 'booking.slot_hold_minutes';
 
     public const KEY_BOOKING_ANY_STAFF_RULE = 'booking.any_staff_rule';
@@ -77,6 +80,11 @@ class CrmSetting extends Model
     public static function onlineBookingPaymentRequired(?int $storeId = null): bool
     {
         return self::getBool(self::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, true, $storeId);
+    }
+
+    public static function posGorjetaEnabled(?int $storeId = null): bool
+    {
+        return self::getBool(self::KEY_POS_GORJETA_ENABLED, true, $storeId);
     }
 
     public static function getInt(string $key, int $default = 0, ?int $storeId = null): int

@@ -2215,6 +2215,114 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
 #paymentMethodToggleGroup .tempo-pessoal-type-card-name {
     font-size: 0.8rem;
 }
+
+/* Modal pagamento — estilo caixa / POS */
+.payment-pos-modal .modal-content {
+    border-radius: 0.75rem;
+}
+.payment-pos-total-hero {
+    border-color: var(--bs-border-color, #dee2e6) !important;
+}
+.payment-pos-hero-client {
+    min-width: 0;
+}
+.payment-pos-hero-client-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+    line-height: 1.2;
+}
+.payment-pos-hero-client-lines .payment-pos-hero-client-line {
+    margin: 0;
+    padding: 0;
+    line-height: 1.22;
+}
+.payment-pos-hero-avatar-wrap {
+    width: 56px;
+    height: 56px;
+}
+.payment-pos-hero-avatar,
+.payment-pos-hero-avatar-fallback {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bs-secondary-bg, #e9ecef);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color, #6c757d);
+}
+.payment-pos-hero-values .d-flex {
+    max-width: 100%;
+}
+.payment-pos-hero-total-line {
+    max-width: 100%;
+}
+.payment-pos-hero-total-line #paymentHeroPretaxInline {
+    font-size: 0.875rem;
+    letter-spacing: 0.01em;
+}
+@media (min-width: 768px) {
+    .payment-pos-hero-total-line {
+        margin-left: auto;
+        max-width: 22rem;
+    }
+}
+@media (min-width: 768px) {
+    .payment-pos-hero-values .d-flex.justify-content-md-end {
+        margin-left: auto;
+        max-width: 20rem;
+    }
+}
+.payment-pos-hero-gorjeta-input {
+    width: 5.25rem;
+    flex-shrink: 0;
+}
+@media (min-width: 768px) {
+    .payment-pos-hero-values .payment-pos-hero-gorjeta-wrap {
+        margin-left: auto;
+        max-width: 20rem;
+    }
+}
+#paymentFaturaTilesGrid.payment-pos-fatura-2x2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+/* Mesma altura / compacidade que os cartões de meio de pagamento */
+#paymentFaturaTilesGrid .tempo-pessoal-type-card {
+    min-height: 72px;
+    padding: 0.5rem 0.35rem;
+    gap: 0.18rem;
+}
+#paymentFaturaTilesGrid .tempo-pessoal-type-card-icon {
+    font-size: 1rem;
+}
+#paymentFaturaTilesGrid .tempo-pessoal-type-card-name {
+    font-size: 0.8rem;
+}
+.payment-invoice-delivery-card.payment-invoice-delivery-disabled {
+    opacity: 0.48;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+/* Caixa (modal pagamento): cartão seleccionado — fundo verde muito suave, borda verde mais escura */
+#paymentModal .tempo-pessoal-type-card.active {
+    border-color: #1f7a4d !important;
+    background-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.075);
+    box-shadow: 0 0 0 1px rgba(var(--bs-success-rgb, 25, 135, 84), 0.22);
+}
+#paymentModal .tempo-pessoal-type-card:hover:not(.active) {
+    border-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.42) !important;
+    background-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.045);
+}
+
+#paymentConfirmBtn.btn-success {
+    min-height: 2.75rem;
+}
+
 .fc-refreshAgenda-button {
     margin-left: 0.5rem !important;
 }

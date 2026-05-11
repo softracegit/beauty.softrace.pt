@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\SetCurrentStore;
+use App\Models\User;
 use App\Support\CurrentStore;
 
 if (! function_exists('current_store')) {
@@ -15,6 +17,20 @@ if (! function_exists('current_store')) {
 if (! function_exists('current_store_id')) {
     function current_store_id(): int
     {
-        return current_store()->id();
+        $current = app(CurrentStore::class);
+        $id = $current->tryId();
+        if ($id !== null) {
+            return $id;
+        }
+
+        $user = auth()->user();
+        if ($user instanceof User) {
+            $store = SetCurrentStore::resolveActiveStore($user, request());
+            $current->set($store);
+
+            return (int) $store->getKey();
+        }
+
+        return $current->id();
     }
 }

@@ -98,7 +98,7 @@ class ExtraController extends Controller
                 'description' => $extra->description ?? '',
                 'price' => (float) $extra->price,
                 'duration' => (int) $extra->duration,
-                'service_ids' => $extra->services->pluck('id')->toArray(),
+                'service_ids' => $extra->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
             ]);
         }
 

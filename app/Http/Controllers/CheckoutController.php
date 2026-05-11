@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\CalendarEvent;
+use App\Models\Client;
+use App\Models\CrmSetting;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Notifications\ClientInvoiceAnnulledNotification;
+use App\Notifications\ClientVendusInvoiceNotification;
 use App\Services\VendusInvoiceService;
 use App\Support\PhoneDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -13,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
 use Stripe\Stripe;
@@ -130,6 +135,8 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'event_id' => ['required', 'exists:calendar_events,id'],
             'payment_method' => ['required', 'string', 'in:'.implode(',', array_keys(Sale::paymentMethods()))],
+            'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
+            'billing_nif' => ['nullable', 'string', 'max:32'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.tipo' => ['required', 'in:servico,extra'],
             'items.*.descricao' => ['required', 'string', 'max:255'],
@@ -143,6 +150,7 @@ class CheckoutController extends Controller
             'gorjeta' => ['nullable', 'numeric', 'min:0'],
             'desconto' => ['nullable', 'numeric', 'min:0'],
             'valor_pago' => ['nullable', 'numeric', 'min:0'],
+            'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
         ]);
 
         $calendarEvent = CalendarEvent::query()
@@ -154,6 +162,22 @@ class CheckoutController extends Controller
         if ($calendarEvent->isMarcacaoStatusLocked()) {
             return response()->json(['error' => 'Esta marcação não pode ser paga.'], 422);
         }
+
+        $calendarEvent->loadMissing('client');
+        $client = $calendarEvent->client;
+        $fiscalMode = (string) ($validated['invoice_fiscal_mode'] ?? 'consumer');
+        $billingNifDigits = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+        $clientNif = preg_replace('/\D/', '', (string) ($client?->nif ?? ''));
+        if ($fiscalMode === 'with_nif') {
+            if (strlen($clientNif) !== 9) {
+                if (strlen($billingNifDigits) !== 9) {
+                    return response()->json([
+                        'error' => 'Para faturar com NIF, indique 9 dígitos na ficha do cliente ou no campo «NIF nesta fatura».',
+                    ], 422);
+                }
+            }
+        }
+
         $subtotalItens = 0.0;
         foreach ($validated['items'] as $row) {
             $qty = (int) $row['quantidade'];
@@ -164,6 +188,9 @@ class CheckoutController extends Controller
             $subtotalItens += round($bruto - $descLinha, 2);
         }
         $gorjeta = isset($validated['gorjeta']) ? (float) $validated['gorjeta'] : 0;
+        if (! CrmSetting::posGorjetaEnabled((int) $calendarEvent->store_id)) {
+            $gorjeta = 0.0;
+        }
         $descontoDocInput = isset($validated['desconto']) ? max(0, (float) $validated['desconto']) : 0;
         $alreadyPaidSales = (float) Sale::query()
             ->where('calendar_event_id', $calendarEvent->id)
@@ -193,6 +220,13 @@ class CheckoutController extends Controller
         try {
             DB::beginTransaction();
 
+            if ($fiscalMode === 'with_nif' && $client instanceof Client) {
+                if (strlen($clientNif) !== 9 && strlen($billingNifDigits) === 9) {
+                    $client->nif = $billingNifDigits;
+                    $client->save();
+                }
+            }
+
             $sale = Sale::create([
                 'store_id' => $storeId,
                 'calendar_event_id' => $calendarEvent->id,
@@ -207,6 +241,7 @@ class CheckoutController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'scope' => Sale::SCOPE_CAIXA_LIQUIDACAO,
                 'status' => Sale::STATUS_PAGO,
+                'issue_without_fiscal_id' => $fiscalMode === 'consumer',
             ]);
 
             foreach ($validated['items'] as $idx => $row) {
@@ -244,12 +279,28 @@ class CheckoutController extends Controller
 
         $pdfUrl = route('sales.pdf', $sale);
         $this->syncSaleWithVendus($sale);
+        $sale->refresh();
+
+        $delivery = (string) ($validated['invoice_delivery'] ?? 'print');
+        if (! in_array($delivery, ['email', 'print'], true)) {
+            $delivery = 'print';
+        }
+
+        $emailResult = ['sent' => false, 'message' => null];
+        if ($delivery === 'email') {
+            $emailResult = $this->trySendVendusInvoiceEmailToClient($sale);
+        }
 
         return response()->json([
             'success' => true,
             'sale_id' => $sale->id,
             'numero_fatura' => $sale->numero_fatura,
             'pdf_url' => $pdfUrl,
+            'vendus_pdf_url' => $sale->vendus_document_id ? route('sales.vendus.pdf', $sale) : null,
+            'vendus_synced' => $sale->vendus_document_id !== null,
+            'invoice_delivery' => $delivery,
+            'invoice_email_sent' => $emailResult['sent'],
+            'invoice_email_message' => $emailResult['message'],
         ]);
     }
 
@@ -319,6 +370,9 @@ class CheckoutController extends Controller
 
         $subtotalItens = $this->checkoutSubtotalFromItems($validated['items']);
         $gorjeta = isset($validated['gorjeta']) ? max(0, (float) $validated['gorjeta']) : 0.0;
+        if (! CrmSetting::posGorjetaEnabled((int) $calendarEvent->store_id)) {
+            $gorjeta = 0.0;
+        }
         $alreadyPaidSales = (float) Sale::query()
             ->where('calendar_event_id', $calendarEvent->id)
             ->where('status', '!=', Sale::STATUS_ANULADO)
@@ -413,6 +467,8 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'payment_intent_id' => ['required', 'string', 'max:255'],
             'event_id' => ['required', 'exists:calendar_events,id'],
+            'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
+            'billing_nif' => ['nullable', 'string', 'max:32'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.tipo' => ['required', 'in:servico,extra'],
             'items.*.descricao' => ['required', 'string', 'max:255'],
@@ -424,6 +480,7 @@ class CheckoutController extends Controller
             'items.*.service_id' => ['nullable', 'exists:services,id'],
             'items.*.extra_id' => ['nullable', 'exists:extras,id'],
             'gorjeta' => ['nullable', 'numeric', 'min:0'],
+            'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
         ]);
 
         $this->configureStripeSdk();
@@ -522,6 +579,30 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Venda ainda sem documento Vendus sincronizado.'], 422);
         }
 
+        $binary = $this->fetchVendusInvoicePdfBinary($sale);
+        if ($binary === null || $binary === '') {
+            return response()->json([
+                'error' => 'Nao foi possivel obter o PDF oficial da Vendus para este documento.',
+            ], 502);
+        }
+
+        $documentId = (int) $sale->vendus_document_id;
+
+        return response($binary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="vendus-document-'.$documentId.'.pdf"',
+        ]);
+    }
+
+    /**
+     * Obtém o binário do PDF oficial na Vendus para anexar ao email ou devolver ao browser.
+     */
+    private function fetchVendusInvoicePdfBinary(Sale $sale): ?string
+    {
+        if (! $sale->vendus_document_id) {
+            return null;
+        }
+
         $baseUrl = rtrim((string) config('services.vendus.base_url'), '/');
         $apiKey = (string) config('services.vendus.api_key');
         $authMode = strtolower((string) config('services.vendus.auth_mode', 'basic'));
@@ -529,7 +610,7 @@ class CheckoutController extends Controller
         $documentId = (int) $sale->vendus_document_id;
 
         if ($baseUrl === '' || $apiKey === '') {
-            return response()->json(['error' => 'Configuração da Vendus incompleta.'], 500);
+            return null;
         }
 
         $request = Http::accept('application/pdf,application/json')
@@ -553,27 +634,65 @@ class CheckoutController extends Controller
 
             $contentType = strtolower((string) $response->header('Content-Type', ''));
             if (str_contains($contentType, 'application/pdf')) {
-                return response($response->body(), 200, [
-                    'Content-Type' => 'application/pdf',
-                    'Content-Disposition' => 'inline; filename="vendus-document-'.$documentId.'.pdf"',
-                ]);
+                return $response->body();
             }
 
             $pdfUrl = $this->extractPdfUrlFromVendusPayload($response->json());
             if ($pdfUrl !== null) {
                 $binary = $this->fetchVendusPdfBinary($request, $pdfUrl, $apiKey, $authMode, $baseUrl);
                 if ($binary !== null) {
-                    return response($binary, 200, [
-                        'Content-Type' => 'application/pdf',
-                        'Content-Disposition' => 'inline; filename="vendus-document-'.$documentId.'.pdf"',
-                    ]);
+                    return $binary;
                 }
             }
         }
 
-        return response()->json([
-            'error' => 'Nao foi possivel obter o PDF oficial da Vendus para este documento.',
-        ], 502);
+        return null;
+    }
+
+    /**
+     * @return array{sent: bool, message: string|null}
+     */
+    private function trySendVendusInvoiceEmailToClient(Sale $sale): array
+    {
+        $sale->loadMissing('client');
+        $client = $sale->client;
+        if (! $this->clientAllowsEmailBookingUpdates($client)) {
+            return ['sent' => false, 'message' => 'O cliente optou por não receber emails da loja.'];
+        }
+
+        $email = trim((string) ($client?->email ?? ''));
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['sent' => false, 'message' => 'Cliente sem email válido na ficha.'];
+        }
+
+        $pdf = $this->fetchVendusInvoicePdfBinary($sale);
+        if ($pdf === null || $pdf === '') {
+            return ['sent' => false, 'message' => 'O PDF da Vendus ainda não está disponível para envio.'];
+        }
+
+        $clientName = trim((string) ($client?->name ?? ''));
+        $greeting = $clientName !== '' ? explode(' ', $clientName, 2)[0] : '';
+        $safeLabel = str_replace(['/', '\\'], '-', (string) $sale->numero_fatura);
+        $filename = 'fatura-'.$safeLabel.'.pdf';
+
+        try {
+            Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
+                ->notify(new ClientVendusInvoiceNotification(
+                    $greeting,
+                    (string) $sale->numero_fatura,
+                    $filename,
+                    $pdf,
+                ));
+
+            return ['sent' => true, 'message' => null];
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao enviar email com fatura Vendus ao cliente.', [
+                'sale_id' => $sale->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return ['sent' => false, 'message' => 'Não foi possível enviar o email. Tente imprimir a fatura.'];
+        }
     }
 
     /**
@@ -606,6 +725,11 @@ class CheckoutController extends Controller
         if ($salesToRevert->isEmpty()) {
             return response()->json(['error' => 'Não existem vendas ativas para anular nesta marcação.'], 422);
         }
+
+        $invoiceLabelsForEmail = $salesToRevert
+            ->map(fn (Sale $s) => $s->invoiceListLabel())
+            ->values()
+            ->all();
 
         $creditNotes = [];
         foreach ($salesToRevert as $candidateSale) {
@@ -656,6 +780,8 @@ class CheckoutController extends Controller
             'vendus_credit_notes' => $creditNotes,
             'user_id' => auth()->id(),
         ]);
+
+        $this->notifyClientInvoiceAnnulled((int) $calendarEvent->id, $invoiceLabelsForEmail);
 
         return response()->json([
             'success' => true,
@@ -732,5 +858,63 @@ class CheckoutController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Email ao cliente após anulação de fatura(s), alinhado com CalendarController / BookingPaymentController.
+     *
+     * @param  list<string>  $invoiceLabels
+     */
+    private function notifyClientInvoiceAnnulled(int $calendarEventId, array $invoiceLabels): void
+    {
+        $event = CalendarEvent::query()->with('client')->find($calendarEventId);
+        if (! $event || ($event->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+            return;
+        }
+
+        $client = $event->client;
+        if (! $this->clientAllowsEmailBookingUpdates($client)) {
+            return;
+        }
+
+        $email = trim((string) ($client?->email ?? ''));
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        try {
+            Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
+                ->notify(new ClientInvoiceAnnulledNotification($calendarEventId, $invoiceLabels));
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao enviar email de fatura anulada ao cliente.', [
+                'calendar_event_id' => $calendarEventId,
+                'client_email' => $email,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Evita enviar emails de testes para clientes reais (igual CalendarController).
+     */
+    private function resolveClientNotificationRecipientEmail(?string $originalEmail): string
+    {
+        $originalEmail = $originalEmail ?? '';
+        $supportEmail = env('MAIL_CLIENT_TEST_REDIRECT_TO', 'suporte@softrace.pt');
+
+        if (app()->environment('production')) {
+            return $originalEmail;
+        }
+
+        return $supportEmail;
+    }
+
+    private function clientAllowsEmailBookingUpdates(?Client $client): bool
+    {
+        if (! $client instanceof Client) {
+            return false;
+        }
+
+        return (bool) ($client->notify_email_booking_updates ?? true);
     }
 }

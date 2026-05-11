@@ -49,6 +49,8 @@
         <div class="card">
             <div class="uview-tabs" role="tablist">
                 <button class="uview-tab nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#tab-details">Detalhes</button>
+                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-horario">Horário</button>
+                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-servicos">Serviços</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-marcacoes">Marcações</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-vendas">Vendas</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-log">Atividade</button>
@@ -189,6 +191,38 @@
                             <div class="uview-detail-value">{{ $agente->updated_at->format('d/m/Y H:i') }}</div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Horário Tab -->
+                <div class="tab-pane fade" id="tab-horario">
+                    @include('agentes.partials.weekly-schedule-view', [
+                        'weeklySchedule' => $agente->weekly_schedule,
+                    ])
+                </div>
+
+                <!-- Serviços Tab -->
+                <div class="tab-pane fade" id="tab-servicos">
+                    @if($servicesByCategory->isEmpty())
+                        <p class="text-muted text-center py-3 mb-0">Nenhum serviço associado a este membro. Pode associar serviços em <a href="{{ route('equipa.edit', $agente) }}">Editar</a>.</p>
+                    @else
+                        @foreach($servicesByCategory as $services)
+                            @php $cat = $services->first()?->category; @endphp
+                            <div class="uview-detail-group {{ !$loop->first ? 'mt-4' : '' }}">
+                                <div class="uview-detail-title">{{ $cat?->name ?? 'Sem categoria' }}</div>
+                                @foreach($services as $svc)
+                                    <div class="uview-detail-row">
+                                        <div class="uview-detail-label">{{ $svc->name }}</div>
+                                        <div class="uview-detail-value text-end">
+                                            <span class="text-nowrap">{{ $svc->formatted_price }}</span>
+                                            @if($svc->duration)
+                                                <span class="text-muted small ms-2">· {{ $svc->formatted_duration }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endforeach
+                    @endif
                 </div>
 
                 <!-- Marcações Tab -->

@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> A criar...';
         var fd = new FormData(f);
         fd.delete('service_ids[]');
-        f.querySelectorAll('input[name="service_ids[]"]:checked').forEach(function(cb) { fd.append('service_ids[]', cb.value); });
+        f.querySelectorAll('.extra-service-cb:checked').forEach(function(cb) { fd.append('service_ids[]', cb.value); });
         fetch(f.action, {
             method: 'POST',
             body: fd,
@@ -543,16 +543,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('editExtraDescription').value = data.description || '';
                 document.getElementById('editExtraPrice').value = data.price ?? 0;
                 document.getElementById('editExtraDuration').value = data.duration ?? 0;
-                var serviceIds = data.service_ids || [];
-                form.querySelectorAll('input[name="service_ids[]"]').forEach(function(cb) {
-                    cb.checked = serviceIds.indexOf(parseInt(cb.value, 10)) !== -1;
+                var rawIds = data.service_ids;
+                var serviceIds = Array.isArray(rawIds) ? rawIds : (rawIds && typeof rawIds === 'object' ? Object.values(rawIds) : []);
+                var serviceIdSet = new Set(serviceIds.map(function(id) { return Number(id); }).filter(function(n) { return !isNaN(n); }));
+                form.querySelectorAll('.extra-service-cb').forEach(function(cb) {
+                    cb.checked = serviceIdSet.has(Number(cb.value));
                 });
                 var block = modal.querySelector('[data-extra-services-block]');
                 if (block && block.hasAttribute('data-extra-services-inited')) {
                     var selectAll = block.querySelector('[data-extra-services-select-all]');
                     var catCbs = block.querySelectorAll('.extra-category-select-all');
                     var total = block.querySelectorAll('.extra-service-cb').length;
-                    var checked = serviceIds.length;
+                    var checked = Array.from(block.querySelectorAll('.extra-service-cb')).filter(function(cb) { return cb.checked; }).length;
                     if (selectAll) {
                         selectAll.checked = total > 0 && checked === total;
                         selectAll.indeterminate = checked > 0 && checked < total;
@@ -588,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> A guardar...';
         var fd = new FormData(f);
         fd.delete('service_ids[]');
-        f.querySelectorAll('input[name="service_ids[]"]:checked').forEach(function(cb) { fd.append('service_ids[]', cb.value); });
+        f.querySelectorAll('.extra-service-cb:checked').forEach(function(cb) { fd.append('service_ids[]', cb.value); });
         fd.set('_method', 'PUT');
         var csrf = document.querySelector('input[name="_token"]')?.value || '';
         fetch(f.action, {

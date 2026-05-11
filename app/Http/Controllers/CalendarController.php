@@ -7,14 +7,15 @@ use App\Models\Booking;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Client;
+use App\Models\CrmSetting;
 use App\Models\ExtraCategory;
 use App\Models\PersonalTimeType;
 use App\Models\Sale;
 use App\Models\Service;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
-use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Notifications\ClientAppointmentCancelledNotification;
+use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Notifications\ClientAppointmentRescheduledNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -46,8 +47,9 @@ class CalendarController extends Controller
 
         $today = now();
         $nationalHolidaysPt = $this->ptNationalHolidayDatesBetweenYears((int) $today->format('Y') - 1, (int) $today->format('Y') + 2);
+        $posGorjetaEnabled = CrmSetting::posGorjetaEnabled(current_store_id());
 
-        return view('agenda.index', compact('eventTypes', 'users', 'personalTimeTypes', 'nationalHolidaysPt'));
+        return view('agenda.index', compact('eventTypes', 'users', 'personalTimeTypes', 'nationalHolidaysPt', 'posGorjetaEnabled'));
     }
 
     /**
