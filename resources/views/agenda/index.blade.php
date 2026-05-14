@@ -77,12 +77,29 @@
                 <div id="agendaOcClientSelectedCard" class="agenda-oc-client-selected-card d-none mt-1">
                     <div class="d-flex align-items-start gap-3">
                         <div class="flex-shrink-0 agenda-oc-client-col-avatar">
-                            <img id="agendaOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="56" height="56">
-                            <div id="agendaOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:56px;height:56px;font-size:1rem;">…</div>
+                            <img id="agendaOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="75" height="75">
+                            <div id="agendaOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:75px;height:75px;font-size:1rem;">…</div>
                         </div>
                         <div class="flex-grow-1 min-w-0 agenda-oc-client-col-text">
                             <strong id="agendaOcClientSelectedName" class="d-block text-truncate">…</strong>
                             <span id="agendaOcClientSelectedPhone" class="d-block small text-muted mt-1">…</span>
+                            <div class="agenda-oc-client-nif-row position-relative mt-1">
+                                <span id="agendaOcClientNifDisplayWrap" class="d-inline-flex align-items-center gap-1 small text-muted agenda-oc-client-nif-display">
+                                    <span id="agendaOcClientSelectedNif">Sem NIF</span>
+                                    <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-nif-edit-btn" id="agendaOcClientNifEditBtn" title="Editar NIF" aria-label="Editar NIF">
+                                        <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                                    </button>
+                                </span>
+                                <span id="agendaOcClientNifInputWrap" class="d-none agenda-oc-client-nif-input-wrap">
+                                    <div class="d-flex align-items-center gap-1">
+                                        <input type="text" id="agendaOcClientNifInput" class="form-control form-control-sm agenda-oc-client-nif-input" maxlength="9" inputmode="numeric" pattern="[0-9]*" placeholder="NIF (9 dígitos)">
+                                        <button type="button" class="btn btn-sm btn-primary px-2 py-1" id="agendaOcClientNifSaveBtn">OK</button>
+                                        <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary text-decoration-none" id="agendaOcClientNifCancelBtn" title="Cancelar edição de NIF" aria-label="Cancelar edição de NIF">
+                                            <i class="ph ph-x" aria-hidden="true"></i>
+                                        </button>
+                                    </div>
+                                </span>
+                            </div>
                         </div>
                         <div class="flex-shrink-0 d-inline-flex agenda-oc-client-col-actions">
                             <a id="agendaOcClientProfileLink" href="#" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-profile-btn d-none text-decoration-none" title="Ver perfil" aria-label="Ver perfil">
@@ -345,25 +362,25 @@
     </div>
 </div>
 
-<!-- Modal: Anular venda -->
+<!-- Modal: Anular fatura (pagamento em loja) -->
 <div class="modal fade" id="revertSaleModal" tabindex="-1" aria-labelledby="revertSaleModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header pb-3">
-                <h4 class="modal-title mb-0 fw-semibold" id="revertSaleModalLabel">Anular venda</h4>
+                <h4 class="modal-title mb-0 fw-semibold" id="revertSaleModalLabel">Anular fatura</h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="revertSaleId" value="">
-                <p class="text-muted mb-3">Indique a razão para anular esta venda.</p>
+                <p class="text-muted mb-3">Será gerada uma nota de crédito. A fatura de reserva online mantém-se. A marcação continua paga; depois pode emitir uma nova fatura final (ex.: corrigir NIF).</p>
                 <div class="mb-0">
                     <label for="revertSaleReason" class="form-label">Razão da anulação</label>
-                    <textarea class="form-control" id="revertSaleReason" rows="3" maxlength="1000" placeholder="Ex.: valor lançado incorretamente, venda duplicada, etc."></textarea>
+                    <textarea class="form-control" id="revertSaleReason" rows="3" maxlength="1000" placeholder="Ex.: cliente pediu NIF na fatura final, erro no documento, etc."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="revertSaleConfirmBtn">Anular venda</button>
+                <button type="button" class="btn btn-danger" id="revertSaleConfirmBtn">Anular fatura</button>
             </div>
         </div>
     </div>
@@ -567,7 +584,6 @@
             <div class="d-flex align-items-center gap-2 flex-wrap" id="eventDetailPaymentWrap">
                 <div class="d-none d-flex flex-wrap gap-1 justify-content-end" id="eventDetailFaturasWrap"></div>
                 <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Caixa - Pagamento</button>
-                <button type="button" class="btn btn-outline-secondary btn-sm d-none" id="eventDetailReverterFaturaBtn">Anular venda</button>
             </div>
             <button type="submit" class="btn btn-primary btn-sm" id="eventDetailSaveBtn" form="eventDetailEditForm">Guardar</button>
         </div>
@@ -602,16 +618,18 @@
                             </div>
                         </div>
                         <div class="col-md-6 payment-pos-hero-values text-md-end">
-                            <div class="payment-pos-hero-total-line d-flex flex-wrap align-items-baseline justify-content-start justify-content-md-end gap-2 column-gap-3 row-gap-1">
-                                <span class="text-muted small mb-0" id="paymentHeroPretaxInline">s/ IVA 0,00 €</span>
-                                <span class="fs-2 fw-bold text-body lh-sm" id="paymentTotalHeroDisplay">0,00 €</span>
-                            </div>
-                            <div class="small text-muted mt-2 text-start text-md-end px-md-0">
-                                <div class="d-flex justify-content-between justify-content-md-end gap-3"><span id="paymentSubtotalLineLabel">Total 0 serviços</span><span id="paymentSubtotalDisplay">0,00 €</span></div>
-                                <div class="d-flex justify-content-between justify-content-md-end gap-3 d-none" id="paymentOnlinePaidLine"><span>Reserva paga</span><span id="paymentOnlinePaidDisplay">0,00 €</span></div>
-                                <div class="d-flex justify-content-between justify-content-md-end gap-3 d-none" id="paymentServicesDueLine"><span>A liquidar serviços</span><span id="paymentServicesDueDisplay">0,00 €</span></div>
+                            <div class="small payment-pos-hero-totals-stack mt-0 text-start text-md-end px-md-0">
+                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row">
+                                    <span class="text-muted" id="paymentSubtotalLineLabel">Total 0 serviços:</span>
+                                    <span class="d-inline-flex align-items-baseline gap-2 text-body">
+                                        <span id="paymentHeroPretaxInline">s/ IVA 0,00 €</span>
+                                        <span class="fw-semibold" id="paymentSubtotalDisplay">0,00 €</span>
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentOnlinePaidLine"><span class="text-muted">Reserva paga:</span><span class="fw-semibold text-body" id="paymentOnlinePaidDisplay">0,00 €</span></div>
+                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentServicesDueLine"><span class="text-muted">A liquidar serviços:</span><span class="fw-semibold text-body" id="paymentServicesDueDisplay">0,00 €</span></div>
                                 @if($posGorjetaEnabled ?? true)
-                                <div class="d-flex justify-content-between justify-content-md-end gap-3 d-none" id="paymentGorjetaLine"><span>Gorjeta</span><span id="paymentGorjetaDisplay">0,00 €</span></div>
+                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentGorjetaLine"><span class="text-muted">Gorjeta:</span><span class="fw-semibold text-body" id="paymentGorjetaDisplay">0,00 €</span></div>
                                 @endif
                             </div>
                             @if($posGorjetaEnabled ?? true)

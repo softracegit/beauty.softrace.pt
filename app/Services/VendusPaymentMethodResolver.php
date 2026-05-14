@@ -44,6 +44,41 @@ final class VendusPaymentMethodResolver
             ? (int) $sale->store_id
             : null;
 
+        $matched = $this->findPaymentMethodIdByTypes($methods, $vendusTypes, $storeId, true);
+        if ($matched !== null) {
+            return $matched;
+        }
+
+        // IDs de loja Admin vs Vendus podem não coincidir; se nada casou com filtro de loja, tenta só por tipo.
+        if ($storeId !== null) {
+            $matched = $this->findPaymentMethodIdByTypes($methods, $vendusTypes, null, false);
+            if ($matched !== null) {
+                Log::warning('vendus_payment_method_matched_ignoring_store_restriction', [
+                    'sale_id' => $sale->id,
+                    'method_id' => $matched,
+                    'store_id' => $storeId,
+                ]);
+
+                return $matched;
+            }
+        }
+
+        Log::warning('vendus_payment_method_not_found_in_vendus', [
+            'sale_id' => $sale->id,
+            'payment_method' => $sale->payment_method,
+            'expected_vendus_types' => $vendusTypes,
+            'vendus_rows_count' => count($methods),
+        ]);
+
+        return null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $methods
+     * @param  list<string>  $vendusTypes
+     */
+    private function findPaymentMethodIdByTypes(array $methods, array $vendusTypes, ?int $storeId, bool $enforceStore): ?string
+    {
         foreach ($vendusTypes as $vendusType) {
             foreach ($methods as $row) {
                 if (! is_array($row) || ! isset($row['id']) || ! is_numeric($row['id'])) {
@@ -52,7 +87,7 @@ final class VendusPaymentMethodResolver
                 if (! $this->isPaymentMethodRowActive($row)) {
                     continue;
                 }
-                if (! $this->paymentMethodAvailableForStore($row, $storeId)) {
+                if ($enforceStore && ! $this->paymentMethodAvailableForStore($row, $storeId)) {
                     continue;
                 }
                 if (strtoupper((string) ($row['type'] ?? '')) !== $vendusType) {
@@ -62,12 +97,6 @@ final class VendusPaymentMethodResolver
                 return (string) (int) $row['id'];
             }
         }
-
-        Log::warning('vendus_payment_method_not_found_in_vendus', [
-            'sale_id' => $sale->id,
-            'payment_method' => $sale->payment_method,
-            'expected_vendus_types' => $vendusTypes,
-        ]);
 
         return null;
     }
@@ -119,50 +148,60 @@ final class VendusPaymentMethodResolver
             return [];
         }
 
-        $cacheKey = 'vendus_payment_methods:'.sha1($baseUrl.'|'.$apiKey);
+        // v2: inclui auth_mode e evita guardar em cache respostas de erro (lista vazia durante 1h bloqueava a resolução).
+        $cacheKey = 'vendus_payment_methods_v2:'.sha1($baseUrl.'|'.$apiKey.'|'.$authMode);
 
-        /** @var list<array<string, mixed>> */
-        return Cache::remember($cacheKey, 3600, function () use ($baseUrl, $apiKey, $authMode) {
-            $url = $baseUrl.'/documents/paymentmethods/';
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached)) {
+            return $cached;
+        }
 
-            $request = Http::acceptJson()->timeout(30);
-            $response = match ($authMode) {
-                'bearer' => $request->withToken($apiKey)->get($url),
-                'query' => $request->get($url, ['api_key' => $apiKey]),
-                default => $request->withBasicAuth($apiKey, '')->get($url),
-            };
+        $url = $baseUrl.'/documents/paymentmethods/';
 
-            if (! $response->successful()) {
-                Log::warning('vendus_payment_methods_fetch_failed', [
-                    'status' => $response->status(),
-                    'body' => mb_strimwidth(trim($response->body()), 0, 1000, '...'),
-                ]);
+        $request = Http::acceptJson()->timeout(30);
+        $response = match ($authMode) {
+            'bearer' => $request->withToken($apiKey)->get($url),
+            'query' => $request->get($url, ['api_key' => $apiKey]),
+            default => $request->withBasicAuth($apiKey, '')->get($url),
+        };
 
-                return [];
+        if (! $response->successful()) {
+            Log::warning('vendus_payment_methods_fetch_failed', [
+                'status' => $response->status(),
+                'body' => mb_strimwidth(trim($response->body()), 0, 1000, '...'),
+            ]);
+
+            return [];
+        }
+
+        $json = $response->json();
+        $rows = null;
+        if (is_array($json) && array_key_exists('data', $json) && is_array($json['data'])) {
+            $rows = $json['data'];
+        } elseif (is_array($json) && array_is_list($json)) {
+            $rows = $json;
+        }
+
+        if (! is_array($rows)) {
+            Log::warning('vendus_payment_methods_unexpected_json', [
+                'top_level_keys' => is_array($json) ? array_keys($json) : [],
+            ]);
+
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $out */
+        $out = [];
+        foreach ($rows as $row) {
+            if (is_array($row)) {
+                $out[] = $row;
             }
+        }
 
-            $json = $response->json();
-            $rows = null;
-            if (is_array($json) && array_key_exists('data', $json) && is_array($json['data'])) {
-                $rows = $json['data'];
-            } elseif (is_array($json) && array_is_list($json)) {
-                $rows = $json;
-            }
+        $ttl = $out === [] ? 120 : 3600;
+        Cache::put($cacheKey, $out, $ttl);
 
-            if (! is_array($rows)) {
-                return [];
-            }
-
-            /** @var list<array<string, mixed>> $out */
-            $out = [];
-            foreach ($rows as $row) {
-                if (is_array($row)) {
-                    $out[] = $row;
-                }
-            }
-
-            return $out;
-        });
+        return $out;
     }
 
     private function isPaymentMethodRowActive(array $row): bool

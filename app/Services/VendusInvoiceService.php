@@ -128,6 +128,18 @@ final class VendusInvoiceService
             ];
         }
 
+        // Reserva online: não gerar NC por integração (evita acidentes no anulamento em lote; reembolso = processo manual na Vendus).
+        if (($sale->scope ?? null) === Sale::SCOPE_BOOKING_RESERVA) {
+            Log::warning('vendus_credit_note_blocked_booking_reserva', ['sale_id' => $sale->id]);
+
+            return [
+                'ok' => false,
+                'status' => 422,
+                'message' => 'Nota de crédito para fatura de reserva online não é gerada por esta integração. Use a Vendus ou um processo manual acordado.',
+                'credit_note_id' => null,
+            ];
+        }
+
         $documentId = (int) ($sale->vendus_document_id ?? 0);
         if ($documentId <= 0) {
             return [

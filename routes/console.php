@@ -67,50 +67,85 @@ Artisan::command('vendus:list-payment-methods', function (VendusPaymentMethodRes
 })->purpose('Lista meios de pagamento Vendus (ids para FR / debug)');
 
 Artisan::command('booking:dispatch-sms-reminders', function () {
-    $leadMinutes = max(1, (int) config('booking.sms_reminder_lead_minutes', 120));
-    $graceMinutes = max(0, (int) config('booking.sms_reminder_grace_minutes', 5));
     $tz = (string) config('booking.business_timezone', config('app.timezone', 'UTC'));
+    $nowLocal = CarbonImmutable::now($tz);
+    $startHour = (int) config('booking.sms_reminder_day_before_send_start_hour', 8);
+    $endHour = (int) config('booking.sms_reminder_day_before_send_end_hour', 22);
+    $maxPerRun = max(1, (int) config('booking.sms_reminder_max_per_run', 15));
 
-    // Trabalha em minutos inteiros na timezone de negócio para evitar falhas por segundos.
-    $targetMinute = CarbonImmutable::now($tz)->addMinutes($leadMinutes)->startOfMinute();
-    $windowStartLocal = $targetMinute->subMinutes($graceMinutes);
-    $windowEndLocal = $targetMinute->addMinute();
+    if ($endHour > $startHour) {
+        $hour = (int) $nowLocal->format('G');
+        if ($hour < $startHour || $hour >= $endHour) {
+            $this->comment(sprintf(
+                'SMS lembrete: fora da janela de envio (hora local %d; permitido %d–%d).',
+                $hour,
+                $startHour,
+                $endHour
+            ));
 
-    $windowStart = $windowStartLocal->utc();
-    $windowEnd = $windowEndLocal->utc();
+            return self::SUCCESS;
+        }
+    }
+
+    // Início do «amanhã» civil na timezone de negócio → intervalo em UTC na BD.
+    $tomorrowStartLocal = $nowLocal->addDay()->startOfDay();
+    $tomorrowEndLocal = $tomorrowStartLocal->addDay();
+    $windowStartUtc = $tomorrowStartLocal->utc();
+    $windowEndUtc = $tomorrowEndLocal->utc();
+
+    $sameDayCreationSkip = static function (CalendarEvent $event) use ($tz): bool {
+        if ($event->start_at === null || $event->created_at === null) {
+            return false;
+        }
+
+        return $event->start_at->copy()->timezone($tz)->toDateString()
+            === $event->created_at->copy()->timezone($tz)->toDateString();
+    };
 
     $count = 0;
+    $skippedSameDay = 0;
 
     CalendarEvent::query()
         ->where('event_type', CalendarEvent::TYPE_MARCACAO)
         ->whereNotIn('status', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU])
         ->whereNull('booking_sms_reminder_sent_at')
-        ->whereBetween('start_at', [$windowStart, $windowEnd])
+        ->where('start_at', '>=', $windowStartUtc)
+        ->where('start_at', '<', $windowEndUtc)
         ->whereHas('client', function ($q): void {
             $q->where('notify_sms_booking_reminders', true)
                 ->whereNotNull('phone')
                 ->where('phone', '!=', '');
         })
-        ->select(['id'])
+        ->select(['id', 'start_at', 'created_at'])
         ->orderBy('id')
-        ->chunkById(200, function ($events) use (&$count): void {
+        ->chunkById(100, function ($events) use (&$count, &$skippedSameDay, $maxPerRun, $sameDayCreationSkip): bool {
             foreach ($events as $event) {
+                if ($count >= $maxPerRun) {
+                    return false;
+                }
+                if ($sameDayCreationSkip($event)) {
+                    $skippedSameDay++;
+
+                    continue;
+                }
                 SendBookingReminderSmsJob::dispatch((int) $event->id);
                 $count++;
             }
+
+            return true;
         });
 
     $this->info(sprintf(
-        'SMS reminders despachados: %d (janela local %s - %s, lead=%d, grace=%d)',
+        'SMS lembretes despachados: %d (dia da marcação = amanhã %s; TZ=%s; máx/run=%d; ignorados marcação-no-mesmo-dia=%d)',
         $count,
-        $windowStartLocal->format('Y-m-d H:i'),
-        $windowEndLocal->format('Y-m-d H:i'),
-        $leadMinutes,
-        $graceMinutes
+        $tomorrowStartLocal->format('Y-m-d'),
+        $tz,
+        $maxPerRun,
+        $skippedSameDay
     ));
 
     return self::SUCCESS;
-})->purpose('Despacha SMS de lembrete para marcações próximas');
+})->purpose('Despacha SMS de lembrete no dia anterior à marcação (timezone de negócio)');
 
 Schedule::command('booking:dispatch-sms-reminders')
     ->everyMinute()

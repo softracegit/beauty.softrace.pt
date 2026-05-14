@@ -95,6 +95,109 @@
     padding: 1rem 1.875rem 1.25rem;
     background: var(--bs-body-bg, #fff);
 }
+/* Dropup de faturas no rodapé: menu acima do «Guardar» / caixa (offcanvas 1060). */
+.agenda-marcacao-test-offcanvas-footer .event-detail-faturas-dropup .dropdown-menu {
+    z-index: 1070;
+}
+/* Largura do menu ao conteúdo (rótulos longos «Ver PDF…» / «Enviar por email»); em ecrã estreito limita à viewport e quebra linha. */
+.event-detail-faturas-dropup .dropdown-menu {
+    min-width: max-content;
+    width: max-content;
+    max-width: calc(100vw - 1rem);
+    box-sizing: border-box;
+}
+.event-detail-faturas-dropup .dropdown-menu > li > .dropdown-item,
+.event-detail-faturas-dropup .dropdown-menu > li > a.dropdown-item,
+.event-detail-faturas-dropup .dropdown-menu > li > button.dropdown-item {
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+.event-detail-faturas-dropup .event-detail-fatura-menu-icon {
+    font-size: 1.125rem;
+    line-height: 1;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.event-detail-faturas-dropup button.dropdown-item.text-danger .event-detail-fatura-menu-icon.text-danger {
+    color: var(--bs-danger, #dc3545) !important;
+}
+/* «Emitir fatura final»: destaque tipo alerta amarelo */
+.event-detail-faturas-dropup .agenda-fatura-final-item {
+    background-color: var(--bs-warning-bg-subtle, #fff3cd) !important;
+    color: var(--bs-warning-text-emphasis, #664d03) !important;
+    border: 1px solid var(--bs-warning, #ffc107);
+    border-radius: var(--bs-border-radius, 0.375rem);
+}
+.event-detail-faturas-dropup .agenda-fatura-final-item:hover,
+.event-detail-faturas-dropup .agenda-fatura-final-item:focus {
+    background-color: color-mix(in srgb, var(--bs-warning, #ffc107) 22%, var(--bs-body-bg, #fff)) !important;
+    color: var(--bs-warning-text-emphasis, #664d03) !important;
+}
+
+/* Aviso no ícone de faturas (falta emitir fatura final) */
+.event-detail-faturas-dropup .agenda-fatura-pending-badge.ri {
+    position: absolute;
+    top: -0.28rem;
+    right: -0.35rem;
+    font-size: 0.72rem;
+    line-height: 1;
+    vertical-align: 0;
+    pointer-events: none;
+}
+.event-detail-faturas-dropup .event-detail-invoice-btn .event-detail-fatura-btn-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* Modal caixa: modo «só fatura final» (sem escolha de pagamento / MB WAY / gorjeta) */
+#paymentModal.payment-pos-modal--invoice-only #paymentMethodSectionLegend,
+#paymentModal.payment-pos-modal--invoice-only #paymentMethodToggleGroup,
+#paymentModal.payment-pos-modal--invoice-only #paymentMbwayPhoneWrap {
+    display: none !important;
+}
+#paymentModal.payment-pos-modal--invoice-only .payment-pos-hero-gorjeta-wrap,
+#paymentModal.payment-pos-modal--invoice-only #paymentGorjetaLine {
+    display: none !important;
+}
+
+/* Vista calendário: aviso imediatamente à esquerda do badge «Pago» (canto superior direito do cartão) */
+.agenda-fc-event-paid-badges {
+    position: absolute;
+    top: 0.1rem;
+    right: 0.1rem;
+    z-index: 2;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.22rem;
+    max-width: 58%;
+    pointer-events: none;
+}
+.agenda-fc-event-paid-badges .agenda-fc-event-badge {
+    position: static;
+    top: auto;
+    right: auto;
+}
+.agenda-fc-event-pending-invoice-wrap {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: 0.90rem;
+    line-height: 1;
+    justify-content: center;
+    background-color: #fff;
+    padding: 0rem;
+    margin: 0;
+    border-radius: 50%;
+    width: 17px;
+    line-height: 0;
+
+    height: 17px;
+}
+
 .agenda-marcacao-test-offcanvas .choices {
     margin-bottom: 0;
 }
@@ -402,10 +505,6 @@ body .app-wrapper .container-fluid {
     overflow: hidden;               /* garantir que nada sai para fora do cartão */
 }
 .agenda-fc-event-badge {
-    position: absolute;
-    top: 0.1rem;
-    right: 0.1rem;
-    z-index: 2;
     font-size: 0.62rem;
     font-weight: 700;
     line-height: 1;
@@ -420,7 +519,7 @@ body .app-wrapper .container-fluid {
 }
 .agenda-fc-event-badge-reserva {
     background: #ffc107;
-    color: #212529;
+    color: #fff;
 }
 
 /* Reforço: horas no cartão vêm só do eventContent (evita faixa de tempo nativa + conteúdo custom = “duplicado”) */
@@ -439,6 +538,7 @@ body .app-wrapper .container-fluid {
 }
 /* Estados da marcação: Remix Icon fill (remixicon.css na vista agenda) */
 .fc-event-status-icon.ri,
+.fc-event .agenda-fc-event-pending-invoice-wrap .ri,
 .event-detail-status-trigger-icon i.ri,
 .agenda-quickview-status i.ri,
 .agenda-status-dropdown .agenda-status-dropdown-item i.ri {
@@ -1377,11 +1477,30 @@ body .app-wrapper .container-fluid {
 }
 #agendaEventQuickview .agenda-quickview-inline-badge-reserva {
     background: #ffc107;
-    color: #212529;
+    color: #fff;
 }
 #agendaEventQuickview .agenda-quickview-inline-badge-paid {
     background: #198754;
     color: #fff;
+}
+#agendaEventQuickview .agenda-quickview-pending-invoice-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+#agendaEventQuickview .agenda-quickview-pending-invoice-icon {
+    flex-shrink: 0;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    color: var(--bs-warning, #ffc107);
+}
+#agendaEventQuickview .agenda-quickview-pending-invoice-text {
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    color: #000;
 }
 
 /* Quick menu: Editar opções do serviço */
@@ -1933,6 +2052,19 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     display: block;
 }
 
+#eventDetailPaymentWrap .event-detail-invoice-btn.dropdown-toggle {
+    min-width: auto;
+    padding-inline: 0.45rem 0.35rem;
+}
+
+#eventDetailPaymentWrap .event-detail-invoice-btn.dropdown-toggle::after {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0.1rem;
+    align-self: center;
+    flex-shrink: 0;
+}
+
 /* Ícone do estado alinhado ao centro óptico do texto */
 #eventDetailEditModal .event-detail-status-trigger-icon {
     display: inline-flex;
@@ -2229,13 +2361,13 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
 .payment-pos-hero-client-lines {
     display: flex;
     flex-direction: column;
-    gap: 0.08rem;
-    line-height: 1.2;
+    gap: 0.2rem;
+    line-height: 1.45;
 }
 .payment-pos-hero-client-lines .payment-pos-hero-client-line {
     margin: 0;
     padding: 0;
-    line-height: 1.22;
+    line-height: 1.5;
 }
 .payment-pos-hero-avatar-wrap {
     width: 56px;
@@ -2254,24 +2386,17 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     font-weight: 600;
     color: var(--bs-secondary-color, #6c757d);
 }
-.payment-pos-hero-values .d-flex {
+.payment-pos-hero-values .payment-pos-hero-totals-stack .payment-pos-hero-amount-row {
     max-width: 100%;
 }
-.payment-pos-hero-total-line {
-    max-width: 100%;
+.payment-pos-hero-values .payment-pos-hero-totals-stack > .payment-pos-hero-amount-row + .payment-pos-hero-amount-row {
+    margin-top: 0.35rem;
 }
-.payment-pos-hero-total-line #paymentHeroPretaxInline {
-    font-size: 0.875rem;
-    letter-spacing: 0.01em;
-}
-@media (min-width: 768px) {
-    .payment-pos-hero-total-line {
-        margin-left: auto;
-        max-width: 22rem;
-    }
+.payment-pos-hero-values .payment-pos-hero-totals-stack #paymentHeroPretaxInline {
+    white-space: nowrap;
 }
 @media (min-width: 768px) {
-    .payment-pos-hero-values .d-flex.justify-content-md-end {
+    .payment-pos-hero-values .payment-pos-hero-totals-stack .payment-pos-hero-amount-row.justify-content-md-end {
         margin-left: auto;
         max-width: 20rem;
     }

@@ -32,6 +32,7 @@
     var DATETIME_STORAGE_KEY = 'booking_datetime_v1:' + BOOKING_STORE_SLUG;
     var CONTACT_STORAGE_KEY = 'booking_contact_v1:' + BOOKING_STORE_SLUG;
     var STRIPE_CHECKOUT_PUBLIC_ID_KEY = 'booking_checkout_public_id:' + BOOKING_STORE_SLUG;
+    var BOOKING_CHECKOUT_INVOICE_OPTS_KEY = 'booking_checkout_invoice_opts_v1:' + BOOKING_STORE_SLUG;
     var SLOT_HOLD_STORAGE_KEY = 'booking_slot_hold_v1:' + BOOKING_STORE_SLUG;
 
     (function migrateLegacyBookingStorageKeys() {
@@ -852,6 +853,20 @@
     }
 
     /** Checkout com sessão de cliente: hidden name/email/phone no formulário. */
+    function mergeInvoiceSupplementEmailIntoContactPayload(contact) {
+        if (!contact) {
+            return contact;
+        }
+        var supp = document.getElementById('booking-invoice-supplement-email');
+        if (supp) {
+            var se = String(supp.value || '').trim();
+            if (se && (!contact.email || !String(contact.email).trim())) {
+                contact.email = se;
+            }
+        }
+        return contact;
+    }
+
     function getCheckoutContactPayload() {
         var form = document.getElementById('booking-checkout-form');
         if (form && isBookingCheckoutProfileMode()) {
@@ -859,13 +874,13 @@
             var emailEl = form.querySelector('input[name="email"]');
             var phoneEl = form.querySelector('input[name="phone"]');
             var notesEl = document.getElementById('booking-contact-notes');
-            return {
+            return mergeInvoiceSupplementEmailIntoContactPayload({
                 name: nameEl ? nameEl.value.trim() : '',
                 email: emailEl ? emailEl.value.trim() : '',
                 phone: phoneEl ? phoneEl.value.trim() : '',
                 phoneDisplay: phoneEl ? phoneEl.value.trim() : '',
                 notes: notesEl ? notesEl.value.trim() : '',
-            };
+            });
         }
         /** Convidado: ler sempre o DOM (sessionStorage pode estar vazio ou desatualizado). */
         var nameInput = document.getElementById('booking-contact-name');
@@ -884,15 +899,15 @@
                 }
             }
             var stored = getContactSelection() || {};
-            return {
+            return mergeInvoiceSupplementEmailIntoContactPayload({
                 name: (nameInput && nameInput.value.trim()) || stored.name || '',
                 email: (emailInput && emailInput.value.trim()) || stored.email || '',
                 phone: phoneE164 || stored.phone || '',
                 phoneDisplay: (phoneInput && phoneInput.value.trim()) || stored.phoneDisplay || '',
                 notes: (notesInput && notesInput.value.trim()) || stored.notes || '',
-            };
+            });
         }
-        return getContactSelection();
+        return mergeInvoiceSupplementEmailIntoContactPayload(getContactSelection());
     }
 
     function flushGuestContactFromDomToStorage() {
@@ -2286,11 +2301,195 @@
         }
     }
 
+    function getBookingInvoicePayload() {
+        var sendEl = document.getElementById('booking-send-invoice-email');
+        var wantNifEl = document.getElementById('booking-want-invoice-nif');
+        var nifInput = document.getElementById('booking-invoice-nif');
+        var suppEmail = document.getElementById('booking-invoice-supplement-email');
+        var nifDigits =
+            wantNifEl && wantNifEl.checked && nifInput
+                ? String(nifInput.value || '').replace(/\D/g, '')
+                : '';
+        return {
+            send_invoice_email: !!(sendEl && sendEl.checked),
+            want_invoice_with_nif: !!(wantNifEl && wantNifEl.checked),
+            billing_nif: nifDigits,
+            invoice_email: suppEmail ? String(suppEmail.value || '').trim() : '',
+        };
+    }
+
+    function persistBookingCheckoutInvoiceOpts(bookingPublicId) {
+        try {
+            if (!bookingPublicId) {
+                return;
+            }
+            var inv = getBookingInvoicePayload();
+            bookingStorage.setItem(
+                BOOKING_CHECKOUT_INVOICE_OPTS_KEY,
+                JSON.stringify({
+                    booking_public_id: String(bookingPublicId),
+                    send_invoice_email: !!inv.send_invoice_email,
+                    want_invoice_with_nif: !!inv.want_invoice_with_nif,
+                    billing_nif: inv.billing_nif,
+                    invoice_email: inv.invoice_email,
+                }),
+            );
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function onBookingInvoiceOptsChanged() {
+        persistBookingCheckoutInvoiceOpts(checkoutPaymentState.bookingPublicId);
+    }
+
+    function getInvoiceOptsForCompleteRequest(bookingPublicId) {
+        var dom = getBookingInvoicePayload();
+        var bid = bookingPublicId ? String(bookingPublicId) : '';
+        try {
+            var raw = bookingStorage.getItem(BOOKING_CHECKOUT_INVOICE_OPTS_KEY);
+            if (!raw || !bid) {
+                return dom;
+            }
+            var o = JSON.parse(raw);
+            if (!o || String(o.booking_public_id || '') !== bid) {
+                return dom;
+            }
+            var nifDom = dom.billing_nif || '';
+            var nifSt = String(o.billing_nif || '').replace(/\D/g, '');
+            var want = !!(dom.want_invoice_with_nif || o.want_invoice_with_nif);
+            var nif =
+                nifDom.length === 9 ? nifDom : nifSt.length === 9 ? nifSt : want ? nifDom || nifSt : '';
+            return {
+                send_invoice_email: !!(dom.send_invoice_email || o.send_invoice_email),
+                want_invoice_with_nif: want,
+                billing_nif: nif,
+                invoice_email: (dom.invoice_email && String(dom.invoice_email).trim()) ||
+                    (typeof o.invoice_email === 'string' ? o.invoice_email.trim() : ''),
+            };
+        } catch (e) {
+            return dom;
+        }
+    }
+
+    function bindBookingInvoiceEmailLivePreview() {
+        var form = document.getElementById('booking-checkout-form');
+        var live = document.getElementById('booking-invoice-email-live');
+        if (!live || !form || form.getAttribute('data-booking-invoice-email-live-bound') === '1') {
+            return;
+        }
+        function sync() {
+            var supp = document.getElementById('booking-invoice-supplement-email');
+            var main = document.getElementById('booking-contact-email');
+            var v = '';
+            if (supp) {
+                v = String(supp.value || '').trim();
+            }
+            if (!v && main) {
+                v = String(main.value || '').trim();
+            }
+            live.textContent = v ? v : '—';
+        }
+        var supp = document.getElementById('booking-invoice-supplement-email');
+        var main = document.getElementById('booking-contact-email');
+        if (supp) {
+            ['input', 'blur', 'change'].forEach(function (evt) {
+                supp.addEventListener(evt, sync);
+            });
+        }
+        if (main) {
+            ['input', 'blur', 'change'].forEach(function (evt) {
+                main.addEventListener(evt, sync);
+            });
+        }
+        sync();
+        form.setAttribute('data-booking-invoice-email-live-bound', '1');
+    }
+
+    function bindBookingInvoiceUiToggles() {
+        var form = document.getElementById('booking-checkout-form');
+        if (!form || form.getAttribute('data-booking-invoice-ui-toggles-bound') === '1') {
+            return;
+        }
+        var send = document.getElementById('booking-send-invoice-email');
+        var phrase = document.getElementById('booking-invoice-email-phrase');
+        function syncSendPhrase() {
+            if (!phrase || !send) {
+                return;
+            }
+            phrase.classList.toggle('d-none', !send.checked);
+        }
+        if (send && phrase) {
+            send.addEventListener('change', function () {
+                syncSendPhrase();
+                onBookingInvoiceOptsChanged();
+            });
+            syncSendPhrase();
+        }
+        var want = document.getElementById('booking-want-invoice-nif');
+        var nifWrap = document.getElementById('booking-nif-input-wrap');
+        function syncNifInput() {
+            if (!want || !nifWrap) {
+                return;
+            }
+            nifWrap.classList.toggle('d-none', !want.checked);
+        }
+        if (want && nifWrap) {
+            want.addEventListener('change', function () {
+                syncNifInput();
+                onBookingInvoiceOptsChanged();
+            });
+            syncNifInput();
+        }
+        form.setAttribute('data-booking-invoice-ui-toggles-bound', '1');
+    }
+
+    function validateBookingInvoiceOptions() {
+        var wantNif = document.getElementById('booking-want-invoice-nif');
+        var nifInput = document.getElementById('booking-invoice-nif');
+        if (wantNif && wantNif.checked && nifInput) {
+            var d = String(nifInput.value || '').replace(/\D/g, '');
+            if (d.length !== 9) {
+                nifInput.setCustomValidity('Indique um NIF com 9 dígitos.');
+                nifInput.reportValidity();
+                return false;
+            }
+            nifInput.setCustomValidity('');
+        }
+        var send = document.getElementById('booking-send-invoice-email');
+        var supp = document.getElementById('booking-invoice-supplement-email');
+        if (send && send.checked && supp) {
+            var em = String(supp.value || '').trim();
+            if (!em) {
+                supp.setCustomValidity('Indique o email para receber a fatura.');
+                supp.reportValidity();
+                return false;
+            }
+            if (typeof supp.checkValidity === 'function' && !supp.checkValidity()) {
+                supp.reportValidity();
+                return false;
+            }
+            supp.setCustomValidity('');
+        }
+        return true;
+    }
+
     function initCheckoutStep() {
         var form = document.getElementById('booking-checkout-form');
         if (!form) {
             return;
         }
+        bindBookingInvoiceEmailLivePreview();
+        bindBookingInvoiceUiToggles();
+        ['booking-invoice-nif', 'booking-invoice-supplement-email'].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (!el) {
+                return;
+            }
+            ['change', 'input', 'blur'].forEach(function (evt) {
+                el.addEventListener(evt, onBookingInvoiceOptsChanged);
+            });
+        });
         var nameInput = document.getElementById('booking-contact-name');
         var phoneInput = document.getElementById('booking-contact-phone');
         var phoneE164Input = document.getElementById('booking-contact-phone-e164');
@@ -2455,6 +2654,14 @@
         if (label) {
             els.nextBtn.textContent = label;
         }
+    }
+
+    /** Rótulo do botão quando se sai de loading (evita ficar preso em spinner). */
+    function checkoutDefaultNextLabel() {
+        if (!isCheckoutPaymentRequired()) {
+            return 'Marcar';
+        }
+        return checkoutPaymentState.clientSecret ? 'Pagar e confirmar' : 'Pagamento';
     }
 
     function setCheckoutNextBtnColor(isFinalPayment) {
@@ -2978,6 +3185,7 @@
     function confirmStripePayment() {
         if (!checkoutPaymentState.stripe || !checkoutPaymentState.elements) {
             setStripeInlineError('Inicia o pagamento novamente.');
+            setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
         setCheckoutNextBtnLoading(true, 'A confirmar pagamento...');
@@ -3045,19 +3253,33 @@
             setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
             return;
         }
+        var ac = new AbortController();
+        var tid = setTimeout(function () {
+            ac.abort();
+        }, 45000);
         fetch(urls.completeUrl, {
             method: 'POST',
             credentials: 'same-origin',
+            signal: ac.signal,
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
                 'X-CSRF-TOKEN': getCsrfToken(),
                 'X-Requested-With': 'XMLHttpRequest',
             },
-            body: JSON.stringify({
-                booking_public_id: bookingPublicId,
-                payment_intent_id: paymentIntentId || null,
-            }),
+            body: JSON.stringify(
+                (function () {
+                    var inv = getInvoiceOptsForCompleteRequest(bookingPublicId);
+                    return {
+                        booking_public_id: bookingPublicId,
+                        payment_intent_id: paymentIntentId || null,
+                        send_invoice_email: inv.send_invoice_email,
+                        want_invoice_with_nif: inv.want_invoice_with_nif,
+                        billing_nif: inv.billing_nif || null,
+                        invoice_email: inv.invoice_email || null,
+                    };
+                })(),
+            ),
         })
             .then(function (r) {
                 return r
@@ -3077,6 +3299,7 @@
                         bookingStorage.removeItem(DATETIME_STORAGE_KEY);
                         bookingStorage.removeItem(CONTACT_STORAGE_KEY);
                         bookingStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+                        bookingStorage.removeItem(BOOKING_CHECKOUT_INVOICE_OPTS_KEY);
                         bookingStorage.removeItem(SLOT_HOLD_STORAGE_KEY);
                         if (window.location.search.indexOf('payment_intent=') !== -1) {
                             window.history.replaceState({}, '', window.location.pathname);
@@ -3116,6 +3339,9 @@
                 setCheckoutError('Erro de rede. Tenta novamente.');
                 setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
                 renderSummary();
+            })
+            .finally(function () {
+                clearTimeout(tid);
             });
     }
 
@@ -3151,6 +3377,7 @@
                 bookingStorage.removeItem(DATETIME_STORAGE_KEY);
                 bookingStorage.removeItem(CONTACT_STORAGE_KEY);
                 bookingStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+                bookingStorage.removeItem(BOOKING_CHECKOUT_INVOICE_OPTS_KEY);
                 bookingStorage.removeItem(SLOT_HOLD_STORAGE_KEY);
             } catch (e) {
                 /* ignore */
@@ -3226,10 +3453,12 @@
         if (isCheckoutPaymentRequired()) {
             if (!urls || !urls.intentUrl || !urls.completeUrl) {
                 setCheckoutError('Serviço de marcação indisponível.');
+                setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
                 return;
             }
         } else if (!noPayUrl) {
             setCheckoutError('Serviço de marcação indisponível.');
+            setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
         var contact = getCheckoutContactPayload();
@@ -3237,11 +3466,13 @@
         var dt = getDateTimeSelection();
         if (!contact || !tech || !dt || !contact.phone || !state.items.length) {
             setCheckoutError('Falta informação. Volta atrás e completa todos os passos.');
+            setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
         if (!slotHoldState.holdPublicId || !slotHoldState.expiresAt || new Date(slotHoldState.expiresAt).getTime() <= Date.now()) {
             setCheckoutError('A reserva temporária expirou. Escolhe novamente data e hora.');
             onSlotHoldExpired();
+            setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
         hideCheckoutError();
@@ -3269,6 +3500,12 @@
             payload.slot_hold_token = slotHoldState.sessionToken;
         }
 
+        var invPayload = getBookingInvoicePayload();
+        payload.send_invoice_email = invPayload.send_invoice_email;
+        payload.want_invoice_with_nif = invPayload.want_invoice_with_nif;
+        payload.billing_nif = invPayload.billing_nif;
+        payload.invoice_email = invPayload.invoice_email;
+
         if (!isCheckoutPaymentRequired()) {
             setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
             submitBookingConfirmWithoutPayment(noPayUrl, payload);
@@ -3278,6 +3515,12 @@
         if (checkoutPaymentState.clientSecret) {
             confirmStripePayment();
             return;
+        }
+
+        try {
+            bookingStorage.removeItem(BOOKING_CHECKOUT_INVOICE_OPTS_KEY);
+        } catch (e) {
+            /* ignore */
         }
 
         if (els.nextBtn) {
@@ -3340,6 +3583,7 @@
                 } catch (e) {
                     /* ignore */
                 }
+                persistBookingCheckoutInvoiceOpts(d.booking_public_id);
                 var depEl = document.getElementById('booking-pay-deposit-amount');
                 var pctEl = document.getElementById('booking-pay-deposit-pct');
                 var remEl = document.getElementById('booking-pay-remaining-amount');
@@ -4163,6 +4407,9 @@
             if (requirement === 'checkout') {
                 var checkoutForm = document.getElementById('booking-checkout-form');
                 var phoneInput = document.getElementById('booking-contact-phone');
+                if (!validateBookingInvoiceOptions()) {
+                    return;
+                }
                 if (checkoutForm && !checkoutForm.reportValidity()) {
                     return;
                 }

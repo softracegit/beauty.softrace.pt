@@ -53,6 +53,10 @@ class OnlineBookingCheckoutService
             'services' => ['required', 'array', 'min:1'],
             'services.*.id' => ['required', 'integer', 'exists:services,id'],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
+            'send_invoice_email' => ['sometimes', 'boolean'],
+            'want_invoice_with_nif' => ['sometimes', 'boolean'],
+            'invoice_email' => ['nullable', 'string', 'email', 'max:255'],
+            'billing_nif' => ['nullable', 'string', 'max:32'],
         ];
     }
 
@@ -80,7 +84,14 @@ class OnlineBookingCheckoutService
      */
     public function validateBookingRequest(Request $request): array
     {
-        return $request->validate($this->bookingRequestRules());
+        $request->merge($this->mergeInvoiceEmailIntoPayload($request->all()));
+        $validated = $request->validate($this->bookingRequestRules());
+        $this->enforceBookingInvoiceRules($validated);
+        if ($this->truthy($validated['want_invoice_with_nif'] ?? null)) {
+            $validated['billing_nif'] = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+        }
+
+        return $validated;
     }
 
     /**
@@ -91,7 +102,50 @@ class OnlineBookingCheckoutService
      */
     public function validateStoredPayload(array $payload): array
     {
-        return Validator::make($payload, $this->bookingRequestRules())->validate();
+        $payload = $this->mergeInvoiceEmailIntoPayload($payload);
+        $validated = Validator::make($payload, $this->bookingRequestRules())->validate();
+        $this->enforceBookingInvoiceRules($validated);
+        if ($this->truthy($validated['want_invoice_with_nif'] ?? null)) {
+            $validated['billing_nif'] = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+        }
+
+        return $validated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function mergeInvoiceEmailIntoPayload(array $data): array
+    {
+        $main = strtolower(trim((string) ($data['email'] ?? '')));
+        $inv = strtolower(trim((string) ($data['invoice_email'] ?? '')));
+        if ($main === '' && $inv !== '' && filter_var($inv, FILTER_VALIDATE_EMAIL)) {
+            $data['email'] = $inv;
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function enforceBookingInvoiceRules(array $validated): void
+    {
+        if (! $this->truthy($validated['want_invoice_with_nif'] ?? null)) {
+            return;
+        }
+        $digits = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+        if (strlen($digits) !== 9) {
+            throw ValidationException::withMessages([
+                'billing_nif' => ['Indique um NIF com 9 dígitos.'],
+            ]);
+        }
+    }
+
+    private function truthy(mixed $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -445,10 +499,18 @@ class OnlineBookingCheckoutService
                 $client->name = $name;
                 $actor->name = $name;
             }
+            $invEmail = strtolower(trim((string) ($validated['invoice_email'] ?? '')));
+            if ($invEmail !== '' && filter_var($invEmail, FILTER_VALIDATE_EMAIL) && trim((string) ($client->email ?? '')) === '') {
+                $client->email = $invEmail;
+            }
             if ($emailNorm !== '') {
                 $client->email = $emailNorm;
             }
             $client->phone = $phoneE164;
+            $nifDigits = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+            if (trim((string) ($client->nif ?? '')) === '' && strlen($nifDigits) === 9) {
+                $client->nif = $nifDigits;
+            }
             $client->save();
             $actor->save();
             $this->appendOnlineBookingNotes($client, $validated['notes'] ?? null);
@@ -465,6 +527,11 @@ class OnlineBookingCheckoutService
         );
         $client = $resolved['client'];
         $createdBookingUser = $resolved['created_booking_user'];
+        $nifDigits = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+        if (trim((string) ($client->nif ?? '')) === '' && strlen($nifDigits) === 9) {
+            $client->nif = $nifDigits;
+            $client->save();
+        }
 
         return ['client' => $client, 'created_booking_user' => $createdBookingUser];
     }

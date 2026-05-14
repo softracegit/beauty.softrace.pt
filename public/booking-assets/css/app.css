@@ -921,6 +921,15 @@ button.booking-offcanvas-nav__link {
     scroll-margin-top: var(--booking-sticky-offset);
 }
 
+.booking-invoice-nif-input {
+    max-width: 12rem;
+}
+
+.booking-step3-welcome {
+    font-size: 0.9375rem;
+    letter-spacing: -0.015em;
+}
+
 /* Página serviços: âncoras ficam por baixo da navbar + barra de categorias (sticky) */
 .booking-page--services {
     --booking-category-chips-bar-height: 3.375rem;

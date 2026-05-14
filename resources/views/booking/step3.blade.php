@@ -50,9 +50,13 @@
                                                     trim((string) ($bookingClient->name ?? '')) !== ''
                                                     && trim((string) ($bookingClient->email ?? '')) !== ''
                                                     && trim((string) ($bookingClient->phone ?? '')) !== '';
+                                                $welcomeFirst = trim((string) ($bookingClient->name ?? ''));
+                                                $welcomeFirst = $welcomeFirst !== '' ? explode(' ', $welcomeFirst, 2)[0] : '';
                                             @endphp
+                                            <h2 class="h6 fw-semibold text-dark mb-2 booking-step3-welcome">
+                                                Olá@if($welcomeFirst !== ''), {{ $welcomeFirst }}@endif
+                                            </h2>
                                             @if($bookingClientHasFullProfile)
-                                                <h2 class="h5 fw-semibold text-dark mb-3">Bem-vindo {{ $bookingClient->name }}</h2>
                                                 <form id="booking-checkout-form" novalidate>
                                                     <input type="hidden" name="name" value="{{ e($bookingClient->name) }}">
                                                     <input type="hidden" name="email" value="{{ e($bookingClient->email ?? '') }}">
@@ -67,10 +71,10 @@
                                                     </div>
                                                 </form>
                                             @else
-                                                <div class="alert alert-light border small mb-3" role="status">
-                                                    Complete o seu nome e telemóvel para concluir a marcação.
-                                                </div>
                                                 <form id="booking-checkout-form" novalidate>
+                                                    <div class="alert alert-light border small mb-3" role="status">
+                                                        Complete o seu nome e telemóvel para concluir a marcação.
+                                                    </div>
                                                     <div class="mb-3">
                                                         <label for="booking-contact-name" class="form-label small text-muted mb-1">Nome</label>
                                                         <input id="booking-contact-name" name="name" type="text" class="form-control" autocomplete="name" required value="{{ e($bookingClient->name ?? '') }}">
@@ -84,7 +88,7 @@
                                                         </div>
                                                         <div class="col-12 col-md-6">
                                                             <label for="booking-contact-email" class="form-label small text-muted mb-1">Email</label>
-                                                            <input id="booking-contact-email" name="email" type="email" class="form-control" autocomplete="email" required value="{{ e($bookingClient->email ?? '') }}" readonly>
+                                                            <input id="booking-contact-email" name="email" type="email" class="form-control" autocomplete="email" required value="{{ e($bookingClient->email ?? '') }}" @if(trim((string) ($bookingClient->email ?? '')) !== '') readonly @endif>
                                                         </div>
                                                     </div>
 
@@ -95,6 +99,7 @@
                                                 </form>
                                             @endif
                                         @else
+                                            <h2 class="h6 fw-semibold text-dark mb-2 booking-step3-welcome">Olá</h2>
                                             <form id="booking-checkout-form" novalidate>
                                                 <div class="mb-3">
                                                     <label for="booking-contact-name" class="form-label small text-muted mb-1">Nome</label>
@@ -125,6 +130,15 @@
                                             </p>
                                         @endif
 
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="booking-category-section mb-4 pb-1" aria-label="Opções de fatura">
+                                <div class="card border shadow-sm rounded-3 booking-category-card">
+                                    <div class="card-body">
+                                        <h2 class="h6 fw-semibold text-dark mb-2">Fatura</h2>
+                                        @include('booking.partials.checkout-invoice-options', ['bookingClient' => $bookingClient ?? null])
                                     </div>
                                 </div>
                             </section>

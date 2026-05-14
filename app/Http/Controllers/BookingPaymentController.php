@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Services\BookingSlotHoldService;
 use App\Services\OnlineBookingCheckoutService;
+use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
 use App\Support\CurrentStore;
 use Illuminate\Http\JsonResponse;
@@ -37,6 +38,7 @@ class BookingPaymentController extends Controller
         private OnlineBookingCheckoutService $checkout,
         private BookingSlotHoldService $slotHolds,
         private VendusInvoiceService $vendusInvoiceService,
+        private VendusInvoiceEmailService $vendusInvoiceEmailService,
     ) {}
 
     /**
@@ -176,6 +178,10 @@ class BookingPaymentController extends Controller
         $request->validate([
             'booking_public_id' => ['required', 'string', 'regex:/^[0-9A-HJKMNP-TV-Z]{26}$/i'],
             'payment_intent_id' => ['nullable', 'string', 'max:255'],
+            'send_invoice_email' => ['sometimes', 'boolean'],
+            'want_invoice_with_nif' => ['sometimes', 'boolean'],
+            'billing_nif' => ['nullable', 'string', 'max:32'],
+            'invoice_email' => ['nullable', 'string', 'email', 'max:255'],
         ]);
 
         $secret = config('stripe.secret');
@@ -322,7 +328,14 @@ class BookingPaymentController extends Controller
             $this->notifyClientAppointmentCreated($event->id, $event->client);
         }
         if ($partialSale instanceof Sale) {
+            $this->applyBookingCompleteInvoiceOptionsToSale($request, $partialSale);
+            $partialSale->refresh();
             $this->syncSaleWithVendus($partialSale);
+            $partialSale->refresh();
+            $sendInvoice = $this->bookingCompleteSendInvoiceEmailDesired($request, $booking);
+            if ($sendInvoice) {
+                $this->vendusInvoiceEmailService->trySendToClient($partialSale);
+            }
         }
 
         if ($createdBookingUser) {
@@ -656,6 +669,12 @@ class BookingPaymentController extends Controller
             $primaryEventServiceId = null;
         }
 
+        $validated = $resolved['validated'] ?? [];
+        $wantNif = filter_var($validated['want_invoice_with_nif'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $client->refresh();
+        $nifDigits = preg_replace('/\D/', '', (string) ($client->nif ?? ''));
+        $issueWithoutFiscalId = ! ($wantNif && strlen($nifDigits) === 9);
+
         $sale = Sale::create([
             'store_id' => $storeId,
             'calendar_event_id' => $eventId,
@@ -670,6 +689,7 @@ class BookingPaymentController extends Controller
             'payment_method' => $paymentMethod,
             'scope' => Sale::SCOPE_BOOKING_RESERVA,
             'status' => Sale::STATUS_PAGO,
+            'issue_without_fiscal_id' => $issueWithoutFiscalId,
         ]);
 
         $eventTitle = trim((string) ($eventModel?->title ?? ''));
@@ -840,6 +860,52 @@ class BookingPaymentController extends Controller
     private function bookingStoreSlug(): string
     {
         return (string) app(CurrentStore::class)->get()->slug;
+    }
+
+    private function bookingCompleteSendInvoiceEmailDesired(Request $request, Booking $booking): bool
+    {
+        if ($request->exists('send_invoice_email')) {
+            return $request->boolean('send_invoice_email');
+        }
+
+        $payload = is_array($booking->request_payload) ? $booking->request_payload : [];
+
+        return filter_var($payload['send_invoice_email'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function applyBookingCompleteInvoiceOptionsToSale(Request $request, Sale $partialSale): void
+    {
+        $partialSale->loadMissing('client');
+        $client = $partialSale->client;
+        if ($client === null) {
+            return;
+        }
+
+        if ($request->exists('send_invoice_email') && $request->boolean('send_invoice_email')) {
+            $invoiceEmail = strtolower(trim((string) $request->input('invoice_email', '')));
+            if ($invoiceEmail !== '' && filter_var($invoiceEmail, FILTER_VALIDATE_EMAIL)) {
+                $client->forceFill(['email' => $invoiceEmail])->save();
+            }
+        }
+
+        if (! $request->exists('want_invoice_with_nif')) {
+            return;
+        }
+
+        $client->refresh();
+
+        $want = $request->boolean('want_invoice_with_nif');
+        $bn = preg_replace('/\D/', '', (string) $request->input('billing_nif', ''));
+        if ($bn === '' && $want) {
+            $bn = preg_replace('/\D/', '', (string) ($client->nif ?? ''));
+        }
+        if ($want && strlen($bn) === 9 && trim((string) ($client->nif ?? '')) === '') {
+            $client->forceFill(['nif' => $bn])->save();
+            $client->refresh();
+        }
+
+        $issueWithout = ! ($want && strlen($bn) === 9);
+        $partialSale->forceFill(['issue_without_fiscal_id' => $issueWithout])->save();
     }
 
     /**

@@ -7,7 +7,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Email ao cliente com o PDF oficial da fatura (Vendus) após pagamento na agenda.
+ * Email ao cliente com o PDF oficial da fatura (Vendus) após pagamento na agenda ou reserva online.
  */
 class ClientVendusInvoiceNotification extends Notification
 {

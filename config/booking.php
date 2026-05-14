@@ -53,21 +53,42 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Lembretes SMS de marcação
+    | Lembretes SMS de marcação (dia anterior)
     |--------------------------------------------------------------------------
     |
-    | O comando agendado corre a cada minuto e procura marcações com início
-    | dentro desta antecedência. Ex.: 120 = enviar ~2 horas antes.
+    | O comando `booking:dispatch-sms-reminders` envia no dia civil anterior
+    | ao início da marcação (na timezone de negócio). Evita lembretes à
+    | madrugada por antecedência em horas e cobre marcações cedo ou tarde.
+    |
+    | Exceção: marcações criadas no mesmo dia civil que o início não recebem
+    | lembrete (marcação para o próprio dia — assume-se que o cliente já sabe).
+    |
+    | Janela horária (hora local da loja): só despacha dentro desse intervalo
+    | nesse dia anterior (ex.: 9–14 = entre 09:00 e 13:59). Use início 0 e
+    | fim 24 para permitir qualquer hora.
+    |
+    | Máximo por execução: espalha envios quando há muitas marcações (cron
+    | continua a correr cada minuto).
     |
     */
 
+    /** @deprecated Mantido no .env por compatibilidade; o lembrete já não usa antecedência em minutos. */
     'sms_reminder_lead_minutes' => max(1, (int) env('BOOKING_SMS_REMINDER_LEAD_MINUTES', 120)),
 
-    /**
-     * Tolerância (em minutos) para trás no disparo do lembrete.
-     * Evita perder SMS por pequenos atrasos do scheduler/worker.
-     */
+    /** @deprecated Mantido no .env por compatibilidade; não aplicável ao modelo dia anterior. */
     'sms_reminder_grace_minutes' => max(0, (int) env('BOOKING_SMS_REMINDER_GRACE_MINUTES', 5)),
+
+    /** Hora local (0–23) a partir da qual se pode enviar no «dia anterior». */
+    'sms_reminder_day_before_send_start_hour' => max(0, min(23, (int) env('BOOKING_SMS_REMINDER_DAY_SEND_START_HOUR', 9))),
+
+    /**
+     * Hora local exclusiva de fim (1–24). Ex.: 14 = último minuto permitido 13:59.
+     * Se fim <= início, a janela horária é ignorada (envio a qualquer hora do dia anterior).
+     */
+    'sms_reminder_day_before_send_end_hour' => max(1, min(24, (int) env('BOOKING_SMS_REMINDER_DAY_SEND_END_HOUR', 14))),
+
+    /** Máximo de SMS despachados por execução do comando (o resto fica para o minuto seguinte). */
+    'sms_reminder_max_per_run' => max(1, (int) env('BOOKING_SMS_REMINDER_MAX_PER_RUN', 3)),
 
     /*
     |--------------------------------------------------------------------------

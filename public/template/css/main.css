@@ -32989,3 +32989,15 @@ input:checked~.sr-check-box i {
     display: block;
   }
 }
+
+/* Agenda offcanvas: select cliente no estado nativo («A carregar…») — mesma altura que após o Choices.
+   Fica no fim do bundle para vencer .form-select-sm (font-size !important) e alinhar a .form-select-sm+.choices .choices__inner
+   + padding vertical extra de .choices__list--single (choices.min.css). */
+.agenda-marcacao-test-offcanvas #agendaOcClientSearchWrap > select#agendaOcClient.form-select.form-select-sm,
+.agenda-marcacao-test-offcanvas #eventDetailOcClientSearchWrap > select#eventDetailOcClient.form-select.form-select-sm {
+  box-sizing: border-box !important;
+  min-height: calc(1.875rem + 2px + 0.5rem) !important;
+  padding: 0.25rem 2.25rem 0.25rem 0.5rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.5 !important;
+}

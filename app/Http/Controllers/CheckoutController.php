@@ -9,13 +9,12 @@ use App\Models\CrmSetting;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Notifications\ClientInvoiceAnnulledNotification;
-use App\Notifications\ClientVendusInvoiceNotification;
+use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
 use App\Support\PhoneDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Stripe\Exception\ApiErrorException;
@@ -24,7 +23,10 @@ use Stripe\Stripe;
 
 class CheckoutController extends Controller
 {
-    public function __construct(private readonly VendusInvoiceService $vendusInvoiceService) {}
+    public function __construct(
+        private readonly VendusInvoiceService $vendusInvoiceService,
+        private readonly VendusInvoiceEmailService $vendusInvoiceEmailService,
+    ) {}
 
     /**
      * GET agenda/events/{event}/checkout – dados do evento para o checkout.
@@ -288,7 +290,7 @@ class CheckoutController extends Controller
 
         $emailResult = ['sent' => false, 'message' => null];
         if ($delivery === 'email') {
-            $emailResult = $this->trySendVendusInvoiceEmailToClient($sale);
+            $emailResult = $this->vendusInvoiceEmailService->trySendToClient($sale);
         }
 
         return response()->json([
@@ -579,7 +581,7 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Venda ainda sem documento Vendus sincronizado.'], 422);
         }
 
-        $binary = $this->fetchVendusInvoicePdfBinary($sale);
+        $binary = $this->vendusInvoiceEmailService->fetchVendusInvoicePdfBinaryWithRetry($sale);
         if ($binary === null || $binary === '') {
             return response()->json([
                 'error' => 'Nao foi possivel obter o PDF oficial da Vendus para este documento.',
@@ -595,113 +597,17 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Obtém o binário do PDF oficial na Vendus para anexar ao email ou devolver ao browser.
-     */
-    private function fetchVendusInvoicePdfBinary(Sale $sale): ?string
-    {
-        if (! $sale->vendus_document_id) {
-            return null;
-        }
-
-        $baseUrl = rtrim((string) config('services.vendus.base_url'), '/');
-        $apiKey = (string) config('services.vendus.api_key');
-        $authMode = strtolower((string) config('services.vendus.auth_mode', 'basic'));
-        $vendusMode = (string) config('services.vendus.mode', 'normal');
-        $documentId = (int) $sale->vendus_document_id;
-
-        if ($baseUrl === '' || $apiKey === '') {
-            return null;
-        }
-
-        $request = Http::accept('application/pdf,application/json')
-            ->timeout(25);
-
-        $candidatePaths = [
-            "/documents/{$documentId}.pdf?mode=".rawurlencode($vendusMode).'&download=1',
-            "/documents/{$documentId}.pdf?mode=".rawurlencode($vendusMode),
-            "/documents/{$documentId}/?mode=".rawurlencode($vendusMode).'&output=pdf',
-            "/documents/{$documentId}/?mode=".rawurlencode($vendusMode).'&output=pdf_url',
-            "/documents/{$documentId}/?mode=".rawurlencode($vendusMode).'&output=auto',
-            "/documents/{$documentId}/?mode=".rawurlencode($vendusMode),
-        ];
-
-        foreach ($candidatePaths as $path) {
-            $url = $baseUrl.$path;
-            $response = $this->vendusGetWithAuth($request, $url, $apiKey, $authMode);
-            if (! $response->successful()) {
-                continue;
-            }
-
-            $contentType = strtolower((string) $response->header('Content-Type', ''));
-            if (str_contains($contentType, 'application/pdf')) {
-                return $response->body();
-            }
-
-            $pdfUrl = $this->extractPdfUrlFromVendusPayload($response->json());
-            if ($pdfUrl !== null) {
-                $binary = $this->fetchVendusPdfBinary($request, $pdfUrl, $apiKey, $authMode, $baseUrl);
-                if ($binary !== null) {
-                    return $binary;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @return array{sent: bool, message: string|null}
-     */
-    private function trySendVendusInvoiceEmailToClient(Sale $sale): array
-    {
-        $sale->loadMissing('client');
-        $client = $sale->client;
-        if (! $this->clientAllowsEmailBookingUpdates($client)) {
-            return ['sent' => false, 'message' => 'O cliente optou por não receber emails da loja.'];
-        }
-
-        $email = trim((string) ($client?->email ?? ''));
-        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ['sent' => false, 'message' => 'Cliente sem email válido na ficha.'];
-        }
-
-        $pdf = $this->fetchVendusInvoicePdfBinary($sale);
-        if ($pdf === null || $pdf === '') {
-            return ['sent' => false, 'message' => 'O PDF da Vendus ainda não está disponível para envio.'];
-        }
-
-        $clientName = trim((string) ($client?->name ?? ''));
-        $greeting = $clientName !== '' ? explode(' ', $clientName, 2)[0] : '';
-        $safeLabel = str_replace(['/', '\\'], '-', (string) $sale->numero_fatura);
-        $filename = 'fatura-'.$safeLabel.'.pdf';
-
-        try {
-            Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
-                ->notify(new ClientVendusInvoiceNotification(
-                    $greeting,
-                    (string) $sale->numero_fatura,
-                    $filename,
-                    $pdf,
-                ));
-
-            return ['sent' => true, 'message' => null];
-        } catch (\Throwable $e) {
-            Log::warning('Falha ao enviar email com fatura Vendus ao cliente.', [
-                'sale_id' => $sale->id,
-                'error' => $e->getMessage(),
-            ]);
-
-            return ['sent' => false, 'message' => 'Não foi possível enviar o email. Tente imprimir a fatura.'];
-        }
-    }
-
-    /**
      * POST sales/{sale}/revert – anular a venda e desbloquear a marcação para edição.
+     *
+     * Com final_invoice_only: só a fatura final de caixa (agenda).
+     * Sem final_invoice_only: todas as vendas da marcação excepto booking_reserva — o valor de reserva online
+     * não deve ser anulado nem gerar NC por engano (ex.: relatório de vendas); reembolso de reserva é excepção manual na Vendus.
      */
     public function revert(Request $request, Sale $sale)
     {
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
+            'final_invoice_only' => ['sometimes', 'boolean'],
         ], [
             'reason.required' => 'Indique a razão da anulação.',
         ]);
@@ -716,11 +622,29 @@ class CheckoutController extends Controller
         }
 
         $reason = trim((string) ($validated['reason'] ?? ''));
-        $salesToRevert = Sale::query()
-            ->where('calendar_event_id', $calendarEvent->id)
-            ->where('status', '!=', Sale::STATUS_ANULADO)
-            ->orderBy('id')
-            ->get();
+        $finalInvoiceOnly = $request->boolean('final_invoice_only');
+
+        if ($finalInvoiceOnly) {
+            if ($sale->scope !== Sale::SCOPE_CAIXA_LIQUIDACAO) {
+                return response()->json([
+                    'error' => 'Só pode anular desta forma a fatura final (pagamento em loja). A fatura de reserva mantém-se.',
+                ], 422);
+            }
+            if ((int) $sale->calendar_event_id !== (int) $calendarEvent->id) {
+                return response()->json(['error' => 'Venda não corresponde a esta marcação.'], 422);
+            }
+            $salesToRevert = Sale::query()
+                ->whereKey($sale->id)
+                ->where('status', '!=', Sale::STATUS_ANULADO)
+                ->get();
+        } else {
+            $salesToRevert = Sale::query()
+                ->where('calendar_event_id', $calendarEvent->id)
+                ->where('status', '!=', Sale::STATUS_ANULADO)
+                ->where('scope', '!=', Sale::SCOPE_BOOKING_RESERVA)
+                ->orderBy('id')
+                ->get();
+        }
 
         if ($salesToRevert->isEmpty()) {
             return response()->json(['error' => 'Não existem vendas ativas para anular nesta marcação.'], 422);
@@ -733,6 +657,9 @@ class CheckoutController extends Controller
 
         $creditNotes = [];
         foreach ($salesToRevert as $candidateSale) {
+            if ($candidateSale->scope === Sale::SCOPE_BOOKING_RESERVA) {
+                continue;
+            }
             if (! $candidateSale->vendus_document_id) {
                 continue;
             }
@@ -756,13 +683,18 @@ class CheckoutController extends Controller
         try {
             DB::beginTransaction();
             foreach ($salesToRevert as $candidateSale) {
+                if ($candidateSale->scope === Sale::SCOPE_BOOKING_RESERVA) {
+                    continue;
+                }
                 $candidateSale->update(['status' => Sale::STATUS_ANULADO]);
             }
-            $calendarEvent->update([
-                'status' => CalendarEvent::STATUS_TERMINADO,
-                'cancellation_type' => null,
-                'cancellation_reason' => null,
-            ]);
+            if (! $finalInvoiceOnly) {
+                $calendarEvent->update([
+                    'status' => CalendarEvent::STATUS_TERMINADO,
+                    'cancellation_type' => null,
+                    'cancellation_reason' => null,
+                ]);
+            }
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -779,85 +711,81 @@ class CheckoutController extends Controller
             'reason' => $reason,
             'vendus_credit_notes' => $creditNotes,
             'user_id' => auth()->id(),
+            'final_invoice_only' => $finalInvoiceOnly,
         ]);
 
         $this->notifyClientInvoiceAnnulled((int) $calendarEvent->id, $invoiceLabelsForEmail);
 
+        $message = $finalInvoiceOnly
+            ? 'Fatura final anulada (nota de crédito gerada, se aplicável). A marcação mantém-se paga; pode emitir uma nova fatura final.'
+            : 'Venda(s) anulada(s). A marcação ficou em estado Terminado.';
+
         return response()->json([
             'success' => true,
-            'message' => 'Venda(s) anulada(s). A marcação ficou em estado Terminado.',
+            'message' => $message,
             'event_id' => $calendarEvent->id,
             'reverted_sales_count' => $salesToRevert->count(),
+            'final_invoice_only' => $finalInvoiceOnly,
         ]);
     }
 
-    private function vendusGetWithAuth($request, string $url, string $apiKey, string $authMode): \Illuminate\Http\Client\Response
-    {
-        return match ($authMode) {
-            'bearer' => $request->withToken($apiKey)->get($url),
-            'query' => $request->get($url, ['api_key' => $apiKey]),
-            default => $request->withBasicAuth($apiKey, '')->get($url),
-        };
-    }
-
-    private function extractPdfUrlFromVendusPayload(mixed $payload): ?string
-    {
-        if (! is_array($payload)) {
-            return null;
-        }
-        $urls = $this->extractHttpUrlsRecursively($payload);
-        foreach ($urls as $url) {
-            $u = strtolower($url);
-            if (str_contains($u, '.pdf') || str_contains($u, '/pdf') || str_contains($u, 'download') || str_contains($u, 'print')) {
-                return $url;
-            }
-        }
-
-        return $urls[0] ?? null;
-    }
-
     /**
-     * @param  array<string, mixed>|list<mixed>  $payload
-     * @return list<string>
+     * POST agenda/events/{calendarEvent}/invoices/email — envia por email o PDF Vendus de todas as vendas activas desta marcação.
      */
-    private function extractHttpUrlsRecursively(array $payload): array
+    public function sendMarcacaoInvoicesEmail(CalendarEvent $calendarEvent)
     {
-        $urls = [];
-        array_walk_recursive($payload, function (mixed $value) use (&$urls): void {
-            if (! is_string($value)) {
-                return;
-            }
-            if (! str_starts_with($value, 'http')) {
-                return;
-            }
-            if (! in_array($value, $urls, true)) {
-                $urls[] = $value;
-            }
-        });
-
-        return $urls;
-    }
-
-    private function fetchVendusPdfBinary($request, string $pdfUrl, string $apiKey, string $authMode, string $baseUrl): ?string
-    {
-        $candidates = [$pdfUrl];
-        if (str_starts_with($pdfUrl, '/')) {
-            $candidates[] = rtrim($baseUrl, '/').$pdfUrl;
+        $calendarEvent = CalendarEvent::query()
+            ->forStore(current_store_id())
+            ->whereKey($calendarEvent->id)
+            ->firstOrFail();
+        if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+            return response()->json(['error' => 'Apenas marcações suportam este envio.'], 422);
         }
 
-        foreach ($candidates as $url) {
-            $plain = $request->get($url);
-            if ($plain->successful() && str_contains(strtolower((string) $plain->header('Content-Type', '')), 'application/pdf')) {
-                return $plain->body();
-            }
+        $sales = Sale::query()
+            ->where('calendar_event_id', $calendarEvent->id)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->orderBy('id')
+            ->get();
 
-            $auth = $this->vendusGetWithAuth($request, $url, $apiKey, $authMode);
-            if ($auth->successful() && str_contains(strtolower((string) $auth->header('Content-Type', '')), 'application/pdf')) {
-                return $auth->body();
+        if ($sales->isEmpty()) {
+            return response()->json(['error' => 'Não há faturas activas para enviar.'], 422);
+        }
+
+        $sent = 0;
+        $skipped = 0;
+        $lastMessage = null;
+        foreach ($sales as $s) {
+            if (! $s->vendus_document_id) {
+                $skipped++;
+
+                continue;
+            }
+            $res = $this->vendusInvoiceEmailService->trySendToClient($s);
+            if ($res['sent'] ?? false) {
+                $sent++;
+            } else {
+                $lastMessage = $res['message'] ?? 'Falha no envio.';
             }
         }
 
-        return null;
+        if ($sent === 0) {
+            return response()->json([
+                'success' => false,
+                'error' => $lastMessage ?? 'Não foi possível enviar faturas por email (sem documento Vendus ou erro de envio).',
+                'sent' => 0,
+                'skipped' => $skipped,
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $sent === 1
+                ? 'Fatura enviada por email ao cliente.'
+                : ($sent.' faturas enviadas por email ao cliente.'),
+            'sent' => $sent,
+            'skipped' => $skipped,
+        ]);
     }
 
     /**
