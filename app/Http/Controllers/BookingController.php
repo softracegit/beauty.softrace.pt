@@ -679,4 +679,17 @@ class BookingController extends Controller
             ->values()
             ->all();
     }
+
+    /**
+     * Mantém a sessão web ativa e devolve o token CSRF atual (para keep-alive no browser).
+     */
+    public function sessionPing(Request $request): JsonResponse
+    {
+        $request->session()->put('_booking_keepalive_at', now()->toIso8601String());
+
+        return response()->json([
+            'ok' => true,
+            'csrf_token' => csrf_token(),
+        ]);
+    }
 }

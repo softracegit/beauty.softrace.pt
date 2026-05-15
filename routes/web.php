@@ -61,6 +61,9 @@ Route::post('/r/{token}/cancel', [BookingSmsActionController::class, 'cancel'])
 
 Route::prefix('booking/{store:slug}')->middleware(['booking'])->name('booking.')->group(function () {
     Route::get('/', [BookingController::class, 'index'])->name('index');
+    Route::get('/session/ping', [BookingController::class, 'sessionPing'])
+        ->middleware('throttle:120,1')
+        ->name('session.ping');
     Route::get('/staff', [BookingController::class, 'technician'])->name('technician');
     Route::get('/disponiblidade', [BookingController::class, 'datetime'])->name('datetime');
     Route::get('/disponibilidade', [BookingController::class, 'availability'])->name('availability');

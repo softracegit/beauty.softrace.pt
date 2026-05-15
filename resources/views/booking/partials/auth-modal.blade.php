@@ -70,9 +70,6 @@
                 </div>
 
                 <div id="booking-auth-step-register" class="d-none">
-                    <div class="alert alert-light border small mb-3">
-                        Quase pronto. Complete os dados para criar a conta.
-                    </div>
                     <div class="mb-3">
                         <label for="booking-auth-register-name" class="form-label small text-muted mb-1">Nome</label>
                         <input id="booking-auth-register-name" type="text" class="form-control" autocomplete="name">

@@ -2634,9 +2634,151 @@
         });
     }
 
+    var bookingSessionKeepAliveTimerId = null;
+    var BOOKING_SESSION_RELOAD_FLAG = 'booking_session_reload_v1:' + BOOKING_STORE_SLUG;
+
     function getCsrfToken() {
         var m = document.querySelector('meta[name="csrf-token"]');
         return m ? m.getAttribute('content') || '' : '';
+    }
+
+    function setCsrfToken(token) {
+        if (!token) {
+            return;
+        }
+        var m = document.querySelector('meta[name="csrf-token"]');
+        if (m) {
+            m.setAttribute('content', token);
+        }
+    }
+
+    function getBookingSessionPingUrl() {
+        var body = document.body;
+        return body ? body.getAttribute('data-booking-session-ping-url') || '' : '';
+    }
+
+    function getBookingSessionKeepAliveMinutes() {
+        var body = document.body;
+        if (!body) {
+            return 10;
+        }
+        var n = parseInt(body.getAttribute('data-booking-session-keepalive-minutes') || '10', 10);
+        return isNaN(n) || n < 5 ? 10 : n;
+    }
+
+    /** Pedido leve que renova a sessão Laravel e devolve o CSRF atual. */
+    function refreshBookingCsrfToken() {
+        var pingUrl = getBookingSessionPingUrl();
+        if (!pingUrl) {
+            return Promise.resolve(false);
+        }
+        return fetch(pingUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+            .then(function (r) {
+                return r
+                    .json()
+                    .catch(function () {
+                        return {};
+                    })
+                    .then(function (data) {
+                        if (!r.ok || !data || !data.csrf_token) {
+                            return false;
+                        }
+                        setCsrfToken(data.csrf_token);
+                        return true;
+                    });
+            })
+            .catch(function () {
+                return false;
+            });
+    }
+
+    function tryBookingAutoReloadOnSessionExpired() {
+        try {
+            if (sessionStorage.getItem(BOOKING_SESSION_RELOAD_FLAG) === '1') {
+                return false;
+            }
+            sessionStorage.setItem(BOOKING_SESSION_RELOAD_FLAG, '1');
+        } catch (e) {
+            return false;
+        }
+        window.location.reload();
+        return true;
+    }
+
+    function clearBookingSessionReloadFlag() {
+        try {
+            sessionStorage.removeItem(BOOKING_SESSION_RELOAD_FLAG);
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function startBookingSessionKeepAlive() {
+        if (bookingSessionKeepAliveTimerId || !getBookingSessionPingUrl()) {
+            return;
+        }
+        var intervalMs = getBookingSessionKeepAliveMinutes() * 60 * 1000;
+
+        function tick() {
+            if (document.visibilityState === 'hidden') {
+                return;
+            }
+            refreshBookingCsrfToken();
+        }
+
+        tick();
+        bookingSessionKeepAliveTimerId = setInterval(tick, intervalMs);
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                tick();
+            }
+        });
+    }
+
+    function isBookingCsrfError(status, message) {
+        if (typeof window.HttpFriendlyErrors !== 'undefined' && window.HttpFriendlyErrors.isCsrfMismatch) {
+            return window.HttpFriendlyErrors.isCsrfMismatch(status, message);
+        }
+        return (
+            status === 419 ||
+            (message && /csrf|token mismatch|page expired|sua sessão expirou/i.test(String(message)))
+        );
+    }
+
+    function resolveFetchErrorMessage(response, data, fallback) {
+        if (typeof window.HttpFriendlyErrors !== 'undefined' && window.HttpFriendlyErrors.resolveError) {
+            return window.HttpFriendlyErrors.resolveError(response.status, data, fallback);
+        }
+        var msg = data && data.message ? data.message : fallback || 'Não foi possível processar o pedido.';
+        if (data && data.errors) {
+            var firstKey = Object.keys(data.errors)[0];
+            if (firstKey && Array.isArray(data.errors[firstKey]) && data.errors[firstKey][0]) {
+                msg = data.errors[firstKey][0];
+            }
+        }
+        if (response.status === 419 || (msg && /csrf|token mismatch|page expired/i.test(msg))) {
+            return 'A sua sessão expirou ou a página ficou aberta demasiado tempo. Atualize a página e tente novamente.';
+        }
+        return msg;
+    }
+
+    function resolveSlotHoldExtendError(err, fallback) {
+        var status = err && typeof err.status === 'number' ? err.status : 0;
+        var raw = err && err.message ? String(err.message) : '';
+        if (typeof window.HttpFriendlyErrors !== 'undefined' && window.HttpFriendlyErrors.slotHoldExtendError) {
+            return window.HttpFriendlyErrors.slotHoldExtendError(status, raw, fallback);
+        }
+        if (status === 419 || /csrf|token mismatch|page expired|sua sessão expirou/i.test(raw)) {
+            return 'Ocorreu um erro, por favor pressione «Voltar ao início».';
+        }
+        return raw || fallback || 'Não foi possível prolongar a reserva.';
     }
 
     /** intl-tel-input — mesma configuração que CRM / agenda (PT, strictMode, countryOrder). */
@@ -2715,7 +2857,7 @@
         if (!isCheckoutPaymentRequired()) {
             return 'Marcar';
         }
-        return checkoutPaymentState.clientSecret ? 'Pagar e confirmar' : 'Pagamento';
+        return 'Confirmar';
     }
 
     function setCheckoutNextBtnColor(isFinalPayment) {
@@ -2788,7 +2930,7 @@
         };
     }
 
-    function postJsonWithCsrf(url, payload) {
+    function bookingFetchJson(url, payload, csrfRetried) {
         return fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
@@ -2807,18 +2949,34 @@
                 })
                 .then(function (data) {
                     if (!r.ok) {
-                        var msg = data && data.message ? data.message : 'Não foi possível processar o pedido.';
-                        if (data && data.errors) {
-                            var firstKey = Object.keys(data.errors)[0];
-                            if (firstKey && Array.isArray(data.errors[firstKey]) && data.errors[firstKey][0]) {
-                                msg = data.errors[firstKey][0];
-                            }
+                        var errMsg = resolveFetchErrorMessage(r, data, 'Não foi possível processar o pedido.');
+                        if (isBookingCsrfError(r.status, errMsg) && !csrfRetried) {
+                            return refreshBookingCsrfToken().then(function (refreshed) {
+                                if (refreshed) {
+                                    return bookingFetchJson(url, payload, true);
+                                }
+                                if (tryBookingAutoReloadOnSessionExpired()) {
+                                    return new Promise(function () {});
+                                }
+                                var retryErr = new Error(errMsg);
+                                retryErr.status = r.status;
+                                throw retryErr;
+                            });
                         }
-                        throw new Error(msg);
+                        var apiErr = new Error(errMsg);
+                        apiErr.status = r.status;
+                        if (data && data.retry_after_seconds != null && !isNaN(Number(data.retry_after_seconds))) {
+                            apiErr.retry_after_seconds = Number(data.retry_after_seconds);
+                        }
+                        throw apiErr;
                     }
                     return data || {};
                 });
         });
+    }
+
+    function postJsonWithCsrf(url, payload) {
+        return bookingFetchJson(url, payload, false);
     }
 
     function setStripeInlineError(message) {
@@ -3139,7 +3297,7 @@
                     startSlotHoldTimer();
                     modal.hide();
                 }).catch(function (err) {
-                    var msg = err && err.message ? err.message : 'Não foi possível prolongar a reserva.';
+                    var msg = resolveSlotHoldExtendError(err, 'Não foi possível prolongar a reserva.');
                     var slotTakenByOther =
                         msg.indexOf('Este horário acabou de ser reservado por outro cliente') !== -1;
                     if (slotTakenByOther) {
@@ -3161,7 +3319,6 @@
                             bookingRefreshDateTimeSlotsFn();
                         }
                     } else {
-                        setCheckoutError(msg);
                         setSlotHoldModalFeedback(msg);
                     }
                 }).finally(function () {
@@ -3264,19 +3421,19 @@
             .then(function (result) {
                 if (result.error) {
                     setStripeInlineError(result.error.message || 'Pagamento recusado.');
-                    setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                    setCheckoutNextBtnLoading(false, 'Confirmar');
                     return;
                 }
                 var pi = result.paymentIntent;
                 if (pi && pi.status === 'succeeded' && checkoutPaymentState.bookingPublicId) {
                     finalizeBookingAfterPayment(checkoutPaymentState.bookingPublicId, pi.id);
                 } else {
-                    setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                    setCheckoutNextBtnLoading(false, 'Confirmar');
                 }
             })
             .catch(function () {
                 setStripeInlineError('Erro ao confirmar o pagamento. Tenta novamente.');
-                setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                setCheckoutNextBtnLoading(false, 'Confirmar');
             });
     }
 
@@ -3304,7 +3461,7 @@
         var urls = getBookingPaymentUrls();
         if (!urls || !urls.completeUrl) {
             setCheckoutError('Serviço de marcação indisponível.');
-            setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+            setCheckoutNextBtnLoading(false, 'Confirmar');
             return;
         }
         var ac = new AbortController();
@@ -3386,12 +3543,12 @@
                     }
                 }
                 setCheckoutError(msg);
-                setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                setCheckoutNextBtnLoading(false, 'Confirmar');
                 renderSummary();
             })
             .catch(function () {
                 setCheckoutError('Erro de rede. Tenta novamente.');
-                setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                setCheckoutNextBtnLoading(false, 'Confirmar');
                 renderSummary();
             })
             .finally(function () {
@@ -3461,7 +3618,7 @@
             }
         }
         setCheckoutError(msg);
-        var btnFinal = isCheckoutPaymentRequired() ? 'Pagar e confirmar' : 'Marcar';
+        var btnFinal = isCheckoutPaymentRequired() ? 'Confirmar' : 'Marcar';
         setCheckoutNextBtnLoading(false, btnFinal);
         renderSummary();
     }
@@ -3658,7 +3815,7 @@
                 updateCheckoutPaymentPreview();
                 if (els.nextBtn) {
                     setCheckoutNextBtnColor(true);
-                    setCheckoutNextBtnLoading(false, 'Pagar e confirmar');
+                    setCheckoutNextBtnLoading(false, 'Confirmar');
                 }
                 renderSummary();
             })
@@ -3987,7 +4144,7 @@
                 modalSubtitle.textContent = 'Enviámos um código para ' + currentAuthIdentifier + '.';
             } else if (mode === 'register') {
                 modalTitle.textContent = 'Criar conta';
-                modalSubtitle.textContent = 'Preencha os dados para concluir o registo.';
+                modalSubtitle.textContent = 'Quase pronto. Complete os dados para criar a conta.';
             }
         }
         function setRegisterMode(channel) {
@@ -4007,35 +4164,7 @@
             }
         }
         function postJson(url, payload) {
-            return fetch(url, {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN': getCsrfToken(),
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify(payload || {}),
-            }).then(function (r) {
-                return r.json().catch(function () { return {}; }).then(function (data) {
-                    if (!r.ok) {
-                        var msg = data && data.message ? data.message : 'Não foi possível processar o pedido.';
-                        if (data && data.errors) {
-                            var firstKey = Object.keys(data.errors)[0];
-                            if (firstKey && Array.isArray(data.errors[firstKey]) && data.errors[firstKey][0]) {
-                                msg = data.errors[firstKey][0];
-                            }
-                        }
-                        var err = new Error(msg);
-                        if (data && data.retry_after_seconds != null && !isNaN(Number(data.retry_after_seconds))) {
-                            err.retry_after_seconds = Number(data.retry_after_seconds);
-                        }
-                        throw err;
-                    }
-                    return data || {};
-                });
-            });
+            return bookingFetchJson(url, payload, false);
         }
         function showCodeStatus(message) {
             codeStatus.textContent = message || '';
@@ -4619,7 +4748,9 @@
     }
 
     function init() {
+        clearBookingSessionReloadFlag();
         cacheElements();
+        startBookingSessionKeepAlive();
         loadSlotHoldState();
         syncSummaryScrollPlacement();
         loadFromStorage();

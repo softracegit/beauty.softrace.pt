@@ -175,7 +175,7 @@
                             'showNextButton' => true,
                             'nextUrl' => '#',
                             'nextRequires' => 'checkout',
-                            'nextLabel' => ($onlineBookingPaymentRequired ?? true) ? 'Pagamento' : 'Marcar',
+                            'nextLabel' => ($onlineBookingPaymentRequired ?? true) ? 'Confirmar' : 'Marcar',
                             'nextClass' => ($onlineBookingPaymentRequired ?? true) ? 'btn-dark' : 'btn-success',
                         ])
                     </div>

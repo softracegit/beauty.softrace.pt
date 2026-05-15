@@ -1,10 +1,12 @@
 <?php
 
 use App\Models\User;
+use App\Support\FriendlyErrorMessages;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -52,5 +54,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+            $message = FriendlyErrorMessages::CSRF_SESSION_EXPIRED;
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message], 419);
+            }
+
+            return redirect()
+                ->back()
+                ->withInput($request->except('_token'))
+                ->withErrors(['_token' => $message]);
+        });
     })->create();

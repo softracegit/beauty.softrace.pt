@@ -1,5 +1,19 @@
 var C = window.AGENDA_CONFIG || {};
 
+function agendaApiErrorMessage(response, data, fallback) {
+    var status = response && response.status ? response.status : 0;
+    if (typeof window.HttpFriendlyErrors !== 'undefined' && window.HttpFriendlyErrors.resolveError) {
+        return window.HttpFriendlyErrors.resolveError(status, data, fallback);
+    }
+    if (data && data.message) {
+        return data.message;
+    }
+    if (status === 419) {
+        return 'A sua sessão expirou ou a página ficou aberta demasiado tempo. Atualize a página e tente novamente.';
+    }
+    return fallback || (response && response.statusText) || 'Não foi possível processar o pedido.';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const $id = function(id) { return document.getElementById(id); };
     const $ = function(sel) { return document.querySelector(sel); };
@@ -5704,7 +5718,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify(payload)
             })
             .then(function(r) {
-                if (!r.ok) throw new Error(r.statusText);
+                if (!r.ok) throw new Error(agendaApiErrorMessage(r, null, 'Não foi possível processar o pedido.'));
                 return r.json();
             })
             .then(function(res) {
@@ -5775,7 +5789,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({ start_at: start, end_at: end })
             })
             .then(function(r) {
-                if (!r.ok) throw new Error(r.statusText);
+                if (!r.ok) throw new Error(agendaApiErrorMessage(r, null, 'Não foi possível processar o pedido.'));
                 return r.json();
             })
             .then(function(res) {
@@ -7744,7 +7758,7 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify(bodyDrag)
         })
         .then(function(r) {
-            if (!r.ok) throw new Error(r.statusText);
+            if (!r.ok) throw new Error(agendaApiErrorMessage(r, null, 'Não foi possível processar o pedido.'));
             return r.json();
         })
         .then(function(res) {

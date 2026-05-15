@@ -11,6 +11,8 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/pt.js"></script>
 <script src="{{ asset('template/vendor/php-email-form/validate.js') }}?v={{ file_exists(public_path('template/vendor/php-email-form/validate.js')) ? filemtime(public_path('template/vendor/php-email-form/validate.js')) : time() }}"></script>
 
+<script src="{{ asset('template/js/http-friendly-errors.js') }}?v={{ file_exists(public_path('template/js/http-friendly-errors.js')) ? filemtime(public_path('template/js/http-friendly-errors.js')) : time() }}"></script>
+
 <!-- Template Main JS Files -->
 <script src="{{ asset('template/js/theme.js') }}?v={{ file_exists(public_path('template/js/theme.js')) ? filemtime(public_path('template/js/theme.js')) : time() }}"></script>
 <script src="{{ asset('template/js/main.js') }}?v={{ file_exists(public_path('template/js/main.js')) ? filemtime(public_path('template/js/main.js')) : time() }}"></script>

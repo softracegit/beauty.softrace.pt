@@ -31,6 +31,7 @@
 .booking-app .booking-page--confirm .btn.btn-dark,
 #bookingModal #booking-modal-confirm,
 #bookingModal #booking-modal-apply-edit,
+#bookingModal #booking-modal-remove-line,
 .booking-auth-modal .btn.btn-dark.w-100,
 .booking-auth-modal .btn.btn-outline-secondary.w-100 {
     min-height: var(--booking-action-btn-min-height);
@@ -45,7 +46,8 @@
 #booking-slot-hold-expired-modal #booking-slot-hold-restart,
 .booking-app .booking-page--confirm .btn.btn-dark,
 #bookingModal #booking-modal-confirm,
-#bookingModal #booking-modal-apply-edit {
+#bookingModal #booking-modal-apply-edit,
+#bookingModal #booking-modal-remove-line {
     padding-left: var(--booking-action-btn-padding-x);
     padding-right: var(--booking-action-btn-padding-x);
 }

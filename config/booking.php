@@ -27,6 +27,13 @@ return [
 
     'magic_link_ttl_minutes' => (int) env('BOOKING_MAGIC_LINK_TTL_MINUTES', 60),
 
+    /**
+     | Intervalo (minutos) do keep-alive no browser (/booking): pedido leve que renova
+     | a sessão e o meta csrf-token enquanto o separador está visível. Deve ser menor
+     | que SESSION_LIFETIME (ex.: keep-alive 10 min com sessão 120 min).
+     */
+    'session_keepalive_interval_minutes' => max(5, min(55, (int) env('BOOKING_SESSION_KEEPALIVE_MINUTES', 10))),
+
     /*
     |--------------------------------------------------------------------------
     | Código OTP (login booking + verificação de contacto)

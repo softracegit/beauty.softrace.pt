@@ -30,6 +30,8 @@
     data-booking-slot-hold-extend-url="{{ route('booking.slot_hold.extend', ['store' => $bookingStoreSlug], false) }}"
     data-booking-slot-hold-release-url="{{ route('booking.slot_hold.release', ['store' => $bookingStoreSlug], false) }}"
     data-booking-slot-hold-seconds="{{ max(10, \App\Models\CrmSetting::bookingSlotHoldMinutes() * 60) }}"
+    data-booking-session-ping-url="{{ route('booking.session.ping', ['store' => $bookingStoreSlug], false) }}"
+    data-booking-session-keepalive-minutes="{{ config('booking.session_keepalive_interval_minutes') }}"
     data-booking-authenticated-client="{{ (auth()->user() instanceof \App\Models\User && auth()->user()->isBookingClient()) ? '1' : '0' }}"
 >
     @yield('content')
@@ -38,6 +40,7 @@
     @include('booking.partials.service-modal')
 
     <script src="{{ asset('template/vendor/bootstrap/js/bootstrap.bundle.min.js') }}" defer></script>
+    <script src="{{ asset('template/js/http-friendly-errors.js') }}?v={{ file_exists(public_path('template/js/http-friendly-errors.js')) ? filemtime(public_path('template/js/http-friendly-errors.js')) : time() }}"></script>
     {{-- Stacks antes de app.js: flatpickr, etc. --}}
     @stack('scripts')
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/intlTelInput.min.js" defer></script>
