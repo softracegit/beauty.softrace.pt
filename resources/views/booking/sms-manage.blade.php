@@ -51,14 +51,14 @@
                             'actionButtons' => [
                                 [
                                     'action' => '#',
-                                    'label' => 'Cancelar',
+                                    'label' => 'Não vou',
                                     'class' => 'btn btn-outline-danger btn-sm px-3',
                                     'type' => 'button',
                                     'button_id' => 'smsManageCancelBtn',
                                 ],
                                 [
                                     'action' => route('booking.sms.confirm', ['token' => $token]),
-                                    'label' => 'Confirmar',
+                                    'label' => 'Sim, vou',
                                     'class' => 'btn btn-success btn-sm px-3',
                                     'button_id' => 'smsManageConfirmBtn',
                                 ],

@@ -63,6 +63,8 @@ return [
     | Exceção: marcações criadas no mesmo dia civil que o início não recebem
     | lembrete (marcação para o próprio dia — assume-se que o cliente já sabe).
     |
+    | Só marcações em estado «Agendado» (exclui Notificado, Confirmado, etc.).
+    |
     | Janela horária (hora local da loja): só despacha dentro desse intervalo
     | nesse dia anterior (ex.: 9–14 = entre 09:00 e 13:59). Use início 0 e
     | fim 24 para permitir qualquer hora.

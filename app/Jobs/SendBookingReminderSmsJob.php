@@ -43,7 +43,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 return;
             }
 
-            if (in_array((string) $event->status, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true)) {
+            if ((string) $event->status !== CalendarEvent::STATUS_AGENDADO) {
                 return;
             }
 
@@ -82,7 +82,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
             $manageUrl = URL::route('booking.sms.manage', ['token' => $actionLink->token]);
             $whenLabel = $this->formatWhenLabel($startAt, $tz);
             $body = sprintf(
-                "%s lembra da sua marcacao %s\n\nConfirmar ou Cancelar?\n%s\n\nObrigado\n+351300505149 / +351928116651",
+                "%s lembra da sua marcacao %s\n\nConfirmar marcação:\n%s\n\nObrigado\n+351300505149 / +351928116651",
                 $storeName,
                 $whenLabel,
                 $manageUrl
@@ -95,10 +95,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 ->whereNull('booking_sms_reminder_sent_at')
                 ->update([
                     'booking_sms_reminder_sent_at' => now(),
-                    // "Notificado" representa o momento em que o lembrete SMS é efetivamente enviado.
-                    'status' => ($event->status === CalendarEvent::STATUS_AGENDADO)
-                        ? CalendarEvent::STATUS_NOTIFICADO
-                        : $event->status,
+                    'status' => CalendarEvent::STATUS_NOTIFICADO,
                 ]);
         } catch (\Throwable $e) {
             Log::warning('booking_sms_reminder_failed', [
