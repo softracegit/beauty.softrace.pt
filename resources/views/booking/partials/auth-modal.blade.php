@@ -12,12 +12,43 @@
                 <p id="booking-auth-modal-subtitle" class="text-muted small mb-3">Recebe um código por email ou SMS para entrar sem password.</p>
                 <div id="booking-auth-modal-error" class="alert alert-danger py-2 px-3 small d-none mb-3" role="alert"></div>
 
-                <div id="booking-auth-step-email">
-                    <div class="mb-3">
-                        <label for="booking-auth-login" class="form-label small text-muted mb-1">Email ou Telemóvel</label>
-                        <input id="booking-auth-login" type="text" class="form-control" autocomplete="email tel">
+                <div id="booking-auth-step-ident">
+                    <div class="booking-auth-channel-tabs" role="tablist" aria-label="Entrar com">
+                        <button
+                            type="button"
+                            class="booking-auth-channel-tab is-active"
+                            id="booking-auth-tab-phone"
+                            role="tab"
+                            aria-selected="true"
+                            aria-controls="booking-auth-panel-phone"
+                            data-auth-channel="phone"
+                        >Telemóvel</button>
+                        <button
+                            type="button"
+                            class="booking-auth-channel-tab"
+                            id="booking-auth-tab-email"
+                            role="tab"
+                            aria-selected="false"
+                            aria-controls="booking-auth-panel-email"
+                            data-auth-channel="email"
+                        >Email</button>
                     </div>
-                    <button type="button" id="booking-auth-email-next" class="btn btn-dark w-100">Enviar código</button>
+
+                    <div id="booking-auth-panel-phone" role="tabpanel" aria-labelledby="booking-auth-tab-phone">
+                        <div class="mb-3">
+                            <label for="booking-auth-login-phone" class="form-label small text-muted mb-1">Número de telemóvel</label>
+                            <input id="booking-auth-login-phone" type="tel" class="form-control" autocomplete="tel">
+                        </div>
+                    </div>
+
+                    <div id="booking-auth-panel-email" class="d-none" role="tabpanel" aria-labelledby="booking-auth-tab-email">
+                        <div class="mb-3">
+                            <label for="booking-auth-login-email" class="form-label small text-muted mb-1">Endereço de email</label>
+                            <input id="booking-auth-login-email" type="email" class="form-control" autocomplete="email" inputmode="email">
+                        </div>
+                    </div>
+
+                    <button type="button" id="booking-auth-email-next" class="btn btn-dark w-100 booking-auth-ident-submit">Receber código</button>
                 </div>
 
                 <div id="booking-auth-step-code" class="d-none">

@@ -2639,6 +2639,60 @@
         return m ? m.getAttribute('content') || '' : '';
     }
 
+    /** intl-tel-input — mesma configuração que CRM / agenda (PT, strictMode, countryOrder). */
+    function loadBookingIntlPtI18n() {
+        var intlPtBase = 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/i18n/pt';
+        return Promise.all([
+            import(intlPtBase + '/countries.js'),
+            import(intlPtBase + '/interface.js'),
+        ])
+            .then(function (mods) {
+                return Object.assign({}, mods[0].default, mods[1].default);
+            })
+            .catch(function (err) {
+                console.warn('intl-tel-input (booking): locale PT não carregado', err);
+                return {};
+            });
+    }
+
+    function initBookingIntlTelInput(phoneInput) {
+        if (!phoneInput || typeof window.intlTelInput !== 'function') {
+            return Promise.resolve(null);
+        }
+        var existing = window.intlTelInput.getInstance(phoneInput);
+        if (existing) {
+            return Promise.resolve(existing);
+        }
+        return loadBookingIntlPtI18n().then(function (ptI18n) {
+            return window.intlTelInput(phoneInput, {
+                initialCountry: 'pt',
+                countryOrder: ['pt', 'br', 'es', 'fr', 'gb', 'de'],
+                separateDialCode: true,
+                strictMode: true,
+                validationNumberType: 'MOBILE',
+                utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/utils.js',
+                i18n: Object.assign({}, ptI18n, {
+                    searchPlaceholder: 'Pesquisar',
+                    zeroSearchResults: 'Nenhum resultado',
+                }),
+            });
+        });
+    }
+
+    function getBookingIntlE164(phoneInput) {
+        if (!phoneInput || typeof window.intlTelInput !== 'function') {
+            return '';
+        }
+        var iti = window.intlTelInput.getInstance(phoneInput);
+        if (!iti || phoneInput.value.trim() === '') {
+            return '';
+        }
+        if (typeof iti.isValidNumber === 'function' && !iti.isValidNumber()) {
+            return '';
+        }
+        return typeof iti.getNumber === 'function' ? iti.getNumber() || '' : '';
+    }
+
     function setCheckoutNextBtnLoading(isLoading, label) {
         if (!els.nextBtn) {
             return;
@@ -3837,13 +3891,18 @@
         }
 
         var modal = new window.bootstrap.Modal(modalEl);
-        var stepEmail = document.getElementById('booking-auth-step-email');
+        var stepIdent = document.getElementById('booking-auth-step-ident');
         var stepCode = document.getElementById('booking-auth-step-code');
         var errorBox = document.getElementById('booking-auth-modal-error');
         var modalBackBtn = document.getElementById('booking-auth-modal-back');
         var modalTitle = document.getElementById('booking-auth-modal-title');
         var modalSubtitle = document.getElementById('booking-auth-modal-subtitle');
-        var loginInput = document.getElementById('booking-auth-login');
+        var tabPhoneBtn = document.getElementById('booking-auth-tab-phone');
+        var tabEmailBtn = document.getElementById('booking-auth-tab-email');
+        var panelPhone = document.getElementById('booking-auth-panel-phone');
+        var panelEmail = document.getElementById('booking-auth-panel-email');
+        var loginEmailInput = document.getElementById('booking-auth-login-email');
+        var loginPhoneInput = document.getElementById('booking-auth-login-phone');
         var emailNextBtn = document.getElementById('booking-auth-email-next');
         var codeInput = document.getElementById('booking-auth-code');
         var codeDigitInputs = Array.prototype.slice.call(document.querySelectorAll('.js-booking-auth-code-digit'));
@@ -3858,14 +3917,16 @@
         var registerPhoneInput = document.getElementById('booking-auth-register-phone');
         var registerSubmitBtn = document.getElementById('booking-auth-register-submit');
 
-        if (!stepEmail || !stepCode || !stepRegister || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !loginInput || !emailNextBtn || !codeInput || !codeSubmitBtn || !codeResendBtn || !codeStatus || !registerNameInput || !registerEmailWrap || !registerEmailInput || !registerPhoneWrap || !registerPhoneInput || !registerSubmitBtn || codeDigitInputs.length !== 6) {
+        if (!stepIdent || !stepCode || !stepRegister || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !tabPhoneBtn || !tabEmailBtn || !panelPhone || !panelEmail || !loginEmailInput || !loginPhoneInput || !emailNextBtn || !codeInput || !codeSubmitBtn || !codeResendBtn || !codeStatus || !registerNameInput || !registerEmailWrap || !registerEmailInput || !registerPhoneWrap || !registerPhoneInput || !registerSubmitBtn || codeDigitInputs.length !== 6) {
             return null;
         }
 
+        var activeAuthTab = 'phone';
+        var authIntlReady = false;
         var currentAuthIdentifier = '';
         var currentAuthChannel = 'email';
         var submittedResolver = null;
-        var currentStep = 'email';
+        var currentStep = 'ident';
         var lastCodeRequestAt = 0;
         var lastSuccessfulCodeTarget = '';
         var otpCooldownEndAt = 0;
@@ -3888,15 +3949,37 @@
                 btn.textContent = labelDefault || btn.getAttribute('data-prev-text') || 'Seguinte';
             }
         }
+        function ensureAuthIntlInputs() {
+            if (authIntlReady) {
+                return Promise.resolve();
+            }
+            return Promise.all([
+                initBookingIntlTelInput(loginPhoneInput),
+                initBookingIntlTelInput(registerPhoneInput),
+            ]).then(function () {
+                authIntlReady = true;
+            });
+        }
+
+        function setAuthTab(channel) {
+            activeAuthTab = channel === 'email' ? 'email' : 'phone';
+            tabPhoneBtn.classList.toggle('is-active', activeAuthTab === 'phone');
+            tabEmailBtn.classList.toggle('is-active', activeAuthTab === 'email');
+            tabPhoneBtn.setAttribute('aria-selected', activeAuthTab === 'phone' ? 'true' : 'false');
+            tabEmailBtn.setAttribute('aria-selected', activeAuthTab === 'email' ? 'true' : 'false');
+            panelPhone.classList.toggle('d-none', activeAuthTab !== 'phone');
+            panelEmail.classList.toggle('d-none', activeAuthTab !== 'email');
+        }
+
         function setStep(mode) {
             currentStep = mode;
-            stepEmail.classList.toggle('d-none', mode !== 'email');
+            stepIdent.classList.toggle('d-none', mode !== 'ident');
             stepCode.classList.toggle('d-none', mode !== 'code');
             stepRegister.classList.toggle('d-none', mode !== 'register');
-            modalBackBtn.classList.toggle('d-none', mode === 'email');
+            modalBackBtn.classList.toggle('d-none', mode === 'ident');
             errorBox.classList.add('d-none');
             errorBox.textContent = '';
-            if (mode === 'email') {
+            if (mode === 'ident') {
                 modalTitle.textContent = 'Iniciar sessão ou Criar conta';
                 modalSubtitle.textContent = 'Recebe um código por email ou SMS para entrar.';
             } else if (mode === 'code') {
@@ -3914,6 +3997,14 @@
             registerEmailInput.value = '';
             registerPhoneInput.value = '';
             registerNameInput.value = '';
+            if (!byPhone) {
+                ensureAuthIntlInputs().then(function () {
+                    var iti = window.intlTelInput && window.intlTelInput.getInstance(registerPhoneInput);
+                    if (iti && typeof iti.setNumber === 'function') {
+                        iti.setNumber('');
+                    }
+                });
+            }
         }
         function postJson(url, payload) {
             return fetch(url, {
@@ -3963,11 +4054,32 @@
             }
             return Math.max(0, Math.ceil((otpCooldownEndAt - Date.now()) / 1000));
         }
+        function getAuthRequestPayload() {
+            if (activeAuthTab === 'email') {
+                var email = String(loginEmailInput.value || '').trim().toLowerCase();
+                if (!email) {
+                    return { error: 'Indique o email.' };
+                }
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    return { error: 'Indique um email válido.' };
+                }
+                return { channel: 'email', identifier: email, payload: { email: email } };
+            }
+            var phoneE164 = getBookingIntlE164(loginPhoneInput);
+            if (!phoneE164) {
+                if (loginPhoneInput.value.trim() === '') {
+                    return { error: 'Indique o número de telemóvel.' };
+                }
+                return { error: 'Indique um telemóvel válido (ex.: 9 dígitos em Portugal).' };
+            }
+            return { channel: 'phone', identifier: phoneE164, payload: { phone: phoneE164 } };
+        }
+
         function emailSendMatchesCooldownTarget() {
             if (!lastSuccessfulCodeTarget) {
                 return false;
             }
-            var typed = parseLoginInput(String(loginInput.value || '').trim());
+            var typed = getAuthRequestPayload();
             if (!typed || typed.error) {
                 return false;
             }
@@ -3980,20 +4092,20 @@
                 clearResendCooldownTimer();
                 codeResendBtn.disabled = false;
                 codeResendBtn.textContent = 'Reenviar código';
-                if (currentStep === 'email' && !emailBusy) {
+                if (currentStep === 'ident' && !emailBusy) {
                     emailNextBtn.disabled = false;
-                    emailNextBtn.textContent = 'Enviar código';
+                    emailNextBtn.textContent = 'Receber código';
                 }
                 return;
             }
             codeResendBtn.disabled = true;
             codeResendBtn.textContent = 'Reenviar código (' + left + 's)';
-            if (currentStep === 'email' && emailSendMatchesCooldownTarget() && !emailBusy) {
+            if (currentStep === 'ident' && emailSendMatchesCooldownTarget() && !emailBusy) {
                 emailNextBtn.disabled = true;
-                emailNextBtn.textContent = 'Enviar código (' + left + 's)';
-            } else if (currentStep === 'email' && !emailBusy) {
+                emailNextBtn.textContent = 'Receber código (' + left + 's)';
+            } else if (currentStep === 'ident' && !emailBusy) {
                 emailNextBtn.disabled = false;
-                emailNextBtn.textContent = 'Enviar código';
+                emailNextBtn.textContent = 'Receber código';
             }
         }
         function startResendCooldownFromNow() {
@@ -4024,7 +4136,7 @@
                 return;
             }
             if (!currentAuthIdentifier) {
-                setStep('email');
+                setStep('ident');
                 return;
             }
             isSubmittingCode = true;
@@ -4070,28 +4182,23 @@
         function clearOtpCode() {
             setOtpCode('');
         }
-        function parseLoginInput(rawLogin) {
-            var value = String(rawLogin || '').trim();
-            if (!value) {
+        function buildResendPayload() {
+            if (!currentAuthIdentifier) {
                 return null;
             }
-
-            if (value.indexOf('@') !== -1) {
-                var email = value;
-                var emailNorm = email.toLowerCase();
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) {
-                    return { error: 'Indica um email válido.' };
-                }
-                return { channel: 'email', identifier: emailNorm, payload: { email: emailNorm } };
-            }
-
-            var compact = value.replace(/\s+/g, '');
-            return { channel: 'phone', identifier: compact, payload: { phone: compact } };
+            return {
+                channel: currentAuthChannel,
+                identifier: currentAuthIdentifier,
+                payload: currentAuthChannel === 'email'
+                    ? { email: currentAuthIdentifier }
+                    : { phone: currentAuthIdentifier },
+            };
         }
-        function requestCode(loginRaw) {
-            var parsed = parseLoginInput(loginRaw);
+
+        function requestCode(parsedOverride) {
+            var parsed = parsedOverride || getAuthRequestPayload();
             if (!parsed) {
-                showError('Indica o email ou telemóvel.');
+                showError('Indique o email ou o telemóvel.');
                 return Promise.reject(new Error('invalid_login'));
             }
             if (parsed.error) {
@@ -4113,7 +4220,7 @@
 
             currentAuthIdentifier = parsed.identifier;
             currentAuthChannel = parsed.channel;
-            setLoading(emailNextBtn, true, 'A enviar...', 'Enviar código');
+            setLoading(emailNextBtn, true, 'A enviar...', 'Receber código');
             setLoading(codeResendBtn, true, 'A enviar...', 'Reenviar código');
             return postJson(requestCodeUrl, parsed.payload)
                 .then(function (res) {
@@ -4138,16 +4245,26 @@
                     return res;
                 })
                 .finally(function () {
-                    setLoading(emailNextBtn, false, '', 'Enviar código');
+                    setLoading(emailNextBtn, false, '', 'Receber código');
                     setLoading(codeResendBtn, false, '', 'Reenviar código');
                 });
         }
+
+        function focusActiveAuthInput() {
+            if (activeAuthTab === 'email') {
+                loginEmailInput.focus();
+            } else {
+                loginPhoneInput.focus();
+            }
+        }
+
         function resetModal() {
             reloadAfterAuthSuccess = false;
             currentAuthIdentifier = '';
             currentAuthChannel = 'email';
             lastSuccessfulCodeTarget = '';
-            loginInput.value = '';
+            loginEmailInput.value = '';
+            loginPhoneInput.value = '';
             clearOtpCode();
             registerNameInput.value = '';
             registerEmailInput.value = '';
@@ -4155,33 +4272,70 @@
             showCodeStatus('');
             clearResendCooldownTimer();
             applyOtpCooldownUi();
-            setStep('email');
+            setAuthTab('phone');
+            setStep('ident');
         }
+
+        modalEl.addEventListener('shown.bs.modal', function () {
+            ensureAuthIntlInputs().then(function () {
+                focusActiveAuthInput();
+            });
+        });
+
         modalBackBtn.addEventListener('click', function () {
             if (currentStep === 'code') {
-                setStep('email');
+                setStep('ident');
                 applyOtpCooldownUi();
-                loginInput.focus();
+                focusActiveAuthInput();
             } else if (currentStep === 'register') {
                 setStep('code');
                 codeDigitInputs[0].focus();
             }
         });
 
-        loginInput.addEventListener('input', function () {
+        tabPhoneBtn.addEventListener('click', function () {
+            setAuthTab('phone');
+            showError('');
+            loginPhoneInput.focus();
+        });
+        tabEmailBtn.addEventListener('click', function () {
+            setAuthTab('email');
+            showError('');
+            loginEmailInput.focus();
+        });
+
+        function onAuthIdentInputChange() {
             if (getOtpCooldownSecondsLeft() > 0) {
                 applyOtpCooldownUi();
             }
-        });
+        }
+        loginEmailInput.addEventListener('input', onAuthIdentInputChange);
+        loginPhoneInput.addEventListener('input', onAuthIdentInputChange);
 
-        emailNextBtn.addEventListener('click', function () {
-            var login = String(loginInput.value || '').trim();
-            requestCode(login)
+        function submitAuthIdentStep() {
+            ensureAuthIntlInputs()
+                .then(function () {
+                    return requestCode();
+                })
                 .catch(function (err) {
                     if (err && err.message && err.message !== 'invalid_login') {
                         showError(err.message);
                     }
                 });
+        }
+
+        emailNextBtn.addEventListener('click', submitAuthIdentStep);
+        loginEmailInput.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter') {
+                ev.preventDefault();
+                submitAuthIdentStep();
+            }
+        });
+        loginPhoneInput.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter') {
+                ev.preventDefault();
+                submitAuthIdentStep();
+            }
         });
 
         codeSubmitBtn.addEventListener('click', function () {
@@ -4194,7 +4348,12 @@
             if (currentAuthChannel === 'phone') {
                 payload.email = String(registerEmailInput.value || '').trim().toLowerCase();
             } else {
-                payload.phone = String(registerPhoneInput.value || '').trim();
+                var regPhone = getBookingIntlE164(registerPhoneInput);
+                if (!regPhone) {
+                    showError('Indique um telemóvel válido para criar a conta.');
+                    return;
+                }
+                payload.phone = regPhone;
             }
 
             setLoading(registerSubmitBtn, true, 'A criar...', 'Criar conta');
@@ -4217,7 +4376,7 @@
 
         codeResendBtn.addEventListener('click', function () {
             if (!currentAuthIdentifier) {
-                setStep('email');
+                setStep('ident');
                 return;
             }
             var minMs = Math.max(0, parseInt(String(resendCooldownSeconds), 10) || 0) * 1000;
@@ -4226,7 +4385,12 @@
                 showCodeStatus('Aguarde ' + waitSec + ' segundos antes de pedir um novo código.');
                 return;
             }
-            requestCode(currentAuthIdentifier)
+            var resendParsed = buildResendPayload();
+            if (!resendParsed) {
+                setStep('ident');
+                return;
+            }
+            requestCode(resendParsed)
                 .catch(function (err) {
                     if (err && err.message && err.message !== 'invalid_login') {
                         showError(err.message);
@@ -4331,7 +4495,8 @@
                 }
                 resetModal();
                 if (opts.email) {
-                    loginInput.value = opts.email;
+                    setAuthTab('email');
+                    loginEmailInput.value = opts.email;
                 }
                 reloadAfterAuthSuccess = opts.reloadOnSuccess !== false;
                 modal.show();

@@ -19,6 +19,35 @@
     --booking-navbar-height: 3.5rem;
     /* Espaço extra entre a navbar e o conteúdo (resumo sticky usa o mesmo offset) */
     --booking-content-top-gap: 1.5rem;
+    --booking-action-btn-min-height: 3.25rem;
+    --booking-action-btn-padding-y: 0.75rem;
+    --booking-action-btn-padding-x: 1.15rem;
+}
+
+/* Botões de ação principais: Seguinte, Pagamento, auth, modais de marcação */
+.booking-app .booking-summary-next-btn,
+#booking-slot-hold-expired-modal #booking-slot-hold-extend,
+#booking-slot-hold-expired-modal #booking-slot-hold-restart,
+.booking-app .booking-page--confirm .btn.btn-dark,
+#bookingModal #booking-modal-confirm,
+#bookingModal #booking-modal-apply-edit,
+.booking-auth-modal .btn.btn-dark.w-100,
+.booking-auth-modal .btn.btn-outline-secondary.w-100 {
+    min-height: var(--booking-action-btn-min-height);
+    padding-top: var(--booking-action-btn-padding-y);
+    padding-bottom: var(--booking-action-btn-padding-y);
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.booking-app .booking-summary-next-btn,
+#booking-slot-hold-expired-modal #booking-slot-hold-extend,
+#booking-slot-hold-expired-modal #booking-slot-hold-restart,
+.booking-app .booking-page--confirm .btn.btn-dark,
+#bookingModal #booking-modal-confirm,
+#bookingModal #booking-modal-apply-edit {
+    padding-left: var(--booking-action-btn-padding-x);
+    padding-right: var(--booking-action-btn-padding-x);
 }
 
 /* Offset para âncoras (#cat-*) e cartão resumo (sticky): navbar + margem superior */
@@ -1702,13 +1731,123 @@ button.booking-offcanvas-nav__link {
     line-height: 1.35;
 }
 
+.booking-auth-modal #booking-auth-step-ident .iti,
 .booking-auth-modal #booking-auth-step-register .iti {
     display: block;
     width: 100%;
 }
 
+.booking-auth-modal #booking-auth-step-ident .iti__dropdown-content,
 .booking-auth-modal #booking-auth-step-register .iti__dropdown-content {
     z-index: 1080;
+}
+
+.booking-auth-channel-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.35rem;
+    margin-bottom: 1.5rem;
+    background: #f3f4f6;
+    border-radius: 999px;
+}
+
+.booking-auth-channel-tab {
+    flex: 1 1 50%;
+    border: 0;
+    background: transparent;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    line-height: 1.25;
+    min-height: 2.875rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 999px;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.booking-auth-modal #booking-auth-step-ident .form-control,
+.booking-auth-modal #booking-auth-step-register .form-control,
+.booking-auth-modal #booking-auth-step-ident .iti input.iti__tel-input,
+.booking-auth-modal #booking-auth-step-ident .iti input[type='tel'],
+.booking-auth-modal #booking-auth-step-register .iti input.iti__tel-input,
+.booking-auth-modal #booking-auth-step-register .iti input[type='tel'] {
+    min-height: 3.25rem;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    line-height: 1.35;
+}
+
+.booking-auth-modal #booking-auth-step-ident .iti,
+.booking-auth-modal #booking-auth-step-register .iti {
+    --iti-spacer-horizontal: 1rem;
+}
+
+/* Modais Booking (login, serviço, tempo expirado): mesmo padding; largura padrão Bootstrap */
+#bookingModal .modal-header,
+.booking-auth-modal .modal-header,
+#booking-slot-hold-expired-modal .modal-header {
+    padding: 1.75rem 2rem 1rem;
+}
+
+#bookingModal .modal-body,
+#booking-slot-hold-expired-modal .modal-body {
+    padding: 1.15rem 2rem 1rem;
+}
+
+.booking-auth-modal .modal-body {
+    padding: 1.35rem 2rem 2.1rem;
+}
+
+.booking-auth-modal #booking-auth-modal-subtitle {
+    margin-bottom: 1.35rem;
+}
+
+.booking-auth-modal #booking-auth-modal-error {
+    margin-bottom: 1.25rem;
+}
+
+.booking-auth-modal .booking-auth-channel-tabs {
+    margin-bottom: 1.5rem;
+}
+
+.booking-auth-modal .mb-3 {
+    margin-bottom: 1.35rem !important;
+}
+
+.booking-auth-modal #booking-auth-email-next {
+    margin-top: 0.5rem;
+}
+
+.booking-auth-modal #booking-auth-code-submit {
+    margin-bottom: 1rem !important;
+}
+
+.booking-auth-modal #booking-auth-code-status {
+    margin-top: 0.85rem !important;
+}
+
+.booking-auth-modal #booking-auth-step-register .alert {
+    margin-bottom: 1.35rem !important;
+}
+
+.booking-auth-modal .booking-auth-otp-inputs {
+    gap: 0.65rem;
+}
+
+#bookingModal .modal-footer.booking-modal-footer,
+#booking-slot-hold-expired-modal .modal-footer {
+    padding: 1rem 2rem 1.85rem;
+}
+
+.booking-auth-channel-tab.is-active {
+    background: #fff;
+    color: #111827;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.booking-auth-channel-tab:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
 }
 
 .booking-auth-modal #booking-auth-step-login .input-group .btn,
@@ -1766,9 +1905,24 @@ button.booking-offcanvas-nav__link {
         border-radius: 1rem;
     }
 
+    #bookingModal .modal-header,
+    .booking-auth-modal .modal-header,
+    #booking-slot-hold-expired-modal .modal-header {
+        padding: 1.35rem 1.35rem 0.85rem;
+    }
+
+    #bookingModal .modal-body,
+    #booking-slot-hold-expired-modal .modal-body {
+        padding: 1rem 1.35rem 0.85rem;
+    }
+
     .booking-auth-modal .modal-body {
-        padding-top: 0.75rem;
-        padding-bottom: 1rem;
+        padding: 1.15rem 1.35rem 1.65rem;
+    }
+
+    #bookingModal .modal-footer.booking-modal-footer,
+    #booking-slot-hold-expired-modal .modal-footer {
+        padding: 0.85rem 1.35rem 1.5rem;
     }
 
     .booking-auth-modal .form-control,
@@ -3067,8 +3221,12 @@ button.booking-offcanvas-nav__link {
     }
 
     .booking-summary-footer .booking-summary-next-btn {
-        font-size: 0.9375rem;
-        padding: 0.5rem 0.95rem;
+        font-size: 1rem;
+        padding-top: var(--booking-action-btn-padding-y);
+        padding-bottom: var(--booking-action-btn-padding-y);
+        padding-left: var(--booking-action-btn-padding-x);
+        padding-right: var(--booking-action-btn-padding-x);
+        min-height: var(--booking-action-btn-min-height);
         line-height: 1.35;
         white-space: nowrap;
     }
@@ -3111,8 +3269,15 @@ button.booking-offcanvas-nav__link {
     .booking-summary-next-btn {
         flex: 0 0 auto !important;
         min-width: 6.25rem;
-        padding-left: 1rem;
-        padding-right: 1rem;
+    }
+}
+
+/* Desktop: barra de resumo com botão Seguinte / Pagamento mais alto */
+@media (min-width: 992px) {
+    .booking-summary-footer .booking-summary-next-btn {
+        font-size: 1rem;
+        padding-left: var(--booking-action-btn-padding-x);
+        padding-right: var(--booking-action-btn-padding-x);
     }
 }
 
