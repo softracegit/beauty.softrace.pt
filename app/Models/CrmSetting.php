@@ -17,6 +17,14 @@ class CrmSetting extends Model
 
     public const KEY_BOOKING_ANY_STAFF_RULE = 'booking.any_staff_rule';
 
+    public const KEY_BOOKING_CANCELLATION_NOTICE_HOURS = 'booking.cancellation_notice_hours';
+
+    public const BOOKING_CANCELLATION_NOTICE_HOURS_MIN = 0;
+
+    public const BOOKING_CANCELLATION_NOTICE_HOURS_MAX = 168;
+
+    public const BOOKING_CANCELLATION_NOTICE_HOURS_DEFAULT = 3;
+
     public const BOOKING_ANY_STAFF_RULE_A = 'day_load_then_agenda_order';
 
     public const BOOKING_ANY_STAFF_RULE_B = 'agenda_order_then_day_load';
@@ -135,6 +143,61 @@ class CrmSetting extends Model
     public static function bookingSlotHoldMinutes(?int $storeId = null): int
     {
         return max(1, self::getInt(self::KEY_BOOKING_SLOT_HOLD_MINUTES, 6, $storeId));
+    }
+
+    public static function bookingCancellationNoticeHours(?int $storeId = null): int
+    {
+        $hours = self::getInt(
+            self::KEY_BOOKING_CANCELLATION_NOTICE_HOURS,
+            self::BOOKING_CANCELLATION_NOTICE_HOURS_DEFAULT,
+            $storeId,
+        );
+
+        return max(
+            self::BOOKING_CANCELLATION_NOTICE_HOURS_MIN,
+            min(self::BOOKING_CANCELLATION_NOTICE_HOURS_MAX, $hours),
+        );
+    }
+
+    public static function setBookingCancellationNoticeHours(int $hours, ?int $storeId = null): void
+    {
+        $clamped = max(
+            self::BOOKING_CANCELLATION_NOTICE_HOURS_MIN,
+            min(self::BOOKING_CANCELLATION_NOTICE_HOURS_MAX, $hours),
+        );
+        self::setInt(self::KEY_BOOKING_CANCELLATION_NOTICE_HOURS, $clamped, $storeId);
+    }
+
+    /**
+     * Rótulo curto para UI (ex.: "3 horas", "1 hora", "até ao início da marcação").
+     */
+    public static function bookingCancellationNoticeHoursLabel(int $hours): string
+    {
+        if ($hours <= 0) {
+            return 'até ao início da marcação';
+        }
+        if ($hours === 1) {
+            return '1 hora';
+        }
+
+        return $hours.' horas';
+    }
+
+    /**
+     * Texto da política de cancelamento para o fluxo público (checkout, conta, SMS).
+     */
+    public static function bookingCancellationPolicyNoticeText(?int $storeId = null): string
+    {
+        $hours = self::bookingCancellationNoticeHours($storeId);
+        $notice = self::bookingCancellationNoticeHoursLabel($hours);
+
+        if ($hours <= 0) {
+            return 'Pode cancelar '.$notice.'. Fora deste momento, o pré-pagamento online não é devolvido (nem em dinheiro nem em créditos).';
+        }
+
+        return 'As marcações só podem ser canceladas sem perda do pré-pagamento com um aviso prévio de '
+            .$notice
+            .' em relação à hora da marcação. Fora deste prazo, o pré-pagamento não é devolvido (nem em dinheiro nem em créditos).';
     }
 
     /**

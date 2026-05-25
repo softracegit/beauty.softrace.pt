@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\CrmSetting;
 use App\Models\Store;
 use App\Support\CurrentStore;
 use Closure;
@@ -56,6 +57,11 @@ class BookingContext
         URL::defaults(['store' => $store->slug]);
 
         View::share('bookingStoreSlug', $store->slug);
+        View::share('bookingCancellationNoticeHours', CrmSetting::bookingCancellationNoticeHours($store->id));
+        View::share(
+            'bookingCancellationPolicyNotice',
+            CrmSetting::bookingCancellationPolicyNoticeText($store->id),
+        );
 
         return $next($request);
     }

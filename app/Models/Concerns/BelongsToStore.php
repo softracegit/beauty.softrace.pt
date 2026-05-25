@@ -38,11 +38,53 @@ trait BelongsToStore
             return $bound;
         }
 
+        $fromRoute = $this->resolveStoreIdFromRouteParameter();
+        if ($fromRoute !== null) {
+            return $fromRoute;
+        }
+
         $user = auth()->user();
         if ($user instanceof User) {
+            if ($user->isBookingClient()) {
+                $user->loadMissing('client');
+                if ($user->client !== null) {
+                    return (int) $user->client->store_id;
+                }
+            }
+
             return (int) SetCurrentStore::resolveActiveStore($user, request())->getKey();
         }
 
         return Store::defaultPublicBookingStoreId();
+    }
+
+    /**
+     * Loja do segmento `{store}` nas rotas `/booking/{store}/…` (binding corre antes de BookingContext).
+     */
+    protected function resolveStoreIdFromRouteParameter(): ?int
+    {
+        $route = request()->route();
+        if ($route === null) {
+            return null;
+        }
+
+        $name = (string) ($route->getName() ?? '');
+        if ($name !== '' && ! str_starts_with($name, 'booking.')) {
+            return null;
+        }
+
+        $store = $route->parameter('store');
+        if ($store instanceof Store) {
+            return (int) $store->id;
+        }
+
+        $slug = is_string($store) || is_numeric($store) ? trim((string) $store) : '';
+        if ($slug === '') {
+            return null;
+        }
+
+        $id = Store::query()->where('slug', $slug)->value('id');
+
+        return $id !== null ? (int) $id : null;
     }
 }

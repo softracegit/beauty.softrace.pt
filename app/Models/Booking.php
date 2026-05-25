@@ -25,6 +25,7 @@ class Booking extends Model
         'stripe_payment_intent_id',
         'total_price',
         'paid_amount',
+        'wallet_applied_cents',
         'remaining_amount',
         'deposit_percent_used',
         'payment_status',
@@ -36,6 +37,7 @@ class Booking extends Model
         'request_payload' => 'array',
         'total_price' => 'decimal:2',
         'paid_amount' => 'decimal:2',
+        'wallet_applied_cents' => 'integer',
         'remaining_amount' => 'decimal:2',
     ];
 

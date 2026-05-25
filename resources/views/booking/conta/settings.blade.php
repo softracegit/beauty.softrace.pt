@@ -92,7 +92,7 @@
                             </div>
                         </section>
 
-                        <section id="carteira" class="booking-category-section mb-3">
+                        <section id="cartoes" class="booking-category-section mb-3">
                             <div
                                 class="card border shadow-sm rounded-3"
                                 id="booking-cards-wallet"

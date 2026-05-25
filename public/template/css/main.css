@@ -63,8 +63,8 @@
 
 /* Layout Dimensions */
 :root {
-  --header-height: 60px;
-  --sidebar-icon-width: 72px;
+  --header-height: 50px;
+  --sidebar-icon-width: 60px;
   --sidebar-panel-width: 200px;
   --sidebar-width: calc(var(--sidebar-icon-width) + var(--sidebar-panel-width));
   --sidebar-collapsed-width: var(--sidebar-icon-width);

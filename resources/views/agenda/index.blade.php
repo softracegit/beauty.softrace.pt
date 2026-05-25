@@ -325,33 +325,17 @@
                     <label for="cancelMarcacaoOutraTexto" class="form-label">Indique a razão</label>
                     <textarea class="form-control" id="cancelMarcacaoOutraTexto" rows="2" placeholder="Escreva a razão do cancelamento..."></textarea>
                 </div>
-                <div class="mb-3">
-                    <label for="cancelMarcacaoRefund" class="form-label">Devolveu o valor da reserva?</label>
-                    <select class="form-select w-100" id="cancelMarcacaoRefund">
-                        <option value="">Selecionar</option>
-                        <option value="1">Sim</option>
-                        <option value="0">Não</option>
-                    </select>
-                </div>
-                <div id="cancelMarcacaoAvisouWrap" class="mb-3 d-none">
-                    <label for="cancelMarcacaoAvisouPrazo" class="form-label">Avisou dentro do prazo?</label>
-                    <select class="form-select w-100" id="cancelMarcacaoAvisouPrazo">
-                        <option value="">Selecionar</option>
-                        <option value="1">Sim</option>
-                        <option value="0">Não</option>
-                    </select>
-                </div>
                 <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" id="cancelMarcacaoNotifyClient">
                     <label class="form-check-label" for="cancelMarcacaoNotifyClient">Avisar cliente do cancelamento</label>
                 </div>
                 <div class="border rounded p-3 bg-light">
-                    <h6 class="nova-marcacao-section-title mb-2">Detalhes do cancelamento</h6>
+                    <h6 class="nova-marcacao-section-title mb-2">Política de cancelamento</h6>
                     <div class="mb-0">
                         <span class="text-muted">Total da marcação:</span>
                         <strong id="cancelMarcacaoTotalPrice" class="ms-1">0,00 €</strong>
                     </div>
-                    <p class="small text-muted mb-0 mt-2">De futuro, se houver condições de cancelamento iremos mostrar aqui.</p>
+                    <p class="small text-muted mb-0" id="cancelMarcacaoPolicyLoading">A calcular…</p><p class="small mb-0 d-none" id="cancelMarcacaoPolicyStatus"></p><p class="small text-muted mb-0 mt-2 d-none" id="cancelMarcacaoPolicyCredit"></p><p class="small text-danger mb-0 mt-2 d-none" id="cancelMarcacaoPolicyForfeit"></p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -372,7 +356,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="revertSaleId" value="">
-                <p class="text-muted mb-3">Será gerada uma nota de crédito. A fatura de reserva online mantém-se. A marcação continua paga; depois pode emitir uma nova fatura final (ex.: corrigir NIF).</p>
+                <p class="text-muted mb-3">Será gerada uma nota de crédito. A fatura de pré-pagamento mantém-se. A marcação continua paga; depois pode emitir uma nova fatura final (ex.: corrigir NIF).</p>
                 <div class="mb-0">
                     <label for="revertSaleReason" class="form-label">Razão da anulação</label>
                     <textarea class="form-control" id="revertSaleReason" rows="3" maxlength="1000" placeholder="Ex.: cliente pediu NIF na fatura final, erro no documento, etc."></textarea>
@@ -412,6 +396,9 @@
                 </span>
             </div>
         </div>
+        <button type="submit" class="btn btn-light btn-sm border flex-shrink-0 d-inline-flex align-items-center justify-content-center event-detail-header-save-btn" id="eventDetailSaveBtn" form="eventDetailEditForm" aria-label="Guardar marcação" title="Guardar marcação">
+            <i class="ph ph-floppy-disk" aria-hidden="true"></i>
+        </button>
         <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     </div>
     <div id="eventDetailEditPanel" class="offcanvas-body">
@@ -558,34 +545,30 @@
         </form>
     </div>
     <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch">
-        <div class="d-flex justify-content-between align-items-center pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
-            <div class="d-inline-flex align-items-center gap-2">
-                <span class="text-black fw-bold" id="eventDetailTotalLabel">Total</span>
-                <div class="d-none align-items-center gap-1" id="eventDetailTotalInlineDefault">
+        <div class="d-flex align-items-center pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
+            <div class="event-detail-total-line flex-grow-1 min-w-0" id="eventDetailTotalLeft">
+                <span class="event-detail-total-line__part" id="eventDetailTotalMain">
                     <span class="small text-muted">Total:</span>
-                    <span class="fw-semibold" id="eventDetailTotalInlineDefaultPrice">0,00 €</span>
-                </div>
-                <div class="d-none align-items-center gap-2" id="eventDetailReservaSummary">
-                    <span class="small text-muted" id="eventDetailReservaSummaryText">Reserva <span class="fw-semibold" id="eventDetailReservaAmount">0,00 €</span> &bull; Falta pagar <span class="fw-semibold" id="eventDetailFaltaPagarAmount">0,00 €</span></span>
-                </div>
-                <div class="d-none align-items-center gap-2" id="eventDetailPagoSummary">
-                    <span class="small text-muted" id="eventDetailPagoSummaryText">Reserva <span class="fw-semibold" id="eventDetailReservaAmountPaid">0,00 €</span> &bull; Pagamento final <span class="fw-semibold" id="eventDetailPagoAmount">0,00 €</span></span>
-                </div>
-            </div>
-            <div class="d-inline-flex align-items-baseline gap-2" id="eventDetailTotalDefaultRight">
-                <span class="fw-semibold" id="eventDetailTotalPrice">0,00 €</span>
-            </div>
-            <div class="d-none align-items-center gap-1" id="eventDetailTotalCompactRight">
-                <span class="small text-muted">Total:</span>
-                <span class="fw-semibold" id="eventDetailTotalCompactPrice">0,00 €</span>
+                    <span class="fw-semibold text-body" id="eventDetailTotalPrice">0,00 €</span>
+                </span>
+                <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailReservaSummary">
+                    <span id="eventDetailReservaSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmount">0,00 €</span> &bull; Falta pagar <span class="fw-semibold text-body" id="eventDetailFaltaPagarAmount">0,00 €</span></span>
+                </span>
+                <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailPagoSummary">
+                    <span id="eventDetailPagoSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">0,00 €</span> &bull; Pagamento final <span class="fw-semibold text-body" id="eventDetailPagoAmount">0,00 €</span></span>
+                </span>
             </div>
         </div>
-        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-2 flex-wrap" id="eventDetailPaymentWrap">
-                <div class="d-none d-flex flex-wrap gap-1 justify-content-end" id="eventDetailFaturasWrap"></div>
-                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Caixa - Pagamento</button>
+        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between w-100 event-detail-oc-footer-actions" id="eventDetailFooterActionsRow">
+            <div class="d-flex flex-wrap gap-2 align-items-center" id="eventDetailPaymentWrap">
+                <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn">Pré-pagamento</button>
+                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Caixa</button>
+                <span class="event-detail-paid-badge d-none" id="eventDetailPagoBadge" role="status" aria-label="Pago">
+                    <i class="ph ph-check" aria-hidden="true"></i>
+                    <span>Pago</span>
+                </span>
             </div>
-            <button type="submit" class="btn btn-primary btn-sm" id="eventDetailSaveBtn" form="eventDetailEditForm">Guardar</button>
+            <div class="d-none d-flex flex-wrap gap-1 align-items-center ms-auto" id="eventDetailFaturasWrap"></div>
         </div>
     </div>
 </div>
@@ -618,7 +601,7 @@
                             </div>
                         </div>
                         <div class="col-md-6 payment-pos-hero-values text-md-end">
-                            <div class="small payment-pos-hero-totals-stack mt-0 text-start text-md-end px-md-0">
+                            <div class="small payment-pos-hero-totals-stack mt-0 text-start text-md-end px-md-0 payment-pos-hero-caixa-stack" id="paymentCaixaHeroStack" aria-live="polite">
                                 <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row">
                                     <span class="text-muted" id="paymentSubtotalLineLabel">Total 0 serviços:</span>
                                     <span class="d-inline-flex align-items-baseline gap-2 text-body">
@@ -626,7 +609,15 @@
                                         <span class="fw-semibold" id="paymentSubtotalDisplay">0,00 €</span>
                                     </span>
                                 </div>
-                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentOnlinePaidLine"><span class="text-muted">Reserva paga:</span><span class="fw-semibold text-body" id="paymentOnlinePaidDisplay">0,00 €</span></div>
+                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row payment-pos-hero-prepagamento-line d-none" id="paymentPrepagamentoLine">
+                                    <span class="fw-semibold text-body" id="paymentReservaPercentLabel">Pré-pagamento (20%):</span>
+                                    <span class="payment-pos-hero-reserva-amount fw-bold text-primary" id="paymentReservaAmountDisplay">0,00 €</span>
+                                </div>
+                                <div class="mt-2 d-none text-start text-md-end" id="paymentReservaCustomWrap">
+                                    <label for="paymentReservaCustomAmount" class="form-label small text-muted mb-1">Valor do pré-pagamento (€)</label>
+                                    <input type="number" step="0.01" min="0.01" class="form-control form-control-sm payment-pos-hero-reserva-custom-input text-end" id="paymentReservaCustomAmount" placeholder="0,00" autocomplete="off">
+                                </div>
+                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentOnlinePaidLine"><span class="text-muted">Pré-pagamento pago:</span><span class="fw-semibold text-body" id="paymentOnlinePaidDisplay">0,00 €</span></div>
                                 <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentServicesDueLine"><span class="text-muted">A liquidar serviços:</span><span class="fw-semibold text-body" id="paymentServicesDueDisplay">0,00 €</span></div>
                                 @if($posGorjetaEnabled ?? true)
                                 <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentGorjetaLine"><span class="text-muted">Gorjeta:</span><span class="fw-semibold text-body" id="paymentGorjetaDisplay">0,00 €</span></div>
@@ -671,19 +662,52 @@
                     <div class="form-text">Será guardado na ficha do cliente ao concluir o pagamento.</div>
                 </div>
 
+                <div class="payment-pos-wallet-apply-wrap d-none mb-3" id="paymentWalletApplyWrap">
+                    <div class="form-check payment-pos-wallet-apply-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="paymentWalletApply" value="1" checked>
+                        <label class="form-check-label" for="paymentWalletApply">
+                            <span class="d-block fw-semibold text-body" id="paymentWalletApplyLabel">Usar créditos da carteira</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="paymentWalletCoversReservaMsg" class="payment-pos-wallet-covers-msg d-none mb-3" role="status">
+                    <div class="d-flex gap-2 align-items-start">
+                        <i class="ph ph-check-circle text-success payment-pos-wallet-covers-msg__icon" aria-hidden="true"></i>
+                        <div class="small">
+                            <p class="fw-semibold text-body mb-1">Pagamento só com créditos</p>
+                            <p class="text-muted mb-0">O pré-pagamento será debitado da carteira do cliente. Clique em <strong>Pré-pagamento</strong> para concluir.</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="paymentWalletPartialSummary" class="d-none small text-muted mb-2" aria-live="polite">
+                    <p class="mb-1 d-none" id="paymentWalletUsedLine">
+                        Créditos a usar:
+                        <strong class="text-success" id="paymentWalletUsedAmount">—</strong>
+                    </p>
+                    <p class="mb-0 d-none" id="paymentWalletStripeDueLine">
+                        Valor a cobrar agora:
+                        <strong class="text-body" id="paymentWalletStripeDueAmount">—</strong>
+                    </p>
+                </div>
+
                 <p class="small fw-semibold text-uppercase text-muted mb-2 mt-3" id="paymentMethodSectionLegend">Pagamento</p>
                 <div class="tempo-pessoal-type-toggle-wrapper" role="group" aria-labelledby="paymentMethodSectionLegend" id="paymentMethodToggleGroup">
                     <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="dinheiro" aria-pressed="false">
                         <i class="ph ph-money tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">Dinheiro</span>
                     </button>
-                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="cartao" aria-pressed="false">
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="cartao" aria-pressed="false" id="paymentMethodCartaoBtn">
                         <i class="ph ph-credit-card tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">Cartão</span>
+                        <span class="tempo-pessoal-type-card-sub small text-muted d-none" id="paymentMethodCartaoSubtitle"></span>
                     </button>
                     <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="mbway" aria-pressed="false">
                         <i class="ph ph-device-mobile tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">MB Way</span>
+                    </button>
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="creditos_carteira" aria-pressed="false" id="paymentMethodCreditosCarteiraBtn">
+                        <i class="ph ph-wallet tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Créditos</span>
                     </button>
                 </div>
                 <input type="hidden" id="paymentMethodValue" value="">
@@ -711,6 +735,8 @@
 
 @php
     $me = auth()->user();
+    $agendaEventsBase = rtrim(url('agenda/events'), '/');
+    $agendaClientsBase = rtrim(url('agenda/clients'), '/');
     $usersForConsultant = ($users ?? collect())->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()->all();
     $memberWeeklySchedules = collect($users ?? [])
         ->filter(fn ($u) => filled($u->agent?->weekly_schedule))
@@ -732,11 +758,19 @@ window.AGENDA_CONFIG = {
     authEmail: @json(auth()->user()->email ?? ''),
     agendaMembersServicesUrl: @json(url('agenda/members')),
     agendaClientsUrl: @json(url('agenda/clients')),
+    agendaClientWalletUrl: @json(url('agenda/clients')),
     urlEvents: @json(url('agenda/events')),
     urlEventsStore: @json(route('agenda.events.store')),
     agendaCheckoutStoreUrl: @json(route('agenda.checkout.store')),
     agendaCheckoutMbwayIntentUrl: @json(route('agenda.checkout.mbway.intent')),
     agendaCheckoutMbwayFinalizeUrl: @json(route('agenda.checkout.mbway.finalize')),
+    bookingDepositPercent: @json((int) config('booking.deposit_percent')),
+    agendaDepositShowUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit'),
+    agendaDepositStoreUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit'),
+    agendaDepositMbwayIntentUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/mbway/intent'),
+    agendaDepositMbwayFinalizeUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/mbway/finalize'),
+    agendaDepositCardUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/card'),
+    agendaClientSavedCardsUrl: @json($agendaClientsBase . '/__CLIENT_ID__/saved-cards'),
     salesRevertUrl: @json(url('sales')),
     urlOpportunities: @json(url('opportunities')),
     urlLeads: @json(url('leads')),

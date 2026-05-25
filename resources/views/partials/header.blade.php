@@ -11,13 +11,12 @@
     </button>
     <!-- Quick Access -->
     <div class="header-action dropdown quickaccess-dropdown">
-      <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Access">
+      <button class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Acesso rápido">
         <i class="bi bi-grid"></i>
       </button>
       <div class="dropdown-menu">
         <div class="quickaccess-header">
-          <h6>Quick Access</h6>
-          <span class="quickaccess-subtitle">Frequently used</span>
+          <h6>Acesso rápido</h6>
         </div>
         <div class="quickaccess-grid">
           <a href="{{ route('dashboard') }}" class="quickaccess-item">

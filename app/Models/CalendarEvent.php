@@ -34,6 +34,9 @@ class CalendarEvent extends Model
                 'cancellation_type',
                 'refund_reserva',
                 'avisou_dentro_prazo',
+                'cancellation_evaluated_at',
+                'cancellation_notice_hours_applied',
+                'wallet_credit_amount_cents',
                 'eventable_type',
                 'eventable_id',
             ])
@@ -169,6 +172,9 @@ class CalendarEvent extends Model
         'cancellation_type',
         'refund_reserva',
         'avisou_dentro_prazo',
+        'cancellation_evaluated_at',
+        'cancellation_notice_hours_applied',
+        'wallet_credit_amount_cents',
         'eventable_type',
         'eventable_id',
     ];
@@ -179,8 +185,11 @@ class CalendarEvent extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'booking_sms_reminder_sent_at' => 'datetime',
+        'cancellation_evaluated_at' => 'datetime',
         'refund_reserva' => 'boolean',
         'avisou_dentro_prazo' => 'boolean',
+        'cancellation_notice_hours_applied' => 'integer',
+        'wallet_credit_amount_cents' => 'integer',
     ];
 
     protected $attributes = [
@@ -329,6 +338,18 @@ class CalendarEvent extends Model
         }
 
         return in_array($this->status ?? '', [self::STATUS_FALTOU, self::STATUS_CANCELADO, self::STATUS_ANULADO], true);
+    }
+
+    /**
+     * Registo retroativo na agenda (início antes de agora): sem emails de criação/alteração/cancelamento.
+     */
+    public function shouldSendBookingNotifications(): bool
+    {
+        if (! $this->start_at) {
+            return true;
+        }
+
+        return ! $this->start_at->isPast();
     }
 
     public static function statuses(): array

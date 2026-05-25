@@ -114,6 +114,55 @@ document.addEventListener('DOMContentLoaded', function() {
         anulado: 'ri-close-circle-fill',
         completo: 'ri-checkbox-circle-fill agenda-status-icon-confirmado'
     };
+
+    /** Ícone no cartão da grelha: terminado/completo → euro ou ficheiro conforme pagamento/fatura. */
+    function agendaResolveEventStatusIcon(extProps) {
+        var props = extProps || {};
+        if ((props.event_type || '') === 'tempo_pessoal') {
+            return props.personal_time_type?.icon ? ('ph ' + props.personal_time_type.icon) : null;
+        }
+        var status = String(props.status || 'agendado').toLowerCase();
+        var baseIcon = props.status_icon || STATUS_ICONS[status] || 'ri-time-fill agenda-status-icon-agendado';
+        if (status !== 'terminado' && status !== 'completo') {
+            return baseIcon;
+        }
+        if (!!props.invoice_settled) {
+            return 'ri-money-euro-circle-fill agenda-status-icon-pago';
+        }
+        return 'ri-money-euro-circle-fill agenda-status-icon-por-pagar';
+    }
+
+    function agendaFcEventPaymentIconsHtml(extProps, locked) {
+        var invoiceSettled = !!extProps.invoice_settled;
+        var pendingFinal = !!extProps.pending_final_invoice;
+        var paymentIcon = agendaResolveEventStatusIcon(extProps);
+        var paymentTitle = agendaPaymentStatusIconTitle(extProps).replace(/"/g, '&quot;');
+        var btnClass = locked
+            ? 'agenda-event-status-icon-btn fc-event-status-locked'
+            : 'agenda-event-status-icon-btn';
+        var btnAttrs = locked ? '' : ' role="button" tabindex="-1"';
+        var html = '<span class="agenda-fc-event-payment-icons d-inline-flex align-items-center flex-shrink-0">';
+        html += '<span class="' + btnClass + '"' + btnAttrs + ' title="' + paymentTitle + '">';
+        html += '<i class="' + paymentIcon + ' fc-event-status-icon" aria-hidden="true"></i></span>';
+        if (invoiceSettled && pendingFinal) {
+            html += '<span class="agenda-fc-event-pending-invoice-wrap" title="Falta emitir fatura final" aria-hidden="true">';
+            html += '<i class="ri-error-warning-fill agenda-fc-event-pending-invoice-icon" aria-hidden="true"></i></span>';
+        }
+        html += '</span>';
+        return html;
+    }
+
+    function agendaPaymentStatusIconTitle(extProps) {
+        var props = extProps || {};
+        if (!props.invoice_settled) {
+            return 'Por pagar';
+        }
+        if (props.pending_final_invoice) {
+            return 'Falta emitir fatura final';
+        }
+        return 'Pago';
+    }
+
     const STORE_OPEN_HOUR = 9;
     const STORE_CLOSE_HOUR = 20;
     const HOLIDAYS_PT_SET = new Set((C.nationalHolidaysPt || []).map(function(d) { return String(d || '').slice(0, 10); }));
@@ -787,10 +836,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     $id('cancelMarcacaoReason').value = '';
                     $id('cancelMarcacaoOutraTexto').value = '';
                     $id('cancelMarcacaoOutraWrap').classList.add('d-none');
-                    $id('cancelMarcacaoRefund').value = '';
-                    $id('cancelMarcacaoAvisouPrazo').value = '';
-                    $id('cancelMarcacaoAvisouWrap').classList.add('d-none');
                     $id('cancelMarcacaoNotifyClient').checked = false;
+                    loadCancelMarcacaoPolicyPreview(event.id);
                     bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
                     return;
                 }
@@ -809,7 +856,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             ev.setExtendedProp('status_label', res.status_label);
                         }
                         var iconBtn = $('.fc-event[data-event-id="' + event.id + '"] .agenda-event-status-icon-btn i');
-                        if (iconBtn) iconBtn.className = (res.status_icon || 'ri-time-fill agenda-status-icon-agendado') + ' fc-event-status-icon';
+                        if (iconBtn && ev) {
+                            iconBtn.className = agendaResolveEventStatusIcon(ev.extendedProps) + ' fc-event-status-icon';
+                        }
                         showToast('Estado atualizado.', 'success');
                     } else {
                         showToast(res.message || 'Erro ao atualizar estado.', 'error');
@@ -875,26 +924,12 @@ document.addEventListener('DOMContentLoaded', function() {
         var rectEl = eventBlock || el;
         var ext = event.extendedProps || {};
         var statusLabels = STATUS_LABELS;
-        var statusIcons = {
-            agendado: 'ri-time-fill agenda-status-icon-agendado',
-            notificado: 'ri-notification-3-fill agenda-status-icon-notificado',
-            confirmado: 'ri-notification-3-fill agenda-status-icon-confirmado',
-            chegou: 'ri-map-pin-fill agenda-status-icon-chegou',
-            iniciado: 'ri-play-fill agenda-status-icon-iniciado',
-            terminado: 'ri-checkbox-circle-fill agenda-status-icon-confirmado',
-            faltou: 'ri-forbid-fill',
-            cancelado: 'ri-close-circle-fill',
-            completo: 'ri-checkbox-circle-fill agenda-status-icon-confirmado'
-        };
         var isTempoPessoal = (ext.event_type || '') === 'tempo_pessoal';
         var personalTimeType = ext.personal_time_type || {};
         var status = ext.status || 'agendado';
         var statusLabel = isTempoPessoal ? 'Tempo pessoal' : (statusLabels[status] || status);
-        var statusIcon = isTempoPessoal ? null : (statusIcons[status] || 'ri-time-fill agenda-status-icon-agendado');
+        var statusIcon = isTempoPessoal ? null : agendaResolveEventStatusIcon(ext);
         var invoiceSettled = !!ext.invoice_settled;
-        var hasInvoice = !!ext.has_invoice;
-        if (!isTempoPessoal && hasInvoice && !invoiceSettled) statusIcon = 'ri-time-fill agenda-status-icon-agendado';
-        if (!isTempoPessoal && invoiceSettled) statusIcon = 'ri-checkbox-circle-fill agenda-status-icon-confirmado';
         var start = event.start;
         var end = event.end;
         var fmt = function(d) { return d ? (String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0')) : ''; };
@@ -1125,7 +1160,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 reservaRow.className = 'agenda-quickview-service-row';
                 var reservaLeft = document.createElement('div');
                 reservaLeft.className = 'agenda-quickview-service-left';
-                reservaLeft.innerHTML = '<span class="agenda-quickview-inline-badge agenda-quickview-inline-badge-reserva">Reserva</span>';
+                reservaLeft.innerHTML = '<span class="agenda-quickview-inline-badge agenda-quickview-inline-badge-reserva">Pré-pagamento</span>';
                 reservaRow.appendChild(reservaLeft);
                 var reservaVal = document.createElement('div');
                 reservaVal.className = 'agenda-quickview-service-price';
@@ -1161,19 +1196,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     body.appendChild(dueRow);
                 }
             }
-        }
-        if (!isTempoPessoal && invoiceSettled && ext.pending_final_invoice) {
-            var pendingInvoiceNotice = document.createElement('div');
-            pendingInvoiceNotice.className = 'agenda-quickview-pending-invoice-notice';
-            var pendIcon = document.createElement('i');
-            pendIcon.className = 'ri-error-warning-fill agenda-quickview-pending-invoice-icon';
-            pendIcon.setAttribute('aria-hidden', 'true');
-            var pendText = document.createElement('span');
-            pendText.className = 'agenda-quickview-pending-invoice-text';
-            pendText.textContent = 'Este pagamento está por faturar';
-            pendingInvoiceNotice.appendChild(pendIcon);
-            pendingInvoiceNotice.appendChild(pendText);
-            body.appendChild(pendingInvoiceNotice);
+
+            if (ext.pending_final_invoice) {
+                var pendingNotice = document.createElement('div');
+                pendingNotice.className = 'agenda-quickview-pending-invoice-notice';
+                var pendingIcon = document.createElement('i');
+                pendingIcon.className = 'ri-error-warning-fill agenda-quickview-pending-invoice-icon';
+                pendingIcon.setAttribute('aria-hidden', 'true');
+                var pendingText = document.createElement('span');
+                pendingText.className = 'agenda-quickview-pending-invoice-text';
+                pendingText.textContent = 'Fatura em falta';
+                pendingNotice.appendChild(pendingIcon);
+                pendingNotice.appendChild(pendingText);
+                body.appendChild(pendingNotice);
+            }
         }
         qv.appendChild(body);
 
@@ -1522,18 +1558,418 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var eventDetailExistingSale = null;
     var eventDetailBookingPaidAmount = 0;
-    var agendaPaymentModalInvoiceOnly = false;
+    /** @type {'caixa'|'reserva'|'invoice-only'} */
+    var paymentModalMode = 'caixa';
+    var paymentModalReservaPreview = null;
+    var paymentModalReservaCustomAmount = null;
+    var paymentModalSavedCards = [];
+    var paymentModalSelectedSavedCardId = null;
 
-    function agendaResetPaymentModalInvoiceOnlyMode() {
-        agendaPaymentModalInvoiceOnly = false;
+    function paymentModalIsReserva() {
+        return paymentModalMode === 'reserva';
+    }
+
+    function paymentModalIsInvoiceOnly() {
+        return paymentModalMode === 'invoice-only';
+    }
+
+    function paymentModalApplyModeClasses() {
         var pm = $id('paymentModal');
-        if (pm) pm.classList.remove('payment-pos-modal--invoice-only');
+        if (!pm) return;
+        pm.classList.toggle('payment-pos-modal--invoice-only', paymentModalIsInvoiceOnly());
+        pm.classList.toggle('payment-pos-modal--reserva', paymentModalIsReserva());
+        paymentModalSyncReservaWalletUi();
+    }
+
+    function paymentModalWantsWalletApplied() {
+        if (!paymentModalIsReserva()) {
+            var method = String(($id('paymentMethodValue') && $id('paymentMethodValue').value) || '').trim();
+            return method === 'creditos_carteira';
+        }
+        var cb = $id('paymentWalletApply');
+        return !!(cb && cb.checked);
+    }
+
+    function paymentModalGetWalletApplyCents() {
+        if (!paymentModalWantsWalletApplied()) return 0;
+        var dueCents = paymentModalGetAmountDueCents();
+        if (dueCents <= 0) return 0;
+        return Math.min(paymentModalWalletBalanceCents, dueCents);
+    }
+
+    function paymentModalWalletCoversDeposit() {
+        if (!paymentModalWantsWalletApplied()) return false;
+        var dueCents = paymentModalGetAmountDueCents();
+        return dueCents > 0 && paymentModalGetWalletApplyCents() >= dueCents;
+    }
+
+    function paymentModalGetStripeDueCents() {
+        return Math.max(0, paymentModalGetAmountDueCents() - paymentModalGetWalletApplyCents());
+    }
+
+    function paymentModalSyncReservaWalletUi() {
+        var pm = $id('paymentModal');
+        var wrap = $id('paymentWalletApplyWrap');
+        var coversMsg = $id('paymentWalletCoversReservaMsg');
+        var partialSummary = $id('paymentWalletPartialSummary');
+        var applyLabel = $id('paymentWalletApplyLabel');
+        var usedLine = $id('paymentWalletUsedLine');
+        var usedAmt = $id('paymentWalletUsedAmount');
+        var stripeLine = $id('paymentWalletStripeDueLine');
+        var stripeAmt = $id('paymentWalletStripeDueAmount');
+        var isReserva = paymentModalIsReserva();
+        var hasBalance = paymentModalWalletBalanceCents > 0;
+        var covers = isReserva && paymentModalWalletCoversDeposit();
+        var walletCents = paymentModalGetWalletApplyCents();
+        var stripeCents = paymentModalGetStripeDueCents();
+
+        if (pm) {
+            pm.classList.toggle('payment-pos-modal--wallet-covers', covers);
+        }
+        if (wrap) {
+            wrap.classList.toggle('d-none', !isReserva || !hasBalance);
+            wrap.classList.toggle('payment-pos-wallet-apply-wrap--active', isReserva && paymentModalWantsWalletApplied() && walletCents > 0);
+        }
+        if (applyLabel) {
+            applyLabel.textContent = hasBalance
+                ? ('Usar créditos (' + paymentModalWalletBalanceFormatted() + ')')
+                : 'Usar créditos da carteira';
+        }
+        if (coversMsg) {
+            coversMsg.classList.toggle('d-none', !covers);
+        }
+        if (partialSummary) {
+            var showPartial = isReserva && walletCents > 0 && stripeCents > 0;
+            partialSummary.classList.toggle('d-none', !showPartial);
+        }
+        if (usedLine) {
+            usedLine.classList.toggle('d-none', !(isReserva && walletCents > 0 && stripeCents > 0));
+        }
+        if (usedAmt && walletCents > 0) {
+            usedAmt.textContent = (walletCents / 100).toFixed(2).replace('.', ',') + ' €';
+        }
+        if (stripeLine) {
+            stripeLine.classList.toggle('d-none', !(isReserva && walletCents > 0 && stripeCents > 0));
+        }
+        if (stripeAmt && stripeCents > 0) {
+            stripeAmt.textContent = (stripeCents / 100).toFixed(2).replace('.', ',') + ' €';
+        }
+        if (covers) {
+            $$('#paymentMethodToggleGroup .payment-method-card').forEach(function(card) {
+                card.classList.remove('active');
+                card.setAttribute('aria-pressed', 'false');
+            });
+            var pmv = $id('paymentMethodValue');
+            if (pmv) pmv.value = '';
+            var phoneWrap = $id('paymentMbwayPhoneWrap');
+            if (phoneWrap) phoneWrap.classList.add('d-none');
+        }
+    }
+
+    function paymentModalSyncWalletCheckboxDefault() {
+        var cb = $id('paymentWalletApply');
+        if (!cb || cb.dataset.userTouched === '1') return;
+        cb.checked = paymentModalWalletBalanceCents > 0;
+    }
+
+    function paymentModalResetToCaixa() {
+        paymentModalMode = 'caixa';
+        paymentModalReservaPreview = null;
+        paymentModalReservaCustomAmount = null;
+        paymentModalSavedCards = [];
+        paymentModalSelectedSavedCardId = null;
+        paymentModalApplyModeClasses();
         var pl = $id('paymentModalLabel');
         if (pl) pl.textContent = 'Caixa — pagamento';
+        var customWrap = $id('paymentReservaCustomWrap');
+        var customIn = $id('paymentReservaCustomAmount');
+        if (customWrap) customWrap.classList.add('d-none');
+        if (customIn) customIn.value = '';
+        var walletCb = $id('paymentWalletApply');
+        if (walletCb) {
+            walletCb.checked = false;
+            delete walletCb.dataset.userTouched;
+        }
+        paymentModalSyncReservaWalletUi();
+        paymentModalSyncCartaoTileVisibility();
+        paymentModalSyncCreditosTileVisibility();
+    }
+
+    function paymentModalCreditosButtonLabel() {
+        return 'Créditos (' + paymentModalWalletBalanceFormatted() + ')';
+    }
+
+    function paymentModalSyncCreditosTileVisibility() {
+        var creditBtn = $id('paymentMethodCreditosCarteiraBtn');
+        if (!creditBtn) return;
+        var nameSpan = creditBtn.querySelector('.tempo-pessoal-type-card-name');
+        if (paymentModalIsInvoiceOnly() || paymentModalIsReserva()) {
+            creditBtn.classList.add('d-none');
+            if (nameSpan) nameSpan.textContent = 'Créditos';
+            var pmvHide = $id('paymentMethodValue');
+            if (pmvHide && pmvHide.value === 'creditos_carteira') {
+                pmvHide.value = '';
+                creditBtn.classList.remove('active');
+                creditBtn.setAttribute('aria-pressed', 'false');
+            }
+            return;
+        }
+        var clientId = paymentModalResolveClientId();
+        var hasBalance = paymentModalWalletBalanceCents > 0;
+        var show = !!clientId && hasBalance;
+        creditBtn.classList.toggle('d-none', !show);
+        if (nameSpan) {
+            nameSpan.textContent = show ? paymentModalCreditosButtonLabel() : 'Créditos';
+        }
+        var dueCents = paymentModalGetAmountDueCents();
+        var canPayFull = show && dueCents > 0 && paymentModalWalletBalanceCents >= dueCents;
+        creditBtn.disabled = !canPayFull;
+        creditBtn.classList.toggle('payment-method-card--disabled', !canPayFull);
+        creditBtn.removeAttribute('title');
+        var pmv = $id('paymentMethodValue');
+        if (pmv && pmv.value === 'creditos_carteira' && !show) {
+            pmv.value = '';
+            creditBtn.classList.remove('active');
+            creditBtn.setAttribute('aria-pressed', 'false');
+        }
+    }
+
+    function paymentModalDepositUrl(templateKey, eventId) {
+        var tpl = String((C[templateKey] || '')).trim();
+        return tpl.replace('__EVENT_ID__', encodeURIComponent(String(eventId)));
+    }
+
+    function paymentModalClientSavedCardsUrl(clientId) {
+        var tpl = String((C.agendaClientSavedCardsUrl || '')).trim();
+        return tpl.replace('__CLIENT_ID__', encodeURIComponent(String(clientId)));
+    }
+
+    function paymentModalGetReservaCustomAmountEur() {
+        if (paymentModalReservaCustomAmount !== null && Number.isFinite(paymentModalReservaCustomAmount)) {
+            return Math.max(0, paymentModalReservaCustomAmount);
+        }
+        var el = $id('paymentReservaCustomAmount');
+        if (!el) return null;
+        var n = parseFloat(el.value);
+        if (!Number.isFinite(n) || n < 0.01) return null;
+        return n;
+    }
+
+    function paymentModalGetDepositAmountEur() {
+        if (paymentModalReservaPreview && Number.isFinite(paymentModalReservaPreview.deposit_amount)) {
+            return Math.max(0, parseFloat(paymentModalReservaPreview.deposit_amount) || 0);
+        }
+        var pct = parseInt(C.bookingDepositPercent, 10) || 0;
+        var sub = paymentModalSubtotal();
+        if (pct > 0) {
+            return Math.round(sub * (pct / 100) * 100) / 100;
+        }
+        return paymentModalGetReservaCustomAmountEur() || 0;
+    }
+
+    function paymentModalGetAmountDueCents() {
+        if (paymentModalIsReserva()) {
+            return Math.round(paymentModalGetDepositAmountEur() * 100);
+        }
+        var gorjeta = paymentModalGetGorjetaAmount();
+        var d = eventDetailCurrentData || {};
+        var amountDue = parseFloat(d.amount_due);
+        if (Number.isFinite(amountDue) && amountDue >= 0) {
+            return Math.round((amountDue + gorjeta) * 100);
+        }
+        var sub = paymentModalSubtotal();
+        var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
+        var servicesDue = Math.max(0, sub - paidOnline);
+        return Math.round((servicesDue + gorjeta) * 100);
+    }
+
+    function paymentModalGetReservaPayloadExtras() {
+        var pct = paymentModalReservaPreview
+            ? parseInt(paymentModalReservaPreview.deposit_percent, 10)
+            : (parseInt(C.bookingDepositPercent, 10) || 0);
+        if (pct > 0) return {};
+        var custom = paymentModalGetReservaCustomAmountEur();
+        return custom !== null && custom >= 0.01 ? { custom_amount: custom } : {};
+    }
+
+    function paymentModalGetWalletApplyPayload() {
+        var applyCents = paymentModalGetWalletApplyCents();
+        return { wallet_apply: applyCents > 0, wallet_apply_cents: applyCents };
+    }
+
+    function paymentModalSyncCartaoTileVisibility() {
+        var cartaoBtn = $id('paymentMethodCartaoBtn');
+        var subtitle = $id('paymentMethodCartaoSubtitle');
+        if (!cartaoBtn) return;
+        var cards = paymentModalSavedCards || [];
+        var showCard = !paymentModalIsInvoiceOnly() && cards.length > 0;
+        cartaoBtn.classList.toggle('d-none', !showCard);
+        if (subtitle) {
+            if (showCard) {
+                var pick = cards.find(function(c) { return paymentModalSelectedSavedCardId && c.id === paymentModalSelectedSavedCardId; })
+                    || cards.find(function(c) { return c.is_default; })
+                    || cards[0];
+                var brand = String((pick && pick.brand) || 'Cartão').trim() || 'Cartão';
+                var last4 = String((pick && pick.last4) || '').trim();
+                subtitle.textContent = last4 ? (brand + ' *' + last4) : brand;
+                subtitle.classList.remove('d-none');
+            } else {
+                subtitle.textContent = '';
+                subtitle.classList.add('d-none');
+            }
+        }
+        var pmv = $id('paymentMethodValue');
+        if (pmv && pmv.value === 'cartao' && !showCard) {
+            pmv.value = '';
+            cartaoBtn.classList.remove('active');
+            cartaoBtn.setAttribute('aria-pressed', 'false');
+        }
+    }
+
+    function paymentModalUpdateReservaHero() {
+        var sub = paymentModalReservaPreview && Number.isFinite(paymentModalReservaPreview.subtotal)
+            ? parseFloat(paymentModalReservaPreview.subtotal)
+            : paymentModalSubtotal();
+        var pct = paymentModalReservaPreview
+            ? parseInt(paymentModalReservaPreview.deposit_percent, 10)
+            : (parseInt(C.bookingDepositPercent, 10) || 0);
+        var deposit = paymentModalGetDepositAmountEur();
+        var subtotalLbl = $id('paymentSubtotalLineLabel');
+        if (subtotalLbl) subtotalLbl.textContent = paymentModalSubtotalLineLabel();
+        var subDisp = $id('paymentSubtotalDisplay');
+        if (subDisp) subDisp.textContent = sub.toFixed(2).replace('.', ',') + ' €';
+        var pretaxInline = $id('paymentHeroPretaxInline');
+        if (pretaxInline) {
+            pretaxInline.textContent = 's/ IVA ' + (sub / 1.23).toFixed(2).replace('.', ',') + ' €';
+        }
+        var pctLbl = $id('paymentReservaPercentLabel');
+        if (pctLbl) {
+            pctLbl.textContent = pct > 0
+                ? ('Pré-pagamento (' + pct + '%):')
+                : 'Pré-pagamento:';
+        }
+        var amtDisp = $id('paymentReservaAmountDisplay');
+        if (amtDisp) amtDisp.textContent = deposit.toFixed(2).replace('.', ',') + ' €';
+        var customWrap = $id('paymentReservaCustomWrap');
+        if (customWrap) customWrap.classList.toggle('d-none', pct > 0);
+    }
+
+    function paymentModalFetchDepositPreview(callback) {
+        var eventId = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        if (!eventId) {
+            paymentModalReservaPreview = null;
+            if (typeof callback === 'function') callback();
+            return;
+        }
+        var url = paymentModalDepositUrl('agendaDepositShowUrl', eventId);
+        var custom = paymentModalGetReservaCustomAmountEur();
+        if (custom !== null && custom >= 0.01) {
+            url += (url.indexOf('?') >= 0 ? '&' : '?') + 'custom_amount=' + encodeURIComponent(String(custom));
+        }
+        fetch(url, {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
+            .then(function(pack) {
+                if (pack.ok && pack.res) {
+                    paymentModalReservaPreview = pack.res;
+                    if (Number.isFinite(pack.res.wallet_balance_cents)) {
+                        paymentModalWalletBalanceCents = parseInt(pack.res.wallet_balance_cents, 10) || 0;
+                    }
+                } else {
+                    paymentModalReservaPreview = null;
+                }
+            })
+            .catch(function() { paymentModalReservaPreview = null; })
+            .finally(function() {
+                paymentModalUpdateReservaHero();
+                paymentModalUpdateTotals();
+                if (typeof callback === 'function') callback();
+            });
+    }
+
+    function paymentModalFetchSavedCards(callback) {
+        paymentModalSavedCards = [];
+        paymentModalSelectedSavedCardId = null;
+        paymentModalSyncCartaoTileVisibility();
+        var clientId = paymentModalResolveClientId();
+        if (!clientId) {
+            if (typeof callback === 'function') callback();
+            return;
+        }
+        fetch(paymentModalClientSavedCardsUrl(clientId), {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res && res.success && Array.isArray(res.cards)) {
+                    paymentModalSavedCards = res.cards;
+                    var def = res.cards.find(function(c) { return c.is_default; }) || res.cards[0];
+                    paymentModalSelectedSavedCardId = def ? def.id : null;
+                }
+            })
+            .catch(function() { paymentModalSavedCards = []; })
+            .finally(function() {
+                paymentModalSyncCartaoTileVisibility();
+                if (typeof callback === 'function') callback();
+            });
+    }
+
+    function openAgendaPaymentModalReserva() {
+        paymentModalMode = 'reserva';
+        paymentModalReservaPreview = null;
+        paymentModalReservaCustomAmount = null;
+        paymentMbwayFinalizeSucceeded = false;
+        paymentModalStopMbwayFinalizePoll();
+        paymentModalApplyModeClasses();
+        var pl = $id('paymentModalLabel');
+        if (pl) pl.textContent = 'Pré-pagamento';
+        var gEl = $id('paymentGorjeta');
+        if (gEl && String(gEl.getAttribute('type') || '').toLowerCase() === 'number') gEl.value = '0';
+        paymentModalSyncFiscalFromClient();
+        paymentModalPopulateClientHero();
+        paymentModalInitInvoiceDelivery();
+        $$('#paymentMethodToggleGroup .payment-method-card').forEach(function(card) {
+            card.classList.remove('active');
+            card.setAttribute('aria-pressed', 'false');
+        });
+        var pmv = $id('paymentMethodValue');
+        if (pmv) pmv.value = '';
+        var phoneWrap = $id('paymentMbwayPhoneWrap');
+        var phoneInput = $id('paymentMbwayPhone');
+        if (phoneWrap && phoneInput) {
+            phoneWrap.classList.add('d-none');
+            var rawPhone = '';
+            if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
+                rawPhone = String(eventDetailSelectedClient.phone || '');
+            }
+            phoneInput.value = rawPhone;
+        }
+        var customIn = $id('paymentReservaCustomAmount');
+        if (customIn) customIn.value = '';
+        var walletCb = $id('paymentWalletApply');
+        if (walletCb) {
+            walletCb.checked = true;
+            delete walletCb.dataset.userTouched;
+        }
+        paymentModalUpdateReservaHero();
+        paymentModalFetchWalletBalance(function() {
+            paymentModalFetchSavedCards(function() {
+                paymentModalFetchDepositPreview(function() {
+                    if (paymentModalReservaPreview && paymentModalReservaPreview.can_collect === false) {
+                        showToast('Não é possível cobrar o pré-pagamento nesta marcação.', 'warning');
+                    }
+                    bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+                    paymentModalSetPayButtonEnabled();
+                });
+            });
+        });
     }
 
     function openAgendaPaymentModalInvoiceOnly() {
-        agendaPaymentModalInvoiceOnly = true;
+        paymentModalMode = 'invoice-only';
         paymentMbwayFinalizeSucceeded = false;
         paymentModalStopMbwayFinalizePoll();
         var sub = paymentModalSubtotal();
@@ -1560,8 +1996,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             phoneInput.value = rawPhone;
         }
-        var modal = $id('paymentModal');
-        if (modal) modal.classList.add('payment-pos-modal--invoice-only');
+        paymentModalApplyModeClasses();
         paymentModalUpdateTotals();
         var pl = $id('paymentModalLabel');
         if (pl) pl.textContent = 'Emitir fatura final';
@@ -1582,12 +2017,13 @@ document.addEventListener('DOMContentLoaded', function() {
         wrap.innerHTML = '';
         var list = (eventDetailCurrentData && Array.isArray(eventDetailCurrentData.sales_invoices)) ? eventDetailCurrentData.sales_invoices : [];
         var pendingFinal = !!(eventDetailCurrentData && eventDetailCurrentData.pending_final_invoice);
-        if (!list.length && !pendingFinal) {
+        var walletOnlyPrepayment = eventDetailPrepaymentWalletOnly();
+        if (!list.length && !pendingFinal && !walletOnlyPrepayment) {
             wrap.classList.add('d-none');
             return;
         }
         wrap.classList.remove('d-none');
-        wrap.className = 'd-inline-flex align-items-center justify-content-end event-detail-faturas-wrap';
+        wrap.className = 'd-flex flex-wrap gap-1 align-items-center ms-auto event-detail-faturas-wrap';
 
         var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
         var amountDueForPay = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due) || 0;
@@ -1598,7 +2034,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var showAnular = !!(activeCaixa && !isPartialSale);
 
         var dropup = document.createElement('div');
-        dropup.className = 'dropup event-detail-faturas-dropup';
+        dropup.className = 'dropup event-detail-faturas-dropup ms-auto';
         var toggle = document.createElement('button');
         toggle.type = 'button';
         toggle.className = 'btn btn-outline-secondary btn-sm dropdown-toggle event-detail-invoice-btn d-inline-flex align-items-center justify-content-center gap-1';
@@ -1619,8 +2055,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var label;
             var title;
             if (inv.scope === 'booking_reserva') {
-                label = 'Ver PDF de fatura de Reserva';
-                title = 'Ver PDF de fatura de reserva';
+                label = 'Ver PDF de fatura de pré-pagamento';
+                title = 'Ver PDF de fatura de pré-pagamento';
             } else if (inv.scope === 'caixa_liquidacao') {
                 label = 'Ver PDF de fatura final';
                 title = 'Ver PDF de fatura final';
@@ -1663,6 +2099,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (inv.scope === 'booking_reserva' || inv.scope === 'caixa_liquidacao') return;
             appendViewLink(inv);
         });
+
+        if (walletOnlyPrepayment && !invReserva) {
+            eventDetailAppendFaturaWalletOnlyNotice(menu);
+        }
 
         if (pendingFinal) {
             var liG = document.createElement('li');
@@ -1769,8 +2209,71 @@ document.addEventListener('DOMContentLoaded', function() {
         wrap.appendChild(dropup);
     }
 
+        function eventDetailDepositPercent() {
+            var d = eventDetailCurrentData || {};
+            if (d.deposit_percent != null && d.deposit_percent !== '') {
+                return parseInt(d.deposit_percent, 10) || 0;
+            }
+            return parseInt(C.bookingDepositPercent, 10) || 0;
+        }
+
+        function eventDetailServicesSubtotal() {
+            return eventDetailSelectedServices.reduce(function(sum, s) {
+                var p = (parseFloat(s.price) || 0) + (s.extras || []).reduce(function(s2, e) {
+                    return s2 + (parseFloat(e.price) || 0);
+                }, 0);
+                return sum + p;
+            }, 0);
+        }
+
+        function eventDetailExpectedDepositEur(total) {
+            var pct = eventDetailDepositPercent();
+            var sub = Math.max(0, parseFloat(total) || 0);
+            if (pct > 0) {
+                return Math.round(sub * (pct / 100) * 100) / 100;
+            }
+            return 0;
+        }
+
+        function eventDetailHasReservaSale() {
+            var d = eventDetailCurrentData || {};
+            if (d.has_booking_reserva_sale === true) {
+                return true;
+            }
+            var inv = d.sales_invoices || [];
+            for (var i = 0; i < inv.length; i++) {
+                if (inv[i] && inv[i].scope === 'booking_reserva') {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function eventDetailPrepaymentWalletOnly() {
+            var d = eventDetailCurrentData || {};
+            if (d.prepayment_wallet_only === true) {
+                return true;
+            }
+            return eventDetailPrepagamentoPaidAmount() > 0.00001 && !eventDetailHasReservaSale();
+        }
+
+        function eventDetailAppendFaturaWalletOnlyNotice(menu) {
+            var li = document.createElement('li');
+            li.className = 'px-3 py-2';
+            var msg = document.createElement('p');
+            msg.className = 'small text-muted mb-0 event-detail-fatura-wallet-only-msg';
+            msg.textContent = 'Sem fatura nesta marcação — o pré-pagamento foi feito com créditos da carteira.';
+            li.appendChild(msg);
+            menu.appendChild(li);
+        }
+
+        function eventDetailSaveBtnDefaultHtml() {
+            return '<i class="ph ph-floppy-disk" aria-hidden="true"></i>';
+        }
+
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
         var payBtn = $id('eventDetailPaymentBtn');
+        var reservaBtn = $id('eventDetailReservaBtn');
         var saveBtn = $id('eventDetailSaveBtn');
         var closeWithoutSaveBtn = $id('eventDetailCloseWithoutSaveBtn');
         var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
@@ -1783,13 +2286,54 @@ document.addEventListener('DOMContentLoaded', function() {
         var lockNifRow = ((!!existingSale && !isPartialSale) || !!stLocked) && !nifOnlyEditable;
         var amountDueForPay = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due) || 0;
         var pendingFinalOnly = !!(eventDetailCurrentData && eventDetailCurrentData.pending_final_invoice);
-        var blockPayButton = (status === 'faltou' || status === 'cancelado' || status === 'anulado')
-            || (status === 'completo' && amountDueForPay <= 0.00001)
-            || pendingFinalOnly;
+        var paymentBlockedStatus = status === 'faltou' || status === 'cancelado' || status === 'anulado';
+        var isFaturar = (status === 'completo' && amountDueForPay > 0.00001);
+        var showPagoBadge = eventType === 'marcacao'
+            && servicesCount > 0
+            && amountDueForPay <= 0.00001
+            && !paymentBlockedStatus;
+        var showPayBtn = eventType === 'marcacao'
+            && servicesCount > 0
+            && amountDueForPay > 0.00001
+            && !paymentBlockedStatus;
+        var pagoBadge = $id('eventDetailPagoBadge');
         if (payBtn) {
-            payBtn.classList.toggle('d-none', eventType !== 'marcacao' || servicesCount === 0 || amountDueForPay <= 0.00001 || blockPayButton);
-            var isFaturar = (status === 'completo' && amountDueForPay > 0.00001);
-            payBtn.textContent = isFaturar ? 'Faturar' : 'Caixa - Pagamento';
+            payBtn.classList.toggle('d-none', !showPayBtn);
+            payBtn.textContent = isFaturar ? 'Faturar' : 'Caixa';
+        }
+        if (pagoBadge) {
+            pagoBadge.classList.toggle('d-none', !showPagoBadge);
+        }
+        if (reservaBtn) {
+            var eventId = ($id('eventDetailEditId') && $id('eventDetailEditId').value) || '';
+            var hasClient = !!(eventDetailSelectedClient && eventDetailSelectedClient.id)
+                || !!(eventDetailCurrentData && eventDetailCurrentData.client_id);
+            var reservaBlockedStatus = status === 'faltou' || status === 'cancelado' || status === 'anulado';
+            var subtotal = eventDetailServicesSubtotal();
+            var depositPct = eventDetailDepositPercent();
+            var depositExpected = eventDetailExpectedDepositEur(subtotal);
+            var bookingPaid = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
+            var hasReservaSale = eventDetailHasReservaSale();
+            var canShowReserva = eventType === 'marcacao'
+                && servicesCount > 0
+                && hasClient
+                && !reservaBlockedStatus
+                && !strictLock;
+            if (canShowReserva) {
+                if (depositPct > 0) {
+                    canShowReserva = !hasReservaSale && bookingPaid + 0.00001 < depositExpected;
+                } else {
+                    canShowReserva = !hasReservaSale && bookingPaid + 0.00001 < subtotal;
+                }
+            }
+            reservaBtn.classList.toggle('d-none', !canShowReserva);
+            var unsaved = !eventId;
+            reservaBtn.disabled = unsaved || hideSaveClose;
+            if (unsaved) {
+                reservaBtn.setAttribute('title', 'Guarde a marcação antes do pré-pagamento');
+            } else {
+                reservaBtn.removeAttribute('title');
+            }
         }
         syncEventDetailFaturaButtons();
         if (saveBtn) {
@@ -2189,6 +2733,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ceditCancel) ceditCancel.classList.add('d-none');
         eventDetailOcSetNifInlineMode(false);
         eventDetailOcClientBeforeEdit = null;
+        if (eventDetailCurrentData) {
+            setEventDetailPaymentAndReadOnly(
+                eventDetailExistingSale,
+                eventDetailCurrentData.event_type || 'marcacao',
+                eventDetailSelectedServices.length
+            );
+        }
     }
     function eventDetailOcInitClientChoicesSelect() {
         var clientSel = $id('eventDetailOcClient');
@@ -2220,6 +2771,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!eventDetailOcClientRemoteSearchBound) {
             eventDetailOcClientRemoteSearchBound = true;
             $id('eventDetailOcClient').addEventListener('search', eventDetailOcOnClientSearchEvent);
+        }
+        if (eventDetailCurrentData) {
+            setEventDetailPaymentAndReadOnly(
+                eventDetailExistingSale,
+                eventDetailCurrentData.event_type || 'marcacao',
+                eventDetailSelectedServices.length
+            );
         }
     }
     function eventDetailOcCancelClientEdit() {
@@ -2916,68 +3474,93 @@ document.addEventListener('DOMContentLoaded', function() {
             return sum + p;
         }, 0);
         var totalText = total.toFixed(2).replace('.', ',') + ' €';
-        $id('eventDetailTotalPrice').textContent = totalText;
-        var totalInlineDefaultEl = $id('eventDetailTotalInlineDefaultPrice');
-        if (totalInlineDefaultEl) {
-            totalInlineDefaultEl.textContent = totalText;
-        }
-        var totalCompactEl = $id('eventDetailTotalCompactPrice');
-        if (totalCompactEl) {
-            totalCompactEl.textContent = totalText;
+        var totalPriceEl = $id('eventDetailTotalPrice');
+        if (totalPriceEl) {
+            totalPriceEl.textContent = totalText;
         }
         eventDetailSyncOffcanvasPaymentSummary(total);
+        if (eventDetailCurrentData) {
+            setEventDetailPaymentAndReadOnly(
+                eventDetailExistingSale,
+                eventDetailCurrentData.event_type || 'marcacao',
+                eventDetailSelectedServices.length
+            );
+        }
     }
 
     function eventDetailMoney(amount) {
         return (Math.max(0, parseFloat(amount) || 0)).toFixed(2).replace('.', ',') + ' €';
     }
 
+    function eventDetailSumSalesByScope(scope) {
+        var inv = (eventDetailCurrentData && eventDetailCurrentData.sales_invoices) || [];
+        var sum = 0;
+        for (var i = 0; i < inv.length; i++) {
+            if (inv[i] && inv[i].scope === scope) {
+                sum += Math.max(0, parseFloat(inv[i].amount) || 0);
+            }
+        }
+        return Math.round(sum * 100) / 100;
+    }
+
+    function eventDetailPrepagamentoPaidAmount() {
+        var booking = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
+        var sales = eventDetailSumSalesByScope('booking_reserva');
+        return Math.max(booking, sales);
+    }
+
+    function eventDetailCaixaPaidAmount() {
+        return eventDetailSumSalesByScope('caixa_liquidacao');
+    }
+
     function eventDetailSyncOffcanvasPaymentSummary(total) {
-        var totalLabel = $id('eventDetailTotalLabel');
-        var totalInlineDefault = $id('eventDetailTotalInlineDefault');
+        var totalMain = $id('eventDetailTotalMain');
         var reservaSummary = $id('eventDetailReservaSummary');
         var pagoSummary = $id('eventDetailPagoSummary');
-        var defaultRight = $id('eventDetailTotalDefaultRight');
-        var compactRight = $id('eventDetailTotalCompactRight');
-        if (!totalLabel || !totalInlineDefault || !reservaSummary || !pagoSummary || !defaultRight || !compactRight) {
+        var reservaSummaryText = $id('eventDetailReservaSummaryText');
+        var pagoSummaryText = $id('eventDetailPagoSummaryText');
+        if (!totalMain || !reservaSummary || !pagoSummary) {
             return;
         }
 
-        var reservaAmount = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
+        var subtotal = Math.max(0, parseFloat(total) || 0);
+        var prepagamentoPaid = eventDetailPrepagamentoPaidAmount();
+        var caixaPaid = eventDetailCaixaPaidAmount();
         var invoiceSettled = !!(eventDetailCurrentData && eventDetailCurrentData.invoice_settled);
-        var finalAmount = Math.max(0, (parseFloat(total) || 0) - reservaAmount);
+        var amountDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
+        var remainingDue = Number.isFinite(amountDue) && amountDue >= 0
+            ? Math.max(0, amountDue)
+            : Math.max(0, subtotal - prepagamentoPaid);
 
-        var reservaAmountEl = $id('eventDetailReservaAmount');
-        var reservaAmountPaidEl = $id('eventDetailReservaAmountPaid');
-        var faltaAmountEl = $id('eventDetailFaltaPagarAmount');
-        var pagoAmountEl = $id('eventDetailPagoAmount');
-        if (reservaAmountEl) reservaAmountEl.textContent = eventDetailMoney(reservaAmount);
-        if (reservaAmountPaidEl) reservaAmountPaidEl.textContent = eventDetailMoney(reservaAmount);
-        if (faltaAmountEl) faltaAmountEl.textContent = eventDetailMoney(finalAmount);
-        if (pagoAmountEl) pagoAmountEl.textContent = eventDetailMoney(finalAmount);
+        totalMain.classList.remove('d-none');
+        reservaSummary.classList.add('d-none');
+        pagoSummary.classList.add('d-none');
 
-        // Sem reserva/pagamentos: mantém layout atual.
-        if (reservaAmount <= 0) {
-            totalLabel.classList.add('d-none');
-            totalInlineDefault.classList.remove('d-none');
-            reservaSummary.classList.add('d-none');
-            pagoSummary.classList.add('d-none');
-            defaultRight.classList.add('d-none');
-            compactRight.classList.add('d-none');
+        if (invoiceSettled) {
+            if (prepagamentoPaid > 0.00001 && caixaPaid > 0.00001) {
+                pagoSummary.classList.remove('d-none');
+                if (pagoSummaryText) {
+                    pagoSummaryText.innerHTML = '<span class="event-detail-total-line__sep" aria-hidden="true">&bull;</span> Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">'
+                        + eventDetailMoney(prepagamentoPaid) + '</span> &bull; Pagamento final <span class="fw-semibold text-body" id="eventDetailPagoAmount">'
+                        + eventDetailMoney(caixaPaid) + '</span>';
+                }
+            } else if (prepagamentoPaid > 0.00001) {
+                pagoSummary.classList.remove('d-none');
+                if (pagoSummaryText) {
+                    pagoSummaryText.innerHTML = '<span class="event-detail-total-line__sep" aria-hidden="true">&bull;</span> Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">'
+                        + eventDetailMoney(prepagamentoPaid) + '</span>';
+                }
+            }
             return;
         }
 
-        // Com reserva: mostra "Total: X" e resumo tudo do lado esquerdo.
-        totalLabel.classList.add('d-none');
-        totalInlineDefault.classList.remove('d-none');
-        defaultRight.classList.add('d-none');
-        compactRight.classList.add('d-none');
-        if (invoiceSettled) {
-            reservaSummary.classList.add('d-none');
-            pagoSummary.classList.remove('d-none');
-        } else {
+        if (prepagamentoPaid > 0.00001) {
             reservaSummary.classList.remove('d-none');
-            pagoSummary.classList.add('d-none');
+            if (reservaSummaryText) {
+                reservaSummaryText.innerHTML = '<span class="event-detail-total-line__sep" aria-hidden="true">&bull;</span> Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmount">'
+                    + eventDetailMoney(prepagamentoPaid) + '</span> &bull; Falta pagar <span class="fw-semibold text-body" id="eventDetailFaltaPagarAmount">'
+                    + eventDetailMoney(remainingDue) + '</span>';
+            }
         }
     }
 
@@ -4287,7 +4870,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span class="visually-hidden">A guardar…</span>';
         fetch((C.urlEvents || '') + '/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
@@ -4304,7 +4887,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(function(res) {
             btn.disabled = false;
-            btn.innerHTML = 'Guardar';
+            btn.innerHTML = eventDetailSaveBtnDefaultHtml();
             if (res.success && res.event) {
                 eventDetailWasSaved = true;
                 var ev = calendar.getEventById(id);
@@ -4325,7 +4908,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(function(err) {
             btn.disabled = false;
-            btn.innerHTML = 'Guardar';
+            btn.innerHTML = eventDetailSaveBtnDefaultHtml();
             var msg = (err && err.message && err.message.indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação. Verifique os logs do servidor se o problema persistir.';
             showToast(msg, 'error');
         });
@@ -4393,17 +4976,82 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    var paymentModalWalletBalanceCents = 0;
+
+    function paymentModalResolveClientId() {
+        if (eventDetailSelectedClient && eventDetailSelectedClient.id) {
+            return String(eventDetailSelectedClient.id);
+        }
+        var d = eventDetailCurrentData || {};
+        if (d.client_id) {
+            return String(d.client_id);
+        }
+        return '';
+    }
+
+    function paymentModalWalletBalanceFormatted() {
+        return (paymentModalWalletBalanceCents / 100).toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function paymentModalRefreshWalletHint() {
+        paymentModalSyncReservaWalletUi();
+        paymentModalSyncCreditosTileVisibility();
+    }
+
+    function paymentModalFetchWalletBalance(callback) {
+        paymentModalWalletBalanceCents = 0;
+        paymentModalRefreshWalletHint();
+        var clientId = paymentModalResolveClientId();
+        if (!clientId) {
+            if (typeof callback === 'function') callback();
+            return;
+        }
+        var base = (C.agendaClientWalletUrl || C.agendaClientsUrl || '').replace(/\/$/, '');
+        fetch(base + '/' + encodeURIComponent(clientId) + '/wallet', {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res && res.success) {
+                    paymentModalWalletBalanceCents = parseInt(res.balance_cents, 10) || 0;
+                }
+            })
+            .catch(function() { paymentModalWalletBalanceCents = 0; })
+            .finally(function() {
+                paymentModalSyncWalletCheckboxDefault();
+                paymentModalRefreshWalletHint();
+                if (typeof callback === 'function') callback();
+            });
+    }
+
     function paymentModalValidateReadyToPay() {
-        if (agendaPaymentModalInvoiceOnly) return true;
+        if (paymentModalIsInvoiceOnly()) return true;
+        var dueCents = paymentModalGetAmountDueCents();
+        if (paymentModalIsReserva() && dueCents <= 0) return false;
+        if (paymentModalIsReserva() && paymentModalWalletCoversDeposit()) {
+            return paymentModalGetWalletApplyCents() > 0;
+        }
         var method = String(($id('paymentMethodValue') && $id('paymentMethodValue').value) || '').trim();
-        return method === 'dinheiro' || method === 'cartao' || method === 'mbway';
+        if (method === 'creditos_carteira') {
+            return dueCents > 0 && paymentModalWalletBalanceCents >= dueCents;
+        }
+        if (method === 'cartao') {
+            return (paymentModalSavedCards || []).length > 0;
+        }
+        if (method !== 'dinheiro' && method !== 'mbway') return false;
+        if (paymentModalIsReserva() && method === 'mbway') {
+            var stripeDue = paymentModalGetStripeDueCents();
+            if (stripeDue > 0 && stripeDue < 50) return false;
+        }
+        return true;
     }
 
     function paymentModalSetPayButtonEnabled() {
         var btn = $id('paymentConfirmBtn');
         if (!btn) return;
         if (btn.querySelector('.spinner-border')) return;
-        if (agendaPaymentModalInvoiceOnly) {
+        if (paymentModalIsInvoiceOnly()) {
             btn.disabled = false;
             return;
         }
@@ -4416,6 +5064,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function paymentModalGetGorjetaAmount() {
+        if (paymentModalIsReserva()) return 0;
         if (!paymentModalPosGorjetaEnabled()) return 0;
         var el = $id('paymentGorjeta');
         if (!el) return 0;
@@ -4453,8 +5102,18 @@ document.addEventListener('DOMContentLoaded', function() {
         var servicesDue = Math.max(0, sub - paidOnline);
         var gorjeta = paymentModalGetGorjetaAmount();
         var total = servicesDue + gorjeta;
-        if (agendaPaymentModalInvoiceOnly) {
+        if (paymentModalIsInvoiceOnly()) {
             btn.textContent = 'Emitir fatura final · ' + total.toFixed(2).replace('.', ',') + ' €';
+        } else if (paymentModalIsReserva()) {
+            var deposit = paymentModalGetDepositAmountEur();
+            if (paymentModalWalletCoversDeposit()) {
+                btn.textContent = 'Pré-pagamento ' + deposit.toFixed(2).replace('.', ',') + ' € (créditos)';
+            } else if (paymentModalGetWalletApplyCents() > 0) {
+                var stripeEur = paymentModalGetStripeDueCents() / 100;
+                btn.textContent = 'Pré-pagamento ' + stripeEur.toFixed(2).replace('.', ',') + ' €';
+            } else {
+                btn.textContent = 'Pré-pagamento ' + deposit.toFixed(2).replace('.', ',') + ' €';
+            }
         } else {
             btn.textContent = 'Pagar ' + total.toFixed(2).replace('.', ',') + ' €';
         }
@@ -4472,13 +5131,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function paymentModalUpdateTotals() {
+        if (paymentModalIsReserva()) {
+            paymentModalUpdateReservaHero();
+            paymentModalSyncReservaWalletUi();
+            paymentModalUpdateConfirmLabel();
+            paymentModalRefreshWalletHint();
+            return;
+        }
         var sub = paymentModalSubtotal();
         var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
         var servicesDue = Math.max(0, sub - paidOnline);
         var gorjeta = paymentModalGetGorjetaAmount();
         var subtotalLbl = $id('paymentSubtotalLineLabel');
         if (subtotalLbl) subtotalLbl.textContent = paymentModalSubtotalLineLabel();
-        $id('paymentSubtotalDisplay').textContent = sub.toFixed(2).replace('.', ',') + ' €';
+        var subDisp = $id('paymentSubtotalDisplay');
+        if (subDisp) subDisp.textContent = sub.toFixed(2).replace('.', ',') + ' €';
         var pretaxInline = $id('paymentHeroPretaxInline');
         if (pretaxInline) {
             pretaxInline.textContent = 's/ IVA ' + (sub / 1.23).toFixed(2).replace('.', ',') + ' €';
@@ -4496,6 +5163,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var gorjetaLine = $id('paymentGorjetaLine');
         if (gorjetaLine) gorjetaLine.classList.toggle('d-none', gorjeta <= 0);
         paymentModalUpdateConfirmLabel();
+        paymentModalRefreshWalletHint();
     }
 
     function agendaPaymentModalClientSnapshot() {
@@ -4582,11 +5250,79 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function eventDetailMergeDepositSaleFromResponse(res) {
+        if (!res || !eventDetailCurrentData) {
+            return;
+        }
+        if (res.booking_paid_amount != null) {
+            var paid = Math.max(0, parseFloat(res.booking_paid_amount) || 0);
+            eventDetailBookingPaidAmount = paid;
+            eventDetailCurrentData.booking_paid_amount = paid;
+        }
+        var walletCents = parseInt(res.wallet_applied_cents, 10) || 0;
+        if (walletCents > 0 && !res.sale_id) {
+            eventDetailCurrentData.prepayment_wallet_only = true;
+            eventDetailCurrentData.has_booking_reserva_sale = false;
+        }
+        if (res.sale_id) {
+            eventDetailCurrentData.prepayment_wallet_only = false;
+            eventDetailCurrentData.has_booking_reserva_sale = true;
+            if (!Array.isArray(eventDetailCurrentData.sales_invoices)) {
+                eventDetailCurrentData.sales_invoices = [];
+            }
+            var already = false;
+            for (var i = 0; i < eventDetailCurrentData.sales_invoices.length; i++) {
+                if (eventDetailCurrentData.sales_invoices[i] && eventDetailCurrentData.sales_invoices[i].id === res.sale_id) {
+                    already = true;
+                    break;
+                }
+            }
+            if (!already) {
+                eventDetailCurrentData.sales_invoices.push({
+                    id: res.sale_id,
+                    label: res.numero_fatura ? ('Fatura ' + res.numero_fatura) : 'Pré-pagamento',
+                    numero_fatura: res.numero_fatura || '',
+                    pdf_url: res.pdf_url || null,
+                    vendus_url: res.vendus_pdf_url || null,
+                    scope: 'booking_reserva',
+                    amount: parseFloat(res.deposit_amount) || 0,
+                });
+            }
+            var amountDue = parseFloat(eventDetailCurrentData.amount_due);
+            var isPartial = res.booking_paid_amount > 0.00001
+                && Number.isFinite(amountDue)
+                && amountDue > 0.00001;
+            eventDetailExistingSale = {
+                id: res.sale_id,
+                numero_fatura: res.numero_fatura || null,
+                pdf_url: res.pdf_url || null,
+                is_partial: isPartial,
+            };
+            eventDetailCurrentData.existing_sale = eventDetailExistingSale;
+            syncEventDetailFaturaButtons();
+            if (typeof EventDetail !== 'undefined' && typeof EventDetail.updateTotal === 'function') {
+                EventDetail.updateTotal();
+            }
+        }
+    }
+
     function agendaAfterCheckoutPaymentSuccess(res, eventId) {
         paymentModalRestoreConfirmButton();
         bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
         var delivery = (res && res.invoice_delivery) || 'print';
-        if (delivery === 'email') {
+        var isPrepagamento = paymentModalIsReserva();
+        if (isPrepagamento) {
+            eventDetailMergeDepositSaleFromResponse(res);
+        }
+        if (isPrepagamento) {
+            var prepMsg = 'Pré-pagamento registado com sucesso.';
+            if (delivery === 'email' && res && res.invoice_email_sent) {
+                prepMsg = 'Pré-pagamento registado com sucesso. Fatura enviada por email ao cliente.';
+            } else if (delivery === 'email' && res && res.invoice_email_message) {
+                prepMsg += ' ' + res.invoice_email_message;
+            }
+            showToast(prepMsg, 'success');
+        } else if (delivery === 'email') {
             if (res && res.invoice_email_sent) {
                 showToast('Venda registada. Fatura da Vendus enviada por email ao cliente.', 'success');
             } else {
@@ -4617,8 +5353,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .finally(function() { eventDetailModalLoading = false; });
     }
 
+    var eventDetailReservaBtnEl = $id('eventDetailReservaBtn');
+    if (eventDetailReservaBtnEl) {
+        eventDetailReservaBtnEl.addEventListener('click', function() {
+            if (eventDetailReservaBtnEl.disabled) {
+                return;
+            }
+            if (typeof openAgendaPaymentModalReserva === 'function') {
+                openAgendaPaymentModalReserva();
+            }
+        });
+    }
+
     $id('eventDetailPaymentBtn').addEventListener('click', function() {
-        agendaResetPaymentModalInvoiceOnlyMode();
+        paymentModalResetToCaixa();
         paymentMbwayFinalizeSucceeded = false;
         paymentModalStopMbwayFinalizePoll();
         var sub = paymentModalSubtotal();
@@ -4645,7 +5393,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             phoneInput.value = rawPhone;
         }
-        bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+        paymentModalFetchWalletBalance(function() {
+            paymentModalFetchSavedCards(function() {
+                bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+                paymentModalSetPayButtonEnabled();
+            });
+        });
     });
 
     $('#paymentMethodToggleGroup').addEventListener('click', function(e) {
@@ -4663,8 +5416,53 @@ document.addEventListener('DOMContentLoaded', function() {
         if (phoneWrap) {
             phoneWrap.classList.toggle('d-none', method !== 'mbway');
         }
+        if (method === 'creditos_carteira') {
+            if (paymentModalIsReserva()) return;
+            var dueCents = paymentModalGetAmountDueCents();
+            if (paymentModalWalletBalanceCents < dueCents) {
+                showToast('Saldo de créditos insuficiente para este pagamento.', 'error');
+                var pmvEl = $id('paymentMethodValue');
+                if (pmvEl) pmvEl.value = '';
+                card.classList.remove('active');
+                card.setAttribute('aria-pressed', 'false');
+            }
+        }
+        paymentModalSyncReservaWalletUi();
+        paymentModalUpdateConfirmLabel();
         paymentModalSetPayButtonEnabled();
     });
+
+    (function() {
+        var walletCb = $id('paymentWalletApply');
+        if (!walletCb) return;
+        walletCb.addEventListener('change', function() {
+            walletCb.dataset.userTouched = '1';
+            paymentModalSyncReservaWalletUi();
+            paymentModalUpdateConfirmLabel();
+            paymentModalSetPayButtonEnabled();
+        });
+    })();
+
+    (function() {
+        var customIn = $id('paymentReservaCustomAmount');
+        if (!customIn) return;
+        var refetchTimer = null;
+        customIn.addEventListener('input', function() {
+            var n = parseFloat(customIn.value);
+            paymentModalReservaCustomAmount = Number.isFinite(n) && n >= 0.01 ? n : null;
+            paymentModalUpdateReservaHero();
+            paymentModalSyncReservaWalletUi();
+            paymentModalUpdateConfirmLabel();
+            paymentModalRefreshWalletHint();
+            if (!paymentModalIsReserva()) return;
+            clearTimeout(refetchTimer);
+            refetchTimer = setTimeout(function() {
+                paymentModalFetchDepositPreview();
+            }, 400);
+        });
+    })();
+
+    window.openAgendaPaymentModalReserva = openAgendaPaymentModalReserva;
 
     var paymentFaturaTilesGrid = $id('paymentFaturaTilesGrid');
     if (paymentFaturaTilesGrid) {
@@ -4728,9 +5526,20 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.click();
     });
 
+    function paymentModalHandleDepositSuccess(res, eventId) {
+        agendaAfterCheckoutPaymentSuccess(res, eventId);
+    }
+
     $id('paymentConfirmBtn').addEventListener('click', function() {
         if (!paymentModalValidateReadyToPay()) {
-            if (!agendaPaymentModalInvoiceOnly) {
+            if (!paymentModalIsInvoiceOnly()) {
+                if (paymentModalIsReserva() && paymentModalGetStripeDueCents() > 0 && paymentModalGetStripeDueCents() < 50) {
+                    var pmvMb = $id('paymentMethodValue');
+                    if (pmvMb && pmvMb.value === 'mbway') {
+                        showToast('O valor mínimo para MB WAY é 0,50 €.', 'error');
+                        return;
+                    }
+                }
                 showToast('Selecione um meio de pagamento.', 'error');
             }
             return;
@@ -4743,6 +5552,171 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Evento não encontrado.', 'error');
             return;
         }
+        var fiscal = paymentModalGetFiscalPayload();
+        var btn = $id('paymentConfirmBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Em processamento...';
+
+        if (paymentModalIsReserva()) {
+            var walletPayload = paymentModalGetWalletApplyPayload();
+            var reservaExtras = paymentModalGetReservaPayloadExtras();
+            var depositBase = {
+                invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
+                billing_nif: fiscal.billing_nif || null,
+                invoice_delivery: paymentModalGetInvoiceDelivery(),
+                wallet_apply: walletPayload.wallet_apply,
+                wallet_apply_cents: walletPayload.wallet_apply_cents,
+            };
+            Object.keys(reservaExtras).forEach(function(k) { depositBase[k] = reservaExtras[k]; });
+
+            if (paymentModalWalletCoversDeposit()) {
+                fetch(paymentModalDepositUrl('agendaDepositStoreUrl', eventId), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify(depositBase),
+                })
+                .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
+                .then(function(_) {
+                    if (!_.ok) {
+                        paymentModalRestoreConfirmButton();
+                        showToast((_.res && (_.res.error || _.res.message)) || 'Erro ao cobrar reserva.', 'error');
+                        return;
+                    }
+                    paymentModalHandleDepositSuccess(_.res, eventId);
+                })
+                .catch(function() {
+                    paymentModalRestoreConfirmButton();
+                    showToast('Erro de ligação.', 'error');
+                });
+                return;
+            }
+
+            if (method === 'mbway') {
+                var mbwayPhoneInputR = $id('paymentMbwayPhone');
+                var mbwayPhoneR = mbwayPhoneInputR ? String(mbwayPhoneInputR.value || '').trim() : '';
+                fetch(paymentModalDepositUrl('agendaDepositMbwayIntentUrl', eventId), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify(Object.assign({ mbway_phone: mbwayPhoneR }, depositBase)),
+                })
+                .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
+                .then(function(_) {
+                    var ok = _.ok;
+                    var res = _.res || {};
+                    if (!ok) {
+                        paymentModalRestoreConfirmButton();
+                        showToast(res.error || res.message || 'Erro ao gerar pedido MB WAY.', 'error');
+                        return;
+                    }
+                    showToast(res.message || 'Pedido MB WAY enviado para o cliente.', 'success');
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>A aguardar MB WAY...';
+                    var paymentIntentId = res.payment_intent_id;
+                    if (!paymentIntentId) {
+                        paymentModalRestoreConfirmButton();
+                        showToast('Resposta MB WAY inválida.', 'error');
+                        return;
+                    }
+                    paymentMbwayFinalizeSucceeded = false;
+                    paymentModalStopMbwayFinalizePoll();
+                    var triesR = 0;
+                    var maxTriesR = 30;
+                    paymentMbwayFinalizeInterval = setInterval(function() {
+                        if (paymentMbwayFinalizeSucceeded) return;
+                        if (paymentMbwayFinalizeRequestPending) return;
+                        triesR += 1;
+                        paymentMbwayFinalizeRequestPending = true;
+                        fetch(paymentModalDepositUrl('agendaDepositMbwayFinalizeUrl', eventId), {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                            body: JSON.stringify(Object.assign({ payment_intent_id: paymentIntentId }, depositBase)),
+                        })
+                        .then(function(r) { return r.json().then(function(res2) { return { ok: r.ok, status: r.status, res: res2 || {} }; }); })
+                        .then(function(pack) {
+                            paymentMbwayFinalizeRequestPending = false;
+                            if (paymentMbwayFinalizeSucceeded) return;
+                            if (pack.ok && pack.res && pack.res.success) {
+                                paymentMbwayFinalizeSucceeded = true;
+                                paymentModalStopMbwayFinalizePoll();
+                                paymentModalHandleDepositSuccess(pack.res, eventId);
+                                return;
+                            }
+                            if (pack.status === 202) {
+                                if (triesR >= maxTriesR) {
+                                    paymentModalStopMbwayFinalizePoll();
+                                    paymentModalRestoreConfirmButton();
+                                    showToast('Pedido MB WAY enviado. Ainda pendente; pode confirmar mais tarde.', 'warning');
+                                }
+                                return;
+                            }
+                            if (paymentMbwayFinalizeSucceeded) return;
+                            paymentModalStopMbwayFinalizePoll();
+                            paymentModalRestoreConfirmButton();
+                            showToast((pack.res && (pack.res.error || pack.res.message)) || 'Falha ao confirmar pagamento MB WAY.', 'error');
+                        })
+                        .catch(function() {
+                            paymentMbwayFinalizeRequestPending = false;
+                            if (paymentMbwayFinalizeSucceeded) return;
+                            paymentModalStopMbwayFinalizePoll();
+                            paymentModalRestoreConfirmButton();
+                            showToast('Erro de ligação ao validar MB WAY.', 'error');
+                        });
+                    }, 3000);
+                })
+                .catch(function() {
+                    paymentModalRestoreConfirmButton();
+                    showToast('Erro de ligação ao gerar pedido MB WAY.', 'error');
+                });
+                return;
+            }
+
+            if (method === 'cartao') {
+                var cardBody = Object.assign({ saved_card_id: paymentModalSelectedSavedCardId || null }, depositBase);
+                fetch(paymentModalDepositUrl('agendaDepositCardUrl', eventId), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                    body: JSON.stringify(cardBody),
+                })
+                .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
+                .then(function(_) {
+                    if (!_.ok) {
+                        paymentModalRestoreConfirmButton();
+                        showToast((_.res && (_.res.error || _.res.message)) || 'Erro ao cobrar cartão.', 'error');
+                        return;
+                    }
+                    paymentModalHandleDepositSuccess(_.res, eventId);
+                })
+                .catch(function() {
+                    paymentModalRestoreConfirmButton();
+                    showToast('Erro de ligação ao cobrar cartão.', 'error');
+                });
+                return;
+            }
+
+            var cashBody = Object.assign({}, depositBase);
+            if (method === 'dinheiro') {
+                cashBody.payment_method = 'dinheiro';
+            }
+            fetch(paymentModalDepositUrl('agendaDepositStoreUrl', eventId), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify(cashBody),
+            })
+            .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
+            .then(function(_) {
+                if (!_.ok) {
+                    paymentModalRestoreConfirmButton();
+                    showToast((_.res && (_.res.error || _.res.message)) || 'Erro ao cobrar reserva.', 'error');
+                    return;
+                }
+                paymentModalHandleDepositSuccess(_.res, eventId);
+            })
+            .catch(function() {
+                paymentModalRestoreConfirmButton();
+                showToast('Erro de ligação.', 'error');
+            });
+            return;
+        }
+
         var items = [];
         eventDetailSelectedServices.forEach(function(s) {
             items.push({ tipo: 'servico', descricao: s.name || 'Serviço', quantidade: 1, preco_unitario: parseFloat(s.price) || 0, service_id: s.service_id });
@@ -4751,13 +5725,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         if (items.length === 0) {
+            paymentModalRestoreConfirmButton();
             showToast('Nenhum serviço para faturar.', 'error');
             return;
         }
-        var fiscal = paymentModalGetFiscalPayload();
-        var btn = $id('paymentConfirmBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Em processamento...';
         if (method === 'mbway') {
             var mbwayPhoneInput = $id('paymentMbwayPhone');
             var mbwayPhone = mbwayPhoneInput ? String(mbwayPhoneInput.value || '').trim() : '';
@@ -4903,7 +5874,7 @@ document.addEventListener('DOMContentLoaded', function() {
     $id('paymentModal').addEventListener('hidden.bs.modal', function() {
         paymentModalStopMbwayFinalizePoll();
         paymentMbwayFinalizeSucceeded = false;
-        agendaResetPaymentModalInvoiceOnlyMode();
+        paymentModalResetToCaixa();
         paymentModalRestoreConfirmButton();
     });
 
@@ -5263,9 +6234,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             const extProps = arg.event.extendedProps || {};
             const isTempoPessoal = (extProps.event_type || '') === 'tempo_pessoal';
-            const statusIcon = isTempoPessoal
-                ? (extProps.personal_time_type?.icon ? 'ph ' + extProps.personal_time_type.icon : null)
-                : (extProps.status_icon || null);
+            const statusIcon = agendaResolveEventStatusIcon(extProps);
             const clientName = (extProps.client_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const serviceName = (extProps.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const fallbackTitle = (arg.event.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -5280,22 +6249,18 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             const extrasStr = extrasParts.length ? extrasParts.join(', ') : '';
 
-            // Ícone de estado: bloqueia apenas quando faturação está totalmente liquidada.
+            var statusKey = String(extProps.status || 'agendado').toLowerCase();
+            var isPaidFlowStatus = statusKey === 'terminado' || statusKey === 'completo';
             var invoiceSettled = !!(extProps.invoice_settled);
-            var hasInvoice = !!(extProps.has_invoice);
-            var effectiveStatusIcon = statusIcon;
-            if (!isTempoPessoal && invoiceSettled) {
-                effectiveStatusIcon = 'ri-checkbox-circle-fill agenda-status-icon-confirmado';
-            }
+            var paymentIconTitle = !isTempoPessoal ? agendaPaymentStatusIconTitle(extProps) : '';
             var iconHtml = '';
-            if (effectiveStatusIcon) {
-                if (isTempoPessoal) {
-                    iconHtml = '<i class="' + effectiveStatusIcon + ' fc-event-status-icon"></i>';
-                } else if (invoiceSettled) {
-                    iconHtml = '<span class="fc-event-status-icon-completo agenda-event-status-icon-btn"><i class="' + effectiveStatusIcon + ' fc-event-status-icon"></i></span>';
-                } else {
-                    iconHtml = '<span class="agenda-event-status-icon-btn" role="button" tabindex="-1" title="Alterar estado"><i class="' + effectiveStatusIcon + ' fc-event-status-icon"></i></span>';
-                }
+            if (isTempoPessoal && statusIcon) {
+                iconHtml = '<i class="' + statusIcon + ' fc-event-status-icon" aria-hidden="true"></i>';
+            } else if (isPaidFlowStatus) {
+                iconHtml = agendaFcEventPaymentIconsHtml(extProps, invoiceSettled);
+            } else if (statusIcon) {
+                var iconTitle = paymentIconTitle || 'Alterar estado';
+                iconHtml = '<span class="agenda-event-status-icon-btn" role="button" tabindex="-1" title="' + iconTitle.replace(/"/g, '&quot;') + '"><i class="' + statusIcon + ' fc-event-status-icon" aria-hidden="true"></i></span>';
             }
 
             // Linha 1: ícone + cliente (ou título)
@@ -5328,23 +6293,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 contentHtml += '<div class="fc-event-line fc-event-line-3">' + line3Html + '</div>';
             }
 
-            var badgeHtml = '';
-            var bookingPaidRaw = extProps.booking_paid_amount;
-            var bookingPaidNum = typeof bookingPaidRaw === 'number' ? bookingPaidRaw : parseFloat(String(bookingPaidRaw || '0'), 10);
-            var hasReservaPaid = !isNaN(bookingPaidNum) && bookingPaidNum > 0.00001;
-            if (!isTempoPessoal && invoiceSettled) {
-                var pendingFinal = !!extProps.pending_final_invoice;
-                var paidBadgesInner = '';
-                if (pendingFinal) {
-                    paidBadgesInner += '<span class="agenda-fc-event-pending-invoice-wrap" title="Falta emitir fatura final"><i class="ri-error-warning-fill text-warning" aria-hidden="true"></i></span>';
-                }
-                paidBadgesInner += '<span class="agenda-fc-event-badge agenda-fc-event-badge-paid">Pago</span>';
-                badgeHtml = '<div class="agenda-fc-event-paid-badges" role="presentation">' + paidBadgesInner + '</div>';
-            } else if (!isTempoPessoal && !invoiceSettled && hasReservaPaid) {
-                badgeHtml = '<div class="agenda-fc-event-paid-badges" role="presentation"><span class="agenda-fc-event-badge agenda-fc-event-badge-reserva">Reserva</span></div>';
-            }
-
-            return { html: '<div class="fc-event-content-wrapper">' + badgeHtml + contentHtml + '</div>' };
+            return { html: '<div class="fc-event-content-wrapper">' + contentHtml + '</div>' };
         },
         eventAllow: function(dropInfo, draggedEvent) {
             var ext = (draggedEvent && draggedEvent.extendedProps) ? draggedEvent.extendedProps : {};
@@ -7567,10 +8516,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 $id('cancelMarcacaoReason').value = '';
                 $id('cancelMarcacaoOutraTexto').value = '';
                 $id('cancelMarcacaoOutraWrap').classList.add('d-none');
-                $id('cancelMarcacaoRefund').value = '';
-                $id('cancelMarcacaoAvisouPrazo').value = '';
-                $id('cancelMarcacaoAvisouWrap').classList.add('d-none');
                 $id('cancelMarcacaoNotifyClient').checked = false;
+                loadCancelMarcacaoPolicyPreview(evId);
                 bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
                 return;
             }
@@ -7626,8 +8573,84 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     $id('cancelMarcacaoQueAconteceu').addEventListener('change', function() {
-        $id('cancelMarcacaoAvisouWrap').classList.toggle('d-none', this.value !== 'cancelado');
+        var evId = $id('cancelMarcacaoEventId').value;
+        if (evId && this.value === 'cancelado') {
+            loadCancelMarcacaoPolicyPreview(evId);
+        } else {
+            resetCancelMarcacaoPolicyPreview('Falta registada — sem crédito automático na carteira.');
+        }
     });
+
+    function resetCancelMarcacaoPolicyPreview(message) {
+        var loading = $id('cancelMarcacaoPolicyLoading');
+        var statusEl = $id('cancelMarcacaoPolicyStatus');
+        var creditEl = $id('cancelMarcacaoPolicyCredit');
+        var forfeitEl = $id('cancelMarcacaoPolicyForfeit');
+        if (loading) loading.classList.add('d-none');
+        if (statusEl) {
+            statusEl.textContent = message || '';
+            statusEl.classList.toggle('d-none', !message);
+        }
+        if (creditEl) creditEl.classList.add('d-none');
+        if (forfeitEl) forfeitEl.classList.add('d-none');
+    }
+
+    function loadCancelMarcacaoPolicyPreview(evId) {
+        var loading = $id('cancelMarcacaoPolicyLoading');
+        var statusEl = $id('cancelMarcacaoPolicyStatus');
+        var creditEl = $id('cancelMarcacaoPolicyCredit');
+        var forfeitEl = $id('cancelMarcacaoPolicyForfeit');
+        if ($id('cancelMarcacaoQueAconteceu').value !== 'cancelado') {
+            resetCancelMarcacaoPolicyPreview('Falta registada — sem crédito automático na carteira.');
+            return;
+        }
+        if (loading) {
+            loading.classList.remove('d-none');
+            loading.textContent = 'A calcular…';
+        }
+        if (statusEl) statusEl.classList.add('d-none');
+        if (creditEl) creditEl.classList.add('d-none');
+        if (forfeitEl) forfeitEl.classList.add('d-none');
+
+        fetch((C.urlEvents || '') + '/' + evId + '/cancellation-preview', {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (loading) loading.classList.add('d-none');
+            if (!res.success || !res.preview) {
+                resetCancelMarcacaoPolicyPreview('Não foi possível calcular a política.');
+                return;
+            }
+            var p = res.preview;
+            if (statusEl) {
+                statusEl.textContent = p.within_notice_period
+                    ? 'Dentro do prazo (até ' + p.deadline_formatted + ').'
+                    : 'Fora do prazo (limite era ' + p.deadline_formatted + ').';
+                statusEl.classList.remove('d-none');
+            }
+            if (creditEl) {
+                if (p.within_notice_period && p.deposit_credit_cents > 0) {
+                    creditEl.textContent = 'Crédito previsto na carteira: ' + p.deposit_credit_formatted + ' (não é reembolso bancário).';
+                    creditEl.classList.remove('d-none');
+                } else {
+                    creditEl.classList.add('d-none');
+                }
+            }
+            if (forfeitEl) {
+                if (!p.within_notice_period && p.has_paid_deposit) {
+                    forfeitEl.textContent = 'O cliente perde o sinal pago online.';
+                    forfeitEl.classList.remove('d-none');
+                } else {
+                    forfeitEl.classList.add('d-none');
+                }
+            }
+        })
+        .catch(function() {
+            if (loading) loading.classList.add('d-none');
+            resetCancelMarcacaoPolicyPreview('Erro ao carregar a política.');
+        });
+    }
 
     $id('cancelMarcacaoConfirmBtn').addEventListener('click', function() {
         var reasonSelect = $id('cancelMarcacaoReason');
@@ -7640,10 +8663,6 @@ document.addEventListener('DOMContentLoaded', function() {
             reason = null;
         }
         var status = $id('cancelMarcacaoQueAconteceu').value;
-        var refundEl = $id('cancelMarcacaoRefund');
-        var refundReserva = refundEl.value === '' ? null : refundEl.value === '1';
-        var avisouEl = $id('cancelMarcacaoAvisouPrazo');
-        var avisouDentroPrazo = (status === 'cancelado' && avisouEl.value !== '') ? avisouEl.value === '1' : null;
         var evId = $id('cancelMarcacaoEventId').value;
         if (!evId) return;
         var btn = $id('cancelMarcacaoConfirmBtn');
@@ -7653,8 +8672,6 @@ document.addEventListener('DOMContentLoaded', function() {
             status: status,
             cancellation_reason: reason,
             cancellation_type: status,
-            refund_reserva: refundReserva,
-            avisou_dentro_prazo: avisouDentroPrazo,
             notify_client: $id('cancelMarcacaoNotifyClient').checked
         };
         fetch((C.urlEvents || '') + '/' + evId + '/status', {
@@ -7672,7 +8689,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (ev) ev.remove();
                 bootstrap.Modal.getInstance($id('cancelMarcacaoModal'))?.hide();
                 bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
-                showToast('Marcação cancelada.', 'success');
+                showToast(res.message || 'Marcação cancelada.', 'success');
             } else {
                 showToast(res.message || 'Erro ao cancelar.', 'error');
             }

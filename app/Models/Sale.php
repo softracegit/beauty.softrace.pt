@@ -27,6 +27,8 @@ class Sale extends Model
 
     public const PAYMENT_OUTRO = 'outro';
 
+    public const PAYMENT_CREDITOS_CARTEIRA = 'creditos_carteira';
+
     public const SCOPE_REGULAR = 'regular';
 
     public const SCOPE_BOOKING_RESERVA = 'booking_reserva';
@@ -89,21 +91,80 @@ class Sale extends Model
             self::PAYMENT_TRANSFERENCIA => 'Transferência',
             self::PAYMENT_CARTAO => 'Cartão',
             self::PAYMENT_OUTRO => 'Outro',
+            self::PAYMENT_CREDITOS_CARTEIRA => 'Créditos (carteira)',
         ];
     }
 
     /**
-     * Rótulo curto para botões PDF na agenda (reserva vs loja).
+     * Rótulo curto para botões PDF / email (pré-pagamento vs loja).
      */
     public function invoiceListLabel(): string
     {
         $num = trim((string) ($this->numero_fatura ?? ''));
 
         return match ($this->scope) {
-            self::SCOPE_BOOKING_RESERVA => $num !== '' ? 'Reserva online · '.$num : 'Reserva online',
+            self::SCOPE_BOOKING_RESERVA => $num !== '' ? 'Pré-pagamento · '.$num : 'Pré-pagamento',
             self::SCOPE_CAIXA_LIQUIDACAO => $num !== '' ? 'Pagamento em loja · '.$num : 'Pagamento em loja',
             default => $num !== '' ? 'Fatura · '.$num : 'Fatura',
         };
+    }
+
+    /**
+     * Descrição da linha na fatura PDF (inclui normalização de textos antigos com «reserva»).
+     */
+    public function invoiceDisplayDescription(?string $storedDescription = null): string
+    {
+        $stored = trim((string) ($storedDescription ?? ''));
+        if ($stored === '') {
+            return match ($this->scope) {
+                self::SCOPE_BOOKING_RESERVA => 'Pré-pagamento (marcação online)',
+                default => 'Serviço',
+            };
+        }
+
+        if ($this->scope !== self::SCOPE_BOOKING_RESERVA) {
+            return $stored;
+        }
+
+        $exact = [
+            'Adiantamento de reserva (marcação online)' => 'Pré-pagamento (marcação online)',
+            'Adiantamento de reserva (receção)' => 'Pré-pagamento (receção)',
+            'Pré-pagamento (marcação online)' => 'Pré-pagamento (marcação online)',
+            'Pré-pagamento (receção)' => 'Pré-pagamento (receção)',
+        ];
+        if (isset($exact[$stored])) {
+            return $exact[$stored];
+        }
+
+        $normalized = str_replace(
+            [
+                'Adiantamento de reserva',
+                'adiantamento (reserva online)',
+                'adiantamento (receção)',
+                'sinal de reserva',
+                'reserva online',
+            ],
+            [
+                'Pré-pagamento',
+                'pré-pagamento (marcação online)',
+                'pré-pagamento (receção)',
+                'pré-pagamento',
+                'pré-pagamento online',
+            ],
+            $stored
+        );
+
+        $normalized = preg_replace(
+            '/\s*—\s*adiantamento\s*\(\s*reserva\s+online\s*\)/iu',
+            ' — pré-pagamento (marcação online)',
+            $normalized
+        ) ?? $normalized;
+
+        return preg_replace(
+            '/\s*—\s*adiantamento\s*\(\s*rece[cç][aã]o\s*\)/iu',
+            ' — pré-pagamento (receção)',
+            $normalized
+        ) ?? $normalized;
     }
 
     /**

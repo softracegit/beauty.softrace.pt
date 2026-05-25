@@ -5,6 +5,8 @@ use App\Http\Controllers\AgentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingClientAuthController;
 use App\Http\Controllers\BookingContactVerificationController;
+use App\Http\Controllers\BookingAccountCancelController;
+use App\Http\Controllers\BookingAccountWalletController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\BookingPaymentController;
 use App\Http\Controllers\BookingSmsActionController;
@@ -12,6 +14,7 @@ use App\Http\Controllers\BookingSavedCardController;
 use App\Http\Controllers\BookingSlotHoldController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\AgendaDepositController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\CurrentStoreController;
@@ -68,6 +71,9 @@ Route::prefix('booking/{store:slug}')->middleware(['booking'])->name('booking.')
     Route::get('/disponiblidade', [BookingController::class, 'datetime'])->name('datetime');
     Route::get('/disponibilidade', [BookingController::class, 'availability'])->name('availability');
     Route::get('/checkout', [BookingController::class, 'step3'])->name('step3');
+    Route::get('/politica-cancelamento/preview', [BookingController::class, 'cancellationPolicyPreview'])
+        ->middleware('throttle:60,1')
+        ->name('cancellation.preview');
     Route::post('/marcacao/confirmar', [BookingPaymentController::class, 'confirmWithoutPayment'])
         ->middleware('throttle:30,1')
         ->name('confirm.without_payment');
@@ -139,6 +145,10 @@ Route::prefix('booking/{store:slug}')->middleware(['booking'])->name('booking.')
     Route::middleware(['auth', 'booking.client'])->prefix('conta')->name('conta.')->group(function () {
         Route::get('/', [BookingController::class, 'account'])->name('index');
         Route::get('/marcacoes', [BookingController::class, 'appointments'])->name('marcacoes');
+        Route::get('/carteira', [BookingAccountWalletController::class, 'index'])->name('carteira');
+        Route::post('/marcacoes/{calendarEvent}/cancelar', [BookingAccountCancelController::class, 'store'])
+            ->middleware('throttle:30,1')
+            ->name('marcacoes.cancel');
         Route::get('/definicoes', [BookingController::class, 'settings'])->name('settings');
         Route::post('/dados-pessoais', [BookingController::class, 'updateProfilePersonal'])
             ->middleware('throttle:30,1')
@@ -271,14 +281,22 @@ Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function ()
     Route::get('agenda/clients', [CalendarController::class, 'clients'])->name('agenda.clients');
     Route::post('agenda/clients', [CalendarController::class, 'storeClient'])->name('agenda.clients.store');
     Route::put('agenda/clients/{client}/nif', [CalendarController::class, 'updateClientNif'])->name('agenda.clients.nif');
+    Route::get('agenda/clients/{client}/wallet', [CalendarController::class, 'clientWallet'])->name('agenda.clients.wallet');
+    Route::get('agenda/clients/{client}/saved-cards', [CalendarController::class, 'clientSavedCards'])->name('agenda.clients.saved_cards');
     Route::get('agenda/events', [CalendarController::class, 'events'])->name('agenda.events');
     Route::get('agenda/events/{calendarEvent}', [CalendarController::class, 'show'])->name('agenda.events.show');
     Route::post('agenda/events', [CalendarController::class, 'store'])->name('agenda.events.store');
     Route::put('agenda/events/{calendarEvent}', [CalendarController::class, 'update'])->name('agenda.events.update');
     Route::post('agenda/events/{calendarEvent}/update', [CalendarController::class, 'update'])->name('agenda.events.update.post');
+    Route::get('agenda/events/{calendarEvent}/cancellation-preview', [CalendarController::class, 'cancellationPreview'])->name('agenda.events.cancellation_preview');
     Route::post('agenda/events/{calendarEvent}/status', [CalendarController::class, 'updateStatus'])->name('agenda.events.status');
     Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
     Route::get('agenda/events/{calendarEvent}/checkout', [CheckoutController::class, 'checkout'])->name('agenda.checkout');
+    Route::get('agenda/events/{calendarEvent}/deposit', [AgendaDepositController::class, 'show'])->name('agenda.deposit.show');
+    Route::post('agenda/events/{calendarEvent}/deposit', [AgendaDepositController::class, 'store'])->name('agenda.deposit.store');
+    Route::post('agenda/events/{calendarEvent}/deposit/mbway/intent', [AgendaDepositController::class, 'createMbwayIntent'])->name('agenda.deposit.mbway.intent');
+    Route::post('agenda/events/{calendarEvent}/deposit/mbway/finalize', [AgendaDepositController::class, 'finalizeMbway'])->name('agenda.deposit.mbway.finalize');
+    Route::post('agenda/events/{calendarEvent}/deposit/card', [AgendaDepositController::class, 'storeCard'])->name('agenda.deposit.card');
     Route::post('agenda/checkout', [CheckoutController::class, 'store'])->name('agenda.checkout.store');
     Route::post('agenda/checkout/mbway/intent', [CheckoutController::class, 'createMbwayIntent'])->name('agenda.checkout.mbway.intent');
     Route::post('agenda/checkout/mbway/finalize', [CheckoutController::class, 'finalizeMbway'])->name('agenda.checkout.mbway.finalize');

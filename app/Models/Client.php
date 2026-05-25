@@ -56,6 +56,7 @@ class Client extends Model
         'notify_email_booking_updates',
         'notify_email_booking_reminders',
         'notify_sms_booking_reminders',
+        'wallet_balance_cents',
     ];
 
     /**
@@ -74,7 +75,16 @@ class Client extends Model
         'notify_email_booking_updates' => 'boolean',
         'notify_email_booking_reminders' => 'boolean',
         'notify_sms_booking_reminders' => 'boolean',
+        'wallet_balance_cents' => 'integer',
     ];
+
+    /**
+     * @return HasMany<ClientWalletTransaction, $this>
+     */
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(ClientWalletTransaction::class)->orderByDesc('created_at');
+    }
 
     /**
      * Telefone para exibição (indicativo e número separados por regras do país).

@@ -30,6 +30,11 @@
                         <p class="text-muted small mb-0">
                             {{ $message }}
                         </p>
+                        @if (($resultType ?? '') === 'cancel' && ($ok ?? false) && ! empty($bookingCancellationPolicyNotice))
+                            <p class="text-muted small mb-0 mt-3">
+                                {{ $bookingCancellationPolicyNotice }}
+                            </p>
+                        @endif
                     </div>
                 </main>
             </div>

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientWalletBalanceException;
 use App\Models\Booking;
 use App\Models\BookingSavedCard;
 use App\Models\CalendarEvent;
 use App\Models\Client;
+use App\Models\ClientWalletTransaction;
 use App\Models\CrmSetting;
 use App\Models\Payment;
 use App\Models\Sale;
@@ -14,6 +16,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Services\BookingSlotHoldService;
+use App\Services\ClientWalletService;
 use App\Services\OnlineBookingCheckoutService;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
@@ -39,6 +42,7 @@ class BookingPaymentController extends Controller
         private BookingSlotHoldService $slotHolds,
         private VendusInvoiceService $vendusInvoiceService,
         private VendusInvoiceEmailService $vendusInvoiceEmailService,
+        private ClientWalletService $walletService,
     ) {}
 
     /**
@@ -83,10 +87,29 @@ class BookingPaymentController extends Controller
             ]);
         }
 
-        $amountCents = (int) round($paidAmount * 100);
-        if ($currency === 'eur' && $amountCents < 50) {
+        $depositCents = (int) round($paidAmount * 100);
+        $walletApplyCents = $this->resolveWalletApplyCentsForIntent($request, $depositCents, $storeId);
+        $stripeCents = max(0, $depositCents - $walletApplyCents);
+
+        if ($currency === 'eur' && $stripeCents > 0 && $stripeCents < 50) {
+            $shortfall = 50 - $stripeCents;
+            $actorForWallet = $request->user();
+            $clientForWallet = $actorForWallet instanceof User && $actorForWallet->isBookingClient()
+                ? $actorForWallet->loadMissing('client')->client
+                : null;
+            if ($clientForWallet instanceof Client) {
+                $extra = min(
+                    $shortfall,
+                    max(0, $this->walletService->getBalanceCents($clientForWallet) - $walletApplyCents),
+                );
+                $walletApplyCents += $extra;
+                $stripeCents = max(0, $depositCents - $walletApplyCents);
+            }
+        }
+
+        if ($currency === 'eur' && $stripeCents > 0 && $stripeCents < 50) {
             throw ValidationException::withMessages([
-                'services' => ['O valor mínimo para pagamento com cartão é 0,50 €. Escolhe mais serviços ou contacta a loja.'],
+                'services' => ['O valor mínimo para pagamento com cartão é 0,50 €. Usa créditos da carteira ou escolhe mais serviços.'],
             ]);
         }
 
@@ -101,6 +124,7 @@ class BookingPaymentController extends Controller
                 'public_id' => (string) \Illuminate\Support\Str::ulid(),
                 'total_price' => $total,
                 'paid_amount' => $paidAmount,
+                'wallet_applied_cents' => $walletApplyCents,
                 'remaining_amount' => $remaining,
                 'deposit_percent_used' => $depositPercent,
                 'payment_status' => Booking::PAYMENT_PENDING,
@@ -113,10 +137,23 @@ class BookingPaymentController extends Controller
             return response()->json(['message' => 'Não foi possível iniciar o pagamento. Tenta novamente.'], 500);
         }
 
+        if ($stripeCents <= 0 && $walletApplyCents > 0) {
+            return response()->json([
+                'wallet_only' => true,
+                'booking_public_id' => $booking->public_id,
+                'currency' => strtoupper($currency),
+                'total_price' => $total,
+                'paid_amount' => $paidAmount,
+                'wallet_applied_cents' => $walletApplyCents,
+                'remaining_amount' => $remaining,
+                'deposit_percent' => $depositPercent,
+            ]);
+        }
+
         try {
             $intent = PaymentIntent::create(
                 $this->bookingPaymentIntentCreateParams(
-                    $amountCents,
+                    $stripeCents,
                     $currency,
                     $booking->public_id,
                     (string) $booking->id,
@@ -147,7 +184,7 @@ class BookingPaymentController extends Controller
         Payment::query()->create([
             'booking_id' => $booking->id,
             'stripe_payment_intent_id' => $intent->id,
-            'amount' => $paidAmount,
+            'amount' => round($stripeCents / 100, 2),
             'currency' => (string) config('booking.currency'),
             'status' => Payment::STATUS_PENDING,
         ]);
@@ -165,6 +202,8 @@ class BookingPaymentController extends Controller
             'currency' => strtoupper($currency),
             'total_price' => $total,
             'paid_amount' => $paidAmount,
+            'wallet_applied_cents' => $walletApplyCents,
+            'stripe_amount_cents' => $stripeCents,
             'remaining_amount' => $remaining,
             'deposit_percent' => $depositPercent,
         ]);
@@ -178,6 +217,8 @@ class BookingPaymentController extends Controller
         $request->validate([
             'booking_public_id' => ['required', 'string', 'regex:/^[0-9A-HJKMNP-TV-Z]{26}$/i'],
             'payment_intent_id' => ['nullable', 'string', 'max:255'],
+            'wallet_apply' => ['sometimes', 'boolean'],
+            'wallet_apply_cents' => ['sometimes', 'integer', 'min:0'],
             'send_invoice_email' => ['sometimes', 'boolean'],
             'want_invoice_with_nif' => ['sometimes', 'boolean'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
@@ -237,40 +278,48 @@ class BookingPaymentController extends Controller
                 ]);
             }
 
-            $piId = $request->input('payment_intent_id') ?: $booking->stripe_payment_intent_id;
-            if (! is_string($piId) || $piId === '' || $piId !== $booking->stripe_payment_intent_id) {
-                DB::rollBack();
+            $depositCents = (int) round(((float) $booking->paid_amount) * 100);
+            $walletAppliedCents = $this->resolveWalletApplyCentsForComplete($request, $booking, $depositCents);
+            $expectedStripeCents = max(0, $depositCents - $walletAppliedCents);
+            $intent = null;
 
-                return response()->json(['message' => 'Identificador de pagamento inválido.'], 422);
-            }
+            if ($expectedStripeCents <= 0 && $walletAppliedCents > 0) {
+                // Pagamento integral com carteira (ex.: utilizador voltou a marcar o checkbox após preparar Stripe).
+            } else {
+                $piId = $request->input('payment_intent_id') ?: $booking->stripe_payment_intent_id;
+                if (! is_string($piId) || $piId === '' || $piId !== $booking->stripe_payment_intent_id) {
+                    DB::rollBack();
 
-            try {
-                $intent = PaymentIntent::retrieve($piId);
-            } catch (ApiErrorException $e) {
-                DB::rollBack();
+                    return response()->json(['message' => 'Identificador de pagamento inválido.'], 422);
+                }
 
-                return response()->json(['message' => 'Não foi possível verificar o pagamento no Stripe.'], 422);
-            }
+                try {
+                    $intent = PaymentIntent::retrieve($piId);
+                } catch (ApiErrorException $e) {
+                    DB::rollBack();
 
-            if ($intent->status !== 'succeeded') {
-                DB::rollBack();
-                $booking->update(['payment_status' => Booking::PAYMENT_FAILED]);
-                $booking->payments()->first()?->update([
-                    'status' => Payment::STATUS_FAILED,
-                    'failure_message' => 'PaymentIntent status: '.$intent->status,
-                ]);
+                    return response()->json(['message' => 'Não foi possível verificar o pagamento no Stripe.'], 422);
+                }
 
-                return response()->json([
-                    'message' => 'O pagamento não foi concluído. Verifica os dados do cartão e tenta novamente.',
-                ], 422);
-            }
+                if ($intent->status !== 'succeeded') {
+                    DB::rollBack();
+                    $booking->update(['payment_status' => Booking::PAYMENT_FAILED]);
+                    $booking->payments()->first()?->update([
+                        'status' => Payment::STATUS_FAILED,
+                        'failure_message' => 'PaymentIntent status: '.$intent->status,
+                    ]);
 
-            $expectedCents = (int) round(((float) $booking->paid_amount) * 100);
-            if ((int) $intent->amount !== $expectedCents) {
-                DB::rollBack();
-                report(new \RuntimeException('Stripe amount mismatch for booking '.$booking->id));
+                    return response()->json([
+                        'message' => 'O pagamento não foi concluído. Verifica os dados do cartão e tenta novamente.',
+                    ], 422);
+                }
 
-                return response()->json(['message' => 'Valor do pagamento não coincide. Contacta a loja.'], 422);
+                if ((int) $intent->amount !== $expectedStripeCents) {
+                    DB::rollBack();
+                    report(new \RuntimeException('Stripe amount mismatch for booking '.$booking->id));
+
+                    return response()->json(['message' => 'Valor do pagamento não coincide. Contacta a loja.'], 422);
+                }
             }
 
             $validated = $this->checkout->validateStoredPayload($booking->request_payload ?? []);
@@ -296,17 +345,37 @@ class BookingPaymentController extends Controller
                 'client_id' => $client->id,
             ]);
 
+            if ($walletAppliedCents > 0) {
+                $this->walletService->debit(
+                    $client,
+                    $walletAppliedCents,
+                    ClientWalletTransaction::TYPE_DEBIT_BOOKING_CHECKOUT,
+                    ClientWalletService::idempotencyKeyForBookingDebit((int) $booking->id),
+                    [
+                        'booking_id' => $booking->id,
+                        'calendar_event_id' => $event->id,
+                        'description' => 'Utilizado no pré-pagamento online',
+                        'created_by_type' => ClientWalletTransaction::CREATED_BY_CLIENT,
+                        'created_by_user_id' => $actor instanceof User ? $actor->id : null,
+                    ],
+                );
+            }
+
             $booking->payments()->first()?->update([
                 'status' => Payment::STATUS_SUCCEEDED,
                 'failure_message' => null,
             ]);
             $partialSale = $this->createPartialSaleForBooking($booking, $resolved, $client, $intent);
-            if ($actor instanceof User && $actor->isBookingClient()) {
+            if ($intent instanceof PaymentIntent && $actor instanceof User && $actor->isBookingClient()) {
                 $this->syncSavedCardFromIntent($intent, $actor);
             }
             $this->slotHolds->release($holdPublicId, $holdToken, 'booked');
 
             DB::commit();
+        } catch (InsufficientWalletBalanceException $e) {
+            DB::rollBack();
+
+            return response()->json(['message' => 'Saldo de créditos insuficiente.'], 422);
         } catch (ValidationException $e) {
             DB::rollBack();
             throw $e;
@@ -631,10 +700,20 @@ class BookingPaymentController extends Controller
      *     }>
      * }  $resolved
      */
-    private function createPartialSaleForBooking(Booking $booking, array $resolved, Client $client, PaymentIntent $intent): ?Sale
+    private function createPartialSaleForBooking(Booking $booking, array $resolved, Client $client, ?PaymentIntent $intent): ?Sale
     {
         $eventId = (int) ($booking->calendar_event_id ?? 0);
         if ($eventId <= 0) {
+            return null;
+        }
+
+        $walletCents = max(0, (int) ($booking->wallet_applied_cents ?? 0));
+        $depositCents = (int) round(((float) $booking->paid_amount) * 100);
+        $stripePortionCents = max(0, $depositCents - $walletCents);
+
+        // Créditos da carteira (ex.: provenientes de cancelamentos já faturados) não geram
+        // fatura de reserva — o sinal fica registado no Booking e no ledger da carteira.
+        if ($stripePortionCents <= 0) {
             return null;
         }
 
@@ -650,9 +729,11 @@ class BookingPaymentController extends Controller
         $now = now();
         $storeId = (int) ($booking->store_id ?: CalendarEvent::query()->whereKey($eventId)->value('store_id'));
         $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'), $storeId);
-        $paymentMethod = $this->salePaymentMethodFromIntent($intent);
+        $paymentMethod = $intent instanceof PaymentIntent
+            ? $this->salePaymentMethodFromIntent($intent)
+            : Sale::PAYMENT_OUTRO;
         $total = round((float) $booking->total_price, 2);
-        $valorPago = round((float) $booking->paid_amount, 2);
+        $valorPago = round($stripePortionCents / 100, 2);
         $eventModel = CalendarEvent::query()
             ->with(['eventServiceItems' => fn ($q) => $q->orderBy('sort_order')->orderBy('id')])
             ->find($eventId, ['id', 'title']);
@@ -684,7 +765,7 @@ class BookingPaymentController extends Controller
             'total' => min($valorPago, $total),
             'gorjeta' => null,
             'desconto' => null,
-            'valor_pago' => min($valorPago, $total),
+            'valor_pago' => $valorPago,
             'iva_total' => null,
             'payment_method' => $paymentMethod,
             'scope' => Sale::SCOPE_BOOKING_RESERVA,
@@ -694,8 +775,8 @@ class BookingPaymentController extends Controller
 
         $eventTitle = trim((string) ($eventModel?->title ?? ''));
         $descricaoReserva = $eventTitle !== ''
-            ? $eventTitle.' — adiantamento (reserva online)'
-            : 'Adiantamento de reserva (marcação online)';
+            ? $eventTitle.' — pré-pagamento (marcação online)'
+            : 'Pré-pagamento (marcação online)';
 
         $sort = 0;
         SaleItem::create([
@@ -706,8 +787,8 @@ class BookingPaymentController extends Controller
             'extra_id' => null,
             'descricao' => $descricaoReserva,
             'quantidade' => 1,
-            'preco_unitario' => min($valorPago, $total),
-            'subtotal' => min($valorPago, $total),
+            'preco_unitario' => $valorPago,
+            'subtotal' => $valorPago,
             'desconto' => null,
             'sort_order' => $sort++,
         ]);
@@ -764,6 +845,45 @@ class BookingPaymentController extends Controller
             'multibanco' => Sale::PAYMENT_MULTIBANCO,
             default => Sale::PAYMENT_OUTRO,
         };
+    }
+
+    private function resolveWalletApplyCentsForComplete(Request $request, Booking $booking, int $depositCents): int
+    {
+        $storeId = (int) $booking->store_id;
+        $fromRequest = $this->resolveWalletApplyCentsForIntent($request, $depositCents, $storeId);
+        if ($fromRequest > 0) {
+            $booking->forceFill(['wallet_applied_cents' => $fromRequest])->save();
+
+            return $fromRequest;
+        }
+
+        return max(0, (int) ($booking->wallet_applied_cents ?? 0));
+    }
+
+    private function resolveWalletApplyCentsForIntent(Request $request, int $depositCents, int $storeId): int
+    {
+        $requestedCents = max(0, (int) $request->input('wallet_apply_cents', 0));
+        $wantsWallet = $request->boolean('wallet_apply') || $requestedCents > 0;
+        if ($depositCents <= 0 || ! $wantsWallet) {
+            return 0;
+        }
+
+        $actor = $request->user();
+        if (! $actor instanceof User || ! $actor->isBookingClient()) {
+            return 0;
+        }
+
+        $client = $actor->loadMissing('client')->client;
+        if (! $client instanceof Client || (int) $client->store_id !== $storeId) {
+            return 0;
+        }
+
+        $balanceCents = $this->walletService->getBalanceCents($client);
+        if ($requestedCents <= 0) {
+            $requestedCents = $balanceCents;
+        }
+
+        return min($requestedCents, $depositCents, $balanceCents);
     }
 
     private function notifyClientAppointmentCreated(int $eventId, Client $client): void

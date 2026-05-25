@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Agent;
 use App\Models\Booking;
+use App\Models\BookingSavedCard;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Client;
@@ -14,10 +15,17 @@ use App\Models\Sale;
 use App\Models\Service;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
+use App\Exceptions\AppointmentCancellationException;
+use App\Models\ClientWalletTransaction;
 use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Notifications\ClientAppointmentRescheduledNotification;
+use App\Services\AgendaDepositService;
+use App\Services\AppointmentCancellationService;
+use App\Services\CancellationPolicyService;
+use App\Services\ClientWalletService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -26,6 +34,33 @@ use Illuminate\Validation\ValidationException;
 
 class CalendarController extends Controller
 {
+    public function __construct(
+        private AppointmentCancellationService $cancellationService,
+        private CancellationPolicyService $policyService,
+        private ClientWalletService $walletService,
+        private AgendaDepositService $agendaDepositService,
+    ) {}
+
+    /**
+     * Pré-visualização da política de cancelamento (agenda).
+     */
+    public function cancellationPreview(CalendarEvent $calendarEvent): JsonResponse
+    {
+        if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+            return response()->json(['message' => 'Evento inválido.'], 404);
+        }
+
+        if ((int) $calendarEvent->store_id !== (int) current_store_id()) {
+            abort(404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'preview' => $this->policyService->previewPayload($calendarEvent),
+            'policy_notice' => CrmSetting::bookingCancellationPolicyNoticeText((int) $calendarEvent->store_id),
+        ]);
+    }
+
     /**
      * Display the calendar (agenda) view.
      */
@@ -246,7 +281,6 @@ class CalendarController extends Controller
 
                 return $base + $extras;
             });
-            $alreadyPaidActive = round((float) $activeSales->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
             $annulledCaixaPaid = (float) $event->sales
                 ->filter(fn (Sale $s) => $s->status === Sale::STATUS_ANULADO && $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO)
                 ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid());
@@ -258,15 +292,14 @@ class CalendarController extends Controller
                 ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
                 ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
             $bookingPaidAmount = round(max($bookingPaidFromTable, $bookingPaidFromReservaSales, 0.0), 2);
-            $moneyTowardSubtotal = round(max(round($alreadyPaidActive + $annulledCaixaPaid, 2), $bookingPaidFromTable, 0.0), 2);
-            $amountDue = max(0.0, round($subtotal - $moneyTowardSubtotal, 2));
+            $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, $annulledCaixaPaid, $bookingPaidFromTable);
             $hasActiveCaixaSale = $activeSales->contains(fn (Sale $s) => $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO);
             $invoiceSettled = $subtotal > 0.00001 && $amountDue <= 0.00001;
             $pendingFinalInvoice = $isCompleted && $subtotal > 0.00001 && ! $hasActiveCaixaSale && $amountDue <= 0.00001;
             $paymentMethodLabels = Sale::paymentMethods();
             $paymentLines = $activeSales->map(function (Sale $s) use ($paymentMethodLabels) {
                 $scopeLabel = match ($s->scope) {
-                    Sale::SCOPE_BOOKING_RESERVA => 'Reserva',
+                    Sale::SCOPE_BOOKING_RESERVA => 'Pré-pagamento',
                     Sale::SCOPE_CAIXA_LIQUIDACAO => 'Pagamento final',
                     default => 'Pagamento',
                 };
@@ -434,6 +467,39 @@ class CalendarController extends Controller
         }
 
         return response()->json(['categories' => $categories]);
+    }
+
+    /**
+     * Saldo da carteira de créditos do cliente (caixa na agenda).
+     */
+    public function clientWallet(Client $client): JsonResponse
+    {
+        if ((int) $client->store_id !== (int) current_store_id()) {
+            abort(404);
+        }
+
+        $balanceCents = $this->walletService->getBalanceCents($client);
+
+        return response()->json([
+            'success' => true,
+            'balance_cents' => $balanceCents,
+            'balance_formatted' => number_format($balanceCents / 100, 2, ',', ' ').' €',
+        ]);
+    }
+
+    /**
+     * Cartões guardados do cliente (cobrança de reserva na receção).
+     */
+    public function clientSavedCards(Client $client): JsonResponse
+    {
+        if ((int) $client->store_id !== (int) current_store_id()) {
+            abort(404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'cards' => BookingSavedCard::payloadListForClient($client),
+        ]);
     }
 
     /**
@@ -666,8 +732,12 @@ class CalendarController extends Controller
                 ->where('payment_status', Booking::PAYMENT_PAID)
                 ->orderByDesc('id')
                 ->value('paid_amount');
-            $historicalPaid = round(max($salesPaidHistorical, $bookingPaid, 0.0), 2);
-            $payload['booking_paid_amount'] = round(max($bookingPaid, 0.0), 2);
+            $activeSalesForPaid = $calendarEvent->sales->filter(fn (Sale $s) => $s->status !== Sale::STATUS_ANULADO);
+            $bookingReservaPaid = round((float) $activeSalesForPaid
+                ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
+                ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
+            $historicalPaid = round(max($salesPaidHistorical, $bookingPaid, $bookingReservaPaid, 0.0), 2);
+            $payload['booking_paid_amount'] = round(max($bookingPaid, $bookingReservaPaid, 0.0), 2);
             $payload['invoice_settled'] = $this->isMarcacaoFullySettled($calendarEvent);
             if ($isCancelledEvent && $historicalPaid > 0.00001 && $subtotal > 0.00001) {
                 // Em marcações anuladas preservamos o histórico de pagamentos no resumo do offcanvas.
@@ -708,6 +778,14 @@ class CalendarController extends Controller
             }
 
             $payload['sales_invoices'] = $this->salesInvoicesForCalendarEvent($calendarEvent->id);
+
+            if (($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO) {
+                $payload = array_merge($payload, $this->marcacaoDepositPayloadForEvent($calendarEvent, $subtotal));
+                $payload['prepayment_wallet_only'] = $this->marcacaoPrepaymentWalletOnly(
+                    $calendarEvent,
+                    (float) ($payload['booking_paid_amount'] ?? 0),
+                );
+            }
 
             if ($calendarEvent->eventable_type === \App\Models\Visit::class && $calendarEvent->eventable_id && $calendarEvent->eventable) {
                 try {
@@ -1116,6 +1194,7 @@ class CalendarController extends Controller
             && $timeChanged
             && $freshEvent
             && $freshEvent->event_type === CalendarEvent::TYPE_MARCACAO
+            && $freshEvent->shouldSendBookingNotifications()
             && $freshEvent->client_id
         ) {
             $clientEmail = $freshEvent->client?->email;
@@ -1196,12 +1275,16 @@ class CalendarController extends Controller
             'status' => ['required', 'string', 'in:agendado,notificado,confirmado,chegou,iniciado,terminado,faltou,cancelado,completo'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
-            'refund_reserva' => ['nullable', 'boolean'],
-            'avisou_dentro_prazo' => ['nullable', 'boolean'],
             'notify_client' => ['sometimes', 'boolean'],
         ]);
 
         $newStatus = $validated['status'];
+        $marcacao = ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO;
+        $previousStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
+
+        if ($marcacao && $newStatus === CalendarEvent::STATUS_CANCELADO) {
+            return $this->updateStatusViaCancellationService($request, $calendarEvent, $validated, $previousStatus);
+        }
 
         // Verificar se a transição é válida
         $currentStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
@@ -1216,16 +1299,14 @@ class CalendarController extends Controller
         if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true)) {
             $update['cancellation_reason'] = isset($validated['cancellation_reason']) ? trim($validated['cancellation_reason']) ?: null : null;
             $update['cancellation_type'] = $validated['cancellation_type'] ?? $newStatus;
-            $update['refund_reserva'] = isset($validated['refund_reserva']) ? (bool) $validated['refund_reserva'] : null;
-            $update['avisou_dentro_prazo'] = isset($validated['avisou_dentro_prazo']) ? (bool) $validated['avisou_dentro_prazo'] : null;
+            $update['refund_reserva'] = false;
+            $update['avisou_dentro_prazo'] = $newStatus === CalendarEvent::STATUS_FALTOU ? false : null;
         } else {
             $update['cancellation_reason'] = null;
             $update['cancellation_type'] = null;
             $update['refund_reserva'] = null;
             $update['avisou_dentro_prazo'] = null;
         }
-        $marcacao = $calendarEvent->event_type === CalendarEvent::TYPE_MARCACAO;
-        $previousStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
         $statusUpdateApplied = false;
 
         if ($this->calendarEventStatusPayloadDiffers($calendarEvent, $update)) {
@@ -1234,34 +1315,7 @@ class CalendarController extends Controller
         }
 
         if ($statusUpdateApplied && $marcacao) {
-            $ev = $calendarEvent->fresh(['client', 'service', 'eventServices']);
-            if ($ev && $ev->event_type === CalendarEvent::TYPE_MARCACAO && $ev->user_id) {
-                $this->notifyMarcacaoRecipient((int) $ev->user_id, $ev, 'status_changed', $previousStatus);
-            }
-            $notifyClient = (bool) ($validated['notify_client'] ?? false);
-            if (
-                $notifyClient
-                && in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true)
-            ) {
-                $clientEv = $calendarEvent->fresh(['client']);
-                $email = $clientEv?->client?->email;
-                if (
-                    $this->clientAllowsEmailBookingUpdates($clientEv?->client)
-                    && $email
-                    && filter_var($email, FILTER_VALIDATE_EMAIL)
-                ) {
-                    try {
-                        Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
-                            ->notify(new ClientAppointmentCancelledNotification($calendarEvent->id));
-                    } catch (\Throwable $e) {
-                        \Log::warning('Falha ao enviar email de cancelamento ao cliente.', [
-                            'calendar_event_id' => $calendarEvent->id,
-                            'client_email' => $email,
-                            'error' => $e->getMessage(),
-                        ]);
-                    }
-                }
-            }
+            $this->afterMarcacaoStatusChange($calendarEvent, $previousStatus, $newStatus, (bool) ($validated['notify_client'] ?? false));
         }
 
         return response()->json([
@@ -1272,6 +1326,101 @@ class CalendarController extends Controller
             'status_label' => CalendarEvent::statuses()[$newStatus],
             'status_icon' => $calendarEvent->fresh()->status_icon,
         ]);
+    }
+
+    /**
+     * Cancelamento de marcação com política automática e crédito na carteira.
+     */
+    private function updateStatusViaCancellationService(
+        Request $request,
+        CalendarEvent $calendarEvent,
+        array $validated,
+        string $previousStatus,
+    ): JsonResponse {
+        if (! $calendarEvent->canTransitionTo(CalendarEvent::STATUS_CANCELADO)) {
+            $currentStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Não é possível alterar o estado de "'.CalendarEvent::statuses()[$currentStatus].'" para "'.CalendarEvent::statuses()[CalendarEvent::STATUS_CANCELADO].'".',
+            ], 422);
+        }
+
+        $reason = isset($validated['cancellation_reason']) ? trim((string) $validated['cancellation_reason']) : '';
+        $notifyClient = (bool) ($validated['notify_client'] ?? false);
+
+        try {
+            $result = $this->cancellationService->cancel($calendarEvent, [
+                'cancellation_reason' => $reason !== '' ? $reason : null,
+                'cancellation_type' => $validated['cancellation_type'] ?? CalendarEvent::STATUS_CANCELADO,
+                'notify_client' => $notifyClient,
+                'created_by_type' => ClientWalletTransaction::CREATED_BY_STAFF,
+                'created_by_user_id' => $request->user()?->id,
+            ]);
+        } catch (AppointmentCancellationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        $event = $result->event;
+        $this->afterMarcacaoStatusChange($event, $previousStatus, CalendarEvent::STATUS_CANCELADO, false);
+
+        $message = 'Marcação cancelada.';
+        if ($result->walletCredited && $result->walletCreditAmountCents > 0) {
+            $amount = number_format($result->walletCreditAmountCents / 100, 2, ',', ' ');
+            $message .= ' Crédito de '.$amount.' € na carteira do cliente.';
+        } elseif (! $result->policy->isWithinNoticePeriod && $result->policy->hasPaidDeposit) {
+            $message .= ' Fora do prazo — sinal não convertido em créditos.';
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'event' => $this->formatEventForCalendar($event),
+            'status' => CalendarEvent::STATUS_CANCELADO,
+            'status_label' => CalendarEvent::statuses()[CalendarEvent::STATUS_CANCELADO],
+            'status_icon' => $event->status_icon,
+            'cancellation_preview' => $this->policyService->previewPayload($event),
+        ]);
+    }
+
+    private function afterMarcacaoStatusChange(
+        CalendarEvent $calendarEvent,
+        string $previousStatus,
+        string $newStatus,
+        bool $notifyClient,
+    ): void {
+        $ev = $calendarEvent->fresh(['client', 'service', 'eventServices']);
+        if ($ev && $ev->event_type === CalendarEvent::TYPE_MARCACAO && $ev->user_id) {
+            $this->notifyMarcacaoRecipient((int) $ev->user_id, $ev, 'status_changed', $previousStatus);
+        }
+
+        if (
+            $notifyClient
+            && $calendarEvent->shouldSendBookingNotifications()
+            && in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true)
+        ) {
+            $clientEv = $calendarEvent->fresh(['client']);
+            $email = $clientEv?->client?->email;
+            if (
+                $this->clientAllowsEmailBookingUpdates($clientEv?->client)
+                && $email
+                && filter_var($email, FILTER_VALIDATE_EMAIL)
+            ) {
+                try {
+                    Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
+                        ->notify(new ClientAppointmentCancelledNotification($calendarEvent->id));
+                } catch (\Throwable $e) {
+                    \Log::warning('Falha ao enviar email de cancelamento ao cliente.', [
+                        'calendar_event_id' => $calendarEvent->id,
+                        'client_email' => $email,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
     }
 
     private function calendarEventStatusPayloadDiffers(CalendarEvent $event, array $update): bool
@@ -1454,7 +1603,6 @@ class CalendarController extends Controller
 
             return $base + $extras;
         });
-        $alreadyPaidActive = round((float) $activeSales->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
         $annulledCaixaPaid = (float) $event->sales
             ->filter(fn (Sale $s) => $s->status === Sale::STATUS_ANULADO && $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO)
             ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid());
@@ -1466,15 +1614,14 @@ class CalendarController extends Controller
             ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
             ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
         $bookingPaidAmount = round(max($bookingPaidFromTable, $bookingPaidFromReservaSales, 0.0), 2);
-        $moneyTowardSubtotal = round(max(round($alreadyPaidActive + $annulledCaixaPaid, 2), $bookingPaidFromTable, 0.0), 2);
-        $amountDue = max(0.0, round($subtotal - $moneyTowardSubtotal, 2));
+        $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, $annulledCaixaPaid, $bookingPaidFromTable);
         $hasActiveCaixaSale = $activeSales->contains(fn (Sale $s) => $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO);
         $invoiceSettled = $subtotal > 0.00001 && $amountDue <= 0.00001;
         $pendingFinalInvoice = $isCompleted && $subtotal > 0.00001 && ! $hasActiveCaixaSale && $amountDue <= 0.00001;
         $paymentMethodLabels = Sale::paymentMethods();
         $paymentLines = $activeSales->map(function (Sale $s) use ($paymentMethodLabels) {
             $scopeLabel = match ($s->scope) {
-                Sale::SCOPE_BOOKING_RESERVA => 'Reserva',
+                Sale::SCOPE_BOOKING_RESERVA => 'Pré-pagamento',
                 Sale::SCOPE_CAIXA_LIQUIDACAO => 'Pagamento final',
                 default => 'Pagamento',
             };
@@ -1676,7 +1823,7 @@ class CalendarController extends Controller
      */
     private function notifyMarcacaoRecipient(int $userId, CalendarEvent $event, string $type, ?string $previousStatus = null): void
     {
-        if ($event->event_type !== CalendarEvent::TYPE_MARCACAO) {
+        if ($event->event_type !== CalendarEvent::TYPE_MARCACAO || ! $event->shouldSendBookingNotifications()) {
             return;
         }
         $user = User::find($userId);
@@ -1699,6 +1846,10 @@ class CalendarController extends Controller
 
     private function notifyClientAppointmentCreated(CalendarEvent $event): void
     {
+        if (! $event->shouldSendBookingNotifications()) {
+            return;
+        }
+
         $client = $event->client;
         if (! $this->clientAllowsEmailBookingUpdates($client)) {
             return;
@@ -1755,12 +1906,33 @@ class CalendarController extends Controller
             ->all();
     }
 
+    /**
+     * @param  \Illuminate\Support\Collection<int, Sale>  $activeSales
+     */
+    private static function marcacaoAmountDueFromTotals(
+        float $subtotal,
+        \Illuminate\Support\Collection $activeSales,
+        float $annulledCaixaPaid,
+        float $bookingPaidFromTable,
+    ): float {
+        $discount = round((float) $activeSales->sum(fn (Sale $s): float => (float) ($s->desconto ?? 0)), 2);
+        $netSubtotal = max(0.0, round($subtotal - $discount, 2));
+        $alreadyPaidActive = round((float) $activeSales->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
+        $moneyTowardSubtotal = round(max(round($alreadyPaidActive + $annulledCaixaPaid, 2), $bookingPaidFromTable, 0.0), 2);
+
+        return max(0.0, round($netSubtotal - $moneyTowardSubtotal, 2));
+    }
+
     private function marcacaoAmountDueCashFromEventId(int $calendarEventId, float $subtotal): float
     {
         $salesActive = (float) Sale::query()
             ->where('calendar_event_id', $calendarEventId)
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
+        $salesDiscount = (float) Sale::query()
+            ->where('calendar_event_id', $calendarEventId)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(desconto, 0)'));
         $annulledCaixa = (float) Sale::query()
             ->where('calendar_event_id', $calendarEventId)
             ->where('status', Sale::STATUS_ANULADO)
@@ -1771,9 +1943,10 @@ class CalendarController extends Controller
             ->where('payment_status', Booking::PAYMENT_PAID)
             ->orderByDesc('id')
             ->value('paid_amount');
+        $netSubtotal = max(0.0, round($subtotal - $salesDiscount, 2));
         $moneyToward = round(max(round($salesActive + $annulledCaixa, 2), round(max($bookingPaid, 0.0), 2), 0.0), 2);
 
-        return max(0.0, round($subtotal - $moneyToward, 2));
+        return max(0.0, round($netSubtotal - $moneyToward, 2));
     }
 
     private function isMarcacaoFullySettled(CalendarEvent $calendarEvent): bool
@@ -1791,5 +1964,75 @@ class CalendarController extends Controller
         });
 
         return $this->marcacaoAmountDueCashFromEventId((int) $calendarEvent->id, $subtotal) <= 0.00001;
+    }
+
+    /**
+     * Campos de reserva/adiantamento para o offcanvas e modal de pagamento (receção).
+     *
+     * @return array{
+     *     deposit_percent: int,
+     *     deposit_amount_expected: float,
+     *     can_collect_deposit: bool,
+     *     has_booking_reserva_sale: bool,
+     *     has_saved_cards: bool
+     * }
+     */
+    private function marcacaoPrepaymentWalletOnly(CalendarEvent $calendarEvent, float $bookingPaidAmount): bool
+    {
+        if ($bookingPaidAmount <= 0.00001) {
+            return false;
+        }
+
+        $hasReservaSale = Sale::query()
+            ->where('calendar_event_id', $calendarEvent->id)
+            ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->exists();
+        if ($hasReservaSale) {
+            return false;
+        }
+
+        $walletAppliedCents = (int) (Booking::query()
+            ->where('calendar_event_id', $calendarEvent->id)
+            ->orderByDesc('id')
+            ->value('wallet_applied_cents') ?? 0);
+
+        return $walletAppliedCents > 0;
+    }
+
+    private function marcacaoDepositPayloadForEvent(CalendarEvent $calendarEvent, float $subtotal): array
+    {
+        $calendarEvent->loadMissing('client');
+
+        try {
+            $preview = $this->agendaDepositService->preview($calendarEvent);
+        } catch (\App\Exceptions\AgendaDepositException) {
+            $depositPercent = $this->agendaDepositService->depositPercent();
+            $depositAmount = $depositPercent > 0 && $subtotal > 0.00001
+                ? round($subtotal * ($depositPercent / 100), 2)
+                : 0.0;
+
+            $preview = [
+                'deposit_percent' => $depositPercent,
+                'deposit_amount' => $depositAmount,
+                'can_collect' => false,
+                'has_reserva_sale' => $this->agendaDepositService->hasActiveReservaSale((int) $calendarEvent->id),
+            ];
+        }
+
+        $client = $calendarEvent->client;
+        $hasSavedCards = $client instanceof Client
+            && BookingSavedCard::query()
+                ->where('client_id', $client->id)
+                ->whereNull('detached_at')
+                ->exists();
+
+        return [
+            'deposit_percent' => (int) ($preview['deposit_percent'] ?? $this->agendaDepositService->depositPercent()),
+            'deposit_amount_expected' => round((float) ($preview['deposit_amount'] ?? 0), 2),
+            'can_collect_deposit' => (bool) ($preview['can_collect'] ?? false),
+            'has_booking_reserva_sale' => (bool) ($preview['has_reserva_sale'] ?? false),
+            'has_saved_cards' => $hasSavedCards,
+        ];
     }
 }

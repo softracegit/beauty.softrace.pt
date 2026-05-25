@@ -2,13 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientWalletBalanceException;
 use App\Models\Booking;
 use App\Models\CalendarEvent;
 use App\Models\Client;
+use App\Models\ClientWalletTransaction;
 use App\Models\CrmSetting;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Notifications\ClientInvoiceAnnulledNotification;
+use App\Services\ClientWalletService;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
 use App\Support\PhoneDisplay;
@@ -26,6 +29,7 @@ class CheckoutController extends Controller
     public function __construct(
         private readonly VendusInvoiceService $vendusInvoiceService,
         private readonly VendusInvoiceEmailService $vendusInvoiceEmailService,
+        private readonly ClientWalletService $walletService,
     ) {}
 
     /**
@@ -76,6 +80,7 @@ class CheckoutController extends Controller
                 ],
                 'items' => [],
                 'payment_methods' => Sale::paymentMethods(),
+                'wallet_balance_cents' => $this->walletBalanceCentsForClient($calendarEvent->client),
             ]);
         }
 
@@ -126,6 +131,7 @@ class CheckoutController extends Controller
             ] : null,
             'items' => $items,
             'payment_methods' => Sale::paymentMethods(),
+            'wallet_balance_cents' => $this->walletBalanceCentsForClient($calendarEvent->client),
         ]);
     }
 
@@ -215,6 +221,25 @@ class CheckoutController extends Controller
         $valorPago = isset($validated['valor_pago']) ? max(0, (float) $validated['valor_pago']) : $total;
         $valorPago = min($valorPago, $total);
 
+        $paymentMethod = (string) $validated['payment_method'];
+        if ($paymentMethod === Sale::PAYMENT_CREDITOS_CARTEIRA) {
+            if (! $client instanceof Client) {
+                return response()->json(['error' => 'Esta marcação não tem cliente associado.'], 422);
+            }
+            $walletCents = $this->walletService->getBalanceCents($client);
+            $totalCents = (int) round($total * 100);
+            if ($totalCents <= 0) {
+                return response()->json(['error' => 'Não há valor em dívida para pagar com créditos.'], 422);
+            }
+            if ($walletCents < $totalCents) {
+                return response()->json([
+                    'error' => 'Saldo de créditos insuficiente para liquidar esta marcação.',
+                    'wallet_balance_cents' => $walletCents,
+                ], 422);
+            }
+            $valorPago = $total;
+        }
+
         $now = now();
         $storeId = (int) $calendarEvent->store_id;
         $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'), $storeId);
@@ -268,10 +293,31 @@ class CheckoutController extends Controller
                 ]);
             }
 
+            if ($paymentMethod === Sale::PAYMENT_CREDITOS_CARTEIRA && $client instanceof Client) {
+                $debitCents = (int) round($total * 100);
+                $this->walletService->debit(
+                    $client,
+                    $debitCents,
+                    ClientWalletTransaction::TYPE_DEBIT_POS_CHECKOUT,
+                    ClientWalletService::idempotencyKeyForPosDebit((int) $sale->id),
+                    [
+                        'sale_id' => $sale->id,
+                        'calendar_event_id' => $calendarEvent->id,
+                        'description' => 'Pagamento em loja (fatura '.($sale->numero_fatura ?? '').')',
+                        'created_by_type' => ClientWalletTransaction::CREATED_BY_STAFF,
+                        'created_by_user_id' => auth()->id(),
+                    ],
+                );
+            }
+
             // Marcar evento como completo
             $calendarEvent->update(['status' => CalendarEvent::STATUS_COMPLETO]);
 
             DB::commit();
+        } catch (InsufficientWalletBalanceException $e) {
+            DB::rollBack();
+
+            return response()->json(['error' => 'Saldo de créditos insuficiente.'], 422);
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
@@ -627,7 +673,7 @@ class CheckoutController extends Controller
         if ($finalInvoiceOnly) {
             if ($sale->scope !== Sale::SCOPE_CAIXA_LIQUIDACAO) {
                 return response()->json([
-                    'error' => 'Só pode anular desta forma a fatura final (pagamento em loja). A fatura de reserva mantém-se.',
+                    'error' => 'Só pode anular desta forma a fatura final (pagamento em loja). A fatura de pré-pagamento mantém-se.',
                 ], 422);
             }
             if ((int) $sale->calendar_event_id !== (int) $calendarEvent->id) {
@@ -844,5 +890,14 @@ class CheckoutController extends Controller
         }
 
         return (bool) ($client->notify_email_booking_updates ?? true);
+    }
+
+    private function walletBalanceCentsForClient(?Client $client): int
+    {
+        if (! $client instanceof Client) {
+            return 0;
+        }
+
+        return $this->walletService->getBalanceCents($client);
     }
 }

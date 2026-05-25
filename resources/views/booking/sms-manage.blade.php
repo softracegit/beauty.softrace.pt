@@ -48,22 +48,32 @@
                             'sectionSubtitle' => 'Confirme ou cancele a sua marcação',
                             'showStatusBadges' => false,
                             'showNoOnlineDepositNote' => false,
-                            'actionButtons' => [
-                                [
+                            'actionButtons' => array_filter([
+                                ($canCancelOnline ?? true) ? [
                                     'action' => '#',
                                     'label' => 'Não vou',
                                     'class' => 'btn btn-outline-danger btn-sm px-3',
                                     'type' => 'button',
                                     'button_id' => 'smsManageCancelBtn',
-                                ],
+                                ] : null,
                                 [
                                     'action' => route('booking.sms.confirm', ['token' => $token]),
                                     'label' => 'Sim, vou',
                                     'class' => 'btn btn-success btn-sm px-3',
                                     'button_id' => 'smsManageConfirmBtn',
                                 ],
-                            ],
+                            ]),
                         ])
+
+                        @if (! ($canCancelOnline ?? true) && isset($cancellationPolicy) && $cancellationPolicy->hasPaidDeposit)
+                            <div class="alert alert-warning small py-2 px-3 mt-3 mb-0">
+                                Já não é possível cancelar sem perder o pré-pagamento
+                                @if ($cancellationPolicy->eligibleDepositCreditCents > 0)
+                                    de {{ number_format($cancellationPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ') }} €
+                                @endif
+                                . O prazo era até {{ $cancellationPolicy->deadlineFormatted() }}.
+                            </div>
+                        @endif
                     </div>
                 </main>
             </div>
@@ -82,6 +92,21 @@
                 <form method="POST" action="{{ route('booking.sms.cancel', ['token' => $token]) }}" id="smsCancelReasonForm">
                     @csrf
                     <div class="modal-body">
+                        @if (isset($cancellationPolicy))
+                            <p class="small mb-2">
+                                Pode cancelar até <strong>{{ $cancellationPolicy->deadlineFormatted() }}</strong>.
+                            </p>
+                            @if ($cancellationPolicy->hasPaidDeposit && $cancellationPolicy->isWithinNoticePeriod && $cancellationPolicy->eligibleDepositCreditCents > 0)
+                                <p class="small text-muted mb-2">
+                                    O pré-pagamento de {{ number_format($cancellationPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ') }} € será convertido em créditos na carteira (não é reembolso bancário).
+                                </p>
+                            @endif
+                        @endif
+                        <p class="small text-muted mb-3">
+                            @include('booking.partials.cancellation-policy-notice', [
+                                'storeId' => (int) ($event->store_id ?? 0),
+                            ])
+                        </p>
                         <label for="smsCancelReasonInput" class="form-label">Razão do cancelamento</label>
                         <textarea
                             class="form-control"

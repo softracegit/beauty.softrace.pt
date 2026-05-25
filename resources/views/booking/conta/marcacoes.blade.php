@@ -51,3 +51,62 @@
 
     @include('booking.partials.store-offcanvas')
 @endsection
+
+@push('scripts')
+    @if (! empty($enableClientCancel) && ! empty($bookingStoreSlug))
+        @php
+            $accountCancelUrlTemplate = str_replace(
+                '999999',
+                '__EVENT__',
+                route('booking.conta.marcacoes.cancel', [
+                    'store' => $bookingStoreSlug,
+                    'calendarEvent' => 999999,
+                ])
+            );
+        @endphp
+        <script>
+            window.addEventListener('DOMContentLoaded', function () {
+                var modalEl = document.getElementById('accountCancelMarcacaoModal');
+                var form = document.getElementById('accountCancelMarcacaoForm');
+                if (!modalEl || !form || !window.bootstrap) return;
+
+                var modal = new bootstrap.Modal(modalEl);
+                var cancelUrlTemplate = @json($accountCancelUrlTemplate);
+
+                document.querySelectorAll('.account-cancel-marcacao-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var eventId = btn.getAttribute('data-event-id');
+                        if (!eventId) return;
+
+                        form.action = cancelUrlTemplate.replace('__EVENT__', eventId);
+
+                        var intro = document.getElementById('accountCancelMarcacaoIntro');
+                        var deadline = document.getElementById('accountCancelMarcacaoDeadline');
+                        var within = btn.getAttribute('data-within') === '1';
+                        var deposit = btn.getAttribute('data-deposit') === '1';
+                        var credit = btn.getAttribute('data-credit') || '';
+                        var deadlineText = btn.getAttribute('data-deadline') || '';
+
+                        if (intro) {
+                            if (within && deposit && credit !== '') {
+                                intro.textContent = 'O pré-pagamento de ' + credit + ' € será convertido em créditos na sua carteira (não é reembolso bancário).';
+                            } else if (within) {
+                                intro.textContent = 'A marcação será cancelada sem penalização.';
+                            } else {
+                                intro.textContent = 'A marcação será cancelada.';
+                            }
+                        }
+                        if (deadline) {
+                            deadline.textContent = deadlineText !== ''
+                                ? 'Pode cancelar até ' + deadlineText + '.'
+                                : '';
+                            deadline.classList.toggle('d-none', deadlineText === '');
+                        }
+
+                        modal.show();
+                    });
+                });
+            });
+        </script>
+    @endif
+@endpush

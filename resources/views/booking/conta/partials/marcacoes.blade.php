@@ -1,8 +1,12 @@
 @php
     use App\Models\CalendarEvent;
     use App\Models\Sale;
+    use App\Services\CancellationPolicyService;
 
     $marcacoes = $marcacoes ?? collect();
+    $enableClientCancel = (bool) ($enableClientCancel ?? false);
+    $bookingStoreSlug = (string) ($bookingStoreSlug ?? '');
+    $policyService = $enableClientCancel ? app(CancellationPolicyService::class) : null;
     $sectionTitle = $sectionTitle ?? 'Histórico de marcações';
     $sectionSubtitle = $sectionSubtitle ?? 'Resumo das tuas marcações, valores e estado.';
     $emptyMessage = $emptyMessage ?? 'Ainda não tens marcações registadas nesta conta.';
@@ -109,6 +113,14 @@
                             }
 
                             $totalComGorjeta = $pivotTotal + $gorjeta;
+
+                            $canClientCancel = false;
+                            $cancelPolicy = null;
+                            if ($enableClientCancel && $policyService && $start && ! $isLocked) {
+                                $cancelPolicy = $policyService->resolveForEvent($ev);
+                                $canClientCancel = $start->gt($nowTz)
+                                    && ($cancelPolicy->isWithinNoticePeriod || ! $cancelPolicy->hasPaidDeposit);
+                            }
                         @endphp
 
                         <article class="booking-marcacao-card">
@@ -281,6 +293,30 @@
                                     @endif
                                 </div>
 
+                                @if ($canClientCancel)
+                                    <div class="booking-marcacao-card__actions mt-2 pt-2 border-top">
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-danger btn-sm account-cancel-marcacao-btn"
+                                            data-event-id="{{ $ev->id }}"
+                                            data-deadline="{{ $cancelPolicy?->deadlineFormatted() ?? '' }}"
+                                            data-within="{{ $cancelPolicy?->isWithinNoticePeriod ? '1' : '0' }}"
+                                            data-deposit="{{ $cancelPolicy?->hasPaidDeposit ? '1' : '0' }}"
+                                            data-credit="{{ $cancelPolicy && $cancelPolicy->eligibleDepositCreditCents > 0 ? number_format($cancelPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ') : '' }}"
+                                        >
+                                            Cancelar marcação
+                                        </button>
+                                    </div>
+                                @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && $cancelPolicy && ! $cancelPolicy->isWithinNoticePeriod && $cancelPolicy->hasPaidDeposit)
+                                    <div class="alert alert-warning small py-2 px-3 mb-0 mt-2">
+                                        Já não é possível cancelar online sem perder o pré-pagamento
+                                        @if ($cancelPolicy->eligibleDepositCreditCents > 0)
+                                            de {{ number_format($cancelPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ') }} €
+                                        @endif
+                                        . O prazo era até {{ $cancelPolicy->deadlineFormatted() }}.
+                                    </div>
+                                @endif
+
                                 @if ($isLocked)
                                     <div class="booking-marcacao-card__alert small">
                                         <div class="fw-semibold text-dark mb-1">Cancelamento / falta</div>
@@ -300,7 +336,7 @@
                                             @endif
                                             @if ($ev->refund_reserva !== null)
                                                 @if ($ev->avisou_dentro_prazo !== null) · @endif
-                                                Reembolso reserva: {{ $ev->refund_reserva ? 'Sim' : 'Não' }}
+                                                Reembolso pré-pagamento: {{ $ev->refund_reserva ? 'Sim' : 'Não' }}
                                             @endif
                                         </div>
                                     </div>
@@ -310,6 +346,11 @@
                     @endforeach
                 </div>
             @endif
+
+            <div class="booking-marcacao-policy mt-3 pt-3 border-top">
+                <h3 class="booking-marcacao-card__label mb-2">Política de cancelamento</h3>
+                @include('booking.partials.cancellation-policy-notice')
+            </div>
 
             @if (! empty($actionButtons))
                 <div class="d-flex gap-2 flex-wrap mt-3">
@@ -334,4 +375,38 @@
             @endif
         </div>
     </div>
+
+@if ($enableClientCancel && $bookingStoreSlug !== '')
+    <div class="modal fade" id="accountCancelMarcacaoModal" tabindex="-1" aria-labelledby="accountCancelMarcacaoModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header pb-3">
+                    <h4 class="modal-title mb-0 fw-semibold" id="accountCancelMarcacaoModalLabel">Cancelar marcação</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <form method="POST" action="#" id="accountCancelMarcacaoForm">
+                    @csrf
+                    <div class="modal-body">
+                        <p class="small text-muted mb-2" id="accountCancelMarcacaoIntro"></p>
+                        <p class="small mb-3" id="accountCancelMarcacaoDeadline"></p>
+                        @include('booking.partials.cancellation-policy-notice')
+                        <label for="accountCancelReasonInput" class="form-label mt-3">Razão (opcional)</label>
+                        <textarea
+                            class="form-control"
+                            id="accountCancelReasonInput"
+                            name="cancellation_reason"
+                            rows="3"
+                            maxlength="1000"
+                            placeholder="Indique a razão do cancelamento"
+                        ></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Voltar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar cancelamento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
 </section>

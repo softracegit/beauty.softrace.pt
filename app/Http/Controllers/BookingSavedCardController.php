@@ -249,22 +249,7 @@ class BookingSavedCardController extends Controller
      */
     private function cardsPayloadForClient(Client $client): array
     {
-        return BookingSavedCard::query()
-            ->where('client_id', $client->id)
-            ->whereNull('detached_at')
-            ->orderByDesc('is_default')
-            ->orderByDesc('updated_at')
-            ->get()
-            ->map(fn (BookingSavedCard $row): array => [
-                'id' => (int) $row->id,
-                'brand' => (string) ($row->brand ?? ''),
-                'last4' => (string) ($row->last4 ?? ''),
-                'exp_month' => $row->exp_month !== null ? (int) $row->exp_month : null,
-                'exp_year' => $row->exp_year !== null ? (int) $row->exp_year : null,
-                'is_default' => (bool) $row->is_default,
-            ])
-            ->values()
-            ->all();
+        return BookingSavedCard::payloadListForClient($client);
     }
 
     private function resolveClientFromBookingActor(mixed $actor): ?Client

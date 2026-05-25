@@ -145,15 +145,71 @@
 
                             <section class="booking-category-section mb-4 pb-1"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif>
                                 <div id="booking-payment-panel" class="card border shadow-sm rounded-3 booking-category-card d-none">
-                                    <div class="card-body">
-                                        <h2 class="h6 fw-semibold text-dark mb-2">Pagamento</h2>
-                                        <p class="small text-muted mb-2">
-                                            Pagamento de reserva no valor de <strong id="booking-pay-deposit-amount">—</strong>
-                                            (<span id="booking-pay-deposit-pct">—</span>% do total). O restante
-                                            <strong id="booking-pay-remaining-amount">—</strong> paga na loja no dia do serviço.
-                                        </p>
-                                        <div id="booking-stripe-mount" class="mb-2"></div>
-                                        <p id="booking-stripe-error" class="small text-danger mb-0 d-none" role="alert"></p>
+                                    <div class="card-body p-3 p-md-4">
+                                        <header class="mb-3">
+                                            <h2 class="h6 fw-semibold text-dark mb-2">Pré-pagamento da marcação</h2>
+                                            <p class="small text-muted mb-0">
+                                                Para garantir o teu horário, pedimos um <strong>pré-pagamento</strong> agora.
+                                                O restante do valor paga-se no dia do serviço, na loja.
+                                            </p>
+                                        </header>
+
+                                        <div class="booking-payment-breakdown rounded-3 mb-3">
+                                            <div class="booking-payment-breakdown__row">
+                                                <span class="booking-payment-breakdown__label">Total da marcação</span>
+                                                <span class="booking-payment-breakdown__value" id="booking-pay-total-amount">—</span>
+                                            </div>
+                                            <div class="booking-payment-breakdown__row">
+                                                <span class="booking-payment-breakdown__label">
+                                                    Pré-pagamento (<span id="booking-pay-deposit-pct">—</span>%)
+                                                </span>
+                                                <span class="booking-payment-breakdown__value" id="booking-pay-deposit-amount">—</span>
+                                            </div>
+                                            <div class="booking-payment-breakdown__row booking-payment-breakdown__row--muted">
+                                                <span class="booking-payment-breakdown__label">A pagar no dia do serviço</span>
+                                                <span class="booking-payment-breakdown__value" id="booking-pay-remaining-amount">—</span>
+                                            </div>
+                                        </div>
+                                        @if(($walletBalanceCents ?? 0) > 0)
+                                            <div class="booking-payment-wallet-option rounded-3 mb-3" id="booking-wallet-apply-wrap" data-balance-cents="{{ (int) $walletBalanceCents }}">
+                                                <div class="form-check booking-payment-wallet-option__check mb-0">
+                                                    <input class="form-check-input" type="checkbox" id="booking-wallet-apply" value="1" checked>
+                                                    <label class="form-check-label" for="booking-wallet-apply">
+                                                        <span class="booking-payment-wallet-option__title d-block fw-semibold text-dark">
+                                                            Usar créditos da minha carteira
+                                                        </span>
+                                                        <span class="booking-payment-wallet-option__hint d-block small text-muted mt-1">
+                                                            Tens <strong id="booking-wallet-balance-display">{{ number_format($walletBalanceCents / 100, 2, ',', ' ') }} €</strong> disponíveis.
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        @endif
+                                        <div id="booking-wallet-covers-deposit-msg" class="booking-payment-credits-only rounded-3 mb-3 d-none" role="status">
+                                            <div class="d-flex gap-2 align-items-start">
+                                                <i class="bi bi-check-circle-fill text-success booking-payment-credits-only__icon" aria-hidden="true"></i>
+                                                <div class="small">
+                                                    <p class="fw-semibold text-dark mb-1">Pagamento só com créditos</p>
+                                                    <p class="text-muted mb-0">
+                                                        O pré-pagamento será debitado da tua carteira. Não precisas de pagar nada neste passo —
+                                                        clica em <strong>Confirmar</strong> para concluir a marcação.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="booking-stripe-payment-wrap" class="booking-payment-card-section">
+                                            <p class="fw-semibold text-dark small mb-1">Pagamento</p>
+                                            <p id="booking-pay-wallet-used-line" class="small text-muted mb-1 d-none">
+                                                Créditos a usar:
+                                                <strong class="text-success" id="booking-pay-wallet-used-amount">—</strong>
+                                            </p>
+                                            <p class="small text-muted mb-3">
+                                                Valor a pagar agora:
+                                                <strong id="booking-pay-card-amount">—</strong>
+                                            </p>
+                                            <div id="booking-stripe-mount" class="mb-2"></div>
+                                            <p id="booking-stripe-error" class="small text-danger mb-0 d-none" role="alert"></p>
+                                        </div>
                                     </div>
                                 </div>
                             </section>
@@ -161,8 +217,12 @@
                             <section class="booking-category-section mb-4 pb-1" aria-label="Política de cancelamento">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
-                                        <h3 class="h6 fw-semibold text-dark mb-2">Política de cancelamento</h3>
-                                        <p class="small text-muted mb-0">Por favor, note que as reservas só podem ser canceladas com um aviso prévio de 3 horas.</p>
+                                        <h3 class="h6 fw-semibold text-dark mb-0 pb-3 border-bottom">Política de cancelamento</h3>
+                                        <div class="pt-3">
+                                        @include('booking.partials.cancellation-policy-visual', [
+                                            'bookingCancellationPreviewUrl' => $bookingCancellationPreviewUrl ?? null,
+                                        ])
+                                        </div>
                                     </div>
                                 </div>
                             </section>

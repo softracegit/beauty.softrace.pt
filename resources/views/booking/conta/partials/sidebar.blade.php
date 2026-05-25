@@ -19,7 +19,7 @@
                 <i class="bi bi-calendar3" aria-hidden="true"></i>
                 <span>Marcações</span>
             </a>
-            <a href="#!" class="booking-account-nav__link d-flex align-items-center gap-2 {{ $accountNavActive === 'carteira' ? 'is-active' : '' }}">
+            <a href="{{ route('booking.conta.carteira', ['store' => $bookingStoreSlug], false) }}" class="booking-account-nav__link d-flex align-items-center gap-2 {{ $accountNavActive === 'carteira' ? 'is-active' : '' }}">
                 <i class="bi bi-wallet2" aria-hidden="true"></i>
                 <span>Carteira</span>
             </a>

@@ -486,7 +486,7 @@ final class VendusInvoiceService
     private function vendusLineContextText(Sale $sale): ?string
     {
         return match ($sale->scope) {
-            Sale::SCOPE_BOOKING_RESERVA => 'Valor da reserva online',
+            Sale::SCOPE_BOOKING_RESERVA => 'Valor do pré-pagamento',
             Sale::SCOPE_CAIXA_LIQUIDACAO => 'Pagamento final em loja',
             default => null,
         };

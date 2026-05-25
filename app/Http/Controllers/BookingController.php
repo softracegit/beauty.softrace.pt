@@ -12,6 +12,8 @@ use App\Models\CrmSetting;
 use App\Models\Service;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\CancellationPolicyService;
+use App\Services\ClientWalletService;
 use App\Support\CurrentStore;
 use App\Support\WeeklyScheduleWindow;
 use Carbon\Carbon;
@@ -264,17 +266,41 @@ class BookingController extends Controller
                 ->get();
         }
         $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired($this->bookingStoreId());
+        $walletBalanceCents = $client
+            ? app(ClientWalletService::class)->getBalanceCents($client)
+            : 0;
 
         return view('booking.step3', [
             'businessName' => $this->bookingBusinessName(),
             'bookingClientUser' => $isBookingClient ? $user : null,
             'bookingClient' => $client,
             'savedCards' => $savedCards,
+            'walletBalanceCents' => $walletBalanceCents,
             'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired,
             'bookingPaymentIntentUrl' => route('booking.payment.intent', ['store' => $this->bookingStoreSlug()]),
             'bookingPaymentCompleteUrl' => route('booking.payment.complete', ['store' => $this->bookingStoreSlug()]),
             'bookingConfirmWithoutPaymentUrl' => route('booking.confirm.without_payment', ['store' => $this->bookingStoreSlug()]),
+            'bookingCancellationPreviewUrl' => route('booking.cancellation.preview', ['store' => $this->bookingStoreSlug()]),
         ]);
+    }
+
+    /**
+     * Pré-visualização da política de cancelamento (linha temporal no checkout).
+     */
+    public function cancellationPolicyPreview(Request $request, CancellationPolicyService $policyService): JsonResponse
+    {
+        $validated = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+            'time' => ['required', 'regex:/^\d{2}:\d{2}$/'],
+        ]);
+
+        return response()->json(
+            $policyService->timelinePreviewForAppointment(
+                (string) $validated['date'],
+                (string) $validated['time'],
+                $this->bookingStoreId(),
+            ),
+        );
     }
 
     /**
@@ -346,6 +372,8 @@ class BookingController extends Controller
             'user' => $user,
             'client' => $client,
             'marcacoes' => $marcacoes,
+            'enableClientCancel' => true,
+            'bookingStoreSlug' => $this->bookingStoreSlug(),
         ]);
     }
 

@@ -73,7 +73,16 @@
         bookingPublicId: null,
         stripe: null,
         elements: null,
+        walletAppliedCents: 0,
+        stripeAmountCents: null,
+        intentPrepareInFlight: false,
+        intentPrepareSeq: 0,
+        ensureIntentScheduled: false,
+        /** Intents por combinação wallet:stripe (ex. "0:1200", "800:400") ou wallet_only:800 */
+        intentCache: {},
     };
+
+    var CHECKOUT_INTENT_CACHE_STORAGE_KEY = 'booking_checkout_intent_cache:' + BOOKING_STORE_SLUG;
 
     function formatMoneyEUR(amount) {
         return (
@@ -920,7 +929,823 @@
         }
     }
 
+    function getBookingDepositPercent() {
+        var app = document.querySelector('.booking-app[data-booking-deposit-percent]');
+        var pct = 20;
+        if (app) {
+            var rawPct = parseInt(app.getAttribute('data-booking-deposit-percent'), 10);
+            if (Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100) {
+                pct = rawPct;
+            }
+        }
+        return pct;
+    }
+
+    function getWalletBalanceCents() {
+        var wrap = document.getElementById('booking-wallet-apply-wrap');
+        if (!wrap) {
+            return 0;
+        }
+        return parseInt(wrap.getAttribute('data-balance-cents') || '0', 10) || 0;
+    }
+
+    function getDepositCentsForCheckout() {
+        var pct = getBookingDepositPercent();
+        var total = getTotalAmount();
+        var paid = Math.round(total * (pct / 100) * 100) / 100;
+        return Math.round(paid * 100);
+    }
+
+    function wantsWalletApplied() {
+        var cb = document.getElementById('booking-wallet-apply');
+        return !!(cb && cb.checked);
+    }
+
+    function walletCoversFullDeposit() {
+        if (!wantsWalletApplied()) {
+            return false;
+        }
+        var depositCents = getDepositCentsForCheckout();
+        if (depositCents <= 0) {
+            return false;
+        }
+        return getWalletApplyCentsForCheckout() >= depositCents;
+    }
+
+    function getExpectedCheckoutWalletCents() {
+        return wantsWalletApplied() ? getWalletApplyCentsForCheckout() : 0;
+    }
+
+    function getExpectedCheckoutStripeCents() {
+        return Math.max(0, getDepositCentsForCheckout() - getExpectedCheckoutWalletCents());
+    }
+
+    function checkoutIntentMatchesWalletPreference() {
+        if (!checkoutPaymentState.clientSecret) {
+            return false;
+        }
+        var expectedWallet = getExpectedCheckoutWalletCents();
+        var expectedStripe = getExpectedCheckoutStripeCents();
+        return (
+            (checkoutPaymentState.walletAppliedCents || 0) === expectedWallet &&
+            (checkoutPaymentState.stripeAmountCents != null
+                ? checkoutPaymentState.stripeAmountCents
+                : -1) === expectedStripe
+        );
+    }
+
+    function checkoutIntentNeedsRefreshForWallet() {
+        if (walletCoversFullDeposit()) {
+            return (
+                !checkoutPaymentState.bookingPublicId ||
+                (checkoutPaymentState.walletAppliedCents || 0) !== getExpectedCheckoutWalletCents()
+            );
+        }
+        if (!checkoutPaymentState.clientSecret) {
+            return true;
+        }
+        return !checkoutIntentMatchesWalletPreference();
+    }
+
+    function getCheckoutIntentCacheKey(walletCents, stripeCents) {
+        return String(walletCents || 0) + ':' + String(stripeCents || 0);
+    }
+
+    function snapshotFromIntentResponse(d) {
+        var walletCents = parseInt(d.wallet_applied_cents, 10) || 0;
+        var depositCents = Math.round((Number(d.paid_amount) || 0) * 100);
+        var stripeCents =
+            d.stripe_amount_cents != null
+                ? parseInt(d.stripe_amount_cents, 10) || 0
+                : Math.max(0, depositCents - walletCents);
+        return {
+            wallet_applied_cents: walletCents,
+            stripe_amount_cents: stripeCents,
+            deposit_cents: depositCents,
+            client_secret: d.client_secret || null,
+            customer_session_client_secret: d.customer_session_client_secret || null,
+            publishable_key: d.publishable_key || null,
+            booking_public_id: d.booking_public_id || null,
+            wallet_only: !!(d.wallet_only && d.booking_public_id),
+        };
+    }
+
+    function checkoutIntentSnapshotStillValid(snap) {
+        return snap.deposit_cents === getDepositCentsForCheckout();
+    }
+
+    function cacheCheckoutIntentResponse(d) {
+        var snap = snapshotFromIntentResponse(d);
+        var key = snap.wallet_only
+            ? 'wallet_only:' + snap.wallet_applied_cents
+            : getCheckoutIntentCacheKey(snap.wallet_applied_cents, snap.stripe_amount_cents);
+        checkoutPaymentState.intentCache[key] = snap;
+        persistCheckoutIntentCacheToStorage();
+    }
+
+    function persistCheckoutIntentCacheToStorage() {
+        if (!slotHoldState.holdPublicId) {
+            return;
+        }
+        try {
+            bookingStorage.setItem(
+                CHECKOUT_INTENT_CACHE_STORAGE_KEY,
+                JSON.stringify({
+                    holdId: slotHoldState.holdPublicId,
+                    depositCents: getDepositCentsForCheckout(),
+                    cache: checkoutPaymentState.intentCache,
+                }),
+            );
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function loadCheckoutIntentCacheFromStorage() {
+        if (!slotHoldState.holdPublicId) {
+            return;
+        }
+        try {
+            var raw = bookingStorage.getItem(CHECKOUT_INTENT_CACHE_STORAGE_KEY);
+            if (!raw) {
+                return;
+            }
+            var parsed = JSON.parse(raw);
+            if (!parsed || parsed.holdId !== slotHoldState.holdPublicId) {
+                return;
+            }
+            if (parsed.depositCents !== getDepositCentsForCheckout()) {
+                return;
+            }
+            checkoutPaymentState.intentCache = parsed.cache || {};
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function clearCheckoutIntentCacheStorage() {
+        try {
+            bookingStorage.removeItem(CHECKOUT_INTENT_CACHE_STORAGE_KEY);
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function tryBeginCheckoutIntentPrepare() {
+        if (checkoutPaymentState.intentPrepareInFlight || checkoutPaymentState.clientSecret) {
+            return false;
+        }
+        checkoutPaymentState.intentPrepareInFlight = true;
+        checkoutPaymentState.intentPrepareSeq += 1;
+        return true;
+    }
+
+    function applyStripeIntentSnapshot(snap) {
+        checkoutPaymentState.walletAppliedCents = snap.wallet_applied_cents || 0;
+        checkoutPaymentState.stripeAmountCents =
+            snap.stripe_amount_cents != null ? snap.stripe_amount_cents : 0;
+        checkoutPaymentState.clientSecret = snap.client_secret || null;
+        checkoutPaymentState.customerSessionClientSecret =
+            snap.customer_session_client_secret || null;
+        if (snap.publishable_key) {
+            checkoutPaymentState.publishableKey = snap.publishable_key;
+        }
+        checkoutPaymentState.bookingPublicId = snap.booking_public_id || null;
+        if (snap.booking_public_id) {
+            try {
+                bookingStorage.setItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY, snap.booking_public_id);
+            } catch (e) {
+                /* ignore */
+            }
+            persistBookingCheckoutInvoiceOpts(snap.booking_public_id);
+        }
+    }
+
+    function tryRestoreCheckoutIntentFromCache(walletCents, stripeCents) {
+        var key =
+            walletCoversFullDeposit() && stripeCents <= 0
+                ? 'wallet_only:' + walletCents
+                : getCheckoutIntentCacheKey(walletCents, stripeCents);
+        var snap = checkoutPaymentState.intentCache[key];
+        if (!snap || !checkoutIntentSnapshotStillValid(snap)) {
+            return false;
+        }
+        if (snap.wallet_only) {
+            if (!snap.booking_public_id) {
+                return false;
+            }
+            applyStripeIntentSnapshot(snap);
+            updateBookingDepositAmountDisplay();
+            syncCheckoutConfirmButtonState();
+            return true;
+        }
+        if (!snap.client_secret || !snap.publishable_key) {
+            return false;
+        }
+        applyStripeIntentSnapshot(snap);
+        updateBookingDepositAmountDisplay();
+        var panel = document.getElementById('booking-payment-panel');
+        if (panel) {
+            panel.classList.remove('d-none');
+        }
+        syncBookingPaymentStripeVisibility();
+        checkoutPaymentState.walletIntentRetryDone = false;
+        mountStripePaymentElement();
+        syncCheckoutConfirmButtonState();
+        return true;
+    }
+
+    function canPrepareCheckoutPaymentIntent() {
+        if (!isCheckoutPaymentRequired() || !document.body.classList.contains('booking-page--step3')) {
+            return false;
+        }
+        if (state.items.length === 0) {
+            return false;
+        }
+        if (
+            !slotHoldState.holdPublicId ||
+            !slotHoldState.expiresAt ||
+            new Date(slotHoldState.expiresAt).getTime() <= Date.now()
+        ) {
+            return false;
+        }
+        return true;
+    }
+
+    function scheduleEnsureCheckoutPaymentIntent() {
+        if (checkoutPaymentState.ensureIntentScheduled) {
+            return;
+        }
+        checkoutPaymentState.ensureIntentScheduled = true;
+        window.requestAnimationFrame(function () {
+            checkoutPaymentState.ensureIntentScheduled = false;
+            ensureCheckoutPaymentIntent();
+        });
+    }
+
+    function ensureCheckoutPaymentIntent() {
+        if (!canPrepareCheckoutPaymentIntent()) {
+            return;
+        }
+        var expectedWallet = getExpectedCheckoutWalletCents();
+        var expectedStripe = getExpectedCheckoutStripeCents();
+        if (!checkoutIntentNeedsRefreshForWallet()) {
+            if (
+                !walletCoversFullDeposit() &&
+                checkoutPaymentState.clientSecret &&
+                !checkoutPaymentState.elements
+            ) {
+                mountStripePaymentElement();
+            }
+            syncCheckoutConfirmButtonState();
+            return;
+        }
+        detachCheckoutPaymentIntent();
+        if (tryRestoreCheckoutIntentFromCache(expectedWallet, expectedStripe)) {
+            return;
+        }
+        if (!checkoutPaymentState.clientSecret && !checkoutPaymentState.intentPrepareInFlight) {
+            prepareStripeCheckoutIntent();
+        } else {
+            syncCheckoutConfirmButtonState();
+        }
+    }
+
+    function syncBookingPaymentStripeVisibility() {
+        var stripeWrap = document.getElementById('booking-stripe-payment-wrap');
+        var walletMsg = document.getElementById('booking-wallet-covers-deposit-msg');
+        var walletWrap = document.getElementById('booking-wallet-apply-wrap');
+        var covers = walletCoversFullDeposit();
+        if (stripeWrap) {
+            stripeWrap.classList.toggle('d-none', covers);
+        }
+        if (walletMsg) {
+            walletMsg.classList.toggle('d-none', !covers);
+        }
+        if (walletWrap) {
+            walletWrap.classList.toggle(
+                'booking-payment-wallet-option--active',
+                wantsWalletApplied() && getWalletBalanceCents() > 0
+            );
+        }
+        if (covers) {
+            setStripeInlineError('');
+        } else if (
+            checkoutPaymentState.clientSecret &&
+            checkoutPaymentState.publishableKey &&
+            !checkoutPaymentState.elements
+        ) {
+            mountStripePaymentElement();
+        }
+    }
+
+    function getWalletApplyCentsForCheckout() {
+        if (!wantsWalletApplied()) {
+            return 0;
+        }
+        return Math.min(getWalletBalanceCents(), getDepositCentsForCheckout());
+    }
+
+    function appendWalletFieldsToCheckoutPayload(payload) {
+        var cents = getWalletApplyCentsForCheckout();
+        if (cents > 0) {
+            payload.wallet_apply = true;
+            payload.wallet_apply_cents = cents;
+        }
+        return payload;
+    }
+
+    function syncWalletCheckboxAutoDefault() {
+        var cb = document.getElementById('booking-wallet-apply');
+        if (!cb || cb.dataset.userTouched === '1') {
+            return;
+        }
+        if (getWalletBalanceCents() > 0) {
+            cb.checked = true;
+        }
+    }
+
+    function updateBookingDepositAmountDisplay() {
+        var depEl = document.getElementById('booking-pay-deposit-amount');
+        var pctEl = document.getElementById('booking-pay-deposit-pct');
+        var remEl = document.getElementById('booking-pay-remaining-amount');
+        var totalEl = document.getElementById('booking-pay-total-amount');
+        var cardSectionAmtEl = document.getElementById('booking-pay-card-amount');
+        var walletUsedLine = document.getElementById('booking-pay-wallet-used-line');
+        var walletUsedAmtEl = document.getElementById('booking-pay-wallet-used-amount');
+        if (!depEl && !pctEl && !remEl) {
+            return;
+        }
+        var pct = getBookingDepositPercent();
+        var total = getTotalAmount();
+        var deposit = Math.round(total * (pct / 100) * 100) / 100;
+        var remaining = Math.round((total - deposit) * 100) / 100;
+        var walletCents = getExpectedCheckoutWalletCents();
+        if (checkoutPaymentState.clientSecret || checkoutPaymentState.bookingPublicId) {
+            if (checkoutIntentMatchesWalletPreference()) {
+                walletCents = checkoutPaymentState.walletAppliedCents || 0;
+            }
+        }
+        var stripeCents = getExpectedCheckoutStripeCents();
+        if (
+            checkoutPaymentState.clientSecret &&
+            checkoutIntentMatchesWalletPreference() &&
+            checkoutPaymentState.stripeAmountCents != null
+        ) {
+            stripeCents = checkoutPaymentState.stripeAmountCents;
+        }
+        var stripePart = stripeCents / 100;
+
+        if (totalEl) {
+            totalEl.textContent = formatMoneyEUR(total);
+        }
+        if (depEl) {
+            depEl.textContent = formatMoneyEUR(deposit);
+        }
+        if (pctEl) {
+            pctEl.textContent = String(pct);
+        }
+        if (remEl) {
+            remEl.textContent = formatMoneyEUR(remaining);
+        }
+        if (cardSectionAmtEl) {
+            cardSectionAmtEl.textContent =
+                stripePart > 0 ? formatMoneyEUR(stripePart) : formatMoneyEUR(deposit);
+        }
+        var showWalletUsed = walletCents > 0 && stripePart > 0;
+        if (walletUsedLine) {
+            walletUsedLine.classList.toggle('d-none', !showWalletUsed);
+        }
+        if (walletUsedAmtEl && showWalletUsed) {
+            walletUsedAmtEl.textContent = formatMoneyEUR(walletCents / 100);
+        }
+        syncBookingPaymentStripeVisibility();
+        syncCheckoutConfirmButtonState();
+    }
+
+    function syncCheckoutConfirmButtonState() {
+        if (!els.nextBtn || !document.body.classList.contains('booking-page--step3')) {
+            return;
+        }
+        if (!isCheckoutPaymentRequired()) {
+            return;
+        }
+        if (checkoutPaymentState.intentPrepareInFlight) {
+            setCheckoutNextBtnColor(false);
+            setCheckoutNextBtnLoading(true, 'A preparar pagamento...');
+            return;
+        }
+        if (walletCoversFullDeposit()) {
+            setCheckoutNextBtnColor(true);
+            setCheckoutNextBtnLoading(false, 'Confirmar');
+            return;
+        }
+        if (checkoutPaymentState.clientSecret) {
+            setCheckoutNextBtnColor(true);
+            setCheckoutNextBtnLoading(false, 'Confirmar');
+            return;
+        }
+        setCheckoutNextBtnColor(false);
+        setCheckoutNextBtnLoading(false, 'Pagamento');
+    }
+
+    function detachCheckoutPaymentIntent() {
+        checkoutPaymentState.intentPrepareSeq += 1;
+        checkoutPaymentState.walletIntentRetryDone = false;
+        checkoutPaymentState.clientSecret = null;
+        checkoutPaymentState.customerSessionClientSecret = null;
+        checkoutPaymentState.bookingPublicId = null;
+        checkoutPaymentState.stripe = null;
+        checkoutPaymentState.elements = null;
+        checkoutPaymentState.walletAppliedCents = 0;
+        checkoutPaymentState.stripeAmountCents = null;
+        checkoutPaymentState.intentPrepareInFlight = false;
+        var mount = document.getElementById('booking-stripe-mount');
+        if (mount) {
+            mount.innerHTML = '';
+        }
+        setStripeInlineError('');
+    }
+
+    function invalidateCheckoutPaymentIntent() {
+        detachCheckoutPaymentIntent();
+        checkoutPaymentState.publishableKey = null;
+        checkoutPaymentState.intentCache = {};
+        clearCheckoutIntentCacheStorage();
+        if (els.nextBtn) {
+            setCheckoutNextBtnColor(false);
+            els.nextBtn.textContent = isCheckoutPaymentRequired() ? 'Pagamento' : 'Marcar';
+        }
+        updateBookingDepositAmountDisplay();
+        syncCheckoutConfirmButtonState();
+    }
+
+    function buildCheckoutSubmissionPayload(includeWallet) {
+        var contact = getCheckoutContactPayload();
+        var tech = getTechnicianSelection();
+        var dt = getDateTimeSelection();
+        if (!contact || !tech || !dt || !contact.phone || !state.items.length) {
+            return { valid: false };
+        }
+        var payload = {
+            name: contact.name,
+            email: contact.email,
+            phone: contact.phone,
+            notes: contact.notes || '',
+            date: dt.date,
+            time: dt.time,
+            agent_id: String(tech.id),
+            services: state.items.map(function (line) {
+                var row = { id: line.id };
+                if (line.service_option_id != null && line.service_option_id !== '') {
+                    row.service_option_id = Number(line.service_option_id);
+                }
+                return row;
+            }),
+        };
+        if (slotHoldState.holdPublicId) {
+            payload.slot_hold_public_id = slotHoldState.holdPublicId;
+        }
+        if (slotHoldState.sessionToken) {
+            payload.slot_hold_token = slotHoldState.sessionToken;
+        }
+        var invPayload = getBookingInvoicePayload();
+        payload.send_invoice_email = invPayload.send_invoice_email;
+        payload.want_invoice_with_nif = invPayload.want_invoice_with_nif;
+        payload.billing_nif = invPayload.billing_nif;
+        payload.invoice_email = invPayload.invoice_email;
+        if (includeWallet) {
+            appendWalletFieldsToCheckoutPayload(payload);
+        }
+        return { valid: true, payload: payload };
+    }
+
+    function applyStripeIntentResponse(d) {
+        cacheCheckoutIntentResponse(d);
+        applyStripeIntentSnapshot(snapshotFromIntentResponse(d));
+        updateBookingDepositAmountDisplay();
+        var panel = document.getElementById('booking-payment-panel');
+        if (panel) {
+            panel.classList.remove('d-none');
+        }
+        syncBookingPaymentStripeVisibility();
+        if (
+            checkoutPaymentState.clientSecret &&
+            !checkoutIntentMatchesWalletPreference() &&
+            !checkoutPaymentState.intentPrepareInFlight
+        ) {
+            if (!checkoutPaymentState.walletIntentRetryDone) {
+                checkoutPaymentState.walletIntentRetryDone = true;
+                detachCheckoutPaymentIntent();
+                ensureCheckoutPaymentIntent();
+                return;
+            }
+            setCheckoutError(
+                'Não foi possível aplicar os créditos da carteira ao pagamento. Desmarca a opção de créditos ou contacta a loja.',
+            );
+            return;
+        }
+        checkoutPaymentState.walletIntentRetryDone = false;
+        mountStripePaymentElement();
+        syncCheckoutConfirmButtonState();
+    }
+
+    function prepareStripeCheckoutIntent() {
+        var expectedWallet = getExpectedCheckoutWalletCents();
+        var expectedStripe = getExpectedCheckoutStripeCents();
+        if (tryRestoreCheckoutIntentFromCache(expectedWallet, expectedStripe)) {
+            return;
+        }
+        if (!tryBeginCheckoutIntentPrepare()) {
+            syncCheckoutConfirmButtonState();
+            return;
+        }
+        var prepareSeq = checkoutPaymentState.intentPrepareSeq;
+        var urls = getBookingPaymentUrls();
+        if (!urls || !urls.intentUrl) {
+            checkoutPaymentState.intentPrepareInFlight = false;
+            setCheckoutError('Serviço de marcação indisponível.');
+            return;
+        }
+        if (!slotHoldState.holdPublicId || !slotHoldState.expiresAt || new Date(slotHoldState.expiresAt).getTime() <= Date.now()) {
+            checkoutPaymentState.intentPrepareInFlight = false;
+            return;
+        }
+        var built = buildCheckoutSubmissionPayload(wantsWalletApplied());
+        if (!built.valid) {
+            checkoutPaymentState.intentPrepareInFlight = false;
+            return;
+        }
+        hideCheckoutError();
+        syncCheckoutConfirmButtonState();
+        fetch(urls.intentUrl, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(built.payload),
+        })
+            .then(function (r) {
+                return r
+                    .json()
+                    .catch(function () {
+                        return {};
+                    })
+                    .then(function (data) {
+                        return { ok: r.ok, status: r.status, data: data };
+                    });
+            })
+            .then(function (res) {
+                if (prepareSeq !== checkoutPaymentState.intentPrepareSeq) {
+                    return;
+                }
+                checkoutPaymentState.intentPrepareInFlight = false;
+                if (!res.ok || !res.data) {
+                    var msg = 'Não foi possível iniciar o pagamento.';
+                    if (res.data && res.data.message) {
+                        msg = res.data.message;
+                    }
+                    setCheckoutError(msg);
+                    syncCheckoutConfirmButtonState();
+                    return;
+                }
+                if (res.data.wallet_only && res.data.booking_public_id) {
+                    cacheCheckoutIntentResponse(res.data);
+                    applyStripeIntentSnapshot(snapshotFromIntentResponse(res.data));
+                    updateBookingDepositAmountDisplay();
+                    syncCheckoutConfirmButtonState();
+                    return;
+                }
+                if (!res.data.client_secret) {
+                    var msgNoSecret = 'Não foi possível iniciar o pagamento.';
+                    if (res.data.message) {
+                        msgNoSecret = res.data.message;
+                    }
+                    setCheckoutError(msgNoSecret);
+                    syncCheckoutConfirmButtonState();
+                    return;
+                }
+                applyStripeIntentResponse(res.data);
+                syncCheckoutConfirmButtonState();
+            })
+            .catch(function () {
+                if (prepareSeq !== checkoutPaymentState.intentPrepareSeq) {
+                    return;
+                }
+                checkoutPaymentState.intentPrepareInFlight = false;
+                setCheckoutError('Erro de rede. Tenta novamente.');
+                syncCheckoutConfirmButtonState();
+            });
+    }
+
+    function bindBookingWalletCheckbox() {
+        var cb = document.getElementById('booking-wallet-apply');
+        if (!cb || cb.dataset.walletBound === '1') {
+            return;
+        }
+        cb.dataset.walletBound = '1';
+        cb.addEventListener('change', function () {
+            cb.dataset.userTouched = '1';
+            updateBookingDepositAmountDisplay();
+            ensureCheckoutPaymentIntent();
+        });
+    }
+
+    var cancellationPolicyPreviewState = {
+        requestId: 0,
+        lastKey: '',
+        lastSuccess: false,
+    };
+
+    function visualCancellationPinPercent(data) {
+        var raw = typeof data.deadline_percent === 'number' ? data.deadline_percent : 50;
+        var visMin = 54;
+        var visMax = 70;
+        var center = 62;
+
+        if (data.cancellation_unavailable) {
+            return center;
+        }
+
+        if (data.notice_hours <= 0) {
+            return visMax;
+        }
+
+        var t = Math.max(0, Math.min(100, raw)) / 100;
+        return visMin + t * (visMax - visMin);
+    }
+
+    function positionCancellationDeadlinePoint(pinEl, data) {
+        if (!pinEl) {
+            return;
+        }
+        var wrap = pinEl.closest('.booking-cancel-policy__track-wrap');
+        var pct = visualCancellationPinPercent(data);
+        pinEl.style.left = pct + '%';
+
+        window.requestAnimationFrame(function () {
+            if (!wrap) {
+                return;
+            }
+            var stack = pinEl.querySelector('.booking-cancel-policy__badge-stack');
+            var measureEl = stack || pinEl;
+            var wrapRect = wrap.getBoundingClientRect();
+            var measureRect = measureEl.getBoundingClientRect();
+            var pad = 6;
+            var half = measureRect.width / 2;
+            var minLeft = pad + half;
+            var maxLeft = wrapRect.width - pad - half;
+            var desiredLeft = (pct / 100) * wrapRect.width;
+            var clampedLeft = Math.max(minLeft, Math.min(maxLeft, desiredLeft));
+            if (Math.abs(clampedLeft - desiredLeft) > 0.5) {
+                pinEl.style.left = (clampedLeft / wrapRect.width) * 100 + '%';
+            }
+        });
+    }
+
+    function renderCancellationPolicyVisual() {
+        var root = document.getElementById('booking-cancellation-policy');
+        if (!root || !document.body.classList.contains('booking-page--step3')) {
+            return;
+        }
+        var emptyEl = document.getElementById('booking-cancel-policy-empty');
+        var timelineEl = document.getElementById('booking-cancel-policy-timeline');
+        if (!emptyEl || !timelineEl) {
+            return;
+        }
+
+        var previewUrl = root.getAttribute('data-preview-url') || '';
+        var dt = getDateTimeSelection();
+        if (!dt || !dt.date || !dt.time || !previewUrl) {
+            emptyEl.classList.remove('d-none');
+            timelineEl.classList.add('d-none');
+            if (!dt || !dt.date || !dt.time) {
+                emptyEl.textContent =
+                    'Seleciona data e hora da marcação para ver até quando podes cancelar sem perder o pré-pagamento.';
+            } else {
+                emptyEl.textContent = 'Não foi possível carregar o prazo de cancelamento.';
+            }
+            return;
+        }
+
+        var key = dt.date + '|' + dt.time;
+        if (key === cancellationPolicyPreviewState.lastKey && cancellationPolicyPreviewState.lastSuccess) {
+            return;
+        }
+
+        cancellationPolicyPreviewState.lastKey = key;
+        cancellationPolicyPreviewState.lastSuccess = false;
+        var requestId = ++cancellationPolicyPreviewState.requestId;
+
+        emptyEl.classList.remove('d-none');
+        timelineEl.classList.add('d-none');
+        emptyEl.textContent = 'A carregar prazo de cancelamento…';
+
+        var url = previewUrl + (previewUrl.indexOf('?') >= 0 ? '&' : '?') + 'date=' + encodeURIComponent(dt.date) + '&time=' + encodeURIComponent(dt.time);
+
+        fetch(url, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function (res) {
+                if (!res.ok) {
+                    throw new Error('preview_failed');
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                if (requestId !== cancellationPolicyPreviewState.requestId) {
+                    return;
+                }
+                if (!data || !data.ready) {
+                    emptyEl.classList.remove('d-none');
+                    timelineEl.classList.add('d-none');
+                    emptyEl.textContent =
+                        (data && data.message) ||
+                        'Seleciona data e hora da marcação para ver até quando podes cancelar sem perder o pré-pagamento.';
+                    return;
+                }
+
+                var pin = document.getElementById('booking-cancel-policy-pin');
+                var badge = document.getElementById('booking-cancel-policy-badge');
+                var badgeLimit = document.getElementById('booking-cancel-policy-badge-limit');
+                var warning = document.getElementById('booking-cancel-policy-warning');
+                var nowLabel = document.getElementById('booking-cancel-policy-now-label');
+                var apptLabel = document.getElementById('booking-cancel-policy-appt-label');
+                var desc = document.getElementById('booking-cancel-policy-description');
+                var unavailable = !!data.cancellation_unavailable;
+
+                root.classList.toggle('booking-cancel-policy--unavailable', unavailable);
+                timelineEl.classList.toggle('booking-cancel-policy__timeline--unavailable', unavailable);
+
+                if (warning) {
+                    if (unavailable && data.warning_message) {
+                        warning.textContent = data.warning_message;
+                        warning.classList.remove('d-none');
+                    } else {
+                        warning.textContent = '';
+                        warning.classList.add('d-none');
+                    }
+                }
+
+                positionCancellationDeadlinePoint(pin, data);
+
+                if (badge) {
+                    badge.textContent = data.deadline_badge || '';
+                }
+                if (badgeLimit) {
+                    if (unavailable && data.deadline_limit_label) {
+                        badgeLimit.textContent = 'Limite: ' + data.deadline_limit_label;
+                        badgeLimit.classList.remove('d-none');
+                    } else {
+                        badgeLimit.textContent = '';
+                        badgeLimit.classList.add('d-none');
+                    }
+                }
+                if (nowLabel) {
+                    nowLabel.textContent = data.now_label || 'Hoje';
+                }
+                if (apptLabel) {
+                    var apptDate = data.appointment_label || '';
+                    var apptTime = data.appointment_time || '';
+                    apptLabel.textContent = apptTime ? apptDate + ', ' + apptTime : apptDate;
+                }
+                if (desc) {
+                    var deadlineText = data.description_deadline || '';
+                    var limitLabel = data.deadline_limit_label || '';
+                    var fullText = data.description || '';
+                    if (unavailable && limitLabel && fullText.indexOf(limitLabel) >= 0) {
+                        desc.innerHTML = fullText.replace(limitLabel, '<strong>' + limitLabel + '</strong>');
+                    } else if (!unavailable && deadlineText && fullText.indexOf(deadlineText) >= 0) {
+                        desc.innerHTML = fullText.replace(deadlineText, '<strong>' + deadlineText + '</strong>');
+                    } else {
+                        desc.textContent = fullText;
+                    }
+                }
+
+                emptyEl.classList.add('d-none');
+                timelineEl.classList.remove('d-none');
+                cancellationPolicyPreviewState.lastSuccess = true;
+                positionCancellationDeadlinePoint(pin, data);
+            })
+            .catch(function () {
+                if (requestId !== cancellationPolicyPreviewState.requestId) {
+                    return;
+                }
+                emptyEl.classList.remove('d-none');
+                timelineEl.classList.add('d-none');
+                emptyEl.textContent = 'Não foi possível carregar o prazo de cancelamento. Tenta novamente.';
+            });
+    }
+
     function updateCheckoutPaymentPreview() {
+        if (document.body.classList.contains('booking-page--step3')) {
+            renderCancellationPolicyVisual();
+        }
         var panel = document.getElementById('booking-payment-panel');
         if (!panel || !document.body.classList.contains('booking-page--step3')) {
             return;
@@ -934,31 +1759,10 @@
             return;
         }
         panel.classList.remove('d-none');
-        var app = document.querySelector('.booking-app[data-booking-deposit-percent]');
-        var pct = 20;
-        if (app) {
-            var rawPct = parseInt(app.getAttribute('data-booking-deposit-percent'), 10);
-            if (Number.isFinite(rawPct) && rawPct >= 0 && rawPct <= 100) {
-                pct = rawPct;
-            }
-        }
-        var total = getTotalAmount();
-        var paid = Math.round(total * (pct / 100) * 100) / 100;
-        var remaining = Math.round((total - paid) * 100) / 100;
-        if (!checkoutPaymentState.clientSecret) {
-            var depEl = document.getElementById('booking-pay-deposit-amount');
-            var pctEl = document.getElementById('booking-pay-deposit-pct');
-            var remEl = document.getElementById('booking-pay-remaining-amount');
-            if (depEl) {
-                depEl.textContent = formatMoneyEUR(paid);
-            }
-            if (pctEl) {
-                pctEl.textContent = String(pct);
-            }
-            if (remEl) {
-                remEl.textContent = formatMoneyEUR(remaining);
-            }
-        }
+        syncWalletCheckboxAutoDefault();
+        bindBookingWalletCheckbox();
+        updateBookingDepositAmountDisplay();
+        scheduleEnsureCheckoutPaymentIntent();
         var hint = document.getElementById('booking-payment-stripe-hint');
         if (hint) {
             hint.classList.toggle('d-none', !!checkoutPaymentState.clientSecret);
@@ -2479,6 +3283,7 @@
         if (!form) {
             return;
         }
+        bindBookingWalletCheckbox();
         bindBookingInvoiceEmailLivePreview();
         bindBookingInvoiceUiToggles();
         ['booking-invoice-nif', 'booking-invoice-supplement-email'].forEach(function (id) {
@@ -2989,24 +3794,10 @@
     }
 
     function resetCheckoutPaymentUi() {
-        checkoutPaymentState.clientSecret = null;
-        checkoutPaymentState.customerSessionClientSecret = null;
-        checkoutPaymentState.publishableKey = null;
-        checkoutPaymentState.bookingPublicId = null;
-        checkoutPaymentState.stripe = null;
-        checkoutPaymentState.elements = null;
-        var mount = document.getElementById('booking-stripe-mount');
-        if (mount) {
-            mount.innerHTML = '';
-        }
+        invalidateCheckoutPaymentIntent();
         var panel = document.getElementById('booking-payment-panel');
         if (panel) {
             panel.classList.add('d-none');
-        }
-        setStripeInlineError('');
-        if (els.nextBtn) {
-            setCheckoutNextBtnColor(false);
-            els.nextBtn.textContent = isCheckoutPaymentRequired() ? 'Pagamento' : 'Marcar';
         }
         updateCheckoutPaymentPreview();
     }
@@ -3332,6 +4123,9 @@
         if (!checkoutPaymentState.clientSecret || !checkoutPaymentState.publishableKey) {
             return;
         }
+        if (walletCoversFullDeposit()) {
+            return;
+        }
         var mount = document.getElementById('booking-stripe-mount');
         if (!mount) {
             return;
@@ -3394,6 +4188,13 @@
     }
 
     function confirmStripePayment() {
+        if (!checkoutIntentMatchesWalletPreference()) {
+            detachCheckoutPaymentIntent();
+            ensureCheckoutPaymentIntent();
+            setStripeInlineError('A preparar o pagamento com os valores correctos...');
+            setCheckoutNextBtnLoading(false, 'Pagamento');
+            return;
+        }
         if (!checkoutPaymentState.stripe || !checkoutPaymentState.elements) {
             setStripeInlineError('Inicia o pagamento novamente.');
             setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
@@ -3437,26 +4238,6 @@
             });
     }
 
-    function maybeAutoPrepareCheckoutPayment() {
-        if (!document.body || !document.body.classList.contains('booking-page--step3')) {
-            return;
-        }
-        if (!isCheckoutPaymentRequired()) {
-            return;
-        }
-        if (checkoutPaymentState.clientSecret) {
-            return;
-        }
-        if (!hasCheckoutContact() || !state.items.length) {
-            return;
-        }
-        if (!slotHoldState.holdPublicId || !slotHoldState.expiresAt || new Date(slotHoldState.expiresAt).getTime() <= Date.now()) {
-            return;
-        }
-        setCheckoutNextBtnLoading(true, 'A preparar pagamento...');
-        submitBookingCheckout();
-    }
-
     function finalizeBookingAfterPayment(bookingPublicId, paymentIntentId) {
         var urls = getBookingPaymentUrls();
         if (!urls || !urls.completeUrl) {
@@ -3481,7 +4262,7 @@
             body: JSON.stringify(
                 (function () {
                     var inv = getInvoiceOptsForCompleteRequest(bookingPublicId);
-                    return {
+                    var body = {
                         booking_public_id: bookingPublicId,
                         payment_intent_id: paymentIntentId || null,
                         send_invoice_email: inv.send_invoice_email,
@@ -3489,6 +4270,11 @@
                         billing_nif: inv.billing_nif || null,
                         invoice_email: inv.invoice_email || null,
                     };
+                    if (wantsWalletApplied()) {
+                        body.wallet_apply = true;
+                        body.wallet_apply_cents = getWalletApplyCentsForCheckout();
+                    }
+                    return body;
                 })(),
             ),
         })
@@ -3672,14 +4458,6 @@
             setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
-        var contact = getCheckoutContactPayload();
-        var tech = getTechnicianSelection();
-        var dt = getDateTimeSelection();
-        if (!contact || !tech || !dt || !contact.phone || !state.items.length) {
-            setCheckoutError('Falta informação. Volta atrás e completa todos os passos.');
-            setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
-            return;
-        }
         if (!slotHoldState.holdPublicId || !slotHoldState.expiresAt || new Date(slotHoldState.expiresAt).getTime() <= Date.now()) {
             setCheckoutError('A reserva temporária expirou. Escolhe novamente data e hora.');
             onSlotHoldExpired();
@@ -3688,34 +4466,14 @@
         }
         hideCheckoutError();
         setStripeInlineError('');
-        var payload = {
-            name: contact.name,
-            email: contact.email,
-            phone: contact.phone,
-            notes: contact.notes || '',
-            date: dt.date,
-            time: dt.time,
-            agent_id: String(tech.id),
-            services: state.items.map(function (line) {
-                var row = { id: line.id };
-                if (line.service_option_id != null && line.service_option_id !== '') {
-                    row.service_option_id = Number(line.service_option_id);
-                }
-                return row;
-            }),
-        };
-        if (slotHoldState.holdPublicId) {
-            payload.slot_hold_public_id = slotHoldState.holdPublicId;
-        }
-        if (slotHoldState.sessionToken) {
-            payload.slot_hold_token = slotHoldState.sessionToken;
-        }
 
-        var invPayload = getBookingInvoicePayload();
-        payload.send_invoice_email = invPayload.send_invoice_email;
-        payload.want_invoice_with_nif = invPayload.want_invoice_with_nif;
-        payload.billing_nif = invPayload.billing_nif;
-        payload.invoice_email = invPayload.invoice_email;
+        var built = buildCheckoutSubmissionPayload(true);
+        if (!built.valid) {
+            setCheckoutError('Falta informação. Volta atrás e completa todos os passos.');
+            setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
+            return;
+        }
+        var payload = built.payload;
 
         if (!isCheckoutPaymentRequired()) {
             setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
@@ -3723,8 +4481,27 @@
             return;
         }
 
-        if (checkoutPaymentState.clientSecret) {
+        if (walletCoversFullDeposit()) {
+            if (checkoutPaymentState.bookingPublicId) {
+                setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+                finalizeBookingAfterPayment(checkoutPaymentState.bookingPublicId, null);
+                return;
+            }
+        } else if (checkoutPaymentState.clientSecret) {
+            if (!checkoutIntentMatchesWalletPreference()) {
+                detachCheckoutPaymentIntent();
+                ensureCheckoutPaymentIntent();
+                setCheckoutNextBtnLoading(false, 'Pagamento');
+                return;
+            }
             confirmStripePayment();
+            return;
+        } else if (!wantsWalletApplied()) {
+            prepareStripeCheckoutIntent();
+            return;
+        } else {
+            ensureCheckoutPaymentIntent();
+            setCheckoutNextBtnLoading(false, 'Pagamento');
             return;
         }
 
@@ -3734,9 +4511,7 @@
             /* ignore */
         }
 
-        if (els.nextBtn) {
-            els.nextBtn.disabled = true;
-        }
+        setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
         fetch(urls.intentUrl, {
             method: 'POST',
             credentials: 'same-origin',
@@ -3759,7 +4534,7 @@
                     });
             })
             .then(function (res) {
-                if (!res.ok || !res.data || !res.data.client_secret) {
+                if (!res.ok || !res.data || (!res.data.client_secret && !res.data.wallet_only)) {
                     var msg = 'Não foi possível iniciar o pagamento.';
                     if (res.data && res.data.message) {
                         msg = res.data.message;
@@ -3785,38 +4560,15 @@
                     return;
                 }
                 var d = res.data;
-                checkoutPaymentState.clientSecret = d.client_secret;
-                checkoutPaymentState.customerSessionClientSecret = d.customer_session_client_secret || null;
-                checkoutPaymentState.publishableKey = d.publishable_key;
-                checkoutPaymentState.bookingPublicId = d.booking_public_id;
-                try {
-                    bookingStorage.setItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY, d.booking_public_id);
-                } catch (e) {
-                    /* ignore */
+                if (d.wallet_only && d.booking_public_id) {
+                    cacheCheckoutIntentResponse(d);
+                    applyStripeIntentSnapshot(snapshotFromIntentResponse(d));
+                    updateBookingDepositAmountDisplay();
+                    setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+                    finalizeBookingAfterPayment(d.booking_public_id, null);
+                    return;
                 }
-                persistBookingCheckoutInvoiceOpts(d.booking_public_id);
-                var depEl = document.getElementById('booking-pay-deposit-amount');
-                var pctEl = document.getElementById('booking-pay-deposit-pct');
-                var remEl = document.getElementById('booking-pay-remaining-amount');
-                if (depEl && d.paid_amount != null) {
-                    depEl.textContent = formatMoneyEUR(Number(d.paid_amount));
-                }
-                if (pctEl && d.deposit_percent != null) {
-                    pctEl.textContent = String(d.deposit_percent);
-                }
-                if (remEl && d.remaining_amount != null) {
-                    remEl.textContent = formatMoneyEUR(Number(d.remaining_amount));
-                }
-                var panel = document.getElementById('booking-payment-panel');
-                if (panel) {
-                    panel.classList.remove('d-none');
-                }
-                mountStripePaymentElement();
-                updateCheckoutPaymentPreview();
-                if (els.nextBtn) {
-                    setCheckoutNextBtnColor(true);
-                    setCheckoutNextBtnLoading(false, 'Confirmar');
-                }
+                applyStripeIntentResponse(d);
                 renderSummary();
             })
             .catch(function () {
@@ -4718,11 +5470,10 @@
                 }
                 flushGuestContactFromDomToStorage();
                 persist();
-                if (!checkoutPaymentState.clientSecret) {
-                    setCheckoutNextBtnLoading(
-                        true,
-                        isCheckoutPaymentRequired() ? 'A preparar pagamento...' : 'A confirmar marcação...'
-                    );
+                if (walletCoversFullDeposit()) {
+                    setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+                } else if (!checkoutPaymentState.clientSecret) {
+                    setCheckoutNextBtnLoading(true, 'A preparar pagamento...');
                 }
                 submitBookingCheckout();
                 return;
@@ -4754,6 +5505,7 @@
         loadSlotHoldState();
         syncSummaryScrollPlacement();
         loadFromStorage();
+        loadCheckoutIntentCacheFromStorage();
         renderSummary();
         initTechnicianStep();
         initDateTimeStep();
@@ -4772,7 +5524,6 @@
         bindBookingSummaryFooterVisualViewport();
         if (document.body && document.body.classList.contains('booking-page--step3')) {
             tryResumeStripeRedirectOnCheckout();
-            setTimeout(maybeAutoPrepareCheckoutPayment, 150);
         }
     }
 

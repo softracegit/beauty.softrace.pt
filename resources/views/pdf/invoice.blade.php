@@ -80,7 +80,7 @@
         <tbody>
             @if($isPartial)
                 <tr>
-                    <td>{{ $sale->items->first()?->descricao ?: 'Adiantamento de reserva (marcação online)' }}</td>
+                    <td>{{ $sale->invoiceDisplayDescription($sale->items->first()?->descricao) }}</td>
                     <td class="text-right">1</td>
                     <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>
                     <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>
@@ -88,7 +88,7 @@
             @elseif($isSettlement)
                 @foreach($sale->items as $item)
                 <tr>
-                    <td>{{ $item->descricao }}</td>
+                    <td>{{ $sale->invoiceDisplayDescription($item->descricao) }}</td>
                     <td class="text-right">{{ $item->quantidade }}</td>
                     <td class="text-right">{{ number_format($item->preco_unitario, 2, ',', ' ') }} €</td>
                     <td class="text-right">{{ number_format($item->subtotal, 2, ',', ' ') }} €</td>
@@ -97,7 +97,7 @@
             @else
                 @foreach($sale->items as $item)
                 <tr>
-                    <td>{{ $item->descricao }}</td>
+                    <td>{{ $sale->invoiceDisplayDescription($item->descricao) }}</td>
                     <td class="text-right">{{ $item->quantidade }}</td>
                     <td class="text-right">{{ number_format($item->preco_unitario, 2, ',', ' ') }} €</td>
                     <td class="text-right">{{ number_format($item->subtotal, 2, ',', ' ') }} €</td>
@@ -115,7 +115,7 @@
                     <td class="text-right">{{ number_format($serviceGrossTotal, 2, ',', ' ') }} €</td>
                 </tr>
                 <tr class="total-row">
-                    <td>Total adiantamento pago</td>
+                    <td>Total pré-pagamento</td>
                     <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>
                 </tr>
                 <tr>
@@ -129,7 +129,7 @@
                 </tr>
                 @if($previousPaid > 0.00001)
                 <tr>
-                    <td>Valor da reserva</td>
+                    <td>Valor do pré-pagamento</td>
                     <td class="text-right">-{{ number_format($previousPaid, 2, ',', ' ') }} €</td>
                 </tr>
                 @endif

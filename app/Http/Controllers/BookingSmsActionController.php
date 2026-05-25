@@ -2,13 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\AppointmentCancellationException;
 use App\Models\BookingSmsActionLink;
 use App\Models\CalendarEvent;
+use App\Models\ClientWalletTransaction;
+use App\Models\CrmSetting;
+use App\Services\AppointmentCancellationService;
+use App\Services\CancellationPolicyService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class BookingSmsActionController extends Controller
 {
+    public function __construct(
+        private AppointmentCancellationService $cancellationService,
+        private CancellationPolicyService $policyService,
+    ) {}
     public function manage(string $token): View
     {
         $resolved = $this->resolveLink($token);
@@ -23,11 +32,18 @@ class BookingSmsActionController extends Controller
             );
         }
 
+        $event = $resolved['event'];
+        $storeId = (int) ($event->store_id ?? 0);
+        $policy = $this->policyService->resolveForEvent($event);
+
         return view('booking.sms-manage', [
             'token' => $token,
-            'event' => $resolved['event'],
-            'businessName' => (string) ($resolved['event']->store?->name ?? config('app.name', 'Loja')),
-            'bookingStoreSlug' => (string) ($resolved['event']->store?->slug ?? \App\Models\Store::defaultPublicBookingStoreSlug()),
+            'event' => $event,
+            'businessName' => (string) ($event->store?->name ?? config('app.name', 'Loja')),
+            'bookingStoreSlug' => (string) ($event->store?->slug ?? \App\Models\Store::defaultPublicBookingStoreSlug()),
+            'bookingCancellationPolicyNotice' => CrmSetting::bookingCancellationPolicyNoticeText($storeId ?: null),
+            'cancellationPolicy' => $policy,
+            'canCancelOnline' => $policy->isWithinNoticePeriod || ! $policy->hasPaidDeposit,
         ]);
     }
 
@@ -78,19 +94,27 @@ class BookingSmsActionController extends Controller
                 ? $cancellationReason
                 : 'Cancelado pelo cliente via link SMS.';
 
-            $calendarEvent->forceFill([
-                'status' => CalendarEvent::STATUS_CANCELADO,
-                'cancellation_type' => CalendarEvent::STATUS_CANCELADO,
-                'cancellation_reason' => $finalReason,
-                'refund_reserva' => null,
-                'avisou_dentro_prazo' => null,
-            ])->save();
+            try {
+                $cancelResult = $this->cancellationService->cancel($calendarEvent, [
+                    'cancellation_reason' => $finalReason,
+                    'block_if_outside_notice_period' => true,
+                    'notify_client' => false,
+                    'created_by_type' => ClientWalletTransaction::CREATED_BY_CLIENT,
+                ]);
+                $calendarEvent = $cancelResult->event;
 
-            $result = [
-                'ok' => true,
-                'title' => 'Marcação cancelada',
-                'message' => 'A sua marcação foi cancelada com sucesso.',
-            ];
+                $result = [
+                    'ok' => true,
+                    'title' => 'Marcação cancelada',
+                    'message' => $this->cancellationSuccessMessage($cancelResult),
+                ];
+            } catch (AppointmentCancellationException $e) {
+                $result = [
+                    'ok' => false,
+                    'title' => 'Não foi possível cancelar',
+                    'message' => $e->getMessage(),
+                ];
+            }
         } elseif ($currentStatus === CalendarEvent::STATUS_CONFIRMADO) {
             $result = [
                 'ok' => true,
@@ -121,13 +145,16 @@ class BookingSmsActionController extends Controller
             }
         }
 
+        $storeId = (int) ($calendarEvent->store_id ?? 0);
+
         return $this->resultView(
             (bool) $result['ok'],
             (string) $result['title'],
             (string) $result['message'],
             (string) ($calendarEvent->store?->slug ?? ''),
             (string) ($calendarEvent->store?->name ?? config('app.name', 'Loja')),
-            $targetStatus === CalendarEvent::STATUS_CANCELADO ? 'cancel' : 'confirm'
+            $targetStatus === CalendarEvent::STATUS_CANCELADO ? 'cancel' : 'confirm',
+            $storeId > 0 ? CrmSetting::bookingCancellationPolicyNoticeText($storeId) : null,
         );
     }
 
@@ -158,13 +185,25 @@ class BookingSmsActionController extends Controller
         ];
     }
 
+    private function cancellationSuccessMessage(\App\Services\AppointmentCancellationResult $result): string
+    {
+        if ($result->walletCredited && $result->walletCreditAmountCents > 0) {
+            $amount = number_format($result->walletCreditAmountCents / 100, 2, ',', ' ');
+
+            return 'A sua marcação foi cancelada. O pré-pagamento de '.$amount.' € foi convertido em créditos na sua carteira (não é reembolso bancário).';
+        }
+
+        return 'A sua marcação foi cancelada com sucesso.';
+    }
+
     private function resultView(
         bool $ok,
         string $title,
         string $message,
         string $storeSlug = '',
         string $businessName = 'Loja',
-        string $resultType = 'confirm'
+        string $resultType = 'confirm',
+        ?string $bookingCancellationPolicyNotice = null,
     ): View
     {
         return view('booking.sms-action-result', [
@@ -175,6 +214,7 @@ class BookingSmsActionController extends Controller
             'businessName' => $businessName,
             'bookingStoreSlug' => $storeSlug !== '' ? $storeSlug : \App\Models\Store::defaultPublicBookingStoreSlug(),
             'resultType' => $resultType,
+            'bookingCancellationPolicyNotice' => $bookingCancellationPolicyNotice,
         ]);
     }
 }

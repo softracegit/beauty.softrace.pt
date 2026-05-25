@@ -3286,3 +3286,198 @@ button.booking-offcanvas-nav__link {
 .flatpickr-current-month {
     padding: 11.5px 0 0 0 !important;
 }
+
+/* Step 3 — secção de pagamento / pré-pagamento */
+.booking-payment-breakdown {
+    background: var(--bs-light, #f8f9fa);
+    border: 1px solid var(--bs-border-color);
+    padding: 0.65rem 0.85rem;
+}
+
+.booking-payment-breakdown__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.4rem 0;
+    font-size: 0.875rem;
+}
+
+.booking-payment-breakdown__row + .booking-payment-breakdown__row {
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.booking-payment-breakdown__row--muted .booking-payment-breakdown__label,
+.booking-payment-breakdown__row--muted .booking-payment-breakdown__value {
+    color: var(--bs-secondary-color);
+    font-size: 0.8125rem;
+}
+
+.booking-payment-breakdown__label {
+    color: var(--bs-body-color);
+}
+
+.booking-payment-breakdown__value {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.booking-payment-wallet-option {
+    border: 1px solid var(--bs-border-color);
+    background: #fff;
+    padding: 0.85rem 1rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.booking-payment-wallet-option--active {
+    border-color: rgba(25, 135, 84, 0.45);
+    background: rgba(25, 135, 84, 0.04);
+}
+
+.booking-payment-wallet-option__check .form-check-input {
+    margin-top: 0.2rem;
+}
+
+.booking-payment-credits-only {
+    background: rgba(25, 135, 84, 0.06);
+    border: 1px solid rgba(25, 135, 84, 0.2);
+    padding: 0.85rem 1rem;
+}
+
+.booking-payment-credits-only__icon {
+    flex-shrink: 0;
+    font-size: 1.125rem;
+    line-height: 1;
+    margin-top: 0.1rem;
+}
+
+.booking-payment-card-section {
+    border-top: 1px solid var(--bs-border-color);
+    padding-top: 1rem;
+    margin-top: 0.25rem;
+}
+
+/* Step 3 — política de cancelamento (linha temporal) */
+.booking-cancel-policy__empty {
+    line-height: 1.45;
+}
+
+.booking-cancel-policy__timeline {
+    padding-top: 0.15rem;
+}
+
+.booking-cancel-policy__warning {
+    margin-bottom: 0;
+    line-height: 1.45;
+}
+
+.booking-cancel-policy__track-wrap {
+    margin-bottom: 0.85rem;
+    overflow: hidden;
+    padding-top: 2.85rem;
+}
+
+.booking-cancel-policy__track {
+    position: relative;
+    height: 4px;
+    margin: 0 0 0.35rem;
+    border-radius: 999px;
+    background: #e5e7eb;
+}
+
+.booking-cancel-policy__deadline-point {
+    position: absolute;
+    top: 50%;
+    left: 62%;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translate(-50%, -50%);
+    max-width: calc(100% - 0.5rem);
+}
+
+.booking-cancel-policy__badge-stack {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: min(16rem, 78vw);
+}
+
+.booking-cancel-policy__badge {
+    display: inline-block;
+    max-width: 100%;
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    background: #111;
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 600;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.booking-cancel-policy--unavailable .booking-cancel-policy__badge {
+    background: #6b7280;
+}
+
+.booking-cancel-policy__badge-limit {
+    margin-top: 0.15rem;
+    font-size: 0.6rem;
+    color: #6b7280;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.booking-cancel-policy--unavailable .booking-cancel-policy__pin {
+    border-color: #d97706;
+    color: #b45309;
+    background: #fffbeb;
+}
+
+.booking-cancel-policy__pin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    border: 1px solid #9ca3af;
+    background: #fff;
+    color: #6b7280;
+    font-size: 0.6rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.booking-cancel-policy__axis {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.booking-cancel-policy__axis-label {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    white-space: nowrap;
+}
+
+.booking-cancel-policy__axis-end {
+    text-align: right;
+}
+
+.booking-cancel-policy__description {
+    line-height: 1.5;
+}
+
+.booking-cancel-policy__description strong {
+    color: #111;
+    font-weight: 600;
+}

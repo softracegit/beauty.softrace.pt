@@ -46,6 +46,7 @@ class DefinicoesController extends Controller
         return view('definicoes.agendamentos', [
             'pageTitle' => 'Marcações',
             'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes($storeId),
+            'bookingCancellationNoticeHours' => CrmSetting::bookingCancellationNoticeHours($storeId),
             'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRulesUi(),
             'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule($storeId),
         ]);
@@ -55,12 +56,20 @@ class DefinicoesController extends Controller
     {
         $validated = $request->validate([
             'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
+            'booking_cancellation_notice_hours' => [
+                'required',
+                'integer',
+                'min:'.CrmSetting::BOOKING_CANCELLATION_NOTICE_HOURS_MIN,
+                'max:'.CrmSetting::BOOKING_CANCELLATION_NOTICE_HOURS_MAX,
+            ],
             'booking_any_staff_rule' => ['nullable', 'string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
             'booking_any_staff_rule_options' => ['nullable', 'array', 'min:1', 'max:1'],
             'booking_any_staff_rule_options.*' => ['string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
         ], [
             'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
             'booking_slot_hold_minutes.max' => 'O tempo de reserva não pode exceder 240 minutos.',
+            'booking_cancellation_notice_hours.min' => 'O aviso mínimo não pode ser negativo.',
+            'booking_cancellation_notice_hours.max' => 'O aviso mínimo não pode exceder 168 horas (7 dias).',
             'booking_any_staff_rule_options.max' => 'Selecione apenas uma regra de atribuição.',
         ]);
 
@@ -80,6 +89,10 @@ class DefinicoesController extends Controller
             CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES,
             (int) $validated['booking_slot_hold_minutes'],
             $storeId
+        );
+        CrmSetting::setBookingCancellationNoticeHours(
+            (int) $validated['booking_cancellation_notice_hours'],
+            $storeId,
         );
         CrmSetting::setString(
             CrmSetting::KEY_BOOKING_ANY_STAFF_RULE,
