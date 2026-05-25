@@ -209,7 +209,7 @@
                 <div class="modal-body">
                     <div class="alert alert-warning d-none" id="tempoPessoalHorarioAviso" role="alert">
                         <i class="ph ph-warning-circle me-1"></i>
-                        Horário fora do período habitual da loja (09:00–20:00) ou do membro. Pode guardar na mesma, se for excecional.
+                        Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
                     </div>
                     <div class="mb-3">
                         <label class="form-label d-block">Tipo de tempo pessoal</label>
@@ -411,7 +411,7 @@
             <div class="mb-2 d-none" id="eventDetailHorarioAvisoWrap">
                 <div class="alert alert-warning d-none mb-0" id="eventDetailHorarioAviso" role="alert">
                     <i class="ph ph-warning-circle me-1"></i>
-                    Horário fora do período habitual da loja (09:00–20:00) ou do membro. Pode guardar na mesma, se for excecional.
+                    Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
                 </div>
             </div>
             <div id="eventDetailVisitLeadBlock" class="d-none mb-3"></div>
@@ -777,6 +777,9 @@ window.AGENDA_CONFIG = {
     usersForConsultant: @json($usersForConsultant),
     nationalHolidaysPt: @json($nationalHolidaysPt ?? []),
     memberWeeklySchedules: @json($memberWeeklySchedules ?? []),
+    storeWeeklySchedule: @json($storeWeeklySchedule ?? []),
+    agendaSlotMin: @json($agendaSlotMin ?? '09:00'),
+    agendaSlotMax: @json($agendaSlotMax ?? '20:00'),
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>

@@ -57,10 +57,34 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
     }
+    var STORE_WEEKLY_SCHEDULE = C.storeWeeklySchedule || null;
+    var DEFAULT_STORE_DAY = { enabled: true, start: '09:00', end: '20:00' };
+    function getStoreDayConfig(d) {
+        if (!(d instanceof Date) || isNaN(d.getTime())) return DEFAULT_STORE_DAY;
+        var key = weekKeyFromDate(d);
+        var cfg = STORE_WEEKLY_SCHEDULE && STORE_WEEKLY_SCHEDULE[key];
+        if (!cfg || typeof cfg !== 'object') {
+            if (key === 'sun') return { enabled: false, start: '09:00', end: '20:00' };
+            return DEFAULT_STORE_DAY;
+        }
+        return {
+            enabled: !!cfg.enabled,
+            start: cfg.start || DEFAULT_STORE_DAY.start,
+            end: cfg.end || DEFAULT_STORE_DAY.end
+        };
+    }
+    function getStoreDayWindowStrings(d) {
+        var cfg = getStoreDayConfig(d);
+        if (!cfg.enabled) return null;
+        return { start: cfg.start, end: cfg.end };
+    }
     function getAgendaSlotRange(is24h) {
-        return is24h
-            ? { min: '00:00:00', max: '24:00:00' }
-            : { min: '09:00:00', max: '20:00:00' };
+        if (is24h) {
+            return { min: '00:00:00', max: '24:00:00' };
+        }
+        var minStr = C.agendaSlotMin || '09:00';
+        var maxStr = C.agendaSlotMax || '20:00';
+        return { min: minStr + ':00', max: maxStr + ':00' };
     }
     let agendaSlot24hEnabled = readAgendaSlot24hPreference();
     var initialAgendaSlots = getAgendaSlotRange(agendaSlot24hEnabled);
@@ -163,8 +187,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return 'Pago';
     }
 
-    const STORE_OPEN_HOUR = 9;
-    const STORE_CLOSE_HOUR = 20;
     const HOLIDAYS_PT_SET = new Set((C.nationalHolidaysPt || []).map(function(d) { return String(d || '').slice(0, 10); }));
     function agendaDateToYmdLocal(d) {
         if (!(d instanceof Date) || isNaN(d.getTime())) return '';
@@ -240,9 +262,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return out;
         }
 
-        var storeStart = pad2(STORE_OPEN_HOUR) + ':00';
-        var storeEnd = pad2(STORE_CLOSE_HOUR) + ':00';
-        function clipToStoreWindow(segStart, segEnd) {
+        function clipToStoreWindow(segStart, segEnd, dayDate) {
+            var win = getStoreDayWindowStrings(dayDate);
+            if (!win) return null;
+            var storeStart = win.start;
+            var storeEnd = win.end;
             var s = segStart < storeStart ? storeStart : segStart;
             var e = segEnd > storeEnd ? storeEnd : segEnd;
             if (s >= e) return null;
@@ -261,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var nextYmd = formatLocalYmd(addDaysLocal(day, 1));
                 var baseId = 'member-unavail|' + uid + '|' + ymd;
                 if (!cfg || !cfg.enabled) {
-                    var fullDayClipped = clipToStoreWindow('00:00', '24:00');
+                    var fullDayClipped = clipToStoreWindow('00:00', '24:00', day);
                     if (fullDayClipped) {
                         out.push({
                             id: baseId + '|all',
@@ -279,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var startTime = String(cfg.start || '00:00');
                 var endTime = String(cfg.end || '24:00');
                 if (startTime > '00:00') {
-                    var beforeClipped = clipToStoreWindow('00:00', startTime);
+                    var beforeClipped = clipToStoreWindow('00:00', startTime, day);
                     if (beforeClipped) {
                         out.push({
                             id: baseId + '|before',
@@ -292,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 if (endTime < '24:00') {
-                    var afterClipped = clipToStoreWindow(endTime, '24:00');
+                    var afterClipped = clipToStoreWindow(endTime, '24:00', day);
                     if (afterClipped) {
                         out.push({
                             id: baseId + '|after',
@@ -315,8 +339,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function isOutsideStoreHoursAtDate(d) {
         if (!(d instanceof Date) || isNaN(d.getTime())) return false;
+        var win = getStoreDayWindowStrings(d);
+        if (!win) return true;
         var mins = getMinutesFromDate(d);
-        return mins < (STORE_OPEN_HOUR * 60) || mins >= (STORE_CLOSE_HOUR * 60);
+        return mins < timeStrToMinutes(win.start) || mins >= timeStrToMinutes(win.end);
     }
     /** Parse YYYY-MM-DDTHH:mm (sem timezone) como hora local — evita bugs de new Date() em alguns browsers. */
     function parseAgendaLocalDateTime(str) {
@@ -373,9 +399,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return isOutsideStoreHoursAtDate(start);
         }
         if (start.toDateString() !== end.toDateString()) return true;
+        var win = getStoreDayWindowStrings(start);
+        if (!win) return true;
         var startM = getMinutesFromDate(start);
         var endM = getMinutesFromDate(end);
-        return startM < (STORE_OPEN_HOUR * 60) || endM > (STORE_CLOSE_HOUR * 60);
+        return startM < timeStrToMinutes(win.start) || endM > timeStrToMinutes(win.end);
     }
     var WEEKDAY_KEYS_JS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
     function weekKeyFromDate(d) {

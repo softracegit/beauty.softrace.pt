@@ -24,7 +24,7 @@
         <div class="uedit-section">
             <div class="uedit-section-title">Horário na agenda</div>
             <p class="text-muted small mb-3">
-                Indica em que dias e horas este membro está disponível para marcações. Na agenda, este horário cruza-se com o da loja (09:00–20:00): fora desta janela o tempo aparece com riscas a cinzento; pode marcar na mesma, com aviso.
+                Indica em que dias e horas este membro está disponível para marcações. Na agenda, este horário cruza-se com o da loja ({{ $storeHoursLabel ?? 'ver Definições → Negócio' }}): fora desta janela o tempo aparece com riscas a cinzento; pode marcar na mesma, com aviso.
             </p>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered align-middle agent-weekly-schedule-table mb-0">

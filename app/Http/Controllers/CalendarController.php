@@ -84,7 +84,22 @@ class CalendarController extends Controller
         $nationalHolidaysPt = $this->ptNationalHolidayDatesBetweenYears((int) $today->format('Y') - 1, (int) $today->format('Y') + 2);
         $posGorjetaEnabled = CrmSetting::posGorjetaEnabled(current_store_id());
 
-        return view('agenda.index', compact('eventTypes', 'users', 'personalTimeTypes', 'nationalHolidaysPt', 'posGorjetaEnabled'));
+        $store = current_store()->get();
+        $storeWeeklySchedule = $store->normalizedWeeklySchedule();
+        [$agendaSlotMin, $agendaSlotMax] = $store->agendaSlotRange();
+        $storeHoursLabel = $store->hoursDisplayLabel();
+
+        return view('agenda.index', compact(
+            'eventTypes',
+            'users',
+            'personalTimeTypes',
+            'nationalHolidaysPt',
+            'posGorjetaEnabled',
+            'storeWeeklySchedule',
+            'agendaSlotMin',
+            'agendaSlotMax',
+            'storeHoursLabel',
+        ));
     }
 
     /**

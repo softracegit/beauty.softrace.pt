@@ -10,8 +10,10 @@ use App\Policies\AgentPolicy;
 use App\Policies\OrganizationPolicy;
 use App\Policies\StorePolicy;
 use App\Support\CurrentStore;
+use App\View\Composers\BookingStoreComposer;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -44,6 +46,8 @@ class AppServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         $this->registerBookingMailer();
+
+        View::composer(['booking.*', 'booking.partials.*'], BookingStoreComposer::class);
 
         Route::bind('service', function (string $value, \Illuminate\Routing\Route $route): Service {
             $name = $route->getName() ?? '';

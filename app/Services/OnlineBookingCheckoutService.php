@@ -31,10 +31,6 @@ use Illuminate\Validation\ValidationException;
  */
 class OnlineBookingCheckoutService
 {
-    private const STORE_OPEN = '09:00';
-
-    private const STORE_CLOSE = '20:00';
-
     /**
      * Laravel validation rules shared by the payment-intent and finalize steps.
      *
@@ -1114,17 +1110,7 @@ class OnlineBookingCheckoutService
 
     private function carbonToWeekdayKey(Carbon $day): string
     {
-        $map = [
-            1 => 'mon',
-            2 => 'tue',
-            3 => 'wed',
-            4 => 'thu',
-            5 => 'fri',
-            6 => 'sat',
-            7 => 'sun',
-        ];
-
-        return $map[$day->dayOfWeekIso] ?? 'mon';
+        return WeeklyScheduleWindow::carbonIsoToWeekdayKey($day->dayOfWeekIso);
     }
 
     private function slotFitsAgentSchedule(Agent $agent, Carbon $start, Carbon $end): bool
@@ -1136,9 +1122,8 @@ class OnlineBookingCheckoutService
         $tz = (string) config('booking.business_timezone');
         $day = $start->copy()->timezone($tz)->startOfDay();
         $dowKey = $this->carbonToWeekdayKey($day);
-        $storeStart = Agent::timeStringToMinutes(self::STORE_OPEN);
-        $storeEnd = Agent::timeStringToMinutes(self::STORE_CLOSE);
-        $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dowKey, $storeStart, $storeEnd);
+        $storeSchedule = app(CurrentStore::class)->get()->normalizedWeeklySchedule();
+        $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dowKey, $storeSchedule);
         if ($window === null) {
             return false;
         }

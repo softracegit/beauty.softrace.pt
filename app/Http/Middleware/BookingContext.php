@@ -56,7 +56,11 @@ class BookingContext
 
         URL::defaults(['store' => $store->slug]);
 
+        View::share('bookingStore', $store);
         View::share('bookingStoreSlug', $store->slug);
+        View::share('businessName', $store->name);
+        View::share('bookingStoreProfile', $store->publicBookingProfile());
+        View::share('bookingWeeklySchedule', $store->normalizedWeeklySchedule());
         View::share('bookingCancellationNoticeHours', CrmSetting::bookingCancellationNoticeHours($store->id));
         View::share(
             'bookingCancellationPolicyNotice',

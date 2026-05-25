@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Agent;
+use App\Models\Store;
 use Carbon\CarbonImmutable;
 
 /**
@@ -10,23 +12,37 @@ use Carbon\CarbonImmutable;
 final class BookingStoreOpenStatus
 {
     /**
+     * @param  array<string, array{enabled: bool, start: string, end: string}>|null  $storeSchedule
      * @return array{label: string, css_class: string, suffix: string}
      */
-    public static function publicUiState(): array
+    public static function publicUiState(?array $storeSchedule = null): array
     {
+        $schedule = $storeSchedule ?? Store::defaultWeeklySchedule();
         $tz = (string) config('booking.business_timezone', config('app.timezone', 'Europe/Lisbon'));
         $now = CarbonImmutable::now($tz);
-        $openStr = (string) config('booking.public_store.weekday_open', '09:00');
-        $closeStr = (string) config('booking.public_store.weekday_close', '20:00');
-        $openMinutes = self::timeStringToMinutes($openStr);
-        $closeMinutes = self::timeStringToMinutes($closeStr);
+        $dayKey = WeeklyScheduleWindow::carbonIsoToWeekdayKey((int) $now->isoWeekday());
+        $window = WeeklyScheduleWindow::resolveDayWindow($schedule, $dayKey);
+
+        if ($window === null) {
+            $nextOpen = self::nextOpenLabel($schedule, $now, $tz);
+
+            return [
+                'label' => 'Fechado',
+                'css_class' => 'booking-offcanvas__status-closed',
+                'suffix' => $nextOpen !== null ? ' · '.$nextOpen : '',
+            ];
+        }
+
+        $openStr = self::minutesToTimeLabel((int) $window[0]);
+        $closeStr = self::minutesToTimeLabel((int) $window[1]);
+        $openMinutes = (int) $window[0];
+        $closeMinutes = (int) $window[1];
         $currentMinutes = ((int) $now->hour * 60) + (int) $now->minute;
-        $isWorkingDay = (int) $now->isoWeekday() <= 6;
-        $isOpenNow = $isWorkingDay && $currentMinutes >= $openMinutes && $currentMinutes < $closeMinutes;
+        $isOpenNow = $currentMinutes >= $openMinutes && $currentMinutes < $closeMinutes;
         $minutesToClose = $closeMinutes - $currentMinutes;
         $isClosingSoon = $isOpenNow && $minutesToClose <= 30;
-        $closeLabel = 'Fecha às '.self::normalizeTimeLabel($closeStr);
-        $openLabel = 'Abre às '.self::normalizeTimeLabel($openStr);
+        $closeLabel = 'Fecha às '.$closeStr;
+        $openLabel = 'Abre às '.$openStr;
 
         if ($isClosingSoon) {
             return [
@@ -43,9 +59,9 @@ final class BookingStoreOpenStatus
             ];
         }
 
-        $suffix = $isWorkingDay && $currentMinutes < $openMinutes
+        $suffix = $currentMinutes < $openMinutes
             ? ' · '.$openLabel
-            : ((int) $now->isoWeekday() === 7 ? ' · Domingo encerrado' : ' · '.$openLabel);
+            : ' · '.$openLabel;
 
         return [
             'label' => 'Fechado',
@@ -54,17 +70,35 @@ final class BookingStoreOpenStatus
         ];
     }
 
-    private static function timeStringToMinutes(string $time): int
+    /**
+     * @param  array<string, array{enabled: bool, start: string, end: string}>  $schedule
+     */
+    private static function nextOpenLabel(array $schedule, CarbonImmutable $now, string $tz): ?string
     {
-        $parts = explode(':', trim($time));
-        $h = (int) ($parts[0] ?? 0);
-        $m = (int) ($parts[1] ?? 0);
+        for ($i = 0; $i < 8; $i++) {
+            $probe = $now->addDays($i);
+            $key = WeeklyScheduleWindow::carbonIsoToWeekdayKey((int) $probe->isoWeekday());
+            $window = WeeklyScheduleWindow::resolveDayWindow($schedule, $key);
+            if ($window === null) {
+                continue;
+            }
+            $openStr = self::minutesToTimeLabel((int) $window[0]);
+            if ($i === 0) {
+                return 'Abre às '.$openStr;
+            }
+            $dayLabel = Agent::weekdayLabels()[$key] ?? $key;
 
-        return ($h * 60) + min(59, max(0, $m));
+            return 'Abre '.$dayLabel.' às '.$openStr;
+        }
+
+        return null;
     }
 
-    private static function normalizeTimeLabel(string $time): string
+    private static function minutesToTimeLabel(int $minutes): string
     {
-        return trim($time);
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+
+        return sprintf('%02d:%02d', $h, $m);
     }
 }

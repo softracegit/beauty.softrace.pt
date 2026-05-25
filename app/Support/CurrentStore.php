@@ -26,6 +26,11 @@ final class CurrentStore
         return $this->store;
     }
 
+    public function tryGet(): ?Store
+    {
+        return $this->store;
+    }
+
     public function id(): int
     {
         return (int) $this->get()->getKey();

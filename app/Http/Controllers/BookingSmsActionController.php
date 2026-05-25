@@ -33,14 +33,17 @@ class BookingSmsActionController extends Controller
         }
 
         $event = $resolved['event'];
+        $event->loadMissing('store');
+        $store = $event->store;
         $storeId = (int) ($event->store_id ?? 0);
         $policy = $this->policyService->resolveForEvent($event);
 
         return view('booking.sms-manage', [
             'token' => $token,
             'event' => $event,
-            'businessName' => (string) ($event->store?->name ?? config('app.name', 'Loja')),
-            'bookingStoreSlug' => (string) ($event->store?->slug ?? \App\Models\Store::defaultPublicBookingStoreSlug()),
+            'bookingStore' => $store,
+            'businessName' => (string) ($store?->name ?? config('app.name', 'Loja')),
+            'bookingStoreSlug' => (string) ($store?->slug ?? \App\Models\Store::defaultPublicBookingStoreSlug()),
             'bookingCancellationPolicyNotice' => CrmSetting::bookingCancellationPolicyNoticeText($storeId ?: null),
             'cancellationPolicy' => $policy,
             'canCancelOnline' => $policy->isWithinNoticePeriod || ! $policy->hasPaidDeposit,

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,11 +16,20 @@ class Store extends Model
         'name',
         'slug',
         'timezone',
+        'weekly_schedule',
         'phone',
         'email',
         'address_line',
         'city',
         'postal_code',
+        'logo',
+        'maps_url',
+        'website_url',
+        'instagram_url',
+    ];
+
+    protected $casts = [
+        'weekly_schedule' => 'array',
     ];
 
     /**
@@ -154,6 +164,108 @@ class Store extends Model
         return (int) $fallback;
     }
 
+    /**
+     * Horário habitual da loja (Seg–Sáb 09:00–20:00, domingo encerrado).
+     *
+     * @return array<string, array{enabled: bool, start: string, end: string}>
+     */
+    public static function defaultWeeklySchedule(): array
+    {
+        $out = [];
+        foreach (Agent::WEEKDAY_KEYS as $dayKey) {
+            $out[$dayKey] = [
+                'enabled' => $dayKey !== 'sun',
+                'start' => '09:00',
+                'end' => '20:00',
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array<string, array{enabled: bool, start: string, end: string}>
+     */
+    public function normalizedWeeklySchedule(): array
+    {
+        $raw = $this->weekly_schedule;
+        if (! is_array($raw) || $raw === []) {
+            return self::defaultWeeklySchedule();
+        }
+
+        $defaults = self::defaultWeeklySchedule();
+        $out = [];
+        foreach (Agent::WEEKDAY_KEYS as $dayKey) {
+            $v = $raw[$dayKey] ?? null;
+            if (! is_array($v)) {
+                $out[$dayKey] = $defaults[$dayKey];
+
+                continue;
+            }
+            $enabled = array_key_exists('enabled', $v)
+                ? filter_var($v['enabled'], FILTER_VALIDATE_BOOLEAN)
+                : (bool) ($defaults[$dayKey]['enabled'] ?? true);
+            $out[$dayKey] = [
+                'enabled' => $enabled,
+                'start' => is_string($v['start'] ?? null) ? $v['start'] : $defaults[$dayKey]['start'],
+                'end' => is_string($v['end'] ?? null) ? $v['end'] : $defaults[$dayKey]['end'],
+            ];
+        }
+
+        return $out;
+    }
+
+    /** Etiqueta curta para avisos na agenda (ex.: "09:00–20:00" ou "varia por dia"). */
+    public function hoursDisplayLabel(): string
+    {
+        $ranges = [];
+        foreach ($this->normalizedWeeklySchedule() as $day) {
+            if (! ($day['enabled'] ?? false)) {
+                continue;
+            }
+            $ranges[] = ($day['start'] ?? '09:00').'–'.($day['end'] ?? '20:00');
+        }
+        $unique = array_values(array_unique($ranges));
+        if ($unique === []) {
+            return 'encerrado';
+        }
+        if (count($unique) === 1) {
+            return $unique[0];
+        }
+
+        return 'varia por dia';
+    }
+
+    /**
+     * Intervalo [min, max] em HH:MM para a grelha da agenda (todos os dias ativos).
+     *
+     * @return array{0: string, 1: string}
+     */
+    public function agendaSlotRange(): array
+    {
+        $minM = 24 * 60;
+        $maxM = 0;
+        $found = false;
+        foreach ($this->normalizedWeeklySchedule() as $day) {
+            if (! ($day['enabled'] ?? false)) {
+                continue;
+            }
+            $found = true;
+            $s = Agent::timeStringToMinutes($day['start'] ?? '09:00');
+            $e = Agent::timeStringToMinutes($day['end'] ?? '20:00');
+            $minM = min($minM, $s);
+            $maxM = max($maxM, $e);
+        }
+        if (! $found) {
+            return ['09:00', '20:00'];
+        }
+
+        return [
+            sprintf('%02d:%02d', intdiv($minM, 60), $minM % 60),
+            sprintf('%02d:%02d', intdiv($maxM, 60), $maxM % 60),
+        ];
+    }
+
     public static function defaultPublicBookingStoreSlug(): string
     {
         $slug = static::query()->where('slug', 'default')->value('slug');
@@ -167,5 +279,103 @@ class Store extends Model
         }
 
         return (string) $fallback;
+    }
+
+    /** Morada numa linha para a marcação pública e mapas. */
+    public function formattedAddress(): string
+    {
+        $line2 = trim(implode(' ', array_filter([
+            trim((string) ($this->postal_code ?? '')),
+            trim((string) ($this->city ?? '')),
+        ])));
+
+        return implode(', ', array_filter([
+            trim((string) ($this->address_line ?? '')),
+            $line2,
+        ]));
+    }
+
+    public function mapsUrl(): string
+    {
+        $custom = trim((string) ($this->maps_url ?? ''));
+        if ($custom !== '') {
+            return $custom;
+        }
+
+        $address = $this->formattedAddress();
+        if ($address === '') {
+            return '#';
+        }
+
+        return 'https://maps.google.com/?q='.rawurlencode($address);
+    }
+
+    /** Fuso usado no booking (coluna `timezone` ou fallback global). */
+    public function bookingTimezone(): string
+    {
+        $tz = trim((string) ($this->timezone ?? ''));
+        if ($tz !== '') {
+            try {
+                new \DateTimeZone($tz);
+
+                return $tz;
+            } catch (\Exception) {
+                // valor inválido na BD
+            }
+        }
+
+        return (string) config('booking.business_timezone', config('app.timezone', 'Europe/Lisbon'));
+    }
+
+    /** Pasta no disco `public`: `storage/app/public/store-logos/{id}/`. */
+    public function logoStorageDirectory(): string
+    {
+        return 'store-logos/'.(int) $this->getKey();
+    }
+
+    /** URL absoluta do logotipo (upload ou ícone por defeito). */
+    public function logoUrl(): string
+    {
+        $path = trim((string) ($this->logo ?? ''));
+        if ($path !== '') {
+            return asset('storage/'.ltrim($path, '/'));
+        }
+
+        $fallback = (string) config('booking.public_store.photo_fallback', 'booking-assets/img/icone.png');
+
+        return asset(ltrim($fallback, '/'));
+    }
+
+    /**
+     * Dados da loja para o resumo e menu da marcação pública.
+     *
+     * @return array{
+     *     name: string,
+     *     address: string,
+     *     phone: string,
+     *     phone_tel_href: string,
+     *     email: string,
+     *     photo: string,
+     *     maps_url: string,
+     *     website_url: string,
+     *     instagram_url: string
+     * }
+     */
+    public function publicBookingProfile(): array
+    {
+        $website = trim((string) ($this->website_url ?? ''));
+        $instagram = trim((string) ($this->instagram_url ?? ''));
+
+        return [
+            'name' => (string) $this->name,
+            'address' => $this->formattedAddress(),
+            'phone' => trim((string) ($this->phone ?? '')),
+            'phone_tel_href' => PhoneDisplay::telHref($this->phone),
+            'email' => trim((string) ($this->email ?? '')),
+            'photo' => $this->logoUrl(),
+            'maps_url' => $this->mapsUrl(),
+            'website_url' => $website !== '' ? $website : '#',
+            'instagram_url' => $instagram !== '' ? $instagram : '#',
+        ];
     }
 }

@@ -246,11 +246,6 @@
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link {{ request()->routeIs('definicoes.conta') ? 'active' : '' }}" href="{{ route('definicoes.conta') }}">
-            Conta
-          </a>
-        </li>
-        <li>
           <a class="panel-link {{ request()->routeIs('definicoes.negocio') ? 'active' : '' }}" href="{{ route('definicoes.negocio') }}">
             Negócio
           </a>
@@ -258,16 +253,6 @@
         <li>
           <a class="panel-link {{ request()->routeIs('definicoes.marcacoes') ? 'active' : '' }}" href="{{ route('definicoes.marcacoes') }}">
             Marcações
-          </a>
-        </li>
-        <li>
-          <a class="panel-link {{ request()->routeIs('definicoes.vendas') ? 'active' : '' }}" href="{{ route('definicoes.vendas') }}">
-            Vendas
-          </a>
-        </li>
-        <li>
-          <a class="panel-link {{ request()->routeIs('definicoes.clientes') ? 'active' : '' }}" href="{{ route('definicoes.clientes') }}">
-            Clientes
           </a>
         </li>
         <li>

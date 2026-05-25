@@ -127,11 +127,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Dados da loja (marcação pública — resumo e menu)
+    | Marcação pública — valores por defeito (fallback)
     |--------------------------------------------------------------------------
     |
-    | Usados no resumo lateral e no offcanvas. `photo`: URL absoluta ou caminho
-    | relativo a public/ (ex.: booking-assets/img/icone.png). Vazio = usa `photo_fallback`.
+    | Nome, morada, contactos, redes e logotipo são editados em Definições → Negócio
+    | (por loja, na tabela `stores`). Estes valores só se aplicam se a loja ainda não
+    | tiver dados guardados ou em ambientes sem registo na BD.
+    |
+    | `photo_fallback`: ícone quando a loja não tem logotipo carregado.
     |
     */
 

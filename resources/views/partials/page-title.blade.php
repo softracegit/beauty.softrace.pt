@@ -118,11 +118,8 @@
             'active' => false
         ];
         $sectionLabels = [
-            'definicoes.conta' => 'Conta',
             'definicoes.negocio' => 'Negócio',
             'definicoes.marcacoes' => 'Marcações',
-            'definicoes.vendas' => 'Vendas',
-            'definicoes.clientes' => 'Clientes',
             'definicoes.equipa' => 'Equipa',
             'definicoes.notificacoes' => 'Notificações',
             'definicoes.pagamentos' => 'Pagamentos',

@@ -6,37 +6,85 @@ use App\Models\Agent;
 use App\Models\CrmSetting;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
+use App\Support\CurrentStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class DefinicoesController extends Controller
 {
     public function index(): RedirectResponse
     {
-        return redirect()->route('definicoes.conta');
-    }
-
-    public function conta(): View
-    {
-        return view('definicoes.conta', [
-            'pageTitle' => 'Conta',
-        ]);
-    }
-
-    public function updateConta(): RedirectResponse
-    {
-        return redirect()
-            ->route('definicoes.conta')
-            ->with('status', 'Preferências da conta guardadas.');
+        return redirect()->route('definicoes.negocio');
     }
 
     public function negocio(): View
     {
+        $store = app(CurrentStore::class)->get();
+
         return view('definicoes.negocio', [
             'pageTitle' => 'Negócio',
+            'store' => $store,
+            'weeklySchedule' => old('weekly_schedule', $store->normalizedWeeklySchedule()),
         ]);
+    }
+
+    public function updateNegocio(Request $request): RedirectResponse
+    {
+        $store = app(CurrentStore::class)->get();
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:64'],
+            'address_line' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:120'],
+            'postal_code' => ['nullable', 'string', 'max:32'],
+            'maps_url' => ['nullable', 'url', 'max:512'],
+            'website_url' => ['nullable', 'url', 'max:512'],
+            'instagram_url' => ['nullable', 'url', 'max:512'],
+            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'remove_logo' => ['nullable', 'boolean'],
+        ], [
+            'maps_url.url' => 'O link do mapa deve ser um URL válido.',
+            'website_url.url' => 'O site deve ser um URL válido.',
+            'instagram_url.url' => 'O Instagram deve ser um URL válido.',
+        ]);
+
+        $logoPath = $store->logo;
+        if ($request->boolean('remove_logo') && $logoPath) {
+            Storage::disk('public')->delete($logoPath);
+            $logoPath = null;
+        }
+        if ($request->hasFile('logo')) {
+            if ($logoPath) {
+                Storage::disk('public')->delete($logoPath);
+            }
+            $logoDir = $store->logoStorageDirectory();
+            Storage::disk('public')->makeDirectory($logoDir);
+            $logoPath = $request->file('logo')->store($logoDir, 'public');
+        }
+
+        $store->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'address_line' => $validated['address_line'] ?? null,
+            'city' => $validated['city'] ?? null,
+            'postal_code' => $validated['postal_code'] ?? null,
+            'maps_url' => $validated['maps_url'] ?? null,
+            'website_url' => $validated['website_url'] ?? null,
+            'instagram_url' => $validated['instagram_url'] ?? null,
+            'logo' => $logoPath,
+            'weekly_schedule' => $this->validatedWeeklySchedule($request),
+        ]);
+
+        return redirect()
+            ->route('definicoes.negocio')
+            ->with('status', 'Dados do negócio guardados.');
     }
 
     public function marcacoes(): View
@@ -103,20 +151,6 @@ class DefinicoesController extends Controller
         return redirect()
             ->route('definicoes.marcacoes')
             ->with('status', 'Definições de marcações guardadas.');
-    }
-
-    public function vendas(): View
-    {
-        return view('definicoes.vendas', [
-            'pageTitle' => 'Vendas',
-        ]);
-    }
-
-    public function clientes(): View
-    {
-        return view('definicoes.clientes', [
-            'pageTitle' => 'Clientes',
-        ]);
     }
 
     public function equipa(): View
@@ -299,5 +333,48 @@ class DefinicoesController extends Controller
         }
 
         return (bool) filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * @return array<string, array{enabled: bool, start: ?string, end: ?string}>
+     */
+    private function validatedWeeklySchedule(Request $request): array
+    {
+        $raw = $request->input('weekly_schedule');
+        if (! is_array($raw)) {
+            throw ValidationException::withMessages([
+                'weekly_schedule' => 'Indique o horário da loja.',
+            ]);
+        }
+
+        $timePattern = '/^([01]\d|2[0-3]):(00|15|30|45)$/';
+        $out = [];
+
+        foreach (Agent::WEEKDAY_KEYS as $day) {
+            $dayIn = $raw[$day] ?? [];
+            $enabled = filter_var($dayIn['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if (! $enabled) {
+                $out[$day] = ['enabled' => false, 'start' => null, 'end' => null];
+
+                continue;
+            }
+            $start = $dayIn['start'] ?? '09:00';
+            $end = $dayIn['end'] ?? '20:00';
+            if (! is_string($start) || ! is_string($end) || ! preg_match($timePattern, $start) || ! preg_match($timePattern, $end)) {
+                throw ValidationException::withMessages([
+                    "weekly_schedule.{$day}" => 'Horário inválido. Use intervalos de 15 minutos (00:00–23:45).',
+                ]);
+            }
+            $smin = Agent::timeStringToMinutes($start);
+            $emin = Agent::timeStringToMinutes($end);
+            if ($smin >= $emin) {
+                throw ValidationException::withMessages([
+                    "weekly_schedule.{$day}" => 'A hora de início deve ser anterior à hora de fim.',
+                ]);
+            }
+            $out[$day] = ['enabled' => true, 'start' => $start, 'end' => $end];
+        }
+
+        return $out;
     }
 }

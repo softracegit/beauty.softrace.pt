@@ -3,12 +3,10 @@
 namespace App\Support;
 
 use App\Models\Agent;
+use App\Models\Store;
 
 /**
- * Janela diária (minutos desde meia-noite) a partir de {@see Agent::$weekly_schedule}.
- *
- * Importante: se o dia tiver só `start`/`end` sem chave `enabled`, assume-se aberto.
- * Usar `empty($v['enabled'])` estava a fechar o dia quando `enabled` nem existia.
+ * Janela diária (minutos desde meia-noite) a partir de horários semanais (loja ou membro).
  */
 final class WeeklyScheduleWindow
 {
@@ -16,15 +14,28 @@ final class WeeklyScheduleWindow
 
     public const DEFAULT_CLOSE = '20:00';
 
+    public static function carbonIsoToWeekdayKey(int $isoWeekday): string
+    {
+        $map = [
+            1 => 'mon',
+            2 => 'tue',
+            3 => 'wed',
+            4 => 'thu',
+            5 => 'fri',
+            6 => 'sat',
+            7 => 'sun',
+        ];
+
+        return $map[$isoWeekday] ?? 'mon';
+    }
+
     /**
-     * @return array{0: int, 1: int}|null [início, fim) em minutos desde meia-noite, ou null se dia desligado / sem janela.
+     * Janela do dia para um único horário semanal (loja ou membro).
+     *
+     * @return array{0: int, 1: int}|null [início, fim) em minutos desde meia-noite
      */
-    public static function resolveMinutesWindow(
-        ?array $weeklySchedule,
-        string $dayKey,
-        int $storeStartMin,
-        int $storeEndMin,
-    ): ?array {
+    public static function resolveDayWindow(?array $weeklySchedule, string $dayKey): ?array
+    {
         $defaultDay = [
             'enabled' => true,
             'start' => self::DEFAULT_OPEN,
@@ -51,20 +62,58 @@ final class WeeklyScheduleWindow
 
         $timePattern = '/^([01]\d|2[0-3]):(00|15|30|45)$/';
         if (! preg_match($timePattern, $day['start']) || ! preg_match($timePattern, $day['end'])) {
-            $techStart = $storeStartMin;
-            $techEnd = $storeEndMin;
-        } else {
-            $techStart = Agent::timeStringToMinutes($day['start']);
-            $techEnd = Agent::timeStringToMinutes($day['end']);
-        }
-
-        $winStart = max($techStart, $storeStartMin);
-        $winEnd = min($techEnd, $storeEndMin);
-        if ($winStart >= $winEnd) {
             return null;
         }
 
-        return [$winStart, $winEnd];
+        $start = Agent::timeStringToMinutes($day['start']);
+        $end = Agent::timeStringToMinutes($day['end']);
+        if ($start >= $end) {
+            return null;
+        }
+
+        return [$start, $end];
+    }
+
+    /**
+     * Interseção loja ∩ membro para marcações e agenda.
+     *
+     * @return array{0: int, 1: int}|null
+     */
+    public static function resolveMinutesWindow(
+        ?array $agentSchedule,
+        string $dayKey,
+        ?array $storeSchedule = null,
+    ): ?array {
+        $storeWindow = self::resolveDayWindow(
+            $storeSchedule ?? Store::defaultWeeklySchedule(),
+            $dayKey
+        );
+        if ($storeWindow === null) {
+            return null;
+        }
+
+        $agentWindow = self::resolveDayWindow($agentSchedule, $dayKey);
+        if ($agentWindow === null) {
+            return null;
+        }
+
+        return self::intersectWindows($storeWindow, $agentWindow);
+    }
+
+    /**
+     * @param  array{0: int, 1: int}  $a
+     * @param  array{0: int, 1: int}  $b
+     * @return array{0: int, 1: int}|null
+     */
+    public static function intersectWindows(array $a, array $b): ?array
+    {
+        $start = max((int) $a[0], (int) $b[0]);
+        $end = min((int) $a[1], (int) $b[1]);
+        if ($start >= $end) {
+            return null;
+        }
+
+        return [$start, $end];
     }
 
     private static function isScheduleDayEnabled(mixed $raw): bool

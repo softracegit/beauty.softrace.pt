@@ -55,7 +55,7 @@
         ['label' => 'Dia / Hora', 'route' => 'booking.datetime'],
         ['label' => 'Confirmação', 'route' => 'booking.step3'],
     ];
-    $bookingBusinessDisplayName = trim((string) ($businessName ?? config('app.name', 'Loja')));
+    $bookingBusinessDisplayName = trim((string) ($businessName ?? $bookingStore?->name ?? config('app.name', 'Loja')));
     $bookingNavbarStoreTitleUpper = mb_strtoupper($bookingBusinessDisplayName, 'UTF-8');
     $bookingIndexUrl = route('booking.index', ['store' => $bookingStoreSlug], false);
     $bookingNavbarBackUrl = match ($bookingRouteName) {

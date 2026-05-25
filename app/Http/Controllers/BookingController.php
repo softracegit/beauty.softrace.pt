@@ -24,11 +24,6 @@ use Illuminate\View\View;
 
 class BookingController extends Controller
 {
-    /** Horário da loja para marcação online (cruza com o horário do técnico). */
-    private const STORE_OPEN = '09:00';
-
-    private const STORE_CLOSE = '20:00';
-
     /**
      * Lista de serviços para marcação online (estilo Square).
      * Nota: as colunas is_active / is_visible_online foram removidas de `services` na migration
@@ -118,8 +113,12 @@ class BookingController extends Controller
             return response()->json(['slots' => []]);
         }
 
-        $storeStart = Agent::timeStringToMinutes(self::STORE_OPEN);
-        $storeEnd = Agent::timeStringToMinutes(self::STORE_CLOSE);
+        $storeSchedule = $this->bookingStore()->normalizedWeeklySchedule();
+        $dayKey = $this->carbonToWeekdayKey($day);
+        $storeDayWindow = WeeklyScheduleWindow::resolveDayWindow($storeSchedule, $dayKey);
+        if ($storeDayWindow === null) {
+            return response()->json(['slots' => []]);
+        }
         $minLeadMinutes = max(0, (int) config('booking.min_lead_minutes', 30));
         $nowLocal = now($tz);
         $isToday = $day->isSameDay($nowLocal);
@@ -130,7 +129,8 @@ class BookingController extends Controller
         }
 
         if ($agentKey === 'any' || $agentKey === '' || $agentKey === null) {
-            $winStart = $storeStart;
+            $winStart = (int) $storeDayWindow[0];
+            $storeEnd = (int) $storeDayWindow[1];
             if ($minLeadStart !== null) {
                 $winStart = max($winStart, (int) $minLeadStart);
             }
@@ -144,13 +144,13 @@ class BookingController extends Controller
             }
 
             $candidateSlots = $this->buildAvailableSlots($winStart, $storeEnd, $duration, []);
-            $slots = array_values(array_filter($candidateSlots, function (string $time) use ($eligibleAgents, $day, $duration, $storeStart, $storeEnd, $holdSessionToken): bool {
+            $slots = array_values(array_filter($candidateSlots, function (string $time) use ($eligibleAgents, $day, $duration, $storeSchedule, $holdSessionToken): bool {
                 [$h, $m] = array_map('intval', explode(':', $time));
                 $slotStartMin = $h * 60 + $m;
                 $slotEndMin = $slotStartMin + $duration;
                 $dayKey = $this->carbonToWeekdayKey($day);
                 foreach ($eligibleAgents as $agent) {
-                    $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dayKey, $storeStart, $storeEnd);
+                    $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dayKey, $storeSchedule);
                     if ($window === null) {
                         continue;
                     }
@@ -188,7 +188,7 @@ class BookingController extends Controller
         }
 
         $dowKey = $this->carbonToWeekdayKey($day);
-        $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dowKey, $storeStart, $storeEnd);
+        $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dowKey, $storeSchedule);
         if ($window === null) {
             return response()->json(['slots' => []]);
         }
@@ -513,17 +513,12 @@ class BookingController extends Controller
 
     private function carbonToWeekdayKey(Carbon $day): string
     {
-        $map = [
-            1 => 'mon',
-            2 => 'tue',
-            3 => 'wed',
-            4 => 'thu',
-            5 => 'fri',
-            6 => 'sat',
-            7 => 'sun',
-        ];
+        return WeeklyScheduleWindow::carbonIsoToWeekdayKey($day->dayOfWeekIso);
+    }
 
-        return $map[$day->dayOfWeekIso] ?? 'mon';
+    private function bookingStore(): Store
+    {
+        return app(CurrentStore::class)->get();
     }
 
     /**
@@ -672,17 +667,17 @@ class BookingController extends Controller
 
     private function bookingStoreId(): int
     {
-        return app(CurrentStore::class)->id();
+        return $this->bookingStore()->getKey();
     }
 
     private function bookingStoreSlug(): string
     {
-        return (string) app(CurrentStore::class)->get()->slug;
+        return (string) $this->bookingStore()->slug;
     }
 
     private function bookingBusinessName(): string
     {
-        return (string) app(CurrentStore::class)->get()->name;
+        return (string) $this->bookingStore()->name;
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Note;
 use App\Models\Store;
 use App\Models\User;
+use App\Support\CurrentStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -61,7 +62,10 @@ class AgentController extends Controller
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
-        return view('agentes.create', compact('categories'));
+        return view('agentes.create', [
+            'categories' => $categories,
+            'storeHoursLabel' => app(CurrentStore::class)->get()->hoursDisplayLabel(),
+        ]);
     }
 
     /**
@@ -221,7 +225,14 @@ class AgentController extends Controller
                 });
         }
 
-        return view('agentes.show', compact('agente', 'activities', 'marcacoes', 'vendas', 'servicesByCategory'));
+        return view('agentes.show', [
+            'agente' => $agente,
+            'activities' => $activities,
+            'marcacoes' => $marcacoes,
+            'vendas' => $vendas,
+            'servicesByCategory' => $servicesByCategory,
+            'storeHoursLabel' => app(CurrentStore::class)->get()->hoursDisplayLabel(),
+        ]);
     }
 
     /**
@@ -262,7 +273,11 @@ class AgentController extends Controller
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
-        return view('agentes.edit', compact('agente', 'categories'));
+        return view('agentes.edit', [
+            'agente' => $agente,
+            'categories' => $categories,
+            'storeHoursLabel' => app(CurrentStore::class)->get()->hoursDisplayLabel(),
+        ]);
     }
 
     /**

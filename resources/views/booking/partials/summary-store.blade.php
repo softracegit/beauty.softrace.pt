@@ -1,12 +1,9 @@
 @php
-    $store = config('booking.public_store', []);
-    $storeName = (string) ($store['name'] ?? 'Loja');
-    $rawPhoto = trim((string) ($store['photo'] ?? ''));
-    $fallback = (string) ($store['photo_fallback'] ?? 'booking-assets/img/icone.png');
-    $storePhotoUrl = $rawPhoto !== ''
-        ? (filter_var($rawPhoto, FILTER_VALIDATE_URL) ? $rawPhoto : asset(ltrim($rawPhoto, '/')))
-        : asset(ltrim($fallback, '/'));
-    $hoursUi = \App\Support\BookingStoreOpenStatus::publicUiState();
+    $profile = $bookingStoreProfile ?? ($bookingStore?->publicBookingProfile() ?? []);
+    $storeName = (string) ($profile['name'] ?? ($businessName ?? 'Loja'));
+    $storePhotoUrl = (string) ($profile['photo'] ?? '');
+    $weeklySchedule = $bookingWeeklySchedule ?? ($bookingStore?->normalizedWeeklySchedule() ?? \App\Models\Store::defaultWeeklySchedule());
+    $hoursUi = \App\Support\BookingStoreOpenStatus::publicUiState($weeklySchedule);
 @endphp
 <section class="booking-summary-store" aria-label="Loja">
     <button

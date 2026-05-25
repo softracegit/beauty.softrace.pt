@@ -212,13 +212,10 @@ Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function ()
 
     Route::prefix('definicoes')->name('definicoes.')->group(function () {
         Route::get('/', [DefinicoesController::class, 'index'])->name('index');
-        Route::get('conta', [DefinicoesController::class, 'conta'])->name('conta');
-        Route::post('conta', [DefinicoesController::class, 'updateConta'])->name('conta.update');
         Route::get('negocio', [DefinicoesController::class, 'negocio'])->name('negocio');
+        Route::post('negocio', [DefinicoesController::class, 'updateNegocio'])->name('negocio.update');
         Route::get('marcacoes', [DefinicoesController::class, 'marcacoes'])->name('marcacoes');
         Route::post('marcacoes', [DefinicoesController::class, 'updateMarcacoes'])->name('marcacoes.update');
-        Route::get('vendas', [DefinicoesController::class, 'vendas'])->name('vendas');
-        Route::get('clientes', [DefinicoesController::class, 'clientes'])->name('clientes');
         Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');
         Route::post('equipa', [DefinicoesController::class, 'updateEquipa'])->name('equipa.update');
         Route::get('notificacoes', [DefinicoesController::class, 'notificacoes'])->name('notificacoes');
