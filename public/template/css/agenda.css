@@ -1148,7 +1148,8 @@ body .app-wrapper .container-fluid {
     background-attachment: fixed !important;
     background-repeat: repeat !important;
 }
-.fc .fc-bg-event.agenda-member-unavailable-bg {
+.fc .fc-bg-event.agenda-member-unavailable-bg,
+.fc .fc-bg-event.agenda-store-unavailable-bg {
     --agenda-outside-hatch-bg: rgba(108, 117, 125, 0.055);
     --agenda-outside-hatch-line: rgba(108, 117, 125, 0.09);
     background-color: var(--agenda-outside-hatch-bg) !important;
@@ -1165,6 +1166,9 @@ body .app-wrapper .container-fluid {
     opacity: 1 !important;
     border: 0 !important;
     pointer-events: none !important;
+}
+.fc .fc-col-header-cell.agenda-day-store-closed {
+    opacity: 0.72;
 }
 .fc .fc-timegrid-slot.agenda-slot-holiday {
     --agenda-holiday-hatch-bg: rgba(220, 53, 69, 0.038);
@@ -2330,7 +2334,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
 }
 #eventDetailEditModal #eventDetailEditForm > .nova-marcacao-modal-total-strip {
     flex-shrink: 0;

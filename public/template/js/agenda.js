@@ -59,6 +59,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     var STORE_WEEKLY_SCHEDULE = C.storeWeeklySchedule || null;
     var DEFAULT_STORE_DAY = { enabled: true, start: '09:00', end: '20:00' };
+    /** Alinhado com PHP filter_var(FILTER_VALIDATE_BOOLEAN) — evita tratar "0" como ativo. */
+    function parseScheduleDayEnabled(raw) {
+        if (raw === false || raw === 0 || raw === '0' || raw === 'false' || raw === 'off' || raw === 'no') {
+            return false;
+        }
+        if (raw === true || raw === 1 || raw === '1' || raw === 'true' || raw === 'on' || raw === 'yes') {
+            return true;
+        }
+        if (raw === null || raw === undefined || raw === '') {
+            return false;
+        }
+
+        return !!raw;
+    }
     function getStoreDayConfig(d) {
         if (!(d instanceof Date) || isNaN(d.getTime())) return DEFAULT_STORE_DAY;
         var key = weekKeyFromDate(d);
@@ -68,10 +82,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return DEFAULT_STORE_DAY;
         }
         return {
-            enabled: !!cfg.enabled,
+            enabled: parseScheduleDayEnabled(cfg.enabled),
             start: cfg.start || DEFAULT_STORE_DAY.start,
             end: cfg.end || DEFAULT_STORE_DAY.end
         };
+    }
+    function agendaVisibleSlotTimeBounds() {
+        var r = getAgendaSlotRange(agendaSlot24hEnabled);
+        var start = String(r.min || '09:00:00').slice(0, 5);
+        var end = String(r.max || '20:00:00').slice(0, 5);
+
+        return { start: start, end: end };
     }
     function getStoreDayWindowStrings(d) {
         var cfg = getStoreDayConfig(d);
@@ -284,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var ymd = formatLocalYmd(day);
                 var nextYmd = formatLocalYmd(addDaysLocal(day, 1));
                 var baseId = 'member-unavail|' + uid + '|' + ymd;
-                if (!cfg || !cfg.enabled) {
+                if (!cfg || !parseScheduleDayEnabled(cfg.enabled)) {
                     var fullDayClipped = clipToStoreWindow('00:00', '24:00', day);
                     if (fullDayClipped) {
                         out.push({
@@ -331,6 +352,65 @@ document.addEventListener('DOMContentLoaded', function() {
                 day = addDaysLocal(day, 1);
             }
         });
+
+        return out;
+    }
+    /**
+     * Riscas diagonais para dias/horas em que a loja está fechada (ex.: domingo desligado em Negócio).
+     */
+    function generateStoreUnavailableBackgroundEvents(info, viewType) {
+        if (!(viewType.indexOf('timeGrid') !== -1 || viewType.indexOf('resourceTimeGrid') !== -1)) {
+            return [];
+        }
+
+        var out = [];
+        var start = new Date(info.start);
+        var end = new Date(info.end);
+        if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return out;
+        }
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+
+        var grid = agendaVisibleSlotTimeBounds();
+        var day = new Date(start.getTime());
+
+        while (day < end) {
+            var cfg = getStoreDayConfig(day);
+            var ymd = formatLocalYmd(day);
+            var baseId = 'store-unavail|' + ymd;
+
+            if (!cfg.enabled) {
+                out.push({
+                    id: baseId + '|closed',
+                    start: ymd + 'T' + grid.start + ':00',
+                    end: ymd + 'T' + grid.end + ':00',
+                    display: 'background',
+                    className: ['agenda-store-unavailable-bg'],
+                });
+            } else {
+                if (cfg.start && cfg.start > grid.start) {
+                    out.push({
+                        id: baseId + '|before',
+                        start: ymd + 'T' + grid.start + ':00',
+                        end: ymd + 'T' + cfg.start + ':00',
+                        display: 'background',
+                        className: ['agenda-store-unavailable-bg'],
+                    });
+                }
+                if (cfg.end && cfg.end < grid.end) {
+                    out.push({
+                        id: baseId + '|after',
+                        start: ymd + 'T' + cfg.end + ':00',
+                        end: ymd + 'T' + grid.end + ':00',
+                        display: 'background',
+                        className: ['agenda-store-unavailable-bg'],
+                    });
+                }
+            }
+
+            day = addDaysLocal(day, 1);
+        }
 
         return out;
     }
@@ -422,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!(d instanceof Date) || isNaN(d.getTime())) return false;
         var key = weekKeyFromDate(d);
         var day = sched[key];
-        if (!day || !day.enabled) return true;
+        if (!day || !parseScheduleDayEnabled(day.enabled)) return true;
         var mins = getMinutesFromDate(d);
         var sm = timeStrToMinutes(day.start);
         var em = timeStrToMinutes(day.end);
@@ -458,7 +538,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var key = weekKeyFromDate(start);
         var day = sched[key];
-        if (!day || !day.enabled) return true;
+        if (!day || !parseScheduleDayEnabled(day.enabled)) return true;
         var sm = timeStrToMinutes(day.start);
         var em = timeStrToMinutes(day.end);
         var startM = getMinutesFromDate(start);
@@ -466,8 +546,86 @@ document.addEventListener('DOMContentLoaded', function() {
         return startM < sm || endM > em;
     }
     function shouldWarnOutOfHours(start, end, userId) {
-        if (intersectsOutsideStoreHours(start, end)) return true;
-        return intersectsOutsideMemberHours(start, end, userId);
+        if (!(start instanceof Date) || isNaN(start.getTime())) return false;
+        var endUse = (end instanceof Date) && !isNaN(end.getTime()) ? end : start;
+        if (isOutsideStoreHoursAtDate(start) || isOutsideStoreHoursAtDate(endUse)) return true;
+        if (userId && (isOutsideMemberWindowAtInstant(start, userId) || isOutsideMemberWindowAtInstant(endUse, userId))) {
+            return true;
+        }
+        if (intersectsOutsideStoreHours(start, endUse)) return true;
+
+        return intersectsOutsideMemberHours(start, endUse, userId);
+    }
+    function agendaOcReadDateStr(dateInputId, fpInstance) {
+        var dateIn = $id(dateInputId);
+        if (!dateIn) return '';
+        if (fpInstance && fpInstance.selectedDates && fpInstance.selectedDates[0]) {
+            var d = fpInstance.selectedDates[0];
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        }
+
+        return (dateIn.value || '').trim();
+    }
+    function agendaOcDurationMinutesFromServices(services) {
+        if (!services || !services.length) return 60;
+        var total = services.reduce(function(sum, s) {
+            var base = parseInt(s.duration, 10) || 0;
+            var ex = (s.extras || []).reduce(function(s2, e) { return s2 + (parseInt(e.duration, 10) || 0); }, 0);
+            return sum + base + ex;
+        }, 0);
+
+        return total > 0 ? total : 60;
+    }
+    function readEventDetailStartEndForWarning() {
+        var marcacaoSection = $id('eventDetailOcMarcacaoSection');
+        var usePickers = marcacaoSection && !marcacaoSection.classList.contains('d-none');
+        if (usePickers) {
+            var dStr = agendaOcReadDateStr('eventDetailOcDate', eventDetailOcDateFlatpickr);
+            var tStr = ($id('eventDetailOcTime') && $id('eventDetailOcTime').value) || '';
+            if (dStr && tStr) {
+                var pickerStart = parseAgendaLocalDateTime(dStr + 'T' + tStr);
+                if (pickerStart && !isNaN(pickerStart.getTime())) {
+                    var dur = eventDetailEffectiveDurationMinutes();
+                    if (dur < 1) dur = 60;
+
+                    return {
+                        start: pickerStart,
+                        end: new Date(pickerStart.getTime() + dur * 60000),
+                    };
+                }
+            }
+        }
+        var startStr = $id('eventDetailEditStart')?.value || '';
+        var endStr = $id('eventDetailEditEnd')?.value || '';
+        var start = startStr ? parseAgendaLocalDateTime(startStr) : null;
+        var end = endStr ? parseAgendaLocalDateTime(endStr) : null;
+        if ((!start || isNaN(start.getTime())) || (!end || isNaN(end.getTime()))) {
+            var dStrFb = agendaOcReadDateStr('eventDetailOcDate', eventDetailOcDateFlatpickr);
+            var tStrFb = ($id('eventDetailOcTime') && $id('eventDetailOcTime').value) || '';
+            if (dStrFb && tStrFb) {
+                var rebuiltStart = parseAgendaLocalDateTime(dStrFb + 'T' + tStrFb);
+                if (rebuiltStart && !isNaN(rebuiltStart.getTime())) {
+                    start = rebuiltStart;
+                    if (!end || isNaN(end.getTime())) {
+                        var totalDur = eventDetailEffectiveDurationMinutes();
+                        if (totalDur < 1) totalDur = 60;
+                        end = new Date(start.getTime() + totalDur * 60000);
+                    }
+                }
+            }
+        }
+
+        return { start: start, end: end };
+    }
+    function readAgendaOcStartEndForWarning() {
+        var dStr = agendaOcReadDateStr('agendaOcDate', agendaOcDateFlatpickr);
+        var tStr = ($id('agendaOcTime') && $id('agendaOcTime').value) || '';
+        if (!dStr || !tStr) return { start: null, end: null };
+        var start = parseAgendaLocalDateTime(dStr + 'T' + tStr);
+        if (!start || isNaN(start.getTime())) return { start: null, end: null };
+        var totalDur = agendaOcDurationMinutesFromServices(agendaOcSelectedServices);
+
+        return { start: start, end: new Date(start.getTime() + totalDur * 60000) };
     }
     function toggleOutOfHoursWarning(elId, isOutside, wrapId) {
         var el = $id(elId);
@@ -497,12 +655,22 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleOutOfHoursWarning('tempoPessoalHorarioAviso', shouldWarnOutOfHours(start, end, memberId));
     }
     function updateEventDetailOutOfHoursWarning() {
-        var startStr = $id('eventDetailEditStart')?.value || '';
-        var endStr = $id('eventDetailEditEnd')?.value || '';
-        var start = startStr ? parseAgendaLocalDateTime(startStr) : null;
-        var end = endStr ? parseAgendaLocalDateTime(endStr) : null;
-        var userId = $id('eventDetailEditUserId')?.value || '';
-        toggleOutOfHoursWarning('eventDetailHorarioAviso', shouldWarnOutOfHours(start, end, userId), 'eventDetailHorarioAvisoWrap');
+        var range = readEventDetailStartEndForWarning();
+        var userId = String($id('eventDetailEditUserId')?.value || $id('eventDetailOcMember')?.value || '').trim();
+        toggleOutOfHoursWarning(
+            'eventDetailHorarioAviso',
+            shouldWarnOutOfHours(range.start, range.end, userId),
+            'eventDetailHorarioAvisoWrap'
+        );
+    }
+    function updateAgendaOcOutOfHoursWarning() {
+        var range = readAgendaOcStartEndForWarning();
+        var userId = String($id('agendaOcMember')?.value || '').trim();
+        toggleOutOfHoursWarning(
+            'agendaOcHorarioAviso',
+            shouldWarnOutOfHours(range.start, range.end, userId),
+            'agendaOcHorarioAvisoWrap'
+        );
     }
 
     /** Na vista Dia (recursos), ao mudar o profissional no offcanvas, mover o evento para a coluna certa. */
@@ -2453,6 +2621,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function populateEventDetailEditModal(data) {
         eventDetailOcTeardownUi();
+        toggleOutOfHoursWarning('eventDetailHorarioAviso', false, 'eventDetailHorarioAvisoWrap');
         window._eventDetailOcPopulating = true;
         eventDetailCurrentData = data;
         eventDetailExistingSale = data.existing_sale || null;
@@ -3008,7 +3177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     function eventDetailOcSyncHiddenFromPickers() {
-        var dStr = $id('eventDetailOcDate') && $id('eventDetailOcDate').value;
+        var dStr = agendaOcReadDateStr('eventDetailOcDate', eventDetailOcDateFlatpickr);
         var tStr = $id('eventDetailOcTime') && $id('eventDetailOcTime').value;
         if (!dStr || !tStr) return;
         var startLocal = dStr + 'T' + tStr;
@@ -3256,6 +3425,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var timeSel = $id('eventDetailOcTime');
         if (timeSel) {
             timeSel.addEventListener('change', function() {
+                eventDetailOcSyncHiddenFromPickers();
+                updateEventDetailOutOfHoursWarning();
+            });
+            timeSel.addEventListener('input', function() {
                 eventDetailOcSyncHiddenFromPickers();
                 updateEventDetailOutOfHoursWarning();
             });
@@ -4264,6 +4437,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         agendaOcApplyServiceFieldVisibility();
+        updateAgendaOcOutOfHoursWarning();
     }
 
     /**
@@ -4373,6 +4547,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        toggleOutOfHoursWarning('agendaOcHorarioAviso', false, 'agendaOcHorarioAvisoWrap');
         agendaOcDestroyTestChoices();
         agendaOcResetClientUi();
 
@@ -4418,7 +4593,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     altFormat: 'l, j F',
                     locale: (flatpickr && flatpickr.l10ns && flatpickr.l10ns.pt) ? flatpickr.l10ns.pt : undefined,
                     allowInput: true,
-                    disableMobile: true
+                    disableMobile: true,
+                    onChange: function() {
+                        updateAgendaOcOutOfHoursWarning();
+                    }
                 });
                 if (agendaOcDateFlatpickr && agendaOcDateFlatpickr.altInput) {
                     agendaOcDateFlatpickr.altInput.removeAttribute('readonly');
@@ -4442,6 +4620,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!timeSel.value) {
             timeSel.value = '09:00';
         }
+        updateAgendaOcOutOfHoursWarning();
 
         $id('agendaOcObs').value = '';
         agendaOcSelectedServices = [];
@@ -4508,7 +4687,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 agendaOcShowServicePicker = true;
                 agendaOcRenderSelectedServices();
                 agendaOcReloadServicesForMember(this.value || '', null);
+                updateAgendaOcOutOfHoursWarning();
             });
+            var agendaOcTimeSel = $id('agendaOcTime');
+            if (agendaOcTimeSel) {
+                agendaOcTimeSel.addEventListener('change', updateAgendaOcOutOfHoursWarning);
+                agendaOcTimeSel.addEventListener('input', updateAgendaOcOutOfHoursWarning);
+            }
             $id('agendaOcService').addEventListener('change', function() {
                 var raw = (this.value || '').trim();
                 if (!raw) return;
@@ -4577,7 +4762,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Adicione pelo menos um serviço.', 'error');
                     return;
                 }
-                var dStr = $id('agendaOcDate').value;
+                var dStr = agendaOcReadDateStr('agendaOcDate', agendaOcDateFlatpickr);
                 var tStr = $id('agendaOcTime').value;
                 if (!dStr || !tStr) {
                     showToast('Indique data e hora.', 'error');
@@ -6235,6 +6420,7 @@ document.addEventListener('DOMContentLoaded', function() {
         slotLaneDidMount: function(arg) {
             if (arg.el && arg.date) {
                 arg.el.setAttribute('data-slot-date', arg.date.toISOString());
+                arg.el.classList.toggle('agenda-slot-outside-hours', isOutsideStoreHoursAtDate(arg.date));
                 var uid = resolveSlotUserId(arg);
                 var memberUnavailable = !!(uid && isOutsideMemberWindowAtInstant(arg.date, uid));
                 arg.el.classList.toggle('agenda-slot-member-unavailable', memberUnavailable);
@@ -6242,7 +6428,23 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         dayCellClassNames: function(arg) {
-            return isNationalHolidayPtAtDate(arg.date) ? ['agenda-day-holiday'] : [];
+            var out = [];
+            if (isNationalHolidayPtAtDate(arg.date)) {
+                out.push('agenda-day-holiday');
+            }
+            if (!getStoreDayConfig(arg.date).enabled) {
+                out.push('agenda-day-store-closed');
+            }
+
+            return out;
+        },
+        dayHeaderClassNames: function(arg) {
+            var out = [];
+            if (!getStoreDayConfig(arg.date).enabled) {
+                out.push('agenda-day-store-closed');
+            }
+
+            return out;
         },
         slotLaneClassNames: function(arg) {
             var out = [];
@@ -6569,8 +6771,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 var bgEvents = generateMemberUnavailableBackgroundEvents(info, vtEvents);
-                if (bgEvents.length) {
-                    events = (Array.isArray(events) ? events : []).concat(bgEvents);
+                var storeBgEvents = generateStoreUnavailableBackgroundEvents(info, vtEvents);
+                if (bgEvents.length || storeBgEvents.length) {
+                    events = (Array.isArray(events) ? events : [])
+                        .concat(bgEvents)
+                        .concat(storeBgEvents);
                 }
                 successCallback(events);
                 scheduleStackedEventClassRefresh();
