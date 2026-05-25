@@ -228,6 +228,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    /** Fora do horário do membro, mas só dentro do horário da loja (evita riscas duplas loja+membro). */
+    function isMemberUnavailableSlotAt(date, userId) {
+        if (!userId || !(date instanceof Date) || isNaN(date.getTime())) return false;
+        if (isOutsideStoreHoursAtDate(date)) return false;
+
+        return isOutsideMemberWindowAtInstant(date, userId);
+    }
     function applyMemberUnavailableClassesToTimeGridSlots() {
         if (!calendarEl) return;
         calendarEl.querySelectorAll('[data-slot-date]').forEach(function(slotEl) {
@@ -238,8 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!uid) uid = selectedConsultantId || '';
             var dt = slotEl.getAttribute('data-slot-date');
             var d = dt ? new Date(dt) : null;
-            var memberUnavailable = !!(uid && d && isOutsideMemberWindowAtInstant(d, uid));
-            slotEl.classList.toggle('agenda-slot-member-unavailable', memberUnavailable);
+            slotEl.classList.toggle('agenda-slot-member-unavailable', isMemberUnavailableSlotAt(d, uid));
         });
     }
     var agendaMemberSlotClassRaf = null;
@@ -262,14 +268,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return x;
     }
+    /**
+     * Membro fora do horário, só dentro da janela em que a loja está aberta (sem sobrepor riscas da loja).
+     */
     function generateMemberUnavailableBackgroundEvents(info, viewType) {
         if (!C.memberWeeklySchedules) return [];
-        // Apenas em timeGrid (Dia/Semana/3 dias)
         if (!(viewType.indexOf('timeGrid') !== -1 || viewType.indexOf('resourceTimeGrid') !== -1)) return [];
 
         var out = [];
         var start = new Date(info.start);
-        var end = new Date(info.end); // exclusivo
+        var end = new Date(info.end);
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return out;
         start.setHours(0, 0, 0, 0);
         end.setHours(0, 0, 0, 0);
@@ -283,16 +291,27 @@ document.addEventListener('DOMContentLoaded', function() {
             return out;
         }
 
-        function clipToStoreWindow(segStart, segEnd, dayDate) {
+        function clipToStoreOpenWindow(segStart, segEnd, dayDate) {
             var win = getStoreDayWindowStrings(dayDate);
             if (!win) return null;
-            var storeStart = win.start;
-            var storeEnd = win.end;
-            var s = segStart < storeStart ? storeStart : segStart;
-            var e = segEnd > storeEnd ? storeEnd : segEnd;
+            var s = segStart < win.start ? win.start : segStart;
+            var e = segEnd > win.end ? win.end : segEnd;
             if (s >= e) return null;
 
             return { start: s, end: e };
+        }
+
+        function pushMemberBg(uid, ymd, segmentKey, segStart, segEnd, dayDate) {
+            var clipped = clipToStoreOpenWindow(segStart, segEnd, dayDate);
+            if (!clipped) return;
+            out.push({
+                id: 'member-unavail|' + uid + '|' + ymd + '|' + segmentKey,
+                start: ymd + 'T' + clipped.start + ':00',
+                end: ymd + 'T' + clipped.end + ':00',
+                display: 'background',
+                className: ['agenda-member-unavailable-bg'],
+                resourceId: viewType === 'resourceTimeGridDay' ? String(uid) : undefined,
+            });
         }
 
         memberIds.forEach(function(uid) {
@@ -303,50 +322,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 var key = weekKeyFromDate(day);
                 var cfg = sched[key];
                 var ymd = formatLocalYmd(day);
-                var nextYmd = formatLocalYmd(addDaysLocal(day, 1));
-                var baseId = 'member-unavail|' + uid + '|' + ymd;
-                if (!cfg || !parseScheduleDayEnabled(cfg.enabled)) {
-                    var fullDayClipped = clipToStoreWindow('00:00', '24:00', day);
-                    if (fullDayClipped) {
-                        out.push({
-                            id: baseId + '|all',
-                            start: ymd + 'T' + fullDayClipped.start + ':00',
-                            end: ymd + 'T' + fullDayClipped.end + ':00',
-                            display: 'background',
-                            className: ['agenda-member-unavailable-bg'],
-                            resourceId: viewType === 'resourceTimeGridDay' ? String(uid) : undefined,
-                        });
-                    }
-                    day = addDaysLocal(day, 1);
-                    continue;
-                }
 
-                var startTime = String(cfg.start || '00:00');
-                var endTime = String(cfg.end || '24:00');
-                if (startTime > '00:00') {
-                    var beforeClipped = clipToStoreWindow('00:00', startTime, day);
-                    if (beforeClipped) {
-                        out.push({
-                            id: baseId + '|before',
-                            start: ymd + 'T' + beforeClipped.start + ':00',
-                            end: ymd + 'T' + beforeClipped.end + ':00',
-                            display: 'background',
-                            className: ['agenda-member-unavailable-bg'],
-                            resourceId: viewType === 'resourceTimeGridDay' ? String(uid) : undefined,
-                        });
+                if (!cfg || !parseScheduleDayEnabled(cfg.enabled)) {
+                    pushMemberBg(uid, ymd, 'all', '00:00', '24:00', day);
+                } else {
+                    var startTime = String(cfg.start || '00:00');
+                    var endTime = String(cfg.end || '24:00');
+                    if (startTime > '00:00') {
+                        pushMemberBg(uid, ymd, 'before', '00:00', startTime, day);
                     }
-                }
-                if (endTime < '24:00') {
-                    var afterClipped = clipToStoreWindow(endTime, '24:00', day);
-                    if (afterClipped) {
-                        out.push({
-                            id: baseId + '|after',
-                            start: ymd + 'T' + afterClipped.start + ':00',
-                            end: ymd + 'T' + afterClipped.end + ':00',
-                            display: 'background',
-                            className: ['agenda-member-unavailable-bg'],
-                            resourceId: viewType === 'resourceTimeGridDay' ? String(uid) : undefined,
-                        });
+                    if (endTime < '24:00') {
+                        pushMemberBg(uid, ymd, 'after', endTime, '24:00', day);
                     }
                 }
                 day = addDaysLocal(day, 1);
@@ -355,8 +341,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return out;
     }
+
     /**
-     * Riscas diagonais para dias/horas em que a loja está fechada (ex.: domingo desligado em Negócio).
+     * Loja fechada / fora do horário da loja (eventos de fundo em todas as colunas).
+     * Não coincide no tempo com os do membro (estes só existem dentro do horário aberto da loja).
      */
     function generateStoreUnavailableBackgroundEvents(info, viewType) {
         if (!(viewType.indexOf('timeGrid') !== -1 || viewType.indexOf('resourceTimeGrid') !== -1)) {
@@ -6421,10 +6409,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (arg.el && arg.date) {
                 arg.el.setAttribute('data-slot-date', arg.date.toISOString());
                 arg.el.classList.toggle('agenda-slot-outside-hours', isOutsideStoreHoursAtDate(arg.date));
-                var uid = resolveSlotUserId(arg);
-                var memberUnavailable = !!(uid && isOutsideMemberWindowAtInstant(arg.date, uid));
-                arg.el.classList.toggle('agenda-slot-member-unavailable', memberUnavailable);
-                scheduleApplyMemberUnavailableClasses();
             }
         },
         dayCellClassNames: function(arg) {
@@ -6450,10 +6434,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var out = [];
             if (isOutsideStoreHoursAtDate(arg.date)) out.push('agenda-slot-outside-hours');
             if (isNationalHolidayPtAtDate(arg.date)) out.push('agenda-slot-holiday');
-            var uid = resolveSlotUserId(arg);
-            if (uid && isOutsideMemberWindowAtInstant(arg.date, uid)) {
-                out.push('agenda-slot-member-unavailable');
-            }
+
             return out;
         },
         dayMaxEvents: 2,
@@ -6770,11 +6751,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         return true;
                     });
                 }
-                var bgEvents = generateMemberUnavailableBackgroundEvents(info, vtEvents);
+                var memberBgEvents = generateMemberUnavailableBackgroundEvents(info, vtEvents);
                 var storeBgEvents = generateStoreUnavailableBackgroundEvents(info, vtEvents);
-                if (bgEvents.length || storeBgEvents.length) {
+                if (memberBgEvents.length || storeBgEvents.length) {
                     events = (Array.isArray(events) ? events : [])
-                        .concat(bgEvents)
+                        .concat(memberBgEvents)
                         .concat(storeBgEvents);
                 }
                 successCallback(events);

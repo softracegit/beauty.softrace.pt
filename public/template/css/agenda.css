@@ -1116,38 +1116,12 @@ body .app-wrapper .container-fluid {
 .fc .fc-timegrid-slot {
     background-color: transparent !important;
 }
-/* Riscas diagonais suaves; fixed = mesmo padrão no viewport → linhas contínuas entre células (não reinicia em cada slot) */
-.fc .fc-timegrid-slot.agenda-slot-outside-hours {
-    --agenda-outside-hatch-bg: rgba(108, 117, 125, 0.055);
-    --agenda-outside-hatch-line: rgba(108, 117, 125, 0.09);
-    background-color: var(--agenda-outside-hatch-bg) !important;
-    background-image: repeating-linear-gradient(
-        45deg,
-        var(--agenda-outside-hatch-line) 0,
-        var(--agenda-outside-hatch-line) 1px,
-        transparent 1px,
-        transparent 13px
-    ) !important;
-    background-size: 18px 18px !important;
-    background-attachment: fixed !important;
-    background-repeat: repeat !important;
-}
-/* Fora do horário definido para o membro (dentro do horário da loja): igual ao padrão da loja */
-.fc .fc-timegrid-slot.agenda-slot-member-unavailable {
-    --agenda-outside-hatch-bg: rgba(108, 117, 125, 0.055);
-    --agenda-outside-hatch-line: rgba(108, 117, 125, 0.09);
-    background-color: var(--agenda-outside-hatch-bg) !important;
-    background-image: repeating-linear-gradient(
-        45deg,
-        var(--agenda-outside-hatch-line) 0,
-        var(--agenda-outside-hatch-line) 1px,
-        transparent 1px,
-        transparent 13px
-    ) !important;
-    background-size: 18px 18px !important;
-    background-attachment: fixed !important;
-    background-repeat: repeat !important;
-}
+/*
+ * Uma camada de riscas por célula (sem slot + evento no mesmo sítio):
+ * - Loja: .agenda-store-unavailable-bg (antes/depois do horário da loja, dias fechados)
+ * - Membro: .agenda-member-unavailable-bg (só dentro do horário aberto da loja, por coluna)
+ * Intervalos no tempo não se sobrepõem → mesmo padrão visual, sem “cinzento duplo”.
+ */
 .fc .fc-bg-event.agenda-member-unavailable-bg,
 .fc .fc-bg-event.agenda-store-unavailable-bg {
     --agenda-outside-hatch-bg: rgba(108, 117, 125, 0.055);
