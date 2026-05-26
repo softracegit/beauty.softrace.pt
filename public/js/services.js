@@ -1092,6 +1092,9 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.set('sync_extras', '1');
         const extraIds = Array.from(document.querySelectorAll('#addServiceModal .service-extra-cb:checked')).map(cb => cb.value);
         extraIds.forEach(id => formData.append('extra_ids[]', id));
+        formData.set('sync_fees', '1');
+        const feeIds = Array.from(document.querySelectorAll('#addServiceModal .service-fee-cb:checked')).map(cb => cb.value);
+        feeIds.forEach(id => formData.append('fee_ids[]', id));
 
         fetch('/services', {
             method: 'POST',
@@ -1187,6 +1190,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const extraIds = Array.from(document.querySelectorAll('#editServiceModal .service-extra-cb:checked')).map(cb => cb.value);
         formData.delete('extra_ids[]');
         extraIds.forEach(id => formData.append('extra_ids[]', id));
+        formData.set('sync_fees', '1');
+        const feeIds = Array.from(document.querySelectorAll('#editServiceModal .service-fee-cb:checked')).map(cb => cb.value);
+        formData.delete('fee_ids[]');
+        feeIds.forEach(id => formData.append('fee_ids[]', id));
         
         formData.set('_method', 'PUT');
         
@@ -1275,6 +1282,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     cb.checked =
                         service.extras &&
                         service.extras.some(extra => Number(extra.id) === Number(cb.value));
+                });
+                document.querySelectorAll('#editServiceModal .service-fee-cb').forEach(cb => {
+                    cb.checked =
+                        service.fees &&
+                        service.fees.some(fee => Number(fee.id) === Number(cb.value));
                 });
 
                 new bootstrap.Modal(document.getElementById('editServiceModal')).show();

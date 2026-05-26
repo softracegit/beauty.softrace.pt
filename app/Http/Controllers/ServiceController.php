@@ -72,6 +72,7 @@ class ServiceController extends Controller
                 'category',
                 'agents',
                 'extras',
+                'fees',
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ]),
         ]);
@@ -107,6 +108,9 @@ class ServiceController extends Controller
         if ($request->boolean('sync_extras')) {
             $service->extras()->sync($request->input('extra_ids', []));
         }
+        if ($request->boolean('sync_fees')) {
+            $service->fees()->sync($request->input('fee_ids', []));
+        }
 
         return response()->json([
             'success' => true,
@@ -115,6 +119,7 @@ class ServiceController extends Controller
                 'category',
                 'agents',
                 'extras',
+                'fees',
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ]),
         ]);
@@ -144,6 +149,9 @@ class ServiceController extends Controller
         }
         if ($request->boolean('sync_extras')) {
             $service->extras()->sync($request->input('extra_ids', []));
+        }
+        if ($request->boolean('sync_fees')) {
+            $service->fees()->sync($request->input('fee_ids', []));
         }
 
         return response()->json([

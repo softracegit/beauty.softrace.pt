@@ -77,6 +77,11 @@ class Service extends Model
         return $this->belongsToMany(Extra::class, 'service_extra');
     }
 
+    public function fees(): BelongsToMany
+    {
+        return $this->belongsToMany(Fee::class, 'service_fee');
+    }
+
     /**
      * Variantes do serviço (ex.: com/sem lavagem). Baseline espelha o serviço pai.
      */

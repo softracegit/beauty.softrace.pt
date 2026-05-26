@@ -26,7 +26,7 @@
           </a>
         </li>
         <li>
-          <a href="{{ route('services.index') }}" class="iconbar-item {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') ? 'active' : '' }}" data-panel="catalogue" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
+          <a href="{{ route('services.index') }}" class="iconbar-item {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') || request()->routeIs('fees.*') ? 'active' : '' }}" data-panel="catalogue" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
             <i class="ph ph-book-open"></i>
           </a>
         </li>
@@ -104,7 +104,7 @@
       </ul>
     </div>
 
-    <div class="sidebar-panel-section {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') ? 'active' : '' }}" data-section="catalogue">
+    <div class="sidebar-panel-section {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') || request()->routeIs('fees.*') ? 'active' : '' }}" data-section="catalogue">
       <div class="sidebar-panel-header">
         <h6>Catálogo</h6>
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
@@ -123,6 +123,11 @@
         <li>
           <a class="panel-link {{ request()->routeIs('extras.*') ? 'active' : '' }}" href="{{ route('extras.index') }}">
             Extras / Add-ons
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('fees.*') ? 'active' : '' }}" href="{{ route('fees.index') }}">
+            Taxas
           </a>
         </li>
         <li>

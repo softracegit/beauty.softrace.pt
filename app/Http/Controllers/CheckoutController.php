@@ -14,6 +14,7 @@ use App\Notifications\ClientInvoiceAnnulledNotification;
 use App\Services\ClientWalletService;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
+use App\Support\ApplicableFees;
 use App\Support\PhoneDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -46,7 +47,7 @@ class CheckoutController extends Controller
         }
 
         $calendarEvent->load(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra']);
-        $subtotalItens = $this->checkoutSubtotalFromEvent($calendarEvent);
+        $subtotalItens = $this->checkoutSubtotalFromEvent($calendarEvent, true);
         $salesPaid = (float) Sale::query()
             ->where('calendar_event_id', $calendarEvent->id)
             ->where('status', '!=', Sale::STATUS_ANULADO)
@@ -114,6 +115,15 @@ class CheckoutController extends Controller
             }
         }
 
+        foreach (ApplicableFees::checkoutFeeLineItems($calendarEvent, $sortOrder) as $feeLine) {
+            $items[] = array_merge($feeLine, [
+                'calendar_event_service_id' => null,
+                'service_id' => null,
+                'extra_id' => null,
+            ]);
+            $sortOrder = ($feeLine['sort_order'] ?? $sortOrder) + 1;
+        }
+
         return response()->json([
             'event_id' => $calendarEvent->id,
             'client' => $calendarEvent->client ? [
@@ -121,6 +131,7 @@ class CheckoutController extends Controller
                 'name' => $calendarEvent->client->name,
                 'email' => $calendarEvent->client->email,
             ] : null,
+            'apply_catalog_fees' => ApplicableFees::includeCatalogFeesForCalendarEvent($calendarEvent),
             'existing_sale' => ($existingSale && $existingSale->status !== Sale::STATUS_ANULADO) ? [
                 'id' => $existingSale->id,
                 'numero_fatura' => $existingSale->numero_fatura,
@@ -146,7 +157,7 @@ class CheckoutController extends Controller
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.tipo' => ['required', 'in:servico,extra'],
+            'items.*.tipo' => ['required', 'in:servico,extra,taxa'],
             'items.*.descricao' => ['required', 'string', 'max:255'],
             'items.*.quantidade' => ['required', 'integer', 'min:1'],
             'items.*.preco_unitario' => ['required', 'numeric', 'min:0'],
@@ -155,10 +166,12 @@ class CheckoutController extends Controller
             'items.*.calendar_event_service_id' => ['nullable', 'exists:calendar_event_services,id'],
             'items.*.service_id' => ['nullable', 'exists:services,id'],
             'items.*.extra_id' => ['nullable', 'exists:extras,id'],
+            'items.*.fee_id' => ['nullable', 'exists:fees,id'],
             'gorjeta' => ['nullable', 'numeric', 'min:0'],
             'desconto' => ['nullable', 'numeric', 'min:0'],
             'valor_pago' => ['nullable', 'numeric', 'min:0'],
             'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
+            'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
         $calendarEvent = CalendarEvent::query()
@@ -221,6 +234,8 @@ class CheckoutController extends Controller
         $valorPago = isset($validated['valor_pago']) ? max(0, (float) $validated['valor_pago']) : $total;
         $valorPago = min($valorPago, $total);
 
+        $invoiceStatus = $this->resolveInvoiceStatusFromCheckoutMode($validated['checkout_mode'] ?? 'faturar');
+
         $paymentMethod = (string) $validated['payment_method'];
         if ($paymentMethod === Sale::PAYMENT_CREDITOS_CARTEIRA) {
             if (! $client instanceof Client) {
@@ -268,6 +283,7 @@ class CheckoutController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'scope' => Sale::SCOPE_CAIXA_LIQUIDACAO,
                 'status' => Sale::STATUS_PAGO,
+                'invoice_status' => $invoiceStatus,
                 'issue_without_fiscal_id' => $fiscalMode === 'consumer',
             ]);
 
@@ -284,6 +300,7 @@ class CheckoutController extends Controller
                     'calendar_event_service_id' => $row['calendar_event_service_id'] ?? null,
                     'service_id' => $row['service_id'] ?? null,
                     'extra_id' => $row['extra_id'] ?? null,
+                    'fee_id' => $row['fee_id'] ?? null,
                     'descricao' => $row['descricao'],
                     'quantidade' => $qty,
                     'preco_unitario' => $preco,
@@ -326,8 +343,10 @@ class CheckoutController extends Controller
         }
 
         $pdfUrl = route('sales.pdf', $sale);
-        $this->syncSaleWithVendus($sale);
-        $sale->refresh();
+        if ($invoiceStatus !== Sale::INVOICE_STATUS_RASCUNHO) {
+            $this->syncSaleWithVendus($sale);
+            $sale->refresh();
+        }
 
         $delivery = (string) ($validated['invoice_delivery'] ?? 'print');
         if (! in_array($delivery, ['email', 'print'], true)) {
@@ -335,7 +354,7 @@ class CheckoutController extends Controller
         }
 
         $emailResult = ['sent' => false, 'message' => null];
-        if ($delivery === 'email') {
+        if ($invoiceStatus !== Sale::INVOICE_STATUS_RASCUNHO && $delivery === 'email') {
             $emailResult = $this->vendusInvoiceEmailService->trySendToClient($sale);
         }
 
@@ -346,14 +365,26 @@ class CheckoutController extends Controller
             'pdf_url' => $pdfUrl,
             'vendus_pdf_url' => $sale->vendus_document_id ? route('sales.vendus.pdf', $sale) : null,
             'vendus_synced' => $sale->vendus_document_id !== null,
+            'invoice_status' => $sale->invoice_status,
             'invoice_delivery' => $delivery,
             'invoice_email_sent' => $emailResult['sent'],
             'invoice_email_message' => $emailResult['message'],
         ]);
     }
 
+    private function resolveInvoiceStatusFromCheckoutMode(?string $checkoutMode): string
+    {
+        return ($checkoutMode ?? 'faturar') === 'rascunho'
+            ? Sale::INVOICE_STATUS_RASCUNHO
+            : Sale::INVOICE_STATUS_FATURADO;
+    }
+
     private function syncSaleWithVendus(Sale $sale): void
     {
+        if ($sale->isInvoiceDraft()) {
+            return;
+        }
+
         try {
             $result = $this->vendusInvoiceService->syncSale($sale);
             if ($result['ok']) {
@@ -518,7 +549,7 @@ class CheckoutController extends Controller
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.tipo' => ['required', 'in:servico,extra'],
+            'items.*.tipo' => ['required', 'in:servico,extra,taxa'],
             'items.*.descricao' => ['required', 'string', 'max:255'],
             'items.*.quantidade' => ['required', 'integer', 'min:1'],
             'items.*.preco_unitario' => ['required', 'numeric', 'min:0'],
@@ -527,8 +558,10 @@ class CheckoutController extends Controller
             'items.*.calendar_event_service_id' => ['nullable', 'exists:calendar_event_services,id'],
             'items.*.service_id' => ['nullable', 'exists:services,id'],
             'items.*.extra_id' => ['nullable', 'exists:extras,id'],
+            'items.*.fee_id' => ['nullable', 'exists:fees,id'],
             'gorjeta' => ['nullable', 'numeric', 'min:0'],
             'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
+            'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
         $this->configureStripeSdk();
@@ -568,14 +601,13 @@ class CheckoutController extends Controller
         return round(max(0, $subtotalItens), 2);
     }
 
-    private function checkoutSubtotalFromEvent(CalendarEvent $calendarEvent): float
+    private function checkoutSubtotalFromEvent(CalendarEvent $calendarEvent, bool $withCatalogFees = false): float
     {
-        $subtotal = 0.0;
-        foreach ($calendarEvent->eventServiceItems as $esi) {
-            $subtotal += (float) $esi->price;
-            foreach ($esi->extras as $ex) {
-                $subtotal += (float) ($ex->price ?? $ex->extra?->price ?? 0);
-            }
+        $subtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($calendarEvent->eventServiceItems);
+        if ($withCatalogFees && ApplicableFees::includeCatalogFeesForCalendarEvent($calendarEvent)) {
+            $subtotal = round($subtotal + ApplicableFees::sumPrices(
+                ApplicableFees::forServiceIds($calendarEvent->eventServiceItems->pluck('service_id'), (int) $calendarEvent->store_id)
+            ), 2);
         }
 
         return round(max(0.0, $subtotal), 2);

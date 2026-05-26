@@ -22,6 +22,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\DefinicoesController;
 use App\Http\Controllers\ExtraController;
+use App\Http\Controllers\FeeController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MarketingSmsController;
 use App\Http\Controllers\NotificationController;
@@ -333,6 +334,12 @@ Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function ()
     Route::post('extra-categories', [ExtraController::class, 'storeCategory'])->name('extras.categories.store');
     Route::match(['put', 'patch'], 'extra-categories/{extraCategory}', [ExtraController::class, 'updateCategory'])->name('extras.categories.update');
     Route::delete('extra-categories/{extraCategory}', [ExtraController::class, 'destroyCategory'])->name('extras.categories.destroy');
+
+    Route::get('fees', [FeeController::class, 'index'])->name('fees.index');
+    Route::post('fees', [FeeController::class, 'store'])->name('fees.store');
+    Route::get('fees/{fee}', [FeeController::class, 'show'])->name('fees.show');
+    Route::match(['put', 'patch'], 'fees/{fee}', [FeeController::class, 'update'])->name('fees.update');
+    Route::delete('fees/{fee}', [FeeController::class, 'destroy'])->name('fees.destroy');
 
     Route::prefix('marketing')->name('marketing.')->group(function () {
         Route::get('campanhas-sms', [MarketingSmsController::class, 'index'])->name('campanhas-sms');

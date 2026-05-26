@@ -59,6 +59,7 @@ class AgendaDepositController extends Controller
             'wallet_apply' => ['sometimes', 'boolean'],
             'wallet_apply_cents' => ['sometimes', 'integer', 'min:0'],
             'custom_amount' => ['nullable', 'numeric', 'min:0.01'],
+            'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
         try {
@@ -70,6 +71,7 @@ class AgendaDepositController extends Controller
                 'wallet_apply_cents' => (int) ($validated['wallet_apply_cents'] ?? 0),
                 'custom_amount' => isset($validated['custom_amount']) ? (float) $validated['custom_amount'] : null,
                 'staff_user_id' => auth()->id(),
+                'checkout_mode' => $validated['checkout_mode'] ?? 'faturar',
             ]);
         } catch (AgendaDepositException $e) {
             return $this->depositErrorResponse($e);
@@ -120,6 +122,7 @@ class AgendaDepositController extends Controller
             'billing_nif' => ['nullable', 'string', 'max:32'],
             'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
             'custom_amount' => ['nullable', 'numeric', 'min:0.01'],
+            'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
         $this->configureStripeSdk();
@@ -136,6 +139,7 @@ class AgendaDepositController extends Controller
                 'billing_nif' => $validated['billing_nif'] ?? null,
                 'custom_amount' => isset($validated['custom_amount']) ? (float) $validated['custom_amount'] : null,
                 'staff_user_id' => auth()->id(),
+                'checkout_mode' => $validated['checkout_mode'] ?? 'faturar',
             ]);
         } catch (AgendaDepositException $e) {
             return $this->depositErrorResponse($e);
@@ -168,6 +172,7 @@ class AgendaDepositController extends Controller
             'wallet_apply' => ['sometimes', 'boolean'],
             'wallet_apply_cents' => ['sometimes', 'integer', 'min:0'],
             'custom_amount' => ['nullable', 'numeric', 'min:0.01'],
+            'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
         try {
@@ -179,6 +184,7 @@ class AgendaDepositController extends Controller
                 'wallet_apply_cents' => (int) ($validated['wallet_apply_cents'] ?? 0),
                 'custom_amount' => isset($validated['custom_amount']) ? (float) $validated['custom_amount'] : null,
                 'staff_user_id' => auth()->id(),
+                'checkout_mode' => $validated['checkout_mode'] ?? 'faturar',
             ]);
         } catch (AgendaDepositException $e) {
             return $this->depositErrorResponse($e);
@@ -190,14 +196,14 @@ class AgendaDepositController extends Controller
     private function successResponse(AgendaDepositResult $result, string $invoiceDelivery): JsonResponse
     {
         $sale = $result->sale;
-        if ($sale !== null) {
+        if ($sale !== null && ! $sale->isInvoiceDraft()) {
             $this->syncSaleWithVendus($sale);
             $sale->refresh();
         }
 
         $delivery = in_array($invoiceDelivery, ['email', 'print'], true) ? $invoiceDelivery : 'print';
         $emailResult = ['sent' => false, 'message' => null];
-        if ($delivery === 'email' && $sale !== null) {
+        if ($delivery === 'email' && $sale !== null && ! $sale->isInvoiceDraft()) {
             $emailResult = $this->vendusInvoiceEmailService->trySendToClient($sale);
         }
 
@@ -219,6 +225,7 @@ class AgendaDepositController extends Controller
             $payload['pdf_url'] = route('sales.pdf', $sale);
             $payload['vendus_pdf_url'] = $sale->vendus_document_id ? route('sales.vendus.pdf', $sale) : null;
             $payload['vendus_synced'] = $sale->vendus_document_id !== null;
+            $payload['invoice_status'] = $sale->invoice_status;
         } else {
             $payload['sale_id'] = null;
             $payload['pdf_url'] = null;
@@ -231,6 +238,10 @@ class AgendaDepositController extends Controller
 
     private function syncSaleWithVendus(\App\Models\Sale $sale): void
     {
+        if ($sale->isInvoiceDraft()) {
+            return;
+        }
+
         try {
             $result = $this->vendusInvoiceService->syncSale($sale);
             if ($result['ok']) {

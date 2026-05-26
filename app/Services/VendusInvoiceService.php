@@ -22,6 +22,15 @@ final class VendusInvoiceService
      */
     public function syncSale(Sale $sale): array
     {
+        if ($sale->isInvoiceDraft()) {
+            return [
+                'ok' => true,
+                'status' => 200,
+                'message' => 'Rascunho: documento não enviado à Vendus.',
+                'document_id' => null,
+            ];
+        }
+
         if ((bool) config('services.vendus.simulate', false)) {
             return [
                 'ok' => true,
@@ -498,7 +507,15 @@ final class VendusInvoiceService
      */
     private function vendusLineTitle(SaleItem $item, Sale $sale): string
     {
-        $item->loadMissing(['service', 'extra', 'calendarEventService.service']);
+        $item->loadMissing(['service', 'extra', 'fee', 'calendarEventService.service']);
+
+        if (($item->tipo ?? null) === SaleItem::TIPO_TAXA || ($item->fee_id ?? null)) {
+            $item->loadMissing('fee');
+            $n = trim((string) ($item->fee?->name ?? ''));
+            if ($n !== '') {
+                return $n;
+            }
+        }
 
         if (($item->tipo ?? null) === SaleItem::TIPO_EXTRA || ($item->extra_id ?? null)) {
             $item->loadMissing('extra');
@@ -723,6 +740,9 @@ final class VendusInvoiceService
         }
         if (($item->tipo ?? null) === 'extra' && ! empty($item->extra_id)) {
             return 'EXT-'.$item->extra_id;
+        }
+        if (($item->tipo ?? null) === SaleItem::TIPO_TAXA && ! empty($item->fee_id)) {
+            return 'FEE-'.$item->fee_id;
         }
 
         // Fallback estavel por descricao/tipo, para evitar criar produto a cada venda.

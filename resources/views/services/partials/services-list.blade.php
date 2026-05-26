@@ -27,6 +27,9 @@
                     @if(($service->extras_count ?? $service->extras->count() ?? 0) > 0)
                         <span><i class="ph ph-package me-1"></i>{{ $service->extras_count ?? $service->extras->count() }} extra(s)</span>
                     @endif
+                    @if(($service->fees_count ?? $service->fees->count() ?? 0) > 0)
+                        <span><i class="ph ph-coins me-1"></i>{{ $service->fees_count ?? $service->fees->count() }} taxa(s)</span>
+                    @endif
                 </div>
                 @if($hasOpts)
                     <ul class="list-unstyled small text-muted mb-0 mt-1 ps-0 service-option-chips">

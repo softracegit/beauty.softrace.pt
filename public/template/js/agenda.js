@@ -1677,6 +1677,9 @@ document.addEventListener('DOMContentLoaded', function() {
     /** Se true, a duração do evento segue só a soma dos serviços+extras (heurística anti-duplicação desligada). */
     var eventDetailTrustServicesSumForDuration = false;
     function eventDetailMarkServiceListMutated() {
+        if (eventDetailCurrentData) {
+            delete eventDetailCurrentData.catalog_fees;
+        }
         eventDetailTrustServicesSumForDuration = true;
     }
 
@@ -1763,6 +1766,17 @@ document.addEventListener('DOMContentLoaded', function() {
         pm.classList.toggle('payment-pos-modal--invoice-only', paymentModalIsInvoiceOnly());
         pm.classList.toggle('payment-pos-modal--reserva', paymentModalIsReserva());
         paymentModalSyncReservaWalletUi();
+        paymentModalSyncFooterButtons();
+    }
+
+    function paymentModalSyncFooterButtons() {
+        var draftBtn = $id('paymentDraftBtn');
+        if (!draftBtn) return;
+        var showDraft = !paymentModalIsInvoiceOnly();
+        draftBtn.classList.toggle('d-none', !showDraft);
+        if (!showDraft) return;
+        if (draftBtn.querySelector('.spinner-border')) return;
+        draftBtn.disabled = !paymentModalValidateReadyToPay();
     }
 
     function paymentModalWantsWalletApplied() {
@@ -1944,7 +1958,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return Math.max(0, parseFloat(paymentModalReservaPreview.deposit_amount) || 0);
         }
         var pct = parseInt(C.bookingDepositPercent, 10) || 0;
-        var sub = paymentModalSubtotal();
+        var sub = eventDetailCheckoutSubtotal();
         if (pct > 0) {
             return Math.round(sub * (pct / 100) * 100) / 100;
         }
@@ -1961,9 +1975,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (Number.isFinite(amountDue) && amountDue >= 0) {
             return Math.round((amountDue + gorjeta) * 100);
         }
-        var sub = paymentModalSubtotal();
+        var checkoutSub = eventDetailCheckoutSubtotal();
         var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
-        var servicesDue = Math.max(0, sub - paidOnline);
+        var servicesDue = Math.max(0, checkoutSub - paidOnline);
         return Math.round((servicesDue + gorjeta) * 100);
     }
 
@@ -2011,31 +2025,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function paymentModalUpdateReservaHero() {
-        var sub = paymentModalReservaPreview && Number.isFinite(paymentModalReservaPreview.subtotal)
-            ? parseFloat(paymentModalReservaPreview.subtotal)
-            : paymentModalSubtotal();
-        var pct = paymentModalReservaPreview
-            ? parseInt(paymentModalReservaPreview.deposit_percent, 10)
-            : (parseInt(C.bookingDepositPercent, 10) || 0);
-        var deposit = paymentModalGetDepositAmountEur();
-        var subtotalLbl = $id('paymentSubtotalLineLabel');
-        if (subtotalLbl) subtotalLbl.textContent = paymentModalSubtotalLineLabel();
-        var subDisp = $id('paymentSubtotalDisplay');
-        if (subDisp) subDisp.textContent = sub.toFixed(2).replace('.', ',') + ' €';
-        var pretaxInline = $id('paymentHeroPretaxInline');
-        if (pretaxInline) {
-            pretaxInline.textContent = 's/ IVA ' + (sub / 1.23).toFixed(2).replace('.', ',') + ' €';
-        }
-        var pctLbl = $id('paymentReservaPercentLabel');
-        if (pctLbl) {
-            pctLbl.textContent = pct > 0
-                ? ('Pré-pagamento (' + pct + '%):')
-                : 'Pré-pagamento:';
-        }
-        var amtDisp = $id('paymentReservaAmountDisplay');
-        if (amtDisp) amtDisp.textContent = deposit.toFixed(2).replace('.', ',') + ' €';
-        var customWrap = $id('paymentReservaCustomWrap');
-        if (customWrap) customWrap.classList.toggle('d-none', pct > 0);
+        paymentModalRefreshHeroTotals();
     }
 
     function paymentModalFetchDepositPreview(callback) {
@@ -2401,15 +2391,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return parseInt(C.bookingDepositPercent, 10) || 0;
         }
 
-        function eventDetailServicesSubtotal() {
-            return eventDetailSelectedServices.reduce(function(sum, s) {
-                var p = (parseFloat(s.price) || 0) + (s.extras || []).reduce(function(s2, e) {
-                    return s2 + (parseFloat(e.price) || 0);
-                }, 0);
-                return sum + p;
-            }, 0);
-        }
-
         function eventDetailExpectedDepositEur(total) {
             var pct = eventDetailDepositPercent();
             var sub = Math.max(0, parseFloat(total) || 0);
@@ -2493,7 +2474,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var hasClient = !!(eventDetailSelectedClient && eventDetailSelectedClient.id)
                 || !!(eventDetailCurrentData && eventDetailCurrentData.client_id);
             var reservaBlockedStatus = status === 'faltou' || status === 'cancelado' || status === 'anulado';
-            var subtotal = eventDetailServicesSubtotal();
+            var subtotal = eventDetailCheckoutSubtotal();
             var depositPct = eventDetailDepositPercent();
             var depositExpected = eventDetailExpectedDepositEur(subtotal);
             var bookingPaid = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
@@ -2741,6 +2722,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 formatted_price: s.formatted_price || (pr.toFixed(2).replace('.', ',') + ' €'),
                 color: s.color || '#6c757d',
                 category_name: s.category_name || '',
+                fees: (s.fees || []).map(function(f) {
+                    return {
+                        fee_id: f.fee_id != null ? f.fee_id : f.id,
+                        name: f.name,
+                        price: parseFloat(f.price) || 0,
+                        formatted_price: f.formatted_price || ''
+                    };
+                }),
                 available_extras: [],
                 extras: extras
             });
@@ -3114,6 +3103,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         return String(fs.service_id) === String(item.service_id) && String(fs.service_option_id || '') === String(item.service_option_id || '');
                     });
                     if (flatMatch && flatMatch.category_name) item.category_name = flatMatch.category_name;
+                    if (flatMatch && flatMatch.fees) item.fees = flatMatch.fees;
                 });
                 if (done) done(data);
             })
@@ -3207,6 +3197,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!eventDetailSelectedServices.length) {
             wrap.classList.add('d-none');
             wrap.innerHTML = '';
+            eventDetailOcRenderFeesList();
             eventDetailOcApplyServiceFieldVisibility();
             if (totalStrip) totalStrip.classList.remove('d-none');
             return;
@@ -3277,6 +3268,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '</div></div></div>';
         }).join('');
         wrap.innerHTML = html;
+        eventDetailOcRenderFeesList();
         wrap.querySelectorAll('.agenda-oc-remove-service-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var idx = parseInt(this.dataset.idx, 10);
@@ -3449,6 +3441,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         formatted_price: svc.formatted_price || ((parseFloat(svc.price) || 0).toFixed(2).replace('.', ',') + ' €'),
                         category_name: svc.category_name || '',
                         available_extras: svc.available_extras || [],
+                        fees: Array.isArray(svc.fees) ? svc.fees.map(function(f) {
+                            return {
+                                fee_id: f.fee_id != null ? f.fee_id : f.id,
+                                name: f.name,
+                                price: parseFloat(f.price) || 0,
+                                formatted_price: f.formatted_price || ''
+                            };
+                        }) : [],
                         extras: []
                     });
                     eventDetailOcShowServicePicker = false;
@@ -3658,15 +3658,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     EventDetail.updateTotal = function() {
-        var total = eventDetailSelectedServices.reduce(function(sum, s) {
-            var p = (parseFloat(s.price) || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (parseFloat(e.price) || 0); }, 0);
-            return sum + p;
-        }, 0);
+        var total = eventDetailShouldApplyCatalogFees() ? eventDetailCheckoutSubtotal() : eventDetailServicesSubtotal();
         var totalText = total.toFixed(2).replace('.', ',') + ' €';
         var totalPriceEl = $id('eventDetailTotalPrice');
         if (totalPriceEl) {
             totalPriceEl.textContent = totalText;
         }
+        eventDetailOcRenderFeesList();
         eventDetailSyncOffcanvasPaymentSummary(total);
         if (eventDetailCurrentData) {
             setEventDetailPaymentAndReadOnly(
@@ -4182,6 +4180,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             formatted_price: opt.formatted_price || '',
                             category_name: cat.name || '',
                             available_extras: extras,
+                            fees: Array.isArray(s.fees) ? s.fees : [],
                             extras: []
                         });
                     });
@@ -4199,6 +4198,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         formatted_price: s.formatted_price || '',
                         category_name: cat.name || '',
                         available_extras: extras,
+                        fees: Array.isArray(s.fees) ? s.fees : [],
                         extras: []
                     });
                 }
@@ -5128,11 +5128,182 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentMbwayFinalizeRequestPending = false;
     }
 
-    function paymentModalSubtotal() {
-        return eventDetailSelectedServices.reduce(function(sum, s) {
+    function eventDetailServicesSubtotal() {
+        return (eventDetailSelectedServices || []).reduce(function(sum, s) {
             var p = (parseFloat(s.price) || 0) + (s.extras || []).reduce(function(s2, e) { return s2 + (parseFloat(e.price) || 0); }, 0);
             return sum + p;
         }, 0);
+    }
+
+    function eventDetailShouldApplyCatalogFees() {
+        var d = eventDetailCurrentData || {};
+        if (typeof d.apply_catalog_fees === 'boolean') {
+            return d.apply_catalog_fees;
+        }
+        return !d.invoice_settled;
+    }
+
+    function eventDetailApplicableFeesDedupe(fees) {
+        var seen = {};
+        var out = [];
+        (fees || []).forEach(function(f) {
+            var id = f.fee_id != null ? f.fee_id : f.id;
+            if (!id || seen[id]) {
+                return;
+            }
+            seen[id] = true;
+            out.push({
+                fee_id: id,
+                name: f.name || '',
+                price: parseFloat(f.price) || 0,
+                formatted_price: f.formatted_price || ''
+            });
+        });
+        return out;
+    }
+
+    function eventDetailApplicableFees() {
+        if (!eventDetailShouldApplyCatalogFees()) {
+            return [];
+        }
+        var d = eventDetailCurrentData || {};
+        if (Array.isArray(d.catalog_fees) && d.catalog_fees.length) {
+            return eventDetailApplicableFeesDedupe(d.catalog_fees);
+        }
+        var merged = [];
+        (eventDetailSelectedServices || []).forEach(function(s) {
+            (s.fees || []).forEach(function(f) { merged.push(f); });
+        });
+        return eventDetailApplicableFeesDedupe(merged);
+    }
+
+    function eventDetailFeesSubtotal() {
+        return eventDetailApplicableFees().reduce(function(sum, f) {
+            return sum + (parseFloat(f.price) || 0);
+        }, 0);
+    }
+
+    function eventDetailCheckoutSubtotal() {
+        return eventDetailServicesSubtotal() + eventDetailFeesSubtotal();
+    }
+
+    function eventDetailOcRenderFeesList() {
+        var wrap = $id('eventDetailOcFeesList');
+        if (!wrap) {
+            return;
+        }
+        wrap.innerHTML = '';
+        if (!eventDetailShouldApplyCatalogFees()) {
+            wrap.classList.add('d-none');
+            return;
+        }
+        var fees = eventDetailApplicableFees();
+        if (!fees.length) {
+            wrap.classList.add('d-none');
+            return;
+        }
+        wrap.classList.remove('d-none');
+        fees.forEach(function(f) {
+            var price = parseFloat(f.price) || 0;
+            var label = f.formatted_price || eventDetailMoney(price);
+            var row = document.createElement('div');
+            row.className = 'd-flex justify-content-between align-items-center gap-2 py-1 small border-bottom border-light-subtle agenda-oc-fee-row';
+            row.innerHTML = '<span class="text-muted">' + String(f.name || 'Taxa').replace(/</g, '&lt;') + '</span><span class="fw-semibold text-body text-nowrap">' + label + '</span>';
+            wrap.appendChild(row);
+        });
+    }
+
+    function paymentModalRenderFeesLines() {
+        var wrap = $id('paymentFeesLines');
+        if (!wrap) {
+            return;
+        }
+        wrap.innerHTML = '';
+        if (!eventDetailShouldApplyCatalogFees()) {
+            wrap.classList.add('d-none');
+            return;
+        }
+        var fees = eventDetailApplicableFees();
+        if (!fees.length) {
+            wrap.classList.add('d-none');
+            return;
+        }
+        wrap.classList.remove('d-none');
+        fees.forEach(function(f) {
+            var row = document.createElement('div');
+            row.className = 'd-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row';
+            var price = parseFloat(f.price) || 0;
+            var label = f.formatted_price || eventDetailMoney(price);
+            row.innerHTML = '<span class="text-muted">' + String(f.name || 'Taxa').replace(/</g, '&lt;') + ':</span><span class="fw-semibold text-body">' + label + '</span>';
+            wrap.appendChild(row);
+        });
+    }
+
+    function paymentModalRefreshHeroTotals() {
+        var isReserva = paymentModalIsReserva();
+        var servicesSub = eventDetailServicesSubtotal();
+        var checkoutSub = eventDetailCheckoutSubtotal();
+        var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
+        var gorjeta = paymentModalGetGorjetaAmount();
+        var deposit = paymentModalGetDepositAmountEur();
+
+        var subtotalLbl = $id('paymentSubtotalLineLabel');
+        if (subtotalLbl) subtotalLbl.textContent = paymentModalSubtotalLineLabel();
+        var subDisp = $id('paymentSubtotalDisplay');
+        if (subDisp) subDisp.textContent = eventDetailMoney(servicesSub);
+
+        paymentModalRenderFeesLines();
+
+        var lineCheckout = $id('paymentLineCheckoutTotal');
+        var checkoutDisp = $id('paymentCheckoutTotalDisplay');
+        var linePrePaid = $id('paymentLinePrepagamentoPaid');
+        var prePaidDisp = $id('paymentOnlinePaidDisplay');
+        var lineDeposit = $id('paymentLineDepositAmount');
+        var depositLbl = $id('paymentReservaPercentLabel');
+        var depositDisp = $id('paymentReservaAmountDisplay');
+        var lineTotalDue = $id('paymentLineTotalDue');
+        var totalDueDisp = $id('paymentTotalDueDisplay');
+        var customWrap = $id('paymentReservaCustomWrap');
+        var gorjetaLine = $id('paymentGorjetaLine');
+        var gorjetaDisp = $id('paymentGorjetaDisplay');
+
+        if (isReserva) {
+            if (lineCheckout) lineCheckout.classList.remove('d-none');
+            if (checkoutDisp) checkoutDisp.textContent = eventDetailMoney(checkoutSub);
+            if (linePrePaid) linePrePaid.classList.add('d-none');
+            if (lineTotalDue) lineTotalDue.classList.add('d-none');
+            if (lineDeposit) lineDeposit.classList.remove('d-none');
+            var pct = paymentModalReservaPreview
+                ? parseInt(paymentModalReservaPreview.deposit_percent, 10)
+                : (parseInt(C.bookingDepositPercent, 10) || 0);
+            if (depositLbl) {
+                depositLbl.textContent = pct > 0
+                    ? ('Pré-pagamento (' + pct + '%):')
+                    : 'Pré-pagamento:';
+            }
+            if (depositDisp) depositDisp.textContent = eventDetailMoney(deposit);
+            if (customWrap) customWrap.classList.toggle('d-none', pct > 0);
+            if (gorjetaLine) gorjetaLine.classList.add('d-none');
+        } else {
+            if (lineCheckout) lineCheckout.classList.add('d-none');
+            if (lineDeposit) lineDeposit.classList.add('d-none');
+            if (customWrap) customWrap.classList.add('d-none');
+            if (linePrePaid) linePrePaid.classList.toggle('d-none', paidOnline <= 0);
+            if (prePaidDisp) prePaidDisp.textContent = '-' + (paidOnline.toFixed(2).replace('.', ',') + ' €');
+            var amountDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
+            var totalDue = Number.isFinite(amountDue) && amountDue >= 0
+                ? amountDue
+                : Math.max(0, checkoutSub - paidOnline);
+            totalDue = Math.max(0, totalDue + gorjeta);
+            if (lineTotalDue) lineTotalDue.classList.remove('d-none');
+            if (totalDueDisp) totalDueDisp.textContent = eventDetailMoney(totalDue);
+            if (gorjetaLine) gorjetaLine.classList.toggle('d-none', gorjeta <= 0);
+            if (gorjetaDisp) gorjetaDisp.textContent = eventDetailMoney(gorjeta);
+        }
+    }
+
+    function paymentModalSubtotal() {
+        return eventDetailCheckoutSubtotal();
     }
 
     function paymentModalSubtotalLineLabel() {
@@ -5254,9 +5425,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (btn.querySelector('.spinner-border')) return;
         if (paymentModalIsInvoiceOnly()) {
             btn.disabled = false;
+            paymentModalSyncFooterButtons();
             return;
         }
         btn.disabled = !paymentModalValidateReadyToPay();
+        paymentModalSyncFooterButtons();
     }
 
     function paymentModalPosGorjetaEnabled() {
@@ -5298,10 +5471,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var btn = $id('paymentConfirmBtn');
         if (!btn) return;
         if (btn.querySelector('.spinner-border')) return;
-        var sub = paymentModalSubtotal();
+        var checkoutSub = eventDetailCheckoutSubtotal();
         var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
-        var servicesDue = Math.max(0, sub - paidOnline);
         var gorjeta = paymentModalGetGorjetaAmount();
+        var amountDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
+        var servicesDue = Number.isFinite(amountDue) && amountDue >= 0
+            ? amountDue
+            : Math.max(0, checkoutSub - paidOnline);
         var total = servicesDue + gorjeta;
         if (paymentModalIsInvoiceOnly()) {
             btn.textContent = 'Emitir fatura final · ' + total.toFixed(2).replace('.', ',') + ' €';
@@ -5323,46 +5499,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function paymentModalRestoreConfirmButton() {
         var btn = $id('paymentConfirmBtn');
-        if (!btn) return;
-        btn.textContent = '';
-        paymentModalUpdateConfirmLabel();
-        if (paymentMbwayFinalizeSucceeded) {
-            btn.disabled = true;
+        var draftBtn = $id('paymentDraftBtn');
+        if (btn) {
+            btn.textContent = '';
+            paymentModalUpdateConfirmLabel();
+            if (paymentMbwayFinalizeSucceeded) {
+                btn.disabled = true;
+            }
         }
+        if (draftBtn && !draftBtn.querySelector('.spinner-border')) {
+            draftBtn.textContent = 'Rascunho';
+        }
+        paymentModalSyncFooterButtons();
+    }
+
+    function paymentModalDisableSubmitButtons() {
+        var btn = $id('paymentConfirmBtn');
+        var draftBtn = $id('paymentDraftBtn');
+        if (btn) btn.disabled = true;
+        if (draftBtn) draftBtn.disabled = true;
     }
 
     function paymentModalUpdateTotals() {
+        paymentModalRefreshHeroTotals();
         if (paymentModalIsReserva()) {
-            paymentModalUpdateReservaHero();
             paymentModalSyncReservaWalletUi();
-            paymentModalUpdateConfirmLabel();
-            paymentModalRefreshWalletHint();
-            return;
         }
-        var sub = paymentModalSubtotal();
-        var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
-        var servicesDue = Math.max(0, sub - paidOnline);
-        var gorjeta = paymentModalGetGorjetaAmount();
-        var subtotalLbl = $id('paymentSubtotalLineLabel');
-        if (subtotalLbl) subtotalLbl.textContent = paymentModalSubtotalLineLabel();
-        var subDisp = $id('paymentSubtotalDisplay');
-        if (subDisp) subDisp.textContent = sub.toFixed(2).replace('.', ',') + ' €';
-        var pretaxInline = $id('paymentHeroPretaxInline');
-        if (pretaxInline) {
-            pretaxInline.textContent = 's/ IVA ' + (sub / 1.23).toFixed(2).replace('.', ',') + ' €';
-        }
-        var paidLine = $id('paymentOnlinePaidLine');
-        var paidDisplay = $id('paymentOnlinePaidDisplay');
-        if (paidDisplay) paidDisplay.textContent = '-' + paidOnline.toFixed(2).replace('.', ',') + ' €';
-        if (paidLine) paidLine.classList.toggle('d-none', paidOnline <= 0);
-        var dueLine = $id('paymentServicesDueLine');
-        var dueDisplay = $id('paymentServicesDueDisplay');
-        if (dueDisplay) dueDisplay.textContent = servicesDue.toFixed(2).replace('.', ',') + ' €';
-        if (dueLine) dueLine.classList.toggle('d-none', paidOnline <= 0);
-        var gorjetaDisp = $id('paymentGorjetaDisplay');
-        if (gorjetaDisp) gorjetaDisp.textContent = gorjeta.toFixed(2).replace('.', ',') + ' €';
-        var gorjetaLine = $id('paymentGorjetaLine');
-        if (gorjetaLine) gorjetaLine.classList.toggle('d-none', gorjeta <= 0);
         paymentModalUpdateConfirmLabel();
         paymentModalRefreshWalletHint();
     }
@@ -5515,14 +5677,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isPrepagamento) {
             eventDetailMergeDepositSaleFromResponse(res);
         }
+        var isDraftInvoice = res && res.invoice_status === 'rascunho';
         if (isPrepagamento) {
-            var prepMsg = 'Pré-pagamento registado com sucesso.';
-            if (delivery === 'email' && res && res.invoice_email_sent) {
+            var prepMsg = isDraftInvoice
+                ? 'Pré-pagamento registado (rascunho). PDF interno disponível.'
+                : 'Pré-pagamento registado com sucesso.';
+            if (!isDraftInvoice && delivery === 'email' && res && res.invoice_email_sent) {
                 prepMsg = 'Pré-pagamento registado com sucesso. Fatura enviada por email ao cliente.';
-            } else if (delivery === 'email' && res && res.invoice_email_message) {
+            } else if (!isDraftInvoice && delivery === 'email' && res && res.invoice_email_message) {
                 prepMsg += ' ' + res.invoice_email_message;
             }
             showToast(prepMsg, 'success');
+        } else if (isDraftInvoice) {
+            showToast('Pagamento registado (rascunho). PDF interno disponível.', 'success');
         } else if (delivery === 'email') {
             if (res && res.invoice_email_sent) {
                 showToast('Venda registada. Fatura da Vendus enviada por email ao cliente.', 'success');
@@ -5535,7 +5702,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (delivery === 'print') {
             var vu = res && res.vendus_pdf_url;
-            if (vu) {
+            if (!isDraftInvoice && vu) {
                 window.open(vu, '_blank', 'noopener,noreferrer');
             } else if (res && res.pdf_url) {
                 window.open(res.pdf_url, '_blank', 'noopener,noreferrer');
@@ -5731,7 +5898,8 @@ document.addEventListener('DOMContentLoaded', function() {
         agendaAfterCheckoutPaymentSuccess(res, eventId);
     }
 
-    $id('paymentConfirmBtn').addEventListener('click', function() {
+    function paymentModalSubmit(checkoutMode) {
+        checkoutMode = checkoutMode === 'rascunho' ? 'rascunho' : 'faturar';
         if (!paymentModalValidateReadyToPay()) {
             if (!paymentModalIsInvoiceOnly()) {
                 if (paymentModalIsReserva() && paymentModalGetStripeDueCents() > 0 && paymentModalGetStripeDueCents() < 50) {
@@ -5755,7 +5923,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var fiscal = paymentModalGetFiscalPayload();
         var btn = $id('paymentConfirmBtn');
-        btn.disabled = true;
+        paymentModalDisableSubmitButtons();
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Em processamento...';
 
         if (paymentModalIsReserva()) {
@@ -5767,6 +5935,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 invoice_delivery: paymentModalGetInvoiceDelivery(),
                 wallet_apply: walletPayload.wallet_apply,
                 wallet_apply_cents: walletPayload.wallet_apply_cents,
+                checkout_mode: checkoutMode,
             };
             Object.keys(reservaExtras).forEach(function(k) { depositBase[k] = reservaExtras[k]; });
 
@@ -5925,6 +6094,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 items.push({ tipo: 'extra', descricao: '+ ' + (e.name || 'Extra'), quantidade: 1, preco_unitario: parseFloat(e.price) || 0, extra_id: e.id });
             });
         });
+        eventDetailApplicableFees().forEach(function(f) {
+            items.push({
+                tipo: 'taxa',
+                descricao: f.name || 'Taxa',
+                quantidade: 1,
+                preco_unitario: parseFloat(f.price) || 0,
+                fee_id: f.fee_id
+            });
+        });
         if (items.length === 0) {
             paymentModalRestoreConfirmButton();
             showToast('Nenhum serviço para faturar.', 'error');
@@ -5974,7 +6152,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             items: items,
                             invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
                             billing_nif: fiscal.billing_nif || null,
-                            invoice_delivery: paymentModalGetInvoiceDelivery()
+                            invoice_delivery: paymentModalGetInvoiceDelivery(),
+                            checkout_mode: checkoutMode
                         })
                     })
                     .then(function(r) { return r.json().then(function(res2) { return { ok: r.ok, status: r.status, res: res2 || {} }; }); })
@@ -6026,7 +6205,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 items: items,
                 invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
                 billing_nif: fiscal.billing_nif || null,
-                invoice_delivery: paymentModalGetInvoiceDelivery()
+                invoice_delivery: paymentModalGetInvoiceDelivery(),
+                checkout_mode: checkoutMode
             })
         })
         .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
@@ -6044,6 +6224,13 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentModalRestoreConfirmButton();
             showToast('Erro de ligação.', 'error');
         });
+    }
+
+    $id('paymentConfirmBtn').addEventListener('click', function() {
+        paymentModalSubmit('faturar');
+    });
+    $id('paymentDraftBtn').addEventListener('click', function() {
+        paymentModalSubmit('rascunho');
     });
 
     $id('paymentCancelBtn').addEventListener('click', function() { bootstrap.Modal.getInstance($id('paymentModal'))?.hide(); });

@@ -11,6 +11,7 @@ use App\Models\Client;
 use App\Models\ClientWalletTransaction;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Support\ApplicableFees;
 use App\Support\PhoneDisplay;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -32,19 +33,11 @@ class AgendaDepositService
     public function subtotalFromEvent(CalendarEvent $calendarEvent): float
     {
         $calendarEvent->loadMissing([
-            'eventServiceItems.service',
+            'eventServiceItems.service.fees',
             'eventServiceItems.extras.extra',
         ]);
 
-        $subtotal = 0.0;
-        foreach ($calendarEvent->eventServiceItems as $esi) {
-            $subtotal += (float) $esi->price;
-            foreach ($esi->extras as $ex) {
-                $subtotal += (float) ($ex->price ?? $ex->extra?->price ?? 0);
-            }
-        }
-
-        return round(max(0.0, $subtotal), 2);
+        return ApplicableFees::chargeSubtotalForCalendarEvent($calendarEvent, $calendarEvent->eventServiceItems);
     }
 
     public function bookingPaidAmount(int $calendarEventId): float
@@ -216,6 +209,7 @@ class AgendaDepositService
             $stripePortionCents > 0 ? Sale::PAYMENT_DINHEIRO : null,
             $fiscal,
             (int) ($options['staff_user_id'] ?? 0) ?: null,
+            $this->resolveInvoiceStatusFromCheckoutMode($options['checkout_mode'] ?? 'faturar'),
         );
     }
 
@@ -368,6 +362,7 @@ class AgendaDepositService
             $this->salePaymentMethodFromIntent($intent),
             $fiscal,
             (int) ($options['staff_user_id'] ?? 0) ?: null,
+            $this->resolveInvoiceStatusFromCheckoutMode($options['checkout_mode'] ?? 'faturar'),
         );
     }
 
@@ -470,6 +465,7 @@ class AgendaDepositService
             $this->salePaymentMethodFromIntent($intent),
             $fiscal,
             (int) ($options['staff_user_id'] ?? 0) ?: null,
+            $this->resolveInvoiceStatusFromCheckoutMode($options['checkout_mode'] ?? 'faturar'),
         );
     }
 
@@ -573,6 +569,7 @@ class AgendaDepositService
         ?string $salePaymentMethod,
         array $fiscal,
         ?int $staffUserId,
+        string $invoiceStatus = Sale::INVOICE_STATUS_FATURADO,
     ): AgendaDepositResult {
         try {
             return DB::transaction(function () use (
@@ -626,6 +623,7 @@ class AgendaDepositService
                     $stripePortionCents,
                     $salePaymentMethod,
                     (bool) $fiscal['issue_without_fiscal_id'],
+                    $invoiceStatus,
                 );
 
                 $this->markBookingPaid($booking, $depositAmount, $walletApplyCents, $subtotal);
@@ -709,6 +707,7 @@ class AgendaDepositService
         int $stripePortionCents,
         ?string $paymentMethod,
         bool $issueWithoutFiscalId,
+        string $invoiceStatus = Sale::INVOICE_STATUS_FATURADO,
     ): ?Sale {
         if ($stripePortionCents <= 0 || $paymentMethod === null) {
             return null;
@@ -762,6 +761,7 @@ class AgendaDepositService
             'payment_method' => $paymentMethod,
             'scope' => Sale::SCOPE_BOOKING_RESERVA,
             'status' => Sale::STATUS_PAGO,
+            'invoice_status' => $invoiceStatus,
             'issue_without_fiscal_id' => $issueWithoutFiscalId,
         ]);
 
@@ -794,6 +794,13 @@ class AgendaDepositService
 
         return $query->where('is_default', true)->orderByDesc('updated_at')->first()
             ?? $query->orderByDesc('updated_at')->first();
+    }
+
+    private function resolveInvoiceStatusFromCheckoutMode(?string $checkoutMode): string
+    {
+        return ($checkoutMode ?? 'faturar') === 'rascunho'
+            ? Sale::INVOICE_STATUS_RASCUNHO
+            : Sale::INVOICE_STATUS_FATURADO;
     }
 
     private function salePaymentMethodFromIntent(PaymentIntent $intent): string

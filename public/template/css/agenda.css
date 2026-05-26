@@ -7,8 +7,15 @@
 .agenda-marcacao-test-offcanvas {
     --bs-offcanvas-width: min(34.5rem, calc(100vw - 1rem)) !important;
     width: min(34.5rem, calc(100vw - 1rem)) !important;
+    max-width: min(34.5rem, calc(100vw - 1rem));
     z-index: 1060;
     transition: transform 0.08s ease-out !important;
+    display: flex;
+    flex-direction: column;
+}
+.agenda-marcacao-test-offcanvas > .offcanvas-body {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 /* Borda interior esquerda do painel direito: BS usa --bs-border-color-translucent (por vezes com tom azulado) */
 .agenda-marcacao-test-offcanvas.offcanvas-end {
@@ -32,8 +39,16 @@
 }
 .agenda-marcacao-test-offcanvas .offcanvas-body {
     padding: 1.25rem 1.875rem;
+    overflow-x: hidden;
     overflow-y: auto;
     position: relative;
+    min-width: 0;
+}
+.agenda-marcacao-test-offcanvas .offcanvas-body .form-control,
+.agenda-marcacao-test-offcanvas .offcanvas-body .form-select,
+.agenda-marcacao-test-offcanvas .offcanvas-body textarea.form-control {
+    max-width: 100%;
+    box-sizing: border-box;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-tabs.nav-pills {
     border-bottom: none;
@@ -117,6 +132,9 @@
     flex-shrink: 0;
     padding: 1rem 1.875rem 1.25rem;
     background: var(--bs-body-bg, #fff);
+    overflow-x: hidden;
+    max-width: 100%;
+    min-width: 0;
 }
 /* Dropup de faturas no rodapé: menu acima do botão, alinhado à direita (offcanvas 1060). */
 .agenda-marcacao-test-offcanvas-footer .event-detail-faturas-dropup {
@@ -145,21 +163,22 @@
     flex: 0 0 auto;
 }
 
-/* Rodapé offcanvas: total + pré-pagamento / falta pagar numa única linha */
+/* Rodapé offcanvas: total + pré-pagamento / falta pagar (quebra em ecrã estreito) */
 .event-detail-total-line {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: baseline;
     gap: 0.35rem 0.5rem;
     min-width: 0;
+    max-width: 100%;
 }
 .event-detail-total-line__part {
     display: inline-flex;
     align-items: baseline;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 0.25rem;
-    white-space: nowrap;
-    flex-shrink: 0;
+    min-width: 0;
+    max-width: 100%;
 }
 .event-detail-total-line__sep {
     margin-inline: 0.1rem;
@@ -252,21 +271,17 @@
 #paymentModal.payment-pos-modal--reserva .payment-pos-hero-gorjeta-wrap,
 #paymentModal.payment-pos-modal--reserva #paymentGorjetaLine,
 #paymentModal.payment-pos-modal--reserva #paymentOnlinePaidLine,
-#paymentModal.payment-pos-modal--reserva #paymentServicesDueLine {
+#paymentModal.payment-pos-modal--reserva #paymentLineTotalDue {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--reserva #paymentPrepagamentoLine {
+#paymentModal.payment-pos-modal--reserva #paymentLinePrepagamentoPaid {
+    display: none !important;
+}
+#paymentModal.payment-pos-modal--reserva #paymentLineCheckoutTotal {
     display: flex !important;
 }
-#paymentModal.payment-pos-modal--reserva .payment-pos-hero-prepagamento-line {
-    padding: 0.5rem 0.65rem;
-    border-radius: var(--bs-border-radius, 0.375rem);
-    background: rgba(var(--bs-primary-rgb), 0.08);
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.2);
-}
-#paymentModal.payment-pos-modal--reserva .payment-pos-hero-reserva-amount {
-    font-size: 1.35rem;
-    line-height: 1.2;
+#paymentModal.payment-pos-modal--reserva #paymentLineDepositAmount {
+    display: flex !important;
 }
 #paymentModal.payment-pos-modal--reserva .payment-pos-hero-reserva-custom-input {
     max-width: 9rem;
@@ -365,6 +380,7 @@
 
 .agenda-marcacao-test-offcanvas .choices {
     margin-bottom: 0;
+    max-width: 100%;
 }
 .agenda-marcacao-test-offcanvas .choices__inner {
     min-height: calc(1.5em + 0.5rem + 2px);
@@ -425,23 +441,53 @@
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-row {
     min-height: 32px;
+    max-width: 100%;
+    overflow: hidden;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-display,
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input-wrap {
     position: absolute;
     top: 0;
     left: 0;
+    right: 0;
+    max-width: 100%;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input-wrap .d-flex {
+    max-width: 100%;
+    min-width: 0;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-edit-btn {
     font-size: 0.9rem;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input {
-    width: 120px;
-    max-width: 120px;
+    width: min(120px, 100%);
+    max-width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+/* Cartões de serviço no offcanvas: preço + ícones não alargam o painel */
+.agenda-marcacao-test-offcanvas .agenda-oc-service-card > .d-flex {
+    min-width: 0;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-service-card > .d-flex > .d-flex.flex-column.align-items-end {
+    flex-shrink: 1;
+    min-width: 0;
+    max-width: 100%;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-service-card .nova-marcacao-service-item-price-row.text-nowrap {
+    white-space: normal;
+    flex-wrap: wrap;
 }
 .agenda-marcacao-test-offcanvas #agendaOcDate,
-.agenda-marcacao-test-offcanvas input.flatpickr-input {
+.agenda-marcacao-test-offcanvas #eventDetailOcDate,
+.agenda-marcacao-test-offcanvas input.flatpickr-input.form-control {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     cursor: pointer !important;
+}
+.agenda-marcacao-test-offcanvas input[type="hidden"].flatpickr-input {
+    display: none !important;
 }
 
 /* main-content sem padding na agenda */
@@ -2155,10 +2201,7 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
 }
 
 /* Offcanvas Ver/Editar marcação */
-#eventDetailEditModal.offcanvas {
-    display: flex;
-    flex-direction: column;
-}
+/* display:flex já vem de .agenda-marcacao-test-offcanvas */
 #eventDetailEditModal .offcanvas-header {
     flex-shrink: 0;
     overflow: visible; /* dropdown do estado não pode ser cortado por overflow do header */
@@ -2295,6 +2338,23 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     background: #198754;
     color: #fff;
 }
+/* Painel corpo: único scroll vertical; overflow-y no form forçava overflow-x:auto (barra horizontal) */
+#eventDetailEditModal #eventDetailEditPanel.offcanvas-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+#eventDetailEditModal #eventDetailOcMarcacaoSection {
+    max-width: 100%;
+    min-width: 0;
+}
+#eventDetailEditModal #eventDetailEditForm {
+    max-width: 100%;
+    min-width: 0;
+    overflow: visible;
+}
 #eventDetailEditModal .agenda-event-detail-panel {
     position: relative;
     flex: 1 1 auto;
@@ -2302,13 +2362,6 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     display: flex;
     flex-direction: column;
     overflow: hidden;
-}
-#eventDetailEditModal #eventDetailEditForm {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
 }
 #eventDetailEditModal #eventDetailEditForm > .nova-marcacao-modal-total-strip {
     flex-shrink: 0;
@@ -2515,6 +2568,16 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
 /* Modal pagamento — estilo caixa / POS */
 .payment-pos-modal .modal-content {
     border-radius: 0.75rem;
+}
+.payment-pos-modal .modal-footer.payment-pos-modal-footer {
+    justify-content: stretch;
+}
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .btn {
+    flex: 4 1 0;
+    min-width: 0;
+}
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > #paymentConfirmBtn {
+    flex: 8 1 0;
 }
 .payment-pos-total-hero {
     border-color: var(--bs-border-color, #dee2e6) !important;

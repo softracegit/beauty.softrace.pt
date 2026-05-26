@@ -52,6 +52,7 @@ class UpdateServiceRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'has_options' => ['sometimes', 'boolean'],
             'sync_extras' => ['sometimes', 'boolean'],
+            'sync_fees' => ['sometimes', 'boolean'],
             'agent_ids' => ['nullable', 'array'],
             'agent_ids.*' => [
                 'integer',
@@ -71,6 +72,8 @@ class UpdateServiceRequest extends FormRequest
                     ExtraCategory::query()->forStore(current_store_id())->select('id')
                 )),
             ],
+            'fee_ids' => ['nullable', 'array'],
+            'fee_ids.*' => [Rule::exists('fees', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ];
 

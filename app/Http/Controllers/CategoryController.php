@@ -8,6 +8,7 @@ use App\Models\Agent;
 use App\Models\Category;
 use App\Models\Extra;
 use App\Models\ExtraCategory;
+use App\Models\Fee;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class CategoryController extends Controller
 
         $selectedCategory = null; // por defeito: "Todas as categorias"
         $categories = Category::forStore(current_store_id())->orderBy('sort_order')
-            ->with(['services' => fn ($q) => $q->with('agents', 'extras', 'options')->orderBy('sort_order')])
+            ->with(['services' => fn ($q) => $q->with('agents', 'extras', 'fees', 'options')->withCount(['extras', 'fees'])->orderBy('sort_order')])
             ->withCount('services')
             ->get();
         $agents = Agent::forStore(current_store_id())->whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
@@ -43,6 +44,7 @@ class CategoryController extends Controller
         $extraCategories = ExtraCategory::forStore(current_store_id())->orderBy('sort_order')
             ->with(['extras' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
+        $fees = Fee::forStore(current_store_id())->orderBy('sort_order')->orderBy('name')->get();
 
         return view('services.index', [
             'categories' => $categories,
@@ -50,6 +52,7 @@ class CategoryController extends Controller
             'agents' => $agents,
             'extras' => $extras,
             'extraCategories' => $extraCategories,
+            'fees' => $fees,
         ]);
     }
 

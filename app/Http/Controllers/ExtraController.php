@@ -40,16 +40,14 @@ class ExtraController extends Controller
             : collect();
 
         $services = Service::forStore(current_store_id())->with('category')->orderBy('name')->get();
-        $serviceCategories = Category::forStore(current_store_id())->orderBy('sort_order')
-            ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
-            ->get();
+        $association = \App\Support\ServiceCategoriesForAssociation::forStore();
 
         return view('extras.index', [
             'categories' => $categories,
             'selectedCategory' => $selectedCategory,
             'extras' => $extras,
             'services' => $services,
-            'serviceCategories' => $serviceCategories,
+            'serviceCategories' => $association['categories'],
         ]);
     }
 

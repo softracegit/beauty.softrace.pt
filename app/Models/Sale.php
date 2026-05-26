@@ -35,6 +35,10 @@ class Sale extends Model
 
     public const SCOPE_CAIXA_LIQUIDACAO = 'caixa_liquidacao';
 
+    public const INVOICE_STATUS_FATURADO = 'faturado';
+
+    public const INVOICE_STATUS_RASCUNHO = 'rascunho';
+
     protected $fillable = [
         'store_id',
         'calendar_event_id',
@@ -49,6 +53,7 @@ class Sale extends Model
         'payment_method',
         'scope',
         'status',
+        'invoice_status',
         'vendus_sync_status',
         'vendus_document_id',
         'vendus_synced_at',
@@ -72,7 +77,13 @@ class Sale extends Model
     protected $attributes = [
         'status' => self::STATUS_PAGO,
         'scope' => self::SCOPE_REGULAR,
+        'invoice_status' => self::INVOICE_STATUS_FATURADO,
     ];
+
+    public function isInvoiceDraft(): bool
+    {
+        return ($this->invoice_status ?? self::INVOICE_STATUS_FATURADO) === self::INVOICE_STATUS_RASCUNHO;
+    }
 
     public static function statuses(): array
     {

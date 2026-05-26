@@ -20,7 +20,7 @@
 </style>
 <div class="uedit-section extra-services-block" data-extra-services-block>
     <div class="uedit-section-title">Serviços associados</div>
-    <p class="text-muted small mb-3">Selecione os serviços aos quais este extra pode ser adicionado na marcação. Os serviços estão agrupados por categoria.</p>
+    <p class="text-muted small mb-3">Selecione os serviços aos quais este extra pode ser adicionado na marcação.</p>
 
     @if($serviceCategories->isEmpty())
         <p class="text-muted mb-0">Nenhuma categoria ou serviço criado ainda. Crie categorias e serviços em <a href="{{ route('services.index') }}">Serviços</a>.</p>

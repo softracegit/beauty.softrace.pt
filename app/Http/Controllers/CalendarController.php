@@ -24,6 +24,7 @@ use App\Services\AgendaDepositService;
 use App\Services\AppointmentCancellationService;
 use App\Services\CancellationPolicyService;
 use App\Services\ClientWalletService;
+use App\Support\ApplicableFees;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -210,7 +211,7 @@ class CalendarController extends Controller
                 'user.agent',
                 'service',
                 'client',
-                'eventServiceItems.service',
+                'eventServiceItems.service.fees',
                 'eventServiceItems.serviceOption',
                 'eventServiceItems.extras.extra',
                 'eventable',
@@ -290,12 +291,8 @@ class CalendarController extends Controller
             $activeSales = $event->sales->filter(fn (Sale $s) => $s->status !== Sale::STATUS_ANULADO);
             $hasInvoice = $activeSales->isNotEmpty();
             $isCompleted = ($event->status ?? CalendarEvent::STATUS_AGENDADO) === CalendarEvent::STATUS_COMPLETO;
-            $subtotal = (float) $serviceItems->sum(function ($item): float {
-                $base = (float) ($item->price ?? 0);
-                $extras = (float) $item->extras->sum(fn ($ex): float => (float) ($ex->price ?? 0));
-
-                return $base + $extras;
-            });
+            $includeCatalogFees = ApplicableFees::includeCatalogFeesForCalendarEvent($event);
+            $subtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $serviceItems);
             $annulledCaixaPaid = (float) $event->sales
                 ->filter(fn (Sale $s) => $s->status === Sale::STATUS_ANULADO && $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO)
                 ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid());
@@ -309,8 +306,12 @@ class CalendarController extends Controller
             $bookingPaidAmount = round(max($bookingPaidFromTable, $bookingPaidFromReservaSales, 0.0), 2);
             $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, $annulledCaixaPaid, $bookingPaidFromTable);
             $hasActiveCaixaSale = $activeSales->contains(fn (Sale $s) => $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO);
-            $invoiceSettled = $subtotal > 0.00001 && $amountDue <= 0.00001;
-            $pendingFinalInvoice = $isCompleted && $subtotal > 0.00001 && ! $hasActiveCaixaSale && $amountDue <= 0.00001;
+            $servicesSubtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($serviceItems);
+            $invoiceSettled = $this->isMarcacaoFullySettled($event);
+            $pendingFinalInvoice = $isCompleted && $servicesSubtotal > 0.00001 && ! $hasActiveCaixaSale && $amountDue <= 0.00001;
+            $catalogFees = $includeCatalogFees
+                ? ApplicableFees::forServiceIds($serviceItems->pluck('service_id'), (int) $event->store_id)
+                : [];
             $paymentMethodLabels = Sale::paymentMethods();
             $paymentLines = $activeSales->map(function (Sale $s) use ($paymentMethodLabels) {
                 $scopeLabel = match ($s->scope) {
@@ -358,9 +359,16 @@ class CalendarController extends Controller
                         $price = (float) ($item->price ?? $service->price);
 
                         return [
+                            'service_id' => (int) $item->service_id,
                             'name' => self::marcacaoServiceLineLabel($item),
                             'duration' => $dur,
                             'price' => $price,
+                            'fees' => ($item->service?->fees ?? collect())->map(fn ($f) => [
+                                'fee_id' => (int) $f->id,
+                                'name' => $f->name,
+                                'price' => (float) $f->price,
+                                'formatted_price' => $f->formatted_price,
+                            ])->values()->all(),
                             'extras' => $item->extras->map(function ($pe) {
                                 $extraDuration = $pe->duration ?? $pe->extra?->duration ?? 0;
                                 $extraPrice = (float) ($pe->price ?? $pe->extra?->price ?? 0);
@@ -382,6 +390,8 @@ class CalendarController extends Controller
                     'has_invoice' => $hasInvoice,
                     'invoice_settled' => $invoiceSettled,
                     'total_amount' => round($subtotal, 2),
+                    'apply_catalog_fees' => $includeCatalogFees,
+                    'catalog_fees' => $catalogFees,
                     'booking_paid_amount' => $bookingPaidAmount,
                     'amount_due' => $amountDue,
                     'pending_final_invoice' => $pendingFinalInvoice,
@@ -427,6 +437,7 @@ class CalendarController extends Controller
             ->with([
                 'category',
                 'extras' => fn ($q) => $q->orderBy('extras.sort_order'),
+                'fees' => fn ($q) => $q->orderBy('fees.sort_order'),
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ])
             ->get()
@@ -476,6 +487,12 @@ class CalendarController extends Controller
                         'price' => (float) $e->price,
                         'formatted_duration' => $e->formatted_duration,
                         'formatted_price' => $e->formatted_price,
+                    ])->values()->all(),
+                    'fees' => $s->fees->map(fn ($f) => [
+                        'fee_id' => (int) $f->id,
+                        'name' => $f->name,
+                        'price' => (float) $f->price,
+                        'formatted_price' => $f->formatted_price,
                     ])->values()->all(),
                 ])->values()->all(),
             ];
@@ -638,7 +655,7 @@ class CalendarController extends Controller
     public function show(CalendarEvent $calendarEvent)
     {
         try {
-            $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventable', 'personalTimeType', 'sales', 'sale']);
+            $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventServices.fees', 'eventable', 'personalTimeType', 'sales', 'sale']);
             $calendarEvent->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
 
             $userAvatarUrl = null;
@@ -702,7 +719,14 @@ class CalendarController extends Controller
 
                     return [
                         'id' => $s->id,
+                        'service_id' => (int) $s->id,
                         'name' => self::marcacaoServiceLineLabel($s->pivot),
+                        'fees' => $s->fees->map(fn ($f) => [
+                            'fee_id' => (int) $f->id,
+                            'name' => $f->name,
+                            'price' => (float) $f->price,
+                            'formatted_price' => $f->formatted_price,
+                        ])->values()->all(),
                         'service_option_id' => $s->pivot->service_option_id,
                         'option_name' => $s->pivot->option_name,
                         'duration' => $duration,
@@ -732,12 +756,21 @@ class CalendarController extends Controller
                 'invoice_settled' => false,
             ];
 
-            $subtotal = (float) collect($payload['event_services'] ?? [])->sum(function (array $row): float {
+            $servicesSubtotal = (float) collect($payload['event_services'] ?? [])->sum(function (array $row): float {
                 $base = (float) ($row['price'] ?? 0);
                 $extras = collect($row['extras'] ?? [])->sum(fn (array $ex): float => (float) ($ex['price'] ?? 0));
 
                 return $base + $extras;
             });
+            $includeCatalogFees = ApplicableFees::includeCatalogFeesForCalendarEvent($calendarEvent);
+            $catalogFees = $includeCatalogFees
+                ? ApplicableFees::forEventServicesPayload($payload['event_services'], (int) $calendarEvent->store_id)
+                : [];
+            $subtotalForDue = $includeCatalogFees
+                ? round($servicesSubtotal + ApplicableFees::sumPrices($catalogFees), 2)
+                : $servicesSubtotal;
+            $payload['apply_catalog_fees'] = $includeCatalogFees;
+            $payload['catalog_fees'] = $catalogFees;
             $isCancelledEvent = in_array(($calendarEvent->status ?? ''), [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true);
             $salesPaidHistorical = (float) Sale::query()
                 ->where('calendar_event_id', $calendarEvent->id)
@@ -754,11 +787,11 @@ class CalendarController extends Controller
             $historicalPaid = round(max($salesPaidHistorical, $bookingPaid, $bookingReservaPaid, 0.0), 2);
             $payload['booking_paid_amount'] = round(max($bookingPaid, $bookingReservaPaid, 0.0), 2);
             $payload['invoice_settled'] = $this->isMarcacaoFullySettled($calendarEvent);
-            if ($isCancelledEvent && $historicalPaid > 0.00001 && $subtotal > 0.00001) {
+            if ($isCancelledEvent && $historicalPaid > 0.00001 && $servicesSubtotal > 0.00001) {
                 // Em marcações anuladas preservamos o histórico de pagamentos no resumo do offcanvas.
-                $payload['invoice_settled'] = ($historicalPaid + 0.00001) >= $subtotal;
+                $payload['invoice_settled'] = ($historicalPaid + 0.00001) >= $servicesSubtotal;
             }
-            $amountDue = $this->marcacaoAmountDueCashFromEventId((int) $calendarEvent->id, $subtotal);
+            $amountDue = $this->marcacaoAmountDueCashFromEventId((int) $calendarEvent->id, $subtotalForDue);
             $payload['amount_due'] = $amountDue;
             $activeCaixaSaleRecord = Sale::query()
                 ->where('calendar_event_id', $calendarEvent->id)
@@ -773,7 +806,7 @@ class CalendarController extends Controller
                 'vendus_url' => $activeCaixaSaleRecord->vendus_document_id ? route('sales.vendus.pdf', $activeCaixaSaleRecord) : null,
             ] : null;
             $payload['pending_final_invoice'] = ($calendarEvent->status === CalendarEvent::STATUS_COMPLETO)
-                && $subtotal > 0.00001
+                && $servicesSubtotal > 0.00001
                 && $activeCaixaSaleRecord === null
                 && $amountDue <= 0.00001;
             $payload['event_detail_nif_only_editable'] = ($calendarEvent->status === CalendarEvent::STATUS_COMPLETO)
@@ -795,7 +828,7 @@ class CalendarController extends Controller
             $payload['sales_invoices'] = $this->salesInvoicesForCalendarEvent($calendarEvent->id);
 
             if (($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO) {
-                $payload = array_merge($payload, $this->marcacaoDepositPayloadForEvent($calendarEvent, $subtotal));
+                $payload = array_merge($payload, $this->marcacaoDepositPayloadForEvent($calendarEvent, $servicesSubtotal));
                 $payload['prepayment_wallet_only'] = $this->marcacaoPrepaymentWalletOnly(
                     $calendarEvent,
                     (float) ($payload['booking_paid_amount'] ?? 0),
@@ -1561,7 +1594,7 @@ class CalendarController extends Controller
         $classMap = CalendarEvent::typeClassMap();
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
-        $event->loadMissing(['client', 'eventServices.category', 'user.agent', 'personalTimeType', 'sales', 'onlineBooking']);
+        $event->loadMissing(['client', 'eventServices.category', 'eventServices.fees', 'user.agent', 'personalTimeType', 'sales', 'onlineBooking']);
         $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
         $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
         $agentColor = $isTempoPessoal ? null : ($event->user?->agent?->color);
@@ -1572,6 +1605,7 @@ class CalendarController extends Controller
 
                 return [
                     'id' => $s->id,
+                    'service_id' => (int) $s->id,
                     'name' => self::marcacaoServiceLineLabel($s->pivot),
                     'service_option_id' => $s->pivot->service_option_id,
                     'option_name' => $s->pivot->option_name,
@@ -1582,6 +1616,12 @@ class CalendarController extends Controller
                     'formatted_duration' => $this->formatDurationMinutes((int) $dur),
                     'color' => $cat?->color ?? '#6c757d',
                     'category_name' => $cat?->name ?? '',
+                    'fees' => $s->fees->map(fn ($f) => [
+                        'fee_id' => (int) $f->id,
+                        'name' => $f->name,
+                        'price' => (float) $f->price,
+                        'formatted_price' => $f->formatted_price,
+                    ])->values()->all(),
                     'extras' => $s->pivot->extras->map(function ($pe) {
                         $extraDuration = $pe->duration ?? $pe->extra?->duration ?? 0;
                         $extraPrice = (float) ($pe->price ?? $pe->extra?->price ?? 0);
@@ -1612,12 +1652,16 @@ class CalendarController extends Controller
 
         $activeSales = $event->sales->filter(fn (Sale $s) => $s->status !== Sale::STATUS_ANULADO);
         $hasInvoice = $activeSales->isNotEmpty();
-        $subtotal = (float) collect($eventServicesData)->sum(function (array $row): float {
-            $base = (float) ($row['price'] ?? 0);
-            $extras = (float) collect($row['extras'] ?? [])->sum(fn (array $ex): float => (float) ($ex['price'] ?? 0));
-
-            return $base + $extras;
-        });
+        $includeCatalogFees = ApplicableFees::includeCatalogFeesForCalendarEvent($event);
+        $servicesSubtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($eventServicesData);
+        $subtotal = $includeCatalogFees
+            ? round($servicesSubtotal + ApplicableFees::sumPrices(
+                ApplicableFees::forEventServicesPayload($eventServicesData, (int) $event->store_id)
+            ), 2)
+            : $servicesSubtotal;
+        $catalogFees = $includeCatalogFees
+            ? ApplicableFees::forEventServicesPayload($eventServicesData, (int) $event->store_id)
+            : [];
         $annulledCaixaPaid = (float) $event->sales
             ->filter(fn (Sale $s) => $s->status === Sale::STATUS_ANULADO && $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO)
             ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid());
@@ -1631,8 +1675,8 @@ class CalendarController extends Controller
         $bookingPaidAmount = round(max($bookingPaidFromTable, $bookingPaidFromReservaSales, 0.0), 2);
         $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, $annulledCaixaPaid, $bookingPaidFromTable);
         $hasActiveCaixaSale = $activeSales->contains(fn (Sale $s) => $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO);
-        $invoiceSettled = $subtotal > 0.00001 && $amountDue <= 0.00001;
-        $pendingFinalInvoice = $isCompleted && $subtotal > 0.00001 && ! $hasActiveCaixaSale && $amountDue <= 0.00001;
+        $invoiceSettled = $this->isMarcacaoFullySettled($event);
+        $pendingFinalInvoice = $isCompleted && $servicesSubtotal > 0.00001 && ! $hasActiveCaixaSale && $amountDue <= 0.00001;
         $paymentMethodLabels = Sale::paymentMethods();
         $paymentLines = $activeSales->map(function (Sale $s) use ($paymentMethodLabels) {
             $scopeLabel = match ($s->scope) {
@@ -1692,6 +1736,8 @@ class CalendarController extends Controller
                 'has_invoice' => $hasInvoice,
                 'invoice_settled' => $invoiceSettled,
                 'total_amount' => round($subtotal, 2),
+                'apply_catalog_fees' => $includeCatalogFees,
+                'catalog_fees' => $catalogFees,
                 'booking_paid_amount' => $bookingPaidAmount,
                 'amount_due' => $amountDue,
                 'pending_final_invoice' => $pendingFinalInvoice,
@@ -1971,14 +2017,9 @@ class CalendarController extends Controller
         }
 
         $serviceItems = $calendarEvent->eventServiceItems()->with('extras.extra')->get();
-        $subtotal = (float) $serviceItems->sum(function (CalendarEventService $item): float {
-            $base = (float) ($item->price ?? 0);
-            $extras = (float) $item->extras->sum(fn ($ex): float => (float) ($ex->price ?? $ex->extra?->price ?? 0));
+        $subtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($serviceItems);
 
-            return $base + $extras;
-        });
-
-        return $this->marcacaoAmountDueCashFromEventId((int) $calendarEvent->id, $subtotal) <= 0.00001;
+        return ApplicableFees::amountDueCashFromEventId((int) $calendarEvent->id, $subtotal) <= 0.00001;
     }
 
     /**

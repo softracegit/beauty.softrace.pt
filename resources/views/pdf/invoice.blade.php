@@ -18,9 +18,22 @@
         .client-block { margin-bottom: 20px; }
         .client-block strong { display: block; margin-bottom: 4px; }
         .footer { margin-top: 32px; font-size: 9px; color: #888; }
+        .draft-banner {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #664d03;
+            padding: 10px 12px;
+            margin-bottom: 16px;
+            font-weight: 700;
+            font-size: 11px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+    @if($sale->isInvoiceDraft())
+    <div class="draft-banner">RASCUNHO — Documento provisório (não comunicado à Vendus)</div>
+    @endif
     @php
         $amountDue = method_exists($sale, 'amountDue') ? (float) $sale->amountDue() : max(0, (float) $sale->total - (float) ($sale->valor_pago ?? 0));
         $isPartial = ($sale->scope ?? null) === \App\Models\Sale::SCOPE_BOOKING_RESERVA;

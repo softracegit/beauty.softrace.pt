@@ -509,6 +509,15 @@
                         ])
                     </div>
                     @endif
+                    @if(isset($fees) && $fees->isNotEmpty())
+                    <div class="mb-3">
+                        @include('services.partials.service-fees-association', [
+                            'fees' => $fees,
+                            'selectedFeeIds' => [],
+                            'inputIdPrefix' => 'addService',
+                        ])
+                    </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -521,7 +530,7 @@
 
 <!-- Edit Service Modal -->
 <div class="modal fade" id="editServiceModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Editar Serviço</h5>
@@ -620,6 +629,15 @@
                         @include('services.partials.service-extras-association', [
                             'extraCategories' => $extraCategories,
                             'selectedExtraIds' => [],
+                            'inputIdPrefix' => 'editService',
+                        ])
+                    </div>
+                    @endif
+                    @if(isset($fees) && $fees->isNotEmpty())
+                    <div class="mb-3" id="editServiceFeesWrap">
+                        @include('services.partials.service-fees-association', [
+                            'fees' => $fees,
+                            'selectedFeeIds' => [],
                             'inputIdPrefix' => 'editService',
                         ])
                     </div>

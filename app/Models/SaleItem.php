@@ -11,12 +11,15 @@ class SaleItem extends Model
 
     public const TIPO_EXTRA = 'extra';
 
+    public const TIPO_TAXA = 'taxa';
+
     protected $fillable = [
         'sale_id',
         'tipo',
         'calendar_event_service_id',
         'service_id',
         'extra_id',
+        'fee_id',
         'descricao',
         'quantidade',
         'preco_unitario',
@@ -51,5 +54,10 @@ class SaleItem extends Model
     public function extra(): BelongsTo
     {
         return $this->belongsTo(Extra::class);
+    }
+
+    public function fee(): BelongsTo
+    {
+        return $this->belongsTo(Fee::class);
     }
 }
