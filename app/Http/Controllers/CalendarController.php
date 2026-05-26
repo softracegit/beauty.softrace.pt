@@ -184,6 +184,7 @@ class CalendarController extends Controller
             return [
                 'id' => (string) $agent->user_id, // Usar user_id como ID do recurso
                 'title' => $agent->name,
+                'agenda_order' => (int) ($agent->agenda_order ?? 0),
                 'extendedProps' => [
                     'avatarUrl' => $avatarUrl,
                     'color' => $agent->color ?? '#6c757d',

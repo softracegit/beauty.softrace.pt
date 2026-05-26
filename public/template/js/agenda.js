@@ -6526,6 +6526,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'resourceTimeGridDay',
+        // Respeitar a ordem definida em Definições -> Equipa (agenda_order) para o eixo das "técnicas".
+        resourceOrder: 'agenda_order,title',
         locale: 'pt',
         editable: true,
         customButtons: {
