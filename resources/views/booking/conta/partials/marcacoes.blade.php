@@ -2,6 +2,7 @@
     use App\Models\CalendarEvent;
     use App\Models\Sale;
     use App\Services\CancellationPolicyService;
+    use App\Support\ApplicableFees;
 
     $marcacoes = $marcacoes ?? collect();
     $enableClientCancel = (bool) ($enableClientCancel ?? false);
@@ -51,6 +52,12 @@
 
                             $serviceRows = $ev->eventServiceItems;
                             $pivotTotal = (float) $serviceRows->sum(fn ($r) => (float) ($r->price ?? 0));
+                            $catalogFees = ApplicableFees::forServiceIds(
+                                $serviceRows->pluck('service_id'),
+                                (int) $ev->store_id,
+                            );
+                            $feesTotal = ApplicableFees::sumPrices($catalogFees);
+                            $totalComTaxas = round($pivotTotal + $feesTotal, 2);
 
                             $isLocked = in_array($statusKey, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO, CalendarEvent::STATUS_FALTOU], true);
                             $isDone = $statusKey === CalendarEvent::STATUS_COMPLETO;
@@ -81,7 +88,7 @@
                             }
                             $totalPago = $sale
                                 ? (float) ($sale->valor_pago ?? 0)
-                                : ($pagoOnline > 0 ? $pagoOnline : $pivotTotal);
+                                : ($pagoOnline > 0 ? $pagoOnline : $totalComTaxas);
                             $hasPaymentRecorded = ($pagoOnline > 0.004) || ($sale !== null);
                             $primaryAmountLabel = $hasPaymentRecorded ? 'Valor pago' : 'Valor total';
 
@@ -93,7 +100,7 @@
                             }
                             $faltaAmount = $ob && (float) ($ob->remaining_amount ?? 0) > 0
                                 ? (float) $ob->remaining_amount
-                                : $pivotTotal;
+                                : $totalComTaxas;
 
                             $metodoOnlineLabel = '—';
                             if ($pagoOnline > 0.004) {
@@ -112,11 +119,12 @@
                                 }
                             }
 
-                            $totalComGorjeta = $pivotTotal + $gorjeta;
+                            $totalComGorjeta = $totalComTaxas + $gorjeta;
+                            $showTotalsSnapshot = $serviceRows->count() > 1 || $feesTotal > 0.004;
 
                             $canClientCancel = false;
                             $cancelPolicy = null;
-                            if ($enableClientCancel && $policyService && $start && ! $isLocked) {
+                            if ($enableClientCancel && $policyService && $start && ! $isLocked && ! $isDone) {
                                 $cancelPolicy = $policyService->resolveForEvent($ev);
                                 $canClientCancel = $start->gt($nowTz)
                                     && ($cancelPolicy->isWithinNoticePeriod || ! $cancelPolicy->hasPaidDeposit);
@@ -215,19 +223,33 @@
                                         @endforelse
                                     </div>
 
-                                    @if ($serviceRows->count() > 1)
+                                    @if ($showTotalsSnapshot)
                                         <div class="booking-marcacao-card__section booking-marcacao-card__section--boxed booking-marcacao-card__section--total-snapshot">
-                                            <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--lead">
-                                                <span class="booking-marcacao-card__total-line__label">Total</span>
-                                                <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($pivotTotal) }}</span>
-                                            </div>
+                                            @if ($serviceRows->count() > 1)
+                                                <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--lead">
+                                                    <span class="booking-marcacao-card__total-line__label">Total serviços</span>
+                                                    <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($pivotTotal) }}</span>
+                                                </div>
+                                            @endif
+                                            @if ($feesTotal > 0.004)
+                                                <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--split">
+                                                    <span class="booking-marcacao-card__total-line__label">Taxas</span>
+                                                    <span class="booking-marcacao-card__total-line__value booking-marcacao-card__total-line__value--soft">{{ $fmtMoney($feesTotal) }}</span>
+                                                </div>
+                                            @endif
+                                            @if ($serviceRows->count() > 1 || $feesTotal > 0.004)
+                                                <div class="booking-marcacao-card__total-line {{ $gorjeta > 0.004 ? 'booking-marcacao-card__total-line--split' : 'booking-marcacao-card__total-line--lead' }}">
+                                                    <span class="booking-marcacao-card__total-line__label">Total</span>
+                                                    <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($totalComTaxas) }}</span>
+                                                </div>
+                                            @endif
                                             @if ($gorjeta > 0.004)
                                                 <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--split">
                                                     <span class="booking-marcacao-card__total-line__label">Gorjeta</span>
                                                     <span class="booking-marcacao-card__total-line__value booking-marcacao-card__total-line__value--soft">{{ $fmtMoney($gorjeta) }}</span>
                                                 </div>
                                                 <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--grand">
-                                                    <span class="booking-marcacao-card__total-line__label booking-marcacao-card__total-line__label--grand">Total (serviços + gorjeta)</span>
+                                                    <span class="booking-marcacao-card__total-line__label booking-marcacao-card__total-line__label--grand">Total (serviços + taxas + gorjeta)</span>
                                                     <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($totalComGorjeta) }}</span>
                                                 </div>
                                             @endif
@@ -307,7 +329,7 @@
                                             Cancelar marcação
                                         </button>
                                     </div>
-                                @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && $cancelPolicy && ! $cancelPolicy->isWithinNoticePeriod && $cancelPolicy->hasPaidDeposit)
+                                @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && ! $isDone && $cancelPolicy && ! $cancelPolicy->isWithinNoticePeriod && $cancelPolicy->hasPaidDeposit)
                                     <div class="alert alert-warning small py-2 px-3 mb-0 mt-2">
                                         Já não é possível cancelar online sem perder o pré-pagamento
                                         @if ($cancelPolicy->eligibleDepositCreditCents > 0)

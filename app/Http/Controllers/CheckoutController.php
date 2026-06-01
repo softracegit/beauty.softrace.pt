@@ -48,16 +48,7 @@ class CheckoutController extends Controller
 
         $calendarEvent->load(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra']);
         $subtotalItens = $this->checkoutSubtotalFromEvent($calendarEvent, true);
-        $salesPaid = (float) Sale::query()
-            ->where('calendar_event_id', $calendarEvent->id)
-            ->where('status', '!=', Sale::STATUS_ANULADO)
-            ->sum(DB::raw('COALESCE(valor_pago, total)'));
-        $bookingPaid = (float) Booking::query()
-            ->where('calendar_event_id', $calendarEvent->id)
-            ->where('payment_status', Booking::PAYMENT_PAID)
-            ->orderByDesc('id')
-            ->value('paid_amount');
-        $alreadyPaid = round(max($salesPaid, $bookingPaid, 0.0), 2);
+        $alreadyPaid = ApplicableFees::marcacaoMoneyTowardSubtotal((int) $calendarEvent->id);
         $isPartial = $alreadyPaid > 0.00001 && $alreadyPaid + 0.00001 < $subtotalItens;
 
         $existingSale = $calendarEvent->sale;
@@ -213,16 +204,7 @@ class CheckoutController extends Controller
             $gorjeta = 0.0;
         }
         $descontoDocInput = isset($validated['desconto']) ? max(0, (float) $validated['desconto']) : 0;
-        $alreadyPaidSales = (float) Sale::query()
-            ->where('calendar_event_id', $calendarEvent->id)
-            ->where('status', '!=', Sale::STATUS_ANULADO)
-            ->sum(DB::raw('COALESCE(valor_pago, total)'));
-        $bookingPaid = (float) Booking::query()
-            ->where('calendar_event_id', $calendarEvent->id)
-            ->where('payment_status', Booking::PAYMENT_PAID)
-            ->orderByDesc('id')
-            ->value('paid_amount');
-        $alreadyPaid = round(max($alreadyPaidSales, $bookingPaid, 0.0), 2);
+        $alreadyPaid = ApplicableFees::marcacaoMoneyTowardSubtotal((int) $calendarEvent->id);
         $descontoDoc = max(0, $descontoDocInput);
         $maxDocDisc = $subtotalItens + $gorjeta;
         $descontoDoc = min($descontoDoc, $maxDocDisc);
@@ -452,16 +434,7 @@ class CheckoutController extends Controller
         if (! CrmSetting::posGorjetaEnabled((int) $calendarEvent->store_id)) {
             $gorjeta = 0.0;
         }
-        $alreadyPaidSales = (float) Sale::query()
-            ->where('calendar_event_id', $calendarEvent->id)
-            ->where('status', '!=', Sale::STATUS_ANULADO)
-            ->sum(DB::raw('COALESCE(valor_pago, total)'));
-        $bookingPaid = (float) Booking::query()
-            ->where('calendar_event_id', $calendarEvent->id)
-            ->where('payment_status', Booking::PAYMENT_PAID)
-            ->orderByDesc('id')
-            ->value('paid_amount');
-        $alreadyPaid = round(max($alreadyPaidSales, $bookingPaid, 0.0), 2);
+        $alreadyPaid = ApplicableFees::marcacaoMoneyTowardSubtotal((int) $calendarEvent->id);
         $servicesDue = max(0.0, round($subtotalItens - $alreadyPaid, 2));
         $amountDue = round($servicesDue + $gorjeta, 2);
         if ($amountDue <= 0) {
@@ -671,6 +644,95 @@ class CheckoutController extends Controller
         return response($binary, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="vendus-document-'.$documentId.'.pdf"',
+        ]);
+    }
+
+    /**
+     * POST sales/{sale}/finalize-invoice — passar venda de rascunho para faturado (Vendus + email opcional).
+     */
+    public function finalizeInvoice(Request $request, Sale $sale)
+    {
+        $validated = $request->validate([
+            'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
+            'billing_nif' => ['nullable', 'string', 'max:32'],
+            'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
+        ]);
+
+        if ((int) $sale->store_id !== (int) current_store_id()) {
+            abort(404);
+        }
+
+        if ($sale->status === Sale::STATUS_ANULADO) {
+            return response()->json(['error' => 'Esta venda foi anulada.'], 422);
+        }
+
+        if (! $sale->isInvoiceDraft()) {
+            return response()->json(['error' => 'Esta fatura já foi emitida.'], 422);
+        }
+
+        $sale->loadMissing('client');
+        $client = $sale->client;
+        $fiscalMode = (string) ($validated['invoice_fiscal_mode'] ?? 'consumer');
+        $billingNifDigits = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+        $clientNif = preg_replace('/\D/', '', (string) ($client?->nif ?? ''));
+
+        if ($fiscalMode === 'with_nif') {
+            if (strlen($clientNif) !== 9 && strlen($billingNifDigits) !== 9) {
+                return response()->json([
+                    'error' => 'Para faturar com NIF, indique 9 dígitos na ficha do cliente ou no campo «NIF nesta fatura».',
+                ], 422);
+            }
+        }
+
+        try {
+            DB::beginTransaction();
+
+            if ($fiscalMode === 'with_nif' && $client instanceof Client) {
+                if (strlen($clientNif) !== 9 && strlen($billingNifDigits) === 9) {
+                    $client->nif = $billingNifDigits;
+                    $client->save();
+                }
+                $sale->issue_without_fiscal_id = false;
+            } else {
+                $sale->issue_without_fiscal_id = true;
+            }
+
+            $sale->invoice_status = Sale::INVOICE_STATUS_FATURADO;
+            $sale->save();
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+
+            return response()->json(['error' => 'Erro ao atualizar a fatura.', 'message' => $e->getMessage()], 500);
+        }
+
+        $this->syncSaleWithVendus($sale);
+        $sale->refresh();
+
+        $delivery = (string) ($validated['invoice_delivery'] ?? 'print');
+        if (! in_array($delivery, ['email', 'print'], true)) {
+            $delivery = 'print';
+        }
+
+        $emailResult = ['sent' => false, 'message' => null];
+        if ($delivery === 'email') {
+            $emailResult = $this->vendusInvoiceEmailService->trySendToClient($sale);
+        }
+
+        return response()->json([
+            'success' => true,
+            'sale_id' => $sale->id,
+            'scope' => $sale->scope,
+            'numero_fatura' => $sale->numero_fatura,
+            'pdf_url' => route('sales.pdf', $sale),
+            'vendus_pdf_url' => $sale->vendus_document_id ? route('sales.vendus.pdf', $sale) : null,
+            'vendus_synced' => $sale->vendus_document_id !== null,
+            'invoice_status' => $sale->invoice_status,
+            'invoice_delivery' => $delivery,
+            'invoice_email_sent' => $emailResult['sent'],
+            'invoice_email_message' => $emailResult['message'],
         ]);
     }
 

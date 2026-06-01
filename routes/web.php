@@ -302,6 +302,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function ()
     Route::get('sales/{sale}/pdf', [CheckoutController::class, 'pdf'])->name('sales.pdf');
     Route::get('sales/{sale}/vendus-pdf', [CheckoutController::class, 'vendusPdf'])->name('sales.vendus.pdf');
     Route::post('sales/{sale}/revert', [CheckoutController::class, 'revert'])->name('sales.revert');
+    Route::post('sales/{sale}/finalize-invoice', [CheckoutController::class, 'finalizeInvoice'])->name('sales.finalize-invoice');
 
     // Serviços e Categorias
     Route::get('services', [CategoryController::class, 'index'])->name('services.index');

@@ -39,9 +39,14 @@ class BookingController extends Controller
                 'services' => function ($q) use ($storeId) {
                     $q->where('store_id', $storeId)
                         ->orderBy('sort_order')
-                        ->with(['options' => function ($oq) {
-                            $oq->orderBy('sort_order');
-                        }]);
+                        ->with([
+                            'options' => function ($oq) {
+                                $oq->orderBy('sort_order');
+                            },
+                            'fees' => function ($fq) {
+                                $fq->orderBy('sort_order')->orderBy('name');
+                            },
+                        ]);
                 },
             ])
             ->whereHas('services', fn ($q) => $q->where('store_id', $storeId))

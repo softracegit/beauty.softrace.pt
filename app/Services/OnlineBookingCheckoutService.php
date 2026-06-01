@@ -11,6 +11,7 @@ use App\Models\ServiceOption;
 use App\Models\Store;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
+use App\Support\ApplicableFees;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
 use App\Support\WeeklyScheduleWindow;
@@ -214,6 +215,8 @@ class OnlineBookingCheckoutService
      *     userId: int,
      *     startForDb: Carbon,
      *     endForDb: Carbon,
+     *     servicesSubtotal: float,
+     *     catalogFees: list<array{fee_id: int, name: string, price: float, formatted_price: string}>,
      *     totalPrice: float,
      * }
      */
@@ -225,10 +228,16 @@ class OnlineBookingCheckoutService
         $startForDb = $slot['startForDb'];
         $endForDb = $slot['endForDb'];
 
-        $totalPrice = round(
+        $servicesSubtotal = round(
             (float) array_sum(array_map(fn (array $line): float => (float) $line['price'], $bookingLines)),
             2,
         );
+        $storeId = (int) ($bookingLines[0]['service']->store_id ?? 0);
+        $catalogFees = ApplicableFees::forServiceIds(
+            array_map(fn (array $line): int => (int) $line['service']->id, $bookingLines),
+            $storeId > 0 ? $storeId : null,
+        );
+        $totalPrice = round($servicesSubtotal + ApplicableFees::sumPrices($catalogFees), 2);
 
         return [
             'validated' => $validated,
@@ -236,6 +245,8 @@ class OnlineBookingCheckoutService
             'userId' => $userId,
             'startForDb' => $startForDb,
             'endForDb' => $endForDb,
+            'servicesSubtotal' => $servicesSubtotal,
+            'catalogFees' => $catalogFees,
             'totalPrice' => $totalPrice,
         ];
     }

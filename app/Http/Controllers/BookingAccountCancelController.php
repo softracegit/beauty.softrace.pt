@@ -92,6 +92,10 @@ class BookingAccountCancelController extends Controller
             abort(422, 'Esta marcação já não pode ser cancelada.');
         }
 
+        if (($event->status ?? '') === CalendarEvent::STATUS_COMPLETO) {
+            abort(422, 'Marcações já pagas não podem ser canceladas online.');
+        }
+
         if (! $event->start_at) {
             abort(422, 'Marcação sem data definida.');
         }

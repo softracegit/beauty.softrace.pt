@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
+use App\Models\Booking;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use Illuminate\Http\Client\Response;
@@ -412,6 +413,24 @@ final class VendusInvoiceService
     {
         $items = [];
         $itemsNet = 0.0;
+
+        // Pré-pagamento (receção): parte em créditos vive no Booking, enquanto a venda (Sale) só
+        // regista o valor pago em Stripe/MBWAY/cartão (valor_pago). Para a Vendus mostrar os créditos,
+        // aumentamos o gross_price da linha do pré-pagamento e aplicamos discount_amount=créditos.
+        $creditsDiscount = 0.0;
+        $creditsDiscountApplied = false;
+        if (($sale->scope ?? null) === Sale::SCOPE_BOOKING_RESERVA && $sale->calendar_event_id) {
+            $booking = Booking::query()
+                ->where('calendar_event_id', (int) $sale->calendar_event_id)
+                ->where('payment_status', \App\Models\Booking::PAYMENT_PAID)
+                ->orderByDesc('id')
+                ->first(['wallet_applied_cents']);
+
+            if ($booking) {
+                $creditsDiscount = round(max(0, (int) ($booking->wallet_applied_cents ?? 0)) / 100, 2);
+            }
+        }
+
         foreach ($sale->items as $item) {
             $line = [
                 'reference' => $this->buildReusableReference($item),
@@ -430,15 +449,38 @@ final class VendusInvoiceService
             }
 
             $lineText = $this->vendusLineContextText($sale);
+            $lineGross = (float) $item->preco_unitario;
+            $lineDiscount = ($item->desconto !== null && (float) $item->desconto > 0)
+                ? (float) $item->desconto
+                : 0.0;
+
+            // Aplica créditos apenas à primeira linha de "serviço" do pré-pagamento.
+            if (
+                !$creditsDiscountApplied
+                && $creditsDiscount > 0.00001
+                && ($sale->scope ?? null) === Sale::SCOPE_BOOKING_RESERVA
+                && ($item->tipo ?? null) === SaleItem::TIPO_SERVICO
+            ) {
+                $lineGross = round($lineGross + $creditsDiscount, 2);
+                $lineDiscount = $creditsDiscount;
+                $line['gross_price'] = $lineGross;
+                $line['discount_amount'] = $lineDiscount;
+                $creditsDiscountApplied = true;
+
+                // Texto livre ajuda a dar contexto na Vendus.
+                $creditTxt = 'Créditos aplicados: '.number_format($creditsDiscount, 2, ',', ' ').' €';
+                $lineText = $lineText !== null && $lineText !== '' ? ($lineText.' — '.$creditTxt) : $creditTxt;
+            }
+
             if ($lineText !== null && $lineText !== '') {
                 $line['text'] = $lineText;
             }
 
             $items[] = $line;
 
-            $brutoLinha = round((float) $item->quantidade * (float) $item->preco_unitario, 2);
-            $descLinha = ($item->desconto !== null && (float) $item->desconto > 0)
-                ? min((float) $item->desconto, $brutoLinha)
+            $brutoLinha = round((float) $item->quantidade * (float) $lineGross, 2);
+            $descLinha = ($lineDiscount > 0.00001)
+                ? min((float) $lineDiscount, $brutoLinha)
                 : 0.0;
             $itemsNet += round($brutoLinha - $descLinha, 2);
         }

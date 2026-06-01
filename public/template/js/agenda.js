@@ -615,7 +615,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return { start: start, end: new Date(start.getTime() + totalDur * 60000) };
     }
+    /** Aviso «fora do período habitual» — desativado temporariamente; mudar para true para voltar a mostrar. */
+    var agendaShowOutOfHoursWarning = false;
+
     function toggleOutOfHoursWarning(elId, isOutside, wrapId) {
+        if (!agendaShowOutOfHoursWarning) isOutside = false;
         var el = $id(elId);
         if (!el) return;
         if (isOutside) {
@@ -1101,6 +1105,30 @@ document.addEventListener('DOMContentLoaded', function() {
      * Mostra o quickview do evento ao lado do elemento do evento (posição automática: direita, esquerda, baixo, cima).
      * @param {Object} info - info do FullCalendar (info.event, info.el)
      */
+    function agendaQuickviewFees(ext) {
+        ext = ext || {};
+        if (ext.apply_catalog_fees === true) {
+            if (Array.isArray(ext.catalog_fees) && ext.catalog_fees.length) {
+                return eventDetailApplicableFeesDedupe(ext.catalog_fees);
+            }
+            var merged = [];
+            (ext.event_services || []).forEach(function(s) {
+                (s.fees || []).forEach(function(f) { merged.push(f); });
+            });
+            return eventDetailApplicableFeesDedupe(merged);
+        }
+        if (Array.isArray(ext.charged_fees) && ext.charged_fees.length) {
+            return eventDetailApplicableFeesDedupe(ext.charged_fees);
+        }
+        return [];
+    }
+
+    function agendaQuickviewFeesSubtotal(fees) {
+        return (fees || []).reduce(function(sum, f) {
+            return sum + (parseFloat(f.price) || 0);
+        }, 0);
+    }
+
     function showEventQuickview(info) {
         var event = info.event;
         var el = info.el;
@@ -1140,9 +1168,16 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             totalPrice += basePrice + extrasTotal;
         });
+        var quickviewFees = agendaQuickviewFees(ext);
+        var quickviewFeesSubtotal = agendaQuickviewFeesSubtotal(quickviewFees);
         var totalPriceStr = totalPrice > 0 ? (totalPrice.toFixed(2).replace('.', ',') + ' €') : '';
         var totalAmount = parseFloat(ext.total_amount);
         if (isNaN(totalAmount)) totalAmount = totalPrice;
+        if (quickviewFees.length && ext.apply_catalog_fees !== true) {
+            totalAmount = Math.round((totalPrice + quickviewFeesSubtotal) * 100) / 100;
+        } else if (ext.apply_catalog_fees === true && !isNaN(parseFloat(ext.total_amount))) {
+            totalAmount = parseFloat(ext.total_amount);
+        }
         var totalAmountStr = (totalAmount || 0).toFixed(2).replace('.', ',') + ' €';
         var bookingPaidAmount = parseFloat(ext.booking_paid_amount || 0) || 0;
         var finalPaidAmount = Math.max(0, (totalAmount || 0) - bookingPaidAmount);
@@ -1290,6 +1325,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     body.appendChild(extraRow);
                 });
+            });
+
+            quickviewFees.forEach(function(f) {
+                var feeRow = document.createElement('div');
+                feeRow.className = 'agenda-quickview-service-row agenda-quickview-fee-row';
+                var feeLeft = document.createElement('div');
+                feeLeft.className = 'agenda-quickview-service-left';
+                var feeNameEl = document.createElement('div');
+                feeNameEl.className = 'agenda-quickview-service-name text-muted';
+                feeNameEl.textContent = String(f.name || 'Taxa').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                feeLeft.appendChild(feeNameEl);
+                feeRow.appendChild(feeLeft);
+                var feePriceEl = document.createElement('div');
+                feePriceEl.className = 'agenda-quickview-service-price';
+                var feePrice = parseFloat(f.price) || 0;
+                feePriceEl.textContent = f.formatted_price || (feePrice.toFixed(2).replace('.', ',') + ' €');
+                feeRow.appendChild(feePriceEl);
+                body.appendChild(feeRow);
             });
         } else {
             var serviceName = (ext.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1745,8 +1798,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var eventDetailExistingSale = null;
     var eventDetailBookingPaidAmount = 0;
-    /** @type {'caixa'|'reserva'|'invoice-only'} */
+    /** @type {'caixa'|'reserva'|'invoice-only'|'finalize-draft'} */
     var paymentModalMode = 'caixa';
+    var paymentModalFinalizeSaleId = null;
     var paymentModalReservaPreview = null;
     var paymentModalReservaCustomAmount = null;
     var paymentModalSavedCards = [];
@@ -1760,10 +1814,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return paymentModalMode === 'invoice-only';
     }
 
+    function paymentModalIsFinalizeDraft() {
+        return paymentModalMode === 'finalize-draft';
+    }
+
     function paymentModalApplyModeClasses() {
         var pm = $id('paymentModal');
         if (!pm) return;
-        pm.classList.toggle('payment-pos-modal--invoice-only', paymentModalIsInvoiceOnly());
+        pm.classList.toggle('payment-pos-modal--invoice-only', paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft());
         pm.classList.toggle('payment-pos-modal--reserva', paymentModalIsReserva());
         paymentModalSyncReservaWalletUi();
         paymentModalSyncFooterButtons();
@@ -1772,7 +1830,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function paymentModalSyncFooterButtons() {
         var draftBtn = $id('paymentDraftBtn');
         if (!draftBtn) return;
-        var showDraft = !paymentModalIsInvoiceOnly();
+        var showDraft = !paymentModalIsInvoiceOnly() && !paymentModalIsFinalizeDraft();
         draftBtn.classList.toggle('d-none', !showDraft);
         if (!showDraft) return;
         if (draftBtn.querySelector('.spinner-border')) return;
@@ -1872,6 +1930,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function paymentModalResetToCaixa() {
         paymentModalMode = 'caixa';
+        paymentModalFinalizeSaleId = null;
         paymentModalReservaPreview = null;
         paymentModalReservaCustomAmount = null;
         paymentModalSavedCards = [];
@@ -1901,7 +1960,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var creditBtn = $id('paymentMethodCreditosCarteiraBtn');
         if (!creditBtn) return;
         var nameSpan = creditBtn.querySelector('.tempo-pessoal-type-card-name');
-        if (paymentModalIsInvoiceOnly() || paymentModalIsReserva()) {
+        if (paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft() || paymentModalIsReserva()) {
             creditBtn.classList.add('d-none');
             if (nameSpan) nameSpan.textContent = 'Créditos';
             var pmvHide = $id('paymentMethodValue');
@@ -2000,7 +2059,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var subtitle = $id('paymentMethodCartaoSubtitle');
         if (!cartaoBtn) return;
         var cards = paymentModalSavedCards || [];
-        var showCard = !paymentModalIsInvoiceOnly() && cards.length > 0;
+        var showCard = !paymentModalIsInvoiceOnly() && !paymentModalIsFinalizeDraft() && cards.length > 0;
         cartaoBtn.classList.toggle('d-none', !showCard);
         if (subtitle) {
             if (showCard) {
@@ -2178,6 +2237,30 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalSetPayButtonEnabled();
     }
 
+    function openAgendaPaymentModalFinalizeDraft(inv) {
+        if (!inv || !inv.id) {
+            return;
+        }
+        paymentModalMode = 'finalize-draft';
+        paymentModalFinalizeSaleId = inv.id;
+        paymentMbwayFinalizeSucceeded = false;
+        paymentModalStopMbwayFinalizePoll();
+        var amount = inv.amount != null && !isNaN(parseFloat(inv.amount)) ? parseFloat(inv.amount) : 0;
+        var psd = $id('paymentSubtotalDisplay');
+        if (psd) psd.textContent = amount.toFixed(2).replace('.', ',') + ' €';
+        var gEl = $id('paymentGorjeta');
+        if (gEl && String(gEl.getAttribute('type') || '').toLowerCase() === 'number') gEl.value = '0';
+        paymentModalSyncFiscalFromClient();
+        paymentModalPopulateClientHero();
+        paymentModalInitInvoiceDelivery();
+        paymentModalApplyModeClasses();
+        paymentModalUpdateTotals();
+        var pl = $id('paymentModalLabel');
+        if (pl) pl.textContent = eventDetailInvoiceFaturarLabel(inv);
+        bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+        paymentModalSetPayButtonEnabled();
+    }
+
         function openEventDetailRevertFinalModal(saleId) {
             if (!saleId) return;
             $id('revertSaleId').value = String(saleId);
@@ -2185,14 +2268,133 @@ document.addEventListener('DOMContentLoaded', function() {
             bootstrap.Modal.getOrCreateInstance($id('revertSaleModal')).show();
         }
 
+        function eventDetailInvoicePdfLinkVisible(inv) {
+            return !!(inv && inv.invoice_status !== 'rascunho');
+        }
+
+        function eventDetailInvoiceOpenUrl(inv) {
+            if (!inv) return '#';
+            return inv.vendus_url || inv.pdf_url || '#';
+        }
+
+        function eventDetailInvoiceViewLabel(inv) {
+            if (!inv) return 'Fatura';
+            if (inv.scope === 'booking_reserva') {
+                return 'Ver PDF de fatura de pré-pagamento';
+            }
+            if (inv.scope === 'caixa_liquidacao') {
+                return 'Ver PDF de fatura final';
+            }
+            return inv.label || 'Fatura';
+        }
+
+        function eventDetailInvoiceFaturarLabel(inv) {
+            if (!inv) return 'Faturar';
+            if (inv.scope === 'booking_reserva') {
+                return 'Faturar pré-pagamento';
+            }
+            if (inv.scope === 'caixa_liquidacao') {
+                return 'Faturar pagamento em loja';
+            }
+            return 'Faturar';
+        }
+
+        function eventDetailInvoiceIsDraft(inv) {
+            return !!(inv && inv.invoice_status === 'rascunho' && inv.id);
+        }
+
+        function eventDetailUpsertSaleInvoice(entry) {
+            if (!entry || !entry.id || !eventDetailCurrentData) {
+                return;
+            }
+            if (!Array.isArray(eventDetailCurrentData.sales_invoices)) {
+                eventDetailCurrentData.sales_invoices = [];
+            }
+            var list = eventDetailCurrentData.sales_invoices;
+            for (var i = 0; i < list.length; i++) {
+                if (list[i] && list[i].id === entry.id) {
+                    list[i] = Object.assign({}, list[i], entry);
+                    return;
+                }
+            }
+            list.push(entry);
+        }
+
+        /** Lista de faturas para o menu — inclui active_caixa_sale e normaliza scope legado (regular). */
+        function eventDetailBuildFaturaMenuList() {
+            var raw = (eventDetailCurrentData && Array.isArray(eventDetailCurrentData.sales_invoices))
+                ? eventDetailCurrentData.sales_invoices
+                : [];
+            var list = raw.map(function(inv) {
+                return inv ? Object.assign({}, inv) : null;
+            }).filter(Boolean);
+            var activeCaixa = eventDetailCurrentData && eventDetailCurrentData.active_caixa_sale;
+
+            function upsertFromActive(meta, scope) {
+                if (!meta || !meta.id) {
+                    return;
+                }
+                var idx = -1;
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i].id === meta.id) {
+                        idx = i;
+                        break;
+                    }
+                }
+                var entry = {
+                    id: meta.id,
+                    label: meta.label || '',
+                    numero_fatura: meta.numero_fatura || '',
+                    pdf_url: meta.pdf_url || null,
+                    vendus_url: meta.vendus_url || null,
+                    scope: scope,
+                    amount: meta.amount != null ? meta.amount : null,
+                    invoice_status: meta.invoice_status || 'faturado',
+                };
+                if (idx >= 0) {
+                    list[idx] = Object.assign({}, list[idx], entry);
+                } else {
+                    list.push(entry);
+                }
+            }
+
+            if (activeCaixa && activeCaixa.id) {
+                upsertFromActive({
+                    id: activeCaixa.id,
+                    label: activeCaixa.numero_fatura
+                        ? ('Pagamento em loja · ' + activeCaixa.numero_fatura)
+                        : 'Pagamento final',
+                    numero_fatura: activeCaixa.numero_fatura,
+                    pdf_url: activeCaixa.pdf_url,
+                    vendus_url: activeCaixa.vendus_url,
+                    amount: activeCaixa.amount,
+                    invoice_status: activeCaixa.invoice_status,
+                }, 'caixa_liquidacao');
+            }
+
+            list.forEach(function(inv) {
+                if (!inv) {
+                    return;
+                }
+                if (activeCaixa && activeCaixa.id && inv.id === activeCaixa.id) {
+                    inv.scope = 'caixa_liquidacao';
+                } else if ((!inv.scope || inv.scope === 'regular') && activeCaixa && inv.id === activeCaixa.id) {
+                    inv.scope = 'caixa_liquidacao';
+                }
+            });
+
+            return list;
+        }
+
         function syncEventDetailFaturaButtons() {
         var wrap = $id('eventDetailFaturasWrap');
         if (!wrap) return;
         wrap.innerHTML = '';
-        var list = (eventDetailCurrentData && Array.isArray(eventDetailCurrentData.sales_invoices)) ? eventDetailCurrentData.sales_invoices : [];
+        var activeCaixa = eventDetailCurrentData && eventDetailCurrentData.active_caixa_sale;
+        var list = eventDetailBuildFaturaMenuList();
         var pendingFinal = !!(eventDetailCurrentData && eventDetailCurrentData.pending_final_invoice);
         var walletOnlyPrepayment = eventDetailPrepaymentWalletOnly();
-        if (!list.length && !pendingFinal && !walletOnlyPrepayment) {
+        if (!list.length && !pendingFinal && !walletOnlyPrepayment && !activeCaixa) {
             wrap.classList.add('d-none');
             return;
         }
@@ -2201,7 +2403,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
         var amountDueForPay = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due) || 0;
-        var activeCaixa = eventDetailCurrentData && eventDetailCurrentData.active_caixa_sale;
         var isPartialSale = !!(eventDetailExistingSale && eventDetailExistingSale.is_partial);
         var marcacaoFinalizada = (status === 'completo' && amountDueForPay <= 0.00001);
         var showEmail = marcacaoFinalizada && list.length > 0;
@@ -2226,25 +2427,18 @@ document.addEventListener('DOMContentLoaded', function() {
         menu.className = 'dropdown-menu dropdown-menu-end';
 
         function appendViewLink(inv) {
-            var label;
-            var title;
-            if (inv.scope === 'booking_reserva') {
-                label = 'Ver PDF de fatura de pré-pagamento';
-                title = 'Ver PDF de fatura de pré-pagamento';
-            } else if (inv.scope === 'caixa_liquidacao') {
-                label = 'Ver PDF de fatura final';
-                title = 'Ver PDF de fatura final';
-            } else {
-                label = inv.label || 'Fatura';
-                title = 'Abrir PDF';
+            if (!eventDetailInvoicePdfLinkVisible(inv)) {
+                return;
             }
+            var label = eventDetailInvoiceViewLabel(inv);
+            var title = label;
             if (inv.amount != null && !isNaN(parseFloat(inv.amount))) {
                 title += ' · ' + parseFloat(inv.amount).toFixed(2).replace('.', ',') + ' €';
             }
             var li = document.createElement('li');
             var a = document.createElement('a');
             a.className = 'dropdown-item d-flex align-items-start gap-2';
-            a.href = inv.vendus_url || inv.pdf_url || '#';
+            a.href = eventDetailInvoiceOpenUrl(inv);
             a.target = '_blank';
             a.rel = 'noopener';
             a.title = title;
@@ -2270,9 +2464,68 @@ document.addEventListener('DOMContentLoaded', function() {
         if (invReserva) appendViewLink(invReserva);
         if (invFinal) appendViewLink(invFinal);
         list.forEach(function(inv) {
-            if (inv.scope === 'booking_reserva' || inv.scope === 'caixa_liquidacao') return;
+            if (!inv || inv.scope === 'booking_reserva' || inv.scope === 'caixa_liquidacao') {
+                return;
+            }
             appendViewLink(inv);
         });
+
+        var draftFaturarSeen = {};
+        function appendFaturarDraftItem(inv) {
+            if (!eventDetailInvoiceIsDraft(inv) || draftFaturarSeen[inv.id]) {
+                return;
+            }
+            draftFaturarSeen[inv.id] = true;
+            var liF = document.createElement('li');
+            var fatBtn = document.createElement('button');
+            fatBtn.type = 'button';
+            fatBtn.className = 'dropdown-item d-flex align-items-center gap-2 fw-semibold text-success';
+            var fatIcon = document.createElement('i');
+            fatIcon.className = 'ph ph-receipt flex-shrink-0 event-detail-fatura-menu-icon';
+            fatIcon.setAttribute('aria-hidden', 'true');
+            var fatSpan = document.createElement('span');
+            fatSpan.textContent = eventDetailInvoiceFaturarLabel(inv);
+            fatBtn.appendChild(fatIcon);
+            fatBtn.appendChild(fatSpan);
+            var titleF = eventDetailInvoiceFaturarLabel(inv);
+            if (inv.amount != null && !isNaN(parseFloat(inv.amount))) {
+                titleF += ' · ' + parseFloat(inv.amount).toFixed(2).replace('.', ',') + ' €';
+            }
+            fatBtn.setAttribute('title', titleF);
+            fatBtn.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                var dd = bootstrap.Dropdown.getInstance(toggle);
+                if (dd) dd.hide();
+                openAgendaPaymentModalFinalizeDraft(inv);
+            });
+            liF.appendChild(fatBtn);
+            menu.appendChild(liF);
+        }
+        if (invReserva) appendFaturarDraftItem(invReserva);
+        if (invFinal) appendFaturarDraftItem(invFinal);
+        list.forEach(function(inv) {
+            appendFaturarDraftItem(inv);
+        });
+        if (activeCaixa && eventDetailInvoiceIsDraft(activeCaixa)) {
+            appendFaturarDraftItem({
+                id: activeCaixa.id,
+                scope: 'caixa_liquidacao',
+                invoice_status: activeCaixa.invoice_status || 'rascunho',
+                amount: activeCaixa.amount,
+            });
+        }
+
+        if (!menu.children.length && activeCaixa && activeCaixa.pdf_url
+            && eventDetailInvoicePdfLinkVisible(activeCaixa)) {
+            appendViewLink({
+                id: activeCaixa.id,
+                scope: 'caixa_liquidacao',
+                pdf_url: activeCaixa.pdf_url,
+                vendus_url: activeCaixa.vendus_url || null,
+                invoice_status: activeCaixa.invoice_status || 'faturado',
+                amount: activeCaixa.amount,
+            });
+        }
 
         if (walletOnlyPrepayment && !invReserva) {
             eventDetailAppendFaturaWalletOnlyNotice(menu);
@@ -3658,7 +3911,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     EventDetail.updateTotal = function() {
-        var total = eventDetailShouldApplyCatalogFees() ? eventDetailCheckoutSubtotal() : eventDetailServicesSubtotal();
+        var total = eventDetailCheckoutSubtotal();
         var totalText = total.toFixed(2).replace('.', ',') + ' €';
         var totalPriceEl = $id('eventDetailTotalPrice');
         if (totalPriceEl) {
@@ -5163,18 +5416,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function eventDetailApplicableFees() {
-        if (!eventDetailShouldApplyCatalogFees()) {
-            return [];
+        if (eventDetailShouldApplyCatalogFees()) {
+            var d = eventDetailCurrentData || {};
+            if (Array.isArray(d.catalog_fees) && d.catalog_fees.length) {
+                return eventDetailApplicableFeesDedupe(d.catalog_fees);
+            }
+            var merged = [];
+            (eventDetailSelectedServices || []).forEach(function(s) {
+                (s.fees || []).forEach(function(f) { merged.push(f); });
+            });
+            return eventDetailApplicableFeesDedupe(merged);
         }
-        var d = eventDetailCurrentData || {};
-        if (Array.isArray(d.catalog_fees) && d.catalog_fees.length) {
-            return eventDetailApplicableFeesDedupe(d.catalog_fees);
+        var settledData = eventDetailCurrentData || {};
+        if (Array.isArray(settledData.charged_fees) && settledData.charged_fees.length) {
+            return eventDetailApplicableFeesDedupe(settledData.charged_fees);
         }
-        var merged = [];
-        (eventDetailSelectedServices || []).forEach(function(s) {
-            (s.fees || []).forEach(function(f) { merged.push(f); });
-        });
-        return eventDetailApplicableFeesDedupe(merged);
+        return [];
     }
 
     function eventDetailFeesSubtotal() {
@@ -5193,10 +5450,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         wrap.innerHTML = '';
-        if (!eventDetailShouldApplyCatalogFees()) {
-            wrap.classList.add('d-none');
-            return;
-        }
         var fees = eventDetailApplicableFees();
         if (!fees.length) {
             wrap.classList.add('d-none');
@@ -5219,7 +5472,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         wrap.innerHTML = '';
-        if (!eventDetailShouldApplyCatalogFees()) {
+        if (paymentModalIsFinalizeDraft()) {
             wrap.classList.add('d-none');
             return;
         }
@@ -5398,7 +5651,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function paymentModalValidateReadyToPay() {
-        if (paymentModalIsInvoiceOnly()) return true;
+        if (paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft()) return true;
         var dueCents = paymentModalGetAmountDueCents();
         if (paymentModalIsReserva() && dueCents <= 0) return false;
         if (paymentModalIsReserva() && paymentModalWalletCoversDeposit()) {
@@ -5423,7 +5676,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var btn = $id('paymentConfirmBtn');
         if (!btn) return;
         if (btn.querySelector('.spinner-border')) return;
-        if (paymentModalIsInvoiceOnly()) {
+        if (paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft()) {
             btn.disabled = false;
             paymentModalSyncFooterButtons();
             return;
@@ -5479,7 +5732,9 @@ document.addEventListener('DOMContentLoaded', function() {
             ? amountDue
             : Math.max(0, checkoutSub - paidOnline);
         var total = servicesDue + gorjeta;
-        if (paymentModalIsInvoiceOnly()) {
+        if (paymentModalIsFinalizeDraft()) {
+            btn.textContent = 'Faturar';
+        } else if (paymentModalIsInvoiceOnly()) {
             btn.textContent = 'Emitir fatura final · ' + total.toFixed(2).replace('.', ',') + ' €';
         } else if (paymentModalIsReserva()) {
             var deposit = paymentModalGetDepositAmountEur();
@@ -5630,27 +5885,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (res.sale_id) {
             eventDetailCurrentData.prepayment_wallet_only = false;
             eventDetailCurrentData.has_booking_reserva_sale = true;
-            if (!Array.isArray(eventDetailCurrentData.sales_invoices)) {
-                eventDetailCurrentData.sales_invoices = [];
-            }
-            var already = false;
-            for (var i = 0; i < eventDetailCurrentData.sales_invoices.length; i++) {
-                if (eventDetailCurrentData.sales_invoices[i] && eventDetailCurrentData.sales_invoices[i].id === res.sale_id) {
-                    already = true;
-                    break;
-                }
-            }
-            if (!already) {
-                eventDetailCurrentData.sales_invoices.push({
-                    id: res.sale_id,
-                    label: res.numero_fatura ? ('Fatura ' + res.numero_fatura) : 'Pré-pagamento',
-                    numero_fatura: res.numero_fatura || '',
-                    pdf_url: res.pdf_url || null,
-                    vendus_url: res.vendus_pdf_url || null,
-                    scope: 'booking_reserva',
-                    amount: parseFloat(res.deposit_amount) || 0,
-                });
-            }
+            eventDetailUpsertSaleInvoice({
+                id: res.sale_id,
+                label: res.numero_fatura ? ('Pré-pagamento · ' + res.numero_fatura) : 'Pré-pagamento',
+                numero_fatura: res.numero_fatura || '',
+                pdf_url: res.pdf_url || null,
+                vendus_url: res.vendus_pdf_url || null,
+                scope: 'booking_reserva',
+                amount: parseFloat(res.deposit_amount) || 0,
+                invoice_status: res.invoice_status || 'faturado',
+            });
             var amountDue = parseFloat(eventDetailCurrentData.amount_due);
             var isPartial = res.booking_paid_amount > 0.00001
                 && Number.isFinite(amountDue)
@@ -5669,6 +5913,82 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function eventDetailMergeFinalizeSaleFromResponse(res) {
+        if (!res || !res.sale_id || !eventDetailCurrentData) {
+            return;
+        }
+        var scope = res.scope || 'caixa_liquidacao';
+        var label = scope === 'booking_reserva'
+            ? (res.numero_fatura ? ('Pré-pagamento · ' + res.numero_fatura) : 'Pré-pagamento')
+            : (res.numero_fatura ? ('Pagamento em loja · ' + res.numero_fatura) : 'Pagamento final');
+        eventDetailUpsertSaleInvoice({
+            id: res.sale_id,
+            label: label,
+            numero_fatura: res.numero_fatura || '',
+            pdf_url: res.pdf_url || null,
+            vendus_url: res.vendus_pdf_url || null,
+            scope: scope,
+            amount: null,
+            invoice_status: res.invoice_status || 'faturado',
+        });
+        if (scope === 'booking_reserva') {
+            eventDetailCurrentData.prepayment_wallet_only = false;
+            eventDetailCurrentData.has_booking_reserva_sale = true;
+        }
+        if (scope === 'caixa_liquidacao') {
+            eventDetailCurrentData.active_caixa_sale = {
+                id: res.sale_id,
+                numero_fatura: res.numero_fatura || '',
+                pdf_url: res.pdf_url || null,
+                vendus_url: res.vendus_pdf_url || null,
+                invoice_status: res.invoice_status || 'faturado',
+                amount: null,
+            };
+            eventDetailCurrentData.pending_final_invoice = false;
+        }
+        syncEventDetailFaturaButtons();
+        if (typeof EventDetail !== 'undefined' && typeof EventDetail.updateTotal === 'function') {
+            EventDetail.updateTotal();
+        }
+    }
+
+    function eventDetailMergeCheckoutSaleFromResponse(res) {
+        if (!res || !res.sale_id || !eventDetailCurrentData) {
+            return;
+        }
+        eventDetailUpsertSaleInvoice({
+            id: res.sale_id,
+            label: res.numero_fatura ? ('Pagamento em loja · ' + res.numero_fatura) : 'Pagamento final',
+            numero_fatura: res.numero_fatura || '',
+            pdf_url: res.pdf_url || null,
+            vendus_url: res.vendus_pdf_url || null,
+            scope: 'caixa_liquidacao',
+            amount: null,
+            invoice_status: res.invoice_status || 'faturado',
+        });
+        eventDetailCurrentData.active_caixa_sale = {
+            id: res.sale_id,
+            numero_fatura: res.numero_fatura || '',
+            pdf_url: res.pdf_url || null,
+            vendus_url: res.vendus_pdf_url || null,
+        };
+        eventDetailCurrentData.pending_final_invoice = false;
+        eventDetailExistingSale = {
+            id: res.sale_id,
+            numero_fatura: res.numero_fatura || null,
+            pdf_url: res.pdf_url || null,
+            is_partial: false,
+        };
+        eventDetailCurrentData.existing_sale = eventDetailExistingSale;
+        if (eventDetailCurrentData.amount_due != null) {
+            eventDetailCurrentData.amount_due = 0;
+        }
+        syncEventDetailFaturaButtons();
+        if (typeof EventDetail !== 'undefined' && typeof EventDetail.updateTotal === 'function') {
+            EventDetail.updateTotal();
+        }
+    }
+
     function agendaAfterCheckoutPaymentSuccess(res, eventId) {
         paymentModalRestoreConfirmButton();
         bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
@@ -5676,6 +5996,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var isPrepagamento = paymentModalIsReserva();
         if (isPrepagamento) {
             eventDetailMergeDepositSaleFromResponse(res);
+        } else {
+            eventDetailMergeCheckoutSaleFromResponse(res);
         }
         var isDraftInvoice = res && res.invoice_status === 'rascunho';
         if (isPrepagamento) {
@@ -5704,7 +6026,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var vu = res && res.vendus_pdf_url;
             if (!isDraftInvoice && vu) {
                 window.open(vu, '_blank', 'noopener,noreferrer');
-            } else if (res && res.pdf_url) {
+            } else if (!isDraftInvoice && res && res.pdf_url) {
                 window.open(res.pdf_url, '_blank', 'noopener,noreferrer');
             }
         }
@@ -5898,8 +6220,84 @@ document.addEventListener('DOMContentLoaded', function() {
         agendaAfterCheckoutPaymentSuccess(res, eventId);
     }
 
+    function paymentModalSubmitFinalizeDraft() {
+        var saleId = paymentModalFinalizeSaleId;
+        if (!saleId) {
+            showToast('Venda não encontrada.', 'error');
+            paymentModalRestoreConfirmButton();
+            return;
+        }
+        if (!paymentModalValidateFiscalForSubmit()) {
+            paymentModalRestoreConfirmButton();
+            return;
+        }
+        var fiscal = paymentModalGetFiscalPayload();
+        var baseUrl = (C.salesFinalizeInvoiceUrl || C.salesRevertUrl || '').replace(/\/$/, '');
+        if (!baseUrl) {
+            paymentModalRestoreConfirmButton();
+            showToast('URL de faturação não configurada.', 'error');
+            return;
+        }
+        fetch(baseUrl + '/' + saleId + '/finalize-invoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({
+                invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
+                billing_nif: fiscal.billing_nif || null,
+                invoice_delivery: paymentModalGetInvoiceDelivery(),
+            }),
+        })
+        .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
+        .then(function(pack) {
+            paymentModalRestoreConfirmButton();
+            if (!pack.ok) {
+                showToast((pack.res && (pack.res.error || pack.res.message)) || 'Erro ao faturar.', 'error');
+                return;
+            }
+            bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
+            eventDetailMergeFinalizeSaleFromResponse(pack.res);
+            var delivery = (pack.res && pack.res.invoice_delivery) || 'print';
+            if (delivery === 'email' && pack.res && pack.res.invoice_email_sent) {
+                showToast('Fatura emitida e enviada por email ao cliente.', 'success');
+            } else if (delivery === 'email' && pack.res && pack.res.invoice_email_message) {
+                showToast('Fatura emitida. ' + pack.res.invoice_email_message, 'warning');
+            } else {
+                showToast('Fatura emitida com sucesso.', 'success');
+            }
+            if (delivery === 'print') {
+                var vu = pack.res && pack.res.vendus_pdf_url;
+                if (vu) {
+                    window.open(vu, '_blank', 'noopener,noreferrer');
+                }
+            }
+            var eventId = String($id('eventDetailEditId').value || '').trim();
+            if (eventId) {
+                fetch((C.urlEvents || '') + '/' + eventId, { headers: { 'Accept': 'application/json' } })
+                    .then(function(r2) { return r2.json(); })
+                    .then(function(data) {
+                        populateEventDetailEditModal(data);
+                        eventDetailModalLoading = false;
+                    })
+                    .catch(function() { eventDetailModalLoading = false; });
+            }
+        })
+        .catch(function() {
+            paymentModalRestoreConfirmButton();
+            showToast('Erro de ligação ao faturar.', 'error');
+        });
+    }
+
     function paymentModalSubmit(checkoutMode) {
         checkoutMode = checkoutMode === 'rascunho' ? 'rascunho' : 'faturar';
+        if (paymentModalIsFinalizeDraft()) {
+            if (!paymentModalValidateReadyToPay()) return;
+            if (!paymentModalValidateFiscalForSubmit()) return;
+            var btnFd = $id('paymentConfirmBtn');
+            paymentModalDisableSubmitButtons();
+            if (btnFd) btnFd.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>A faturar...';
+            paymentModalSubmitFinalizeDraft();
+            return;
+        }
         if (!paymentModalValidateReadyToPay()) {
             if (!paymentModalIsInvoiceOnly()) {
                 if (paymentModalIsReserva() && paymentModalGetStripeDueCents() > 0 && paymentModalGetStripeDueCents() < 50) {

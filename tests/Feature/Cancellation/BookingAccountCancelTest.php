@@ -70,4 +70,57 @@ class BookingAccountCancelTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_booking_client_cannot_cancel_completed_paid_appointment(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-15 10:00:00', 'Europe/Lisbon'));
+
+        $org = Organization::query()->create([
+            'name' => 'Org',
+            'slug' => 'org-cancel-booking-completo',
+            'status' => 'active',
+        ]);
+        $store = Store::query()->create([
+            'organization_id' => $org->id,
+            'name' => 'Loja',
+            'slug' => 'loja-cancel-booking-completo',
+            'timezone' => 'Europe/Lisbon',
+        ]);
+        $client = Client::query()->create([
+            'store_id' => $store->id,
+            'name' => 'Cliente Booking',
+            'type' => Client::TYPE_POTENCIAL_CLIENTE,
+        ]);
+        $user = User::query()->create([
+            'name' => 'Cliente Booking',
+            'email' => 'booking-cancel-completo@test.test',
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_CLIENTE,
+            'client_id' => $client->id,
+        ]);
+
+        $startUtc = Carbon::parse('2026-06-20 15:00:00', 'Europe/Lisbon')->timezone(config('app.timezone'));
+        $event = CalendarEvent::query()->create([
+            'store_id' => $store->id,
+            'client_id' => $client->id,
+            'event_type' => CalendarEvent::TYPE_MARCACAO,
+            'status' => CalendarEvent::STATUS_COMPLETO,
+            'title' => 'Teste pago',
+            'start_at' => $startUtc,
+            'end_at' => $startUtc->copy()->addHour(),
+        ]);
+
+        $response = $this->actingAs($user)->post(
+            route('booking.conta.marcacoes.cancel', [
+                'store' => $store->slug,
+                'calendarEvent' => $event->id,
+            ]),
+            ['cancellation_reason' => 'Tentativa'],
+        );
+
+        $response->assertStatus(422);
+        $this->assertSame(CalendarEvent::STATUS_COMPLETO, $event->fresh()->status);
+
+        Carbon::setTestNow();
+    }
 }

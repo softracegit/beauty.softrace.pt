@@ -49,6 +49,7 @@
                     </div>
 
                     <ul id="booking-summary-list" class="booking-summary-list list-unstyled is-hidden" role="list"></ul>
+                    <div id="booking-summary-fees" class="booking-summary-fees is-hidden" role="list" aria-label="Taxas da marcação"></div>
                 </div>
             </div>
 

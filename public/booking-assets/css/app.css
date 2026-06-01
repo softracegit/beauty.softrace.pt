@@ -2932,6 +2932,35 @@ button.booking-offcanvas-nav__link {
     background: rgba(0, 0, 0, 0.05);
 }
 
+.booking-summary-fees {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid #e8ecef;
+}
+
+.booking-summary-fee {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.35;
+}
+
+.booking-summary-fee__label {
+    color: #5c6670;
+    min-width: 0;
+}
+
+.booking-summary-fee__value {
+    font-weight: 600;
+    color: #1a1a1a;
+    white-space: nowrap;
+}
+
 .booking-summary-line__edit:focus-visible {
     outline: 2px solid var(--booking-accent);
     outline-offset: 1px;

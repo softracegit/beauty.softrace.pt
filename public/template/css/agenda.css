@@ -132,16 +132,18 @@
     flex-shrink: 0;
     padding: 1rem 1.875rem 1.25rem;
     background: var(--bs-body-bg, #fff);
-    overflow-x: hidden;
+    overflow: visible;
     max-width: 100%;
     min-width: 0;
+    position: relative;
+    z-index: 5;
 }
-/* Dropup de faturas no rodapé: menu acima do botão, alinhado à direita (offcanvas 1060). */
+/* Dropup de faturas no rodapé: menu acima do botão (não cortar com overflow no footer). */
 .agenda-marcacao-test-offcanvas-footer .event-detail-faturas-dropup {
     position: relative;
 }
 .agenda-marcacao-test-offcanvas-footer .event-detail-faturas-dropup .dropdown-menu {
-    z-index: 1070;
+    z-index: 1090;
     right: 0;
     left: auto;
 }

@@ -188,6 +188,59 @@ class AgendaCheckoutFeesTest extends TestCase
             ->assertOk()
             ->assertJsonPath('invoice_settled', true)
             ->assertJsonPath('apply_catalog_fees', false)
+            ->assertJsonPath('charged_fees', [])
+            ->assertJsonPath('amount_due', 0);
+    }
+
+    public function test_settled_marcacao_shows_charged_fees_from_sale_items(): void
+    {
+        $fixture = $this->feesFixture(15.0);
+        $fee = $this->attachFeeToService($fixture['service'], 'Taxa cobrada', 2.0);
+
+        $sale = Sale::query()->create([
+            'store_id' => $fixture['store']->id,
+            'calendar_event_id' => $fixture['event']->id,
+            'client_id' => $fixture['client']->id,
+            'numero_fatura' => 'FR TEST/2',
+            'data_emissao' => now()->toDateString(),
+            'total' => 17.0,
+            'valor_pago' => 17.0,
+            'payment_method' => Sale::PAYMENT_DINHEIRO,
+            'scope' => Sale::SCOPE_CAIXA_LIQUIDACAO,
+            'status' => Sale::STATUS_PAGO,
+        ]);
+
+        SaleItem::query()->create([
+            'sale_id' => $sale->id,
+            'tipo' => SaleItem::TIPO_SERVICO,
+            'service_id' => $fixture['service']->id,
+            'descricao' => 'Serviço base',
+            'quantidade' => 1,
+            'preco_unitario' => 15.0,
+            'subtotal' => 15.0,
+            'sort_order' => 0,
+        ]);
+        SaleItem::query()->create([
+            'sale_id' => $sale->id,
+            'tipo' => SaleItem::TIPO_TAXA,
+            'fee_id' => $fee->id,
+            'descricao' => 'Taxa cobrada',
+            'quantidade' => 1,
+            'preco_unitario' => 2.0,
+            'subtotal' => 2.0,
+            'sort_order' => 1,
+        ]);
+
+        $fixture['event']->update(['status' => CalendarEvent::STATUS_COMPLETO]);
+
+        $response = $this->actingAs($fixture['staff'])
+            ->withSession([SetCurrentStore::SESSION_KEY => $fixture['store']->id])
+            ->getJson(route('agenda.events.show', $fixture['event']));
+
+        $response->assertOk()
+            ->assertJsonPath('apply_catalog_fees', false)
+            ->assertJsonPath('charged_fees.0.fee_id', $fee->id)
+            ->assertJsonPath('charged_fees.0.price', 2.0)
             ->assertJsonPath('amount_due', 0);
     }
 

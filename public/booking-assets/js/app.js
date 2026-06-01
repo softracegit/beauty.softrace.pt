@@ -216,6 +216,7 @@
         els.modalApplyEdit = document.getElementById('booking-modal-apply-edit');
         els.summaryEmpty = document.getElementById('booking-summary-empty');
         els.summaryList = document.getElementById('booking-summary-list');
+        els.summaryFees = document.getElementById('booking-summary-fees');
         els.summaryTotal = document.getElementById('booking-summary-total');
         els.summaryTotalValue = document.getElementById('booking-summary-total-value');
         els.summaryTotalCount = document.getElementById('booking-summary-total-count');
@@ -275,10 +276,76 @@
         panel.style.removeProperty('z-index');
     }
 
-    function getTotalAmount() {
+    function normalizeFeeEntry(fee) {
+        if (!fee || typeof fee !== 'object') {
+            return null;
+        }
+        var feeId = fee.fee_id != null ? fee.fee_id : fee.id;
+        if (feeId == null || feeId === '') {
+            return null;
+        }
+        var price = Number(fee.price);
+        if (!Number.isFinite(price)) {
+            price = 0;
+        }
+        return {
+            fee_id: Number(feeId),
+            name: String(fee.name || 'Taxa'),
+            price: price,
+            priceFormatted: fee.priceFormatted || formatMoneyEUR(price),
+        };
+    }
+
+    function feesFromServiceSnapshot(svc) {
+        if (!svc || !Array.isArray(svc.fees)) {
+            return [];
+        }
+        return svc.fees.map(normalizeFeeEntry).filter(Boolean);
+    }
+
+    function getApplicableFees() {
+        var byId = {};
+        state.items.forEach(function (line) {
+            var sourceFees = [];
+            if (Array.isArray(line.fees) && line.fees.length) {
+                sourceFees = line.fees;
+            } else if (line.editSnapshot) {
+                sourceFees = feesFromServiceSnapshot(line.editSnapshot);
+            }
+            sourceFees.forEach(function (raw) {
+                var fee = normalizeFeeEntry(raw);
+                if (!fee) {
+                    return;
+                }
+                var key = String(fee.fee_id);
+                if (!byId[key]) {
+                    byId[key] = fee;
+                }
+            });
+        });
+        return Object.keys(byId)
+            .map(function (key) {
+                return byId[key];
+            })
+            .sort(function (a, b) {
+                return String(a.name).localeCompare(String(b.name), 'pt');
+            });
+    }
+
+    function getServicesSubtotal() {
         return state.items.reduce(function (sum, line) {
             return sum + (Number(line.price) || 0);
         }, 0);
+    }
+
+    function getFeesSubtotal() {
+        return getApplicableFees().reduce(function (sum, fee) {
+            return sum + (Number(fee.price) || 0);
+        }, 0);
+    }
+
+    function getTotalAmount() {
+        return Math.round((getServicesSubtotal() + getFeesSubtotal()) * 100) / 100;
     }
 
     function parseDurationToMinutes(text) {
@@ -479,6 +546,10 @@
                 els.summaryEmpty.classList.remove('is-hidden');
                 els.summaryList.classList.add('is-hidden');
                 els.summaryList.innerHTML = '';
+                if (els.summaryFees) {
+                    els.summaryFees.classList.add('is-hidden');
+                    els.summaryFees.innerHTML = '';
+                }
                 els.summaryTotal.classList.add('is-hidden');
                 if (els.nextBtn) {
                     els.nextBtn.disabled = true;
@@ -569,6 +640,33 @@
                 li.appendChild(side);
                 els.summaryList.appendChild(li);
             });
+
+            var applicableFees = getApplicableFees();
+            if (els.summaryFees) {
+                els.summaryFees.innerHTML = '';
+                if (applicableFees.length) {
+                    els.summaryFees.classList.remove('is-hidden');
+                    applicableFees.forEach(function (fee) {
+                        var row = document.createElement('div');
+                        row.className = 'booking-summary-fee';
+                        row.setAttribute('role', 'listitem');
+
+                        var label = document.createElement('span');
+                        label.className = 'booking-summary-fee__label';
+                        label.textContent = 'Taxa ' + (fee.name || '');
+
+                        var value = document.createElement('span');
+                        value.className = 'booking-summary-fee__value';
+                        value.textContent = fee.priceFormatted || formatMoneyEUR(fee.price);
+
+                        row.appendChild(label);
+                        row.appendChild(value);
+                        els.summaryFees.appendChild(row);
+                    });
+                } else {
+                    els.summaryFees.classList.add('is-hidden');
+                }
+            }
 
             if (els.summaryTotalValue) {
                 els.summaryTotalValue.textContent = formatMoneyEUR(getTotalAmount());
@@ -2571,6 +2669,35 @@
         renderSummary();
     }
 
+    function enrichCartLinesFeesFromCatalog() {
+        var el = document.getElementById('booking-services-options-catalog');
+        if (!el || !el.textContent) {
+            return;
+        }
+        try {
+            var catalog = JSON.parse(el.textContent);
+            state.items.forEach(function (line) {
+                if (Array.isArray(line.fees) && line.fees.length) {
+                    return;
+                }
+                var entry = catalog[String(line.id)] != null ? catalog[String(line.id)] : catalog[line.id];
+                if (!entry) {
+                    return;
+                }
+                var fees = feesFromServiceSnapshot(entry);
+                if (!fees.length) {
+                    return;
+                }
+                line.fees = fees;
+                if (line.editSnapshot && typeof line.editSnapshot === 'object') {
+                    line.editSnapshot.fees = fees;
+                }
+            });
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
     function loadFromStorage() {
         try {
             var raw = bookingStorage.getItem(STORAGE_KEY);
@@ -2582,6 +2709,7 @@
                 state.items = data.items.filter(function (line) {
                     return line && line.lineId && line.id != null && line.name;
                 });
+                enrichCartLinesFeesFromCatalog();
             }
         } catch (e) {
             state.items = [];
@@ -2754,6 +2882,7 @@
             priceFormatted: svc.priceFormatted,
             summaryPriceLabel: svc.summaryPriceLabel,
             summaryDurationLabel: svc.summaryDurationLabel,
+            fees: feesFromServiceSnapshot(svc),
         };
         var optList = getNormalizedServiceOptions(svc);
         if (optList.length) {
@@ -2886,6 +3015,10 @@
                 summaryDurationLabel: entry.summaryDurationLabel,
             });
             merged.options = getNormalizedServiceOptions(entry);
+            var catalogFees = feesFromServiceSnapshot(entry);
+            if (catalogFees.length) {
+                merged.fees = catalogFees;
+            }
             if (merged.options.length) {
                 return merged;
             }
@@ -3035,6 +3168,7 @@
             line.service_option_id = opt.id;
         }
         line.editSnapshot = cloneServiceForEditStorage(svc);
+        line.fees = feesFromServiceSnapshot(svc);
         state.items.push(line);
         persist();
         renderSummary();

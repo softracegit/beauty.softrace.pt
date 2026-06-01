@@ -39,6 +39,18 @@
         $isPartial = ($sale->scope ?? null) === \App\Models\Sale::SCOPE_BOOKING_RESERVA;
         $partialPaid = (float) ($sale->valor_pago ?? 0);
         $isSettlement = ($sale->scope ?? null) === \App\Models\Sale::SCOPE_CAIXA_LIQUIDACAO;
+        $walletAppliedEur = 0.0;
+        if ($isPartial && $sale->calendar_event_id) {
+            $booking = \App\Models\Booking::query()
+                ->where('calendar_event_id', $sale->calendar_event_id)
+                ->where('payment_status', \App\Models\Booking::PAYMENT_PAID)
+                ->orderByDesc('id')
+                ->first(['wallet_applied_cents']);
+
+            if ($booking) {
+                $walletAppliedEur = round(max(0, (int) ($booking->wallet_applied_cents ?? 0)) / 100, 2);
+            }
+        }
         $previousPaid = 0.0;
         if ($isSettlement && $sale->calendar_event_id) {
             $previousPaid = (float) \App\Models\Sale::query()
@@ -61,7 +73,11 @@
             $serviceGrossTotal = $isSettlement ? max($subtotal, $sale->total + $previousPaid) : max((float) $sale->total, $partialPaid);
         }
         $serviceGrossTotal = round($serviceGrossTotal, 2);
-        $remainingAfterDeposit = max(0.0, round($serviceGrossTotal - $partialPaid, 2));
+        $creditsDiscount = $walletAppliedEur > 0.00001
+            ? round(min($walletAppliedEur, max(0.0, $serviceGrossTotal - $partialPaid)), 2)
+            : 0.0;
+        $totalWithCredits = round($partialPaid + $creditsDiscount, 2);
+        $remainingAfterDeposit = max(0.0, round($serviceGrossTotal - $totalWithCredits, 2));
     @endphp
     <div class="header">
         <h1>Fatura-recibo</h1>
@@ -123,18 +139,26 @@
     <div class="totals">
         <table>
             @if($isPartial)
-                <tr>
-                    <td>Valor total do serviço</td>
-                    <td class="text-right">{{ number_format($serviceGrossTotal, 2, ',', ' ') }} €</td>
-                </tr>
                 <tr class="total-row">
-                    <td>Total pré-pagamento</td>
+                    <td>Valor pago</td>
                     <td class="text-right">{{ number_format($partialPaid, 2, ',', ' ') }} €</td>
                 </tr>
-                <tr>
-                    <td>Valor em falta (dia da marcação)</td>
-                    <td class="text-right">{{ number_format($remainingAfterDeposit, 2, ',', ' ') }} €</td>
+                @if($creditsDiscount > 0.00001)
+                    <tr>
+                        <td>Créditos (desconto)</td>
+                        <td class="text-right">-{{ number_format($creditsDiscount, 2, ',', ' ') }} €</td>
+                    </tr>
+                @endif
+                <tr class="total-row">
+                    <td>Total pré-pagamento</td>
+                    <td class="text-right">{{ number_format($totalWithCredits, 2, ',', ' ') }} €</td>
                 </tr>
+                @if($remainingAfterDeposit > 0.00001)
+                    <tr>
+                        <td>Valor em falta (dia da marcação)</td>
+                        <td class="text-right">{{ number_format($remainingAfterDeposit, 2, ',', ' ') }} €</td>
+                    </tr>
+                @endif
             @elseif($isSettlement)
                 <tr>
                     <td>Valor total do serviço</td>

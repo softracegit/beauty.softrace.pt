@@ -294,18 +294,8 @@ class CalendarController extends Controller
             $isCompleted = ($event->status ?? CalendarEvent::STATUS_AGENDADO) === CalendarEvent::STATUS_COMPLETO;
             $includeCatalogFees = ApplicableFees::includeCatalogFeesForCalendarEvent($event);
             $subtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $serviceItems);
-            $annulledCaixaPaid = (float) $event->sales
-                ->filter(fn (Sale $s) => $s->status === Sale::STATUS_ANULADO && $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO)
-                ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid());
-            $bookingPaidFromTable = 0.0;
-            if ($event->onlineBooking && (string) $event->onlineBooking->payment_status === Booking::PAYMENT_PAID) {
-                $bookingPaidFromTable = round((float) $event->onlineBooking->paid_amount, 2);
-            }
-            $bookingPaidFromReservaSales = round((float) $activeSales
-                ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
-                ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
-            $bookingPaidAmount = round(max($bookingPaidFromTable, $bookingPaidFromReservaSales, 0.0), 2);
-            $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, $annulledCaixaPaid, $bookingPaidFromTable);
+            $bookingPaidAmount = ApplicableFees::marcacaoBookingPaidAmountForEvent((int) $event->id);
+            $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, (int) $event->id);
             $hasActiveCaixaSale = $activeSales->contains(fn (Sale $s) => $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO);
             $servicesSubtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($serviceItems);
             $invoiceSettled = $this->isMarcacaoFullySettled($event);
@@ -393,6 +383,9 @@ class CalendarController extends Controller
                     'total_amount' => round($subtotal, 2),
                     'apply_catalog_fees' => $includeCatalogFees,
                     'catalog_fees' => $catalogFees,
+                    'charged_fees' => $includeCatalogFees
+                        ? []
+                        : ApplicableFees::chargedFeesForCalendarEvent((int) $event->id),
                     'booking_paid_amount' => $bookingPaidAmount,
                     'amount_due' => $amountDue,
                     'pending_final_invoice' => $pendingFinalInvoice,
@@ -772,6 +765,9 @@ class CalendarController extends Controller
                 : $servicesSubtotal;
             $payload['apply_catalog_fees'] = $includeCatalogFees;
             $payload['catalog_fees'] = $catalogFees;
+            $payload['charged_fees'] = $includeCatalogFees
+                ? []
+                : ApplicableFees::chargedFeesForCalendarEvent((int) $calendarEvent->id);
             $isCancelledEvent = in_array(($calendarEvent->status ?? ''), [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true);
             $salesPaidHistorical = (float) Sale::query()
                 ->where('calendar_event_id', $calendarEvent->id)
@@ -786,13 +782,13 @@ class CalendarController extends Controller
                 ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
                 ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
             $historicalPaid = round(max($salesPaidHistorical, $bookingPaid, $bookingReservaPaid, 0.0), 2);
-            $payload['booking_paid_amount'] = round(max($bookingPaid, $bookingReservaPaid, 0.0), 2);
+            $payload['booking_paid_amount'] = ApplicableFees::marcacaoBookingPaidAmountForEvent((int) $calendarEvent->id);
             $payload['invoice_settled'] = $this->isMarcacaoFullySettled($calendarEvent);
             if ($isCancelledEvent && $historicalPaid > 0.00001 && $servicesSubtotal > 0.00001) {
                 // Em marcações anuladas preservamos o histórico de pagamentos no resumo do offcanvas.
                 $payload['invoice_settled'] = ($historicalPaid + 0.00001) >= $servicesSubtotal;
             }
-            $amountDue = $this->marcacaoAmountDueCashFromEventId((int) $calendarEvent->id, $subtotalForDue);
+            $amountDue = ApplicableFees::amountDueCashFromEventId((int) $calendarEvent->id, $subtotalForDue);
             $payload['amount_due'] = $amountDue;
             $activeCaixaSaleRecord = Sale::query()
                 ->where('calendar_event_id', $calendarEvent->id)
@@ -805,6 +801,9 @@ class CalendarController extends Controller
                 'numero_fatura' => $activeCaixaSaleRecord->numero_fatura,
                 'pdf_url' => route('sales.pdf', $activeCaixaSaleRecord),
                 'vendus_url' => $activeCaixaSaleRecord->vendus_document_id ? route('sales.vendus.pdf', $activeCaixaSaleRecord) : null,
+                'scope' => $activeCaixaSaleRecord->scope,
+                'invoice_status' => $activeCaixaSaleRecord->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
+                'amount' => round($activeCaixaSaleRecord->effectiveAmountPaid(), 2),
             ] : null;
             $payload['pending_final_invoice'] = ($calendarEvent->status === CalendarEvent::STATUS_COMPLETO)
                 && $servicesSubtotal > 0.00001
@@ -1663,18 +1662,8 @@ class CalendarController extends Controller
         $catalogFees = $includeCatalogFees
             ? ApplicableFees::forEventServicesPayload($eventServicesData, (int) $event->store_id)
             : [];
-        $annulledCaixaPaid = (float) $event->sales
-            ->filter(fn (Sale $s) => $s->status === Sale::STATUS_ANULADO && $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO)
-            ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid());
-        $bookingPaidFromTable = 0.0;
-        if ($event->onlineBooking && (string) $event->onlineBooking->payment_status === Booking::PAYMENT_PAID) {
-            $bookingPaidFromTable = round((float) $event->onlineBooking->paid_amount, 2);
-        }
-        $bookingPaidFromReservaSales = round((float) $activeSales
-            ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
-            ->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
-        $bookingPaidAmount = round(max($bookingPaidFromTable, $bookingPaidFromReservaSales, 0.0), 2);
-        $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, $annulledCaixaPaid, $bookingPaidFromTable);
+        $bookingPaidAmount = ApplicableFees::marcacaoBookingPaidAmountForEvent((int) $event->id);
+        $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, (int) $event->id);
         $hasActiveCaixaSale = $activeSales->contains(fn (Sale $s) => $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO);
         $invoiceSettled = $this->isMarcacaoFullySettled($event);
         $pendingFinalInvoice = $isCompleted && $servicesSubtotal > 0.00001 && ! $hasActiveCaixaSale && $amountDue <= 0.00001;
@@ -1739,6 +1728,9 @@ class CalendarController extends Controller
                 'total_amount' => round($subtotal, 2),
                 'apply_catalog_fees' => $includeCatalogFees,
                 'catalog_fees' => $catalogFees,
+                'charged_fees' => $includeCatalogFees
+                    ? []
+                    : ApplicableFees::chargedFeesForCalendarEvent((int) $event->id),
                 'booking_paid_amount' => $bookingPaidAmount,
                 'amount_due' => $amountDue,
                 'pending_final_invoice' => $pendingFinalInvoice,
@@ -1944,7 +1936,7 @@ class CalendarController extends Controller
     }
 
     /**
-     * @return list<array{id: int, label: string, numero_fatura: string, pdf_url: string, scope: string|null, amount: float}>
+     * @return list<array{id: int, label: string, numero_fatura: string, pdf_url: string, vendus_url: string|null, scope: string|null, amount: float, invoice_status: string}>
      */
     private function salesInvoicesForCalendarEvent(int $calendarEventId): array
     {
@@ -1962,6 +1954,7 @@ class CalendarController extends Controller
                     'vendus_url' => $s->vendus_document_id ? route('sales.vendus.pdf', $s) : null,
                     'scope' => $s->scope,
                     'amount' => round($s->effectiveAmountPaid(), 2),
+                    'invoice_status' => $s->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
                 ];
             })
             ->values()
@@ -1974,41 +1967,13 @@ class CalendarController extends Controller
     private static function marcacaoAmountDueFromTotals(
         float $subtotal,
         \Illuminate\Support\Collection $activeSales,
-        float $annulledCaixaPaid,
-        float $bookingPaidFromTable,
+        int $calendarEventId,
     ): float {
         $discount = round((float) $activeSales->sum(fn (Sale $s): float => (float) ($s->desconto ?? 0)), 2);
         $netSubtotal = max(0.0, round($subtotal - $discount, 2));
-        $alreadyPaidActive = round((float) $activeSales->sum(fn (Sale $s): float => (float) $s->effectiveAmountPaid()), 2);
-        $moneyTowardSubtotal = round(max(round($alreadyPaidActive + $annulledCaixaPaid, 2), $bookingPaidFromTable, 0.0), 2);
+        $moneyTowardSubtotal = ApplicableFees::marcacaoMoneyTowardSubtotal($calendarEventId);
 
         return max(0.0, round($netSubtotal - $moneyTowardSubtotal, 2));
-    }
-
-    private function marcacaoAmountDueCashFromEventId(int $calendarEventId, float $subtotal): float
-    {
-        $salesActive = (float) Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
-            ->where('status', '!=', Sale::STATUS_ANULADO)
-            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
-        $salesDiscount = (float) Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
-            ->where('status', '!=', Sale::STATUS_ANULADO)
-            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(desconto, 0)'));
-        $annulledCaixa = (float) Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
-            ->where('status', Sale::STATUS_ANULADO)
-            ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
-            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
-        $bookingPaid = (float) Booking::query()
-            ->where('calendar_event_id', $calendarEventId)
-            ->where('payment_status', Booking::PAYMENT_PAID)
-            ->orderByDesc('id')
-            ->value('paid_amount');
-        $netSubtotal = max(0.0, round($subtotal - $salesDiscount, 2));
-        $moneyToward = round(max(round($salesActive + $annulledCaixa, 2), round(max($bookingPaid, 0.0), 2), 0.0), 2);
-
-        return max(0.0, round($netSubtotal - $moneyToward, 2));
     }
 
     private function isMarcacaoFullySettled(CalendarEvent $calendarEvent): bool

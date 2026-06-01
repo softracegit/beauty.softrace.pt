@@ -97,6 +97,14 @@
                                             <ul class="list-group list-group-flush" role="list">
                                                 @foreach($category->services as $service)
                                                     @php
+                                                        $feesPayload = $service->fees->map(static function ($fee) {
+                                                            return [
+                                                                'fee_id' => (int) $fee->id,
+                                                                'name' => $fee->name,
+                                                                'price' => round((float) $fee->price, 2),
+                                                                'priceFormatted' => $fee->formatted_price,
+                                                            ];
+                                                        })->values()->all();
                                                         $hasOptions = $service->options->isNotEmpty();
                                                         if ($hasOptions) {
                                                             $minPrice = (float) $service->options->min(fn ($o) => (float) ($o->online_price ?? $o->price));
@@ -125,6 +133,7 @@
                                                                 'summaryPriceLabel' => $rowPriceLabel,
                                                                 'summaryDurationLabel' => $rowDurationLabel,
                                                                 'options' => $optionsPayload,
+                                                                'fees' => $feesPayload,
                                                             ];
                                                             $bookingServiceOptionsCatalog[(int) $service->id] = $payload;
                                                         } else {
@@ -138,6 +147,7 @@
                                                                 'durationMinutes' => (int) ($service->duration ?? 0),
                                                                 'price' => round((float) $price, 2),
                                                                 'priceFormatted' => number_format((float) $price, 2, ',', '.')."\u{00A0}€",
+                                                                'fees' => $feesPayload,
                                                             ];
                                                         }
                                                     @endphp

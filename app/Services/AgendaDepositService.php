@@ -583,6 +583,7 @@ class AgendaDepositService
                 $salePaymentMethod,
                 $fiscal,
                 $staffUserId,
+                $invoiceStatus,
             ): AgendaDepositResult {
                 $lockedEvent = CalendarEvent::query()
                     ->whereKey($calendarEvent->id)

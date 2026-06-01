@@ -221,6 +221,47 @@ class AgendaDepositReceptionTest extends TestCase
         ]);
     }
 
+    public function test_deposit_with_wallet_and_mbway_counts_full_prepayment_in_amount_due(): void
+    {
+        Config::set('booking.deposit_percent', 20);
+        $fixture = $this->agendaDepositFixture(35.0);
+
+        Booking::query()->create([
+            'store_id' => $fixture['store']->id,
+            'calendar_event_id' => $fixture['event']->id,
+            'client_id' => $fixture['client']->id,
+            'public_id' => (string) \Illuminate\Support\Str::ulid(),
+            'total_price' => 35.0,
+            'paid_amount' => 7.0,
+            'wallet_applied_cents' => 300,
+            'remaining_amount' => 28.0,
+            'deposit_percent_used' => 20,
+            'payment_status' => Booking::PAYMENT_PAID,
+            'request_payload' => ['source' => 'test'],
+        ]);
+
+        Sale::query()->create([
+            'store_id' => $fixture['store']->id,
+            'calendar_event_id' => $fixture['event']->id,
+            'client_id' => $fixture['client']->id,
+            'numero_fatura' => '2026/05-099',
+            'data_emissao' => now()->toDateString(),
+            'total' => 4.0,
+            'valor_pago' => 4.0,
+            'payment_method' => Sale::PAYMENT_MBWAY,
+            'scope' => Sale::SCOPE_BOOKING_RESERVA,
+            'status' => Sale::STATUS_PAGO,
+        ]);
+
+        $this->actingAs($fixture['staff'])
+            ->withSession([SetCurrentStore::SESSION_KEY => $fixture['store']->id])
+            ->getJson(route('agenda.events.show', $fixture['event']))
+            ->assertOk()
+            ->assertJsonPath('booking_paid_amount', 7)
+            ->assertJsonPath('amount_due', 28)
+            ->assertJsonPath('invoice_settled', false);
+    }
+
     public function test_custom_amount_when_deposit_percent_zero(): void
     {
         Config::set('booking.deposit_percent', 0);

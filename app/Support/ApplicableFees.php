@@ -7,6 +7,7 @@ use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Fee;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use Illuminate\Support\Collection;
 
 class ApplicableFees
@@ -81,28 +82,75 @@ class ApplicableFees
         return round($servicesSubtotal + $feesTotal, 2);
     }
 
-    public static function amountDueCashFromEventId(int $calendarEventId, float $servicesExtrasSubtotal): float
+    /**
+     * Valor já aplicado à marcação (vendas + pré-pagamento na receção, incluindo créditos da carteira).
+     */
+    public static function marcacaoMoneyTowardSubtotal(int $calendarEventId): float
     {
-        $salesActive = (float) Sale::query()
+        $fromSales = round((float) Sale::query()
             ->where('calendar_event_id', $calendarEventId)
             ->where('status', '!=', Sale::STATUS_ANULADO)
-            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
+            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
+        $annulledCaixa = round((float) Sale::query()
+            ->where('calendar_event_id', $calendarEventId)
+            ->where('status', Sale::STATUS_ANULADO)
+            ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
+            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
+        $fromSales = round($fromSales + $annulledCaixa, 2);
+
+        $booking = Booking::query()
+            ->where('calendar_event_id', $calendarEventId)
+            ->where('payment_status', Booking::PAYMENT_PAID)
+            ->orderByDesc('id')
+            ->first(['paid_amount', 'wallet_applied_cents']);
+
+        if (! $booking instanceof Booking) {
+            return max(0.0, $fromSales);
+        }
+
+        $paidAmount = round(max(0.0, (float) $booking->paid_amount), 2);
+        $walletEur = round(max(0, (int) $booking->wallet_applied_cents) / 100, 2);
+        // A venda de reserva só regista MB WAY/cartão; os créditos vivem no booking.
+        $fromBooking = max($paidAmount, round($fromSales + $walletEur, 2));
+
+        return round(max($fromSales, $fromBooking), 2);
+    }
+
+    /**
+     * Pré-pagamento efectuado (para UI), incluindo parte em créditos sem fatura de reserva.
+     */
+    public static function marcacaoBookingPaidAmountForEvent(int $calendarEventId): float
+    {
+        $fromReservaSales = round((float) Sale::query()
+            ->where('calendar_event_id', $calendarEventId)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
+            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
+
+        $booking = Booking::query()
+            ->where('calendar_event_id', $calendarEventId)
+            ->where('payment_status', Booking::PAYMENT_PAID)
+            ->orderByDesc('id')
+            ->first(['paid_amount', 'wallet_applied_cents']);
+
+        if (! $booking instanceof Booking) {
+            return max(0.0, $fromReservaSales);
+        }
+
+        $paidAmount = round(max(0.0, (float) $booking->paid_amount), 2);
+        $walletEur = round(max(0, (int) $booking->wallet_applied_cents) / 100, 2);
+
+        return round(max($paidAmount, $fromReservaSales, round($fromReservaSales + $walletEur, 2)), 2);
+    }
+
+    public static function amountDueCashFromEventId(int $calendarEventId, float $servicesExtrasSubtotal): float
+    {
         $salesDiscount = (float) Sale::query()
             ->where('calendar_event_id', $calendarEventId)
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(desconto, 0)'));
-        $annulledCaixa = (float) Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
-            ->where('status', Sale::STATUS_ANULADO)
-            ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
-            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)'));
-        $bookingPaid = (float) Booking::query()
-            ->where('calendar_event_id', $calendarEventId)
-            ->where('payment_status', Booking::PAYMENT_PAID)
-            ->orderByDesc('id')
-            ->value('paid_amount');
         $netSubtotal = max(0.0, round($servicesExtrasSubtotal - $salesDiscount, 2));
-        $moneyToward = round(max(round($salesActive + $annulledCaixa, 2), round(max($bookingPaid, 0.0), 2), 0.0), 2);
+        $moneyToward = self::marcacaoMoneyTowardSubtotal($calendarEventId);
 
         return max(0.0, round($netSubtotal - $moneyToward, 2));
     }
@@ -133,6 +181,50 @@ class ApplicableFees
         }
 
         return $lines;
+    }
+
+    /**
+     * Taxas efectivamente cobradas numa marcação (linhas tipo taxa nas vendas activas).
+     *
+     * @return list<array{fee_id: int|null, name: string, price: float, formatted_price: string}>
+     */
+    public static function chargedFeesForCalendarEvent(int $calendarEventId): array
+    {
+        $items = SaleItem::query()
+            ->where('tipo', SaleItem::TIPO_TAXA)
+            ->whereHas('sale', function ($q) use ($calendarEventId): void {
+                $q->where('calendar_event_id', $calendarEventId)
+                    ->where('status', '!=', Sale::STATUS_ANULADO);
+            })
+            ->with('fee')
+            ->orderBy('id')
+            ->get();
+
+        if ($items->isEmpty()) {
+            return [];
+        }
+
+        $byKey = [];
+        foreach ($items as $item) {
+            $feeId = (int) ($item->fee_id ?? 0);
+            $key = $feeId > 0 ? 'fee_'.$feeId : 'line_'.$item->id;
+            if (isset($byKey[$key])) {
+                continue;
+            }
+            $price = round((float) ($item->subtotal ?? $item->preco_unitario ?? 0), 2);
+            if ($price <= 0.00001) {
+                continue;
+            }
+            $name = trim((string) ($item->fee?->name ?? $item->descricao ?? 'Taxa'));
+            $byKey[$key] = [
+                'fee_id' => $feeId > 0 ? $feeId : null,
+                'name' => $name !== '' ? $name : 'Taxa',
+                'price' => $price,
+                'formatted_price' => number_format($price, 2, ',', ' ').' €',
+            ];
+        }
+
+        return array_values($byKey);
     }
 
     /**

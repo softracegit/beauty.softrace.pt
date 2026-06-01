@@ -788,6 +788,7 @@ window.AGENDA_CONFIG = {
     agendaDepositCardUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/card'),
     agendaClientSavedCardsUrl: @json($agendaClientsBase . '/__CLIENT_ID__/saved-cards'),
     salesRevertUrl: @json(url('sales')),
+    salesFinalizeInvoiceUrl: @json(url('sales')),
     urlOpportunities: @json(url('opportunities')),
     urlLeads: @json(url('leads')),
     usersForConsultant: @json($usersForConsultant),
