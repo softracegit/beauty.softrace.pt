@@ -12,6 +12,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Notifications\ClientInvoiceAnnulledNotification;
 use App\Services\ClientWalletService;
+use App\Services\AgendaCheckoutService;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
 use App\Support\ApplicableFees;
@@ -31,6 +32,7 @@ class CheckoutController extends Controller
         private readonly VendusInvoiceService $vendusInvoiceService,
         private readonly VendusInvoiceEmailService $vendusInvoiceEmailService,
         private readonly ClientWalletService $walletService,
+        private readonly AgendaCheckoutService $agendaCheckoutService,
     ) {}
 
     /**
@@ -46,13 +48,21 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Esta marcação não pode ser paga.'], 422);
         }
 
-        $calendarEvent->load(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra']);
-        $subtotalItens = $this->checkoutSubtotalFromEvent($calendarEvent, true);
-        $alreadyPaid = ApplicableFees::marcacaoMoneyTowardSubtotal((int) $calendarEvent->id);
+        $requestedEventIds = collect(explode(',', (string) request()->query('event_ids', '')))
+            ->map(fn (string $id): int => (int) trim($id))
+            ->filter(fn (int $id): bool => $id > 0)
+            ->values()
+            ->all();
+
+        $events = $this->agendaCheckoutService->resolveEventsForCheckout($calendarEvent, $requestedEventIds);
+        $context = $this->agendaCheckoutService->buildCheckoutContext($events);
+        $subtotalItens = (float) ($context['subtotal'] ?? 0);
+        $alreadyPaid = (float) ($context['already_paid'] ?? 0);
+        $isConsolidated = $events->count() > 1;
         $isPartial = $alreadyPaid > 0.00001 && $alreadyPaid + 0.00001 < $subtotalItens;
 
         $existingSale = $calendarEvent->sale;
-        if ($existingSale && $existingSale->status !== Sale::STATUS_ANULADO && ! $isPartial) {
+        if (! $isConsolidated && $existingSale && $existingSale->status !== Sale::STATUS_ANULADO && ! $isPartial) {
             $existingSale->load('items');
 
             return response()->json([
@@ -71,58 +81,25 @@ class CheckoutController extends Controller
                     'pdf_url' => route('sales.pdf', $existingSale),
                 ],
                 'items' => [],
+                'selected_event_ids' => $events->pluck('id')->values()->all(),
+                'amount_due' => max(0.0, round($subtotalItens - $alreadyPaid, 2)),
                 'payment_methods' => Sale::paymentMethods(),
                 'wallet_balance_cents' => $this->walletBalanceCentsForClient($calendarEvent->client),
             ]);
         }
 
-        $items = [];
-        $sortOrder = 0;
-        foreach ($calendarEvent->eventServiceItems as $esi) {
-            $items[] = [
-                'tipo' => SaleItem::TIPO_SERVICO,
-                'calendar_event_service_id' => $esi->id,
-                'service_id' => $esi->service_id,
-                'extra_id' => null,
-                'descricao' => $esi->service?->name ?? 'Serviço',
-                'quantidade' => 1,
-                'preco_unitario' => (float) $esi->price,
-                'subtotal' => (float) $esi->price,
-                'sort_order' => $sortOrder++,
-            ];
-            foreach ($esi->extras as $ex) {
-                $price = (float) ($ex->price ?? $ex->extra?->price ?? 0);
-                $items[] = [
-                    'tipo' => SaleItem::TIPO_EXTRA,
-                    'calendar_event_service_id' => $esi->id,
-                    'service_id' => null,
-                    'extra_id' => $ex->extra_id,
-                    'descricao' => '+ '.($ex->extra?->name ?? 'Extra'),
-                    'quantidade' => 1,
-                    'preco_unitario' => $price,
-                    'subtotal' => $price,
-                    'sort_order' => $sortOrder++,
-                ];
-            }
-        }
-
-        foreach (ApplicableFees::checkoutFeeLineItems($calendarEvent, $sortOrder) as $feeLine) {
-            $items[] = array_merge($feeLine, [
-                'calendar_event_service_id' => null,
-                'service_id' => null,
-                'extra_id' => null,
-            ]);
-            $sortOrder = ($feeLine['sort_order'] ?? $sortOrder) + 1;
-        }
+        $items = $context['items'];
 
         return response()->json([
             'event_id' => $calendarEvent->id,
+            'selected_event_ids' => $events->pluck('id')->values()->all(),
+            'is_consolidated' => $isConsolidated,
             'client' => $calendarEvent->client ? [
                 'id' => $calendarEvent->client->id,
                 'name' => $calendarEvent->client->name,
                 'email' => $calendarEvent->client->email,
             ] : null,
-            'apply_catalog_fees' => ApplicableFees::includeCatalogFeesForCalendarEvent($calendarEvent),
+            'apply_catalog_fees' => ! $events->contains(fn (CalendarEvent $event): bool => ApplicableFees::includeCatalogFeesForCalendarEvent($event) === false),
             'existing_sale' => ($existingSale && $existingSale->status !== Sale::STATUS_ANULADO) ? [
                 'id' => $existingSale->id,
                 'numero_fatura' => $existingSale->numero_fatura,
@@ -132,6 +109,7 @@ class CheckoutController extends Controller
                 'pdf_url' => route('sales.pdf', $existingSale),
             ] : null,
             'items' => $items,
+            'amount_due' => max(0.0, round($subtotalItens - $alreadyPaid, 2)),
             'payment_methods' => Sale::paymentMethods(),
             'wallet_balance_cents' => $this->walletBalanceCentsForClient($calendarEvent->client),
         ]);
@@ -144,6 +122,8 @@ class CheckoutController extends Controller
     {
         $validated = $request->validate([
             'event_id' => ['required', 'exists:calendar_events,id'],
+            'event_ids' => ['sometimes', 'array', 'min:1'],
+            'event_ids.*' => ['integer', 'exists:calendar_events,id'],
             'payment_method' => ['required', 'string', 'in:'.implode(',', array_keys(Sale::paymentMethods()))],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
@@ -165,18 +145,19 @@ class CheckoutController extends Controller
             'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
-        $calendarEvent = CalendarEvent::query()
+        $anchorEvent = CalendarEvent::query()
             ->forStore(current_store_id())
             ->findOrFail((int) $validated['event_id']);
-        if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+        if (($anchorEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
             return response()->json(['error' => 'Apenas marcações podem ir a checkout.'], 422);
         }
-        if ($calendarEvent->isMarcacaoStatusLocked()) {
+        if ($anchorEvent->isMarcacaoStatusLocked()) {
             return response()->json(['error' => 'Esta marcação não pode ser paga.'], 422);
         }
 
-        $calendarEvent->loadMissing('client');
-        $client = $calendarEvent->client;
+        $events = $this->agendaCheckoutService->resolveEventsForCheckout($anchorEvent, (array) ($validated['event_ids'] ?? []));
+        $anchorEvent->loadMissing('client');
+        $client = $anchorEvent->client;
         $fiscalMode = (string) ($validated['invoice_fiscal_mode'] ?? 'consumer');
         $billingNifDigits = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
         $clientNif = preg_replace('/\D/', '', (string) ($client?->nif ?? ''));
@@ -200,11 +181,11 @@ class CheckoutController extends Controller
             $subtotalItens += round($bruto - $descLinha, 2);
         }
         $gorjeta = isset($validated['gorjeta']) ? (float) $validated['gorjeta'] : 0;
-        if (! CrmSetting::posGorjetaEnabled((int) $calendarEvent->store_id)) {
+        if (! CrmSetting::posGorjetaEnabled((int) $anchorEvent->store_id)) {
             $gorjeta = 0.0;
         }
         $descontoDocInput = isset($validated['desconto']) ? max(0, (float) $validated['desconto']) : 0;
-        $alreadyPaid = ApplicableFees::marcacaoMoneyTowardSubtotal((int) $calendarEvent->id);
+        $alreadyPaid = (float) $events->sum(fn (CalendarEvent $event): float => ApplicableFees::marcacaoMoneyTowardSubtotal((int) $event->id));
         $descontoDoc = max(0, $descontoDocInput);
         $maxDocDisc = $subtotalItens + $gorjeta;
         $descontoDoc = min($descontoDoc, $maxDocDisc);
@@ -237,88 +218,28 @@ class CheckoutController extends Controller
             $valorPago = $total;
         }
 
-        $now = now();
-        $storeId = (int) $calendarEvent->store_id;
-        $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'), $storeId);
-
         try {
-            DB::beginTransaction();
-
             if ($fiscalMode === 'with_nif' && $client instanceof Client) {
                 if (strlen($clientNif) !== 9 && strlen($billingNifDigits) === 9) {
                     $client->nif = $billingNifDigits;
                     $client->save();
                 }
             }
-
-            $sale = Sale::create([
-                'store_id' => $storeId,
-                'calendar_event_id' => $calendarEvent->id,
-                'client_id' => $calendarEvent->client_id,
-                'numero_fatura' => $numeroFatura,
-                'data_emissao' => $now->toDateString(),
-                'total' => $total,
-                'gorjeta' => $gorjeta > 0 ? round($gorjeta, 2) : null,
-                'desconto' => $descontoDoc > 0 ? round($descontoDoc, 2) : null,
-                'valor_pago' => round($valorPago, 2),
-                'iva_total' => null,
-                'payment_method' => $validated['payment_method'],
-                'scope' => Sale::SCOPE_CAIXA_LIQUIDACAO,
-                'status' => Sale::STATUS_PAGO,
-                'invoice_status' => $invoiceStatus,
-                'issue_without_fiscal_id' => $fiscalMode === 'consumer',
-            ]);
-
-            foreach ($validated['items'] as $idx => $row) {
-                $qty = (int) $row['quantidade'];
-                $preco = (float) $row['preco_unitario'];
-                $bruto = round($qty * $preco, 2);
-                $descLinha = isset($row['desconto']) ? (float) $row['desconto'] : 0;
-                $descLinha = min(max(0, $descLinha), $bruto);
-                $subtotal = round($bruto - $descLinha, 2);
-                SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'tipo' => $row['tipo'],
-                    'calendar_event_service_id' => $row['calendar_event_service_id'] ?? null,
-                    'service_id' => $row['service_id'] ?? null,
-                    'extra_id' => $row['extra_id'] ?? null,
-                    'fee_id' => $row['fee_id'] ?? null,
-                    'descricao' => $row['descricao'],
-                    'quantidade' => $qty,
-                    'preco_unitario' => $preco,
-                    'subtotal' => $subtotal,
-                    'desconto' => $descLinha > 0 ? round($descLinha, 2) : null,
-                    'sort_order' => $idx,
-                ]);
-            }
-
-            if ($paymentMethod === Sale::PAYMENT_CREDITOS_CARTEIRA && $client instanceof Client) {
-                $debitCents = (int) round($total * 100);
-                $this->walletService->debit(
-                    $client,
-                    $debitCents,
-                    ClientWalletTransaction::TYPE_DEBIT_POS_CHECKOUT,
-                    ClientWalletService::idempotencyKeyForPosDebit((int) $sale->id),
-                    [
-                        'sale_id' => $sale->id,
-                        'calendar_event_id' => $calendarEvent->id,
-                        'description' => 'Pagamento em loja (fatura '.($sale->numero_fatura ?? '').')',
-                        'created_by_type' => ClientWalletTransaction::CREATED_BY_STAFF,
-                        'created_by_user_id' => auth()->id(),
-                    ],
-                );
-            }
-
-            // Marcar evento como completo
-            $calendarEvent->update(['status' => CalendarEvent::STATUS_COMPLETO]);
-
-            DB::commit();
+            $sale = $this->agendaCheckoutService->persistSale(
+                $events,
+                $client,
+                $validated['items'],
+                $invoiceStatus,
+                $paymentMethod,
+                $total,
+                $valorPago,
+                $gorjeta,
+                $descontoDoc,
+                $fiscalMode === 'consumer',
+            );
         } catch (InsufficientWalletBalanceException $e) {
-            DB::rollBack();
-
             return response()->json(['error' => 'Saldo de créditos insuficiente.'], 422);
         } catch (\Throwable $e) {
-            DB::rollBack();
             report($e);
 
             return response()->json(['error' => 'Erro ao gravar a venda.', 'message' => $e->getMessage()], 500);
@@ -351,6 +272,7 @@ class CheckoutController extends Controller
             'invoice_delivery' => $delivery,
             'invoice_email_sent' => $emailResult['sent'],
             'invoice_email_message' => $emailResult['message'],
+            'settled_event_ids' => $events->pluck('id')->values()->all(),
         ]);
     }
 
@@ -410,6 +332,8 @@ class CheckoutController extends Controller
     {
         $validated = $request->validate([
             'event_id' => ['required', 'exists:calendar_events,id'],
+            'event_ids' => ['sometimes', 'array', 'min:1'],
+            'event_ids.*' => ['integer', 'exists:calendar_events,id'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.quantidade' => ['required', 'integer', 'min:1'],
             'items.*.preco_unitario' => ['required', 'numeric', 'min:0'],
@@ -418,30 +342,31 @@ class CheckoutController extends Controller
             'mbway_phone' => ['nullable', 'string', 'max:40'],
         ]);
 
-        $calendarEvent = CalendarEvent::query()
+        $anchorEvent = CalendarEvent::query()
             ->forStore(current_store_id())
             ->with(['client'])
             ->findOrFail((int) $validated['event_id']);
-        if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+        if (($anchorEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
             return response()->json(['error' => 'Apenas marcações podem ir a checkout.'], 422);
         }
-        if ($calendarEvent->isMarcacaoStatusLocked()) {
+        if ($anchorEvent->isMarcacaoStatusLocked()) {
             return response()->json(['error' => 'Esta marcação não pode ser paga.'], 422);
         }
+        $events = $this->agendaCheckoutService->resolveEventsForCheckout($anchorEvent, (array) ($validated['event_ids'] ?? []));
 
         $subtotalItens = $this->checkoutSubtotalFromItems($validated['items']);
         $gorjeta = isset($validated['gorjeta']) ? max(0, (float) $validated['gorjeta']) : 0.0;
-        if (! CrmSetting::posGorjetaEnabled((int) $calendarEvent->store_id)) {
+        if (! CrmSetting::posGorjetaEnabled((int) $anchorEvent->store_id)) {
             $gorjeta = 0.0;
         }
-        $alreadyPaid = ApplicableFees::marcacaoMoneyTowardSubtotal((int) $calendarEvent->id);
+        $alreadyPaid = (float) $events->sum(fn (CalendarEvent $event): float => ApplicableFees::marcacaoMoneyTowardSubtotal((int) $event->id));
         $servicesDue = max(0.0, round($subtotalItens - $alreadyPaid, 2));
         $amountDue = round($servicesDue + $gorjeta, 2);
         if ($amountDue <= 0) {
             return response()->json(['error' => 'Não existe valor em falta para cobrar por MB WAY.'], 422);
         }
 
-        $client = $calendarEvent->client;
+        $client = $anchorEvent->client;
         if (! $client) {
             return response()->json(['error' => 'A marcação não tem cliente associado.'], 422);
         }
@@ -486,12 +411,15 @@ class CheckoutController extends Controller
                 ],
                 'description' => 'Pagamento MB WAY em agenda — '.config('app.name'),
                 'metadata' => [
-                    'agenda_event_id' => (string) $calendarEvent->id,
+                    'agenda_event_id' => (string) $anchorEvent->id,
+                    'agenda_anchor_event_id' => (string) $anchorEvent->id,
+                    'agenda_checkout_mode' => $events->count() > 1 ? 'consolidated' : 'single',
+                    'agenda_event_ids' => $events->pluck('id')->implode(','),
                 ],
             ]);
         } catch (ApiErrorException $e) {
             Log::warning('Stripe MB WAY PaymentIntent::create falhou no checkout da agenda.', [
-                'event_id' => $calendarEvent->id,
+                'event_id' => $anchorEvent->id,
                 'client_id' => $client->id,
                 'stripe_code' => $e->getStripeCode(),
                 'message' => $e->getMessage(),
@@ -507,6 +435,7 @@ class CheckoutController extends Controller
             'amount_due' => $amountDue,
             'booking_paid' => $alreadyPaid,
             'phone' => $phoneE164,
+            'selected_event_ids' => $events->pluck('id')->values()->all(),
             'message' => 'Pedido MB WAY enviado para o cliente.',
         ]);
     }
@@ -519,6 +448,8 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'payment_intent_id' => ['required', 'string', 'max:255'],
             'event_id' => ['required', 'exists:calendar_events,id'],
+            'event_ids' => ['sometimes', 'array', 'min:1'],
+            'event_ids.*' => ['integer', 'exists:calendar_events,id'],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
             'items' => ['required', 'array', 'min:1'],
@@ -550,6 +481,22 @@ class CheckoutController extends Controller
                 'status' => (string) ($intent->status ?? 'unknown'),
                 'message' => 'Pagamento MB WAY ainda não confirmado.',
             ], 202);
+        }
+
+        $anchorEvent = CalendarEvent::query()
+            ->forStore(current_store_id())
+            ->findOrFail((int) $validated['event_id']);
+        $events = $this->agendaCheckoutService->resolveEventsForCheckout($anchorEvent, (array) ($validated['event_ids'] ?? []));
+        $subtotalItens = $this->checkoutSubtotalFromItems($validated['items']);
+        $gorjeta = isset($validated['gorjeta']) ? max(0, (float) $validated['gorjeta']) : 0.0;
+        if (! CrmSetting::posGorjetaEnabled((int) $anchorEvent->store_id)) {
+            $gorjeta = 0.0;
+        }
+        $alreadyPaid = (float) $events->sum(fn (CalendarEvent $event): float => ApplicableFees::marcacaoMoneyTowardSubtotal((int) $event->id));
+        $amountDue = round(max(0.0, ($subtotalItens - $alreadyPaid) + $gorjeta), 2);
+        $intentAmountEur = round(((int) ($intent->amount ?? 0)) / 100, 2);
+        if (abs($intentAmountEur - $amountDue) > 0.009) {
+            return response()->json(['error' => 'Valor do pagamento MB WAY não coincide com o total selecionado.'], 422);
         }
 
         $validated['payment_method'] = Sale::PAYMENT_MBWAY;
@@ -786,6 +733,16 @@ class CheckoutController extends Controller
                 ->get();
         }
 
+        $settledEventIds = DB::table('sale_calendar_events')
+            ->whereIn('sale_id', $salesToRevert->pluck('id')->all())
+            ->pluck('calendar_event_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+        if ($settledEventIds->isEmpty()) {
+            $settledEventIds = collect([(int) $calendarEvent->id]);
+        }
+
         if ($salesToRevert->isEmpty()) {
             return response()->json(['error' => 'Não existem vendas ativas para anular nesta marcação.'], 422);
         }
@@ -828,12 +785,15 @@ class CheckoutController extends Controller
                 }
                 $candidateSale->update(['status' => Sale::STATUS_ANULADO]);
             }
-            if (! $finalInvoiceOnly) {
-                $calendarEvent->update([
+            CalendarEvent::query()
+                ->whereIn('id', $settledEventIds->all())
+                ->update([
                     'status' => CalendarEvent::STATUS_TERMINADO,
                     'cancellation_type' => null,
                     'cancellation_reason' => null,
                 ]);
+            if (! $finalInvoiceOnly) {
+                $calendarEvent->refresh();
             }
             DB::commit();
         } catch (\Throwable $e) {
@@ -852,6 +812,7 @@ class CheckoutController extends Controller
             'vendus_credit_notes' => $creditNotes,
             'user_id' => auth()->id(),
             'final_invoice_only' => $finalInvoiceOnly,
+            'settled_event_ids' => $settledEventIds->all(),
         ]);
 
         $this->notifyClientInvoiceAnnulled((int) $calendarEvent->id, $invoiceLabelsForEmail);

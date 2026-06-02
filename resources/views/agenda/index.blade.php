@@ -362,7 +362,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="revertSaleId" value="">
-                <p class="text-muted mb-3">Será gerada uma nota de crédito. A fatura de pré-pagamento mantém-se. A marcação continua paga; depois pode emitir uma nova fatura final (ex.: corrigir NIF).</p>
+                <p class="text-muted mb-3" id="revertSaleImpactText">Será gerada uma nota de crédito. A fatura de pré-pagamento mantém-se. A marcação continua paga; depois pode emitir uma nova fatura final (ex.: corrigir NIF).</p>
                 <div class="mb-0">
                     <label for="revertSaleReason" class="form-label">Razão da anulação</label>
                     <textarea class="form-control" id="revertSaleReason" rows="3" maxlength="1000" placeholder="Ex.: cliente pediu NIF na fatura final, erro no documento, etc."></textarea>
@@ -570,6 +570,27 @@
             <div class="d-flex flex-wrap gap-2 align-items-center" id="eventDetailPaymentWrap">
                 <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn">Pré-pagamento</button>
                 <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Caixa</button>
+                <div class="dropup d-none" id="eventDetailPaymentDropup">
+                    <button class="btn btn-success btn-sm dropdown-toggle" type="button" id="eventDetailPaymentDropupToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        Caixa
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="eventDetailPaymentDropupToggle" id="eventDetailPaymentDropupMenu">
+                        <li>
+                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2" type="button" id="eventDetailPayCurrentBtn">
+                                <span>Pagar esta marcação</span>
+                                <span class="small fw-semibold" id="eventDetailPayCurrentAmount">0,00 €</span>
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><div class="dropdown-item-text small text-muted fw-semibold" id="eventDetailPayAllHint">+0 marcações por pagar hoje</div></li>
+                        <li>
+                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2 fw-semibold" type="button" id="eventDetailPayAllBtn">
+                                <span>Pagar todas do dia</span>
+                                <span class="small fw-semibold" id="eventDetailPayAllAmount">0,00 €</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
                 <span class="event-detail-paid-badge d-none" id="eventDetailPagoBadge" role="status" aria-label="Pago">
                     <i class="ph ph-check" aria-hidden="true"></i>
                     <span>Pago</span>
@@ -619,7 +640,7 @@
                                     <span class="fw-semibold text-body" id="paymentCheckoutTotalDisplay">0,00 €</span>
                                 </div>
                                 <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentLinePrepagamentoPaid">
-                                    <span class="text-muted">Pré-pagamento:</span>
+                                    <span class="text-muted" id="paymentPrepaidLineLabel">Pré-pagamento:</span>
                                     <span class="fw-semibold text-body" id="paymentOnlinePaidDisplay">-0,00 €</span>
                                 </div>
                                 <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentLineDepositAmount">
@@ -646,6 +667,15 @@
                             @else
                             <input type="hidden" id="paymentGorjeta" value="0">
                             @endif
+                        </div>
+                    </div>
+                    <div class="d-none mt-2 payment-consolidated-details-full" id="paymentConsolidatedDetailsWrap">
+                        <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none d-inline-flex align-items-center gap-1" id="paymentConsolidatedToggleBtn" aria-expanded="false">
+                            <span>Ver as marcações do dia</span>
+                            <i class="ph ph-caret-down" id="paymentConsolidatedToggleIcon" aria-hidden="true"></i>
+                        </button>
+                        <div class="d-none mt-2" id="paymentConsolidatedListWrap">
+                            <div class="small text-muted border rounded-2 p-2 bg-body" id="paymentConsolidatedList"></div>
                         </div>
                     </div>
                 </div>
@@ -780,6 +810,7 @@ window.AGENDA_CONFIG = {
     agendaCheckoutStoreUrl: @json(route('agenda.checkout.store')),
     agendaCheckoutMbwayIntentUrl: @json(route('agenda.checkout.mbway.intent')),
     agendaCheckoutMbwayFinalizeUrl: @json(route('agenda.checkout.mbway.finalize')),
+    agendaSameDayPayableUrl: @json($agendaEventsBase . '/__EVENT_ID__/same-day-payable'),
     bookingDepositPercent: @json((int) config('booking.deposit_percent')),
     agendaDepositShowUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit'),
     agendaDepositStoreUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit'),

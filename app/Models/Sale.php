@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToStore;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Sale extends Model
 {
@@ -199,6 +200,16 @@ class Sale extends Model
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Marcações liquidadas por esta venda (consolidado/single).
+     */
+    public function settledEvents(): BelongsToMany
+    {
+        return $this->belongsToMany(CalendarEvent::class, 'sale_calendar_events')
+            ->withPivot(['amount_settled_cents', 'is_primary'])
+            ->withTimestamps();
     }
 
     /**

@@ -214,6 +214,48 @@
     white-space: normal;
     overflow-wrap: break-word;
 }
+
+#eventDetailPaymentDropup .dropdown-menu {
+    min-width: 22rem;
+    width: max-content;
+    max-width: min(24rem, calc(100vw - 1rem));
+    box-sizing: border-box;
+}
+
+#eventDetailPayAllHint {
+    white-space: nowrap !important;
+    color: var(--bs-danger, #dc3545) !important;
+    font-weight: 300 !important;
+}
+
+.payment-consolidated-details-full {
+    width: 100%;
+    text-align: right;
+}
+
+#paymentConsolidatedList .payment-consolidated-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#paymentConsolidatedList .payment-consolidated-time {
+    flex: 0 0 auto;
+    min-width: 3rem;
+}
+
+#paymentConsolidatedList .payment-consolidated-service {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#paymentConsolidatedList .payment-consolidated-due {
+    flex: 0 0 auto;
+}
 .event-detail-fatura-wallet-only-msg {
     max-width: 16rem;
     line-height: 1.4;
@@ -2887,4 +2929,12 @@ body.modal-open .agenda-mobile-controls {
         gap: 0 !important;
         justify-content: center;
     }
+}
+
+#eventDetailSameDayPayableWrap {
+    border: 1px solid rgba(13, 110, 253, 0.18);
+}
+
+#eventDetailSameDayPayableRows {
+    white-space: normal;
 }

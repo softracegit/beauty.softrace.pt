@@ -12,6 +12,24 @@ use Illuminate\Support\Collection;
 
 class ApplicableFees
 {
+    /**
+     * @return list<int>
+     */
+    private static function saleIdsLinkedToEvent(int $calendarEventId): array
+    {
+        $directIds = Sale::query()
+            ->where('calendar_event_id', $calendarEventId)
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id);
+
+        $pivotIds = \Illuminate\Support\Facades\DB::table('sale_calendar_events')
+            ->where('calendar_event_id', $calendarEventId)
+            ->pluck('sale_id')
+            ->map(fn ($id): int => (int) $id);
+
+        return $directIds->merge($pivotIds)->unique()->values()->all();
+    }
+
     public static function servicesExtrasSubtotalFromEventItems(iterable $items): float
     {
         $sum = 0.0;
@@ -52,8 +70,13 @@ class ApplicableFees
             return false;
         }
 
+        $saleIds = self::saleIdsLinkedToEvent((int) $event->id);
+        if ($saleIds === []) {
+            return true;
+        }
+
         return ! Sale::query()
-            ->where('calendar_event_id', $event->id)
+            ->whereIn('id', $saleIds)
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
             ->exists();
@@ -87,12 +110,17 @@ class ApplicableFees
      */
     public static function marcacaoMoneyTowardSubtotal(int $calendarEventId): float
     {
+        $saleIds = self::saleIdsLinkedToEvent($calendarEventId);
+        if ($saleIds === []) {
+            $saleIds = [-1];
+        }
+
         $fromSales = round((float) Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
+            ->whereIn('id', $saleIds)
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
         $annulledCaixa = round((float) Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
+            ->whereIn('id', $saleIds)
             ->where('status', Sale::STATUS_ANULADO)
             ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
             ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
@@ -121,8 +149,13 @@ class ApplicableFees
      */
     public static function marcacaoBookingPaidAmountForEvent(int $calendarEventId): float
     {
+        $saleIds = self::saleIdsLinkedToEvent($calendarEventId);
+        if ($saleIds === []) {
+            $saleIds = [-1];
+        }
+
         $fromReservaSales = round((float) Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
+            ->whereIn('id', $saleIds)
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->where('scope', Sale::SCOPE_BOOKING_RESERVA)
             ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
@@ -145,8 +178,13 @@ class ApplicableFees
 
     public static function amountDueCashFromEventId(int $calendarEventId, float $servicesExtrasSubtotal): float
     {
+        $saleIds = self::saleIdsLinkedToEvent($calendarEventId);
+        if ($saleIds === []) {
+            $saleIds = [-1];
+        }
+
         $salesDiscount = (float) Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
+            ->whereIn('id', $saleIds)
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(desconto, 0)'));
         $netSubtotal = max(0.0, round($servicesExtrasSubtotal - $salesDiscount, 2));
@@ -190,10 +228,15 @@ class ApplicableFees
      */
     public static function chargedFeesForCalendarEvent(int $calendarEventId): array
     {
+        $saleIds = self::saleIdsLinkedToEvent($calendarEventId);
+        if ($saleIds === []) {
+            return [];
+        }
+
         $items = SaleItem::query()
             ->where('tipo', SaleItem::TIPO_TAXA)
-            ->whereHas('sale', function ($q) use ($calendarEventId): void {
-                $q->where('calendar_event_id', $calendarEventId)
+            ->whereHas('sale', function ($q) use ($saleIds): void {
+                $q->whereIn('id', $saleIds)
                     ->where('status', '!=', Sale::STATUS_ANULADO);
             })
             ->with('fee')

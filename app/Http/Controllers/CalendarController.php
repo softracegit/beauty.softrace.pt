@@ -21,6 +21,7 @@ use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Notifications\ClientAppointmentRescheduledNotification;
 use App\Services\AgendaDepositService;
+use App\Services\AgendaSameDayPayableService;
 use App\Services\AppointmentCancellationService;
 use App\Services\CancellationPolicyService;
 use App\Services\ClientWalletService;
@@ -40,6 +41,7 @@ class CalendarController extends Controller
         private CancellationPolicyService $policyService,
         private ClientWalletService $walletService,
         private AgendaDepositService $agendaDepositService,
+        private AgendaSameDayPayableService $sameDayPayableService,
     ) {}
 
     /**
@@ -273,12 +275,27 @@ class CalendarController extends Controller
 
         $events = $query->get();
 
+        $sameDayPayableCounts = [];
+        foreach ($events as $candidate) {
+            if (($candidate->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO || ! $candidate->client_id || $candidate->isMarcacaoStatusLocked()) {
+                continue;
+            }
+            $serviceItems = $candidate->eventServiceItems ?? collect();
+            $subtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($serviceItems);
+            $amountDue = ApplicableFees::amountDueCashFromEventId((int) $candidate->id, $subtotal);
+            if ($amountDue <= 0.00001) {
+                continue;
+            }
+            $key = ((int) $candidate->client_id).'|'.optional($candidate->start_at)->format('Y-m-d');
+            $sameDayPayableCounts[$key] = (int) (($sameDayPayableCounts[$key] ?? 0) + 1);
+        }
+
         // Na vista de recursos, apenas users com agents ativos são válidos (excluir Administradores)
         $validUserIds = $forResources
             ? collect($activeAgentUserIds)->map(fn ($id) => (string) $id)->flip()->all()
             : [];
 
-        $result = $events->map(function (CalendarEvent $event) use ($forResources, $validUserIds) {
+        $result = $events->map(function (CalendarEvent $event) use ($forResources, $validUserIds, $sameDayPayableCounts) {
             $classMap = CalendarEvent::typeClassMap();
             $className = $classMap[$event->event_type] ?? 'bg-secondary';
             $agentColor = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL ? null : ($event->user?->agent?->color);
@@ -289,7 +306,7 @@ class CalendarController extends Controller
 
             $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
             $statusIcon = $isTempoPessoal ? null : $event->status_icon;
-            $activeSales = $event->sales->filter(fn (Sale $s) => $s->status !== Sale::STATUS_ANULADO);
+            $activeSales = $this->activeSalesForEvent((int) $event->id);
             $hasInvoice = $activeSales->isNotEmpty();
             $isCompleted = ($event->status ?? CalendarEvent::STATUS_AGENDADO) === CalendarEvent::STATUS_COMPLETO;
             $includeCatalogFees = ApplicableFees::includeCatalogFeesForCalendarEvent($event);
@@ -389,6 +406,7 @@ class CalendarController extends Controller
                     'booking_paid_amount' => $bookingPaidAmount,
                     'amount_due' => $amountDue,
                     'pending_final_invoice' => $pendingFinalInvoice,
+                    'same_day_payable_count' => (int) ($sameDayPayableCounts[(int) ($event->client_id ?? 0).'|'.optional($event->start_at)->format('Y-m-d')] ?? 0),
                     'payment_lines' => $paymentLines,
                     'client_id' => $event->client_id,
                     'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
@@ -790,8 +808,18 @@ class CalendarController extends Controller
             }
             $amountDue = ApplicableFees::amountDueCashFromEventId((int) $calendarEvent->id, $subtotalForDue);
             $payload['amount_due'] = $amountDue;
+            $pivotSaleIds = \Illuminate\Support\Facades\DB::table('sale_calendar_events')
+                ->where('calendar_event_id', (int) $calendarEvent->id)
+                ->pluck('sale_id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
             $activeCaixaSaleRecord = Sale::query()
-                ->where('calendar_event_id', $calendarEvent->id)
+                ->where(function ($q) use ($calendarEvent, $pivotSaleIds): void {
+                    $q->where('calendar_event_id', $calendarEvent->id);
+                    if ($pivotSaleIds !== []) {
+                        $q->orWhereIn('id', $pivotSaleIds);
+                    }
+                })
                 ->where('status', '!=', Sale::STATUS_ANULADO)
                 ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
                 ->orderByDesc('id')
@@ -814,7 +842,16 @@ class CalendarController extends Controller
                 && $activeCaixaSaleRecord === null;
             $isPartial = $payload['booking_paid_amount'] > 0.00001 && $amountDue > 0.00001;
 
-            $sale = $calendarEvent->sale;
+            $sale = Sale::query()
+                ->where(function ($q) use ($calendarEvent, $pivotSaleIds): void {
+                    $q->where('calendar_event_id', $calendarEvent->id);
+                    if ($pivotSaleIds !== []) {
+                        $q->orWhereIn('id', $pivotSaleIds);
+                    }
+                })
+                ->where('status', '!=', Sale::STATUS_ANULADO)
+                ->latest('id')
+                ->first();
             if ($sale && $sale->status !== Sale::STATUS_ANULADO) {
                 $payload['existing_sale'] = [
                     'id' => $sale->id,
@@ -833,6 +870,7 @@ class CalendarController extends Controller
                     $calendarEvent,
                     (float) ($payload['booking_paid_amount'] ?? 0),
                 );
+                $payload['same_day_payable'] = $this->sameDayPayableService->summaryForEvent($calendarEvent);
             }
 
             if ($calendarEvent->eventable_type === \App\Models\Visit::class && $calendarEvent->eventable_id && $calendarEvent->eventable) {
@@ -882,6 +920,23 @@ class CalendarController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function sameDayPayable(CalendarEvent $calendarEvent): JsonResponse
+    {
+        if ((int) $calendarEvent->store_id !== (int) current_store_id()) {
+            abort(404);
+        }
+
+        if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+            return response()->json([
+                'count' => 0,
+                'total_due' => 0.0,
+                'rows' => [],
+            ]);
+        }
+
+        return response()->json($this->sameDayPayableService->summaryForEvent($calendarEvent));
     }
 
     /**
@@ -1650,7 +1705,7 @@ class CalendarController extends Controller
         }
         $isCompleted = ($event->status ?? CalendarEvent::STATUS_AGENDADO) === CalendarEvent::STATUS_COMPLETO;
 
-        $activeSales = $event->sales->filter(fn (Sale $s) => $s->status !== Sale::STATUS_ANULADO);
+        $activeSales = $this->activeSalesForEvent((int) $event->id);
         $hasInvoice = $activeSales->isNotEmpty();
         $includeCatalogFees = ApplicableFees::includeCatalogFeesForCalendarEvent($event);
         $servicesSubtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($eventServicesData);
@@ -1940,8 +1995,19 @@ class CalendarController extends Controller
      */
     private function salesInvoicesForCalendarEvent(int $calendarEventId): array
     {
-        return Sale::query()
+        $pivotSaleIds = \Illuminate\Support\Facades\DB::table('sale_calendar_events')
             ->where('calendar_event_id', $calendarEventId)
+            ->pluck('sale_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        return Sale::query()
+            ->where(function ($q) use ($calendarEventId, $pivotSaleIds): void {
+                $q->where('calendar_event_id', $calendarEventId);
+                if ($pivotSaleIds !== []) {
+                    $q->orWhereIn('id', $pivotSaleIds);
+                }
+            })
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->orderBy('id')
             ->get()
@@ -1959,6 +2025,29 @@ class CalendarController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Sale>
+     */
+    private function activeSalesForEvent(int $calendarEventId): \Illuminate\Support\Collection
+    {
+        $pivotSaleIds = \Illuminate\Support\Facades\DB::table('sale_calendar_events')
+            ->where('calendar_event_id', $calendarEventId)
+            ->pluck('sale_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        return Sale::query()
+            ->where(function ($q) use ($calendarEventId, $pivotSaleIds): void {
+                $q->where('calendar_event_id', $calendarEventId);
+                if ($pivotSaleIds !== []) {
+                    $q->orWhereIn('id', $pivotSaleIds);
+                }
+            })
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->orderBy('id')
+            ->get();
     }
 
     /**

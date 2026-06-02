@@ -301,6 +301,16 @@ class CalendarEvent extends Model
     }
 
     /**
+     * Vendas em que esta marcação foi liquidada (inclui consolidados).
+     */
+    public function consolidatedSales(): BelongsToMany
+    {
+        return $this->belongsToMany(Sale::class, 'sale_calendar_events')
+            ->withPivot(['amount_settled_cents', 'is_primary'])
+            ->withTimestamps();
+    }
+
+    /**
      * Registo de marcação online (depósito Stripe), quando existir.
      */
     public function onlineBooking(): HasOne

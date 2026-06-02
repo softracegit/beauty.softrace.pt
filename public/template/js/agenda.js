@@ -1805,6 +1805,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var paymentModalReservaCustomAmount = null;
     var paymentModalSavedCards = [];
     var paymentModalSelectedSavedCardId = null;
+    var paymentModalConsolidatedEventIds = [];
+    var paymentModalCheckoutItems = null;
+    var paymentModalConsolidatedAmountDue = null;
+    var eventDetailSameDayPayable = null;
 
     function paymentModalIsReserva() {
         return paymentModalMode === 'reserva';
@@ -1935,6 +1939,9 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalReservaCustomAmount = null;
         paymentModalSavedCards = [];
         paymentModalSelectedSavedCardId = null;
+        paymentModalCheckoutItems = null;
+        paymentModalConsolidatedEventIds = [];
+        paymentModalConsolidatedAmountDue = null;
         paymentModalApplyModeClasses();
         var pl = $id('paymentModalLabel');
         if (pl) pl.textContent = 'Caixa — pagamento';
@@ -2001,6 +2008,100 @@ document.addEventListener('DOMContentLoaded', function() {
         return tpl.replace('__CLIENT_ID__', encodeURIComponent(String(clientId)));
     }
 
+    function sameDayPayableUrl(eventId) {
+        var tpl = String((C.agendaSameDayPayableUrl || '')).trim();
+        return tpl.replace('__EVENT_ID__', encodeURIComponent(String(eventId)));
+    }
+
+    function paymentModalSelectedEventIds(eventId) {
+        if (paymentModalConsolidatedEventIds && paymentModalConsolidatedEventIds.length > 0) {
+            return paymentModalConsolidatedEventIds.slice();
+        }
+        return [parseInt(eventId, 10)];
+    }
+
+    function paymentModalIsConsolidated() {
+        return Array.isArray(paymentModalConsolidatedEventIds) && paymentModalConsolidatedEventIds.length > 1;
+    }
+
+    function paymentModalConsolidatedDueFromSummary() {
+        var rows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
+        if (!rows.length || !paymentModalIsConsolidated()) return null;
+        var selected = new Set((paymentModalConsolidatedEventIds || []).map(function(id) { return String(id); }));
+        var sum = rows.reduce(function(acc, row) {
+            if (!selected.has(String(row.id))) return acc;
+            return acc + Math.max(0, parseFloat(row.amount_due) || 0);
+        }, 0);
+        return sum > 0 ? sum : null;
+    }
+
+    function paymentModalConsolidatedSelectedRows() {
+        var rows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
+        if (!rows.length || !paymentModalIsConsolidated()) return [];
+        var selected = new Set((paymentModalConsolidatedEventIds || []).map(function(id) { return String(id); }));
+        return rows.filter(function(row) { return selected.has(String(row.id)); });
+    }
+
+    function sameDayRowTimeLabel(row) {
+        var unix = parseInt(row && row.start_at_unix, 10);
+        if (Number.isFinite(unix) && unix > 0) {
+            var d = new Date(unix * 1000);
+            if (!isNaN(d.getTime())) {
+                return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+            }
+        }
+        return (row && row.start_time) ? String(row.start_time) : '--:--';
+    }
+
+    function paymentModalConsolidatedBookingPaidFromSummary() {
+        var rows = paymentModalConsolidatedSelectedRows();
+        if (!rows.length) return 0;
+        return rows.reduce(function(acc, row) {
+            return acc + Math.max(0, parseFloat(row.booking_paid_amount) || 0);
+        }, 0);
+    }
+
+    function paymentModalServicesSubtotal() {
+        if (Array.isArray(paymentModalCheckoutItems) && paymentModalCheckoutItems.length > 0) {
+            return paymentModalCheckoutItems.reduce(function(sum, row) {
+                var tipo = String(row.tipo || '').toLowerCase();
+                if (tipo === 'taxa') return sum;
+                var qty = parseInt(row.quantidade, 10) || 0;
+                var unit = parseFloat(row.preco_unitario) || 0;
+                var gross = qty * unit;
+                var discount = Math.max(0, Math.min(parseFloat(row.desconto) || 0, gross));
+                return sum + (gross - discount);
+            }, 0);
+        }
+        return eventDetailServicesSubtotal();
+    }
+
+    function paymentModalConsolidatedFeesTotal() {
+        if (!Array.isArray(paymentModalCheckoutItems)) return 0;
+        return paymentModalCheckoutItems.reduce(function(sum, row) {
+            var tipo = String(row.tipo || '').toLowerCase();
+            if (tipo !== 'taxa') return sum;
+            var qty = parseInt(row.quantidade, 10) || 0;
+            var unit = parseFloat(row.preco_unitario) || 0;
+            return sum + (qty * unit);
+        }, 0);
+    }
+
+    function paymentModalConsolidatedRowServicesTotal(eventId) {
+        if (!Array.isArray(paymentModalCheckoutItems)) return 0;
+        var eid = String(eventId);
+        return paymentModalCheckoutItems.reduce(function(sum, row) {
+            if (String(row.calendar_event_id) !== eid) return sum;
+            var tipo = String(row.tipo || '').toLowerCase();
+            if (tipo === 'taxa') return sum;
+            var qty = parseInt(row.quantidade, 10) || 0;
+            var unit = parseFloat(row.preco_unitario) || 0;
+            var gross = qty * unit;
+            var discount = Math.max(0, Math.min(parseFloat(row.desconto) || 0, gross));
+            return sum + (gross - discount);
+        }, 0);
+    }
+
     function paymentModalGetReservaCustomAmountEur() {
         if (paymentModalReservaCustomAmount !== null && Number.isFinite(paymentModalReservaCustomAmount)) {
             return Math.max(0, paymentModalReservaCustomAmount);
@@ -2027,6 +2128,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function paymentModalGetAmountDueCents() {
         if (paymentModalIsReserva()) {
             return Math.round(paymentModalGetDepositAmountEur() * 100);
+        }
+        if (paymentModalIsConsolidated()) {
+            var consolidatedBase = Number.isFinite(paymentModalConsolidatedAmountDue)
+                ? Math.max(0, parseFloat(paymentModalConsolidatedAmountDue) || 0)
+                : (paymentModalConsolidatedDueFromSummary() || 0);
+            var consolidatedTotal = Math.max(0, consolidatedBase + paymentModalGetGorjetaAmount());
+            return Math.round(consolidatedTotal * 100);
         }
         var gorjeta = paymentModalGetGorjetaAmount();
         var d = eventDetailCurrentData || {};
@@ -2201,6 +2309,56 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function openAgendaPaymentModalConsolidated() {
+        var eventId = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        var rows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
+        if (!eventId || rows.length <= 1) {
+            showToast('Não existem outras marcações por pagar neste dia.', 'info');
+            return;
+        }
+        var selectedIds = rows.map(function(row) { return parseInt(row.id, 10); })
+            .filter(function(id) { return !isNaN(id) && id > 0; });
+        paymentModalConsolidatedEventIds = Array.from(new Set(selectedIds));
+        if (paymentModalConsolidatedEventIds.length <= 1) {
+            showToast('Não existem outras marcações por pagar neste dia.', 'warning');
+            return;
+        }
+        var idsQuery = paymentModalConsolidatedEventIds.join(',');
+        fetch((C.urlEvents || '') + '/' + encodeURIComponent(String(eventId)) + '/checkout?event_ids=' + encodeURIComponent(idsQuery), {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res || {} }; }); })
+            .then(function(pack) {
+                if (!pack.ok) {
+                    showToast(pack.res.error || pack.res.message || 'Erro ao preparar pagamento consolidado.', 'error');
+                    return;
+                }
+                var consolidatedItems = Array.isArray(pack.res.items) ? pack.res.items : [];
+                var consolidatedIds = Array.isArray(pack.res.selected_event_ids) && pack.res.selected_event_ids.length
+                    ? pack.res.selected_event_ids
+                    : paymentModalConsolidatedEventIds;
+                var consolidatedAmountDue = parseFloat(pack.res.amount_due);
+                paymentModalResetToCaixa();
+                paymentModalCheckoutItems = consolidatedItems;
+                paymentModalConsolidatedEventIds = consolidatedIds;
+                paymentModalConsolidatedAmountDue = Number.isFinite(consolidatedAmountDue) ? Math.max(0, consolidatedAmountDue) : null;
+                var pl = $id('paymentModalLabel');
+                if (pl) pl.textContent = 'Caixa — pagamento do dia';
+                var gEl = $id('paymentGorjeta');
+                if (gEl && String(gEl.getAttribute('type') || '').toLowerCase() === 'number') gEl.value = '0';
+                paymentModalSyncFiscalFromClient();
+                paymentModalPopulateClientHero();
+                paymentModalInitInvoiceDelivery();
+                paymentModalUpdateTotals();
+                bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+                paymentModalSetPayButtonEnabled();
+            })
+            .catch(function() {
+                showToast('Erro de ligação ao preparar pagamento consolidado.', 'error');
+            });
+    }
+
     function openAgendaPaymentModalInvoiceOnly() {
         paymentModalMode = 'invoice-only';
         paymentMbwayFinalizeSucceeded = false;
@@ -2265,6 +2423,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!saleId) return;
             $id('revertSaleId').value = String(saleId);
             $id('revertSaleReason').value = '';
+            var impactEl = $id('revertSaleImpactText');
+            if (impactEl) {
+                var count = parseInt((eventDetailCurrentData && eventDetailCurrentData.same_day_payable && eventDetailCurrentData.same_day_payable.count) || 0, 10) || 0;
+                var base = 'Será gerada uma nota de crédito. A fatura de pré-pagamento mantém-se. A marcação continua paga; depois pode emitir uma nova fatura final (ex.: corrigir NIF).';
+                if (count > 1) {
+                    base = 'Será gerada uma nota de crédito. Esta fatura pode impactar ' + count + ' marcações liquidadas no mesmo dia. A fatura de pré-pagamento mantém-se.';
+                }
+                impactEl.textContent = base;
+            }
             bootstrap.Modal.getOrCreateInstance($id('revertSaleModal')).show();
         }
 
@@ -2691,6 +2858,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
         var payBtn = $id('eventDetailPaymentBtn');
+        var payDropup = $id('eventDetailPaymentDropup');
+        var payAllHint = $id('eventDetailPayAllHint');
+        var payCurrentAmount = $id('eventDetailPayCurrentAmount');
+        var payAllAmount = $id('eventDetailPayAllAmount');
         var reservaBtn = $id('eventDetailReservaBtn');
         var saveBtn = $id('eventDetailSaveBtn');
         var closeWithoutSaveBtn = $id('eventDetailCloseWithoutSaveBtn');
@@ -2714,10 +2885,25 @@ document.addEventListener('DOMContentLoaded', function() {
             && servicesCount > 0
             && amountDueForPay > 0.00001
             && !paymentBlockedStatus;
+        var sameDayRows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
+        var sameDayOthers = sameDayRows.filter(function(r) { return String(r.id) !== String($id('eventDetailEditId').value || ''); });
+        var hasSameDayOptions = showPayBtn && sameDayOthers.length > 0 && !isFaturar;
         var pagoBadge = $id('eventDetailPagoBadge');
         if (payBtn) {
-            payBtn.classList.toggle('d-none', !showPayBtn);
+            payBtn.classList.toggle('d-none', !showPayBtn || hasSameDayOptions);
             payBtn.textContent = isFaturar ? 'Faturar' : 'Caixa';
+        }
+        if (payDropup) {
+            payDropup.classList.toggle('d-none', !hasSameDayOptions);
+        }
+        if (payAllHint) {
+            payAllHint.textContent = '+' + sameDayOthers.length + ' marcações por pagar hoje';
+        }
+        if (payCurrentAmount) {
+            payCurrentAmount.textContent = eventDetailMoney(amountDueForPay);
+        }
+        if (payAllAmount) {
+            payAllAmount.textContent = '...';
         }
         if (pagoBadge) {
             pagoBadge.classList.toggle('d-none', !showPagoBadge);
@@ -2841,11 +3027,68 @@ document.addEventListener('DOMContentLoaded', function() {
         if (editModal) editModal.classList.toggle('event-detail-readonly', lockServicesExceptNif);
     }
 
+    function renderSameDayPayableBanner(summary) {
+        eventDetailSameDayPayable = summary || null;
+        setEventDetailPaymentAndReadOnly(
+            eventDetailExistingSale,
+            (eventDetailCurrentData && eventDetailCurrentData.event_type) || 'marcacao',
+            (eventDetailSelectedServices && eventDetailSelectedServices.length) || 0
+        );
+        refreshPayAllAmountFromCheckoutPreview();
+    }
+
+    function fetchSameDayPayableSummary(eventId) {
+        if (!eventId || !C.agendaSameDayPayableUrl) {
+            renderSameDayPayableBanner(null);
+            return;
+        }
+        fetch(sameDayPayableUrl(eventId), { headers: { 'Accept': 'application/json' } })
+            .then(function(r) { return r.json(); })
+            .then(function(res) { renderSameDayPayableBanner(res); })
+            .catch(function() { renderSameDayPayableBanner(null); });
+    }
+
+    function refreshPayAllAmountFromCheckoutPreview() {
+        var payAllAmount = $id('eventDetailPayAllAmount');
+        var eventId = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        var rows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
+        if (!payAllAmount || !eventId || rows.length <= 1) return;
+        var ids = rows.map(function(row) { return parseInt(row.id, 10); }).filter(function(id) { return !isNaN(id) && id > 0; });
+        if (ids.length <= 1) return;
+        var idsQuery = ids.join(',');
+        fetch((C.urlEvents || '') + '/' + encodeURIComponent(String(eventId)) + '/checkout?event_ids=' + encodeURIComponent(idsQuery), {
+            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res || {} }; }); })
+            .then(function(pack) {
+                if (!pack.ok) return;
+                var due = parseFloat(pack.res.amount_due);
+                if (Number.isFinite(due)) {
+                    payAllAmount.textContent = eventDetailMoney(Math.max(0, due));
+                    return;
+                }
+                var rows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
+                var totalAllDue = rows.reduce(function(acc, row) {
+                    return acc + Math.max(0, parseFloat(row.amount_due) || 0);
+                }, 0);
+                payAllAmount.textContent = eventDetailMoney(totalAllDue);
+            })
+            .catch(function() {
+                var rows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
+                var totalAllDue = rows.reduce(function(acc, row) {
+                    return acc + Math.max(0, parseFloat(row.amount_due) || 0);
+                }, 0);
+                payAllAmount.textContent = eventDetailMoney(totalAllDue);
+            });
+    }
+
     function populateEventDetailEditModal(data) {
         eventDetailOcTeardownUi();
         toggleOutOfHoursWarning('eventDetailHorarioAviso', false, 'eventDetailHorarioAvisoWrap');
         window._eventDetailOcPopulating = true;
         eventDetailCurrentData = data;
+        eventDetailSameDayPayable = data.same_day_payable || null;
         eventDetailExistingSale = data.existing_sale || null;
         eventDetailBookingPaidAmount = Math.max(0, parseFloat(data.booking_paid_amount) || 0);
         eventDetailOriginalStartAt = data.start_at || null;
@@ -2854,6 +3097,8 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailSelectedServices = [];
         var id = data.id;
         $id('eventDetailEditId').value = id;
+        renderSameDayPayableBanner(eventDetailSameDayPayable);
+        fetchSameDayPayableSummary(id);
         $id('eventDetailEditUserId').value = data.user_id || '';
         $id('eventDetailEditStart').value = data.start_at || '';
         $id('eventDetailEditEnd').value = data.end_at || '';
@@ -5476,7 +5721,25 @@ document.addEventListener('DOMContentLoaded', function() {
             wrap.classList.add('d-none');
             return;
         }
-        var fees = eventDetailApplicableFees();
+        var fees;
+        if (paymentModalIsConsolidated() && Array.isArray(paymentModalCheckoutItems)) {
+            var seenFee = {};
+            fees = [];
+            paymentModalCheckoutItems.forEach(function(row) {
+                if (String(row.tipo || '').toLowerCase() !== 'taxa') return;
+                var key = (row.fee_id != null ? ('fee_' + row.fee_id) : ('desc_' + String(row.descricao || 'Taxa')));
+                if (seenFee[key]) return;
+                seenFee[key] = true;
+                var feeName = String(row.descricao || 'Taxa').replace(/^\s*\d{1,2}:\d{2}\s*-\s*/u, '');
+                fees.push({
+                    name: feeName,
+                    price: parseFloat(row.preco_unitario) || 0,
+                    formatted_price: null
+                });
+            });
+        } else {
+            fees = eventDetailApplicableFees();
+        }
         if (!fees.length) {
             wrap.classList.add('d-none');
             return;
@@ -5494,7 +5757,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function paymentModalRefreshHeroTotals() {
         var isReserva = paymentModalIsReserva();
-        var servicesSub = eventDetailServicesSubtotal();
+        var servicesSub = paymentModalServicesSubtotal();
         var checkoutSub = eventDetailCheckoutSubtotal();
         var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
         var gorjeta = paymentModalGetGorjetaAmount();
@@ -5510,6 +5773,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var lineCheckout = $id('paymentLineCheckoutTotal');
         var checkoutDisp = $id('paymentCheckoutTotalDisplay');
         var linePrePaid = $id('paymentLinePrepagamentoPaid');
+        var prePaidLabel = $id('paymentPrepaidLineLabel');
         var prePaidDisp = $id('paymentOnlinePaidDisplay');
         var lineDeposit = $id('paymentLineDepositAmount');
         var depositLbl = $id('paymentReservaPercentLabel');
@@ -5519,6 +5783,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var customWrap = $id('paymentReservaCustomWrap');
         var gorjetaLine = $id('paymentGorjetaLine');
         var gorjetaDisp = $id('paymentGorjetaDisplay');
+        var consolidatedWrap = $id('paymentConsolidatedDetailsWrap');
+        var consolidatedList = $id('paymentConsolidatedList');
 
         if (isReserva) {
             if (lineCheckout) lineCheckout.classList.remove('d-none');
@@ -5541,25 +5807,90 @@ document.addEventListener('DOMContentLoaded', function() {
             if (lineCheckout) lineCheckout.classList.add('d-none');
             if (lineDeposit) lineDeposit.classList.add('d-none');
             if (customWrap) customWrap.classList.add('d-none');
-            if (linePrePaid) linePrePaid.classList.toggle('d-none', paidOnline <= 0);
-            if (prePaidDisp) prePaidDisp.textContent = '-' + (paidOnline.toFixed(2).replace('.', ',') + ' €');
-            var amountDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
-            var totalDue = Number.isFinite(amountDue) && amountDue >= 0
-                ? amountDue
-                : Math.max(0, checkoutSub - paidOnline);
+            var isConsolidated = paymentModalIsConsolidated();
+            var consolidatedPrepaid = paymentModalConsolidatedBookingPaidFromSummary();
+            if (linePrePaid) {
+                var showPrepaidLine = isConsolidated ? (consolidatedPrepaid > 0.00001) : (paidOnline > 0);
+                linePrePaid.classList.toggle('d-none', !showPrepaidLine);
+            }
+            if (prePaidLabel) {
+                prePaidLabel.textContent = isConsolidated ? 'Pré-pagamentos do dia:' : 'Pré-pagamento:';
+            }
+            if (prePaidDisp) {
+                var prepaidValue = isConsolidated ? consolidatedPrepaid : paidOnline;
+                prePaidDisp.textContent = '-' + (prepaidValue.toFixed(2).replace('.', ',') + ' €');
+            }
+            var totalDue;
+            if (isConsolidated) {
+                totalDue = Number.isFinite(paymentModalConsolidatedAmountDue)
+                    ? Math.max(0, parseFloat(paymentModalConsolidatedAmountDue) || 0)
+                    : (paymentModalConsolidatedDueFromSummary() || 0);
+            } else {
+                var amountDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
+                totalDue = Number.isFinite(amountDue) && amountDue >= 0
+                    ? amountDue
+                    : Math.max(0, checkoutSub - paidOnline);
+            }
             totalDue = Math.max(0, totalDue + gorjeta);
             if (lineTotalDue) lineTotalDue.classList.remove('d-none');
             if (totalDueDisp) totalDueDisp.textContent = eventDetailMoney(totalDue);
             if (gorjetaLine) gorjetaLine.classList.toggle('d-none', gorjeta <= 0);
             if (gorjetaDisp) gorjetaDisp.textContent = eventDetailMoney(gorjeta);
+
+            if (consolidatedWrap) consolidatedWrap.classList.toggle('d-none', !isConsolidated);
+            if (consolidatedList && isConsolidated) {
+                var rows = paymentModalConsolidatedSelectedRows();
+                var feesTotal = paymentModalConsolidatedFeesTotal();
+                var detailsHtml = rows.map(function(row) {
+                    var safeLabel = String(row.services_label || 'Serviço').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    var rowServicesTotal = paymentModalConsolidatedRowServicesTotal(row.id);
+                    return '<div class="payment-consolidated-row mb-1">'
+                        + '<span class="fw-semibold payment-consolidated-time">' + sameDayRowTimeLabel(row) + '</span>'
+                        + '<span class="payment-consolidated-service">' + safeLabel + '</span>'
+                        + '<span class="payment-consolidated-due fw-semibold">' + eventDetailMoney(rowServicesTotal) + '</span>'
+                        + '</div>';
+                }).join('');
+                if (feesTotal > 0.00001) {
+                    var feeNames = [];
+                    if (Array.isArray(paymentModalCheckoutItems)) {
+                        var seenNames = {};
+                        paymentModalCheckoutItems.forEach(function(row) {
+                            if (String(row.tipo || '').toLowerCase() !== 'taxa') return;
+                            var nm = String(row.descricao || 'Taxa').replace(/^\s*\d{1,2}:\d{2}\s*-\s*/u, '').trim();
+                            if (!nm) nm = 'Taxa';
+                            if (seenNames[nm]) return;
+                            seenNames[nm] = true;
+                            feeNames.push(nm);
+                        });
+                    }
+                    var feeNamesLabel = feeNames.length ? feeNames.join(', ') : 'Taxa';
+                    detailsHtml += '<div class="payment-consolidated-row mt-2 pt-2 border-top">'
+                        + '<span class="payment-consolidated-service">' + feeNamesLabel + '</span>'
+                        + '<span class="payment-consolidated-due fw-semibold">' + eventDetailMoney(feesTotal) + '</span>'
+                        + '</div>';
+                }
+                consolidatedList.innerHTML = detailsHtml;
+            }
         }
     }
 
     function paymentModalSubtotal() {
+        if (Array.isArray(paymentModalCheckoutItems) && paymentModalCheckoutItems.length > 0) {
+            return paymentModalCheckoutItems.reduce(function(sum, row) {
+                var qty = parseInt(row.quantidade, 10) || 0;
+                var unit = parseFloat(row.preco_unitario) || 0;
+                var gross = qty * unit;
+                var discount = Math.max(0, Math.min(parseFloat(row.desconto) || 0, gross));
+                return sum + (gross - discount);
+            }, 0);
+        }
         return eventDetailCheckoutSubtotal();
     }
 
     function paymentModalSubtotalLineLabel() {
+        if (Array.isArray(paymentModalCheckoutItems) && paymentModalCheckoutItems.length > 0 && paymentModalConsolidatedEventIds.length > 1) {
+            return 'Total ' + paymentModalConsolidatedEventIds.length + ' marcações:';
+        }
         var rows = (eventDetailSelectedServices && eventDetailSelectedServices.length) ? eventDetailSelectedServices : [];
         var n = rows.length;
         var x = rows.reduce(function(acc, s) {
@@ -5724,14 +6055,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var btn = $id('paymentConfirmBtn');
         if (!btn) return;
         if (btn.querySelector('.spinner-border')) return;
-        var checkoutSub = eventDetailCheckoutSubtotal();
-        var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
-        var gorjeta = paymentModalGetGorjetaAmount();
-        var amountDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
-        var servicesDue = Number.isFinite(amountDue) && amountDue >= 0
-            ? amountDue
-            : Math.max(0, checkoutSub - paidOnline);
-        var total = servicesDue + gorjeta;
+        var total = paymentModalGetAmountDueCents() / 100;
         if (paymentModalIsFinalizeDraft()) {
             btn.textContent = 'Faturar';
         } else if (paymentModalIsInvoiceOnly()) {
@@ -6089,6 +6413,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 paymentModalSetPayButtonEnabled();
             });
         });
+    });
+
+    var payCurrentBtn = $id('eventDetailPayCurrentBtn');
+    if (payCurrentBtn) {
+        payCurrentBtn.addEventListener('click', function() {
+            bootstrap.Dropdown.getOrCreateInstance($id('eventDetailPaymentDropupToggle')).hide();
+            $id('eventDetailPaymentBtn').click();
+        });
+    }
+    var payAllBtn = $id('eventDetailPayAllBtn');
+    if (payAllBtn) {
+        payAllBtn.addEventListener('click', function() {
+            bootstrap.Dropdown.getOrCreateInstance($id('eventDetailPaymentDropupToggle')).hide();
+            openAgendaPaymentModalConsolidated();
+        });
+    }
+
+    var consolidatedToggleBtn = $id('paymentConsolidatedToggleBtn');
+    if (consolidatedToggleBtn) {
+        consolidatedToggleBtn.addEventListener('click', function() {
+            var wrap = $id('paymentConsolidatedListWrap');
+            var icon = $id('paymentConsolidatedToggleIcon');
+            if (!wrap) return;
+            var opening = wrap.classList.contains('d-none');
+            wrap.classList.toggle('d-none', !opening);
+            consolidatedToggleBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+            if (icon) {
+                icon.className = opening ? 'ph ph-caret-up' : 'ph ph-caret-down';
+            }
+        });
+    }
+
+    $id('paymentModal').addEventListener('show.bs.modal', function() {
+        var wrap = $id('paymentConsolidatedListWrap');
+        var icon = $id('paymentConsolidatedToggleIcon');
+        var btn = $id('paymentConsolidatedToggleBtn');
+        if (wrap) wrap.classList.add('d-none');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        if (icon) icon.className = 'ph ph-caret-down';
     });
 
     $('#paymentMethodToggleGroup').addEventListener('click', function(e) {
@@ -6486,21 +6849,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         var items = [];
-        eventDetailSelectedServices.forEach(function(s) {
-            items.push({ tipo: 'servico', descricao: s.name || 'Serviço', quantidade: 1, preco_unitario: parseFloat(s.price) || 0, service_id: s.service_id });
-            (s.extras || []).forEach(function(e) {
-                items.push({ tipo: 'extra', descricao: '+ ' + (e.name || 'Extra'), quantidade: 1, preco_unitario: parseFloat(e.price) || 0, extra_id: e.id });
+        if (Array.isArray(paymentModalCheckoutItems) && paymentModalCheckoutItems.length > 0) {
+            items = paymentModalCheckoutItems.map(function(row) {
+                return Object.assign({}, row);
             });
-        });
-        eventDetailApplicableFees().forEach(function(f) {
-            items.push({
-                tipo: 'taxa',
-                descricao: f.name || 'Taxa',
-                quantidade: 1,
-                preco_unitario: parseFloat(f.price) || 0,
-                fee_id: f.fee_id
+        } else {
+            eventDetailSelectedServices.forEach(function(s) {
+                items.push({ tipo: 'servico', descricao: s.name || 'Serviço', quantidade: 1, preco_unitario: parseFloat(s.price) || 0, service_id: s.service_id });
+                (s.extras || []).forEach(function(e) {
+                    items.push({ tipo: 'extra', descricao: '+ ' + (e.name || 'Extra'), quantidade: 1, preco_unitario: parseFloat(e.price) || 0, extra_id: e.id });
+                });
             });
-        });
+            eventDetailApplicableFees().forEach(function(f) {
+                items.push({
+                    tipo: 'taxa',
+                    descricao: f.name || 'Taxa',
+                    quantidade: 1,
+                    preco_unitario: parseFloat(f.price) || 0,
+                    fee_id: f.fee_id
+                });
+            });
+        }
+        var selectedEventIds = paymentModalSelectedEventIds(eventId);
         if (items.length === 0) {
             paymentModalRestoreConfirmButton();
             showToast('Nenhum serviço para faturar.', 'error');
@@ -6512,7 +6882,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(C.agendaCheckoutMbwayIntentUrl || '', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({ event_id: eventId, gorjeta: gorjeta, items: items, mbway_phone: mbwayPhone })
+                body: JSON.stringify({ event_id: eventId, event_ids: selectedEventIds, gorjeta: gorjeta, items: items, mbway_phone: mbwayPhone })
             })
             .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
             .then(function(_) {
@@ -6546,6 +6916,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         body: JSON.stringify({
                             payment_intent_id: paymentIntentId,
                             event_id: eventId,
+                            event_ids: selectedEventIds,
                             gorjeta: gorjeta,
                             items: items,
                             invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
@@ -6598,6 +6969,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
             body: JSON.stringify({
                 event_id: eventId,
+                event_ids: selectedEventIds,
                 payment_method: method,
                 gorjeta: gorjeta,
                 items: items,
@@ -7371,6 +7743,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (info.event.extendedProps?.event_type === 'tempo_pessoal') bgColor = bgColor || '#dee2e6';
             if (bgColor) {
                 info.el.style.setProperty('background-color', bgColor, 'important');
+            }
+            var sameDayCount = parseInt((info.event.extendedProps && info.event.extendedProps.same_day_payable_count) || 0, 10) || 0;
+            if (sameDayCount > 1) {
+                info.el.classList.add('agenda-event-has-same-day-payable');
+                info.el.setAttribute('data-same-day-count', String(sameDayCount - 1));
+            } else {
+                info.el.classList.remove('agenda-event-has-same-day-payable');
+                info.el.removeAttribute('data-same-day-count');
             }
             var hoverDelay = 200;
             info.el.addEventListener('mouseenter', function() {
