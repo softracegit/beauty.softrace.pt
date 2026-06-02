@@ -1,0 +1,244 @@
+/* Payment POS modal — partilhado (agenda + relatórios). Não incluir regras globais de body/main-content. */
+
+/* Modal caixa: modo «só fatura final» (sem escolha de pagamento / MB WAY / gorjeta) */
+#paymentModal.payment-pos-modal--invoice-only #paymentMethodSectionLegend,
+#paymentModal.payment-pos-modal--invoice-only #paymentMethodToggleGroup,
+#paymentModal.payment-pos-modal--invoice-only #paymentMbwayPhoneWrap {
+    display: none !important;
+}
+#paymentModal.payment-pos-modal--invoice-only .payment-pos-hero-gorjeta-wrap,
+#paymentModal.payment-pos-modal--invoice-only #paymentGorjetaLine {
+    display: none !important;
+}
+
+/* Modal caixa: modo pré-pagamento (sem gorjeta / linhas de caixa parcial) */
+#paymentModal.payment-pos-modal--reserva .payment-pos-hero-gorjeta-wrap,
+#paymentModal.payment-pos-modal--reserva #paymentGorjetaLine,
+#paymentModal.payment-pos-modal--reserva #paymentOnlinePaidLine,
+#paymentModal.payment-pos-modal--reserva #paymentLineTotalDue {
+    display: none !important;
+}
+#paymentModal.payment-pos-modal--reserva #paymentLinePrepagamentoPaid {
+    display: none !important;
+}
+#paymentModal.payment-pos-modal--reserva #paymentLineCheckoutTotal {
+    display: flex !important;
+}
+#paymentModal.payment-pos-modal--reserva #paymentLineDepositAmount {
+    display: flex !important;
+}
+#paymentModal.payment-pos-modal--reserva .payment-pos-hero-reserva-custom-input {
+    max-width: 9rem;
+    margin-left: auto;
+}
+#paymentModal:not(.payment-pos-modal--reserva) #paymentPrepagamentoLine,
+#paymentModal:not(.payment-pos-modal--reserva) #paymentReservaCustomWrap {
+    display: none !important;
+}
+
+/* Pré-pagamento: créditos parciais (checkbox, como booking online) */
+#paymentModal.payment-pos-modal--reserva #paymentMethodCreditosCarteiraBtn {
+    display: none !important;
+}
+#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodSectionLegend,
+#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodToggleGroup,
+#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMbwayPhoneWrap,
+#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentWalletPartialSummary {
+    display: none !important;
+}
+#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletApplyWrap,
+#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletCoversReservaMsg,
+#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletPartialSummary {
+    display: none !important;
+}
+.payment-pos-wallet-apply-wrap {
+    border: 1px solid var(--bs-border-color);
+    background: #fff;
+    padding: 0.85rem 1rem;
+    border-radius: var(--bs-border-radius, 0.375rem);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.payment-pos-wallet-apply-wrap.payment-pos-wallet-apply-wrap--active {
+    border-color: rgba(25, 135, 84, 0.45);
+    background: rgba(25, 135, 84, 0.04);
+}
+.payment-pos-wallet-apply-check .form-check-input {
+    margin-top: 0.2rem;
+}
+.payment-pos-wallet-covers-msg {
+    background: rgba(25, 135, 84, 0.06);
+    border: 1px solid rgba(25, 135, 84, 0.2);
+    padding: 0.85rem 1rem;
+    border-radius: var(--bs-border-radius, 0.375rem);
+}
+.payment-pos-wallet-covers-msg__icon {
+    flex-shrink: 0;
+    font-size: 1.125rem;
+    line-height: 1;
+    margin-top: 0.1rem;
+}
+
+/* Tipo de tempo pessoal - cards toggle (2x2 grid) */
+.tempo-pessoal-type-toggle-wrapper {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+.tempo-pessoal-type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.75rem 0.5rem;
+    min-height: 88px;
+    text-align: center;
+    transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+.tempo-pessoal-type-card-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+.tempo-pessoal-type-card-name {
+    font-size: 0.875rem;
+    line-height: 1.2;
+}
+.tempo-pessoal-type-card-duration {
+    font-size: 0.75rem;
+}
+.tempo-pessoal-type-card:hover {
+    border-color: var(--bs-primary) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.05);
+}
+.tempo-pessoal-type-card.active {
+    border-color: var(--bs-primary) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.12);
+    box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* Modal de pagamento: 3 métodos em linha única com cartões compactos */
+#paymentMethodToggleGroup.tempo-pessoal-type-toggle-wrapper {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+#paymentMethodToggleGroup .tempo-pessoal-type-card {
+    min-height: 72px;
+    padding: 0.5rem 0.35rem;
+    gap: 0.18rem;
+}
+#paymentMethodToggleGroup .tempo-pessoal-type-card-icon {
+    font-size: 1rem;
+}
+#paymentMethodToggleGroup .tempo-pessoal-type-card-name {
+    font-size: 0.8rem;
+}
+
+/* Modal pagamento — estilo caixa / POS */
+.payment-pos-modal .modal-content {
+    border-radius: 0.75rem;
+}
+.payment-pos-modal .modal-footer.payment-pos-modal-footer {
+    justify-content: stretch;
+}
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .btn {
+    flex: 4 1 0;
+    min-width: 0;
+}
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > #paymentConfirmBtn {
+    flex: 8 1 0;
+}
+.payment-pos-total-hero {
+    border-color: var(--bs-border-color, #dee2e6) !important;
+}
+.payment-pos-hero-client {
+    min-width: 0;
+}
+.payment-pos-hero-client-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    line-height: 1.45;
+}
+.payment-pos-hero-client-lines .payment-pos-hero-client-line {
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
+}
+.payment-pos-hero-avatar-wrap {
+    width: 56px;
+    height: 56px;
+}
+.payment-pos-hero-avatar,
+.payment-pos-hero-avatar-fallback {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bs-secondary-bg, #e9ecef);
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color, #6c757d);
+}
+.payment-pos-hero-values .payment-pos-hero-totals-stack .payment-pos-hero-amount-row {
+    max-width: 100%;
+}
+.payment-pos-hero-values .payment-pos-hero-totals-stack > .payment-pos-hero-amount-row + .payment-pos-hero-amount-row {
+    margin-top: 0.35rem;
+}
+.payment-pos-hero-values .payment-pos-hero-totals-stack #paymentHeroPretaxInline {
+    white-space: nowrap;
+}
+@media (min-width: 768px) {
+    .payment-pos-hero-values .payment-pos-hero-totals-stack .payment-pos-hero-amount-row.justify-content-md-end {
+        margin-left: auto;
+        max-width: 20rem;
+    }
+}
+.payment-pos-hero-gorjeta-input {
+    width: 5.25rem;
+    flex-shrink: 0;
+}
+@media (min-width: 768px) {
+    .payment-pos-hero-values .payment-pos-hero-gorjeta-wrap {
+        margin-left: auto;
+        max-width: 20rem;
+    }
+}
+#paymentFaturaTilesGrid.payment-pos-fatura-2x2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+}
+/* Mesma altura / compacidade que os cartões de meio de pagamento */
+#paymentFaturaTilesGrid .tempo-pessoal-type-card {
+    min-height: 72px;
+    padding: 0.5rem 0.35rem;
+    gap: 0.18rem;
+}
+#paymentFaturaTilesGrid .tempo-pessoal-type-card-icon {
+    font-size: 1rem;
+}
+#paymentFaturaTilesGrid .tempo-pessoal-type-card-name {
+    font-size: 0.8rem;
+}
+.payment-invoice-delivery-card.payment-invoice-delivery-disabled {
+    opacity: 0.48;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+/* Caixa (modal pagamento): cartão seleccionado — fundo verde muito suave, borda verde mais escura */
+#paymentModal .tempo-pessoal-type-card.active {
+    border-color: #1f7a4d !important;
+    background-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.075);
+    box-shadow: 0 0 0 1px rgba(var(--bs-success-rgb, 25, 135, 84), 0.22);
+}
+#paymentModal .tempo-pessoal-type-card:hover:not(.active) {
+    border-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.42) !important;
+    background-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.045);
+}
+
+#paymentConfirmBtn.btn-success {
+    min-height: 2.75rem;
+}

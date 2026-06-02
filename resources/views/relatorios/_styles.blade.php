@@ -1,0 +1,1 @@
+<link rel="stylesheet" href="{{ asset('template/css/relatorios.css') }}?v={{ file_exists(public_path('template/css/relatorios.css')) ? filemtime(public_path('template/css/relatorios.css')) : time() }}">

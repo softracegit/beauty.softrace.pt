@@ -2,6 +2,10 @@
 
 @section('title', ($pageTitle ?? 'Relatórios — Marcações').' — '.config('app.name'))
 
+@section('css')
+  @include('relatorios._styles')
+@endsection
+
 @section('content')
   <div class="dash-welcome mb-4">
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 w-100">

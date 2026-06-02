@@ -1,0 +1,33 @@
+/* Relatórios — padding compacto no conteúdo principal */
+body.page-relatorios .main-content {
+    padding: var(--spacing-sm);
+    padding-bottom: 4rem;
+}
+
+@media (max-width: 767px) {
+    body.page-relatorios .main-content {
+        padding-bottom: var(--spacing-xl);
+    }
+}
+
+/* Coluna serviços (vendas) */
+.vendas-servico-cell {
+    max-width: 14rem;
+    line-height: 1.2;
+}
+.vendas-servico-nomes {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.vendas-servico-sub {
+    display: block;
+    font-size: 0.75em;
+    line-height: 1.25;
+    margin-top: 0.15rem;
+}
+
+.vendas-tfoot-total td {
+    border-top-width: 2px;
+}

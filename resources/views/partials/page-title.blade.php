@@ -158,7 +158,7 @@
     } elseif (str_starts_with($currentRoute, 'relatorios.')) {
         $breadcrumbs[] = [
             'label' => 'Relatórios',
-            'url' => route('relatorios.marcacoes'),
+            'url' => route('relatorios.vendas'),
             'active' => false
         ];
         $sectionLabels = [

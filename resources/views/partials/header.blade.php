@@ -55,17 +55,17 @@
             </span>
             <span class="quickaccess-label">Equipa</span>
           </a>
-          <a href="{{ route('relatorios.marcacoes') }}" class="quickaccess-item">
-            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
-              <i class="ph ph-chart-line-up"></i>
-            </span>
-            <span class="quickaccess-label">Marcações</span>
-          </a>
           <a href="{{ route('relatorios.vendas') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
               <i class="ph ph-chart-line-up"></i>
             </span>
             <span class="quickaccess-label">Vendas</span>
+          </a>
+          <a href="{{ route('relatorios.marcacoes') }}" class="quickaccess-item">
+            <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
+              <i class="ph ph-chart-line-up"></i>
+            </span>
+            <span class="quickaccess-label">Marcações</span>
           </a>
         </div>
       </div>

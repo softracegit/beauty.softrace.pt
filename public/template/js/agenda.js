@@ -1808,6 +1808,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var paymentModalConsolidatedEventIds = [];
     var paymentModalCheckoutItems = null;
     var paymentModalConsolidatedAmountDue = null;
+    var paymentModalFinalizeDraftAmount = null;
     var eventDetailSameDayPayable = null;
 
     function paymentModalIsReserva() {
@@ -1935,6 +1936,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function paymentModalResetToCaixa() {
         paymentModalMode = 'caixa';
         paymentModalFinalizeSaleId = null;
+        paymentModalFinalizeDraftAmount = null;
         paymentModalReservaPreview = null;
         paymentModalReservaCustomAmount = null;
         paymentModalSavedCards = [];
@@ -2126,6 +2128,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function paymentModalGetAmountDueCents() {
+        if (paymentModalIsFinalizeDraft()) {
+            var finalizeAmount = Number.isFinite(paymentModalFinalizeDraftAmount)
+                ? Math.max(0, parseFloat(paymentModalFinalizeDraftAmount) || 0)
+                : 0;
+            return Math.round(finalizeAmount * 100);
+        }
         if (paymentModalIsReserva()) {
             return Math.round(paymentModalGetDepositAmountEur() * 100);
         }
@@ -2404,6 +2412,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentMbwayFinalizeSucceeded = false;
         paymentModalStopMbwayFinalizePoll();
         var amount = inv.amount != null && !isNaN(parseFloat(inv.amount)) ? parseFloat(inv.amount) : 0;
+        paymentModalFinalizeDraftAmount = Math.max(0, amount);
         var psd = $id('paymentSubtotalDisplay');
         if (psd) psd.textContent = amount.toFixed(2).replace('.', ',') + ' €';
         var gEl = $id('paymentGorjeta');
@@ -2461,7 +2470,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 'Faturar pré-pagamento';
             }
             if (inv.scope === 'caixa_liquidacao') {
-                return 'Faturar pagamento em loja';
+                return 'Faturar';
             }
             return 'Faturar';
         }
@@ -5757,6 +5766,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function paymentModalRefreshHeroTotals() {
         var isReserva = paymentModalIsReserva();
+        var isFinalizeDraft = paymentModalIsFinalizeDraft();
         var servicesSub = paymentModalServicesSubtotal();
         var checkoutSub = eventDetailCheckoutSubtotal();
         var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
@@ -5786,7 +5796,23 @@ document.addEventListener('DOMContentLoaded', function() {
         var consolidatedWrap = $id('paymentConsolidatedDetailsWrap');
         var consolidatedList = $id('paymentConsolidatedList');
 
-        if (isReserva) {
+        if (isFinalizeDraft) {
+            var draftTotal = Number.isFinite(paymentModalFinalizeDraftAmount)
+                ? Math.max(0, parseFloat(paymentModalFinalizeDraftAmount) || 0)
+                : 0;
+            var feesWrap = $id('paymentFeesLines');
+            if (subtotalLbl) subtotalLbl.textContent = 'Total a faturar:';
+            if (subDisp) subDisp.textContent = eventDetailMoney(draftTotal);
+            if (feesWrap) feesWrap.classList.add('d-none');
+            if (lineCheckout) lineCheckout.classList.add('d-none');
+            if (linePrePaid) linePrePaid.classList.add('d-none');
+            if (lineDeposit) lineDeposit.classList.add('d-none');
+            if (lineTotalDue) lineTotalDue.classList.add('d-none');
+            if (customWrap) customWrap.classList.add('d-none');
+            if (gorjetaLine) gorjetaLine.classList.add('d-none');
+            if (consolidatedWrap) consolidatedWrap.classList.add('d-none');
+            if (consolidatedList) consolidatedList.innerHTML = '';
+        } else if (isReserva) {
             if (lineCheckout) lineCheckout.classList.remove('d-none');
             if (checkoutDisp) checkoutDisp.textContent = eventDetailMoney(checkoutSub);
             if (linePrePaid) linePrePaid.classList.add('d-none');
@@ -6057,7 +6083,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (btn.querySelector('.spinner-border')) return;
         var total = paymentModalGetAmountDueCents() / 100;
         if (paymentModalIsFinalizeDraft()) {
-            btn.textContent = 'Faturar';
+            btn.textContent = 'Faturar ' + total.toFixed(2).replace('.', ',') + ' €';
         } else if (paymentModalIsInvoiceOnly()) {
             btn.textContent = 'Emitir fatura final · ' + total.toFixed(2).replace('.', ',') + ' €';
         } else if (paymentModalIsReserva()) {

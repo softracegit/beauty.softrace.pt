@@ -2,6 +2,10 @@
 
 @section('title', ($pageTitle ?? 'Relatórios — Comissões').' — '.config('app.name'))
 
+@section('css')
+  @include('relatorios._styles')
+@endsection
+
 @section('content')
   <div class="dash-welcome mb-4">
     <div class="dash-welcome-content">

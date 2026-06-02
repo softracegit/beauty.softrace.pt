@@ -41,7 +41,7 @@
           </a>
         </li>
         <li>
-          <a href="{{ route('relatorios.marcacoes') }}" class="iconbar-item {{ request()->routeIs('relatorios.*') ? 'active' : '' }}" data-panel="reports" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Relatórios" aria-label="Relatórios">
+          <a href="{{ route('relatorios.vendas') }}" class="iconbar-item {{ request()->routeIs('relatorios.*') ? 'active' : '' }}" data-panel="reports" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Relatórios" aria-label="Relatórios">
             <i class="ph ph-chart-line-up"></i>
           </a>
         </li>
@@ -227,13 +227,13 @@
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link {{ request()->routeIs('relatorios.marcacoes') ? 'active' : '' }}" href="{{ route('relatorios.marcacoes') }}">
-            Marcações
+          <a class="panel-link {{ request()->routeIs('relatorios.vendas') ? 'active' : '' }}" href="{{ route('relatorios.vendas') }}">
+            Vendas
           </a>
         </li>
         <li>
-          <a class="panel-link {{ request()->routeIs('relatorios.vendas') ? 'active' : '' }}" href="{{ route('relatorios.vendas') }}">
-            Vendas
+          <a class="panel-link {{ request()->routeIs('relatorios.marcacoes') ? 'active' : '' }}" href="{{ route('relatorios.marcacoes') }}">
+            Marcações
           </a>
         </li>
         <li>

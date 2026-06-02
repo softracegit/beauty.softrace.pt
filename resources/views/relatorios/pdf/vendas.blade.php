@@ -38,17 +38,16 @@
     <thead>
       <tr>
         <th style="width:8%">Data</th>
-        <th style="width:10%">{{ ($vendasModo ?? 'venda') === 'venda' ? 'Faturas' : 'N.º fatura' }}</th>
+        <th style="width:10%">N.º fatura</th>
         <th style="width:12%">Cliente</th>
         <th style="width:8%">NIF</th>
         <th style="width:10%">Técnico</th>
         <th style="width:15%">Serviço</th>
-        <th class="text-center" style="width:4%">Qtd</th>
         <th class="text-end text-nowrap" style="width:8%">Total</th>
-        <th class="text-end text-nowrap" style="width:7%">Reserva</th>
+        <th class="text-end text-nowrap" style="width:7%">Taxas</th>
         <th class="text-end text-nowrap" style="width:7%">Gorjeta</th>
         <th class="text-end text-nowrap" style="width:7%">Em dívida</th>
-        <th style="width:6%">Estado</th>
+        <th style="width:6%">Estado fatura</th>
       </tr>
     </thead>
     <tbody>
@@ -59,19 +58,21 @@
           <td>{{ $linha->cliente }}</td>
           <td>{{ $linha->nif !== '' && $linha->nif !== null ? $linha->nif : '—' }}</td>
           <td>{{ $linha->tecnico }}</td>
-          <td>{{ $linha->servico }}</td>
-          <td class="text-center">{{ $linha->quantidade }}</td>
+          <td>
+            {{ $linha->servico_nomes ?? $linha->servico }}
+            @if(!empty($linha->servico_subtitulo))
+              <br><span style="color:#666;font-size:6px;">{{ $linha->servico_subtitulo }}</span>
+            @endif
+          </td>
           <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>
-          <td class="text-end text-nowrap">@if(($vendasModo ?? 'venda') === 'venda' && (float) ($linha->reserva_pago ?? 0) > 0){{ number_format((float) $linha->reserva_pago, 2, ',', ' ') }}€@else—@endif</td>
+          <td class="text-end text-nowrap">@if((float) ($linha->taxas ?? 0) > 0){{ number_format((float) $linha->taxas, 2, ',', ' ') }}€@else—@endif</td>
           <td class="text-end text-nowrap">@if((float)($linha->gorjeta ?? 0) > 0){{ number_format((float) $linha->gorjeta, 2, ',', ' ') }}€@else—@endif</td>
           <td class="text-end text-nowrap">@if((float)($linha->pendente ?? 0) > 0){{ number_format((float) $linha->pendente, 2, ',', ' ') }}€@else—@endif</td>
           <td>
-            @if(($linha->sale_display_status ?? '') === 'anulado')
-              Anulado
-            @elseif(($linha->sale_display_status ?? '') === 'parcial')
-              Parcial
+            @if(($linha->invoice_status ?? \App\Models\Sale::INVOICE_STATUS_FATURADO) === \App\Models\Sale::INVOICE_STATUS_RASCUNHO)
+              Rascunho
             @else
-              Pago
+              Faturado
             @endif
           </td>
         </tr>
@@ -80,18 +81,19 @@
     @if(!empty($vendasTotais))
       <tfoot>
         <tr>
-          <td colspan="6" class="text-end" style="font-weight:bold;">Totais (filtro)</td>
-          <td class="text-center" style="font-weight:bold;">{{ $vendasTotais['num_vendas'] ?? 0 }}</td>
+          <td colspan="6" class="text-end" style="font-weight:bold;"></td>
           <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_valor_com_gorjeta'] ?? (($vendasTotais['total_valor'] ?? 0) + ($vendasTotais['total_gorjeta'] ?? 0)), 2, ',', ' ') }}€</td>
-          <td class="text-end text-nowrap" style="font-weight:bold;">
-            @if(($vendasModo ?? 'venda') === 'venda')
-              {{ number_format((float) $linhas->sum(fn ($linha) => (float) ($linha->reserva_pago ?? 0)), 2, ',', ' ') }}€
-            @else
-              —
-            @endif
-          </td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format((float) ($vendasTotais['total_taxas'] ?? 0), 2, ',', ' ') }}€</td>
           <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_gorjeta'] ?? 0, 2, ',', ' ') }}€</td>
           <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_divida'] ?? 0, 2, ',', ' ') }}€</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td colspan="6" class="text-end" style="font-weight:bold;">Total</td>
+          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format((float) ($vendasTotais['total_absoluto'] ?? 0), 2, ',', ' ') }}€</td>
+          <td></td>
+          <td></td>
+          <td></td>
           <td></td>
         </tr>
       </tfoot>
