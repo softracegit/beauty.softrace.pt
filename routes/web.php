@@ -13,6 +13,7 @@ use App\Http\Controllers\BookingSmsActionController;
 use App\Http\Controllers\BookingSavedCardController;
 use App\Http\Controllers\BookingSlotHoldController;
 use App\Http\Controllers\CalendarController;
+use App\Http\Controllers\CashRegisterController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\AgendaDepositController;
 use App\Http\Controllers\CheckoutController;
@@ -292,16 +293,19 @@ Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function ()
     Route::delete('agenda/events/{calendarEvent}', [CalendarController::class, 'destroy'])->name('agenda.events.destroy');
     Route::get('agenda/events/{calendarEvent}/checkout', [CheckoutController::class, 'checkout'])->name('agenda.checkout');
     Route::get('agenda/events/{calendarEvent}/deposit', [AgendaDepositController::class, 'show'])->name('agenda.deposit.show');
-    Route::post('agenda/events/{calendarEvent}/deposit', [AgendaDepositController::class, 'store'])->name('agenda.deposit.store');
-    Route::post('agenda/events/{calendarEvent}/deposit/mbway/intent', [AgendaDepositController::class, 'createMbwayIntent'])->name('agenda.deposit.mbway.intent');
-    Route::post('agenda/events/{calendarEvent}/deposit/mbway/finalize', [AgendaDepositController::class, 'finalizeMbway'])->name('agenda.deposit.mbway.finalize');
-    Route::post('agenda/events/{calendarEvent}/deposit/card', [AgendaDepositController::class, 'storeCard'])->name('agenda.deposit.card');
-    Route::post('agenda/checkout', [CheckoutController::class, 'store'])->name('agenda.checkout.store');
-    Route::post('agenda/checkout/mbway/intent', [CheckoutController::class, 'createMbwayIntent'])->name('agenda.checkout.mbway.intent');
-    Route::post('agenda/checkout/mbway/finalize', [CheckoutController::class, 'finalizeMbway'])->name('agenda.checkout.mbway.finalize');
+    Route::middleware('cash.register.open')->group(function () {
+        Route::post('agenda/events/{calendarEvent}/deposit', [AgendaDepositController::class, 'store'])->name('agenda.deposit.store');
+        Route::post('agenda/events/{calendarEvent}/deposit/mbway/intent', [AgendaDepositController::class, 'createMbwayIntent'])->name('agenda.deposit.mbway.intent');
+        Route::post('agenda/events/{calendarEvent}/deposit/mbway/finalize', [AgendaDepositController::class, 'finalizeMbway'])->name('agenda.deposit.mbway.finalize');
+        Route::post('agenda/events/{calendarEvent}/deposit/card', [AgendaDepositController::class, 'storeCard'])->name('agenda.deposit.card');
+        Route::post('agenda/checkout', [CheckoutController::class, 'store'])->name('agenda.checkout.store');
+        Route::post('agenda/checkout/mbway/intent', [CheckoutController::class, 'createMbwayIntent'])->name('agenda.checkout.mbway.intent');
+        Route::post('agenda/checkout/mbway/finalize', [CheckoutController::class, 'finalizeMbway'])->name('agenda.checkout.mbway.finalize');
+    });
     Route::post('agenda/events/{calendarEvent}/invoices/email', [CheckoutController::class, 'sendMarcacaoInvoicesEmail'])->name('agenda.invoices.email');
     Route::get('sales/{sale}/pdf', [CheckoutController::class, 'pdf'])->name('sales.pdf');
     Route::get('sales/{sale}/vendus-pdf', [CheckoutController::class, 'vendusPdf'])->name('sales.vendus.pdf');
+    Route::get('sales/{sale}/credit-note-pdf', [CheckoutController::class, 'creditNotePdf'])->name('sales.credit-note.pdf');
     Route::post('sales/{sale}/revert', [CheckoutController::class, 'revert'])->name('sales.revert');
     Route::post('sales/{sale}/finalize-invoice', [CheckoutController::class, 'finalizeInvoice'])->name('sales.finalize-invoice');
 
@@ -358,6 +362,16 @@ Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function ()
         Route::get('vendas/pdf', [RelatoriosController::class, 'vendasPdf'])->name('vendas.pdf');
         Route::get('vendas', [RelatoriosController::class, 'vendas'])->name('vendas');
         Route::get('comissoes', [RelatoriosController::class, 'comissoes'])->name('comissoes');
+        Route::get('caixa', [CashRegisterController::class, 'index'])->name('caixa');
+    });
+
+    Route::prefix('caixa')->name('caixa.')->group(function () {
+        Route::get('/', fn () => redirect()->route('relatorios.caixa'));
+        Route::get('/close', fn () => redirect()->route('relatorios.caixa'));
+        Route::get('/close-summary', [CashRegisterController::class, 'closeSummary'])->name('close.summary');
+        Route::get('/open-preview', [CashRegisterController::class, 'openPreview'])->name('open.preview');
+        Route::post('/open', [CashRegisterController::class, 'open'])->name('open');
+        Route::post('/close', [CashRegisterController::class, 'close'])->name('close.store');
     });
 
     // Rotas do template (protegidas)

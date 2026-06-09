@@ -241,6 +241,13 @@
             Comissões
           </a>
         </li>
+        @if(!empty($cashRegisterCanManage))
+        <li>
+          <a class="panel-link {{ request()->routeIs('relatorios.caixa') ? 'active' : '' }}" href="{{ route('relatorios.caixa') }}">
+            Caixa
+          </a>
+        </li>
+        @endif
       </ul>
     </div>
 

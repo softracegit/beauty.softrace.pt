@@ -20,6 +20,7 @@ use App\Support\PhoneDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Stripe\Exception\ApiErrorException;
@@ -124,7 +125,8 @@ class CheckoutController extends Controller
             'event_id' => ['required', 'exists:calendar_events,id'],
             'event_ids' => ['sometimes', 'array', 'min:1'],
             'event_ids.*' => ['integer', 'exists:calendar_events,id'],
-            'payment_method' => ['required', 'string', 'in:'.implode(',', array_keys(Sale::paymentMethods()))],
+            'invoice_only' => ['sometimes', 'boolean'],
+            'payment_method' => [Rule::requiredIf(fn (): bool => ! $request->boolean('invoice_only')), 'nullable', 'string', 'in:'.implode(',', array_keys(Sale::paymentMethods()))],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
             'items' => ['required', 'array', 'min:1'],
@@ -185,22 +187,73 @@ class CheckoutController extends Controller
             $gorjeta = 0.0;
         }
         $descontoDocInput = isset($validated['desconto']) ? max(0, (float) $validated['desconto']) : 0;
-        $alreadyPaid = (float) $events->sum(fn (CalendarEvent $event): float => ApplicableFees::marcacaoMoneyTowardSubtotal((int) $event->id));
-        $descontoDoc = max(0, $descontoDocInput);
-        $maxDocDisc = $subtotalItens + $gorjeta;
-        $descontoDoc = min($descontoDoc, $maxDocDisc);
-        $baseAposDesconto = round(max(0, $subtotalItens + $gorjeta - $descontoDoc), 2);
-        $total = round(max(0, $baseAposDesconto - $alreadyPaid), 2);
+        // Re-emitir a fatura final (marcação já paga, fatura anterior anulada): o valor da fatura
+        // anulada NÃO conta como «já pago», para podermos voltar a faturar a mesma parte em dívida.
+        $invoiceOnly = $request->boolean('invoice_only');
+        $itemsForSale = $validated['items'];
+
+        $annulledCaixaSale = $invoiceOnly
+            ? Sale::query()
+                ->whereIn('calendar_event_id', $events->pluck('id')->all())
+                ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
+                ->where('status', Sale::STATUS_ANULADO)
+                ->orderByDesc('id')
+                ->first()
+            : null;
+
+        if ($invoiceOnly && $annulledCaixaSale) {
+            // Reproduz exactamente a fatura final anulada (itens, taxas, total, gorjeta, desconto e
+            // método de pagamento): o valor original mantém-se, só muda o documento fiscal (ex.: NIF).
+            $annulledCaixaSale->loadMissing('items');
+            $clonedItems = $annulledCaixaSale->items->map(fn (SaleItem $item): array => [
+                'tipo' => $item->tipo,
+                'calendar_event_service_id' => $item->calendar_event_service_id,
+                'service_id' => $item->service_id,
+                'extra_id' => $item->extra_id,
+                'fee_id' => $item->fee_id,
+                'descricao' => $item->descricao,
+                'quantidade' => (int) $item->quantidade,
+                'preco_unitario' => (float) $item->preco_unitario,
+                'desconto' => $item->desconto !== null ? (float) $item->desconto : 0,
+            ])->values()->all();
+            if ($clonedItems !== []) {
+                $itemsForSale = $clonedItems;
+            }
+            $total = round((float) $annulledCaixaSale->total, 2);
+            $gorjeta = round((float) ($annulledCaixaSale->gorjeta ?? 0), 2);
+            $descontoDoc = round((float) ($annulledCaixaSale->desconto ?? 0), 2);
+            $paymentMethod = (string) ($annulledCaixaSale->payment_method ?? '');
+            // Re-emissão não movimenta a carteira (o débito já ocorreu na fatura original).
+            if (! array_key_exists($paymentMethod, Sale::paymentMethods()) || $paymentMethod === Sale::PAYMENT_CREDITOS_CARTEIRA) {
+                $paymentMethod = Sale::PAYMENT_OUTRO;
+            }
+            $valorPago = $total;
+        } else {
+            $alreadyPaid = (float) $events->sum(fn (CalendarEvent $event): float => ApplicableFees::marcacaoMoneyTowardSubtotal((int) $event->id, ! $invoiceOnly));
+            $descontoDoc = max(0, $descontoDocInput);
+            $maxDocDisc = $subtotalItens + $gorjeta;
+            $descontoDoc = min($descontoDoc, $maxDocDisc);
+            $baseAposDesconto = round(max(0, $subtotalItens + $gorjeta - $descontoDoc), 2);
+            $total = round(max(0, $baseAposDesconto - $alreadyPaid), 2);
+            $paymentMethod = (string) ($validated['payment_method'] ?? '');
+            if ($invoiceOnly && ! array_key_exists($paymentMethod, Sale::paymentMethods())) {
+                $paymentMethod = Sale::PAYMENT_OUTRO;
+            }
+            if ($invoiceOnly) {
+                $valorPago = $total;
+            } else {
+                $valorPago = isset($validated['valor_pago']) ? max(0, (float) $validated['valor_pago']) : $total;
+                $valorPago = min($valorPago, $total);
+            }
+        }
+
         if ($total <= 0.00001) {
             return response()->json(['error' => 'Esta marcação já foi faturada.'], 422);
         }
-        $valorPago = isset($validated['valor_pago']) ? max(0, (float) $validated['valor_pago']) : $total;
-        $valorPago = min($valorPago, $total);
 
         $invoiceStatus = $this->resolveInvoiceStatusFromCheckoutMode($validated['checkout_mode'] ?? 'faturar');
 
-        $paymentMethod = (string) $validated['payment_method'];
-        if ($paymentMethod === Sale::PAYMENT_CREDITOS_CARTEIRA) {
+        if (! $invoiceOnly && $paymentMethod === Sale::PAYMENT_CREDITOS_CARTEIRA) {
             if (! $client instanceof Client) {
                 return response()->json(['error' => 'Esta marcação não tem cliente associado.'], 422);
             }
@@ -228,7 +281,7 @@ class CheckoutController extends Controller
             $sale = $this->agendaCheckoutService->persistSale(
                 $events,
                 $client,
-                $validated['items'],
+                $itemsForSale,
                 $invoiceStatus,
                 $paymentMethod,
                 $total,
@@ -595,6 +648,34 @@ class CheckoutController extends Controller
     }
 
     /**
+     * GET sales/{sale}/credit-note-pdf – PDF oficial da nota de crédito da venda anulada.
+     */
+    public function creditNotePdf(Sale $sale)
+    {
+        if ((int) $sale->store_id !== (int) current_store_id()) {
+            abort(404);
+        }
+
+        if (! $sale->hasCreditNote()) {
+            return response()->json(['error' => 'Esta venda não tem nota de crédito associada.'], 422);
+        }
+
+        $binary = $this->vendusInvoiceEmailService->fetchVendusCreditNotePdfBinaryWithRetry($sale);
+        if ($binary === null || $binary === '') {
+            return response()->json([
+                'error' => 'Não foi possível obter o PDF da nota de crédito na Vendus.',
+            ], 502);
+        }
+
+        $documentId = (int) $sale->vendus_credit_note_id;
+
+        return response($binary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="nota-credito-'.$documentId.'.pdf"',
+        ]);
+    }
+
+    /**
      * POST sales/{sale}/finalize-invoice — passar venda de rascunho para faturado (Vendus + email opcional).
      */
     public function finalizeInvoice(Request $request, Sale $sale)
@@ -753,6 +834,7 @@ class CheckoutController extends Controller
             ->all();
 
         $creditNotes = [];
+        $creditNoteIdBySale = [];
         foreach ($salesToRevert as $candidateSale) {
             if ($candidateSale->scope === Sale::SCOPE_BOOKING_RESERVA) {
                 continue;
@@ -769,30 +851,43 @@ class CheckoutController extends Controller
                 ], 422);
             }
 
+            $creditNoteId = $cnResult['credit_note_id'] ?? null;
+            if ($creditNoteId !== null) {
+                $creditNoteIdBySale[(int) $candidateSale->id] = (int) $creditNoteId;
+            }
+
             $creditNotes[] = [
                 'sale_id' => $candidateSale->id,
                 'sale_numero_fatura' => $candidateSale->numero_fatura,
                 'vendus_document_id' => $candidateSale->vendus_document_id,
-                'vendus_credit_note_id' => $cnResult['credit_note_id'] ?? null,
+                'vendus_credit_note_id' => $creditNoteId,
             ];
         }
 
         try {
             DB::beginTransaction();
+            $cancelledAt = now();
             foreach ($salesToRevert as $candidateSale) {
                 if ($candidateSale->scope === Sale::SCOPE_BOOKING_RESERVA) {
                     continue;
                 }
-                $candidateSale->update(['status' => Sale::STATUS_ANULADO]);
-            }
-            CalendarEvent::query()
-                ->whereIn('id', $settledEventIds->all())
-                ->update([
-                    'status' => CalendarEvent::STATUS_TERMINADO,
-                    'cancellation_type' => null,
-                    'cancellation_reason' => null,
+                $candidateSale->update([
+                    'status' => Sale::STATUS_ANULADO,
+                    'vendus_credit_note_id' => $creditNoteIdBySale[(int) $candidateSale->id] ?? $candidateSale->vendus_credit_note_id,
+                    'cancelled_at' => $cancelledAt,
+                    'cancellation_reason' => $reason !== '' ? $reason : null,
                 ]);
+            }
+            // Anular só a fatura final mantém a marcação «paga» (completo): o cliente continua
+            // a dever o documento fiscal, por isso repomos o aviso amarelo e a opção de voltar a faturar.
             if (! $finalInvoiceOnly) {
+                CalendarEvent::query()
+                    ->whereIn('id', $settledEventIds->all())
+                    ->update([
+                        'status' => CalendarEvent::STATUS_TERMINADO,
+                        'cancellation_type' => null,
+                        'cancellation_reason' => null,
+                    ]);
                 $calendarEvent->refresh();
             }
             DB::commit();

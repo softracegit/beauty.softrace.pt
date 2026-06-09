@@ -108,7 +108,7 @@ class ApplicableFees
     /**
      * Valor já aplicado à marcação (vendas + pré-pagamento na receção, incluindo créditos da carteira).
      */
-    public static function marcacaoMoneyTowardSubtotal(int $calendarEventId): float
+    public static function marcacaoMoneyTowardSubtotal(int $calendarEventId, bool $includeAnnulledCaixa = true): float
     {
         $saleIds = self::saleIdsLinkedToEvent($calendarEventId);
         if ($saleIds === []) {
@@ -119,12 +119,16 @@ class ApplicableFees
             ->whereIn('id', $saleIds)
             ->where('status', '!=', Sale::STATUS_ANULADO)
             ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
-        $annulledCaixa = round((float) Sale::query()
-            ->whereIn('id', $saleIds)
-            ->where('status', Sale::STATUS_ANULADO)
-            ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
-            ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
-        $fromSales = round($fromSales + $annulledCaixa, 2);
+        // A fatura final anulada conta como «já pago» para o resumo/aviso amarelo (amount_due = 0),
+        // mas NÃO ao re-emitir: aí precisamos do valor que estava nessa fatura para o novo documento.
+        if ($includeAnnulledCaixa) {
+            $annulledCaixa = round((float) Sale::query()
+                ->whereIn('id', $saleIds)
+                ->where('status', Sale::STATUS_ANULADO)
+                ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
+                ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(valor_pago, total)')), 2);
+            $fromSales = round($fromSales + $annulledCaixa, 2);
+        }
 
         $booking = Booking::query()
             ->where('calendar_event_id', $calendarEventId)

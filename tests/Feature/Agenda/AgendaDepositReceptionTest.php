@@ -19,10 +19,12 @@ use App\Services\ClientWalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
+use Tests\Support\OpensCashRegister;
 use Tests\TestCase;
 
 class AgendaDepositReceptionTest extends TestCase
 {
+    use OpensCashRegister;
     use RefreshDatabase;
 
     /**
@@ -94,6 +96,8 @@ class AgendaDepositReceptionTest extends TestCase
             'status' => Agent::STATUS_ACTIVE,
         ]);
         $staff->stores()->sync([$store->id]);
+
+        $this->openCashRegisterForStore($staff, $store);
 
         return compact('store', 'staff', 'client', 'event');
     }

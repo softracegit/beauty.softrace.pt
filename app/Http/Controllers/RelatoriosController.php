@@ -412,9 +412,11 @@ class RelatoriosController extends Controller
                     round((float) ($linha->taxas ?? 0), 2),
                     round((float) ($linha->gorjeta ?? 0), 2),
                     round((float) ($linha->pendente ?? 0), 2),
-                    ($linha->invoice_status ?? Sale::INVOICE_STATUS_FATURADO) === Sale::INVOICE_STATUS_RASCUNHO
-                        ? 'Rascunho'
-                        : 'Faturado',
+                    ! empty($linha->is_anulado)
+                        ? 'Anulada'
+                        : (($linha->invoice_status ?? Sale::INVOICE_STATUS_FATURADO) === Sale::INVOICE_STATUS_RASCUNHO
+                            ? 'Rascunho'
+                            : 'Faturado'),
                 ],
             ], null, 'A'.$rowIndex);
             $rowIndex++;
@@ -590,7 +592,9 @@ class RelatoriosController extends Controller
         $totalGorjeta = 0.0;
         $totalTaxas = 0.0;
         $totalServicos = 0;
-        foreach ($lines as $linha) {
+        // Vendas anuladas (com nota de crédito) não contam para os totais — anulam-se com a NC.
+        $activeLines = $lines->filter(fn ($linha): bool => empty($linha->is_anulado));
+        foreach ($activeLines as $linha) {
             $totalValor += (float) $linha->valor;
             $totalDesconto += (float) ($linha->desconto ?? 0);
             $totalGorjeta += (float) ($linha->gorjeta ?? 0);
@@ -602,11 +606,11 @@ class RelatoriosController extends Controller
             }
         }
 
-        $numVendas = $lines->pluck('sale_id')->unique()->count();
+        $numVendas = $activeLines->pluck('sale_id')->unique()->count();
 
         $totalDivida = 0.0;
         $vistoSale = [];
-        foreach ($lines as $linha) {
+        foreach ($activeLines as $linha) {
             $sid = (int) $linha->sale_id;
             if (isset($vistoSale[$sid])) {
                 continue;
@@ -721,6 +725,8 @@ class RelatoriosController extends Controller
                 'sale' => $sale,
                 'sale_id' => $sale->id,
                 'sale_status' => $sale->status,
+                'is_anulado' => $sale->isAnulado(),
+                'credit_note_pdf_url' => $sale->hasCreditNote() ? route('sales.credit-note.pdf', $sale) : null,
                 'invoice_status' => $sale->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
                 'data' => $sale->data_emissao,
                 'numero_fatura' => $sale->numero_fatura,

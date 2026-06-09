@@ -1,0 +1,94 @@
+/* Caixa — botão na navbar (círculo com ícone colorido) */
+button.header-action.header-cash-register-btn,
+a.header-action.header-cash-register-btn {
+    border: none;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    padding: 0;
+    text-decoration: none !important;
+    transition: background-color 0.15s ease, color 0.15s ease, filter 0.15s ease;
+}
+
+button.header-action.header-cash-register-btn:hover,
+a.header-action.header-cash-register-btn:hover {
+    filter: brightness(0.97);
+}
+
+button.header-action.header-cash-register-btn--closed,
+a.header-action.header-cash-register-btn--closed {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd) !important;
+    color: var(--bs-success, #198754) !important;
+}
+
+button.header-action.header-cash-register-btn--closed:hover,
+a.header-action.header-cash-register-btn--closed:hover {
+    background-color: color-mix(in srgb, var(--bs-success, #198754) 22%, transparent) !important;
+    color: var(--bs-success, #198754) !important;
+}
+
+button.header-action.header-cash-register-btn--closed i,
+a.header-action.header-cash-register-btn--closed i {
+    color: var(--bs-success, #198754) !important;
+}
+
+button.header-action.header-cash-register-btn--open,
+a.header-action.header-cash-register-btn--open {
+    background-color: var(--bs-warning-bg-subtle, #fff3cd) !important;
+    color: var(--bs-warning, #ffc107) !important;
+}
+
+button.header-action.header-cash-register-btn--open i,
+a.header-action.header-cash-register-btn--open i {
+    color: var(--bs-warning, #ffc107) !important;
+}
+
+button.header-action.header-cash-register-btn--open:hover,
+a.header-action.header-cash-register-btn--open:hover {
+    background-color: color-mix(in srgb, var(--bs-warning, #ffc107) 35%, transparent) !important;
+    color: var(--bs-warning, #e6ac00) !important;
+}
+
+button.header-action.header-cash-register-btn--open:hover i,
+a.header-action.header-cash-register-btn--open:hover i {
+    color: var(--bs-warning, #e6ac00) !important;
+}
+
+.mobile-cash-register-item.header-cash-register-btn--closed,
+.mobile-cash-register-item.header-cash-register-btn--open {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    border-radius: 0;
+    min-height: auto;
+    padding: 0.65rem 1rem;
+}
+
+.mobile-cash-register-item.header-cash-register-btn--closed {
+    background-color: var(--bs-success-bg-subtle, #d1e7dd) !important;
+    color: var(--bs-success, #198754) !important;
+}
+
+.mobile-cash-register-item.header-cash-register-btn--open {
+    background-color: var(--bs-warning-bg-subtle, #fff3cd) !important;
+    color: var(--bs-warning, #ffc107) !important;
+}
+
+.mobile-cash-register-item.header-cash-register-btn--open i {
+    color: var(--bs-warning, #ffc107) !important;
+}
+
+#crmCashRegisterCloseModal .crm-cash-register-close-notes {
+    min-height: 2rem;
+    max-height: 3.5rem;
+    resize: vertical;
+}
+
+#crmCashRegisterCloseModal #crmCashRegisterCountedCash {
+    max-width: 9rem;
+}

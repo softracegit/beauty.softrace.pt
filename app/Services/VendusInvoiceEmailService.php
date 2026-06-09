@@ -74,15 +74,33 @@ final class VendusInvoiceEmailService
      */
     public function fetchVendusInvoicePdfBinaryWithRetry(Sale $sale, int $maxAttempts = 12, int $delayMs = 400): ?string
     {
+        return $this->fetchVendusDocumentPdfBinaryWithRetry((int) ($sale->vendus_document_id ?? 0), $maxAttempts, $delayMs, (int) $sale->id);
+    }
+
+    /**
+     * Obtém o PDF oficial da nota de crédito (documento associado à venda anulada).
+     */
+    public function fetchVendusCreditNotePdfBinaryWithRetry(Sale $sale, int $maxAttempts = 12, int $delayMs = 400): ?string
+    {
+        return $this->fetchVendusDocumentPdfBinaryWithRetry((int) ($sale->vendus_credit_note_id ?? 0), $maxAttempts, $delayMs, (int) $sale->id);
+    }
+
+    public function fetchVendusDocumentPdfBinaryWithRetry(int $documentId, int $maxAttempts = 12, int $delayMs = 400, ?int $saleId = null): ?string
+    {
+        if ($documentId <= 0) {
+            return null;
+        }
+
         for ($i = 0; $i < $maxAttempts; $i++) {
             if ($i > 0) {
                 usleep($delayMs * 1000);
             }
-            $binary = $this->fetchVendusInvoicePdfBinary($sale);
+            $binary = $this->fetchVendusDocumentPdfBinary($documentId);
             if ($binary !== null && $binary !== '') {
                 if ($i > 0) {
                     Log::info('vendus_invoice_pdf_ready_after_retry', [
-                        'sale_id' => $sale->id,
+                        'sale_id' => $saleId,
+                        'vendus_document_id' => $documentId,
                         'attempt' => $i + 1,
                     ]);
                 }
@@ -99,7 +117,12 @@ final class VendusInvoiceEmailService
      */
     private function fetchVendusInvoicePdfBinary(Sale $sale): ?string
     {
-        if (! $sale->vendus_document_id) {
+        return $this->fetchVendusDocumentPdfBinary((int) ($sale->vendus_document_id ?? 0));
+    }
+
+    private function fetchVendusDocumentPdfBinary(int $documentId): ?string
+    {
+        if ($documentId <= 0) {
             return null;
         }
 
@@ -107,7 +130,6 @@ final class VendusInvoiceEmailService
         $apiKey = (string) config('services.vendus.api_key');
         $authMode = strtolower((string) config('services.vendus.auth_mode', 'basic'));
         $vendusMode = (string) config('services.vendus.mode', 'normal');
-        $documentId = (int) $sale->vendus_document_id;
 
         if ($baseUrl === '' || $apiKey === '') {
             return null;

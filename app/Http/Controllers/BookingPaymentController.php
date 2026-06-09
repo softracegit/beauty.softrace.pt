@@ -21,6 +21,7 @@ use App\Services\OnlineBookingCheckoutService;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
 use App\Support\CurrentStore;
+use App\Support\StoreBusinessTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -726,8 +727,8 @@ class BookingPaymentController extends Controller
             return $activeSale;
         }
 
-        $now = now();
         $storeId = (int) ($booking->store_id ?: CalendarEvent::query()->whereKey($eventId)->value('store_id'));
+        $now = StoreBusinessTime::nowUtcForStore($storeId);
         $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'), $storeId);
         $paymentMethod = $intent instanceof PaymentIntent
             ? $this->salePaymentMethodFromIntent($intent)
@@ -761,7 +762,7 @@ class BookingPaymentController extends Controller
             'calendar_event_id' => $eventId,
             'client_id' => $client->id,
             'numero_fatura' => $numeroFatura,
-            'data_emissao' => $now->toDateString(),
+            'data_emissao' => $now->copy()->timezone(StoreBusinessTime::timezoneForStore($storeId))->toDateString(),
             'total' => min($valorPago, $total),
             'gorjeta' => null,
             'desconto' => null,
@@ -771,6 +772,8 @@ class BookingPaymentController extends Controller
             'scope' => Sale::SCOPE_BOOKING_RESERVA,
             'status' => Sale::STATUS_PAGO,
             'issue_without_fiscal_id' => $issueWithoutFiscalId,
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
 
         $eventTitle = trim((string) ($eventModel?->title ?? ''));

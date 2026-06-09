@@ -44,6 +44,19 @@
   <script src="{{ asset('template/js/crm-notifications.js') }}?v={{ file_exists(public_path('template/js/crm-notifications.js')) ? filemtime(public_path('template/js/crm-notifications.js')) : time() }}"></script>
   <script src="{{ asset('template/js/crm-flatpickr.js') }}?v={{ file_exists(public_path('template/js/crm-flatpickr.js')) ? filemtime(public_path('template/js/crm-flatpickr.js')) : time() }}"></script>
   @include('partials.toast-container')
+  @if(!empty($cashRegisterCanManage))
+    @include('partials.cash-register-modals')
+    <script>
+      window.CrmCashRegister = {
+        isOpen: @json(!empty($cashRegisterSession)),
+        openUrl: @json(route('caixa.open')),
+        openPreviewUrl: @json(route('caixa.open.preview')),
+        closeUrl: @json(route('caixa.close.store')),
+        summaryUrl: @json(route('caixa.close.summary')),
+      };
+    </script>
+    <script src="{{ asset('template/js/cash-register.js') }}?v={{ file_exists(public_path('template/js/cash-register.js')) ? filemtime(public_path('template/js/cash-register.js')) : time() }}"></script>
+  @endif
   @yield('js')
 </body>
 

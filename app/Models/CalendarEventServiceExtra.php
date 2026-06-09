@@ -28,6 +28,8 @@ class CalendarEventServiceExtra extends Model
 
     public function extra(): BelongsTo
     {
-        return $this->belongsTo(Extra::class);
+        // withTrashed para que marcações antigas continuem a resolver nome/preço/duração
+        // do extra mesmo depois de este ser eliminado (soft delete) do catálogo.
+        return $this->belongsTo(Extra::class)->withTrashed();
     }
 }

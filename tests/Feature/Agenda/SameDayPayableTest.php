@@ -14,10 +14,12 @@ use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\Support\OpensCashRegister;
 use Tests\TestCase;
 
 class SameDayPayableTest extends TestCase
 {
+    use OpensCashRegister;
     use RefreshDatabase;
 
     private function fixture(): array
@@ -95,6 +97,7 @@ class SameDayPayableTest extends TestCase
     public function test_same_day_payable_returns_only_unpaid_markings_same_day(): void
     {
         $fx = $this->fixture();
+        $this->openCashRegisterForStore($fx['staff'], $fx['store']);
         $day = now()->addDay()->startOfDay();
         $anchor = $this->createEvent($fx['store'], $fx['client'], $fx['service'], $day->copy()->addHours(10)->toDateTimeString());
         $second = $this->createEvent($fx['store'], $fx['client'], $fx['service'], $day->copy()->addHours(15)->toDateTimeString());

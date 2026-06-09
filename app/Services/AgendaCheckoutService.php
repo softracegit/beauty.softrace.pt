@@ -17,6 +17,7 @@ class AgendaCheckoutService
 {
     public function __construct(
         private readonly ClientWalletService $walletService,
+        private readonly CashRegisterService $cashRegisterService,
     ) {}
 
     /**
@@ -202,6 +203,7 @@ class AgendaCheckoutService
             ): Sale {
                 $sale = Sale::create([
                     'store_id' => $storeId,
+                    'cash_register_session_id' => $this->cashRegisterService->sessionIdForNewStoreSale($storeId),
                     'calendar_event_id' => (int) $events->first()->id,
                     'client_id' => $client->id,
                     'numero_fatura' => $numeroFatura,

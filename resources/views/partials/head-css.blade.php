@@ -21,3 +21,4 @@
 
 <!-- Template Main CSS File -->
 <link href="{{ asset('template/css/main.css') }}?v={{ file_exists(public_path('template/css/main.css')) ? filemtime(public_path('template/css/main.css')) : time() }}" rel="stylesheet">
+<link href="{{ asset('template/css/cash-register.css') }}?v={{ file_exists(public_path('template/css/cash-register.css')) ? filemtime(public_path('template/css/cash-register.css')) : time() }}" rel="stylesheet">

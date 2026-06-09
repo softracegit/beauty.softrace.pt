@@ -569,10 +569,10 @@
         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between w-100 event-detail-oc-footer-actions" id="eventDetailFooterActionsRow">
             <div class="d-flex flex-wrap gap-2 align-items-center" id="eventDetailPaymentWrap">
                 <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn">Pré-pagamento</button>
-                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Caixa</button>
+                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Pagamento</button>
                 <div class="dropup d-none" id="eventDetailPaymentDropup">
                     <button class="btn btn-success btn-sm dropdown-toggle" type="button" id="eventDetailPaymentDropupToggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        Caixa
+                        Pagamento
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="eventDetailPaymentDropupToggle" id="eventDetailPaymentDropupMenu">
                         <li>
@@ -591,6 +591,7 @@
                         </li>
                     </ul>
                 </div>
+                <button type="button" class="btn btn-outline-success btn-sm d-none" id="eventDetailOpenCashRegisterBtn" data-crm-cash-register-trigger="open" data-crm-cash-register-fixed="open">Abrir caixa</button>
                 <span class="event-detail-paid-badge d-none" id="eventDetailPagoBadge" role="status" aria-label="Pago">
                     <i class="ph ph-check" aria-hidden="true"></i>
                     <span>Pago</span>
@@ -659,6 +660,7 @@ window.AGENDA_CONFIG = {
     storeWeeklySchedule: @json($storeWeeklySchedule ?? []),
     agendaSlotMin: @json($agendaSlotMin ?? '09:00'),
     agendaSlotMax: @json($agendaSlotMax ?? '20:00'),
+    cashRegisterOpen: @json($cashRegisterOpen ?? false),
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>

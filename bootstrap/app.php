@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'has.agent' => \App\Http\Middleware\EnsureUserHasAgent::class,
             'set.current.store' => \App\Http\Middleware\SetCurrentStore::class,
+            'cash.register.open' => \App\Http\Middleware\EnsureCashRegisterOpen::class,
             'super.admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'booking' => \App\Http\Middleware\BookingContext::class,
             'booking.client' => \App\Http\Middleware\EnsureUserIsBookingClient::class,

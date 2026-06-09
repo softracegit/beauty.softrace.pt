@@ -10,7 +10,7 @@ class DateTimeDisplay
 {
     public static function businessTimezone(): string
     {
-        return (string) config('booking.business_timezone', config('app.timezone', 'UTC'));
+        return (string) config('booking.business_timezone', 'Europe/Lisbon');
     }
 
     public static function business(?DateTimeInterface $dateTime, string $format = 'd/m/Y H:i', string $fallback = '—'): string

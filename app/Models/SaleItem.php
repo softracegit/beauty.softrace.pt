@@ -53,7 +53,9 @@ class SaleItem extends Model
 
     public function extra(): BelongsTo
     {
-        return $this->belongsTo(Extra::class);
+        // withTrashed para manter a ligação em documentos fiscais já emitidos quando o
+        // extra é eliminado (soft delete) do catálogo.
+        return $this->belongsTo(Extra::class)->withTrashed();
     }
 
     public function fee(): BelongsTo

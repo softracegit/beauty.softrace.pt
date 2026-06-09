@@ -24,6 +24,7 @@ use App\Services\AgendaDepositService;
 use App\Services\AgendaSameDayPayableService;
 use App\Services\AppointmentCancellationService;
 use App\Services\CancellationPolicyService;
+use App\Services\CashRegisterService;
 use App\Services\ClientWalletService;
 use App\Support\ApplicableFees;
 use Carbon\Carbon;
@@ -42,6 +43,7 @@ class CalendarController extends Controller
         private ClientWalletService $walletService,
         private AgendaDepositService $agendaDepositService,
         private AgendaSameDayPayableService $sameDayPayableService,
+        private CashRegisterService $cashRegisterService,
     ) {}
 
     /**
@@ -91,6 +93,7 @@ class CalendarController extends Controller
         $storeWeeklySchedule = $store->normalizedWeeklySchedule();
         [$agendaSlotMin, $agendaSlotMax] = $store->agendaSlotRange();
         $storeHoursLabel = $store->hoursDisplayLabel();
+        $cashRegisterOpen = $this->cashRegisterIsOpen();
 
         return view('agenda.index', compact(
             'eventTypes',
@@ -102,6 +105,7 @@ class CalendarController extends Controller
             'agendaSlotMin',
             'agendaSlotMax',
             'storeHoursLabel',
+            'cashRegisterOpen',
         ));
     }
 
@@ -837,6 +841,26 @@ class CalendarController extends Controller
                 && $servicesSubtotal > 0.00001
                 && $activeCaixaSaleRecord === null
                 && $amountDue <= 0.00001;
+            // Fatura final anulada: guarda o valor original (para re-emitir) e, se houver, o link da nota de crédito.
+            $cancelledCaixaSaleRecord = Sale::query()
+                ->where(function ($q) use ($calendarEvent, $pivotSaleIds): void {
+                    $q->where('calendar_event_id', $calendarEvent->id);
+                    if ($pivotSaleIds !== []) {
+                        $q->orWhereIn('id', $pivotSaleIds);
+                    }
+                })
+                ->where('status', Sale::STATUS_ANULADO)
+                ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
+                ->orderByDesc('id')
+                ->first();
+            $payload['cancelled_final_invoice'] = $cancelledCaixaSaleRecord ? [
+                'id' => $cancelledCaixaSaleRecord->id,
+                'numero_fatura' => $cancelledCaixaSaleRecord->numero_fatura,
+                'credit_note_pdf_url' => $cancelledCaixaSaleRecord->hasCreditNote()
+                    ? route('sales.credit-note.pdf', $cancelledCaixaSaleRecord)
+                    : null,
+                'amount' => round($cancelledCaixaSaleRecord->effectiveAmountPaid(), 2),
+            ] : null;
             $payload['event_detail_nif_only_editable'] = ($calendarEvent->status === CalendarEvent::STATUS_COMPLETO)
                 && $this->isMarcacaoFullySettled($calendarEvent)
                 && $activeCaixaSaleRecord === null;
@@ -907,6 +931,8 @@ class CalendarController extends Controller
                     // Se houver erro ao carregar lead, continua sem detalhes
                 }
             }
+
+            $payload['cash_register_open'] = $this->cashRegisterIsOpen();
 
             return response()->json($payload);
         } catch (\Exception $e) {
@@ -2145,5 +2171,10 @@ class CalendarController extends Controller
             'has_booking_reserva_sale' => (bool) ($preview['has_reserva_sale'] ?? false),
             'has_saved_cards' => $hasSavedCards,
         ];
+    }
+
+    private function cashRegisterIsOpen(): bool
+    {
+        return $this->cashRegisterService->getOpenSession((int) current_store_id()) !== null;
     }
 }

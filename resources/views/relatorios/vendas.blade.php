@@ -157,7 +157,9 @@
                 @endif
               </td>
               <td class="text-center text-nowrap">
-                @if(($linha->invoice_status ?? \App\Models\Sale::INVOICE_STATUS_FATURADO) === \App\Models\Sale::INVOICE_STATUS_RASCUNHO)
+                @if(!empty($linha->is_anulado))
+                  <span class="badge bg-danger-subtle text-danger">Anulada</span>
+                @elseif(($linha->invoice_status ?? \App\Models\Sale::INVOICE_STATUS_FATURADO) === \App\Models\Sale::INVOICE_STATUS_RASCUNHO)
                   <span class="badge bg-warning-subtle text-warning">Rascunho</span>
                 @else
                   <span class="badge bg-success-subtle text-success">Faturado</span>
@@ -170,19 +172,30 @@
                   </button>
                   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="vendas-acoes-{{ $loop->index }}">
                     @php
+                      $isAnulado = !empty($linha->is_anulado);
                       $isDraft = ($linha->invoice_status ?? \App\Models\Sale::INVOICE_STATUS_FATURADO) === \App\Models\Sale::INVOICE_STATUS_RASCUNHO;
                       $pdfUrl = (!$isDraft && $linha->sale && $linha->sale->vendus_document_id)
                         ? route('sales.vendus.pdf', $linha->sale)
                         : route('sales.pdf', $linha->sale);
                     @endphp
-                    @if(!$isDraft)
+                    @if($isAnulado)
+                      @if(!empty($linha->credit_note_pdf_url))
+                        <li>
+                          <a class="dropdown-item" href="{{ $linha->credit_note_pdf_url }}" target="_blank" rel="noopener">
+                            <i class="ph ph-file-x me-2"></i>Ver nota de crédito
+                          </a>
+                        </li>
+                      @else
+                        <li><span class="dropdown-item-text text-muted small">Fatura anulada (sem nota de crédito)</span></li>
+                      @endif
+                    @elseif(!$isDraft)
                       <li>
                         <a class="dropdown-item" href="{{ $pdfUrl }}" target="_blank" rel="noopener">
                           <i class="ph ph-file-pdf me-2"></i>Ver PDF
                         </a>
                       </li>
                     @endif
-                    @if($isDraft)
+                    @if(!$isAnulado && $isDraft)
                       @php $saleRow = $linha->sale; @endphp
                       <li>
                         <button type="button" class="dropdown-item text-success js-sale-finalize"
@@ -210,7 +223,7 @@
                       <li><hr class="dropdown-divider"></li>
                       <li>
                         <button type="button" class="dropdown-item text-danger js-sale-revert" data-revert-url="{{ route('sales.revert', $linha->sale) }}">
-                          <i class="ph ph-arrow-counter-clockwise me-2"></i>Anular venda
+                          <i class="ph ph-arrow-counter-clockwise me-2"></i>Anular fatura
                         </button>
                       </li>
                     @endif

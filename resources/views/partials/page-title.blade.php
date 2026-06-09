@@ -165,6 +165,7 @@
             'relatorios.marcacoes' => 'Marcações',
             'relatorios.vendas' => 'Vendas',
             'relatorios.comissoes' => 'Comissões',
+            'relatorios.caixa' => 'Caixa',
         ];
         if (isset($sectionLabels[$currentRoute])) {
             $breadcrumbs[] = [

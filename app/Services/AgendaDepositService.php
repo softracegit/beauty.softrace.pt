@@ -23,6 +23,7 @@ class AgendaDepositService
 {
     public function __construct(
         private readonly ClientWalletService $walletService,
+        private readonly CashRegisterService $cashRegisterService,
     ) {}
 
     public function depositPercent(): int
@@ -750,6 +751,7 @@ class AgendaDepositService
 
         $sale = Sale::create([
             'store_id' => $storeId,
+            'cash_register_session_id' => $this->cashRegisterService->sessionIdForNewStoreSale($storeId),
             'calendar_event_id' => $eventId,
             'client_id' => $client->id,
             'numero_fatura' => $numeroFatura,

@@ -14,10 +14,12 @@ use App\Models\User;
 use App\Services\ClientWalletService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Support\OpensCashRegister;
 use Tests\TestCase;
 
 class PosWalletCheckoutTest extends TestCase
 {
+    use OpensCashRegister;
     use RefreshDatabase;
 
     public function test_checkout_with_wallet_payment_method_debits_balance(): void
@@ -70,6 +72,8 @@ class PosWalletCheckoutTest extends TestCase
             'status' => Agent::STATUS_ACTIVE,
         ]);
         $staff->stores()->sync([$store->id]);
+
+        $this->openCashRegisterForStore($staff, $store);
 
         $response = $this->actingAs($staff)
             ->withSession([SetCurrentStore::SESSION_KEY => $store->id])

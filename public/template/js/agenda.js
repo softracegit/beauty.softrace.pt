@@ -1,4 +1,19 @@
 var C = window.AGENDA_CONFIG || {};
+var cashRegisterOpenGlobal = C.cashRegisterOpen !== false;
+
+function agendaCashRegisterOpenFromData(data) {
+    if (data && data.cash_register_open === false) {
+        return false;
+    }
+    if (data && data.cash_register_open === true) {
+        return true;
+    }
+    return cashRegisterOpenGlobal;
+}
+
+function agendaCashRegisterClosedMessage() {
+    return 'Abra o dia na caixa antes de cobrar.';
+}
 
 function agendaApiErrorMessage(response, data, fallback) {
     var status = response && response.status ? response.status : 0;
@@ -1729,11 +1744,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailWasSaved = false;
     /** Se true, a duração do evento segue só a soma dos serviços+extras (heurística anti-duplicação desligada). */
     var eventDetailTrustServicesSumForDuration = false;
+    /** Se true, serviços/extras foram alterados desde o carregamento e ainda não foram gravados. */
+    var eventDetailServicesMutated = false;
     function eventDetailMarkServiceListMutated() {
         if (eventDetailCurrentData) {
             delete eventDetailCurrentData.catalog_fees;
         }
         eventDetailTrustServicesSumForDuration = true;
+        eventDetailServicesMutated = true;
     }
 
     function agendaIsoTimesEqual(a, b) {
@@ -1809,6 +1827,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var paymentModalCheckoutItems = null;
     var paymentModalConsolidatedAmountDue = null;
     var paymentModalFinalizeDraftAmount = null;
+    var paymentModalInvoiceOnlyAmount = null;
     var eventDetailSameDayPayable = null;
 
     function paymentModalIsReserva() {
@@ -1937,6 +1956,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalMode = 'caixa';
         paymentModalFinalizeSaleId = null;
         paymentModalFinalizeDraftAmount = null;
+        paymentModalInvoiceOnlyAmount = null;
         paymentModalReservaPreview = null;
         paymentModalReservaCustomAmount = null;
         paymentModalSavedCards = [];
@@ -1946,7 +1966,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalConsolidatedAmountDue = null;
         paymentModalApplyModeClasses();
         var pl = $id('paymentModalLabel');
-        if (pl) pl.textContent = 'Caixa — pagamento';
+        if (pl) pl.textContent = 'Pagamento';
         var customWrap = $id('paymentReservaCustomWrap');
         var customIn = $id('paymentReservaCustomAmount');
         if (customWrap) customWrap.classList.add('d-none');
@@ -2116,13 +2136,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function paymentModalGetDepositAmountEur() {
+        var previewPct = paymentModalReservaPreview && Number.isFinite(parseInt(paymentModalReservaPreview.deposit_percent, 10))
+            ? parseInt(paymentModalReservaPreview.deposit_percent, 10)
+            : null;
+        var pct = previewPct !== null ? previewPct : (parseInt(C.bookingDepositPercent, 10) || 0);
+        if (pct > 0) {
+            // Sinal por percentagem é recalculado a partir do subtotal atual, para refletir
+            // serviços/extras alterados no offcanvas antes de gravar (não o estado já persistido).
+            var sub = eventDetailCheckoutSubtotal();
+            return Math.round(sub * (pct / 100) * 100) / 100;
+        }
         if (paymentModalReservaPreview && Number.isFinite(paymentModalReservaPreview.deposit_amount)) {
             return Math.max(0, parseFloat(paymentModalReservaPreview.deposit_amount) || 0);
-        }
-        var pct = parseInt(C.bookingDepositPercent, 10) || 0;
-        var sub = eventDetailCheckoutSubtotal();
-        if (pct > 0) {
-            return Math.round(sub * (pct / 100) * 100) / 100;
         }
         return paymentModalGetReservaCustomAmountEur() || 0;
     }
@@ -2133,6 +2158,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? Math.max(0, parseFloat(paymentModalFinalizeDraftAmount) || 0)
                 : 0;
             return Math.round(finalizeAmount * 100);
+        }
+        if (paymentModalIsInvoiceOnly()) {
+            var reissueAmount = Number.isFinite(paymentModalInvoiceOnlyAmount)
+                ? Math.max(0, parseFloat(paymentModalInvoiceOnlyAmount) || 0)
+                : Math.max(0, eventDetailCheckoutSubtotal() - Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0));
+            return Math.round(reissueAmount * 100);
         }
         if (paymentModalIsReserva()) {
             return Math.round(paymentModalGetDepositAmountEur() * 100);
@@ -2145,15 +2176,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return Math.round(consolidatedTotal * 100);
         }
         var gorjeta = paymentModalGetGorjetaAmount();
-        var d = eventDetailCurrentData || {};
-        var amountDue = parseFloat(d.amount_due);
-        if (Number.isFinite(amountDue) && amountDue >= 0) {
-            return Math.round((amountDue + gorjeta) * 100);
-        }
-        var checkoutSub = eventDetailCheckoutSubtotal();
-        var paidOnline = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
-        var servicesDue = Math.max(0, checkoutSub - paidOnline);
-        return Math.round((servicesDue + gorjeta) * 100);
+        return Math.round((eventDetailEffectiveAmountDueEur() + gorjeta) * 100);
     }
 
     function paymentModalGetReservaPayloadExtras() {
@@ -2352,7 +2375,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 paymentModalConsolidatedEventIds = consolidatedIds;
                 paymentModalConsolidatedAmountDue = Number.isFinite(consolidatedAmountDue) ? Math.max(0, consolidatedAmountDue) : null;
                 var pl = $id('paymentModalLabel');
-                if (pl) pl.textContent = 'Caixa — pagamento do dia';
+                if (pl) pl.textContent = 'Pagamento do dia';
                 var gEl = $id('paymentGorjeta');
                 if (gEl && String(gEl.getAttribute('type') || '').toLowerCase() === 'number') gEl.value = '0';
                 paymentModalSyncFiscalFromClient();
@@ -2371,6 +2394,12 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalMode = 'invoice-only';
         paymentMbwayFinalizeSucceeded = false;
         paymentModalStopMbwayFinalizePoll();
+        // Valor a re-emitir = valor da fatura final anulada (inclui taxas). Fallback: serviços+taxas menos pré-pagamento.
+        var cancelled = (eventDetailCurrentData && eventDetailCurrentData.cancelled_final_invoice) || null;
+        var reissueAmount = (cancelled && cancelled.amount != null && !isNaN(parseFloat(cancelled.amount)))
+            ? Math.max(0, parseFloat(cancelled.amount))
+            : Math.max(0, eventDetailCheckoutSubtotal() - Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0));
+        paymentModalInvoiceOnlyAmount = reissueAmount;
         var sub = paymentModalSubtotal();
         var psd = $id('paymentSubtotalDisplay');
         if (psd) psd.textContent = sub.toFixed(2).replace('.', ',') + ' €';
@@ -2569,8 +2598,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var activeCaixa = eventDetailCurrentData && eventDetailCurrentData.active_caixa_sale;
         var list = eventDetailBuildFaturaMenuList();
         var pendingFinal = !!(eventDetailCurrentData && eventDetailCurrentData.pending_final_invoice);
+        var cancelledFinal = (eventDetailCurrentData && eventDetailCurrentData.cancelled_final_invoice) || null;
         var walletOnlyPrepayment = eventDetailPrepaymentWalletOnly();
-        if (!list.length && !pendingFinal && !walletOnlyPrepayment && !activeCaixa) {
+        if (!list.length && !pendingFinal && !walletOnlyPrepayment && !activeCaixa && !cancelledFinal) {
             wrap.classList.add('d-none');
             return;
         }
@@ -2582,7 +2612,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var isPartialSale = !!(eventDetailExistingSale && eventDetailExistingSale.is_partial);
         var marcacaoFinalizada = (status === 'completo' && amountDueForPay <= 0.00001);
         var showEmail = marcacaoFinalizada && list.length > 0;
-        var showAnular = !!(activeCaixa && !isPartialSale);
+        // Rascunhos não têm fatura emitida (sem documento Vendus) — não há nada para anular, só "Faturar".
+        var showAnular = !!(activeCaixa && !isPartialSale && !eventDetailInvoiceIsDraft(activeCaixa));
 
         var dropup = document.createElement('div');
         dropup.className = 'dropup event-detail-faturas-dropup ms-auto';
@@ -2705,6 +2736,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (walletOnlyPrepayment && !invReserva) {
             eventDetailAppendFaturaWalletOnlyNotice(menu);
+        }
+
+        if (cancelledFinal && cancelledFinal.credit_note_pdf_url) {
+            var liNc = document.createElement('li');
+            var ncLink = document.createElement('a');
+            ncLink.className = 'dropdown-item d-flex align-items-start gap-2';
+            ncLink.href = cancelledFinal.credit_note_pdf_url;
+            ncLink.target = '_blank';
+            ncLink.rel = 'noopener';
+            var ncTitle = 'Ver nota de crédito';
+            if (cancelledFinal.numero_fatura) {
+                ncTitle += ' · fatura anulada ' + cancelledFinal.numero_fatura;
+            }
+            ncLink.title = ncTitle;
+            var ncIcon = document.createElement('i');
+            ncIcon.className = 'ph ph-file-x flex-shrink-0 event-detail-fatura-menu-icon';
+            ncIcon.setAttribute('aria-hidden', 'true');
+            var ncSpan = document.createElement('span');
+            ncSpan.textContent = 'Ver nota de crédito';
+            ncLink.appendChild(ncIcon);
+            ncLink.appendChild(ncSpan);
+            liNc.appendChild(ncLink);
+            menu.appendChild(liNc);
         }
 
         if (pendingFinal) {
@@ -2882,7 +2936,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var hideSaveClose = (strictLock && !nifOnlyEditable) || (status === 'completo');
         var lockServicesExceptNif = (!!existingSale && !isPartialSale) || !!stLocked || nifOnlyEditable;
         var lockNifRow = ((!!existingSale && !isPartialSale) || !!stLocked) && !nifOnlyEditable;
-        var amountDueForPay = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due) || 0;
+        var amountDueForPay = eventDetailEffectiveAmountDueEur();
         var pendingFinalOnly = !!(eventDetailCurrentData && eventDetailCurrentData.pending_final_invoice);
         var paymentBlockedStatus = status === 'faltou' || status === 'cancelado' || status === 'anulado';
         var isFaturar = (status === 'completo' && amountDueForPay > 0.00001);
@@ -2896,14 +2950,40 @@ document.addEventListener('DOMContentLoaded', function() {
             && !paymentBlockedStatus;
         var sameDayRows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
         var sameDayOthers = sameDayRows.filter(function(r) { return String(r.id) !== String($id('eventDetailEditId').value || ''); });
+        var cashRegisterOpen = agendaCashRegisterOpenFromData(eventDetailCurrentData);
         var hasSameDayOptions = showPayBtn && sameDayOthers.length > 0 && !isFaturar;
         var pagoBadge = $id('eventDetailPagoBadge');
         if (payBtn) {
             payBtn.classList.toggle('d-none', !showPayBtn || hasSameDayOptions);
-            payBtn.textContent = isFaturar ? 'Faturar' : 'Caixa';
+            payBtn.textContent = isFaturar ? 'Faturar' : 'Pagamento';
+            payBtn.disabled = showPayBtn && !cashRegisterOpen && !isFaturar;
+            if (showPayBtn && !cashRegisterOpen && !isFaturar) {
+                payBtn.setAttribute('title', agendaCashRegisterClosedMessage());
+            } else if (showPayBtn && isFaturar) {
+                payBtn.removeAttribute('title');
+            } else if (showPayBtn) {
+                payBtn.removeAttribute('title');
+            }
         }
         if (payDropup) {
             payDropup.classList.toggle('d-none', !hasSameDayOptions);
+        }
+        var payDropupToggle = $id('eventDetailPaymentDropupToggle');
+        if (payDropupToggle) {
+            payDropupToggle.disabled = hasSameDayOptions && !cashRegisterOpen && !isFaturar;
+            if (hasSameDayOptions && !cashRegisterOpen && !isFaturar) {
+                payDropupToggle.setAttribute('title', agendaCashRegisterClosedMessage());
+            } else {
+                payDropupToggle.removeAttribute('title');
+            }
+        }
+        var payCurrentBtn = $id('eventDetailPayCurrentBtn');
+        var payAllBtn = $id('eventDetailPayAllBtn');
+        if (payCurrentBtn) {
+            payCurrentBtn.disabled = hasSameDayOptions && !cashRegisterOpen && !isFaturar;
+        }
+        if (payAllBtn) {
+            payAllBtn.disabled = hasSameDayOptions && !cashRegisterOpen && !isFaturar;
         }
         if (payAllHint) {
             payAllHint.textContent = '+' + sameDayOthers.length + ' marcações por pagar hoje';
@@ -2917,6 +2997,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (pagoBadge) {
             pagoBadge.classList.toggle('d-none', !showPagoBadge);
         }
+        var canShowReserva = false;
         if (reservaBtn) {
             var eventId = ($id('eventDetailEditId') && $id('eventDetailEditId').value) || '';
             var hasClient = !!(eventDetailSelectedClient && eventDetailSelectedClient.id)
@@ -2927,7 +3008,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var depositExpected = eventDetailExpectedDepositEur(subtotal);
             var bookingPaid = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
             var hasReservaSale = eventDetailHasReservaSale();
-            var canShowReserva = eventType === 'marcacao'
+            canShowReserva = eventType === 'marcacao'
                 && servicesCount > 0
                 && hasClient
                 && !reservaBlockedStatus
@@ -2941,12 +3022,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             reservaBtn.classList.toggle('d-none', !canShowReserva);
             var unsaved = !eventId;
-            reservaBtn.disabled = unsaved || hideSaveClose;
+            var cashRegisterOpen = agendaCashRegisterOpenFromData(eventDetailCurrentData);
+            reservaBtn.disabled = unsaved || hideSaveClose || (canShowReserva && !cashRegisterOpen);
             if (unsaved) {
                 reservaBtn.setAttribute('title', 'Guarde a marcação antes do pré-pagamento');
+            } else if (canShowReserva && !cashRegisterOpen) {
+                reservaBtn.setAttribute('title', agendaCashRegisterClosedMessage());
             } else {
                 reservaBtn.removeAttribute('title');
             }
+        }
+        var openCashBtn = $id('eventDetailOpenCashRegisterBtn');
+        if (openCashBtn) {
+            var showOpenCashShortcut = eventType === 'marcacao'
+                && servicesCount > 0
+                && !cashRegisterOpen
+                && !hideSaveClose
+                && !paymentBlockedStatus
+                && (showPayBtn || canShowReserva);
+            openCashBtn.classList.toggle('d-none', !showOpenCashShortcut);
+        }
+        if (hasSameDayOptions) {
+            refreshPayAllAmountFromCheckoutPreview();
         }
         syncEventDetailFaturaButtons();
         if (saveBtn) {
@@ -3043,7 +3140,6 @@ document.addEventListener('DOMContentLoaded', function() {
             (eventDetailCurrentData && eventDetailCurrentData.event_type) || 'marcacao',
             (eventDetailSelectedServices && eventDetailSelectedServices.length) || 0
         );
-        refreshPayAllAmountFromCheckoutPreview();
     }
 
     function fetchSameDayPayableSummary(eventId) {
@@ -3097,12 +3193,16 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleOutOfHoursWarning('eventDetailHorarioAviso', false, 'eventDetailHorarioAvisoWrap');
         window._eventDetailOcPopulating = true;
         eventDetailCurrentData = data;
+        if (data && typeof data.cash_register_open === 'boolean') {
+            cashRegisterOpenGlobal = data.cash_register_open;
+        }
         eventDetailSameDayPayable = data.same_day_payable || null;
         eventDetailExistingSale = data.existing_sale || null;
         eventDetailBookingPaidAmount = Math.max(0, parseFloat(data.booking_paid_amount) || 0);
         eventDetailOriginalStartAt = data.start_at || null;
         eventDetailOriginalEndAt = data.end_at || null;
         eventDetailTrustServicesSumForDuration = false;
+        eventDetailServicesMutated = false;
         eventDetailSelectedServices = [];
         var id = data.id;
         $id('eventDetailEditId').value = id;
@@ -4207,6 +4307,20 @@ document.addEventListener('DOMContentLoaded', function() {
         return eventDetailSumSalesByScope('caixa_liquidacao');
     }
 
+    // Valor em dívida da marcação. Enquanto não há edições por gravar usa-se o amount_due do
+    // servidor (respeita descontos e estados de fatura anulada/liquidada); assim que serviços/extras
+    // são alterados no offcanvas, recalcula-se em tempo real a partir da seleção atual.
+    function eventDetailEffectiveAmountDueEur() {
+        var serverDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
+        if (!eventDetailServicesMutated && Number.isFinite(serverDue) && serverDue >= 0) {
+            return Math.max(0, serverDue);
+        }
+        var subtotal = eventDetailCheckoutSubtotal();
+        var prepaid = eventDetailPrepagamentoPaidAmount();
+        var caixaPaid = eventDetailCaixaPaidAmount();
+        return Math.max(0, subtotal - prepaid - caixaPaid);
+    }
+
     function eventDetailSyncOffcanvasPaymentSummary(total) {
         var totalMain = $id('eventDetailTotalMain');
         var reservaSummary = $id('eventDetailReservaSummary');
@@ -4217,14 +4331,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        var subtotal = Math.max(0, parseFloat(total) || 0);
         var prepagamentoPaid = eventDetailPrepagamentoPaidAmount();
         var caixaPaid = eventDetailCaixaPaidAmount();
         var invoiceSettled = !!(eventDetailCurrentData && eventDetailCurrentData.invoice_settled);
-        var amountDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
-        var remainingDue = Number.isFinite(amountDue) && amountDue >= 0
-            ? Math.max(0, amountDue)
-            : Math.max(0, subtotal - prepagamentoPaid);
+        // «Falta pagar» usa a mesma fonte que o botão de pagamento e o modal, para nunca divergirem.
+        var remainingDue = eventDetailEffectiveAmountDueEur();
 
         totalMain.classList.remove('d-none');
         reservaSummary.classList.add('d-none');
@@ -5796,13 +5907,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var consolidatedWrap = $id('paymentConsolidatedDetailsWrap');
         var consolidatedList = $id('paymentConsolidatedList');
 
-        if (isFinalizeDraft) {
-            var draftTotal = Number.isFinite(paymentModalFinalizeDraftAmount)
-                ? Math.max(0, parseFloat(paymentModalFinalizeDraftAmount) || 0)
-                : 0;
+        if (isFinalizeDraft || paymentModalIsInvoiceOnly()) {
+            var fixedTotal = isFinalizeDraft
+                ? (Number.isFinite(paymentModalFinalizeDraftAmount) ? Math.max(0, parseFloat(paymentModalFinalizeDraftAmount) || 0) : 0)
+                : (Number.isFinite(paymentModalInvoiceOnlyAmount) ? Math.max(0, parseFloat(paymentModalInvoiceOnlyAmount) || 0) : 0);
             var feesWrap = $id('paymentFeesLines');
             if (subtotalLbl) subtotalLbl.textContent = 'Total a faturar:';
-            if (subDisp) subDisp.textContent = eventDetailMoney(draftTotal);
+            if (subDisp) subDisp.textContent = eventDetailMoney(fixedTotal);
             if (feesWrap) feesWrap.classList.add('d-none');
             if (lineCheckout) lineCheckout.classList.add('d-none');
             if (linePrePaid) linePrePaid.classList.add('d-none');
@@ -5852,10 +5963,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ? Math.max(0, parseFloat(paymentModalConsolidatedAmountDue) || 0)
                     : (paymentModalConsolidatedDueFromSummary() || 0);
             } else {
-                var amountDue = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due);
-                totalDue = Number.isFinite(amountDue) && amountDue >= 0
-                    ? amountDue
-                    : Math.max(0, checkoutSub - paidOnline);
+                totalDue = eventDetailEffectiveAmountDueEur();
             }
             totalDue = Math.max(0, totalDue + gorjeta);
             if (lineTotalDue) lineTotalDue.classList.remove('d-none');
@@ -6397,6 +6505,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (eventDetailReservaBtnEl) {
         eventDetailReservaBtnEl.addEventListener('click', function() {
             if (eventDetailReservaBtnEl.disabled) {
+                if (!agendaCashRegisterOpenFromData(eventDetailCurrentData)) {
+                    showToast(agendaCashRegisterClosedMessage(), 'warning');
+                }
                 return;
             }
             if (typeof openAgendaPaymentModalReserva === 'function') {
@@ -6406,6 +6517,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     $id('eventDetailPaymentBtn').addEventListener('click', function() {
+        if (this.disabled) {
+            showToast(agendaCashRegisterClosedMessage(), 'warning');
+            return;
+        }
         paymentModalResetToCaixa();
         paymentMbwayFinalizeSucceeded = false;
         paymentModalStopMbwayFinalizePoll();
@@ -6444,6 +6559,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var payCurrentBtn = $id('eventDetailPayCurrentBtn');
     if (payCurrentBtn) {
         payCurrentBtn.addEventListener('click', function() {
+            if (payCurrentBtn.disabled) {
+                showToast(agendaCashRegisterClosedMessage(), 'warning');
+                return;
+            }
             bootstrap.Dropdown.getOrCreateInstance($id('eventDetailPaymentDropupToggle')).hide();
             $id('eventDetailPaymentBtn').click();
         });
@@ -6451,10 +6570,32 @@ document.addEventListener('DOMContentLoaded', function() {
     var payAllBtn = $id('eventDetailPayAllBtn');
     if (payAllBtn) {
         payAllBtn.addEventListener('click', function() {
+            if (payAllBtn.disabled) {
+                showToast(agendaCashRegisterClosedMessage(), 'warning');
+                return;
+            }
             bootstrap.Dropdown.getOrCreateInstance($id('eventDetailPaymentDropupToggle')).hide();
             openAgendaPaymentModalConsolidated();
         });
     }
+
+    document.addEventListener('crm:cash-register-changed', function(e) {
+        if (!e.detail || typeof e.detail.isOpen !== 'boolean') {
+            return;
+        }
+        cashRegisterOpenGlobal = e.detail.isOpen;
+        if (eventDetailCurrentData) {
+            eventDetailCurrentData.cash_register_open = e.detail.isOpen;
+        }
+        if (!eventDetailCurrentData) {
+            return;
+        }
+        setEventDetailPaymentAndReadOnly(
+            eventDetailExistingSale,
+            eventDetailCurrentData.event_type || 'marcacao',
+            (eventDetailSelectedServices && eventDetailSelectedServices.length) || 0
+        );
+    });
 
     var consolidatedToggleBtn = $id('paymentConsolidatedToggleBtn');
     if (consolidatedToggleBtn) {
@@ -6902,7 +7043,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Nenhum serviço para faturar.', 'error');
             return;
         }
-        if (method === 'mbway') {
+        if (!paymentModalIsInvoiceOnly() && method === 'mbway') {
             var mbwayPhoneInput = $id('paymentMbwayPhone');
             var mbwayPhone = mbwayPhoneInput ? String(mbwayPhoneInput.value || '').trim() : '';
             fetch(C.agendaCheckoutMbwayIntentUrl || '', {
@@ -6996,7 +7137,8 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify({
                 event_id: eventId,
                 event_ids: selectedEventIds,
-                payment_method: method,
+                payment_method: paymentModalIsInvoiceOnly() ? null : method,
+                invoice_only: paymentModalIsInvoiceOnly(),
                 gorjeta: gorjeta,
                 items: items,
                 invoice_fiscal_mode: fiscal.invoice_fiscal_mode,

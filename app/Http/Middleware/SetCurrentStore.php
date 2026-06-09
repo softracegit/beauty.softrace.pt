@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Store;
 use App\Models\User;
+use App\Services\CashRegisterService;
 use App\Support\CurrentStore;
 use Closure;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ class SetCurrentStore
     public const SESSION_KEY = 'current_store_id';
 
     public function __construct(
-        private readonly CurrentStore $currentStore
+        private readonly CurrentStore $currentStore,
+        private readonly CashRegisterService $cashRegisterService,
     ) {}
 
     /**
@@ -74,6 +76,15 @@ class SetCurrentStore
 
         View::share('activeStore', $resolved);
         View::share('selectableStores', $accessible);
+
+        $cashRegisterSession = null;
+        $cashRegisterCanManage = false;
+        if ($this->cashRegisterService->userCanManageCashRegister($user)) {
+            $cashRegisterCanManage = true;
+            $cashRegisterSession = $this->cashRegisterService->getOpenSession((int) $resolved->id);
+        }
+        View::share('cashRegisterSession', $cashRegisterSession);
+        View::share('cashRegisterCanManage', $cashRegisterCanManage);
 
         return $next($request);
     }

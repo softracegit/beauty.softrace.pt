@@ -109,6 +109,22 @@
       </div>
     </div>
     @endisset
+    @if(!empty($cashRegisterCanManage))
+    @php
+      $cashRegisterIsOpen = ! empty($cashRegisterSession);
+    @endphp
+    <button
+      type="button"
+      class="header-action header-cash-register-btn {{ $cashRegisterIsOpen ? 'header-cash-register-btn--open' : 'header-cash-register-btn--closed' }}"
+      data-crm-cash-register-trigger="{{ $cashRegisterIsOpen ? 'close' : 'open' }}"
+      data-crm-cash-register-title-open="Caixa fechada — abrir caixa"
+      data-crm-cash-register-title-closed="Caixa aberta — fechar o dia"
+      title="{{ $cashRegisterIsOpen ? 'Caixa aberta — fechar o dia' : 'Caixa fechada — abrir caixa' }}"
+      aria-label="{{ $cashRegisterIsOpen ? 'Caixa aberta — fechar o dia' : 'Caixa fechada — abrir caixa' }}"
+    >
+      <i class="ph ph-cash-register" aria-hidden="true"></i>
+    </button>
+    @endif
   </div>
 
   <!-- Header Search -->
@@ -264,6 +280,20 @@
         @endforeach
       @endif
     @endisset
+    @if(!empty($cashRegisterCanManage))
+      @php $cashRegisterIsOpen = ! empty($cashRegisterSession); @endphp
+      <button
+        type="button"
+        class="mobile-menu-item mobile-cash-register-item header-cash-register-btn {{ $cashRegisterIsOpen ? 'header-cash-register-btn--open' : 'header-cash-register-btn--closed' }}"
+        data-crm-cash-register-trigger="{{ $cashRegisterIsOpen ? 'close' : 'open' }}"
+        data-crm-cash-register-title-open="Caixa fechada — abrir caixa"
+        data-crm-cash-register-title-closed="Caixa aberta — fechar o dia"
+        title="{{ $cashRegisterIsOpen ? 'Caixa aberta — fechar o dia' : 'Caixa fechada — abrir caixa' }}"
+      >
+        <i class="ph ph-cash-register" aria-hidden="true"></i>
+        <span class="mobile-menu-label">{{ $cashRegisterIsOpen ? 'Fechar caixa' : 'Abrir caixa' }}</span>
+      </button>
+    @endif
     <a href="{{ route('dashboard') }}" class="mobile-menu-item">
       <i class="bi bi-speedometer2"></i>
       <span class="mobile-menu-label">Dashboard</span>

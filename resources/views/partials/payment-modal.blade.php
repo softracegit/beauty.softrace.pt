@@ -6,7 +6,7 @@
         <div class="modal-content">
             <div class="modal-header pb-2 border-bottom-0">
                 <div>
-                    <h5 class="modal-title mb-0 fw-semibold" id="paymentModalLabel">Caixa — pagamento</h5>
+                    <h5 class="modal-title mb-0 fw-semibold" id="paymentModalLabel">Pagamento</h5>
                 </div>
                 <button type="button" class="btn-close" id="paymentModalCloseBtn" aria-label="Fechar"></button>
             </div>

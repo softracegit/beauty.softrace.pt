@@ -42,6 +42,7 @@ class Sale extends Model
 
     protected $fillable = [
         'store_id',
+        'cash_register_session_id',
         'calendar_event_id',
         'client_id',
         'numero_fatura',
@@ -57,9 +58,12 @@ class Sale extends Model
         'invoice_status',
         'vendus_sync_status',
         'vendus_document_id',
+        'vendus_credit_note_id',
         'vendus_synced_at',
         'vendus_sync_error',
         'issue_without_fiscal_id',
+        'cancelled_at',
+        'cancellation_reason',
     ];
 
     protected $casts = [
@@ -72,6 +76,7 @@ class Sale extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'vendus_synced_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'issue_without_fiscal_id' => 'boolean',
     ];
 
@@ -84,6 +89,19 @@ class Sale extends Model
     public function isInvoiceDraft(): bool
     {
         return ($this->invoice_status ?? self::INVOICE_STATUS_FATURADO) === self::INVOICE_STATUS_RASCUNHO;
+    }
+
+    public function isAnulado(): bool
+    {
+        return ($this->status ?? self::STATUS_PAGO) === self::STATUS_ANULADO;
+    }
+
+    /**
+     * Tem nota de crédito emitida na Vendus (permite ver o PDF da NC em vez da fatura anulada).
+     */
+    public function hasCreditNote(): bool
+    {
+        return $this->vendus_credit_note_id !== null && (int) $this->vendus_credit_note_id > 0;
     }
 
     public static function statuses(): array
@@ -185,6 +203,11 @@ class Sale extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    public function cashRegisterSession(): BelongsTo
+    {
+        return $this->belongsTo(CashRegisterSession::class);
     }
 
     public function calendarEvent(): BelongsTo

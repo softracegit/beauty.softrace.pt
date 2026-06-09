@@ -15,10 +15,12 @@ use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\Support\OpensCashRegister;
 use Tests\TestCase;
 
 class ConsolidatedCheckoutStoreTest extends TestCase
 {
+    use OpensCashRegister;
     use RefreshDatabase;
 
     private function fixture(): array
@@ -95,6 +97,7 @@ class ConsolidatedCheckoutStoreTest extends TestCase
     public function test_store_keeps_single_checkout_compatible(): void
     {
         $fx = $this->fixture();
+        $this->openCashRegisterForStore($fx['staff'], $fx['store']);
         $event = $this->makeEvent($fx['store'], $fx['client'], $fx['service'], now()->addDay()->setHour(10)->toDateTimeString());
 
         $response = $this->actingAs($fx['staff'])
@@ -121,6 +124,7 @@ class ConsolidatedCheckoutStoreTest extends TestCase
     public function test_store_supports_consolidated_checkout_and_marks_all_events_complete(): void
     {
         $fx = $this->fixture();
+        $this->openCashRegisterForStore($fx['staff'], $fx['store']);
         $day = now()->addDay()->startOfDay();
         $eventA = $this->makeEvent($fx['store'], $fx['client'], $fx['service'], $day->copy()->addHours(10)->toDateTimeString());
         $eventB = $this->makeEvent($fx['store'], $fx['client'], $fx['service'], $day->copy()->addHours(15)->toDateTimeString());
