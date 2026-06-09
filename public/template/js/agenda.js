@@ -1741,7 +1741,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var eventDetailOriginalStartAt = null;
     var eventDetailOriginalEndAt = null;
+    var eventDetailOriginalDescription = '';
+    var eventDetailOriginalUserId = '';
+    var eventDetailOriginalClientId = null;
+    var eventDetailOriginalStatus = 'agendado';
     var eventDetailWasSaved = false;
+    var eventDetailAutoSaveClosing = false;
+    var eventDetailAutoSaveInProgress = false;
     /** Se true, a duração do evento segue só a soma dos serviços+extras (heurística anti-duplicação desligada). */
     var eventDetailTrustServicesSumForDuration = false;
     /** Se true, serviços/extras foram alterados desde o carregamento e ainda não foram gravados. */
@@ -3201,6 +3207,12 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailBookingPaidAmount = Math.max(0, parseFloat(data.booking_paid_amount) || 0);
         eventDetailOriginalStartAt = data.start_at || null;
         eventDetailOriginalEndAt = data.end_at || null;
+        eventDetailOriginalDescription = data.description || '';
+        eventDetailOriginalUserId = String(data.user_id || '');
+        eventDetailOriginalClientId = data.client_id || null;
+        eventDetailOriginalStatus = data.status || 'agendado';
+        eventDetailAutoSaveClosing = false;
+        eventDetailAutoSaveInProgress = false;
         eventDetailTrustServicesSumForDuration = false;
         eventDetailServicesMutated = false;
         eventDetailSelectedServices = [];
@@ -5628,8 +5640,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    $id('eventDetailEditForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+    function eventDetailSaveBtnDefaultHtml() {
+        return '<i class="ph ph-floppy-disk" aria-hidden="true"></i>';
+    }
+
+    function buildEventDetailSavePayload() {
         if (eventDetailCurrentData && eventDetailCurrentData.event_type === 'marcacao') {
             eventDetailOcSyncHiddenFromPickers();
         }
@@ -5676,9 +5691,61 @@ document.addEventListener('DOMContentLoaded', function() {
                 return row;
             });
         }
-        var btn = $id('eventDetailSaveBtn');
-        var needNotifyConfirm = eventDetailCurrentData && eventDetailCurrentData.event_type === 'marcacao' && payload.client_id && eventDetailScheduleTimesChanged(payload);
-        if (needNotifyConfirm) {
+        var needNotifyConfirm = eventDetailCurrentData
+            && eventDetailCurrentData.event_type === 'marcacao'
+            && payload.client_id
+            && eventDetailScheduleTimesChanged(payload);
+
+        return { id: id, payload: payload, needNotifyConfirm: needNotifyConfirm };
+    }
+
+    function eventDetailMarkPersistedSnapshot(payload) {
+        eventDetailOriginalStartAt = payload.start_at;
+        eventDetailOriginalEndAt = payload.end_at;
+        eventDetailOriginalDescription = payload.description || '';
+        eventDetailOriginalUserId = String(payload.user_id || '').trim();
+        eventDetailOriginalClientId = payload.client_id || null;
+        eventDetailOriginalStatus = payload.status || eventDetailOriginalStatus;
+        eventDetailServicesMutated = false;
+    }
+
+    function eventDetailCanAutoSave() {
+        if (eventDetailModalLoading || eventDetailWasSaved) return false;
+        var id = $id('eventDetailEditId')?.value;
+        if (!id) return false;
+        var saveBtn = $id('eventDetailSaveBtn');
+        if (!saveBtn || saveBtn.disabled || saveBtn.classList.contains('d-none')) return false;
+        if (!eventDetailCurrentData || eventDetailCurrentData.event_type !== 'marcacao') return false;
+        var marcacaoSection = $id('eventDetailOcMarcacaoSection');
+        if (marcacaoSection && marcacaoSection.classList.contains('d-none')) return false;
+        return true;
+    }
+
+    function eventDetailHasUnsavedChanges() {
+        if (!eventDetailCurrentData || eventDetailCurrentData.event_type !== 'marcacao') return false;
+        var desc = ($id('eventDetailOcObs') && $id('eventDetailOcObs').value) || '';
+        if (desc !== eventDetailOriginalDescription) return true;
+        var member = String(($id('eventDetailOcMember') && $id('eventDetailOcMember').value) || '').trim();
+        if (member !== eventDetailOriginalUserId) return true;
+        var clientId = eventDetailSelectedClient ? eventDetailSelectedClient.id : null;
+        if ((clientId || null) != (eventDetailOriginalClientId || null)) return true;
+        if (eventDetailServicesMutated) return true;
+        var status = $id('eventDetailStatus')?.value || '';
+        if (status !== eventDetailOriginalStatus) return true;
+        var built = buildEventDetailSavePayload();
+        return !!(built && built.payload && eventDetailScheduleTimesChanged(built.payload));
+    }
+
+    function persistEventDetailChanges(options) {
+        options = options || {};
+        var built = buildEventDetailSavePayload();
+        if (!built.id) {
+            if (options.onError) options.onError();
+            return;
+        }
+        var id = built.id;
+        var payload = built.payload;
+        if (built.needNotifyConfirm) {
             agendaDragPending = {
                 kind: 'eventDetail',
                 eventId: id,
@@ -5688,8 +5755,12 @@ document.addEventListener('DOMContentLoaded', function() {
             openAgendaDragConfirmModal(agendaDragPending.extendedProps);
             return;
         }
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span class="visually-hidden">A guardar…</span>';
+        var btn = $id('eventDetailSaveBtn');
+        eventDetailAutoSaveInProgress = true;
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span class="visually-hidden">A guardar…</span>';
+        }
         fetch((C.urlEvents || '') + '/' + id, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
@@ -5705,10 +5776,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         })
         .then(function(res) {
-            btn.disabled = false;
-            btn.innerHTML = eventDetailSaveBtnDefaultHtml();
+            eventDetailAutoSaveInProgress = false;
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = eventDetailSaveBtnDefaultHtml();
+            }
             if (res.success && res.event) {
                 eventDetailWasSaved = true;
+                eventDetailMarkPersistedSnapshot(payload);
                 var ev = calendar.getEventById(id);
                 if (ev) {
                     ev.setProp('title', res.event.title);
@@ -5717,20 +5792,43 @@ document.addEventListener('DOMContentLoaded', function() {
                     var ep = res.event.extendedProps || {};
                     Object.keys(ep).forEach(function(k) { ev.setExtendedProp(k, ep[k]); });
                 }
-                // Garante atualização visual imediata da duração no calendário
-                // (especialmente quando há alterações de serviços/extras).
                 calendar.refetchEvents();
-                bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
+                if (options.closeAfterSave) {
+                    eventDetailAutoSaveClosing = true;
+                    bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
+                }
+                if (options.onSuccess) options.onSuccess(res);
             } else {
                 showToast(res.message || 'Erro ao guardar.', 'error');
+                if (options.onError) options.onError(res);
             }
         })
         .catch(function(err) {
-            btn.disabled = false;
-            btn.innerHTML = eventDetailSaveBtnDefaultHtml();
+            eventDetailAutoSaveInProgress = false;
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = eventDetailSaveBtnDefaultHtml();
+            }
             var msg = (err && err.message && err.message.indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação. Verifique os logs do servidor se o problema persistir.';
             showToast(msg, 'error');
+            if (options.onError) options.onError(err);
         });
+    }
+
+    $id('eventDetailEditForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        persistEventDetailChanges({ closeAfterSave: true });
+    });
+
+    $id('eventDetailEditModal').addEventListener('hide.bs.offcanvas', function(e) {
+        if (eventDetailWasSaved || eventDetailAutoSaveClosing) return;
+        if (eventDetailAutoSaveInProgress) {
+            e.preventDefault();
+            return;
+        }
+        if (!eventDetailCanAutoSave() || !eventDetailHasUnsavedChanges()) return;
+        e.preventDefault();
+        persistEventDetailChanges({ closeAfterSave: true });
     });
 
     /** Polling MB WAY: um pedido finalize de cada vez; evita 422 por corrida + toast falso. */
@@ -9887,6 +9985,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(function(r) { return r.json(); })
                 .then(function(res) {
                     if (res.success) {
+                        eventDetailOriginalStatus = res.status || status;
                         var ev = typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
                         if (ev) {
                             ev.setExtendedProp('status', res.status);
@@ -10099,6 +10198,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // garantir re-sync completo para refletir a nova duração em tempo real.
                 calendar.refetchEvents();
                 eventDetailWasSaved = true;
+                if (p.putPayload) {
+                    eventDetailMarkPersistedSnapshot(p.putPayload);
+                }
+                eventDetailAutoSaveClosing = true;
                 bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
                 scheduleStackedEventClassRefresh();
             })
@@ -10212,6 +10315,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         eventDetailWasSaved = false;
+        eventDetailAutoSaveClosing = false;
+        eventDetailAutoSaveInProgress = false;
         eventDetailModalLoading = false;
         eventDetailSelectedClient = null;
         eventDetailSelectedServices = [];
