@@ -105,6 +105,16 @@
                                                                 'priceFormatted' => $fee->formatted_price,
                                                             ];
                                                         })->values()->all();
+                                                        $extrasPayload = $service->extras->map(static function ($extra) {
+                                                            return [
+                                                                'id' => (int) $extra->id,
+                                                                'name' => $extra->name,
+                                                                'duration' => $extra->formatted_duration,
+                                                                'durationMinutes' => (int) ($extra->duration ?? 0),
+                                                                'price' => round((float) $extra->price, 2),
+                                                                'priceFormatted' => $extra->formatted_price,
+                                                            ];
+                                                        })->values()->all();
                                                         $hasOptions = $service->options->isNotEmpty();
                                                         if ($hasOptions) {
                                                             $minPrice = (float) $service->options->min(fn ($o) => (float) ($o->online_price ?? $o->price));
@@ -133,6 +143,7 @@
                                                                 'summaryPriceLabel' => $rowPriceLabel,
                                                                 'summaryDurationLabel' => $rowDurationLabel,
                                                                 'options' => $optionsPayload,
+                                                                'extras' => $extrasPayload,
                                                                 'fees' => $feesPayload,
                                                             ];
                                                             $bookingServiceOptionsCatalog[(int) $service->id] = $payload;
@@ -147,6 +158,7 @@
                                                                 'durationMinutes' => (int) ($service->duration ?? 0),
                                                                 'price' => round((float) $price, 2),
                                                                 'priceFormatted' => number_format((float) $price, 2, ',', '.')."\u{00A0}€",
+                                                                'extras' => $extrasPayload,
                                                                 'fees' => $feesPayload,
                                                             ];
                                                         }

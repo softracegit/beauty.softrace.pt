@@ -15,15 +15,23 @@
     $showStatusBadges = $showStatusBadges ?? true;
     $showNoOnlineDepositNote = $showNoOnlineDepositNote ?? true;
     $actionButtons = $actionButtons ?? [];
+    $plainListLayout = (bool) ($plainListLayout ?? false);
     $bookingTz = (string) config('booking.business_timezone', config('app.timezone'));
     $fmtMoney = static function ($value): string {
         return number_format((float) $value, 2, ',', ' ').' €';
     };
 @endphp
 
-<section id="marcacoes" class="booking-account-marcacoes mb-3">
-    <div class="card border shadow-sm rounded-3 booking-account-marcacoes__shell">
-        <div class="card-body p-3 p-md-4">
+<section id="marcacoes" class="booking-account-marcacoes mb-3 @if ($plainListLayout) booking-account-marcacoes--plain @endif">
+    <div @class([
+        'booking-account-marcacoes__shell',
+        'card border shadow-sm rounded-3' => ! $plainListLayout,
+    ])>
+        <div @class([
+            'card-body',
+            'p-3 p-md-4' => ! $plainListLayout,
+            'booking-account-marcacoes__body--plain' => $plainListLayout,
+        ])>
             @if ($showSectionHeader)
                 <header class="booking-account-marcacoes__head mb-2 mb-md-3">
                     <h2 class="h6 fw-semibold text-dark mb-1">{{ $sectionTitle }}</h2>
@@ -51,13 +59,23 @@
                             }
 
                             $serviceRows = $ev->eventServiceItems;
-                            $pivotTotal = (float) $serviceRows->sum(fn ($r) => (float) ($r->price ?? 0));
+                            $pivotTotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($serviceRows);
                             $catalogFees = ApplicableFees::forServiceIds(
                                 $serviceRows->pluck('service_id'),
                                 (int) $ev->store_id,
                             );
                             $feesTotal = ApplicableFees::sumPrices($catalogFees);
                             $totalComTaxas = round($pivotTotal + $feesTotal, 2);
+                            $hasExtrasOnServices = $serviceRows->contains(
+                                fn ($row) => $row->extras->isNotEmpty(),
+                            );
+                            $hasServiceOptions = $serviceRows->contains(
+                                fn ($row) => trim((string) ($row->option_name ?? '')) !== '',
+                            );
+                            $showServicesSubtotalLine = $serviceRows->count() > 1
+                                || $hasExtrasOnServices
+                                || $hasServiceOptions
+                                || $feesTotal > 0.004;
 
                             $isLocked = in_array($statusKey, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO, CalendarEvent::STATUS_FALTOU], true);
                             $isDone = $statusKey === CalendarEvent::STATUS_COMPLETO;
@@ -120,7 +138,7 @@
                             }
 
                             $totalComGorjeta = $totalComTaxas + $gorjeta;
-                            $showTotalsSnapshot = $serviceRows->count() > 1 || $feesTotal > 0.004;
+                            $showTotalsSnapshot = $showServicesSubtotalLine;
 
                             $canClientCancel = false;
                             $cancelPolicy = null;
@@ -166,32 +184,48 @@
                                             @php
                                                 $parentName = trim((string) ($row->service?->name ?? ''));
                                                 $optName = trim((string) ($row->option_name ?? ''));
-                                                if ($optName !== '') {
-                                                    $displayName = $optName;
-                                                } else {
-                                                    $displayName = $parentName !== '' ? $parentName : 'Serviço';
-                                                }
+                                                $serviceTitle = $optName !== ''
+                                                    ? $optName
+                                                    : ($parentName !== '' ? $parentName : 'Serviço');
                                                 $linePrice = (float) ($row->price ?? 0);
                                                 $catLabel = trim((string) ($row->service?->category?->name ?? ''));
+                                                $rowExtras = $row->relationLoaded('extras') ? $row->extras : collect();
                                             @endphp
-                                            <div class="booking-marcacao-card__service-row">
-                                                <div class="booking-marcacao-card__svc-main min-w-0">
-                                                    <div class="booking-marcacao-card__svc-name text-dark fw-semibold small">{{ $displayName }}</div>
-                                                    @if ($catLabel !== '' || $tec !== '—')
-                                                        <div class="booking-marcacao-card__service-row-meta">
-                                                            @if ($catLabel !== '')
-                                                                <span class="booking-marcacao-card__service-row-cat">{{ $catLabel }}</span>
-                                                            @endif
-                                                            @if ($catLabel !== '' && $tec !== '—')
-                                                                <span class="text-muted" aria-hidden="true">·</span>
-                                                            @endif
-                                                            @if ($tec !== '—')
-                                                                <span class="booking-marcacao-card__service-row-tech">{{ $tec }}</span>
-                                                            @endif
-                                                        </div>
-                                                    @endif
+                                            <div class="booking-marcacao-card__service-group">
+                                                <div class="booking-marcacao-card__service-row">
+                                                    <div class="booking-marcacao-card__svc-main min-w-0">
+                                                        <div class="booking-marcacao-card__svc-name text-dark fw-semibold small">{{ $serviceTitle }}</div>
+                                                        @if ($catLabel !== '' || $tec !== '—')
+                                                            <div class="booking-marcacao-card__service-row-meta">
+                                                                @if ($catLabel !== '')
+                                                                    <span class="booking-marcacao-card__service-row-cat">{{ $catLabel }}</span>
+                                                                @endif
+                                                                @if ($catLabel !== '' && $tec !== '—')
+                                                                    <span class="text-muted" aria-hidden="true">·</span>
+                                                                @endif
+                                                                @if ($tec !== '—')
+                                                                    <span class="booking-marcacao-card__service-row-tech">{{ $tec }}</span>
+                                                                @endif
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                    <div class="booking-marcacao-card__svc-price text-dark fw-semibold small text-nowrap ps-2">{{ $fmtMoney($linePrice) }}</div>
                                                 </div>
-                                                <div class="booking-marcacao-card__svc-price text-dark fw-semibold small text-nowrap ps-2">{{ $fmtMoney($linePrice) }}</div>
+                                                @foreach ($rowExtras as $extraPivot)
+                                                    @php
+                                                        $extraName = trim((string) ($extraPivot->extra?->name ?? ''));
+                                                        if ($extraName === '') {
+                                                            $extraName = 'Extra';
+                                                        }
+                                                        $extraPrice = (float) ($extraPivot->price ?? $extraPivot->extra?->price ?? 0);
+                                                    @endphp
+                                                    <div class="booking-marcacao-card__service-row booking-marcacao-card__service-row--extra">
+                                                        <div class="booking-marcacao-card__svc-main min-w-0">
+                                                            <div class="booking-marcacao-card__svc-name booking-marcacao-card__svc-name--extra small">+ {{ $extraName }}</div>
+                                                        </div>
+                                                        <div class="booking-marcacao-card__svc-price booking-marcacao-card__svc-price--extra small text-nowrap ps-2">{{ $fmtMoney($extraPrice) }}</div>
+                                                    </div>
+                                                @endforeach
                                             </div>
                                         @empty
                                             @php
@@ -225,19 +259,19 @@
 
                                     @if ($showTotalsSnapshot)
                                         <div class="booking-marcacao-card__section booking-marcacao-card__section--boxed booking-marcacao-card__section--total-snapshot">
-                                            @if ($serviceRows->count() > 1)
+                                            @if ($showServicesSubtotalLine)
                                                 <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--lead">
                                                     <span class="booking-marcacao-card__total-line__label">Total serviços</span>
                                                     <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($pivotTotal) }}</span>
                                                 </div>
                                             @endif
-                                            @if ($feesTotal > 0.004)
+                                            @foreach ($catalogFees as $fee)
                                                 <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--split">
-                                                    <span class="booking-marcacao-card__total-line__label">Taxas</span>
-                                                    <span class="booking-marcacao-card__total-line__value booking-marcacao-card__total-line__value--soft">{{ $fmtMoney($feesTotal) }}</span>
+                                                    <span class="booking-marcacao-card__total-line__label">{{ $fee['name'] }}</span>
+                                                    <span class="booking-marcacao-card__total-line__value booking-marcacao-card__total-line__value--soft">{{ $fmtMoney($fee['price']) }}</span>
                                                 </div>
-                                            @endif
-                                            @if ($serviceRows->count() > 1 || $feesTotal > 0.004)
+                                            @endforeach
+                                            @if ($feesTotal > 0.004 || $serviceRows->count() > 1)
                                                 <div class="booking-marcacao-card__total-line {{ $gorjeta > 0.004 ? 'booking-marcacao-card__total-line--split' : 'booking-marcacao-card__total-line--lead' }}">
                                                     <span class="booking-marcacao-card__total-line__label">Total</span>
                                                     <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($totalComTaxas) }}</span>
@@ -274,7 +308,7 @@
                                             </div>
                                         @endunless
                                         <div class="booking-marcacao-stat">
-                                            <span class="booking-marcacao-stat__label">Pago online</span>
+                                            <span class="booking-marcacao-stat__label">Pré-pagamento</span>
                                             <div class="booking-marcacao-stat__amount-block">
                                                 <span class="booking-marcacao-stat__value">
                                                     {{ $fmtMoney($pagoOnline) }}

@@ -209,6 +209,8 @@
         els.modalOptionsWrap = document.getElementById('booking-modal-options-wrap');
         els.modalOptions = document.getElementById('booking-modal-options');
         els.modalOptionsError = document.getElementById('booking-modal-options-error');
+        els.modalExtrasWrap = document.getElementById('booking-modal-extras-wrap');
+        els.modalExtras = document.getElementById('booking-modal-extras');
         els.modalConfirm = document.getElementById('booking-modal-confirm');
         els.modalFooterAdd = document.getElementById('booking-modal-footer-add');
         els.modalFooterEdit = document.getElementById('booking-modal-footer-edit');
@@ -607,6 +609,15 @@
                     body.appendChild(optionEl);
                 }
 
+                if (Array.isArray(line.extras) && line.extras.length) {
+                    line.extras.forEach(function (ex) {
+                        var extraEl = document.createElement('span');
+                        extraEl.className = 'booking-summary-line__extra';
+                        extraEl.textContent = '+ ' + (ex.name || 'Extra');
+                        body.appendChild(extraEl);
+                    });
+                }
+
                 var durationEl = document.createElement('span');
                 durationEl.className = 'booking-summary-line__duration';
                 durationEl.textContent = line.duration || '';
@@ -653,7 +664,7 @@
 
                         var label = document.createElement('span');
                         label.className = 'booking-summary-fee__label';
-                        label.textContent = 'Taxa ' + (fee.name || '');
+                        label.textContent = fee.name || '';
 
                         var value = document.createElement('span');
                         value.className = 'booking-summary-fee__value';
@@ -881,31 +892,58 @@
         return slotHoldState.sessionToken;
     }
 
+    function buildServicesPayloadRow(line) {
+        var row = { id: Number(line.id) };
+        if (line.service_option_id != null && line.service_option_id !== '') {
+            row.service_option_id = Number(line.service_option_id);
+        }
+        if (Array.isArray(line.extras) && line.extras.length) {
+            row.extras = line.extras
+                .map(function (ex) {
+                    return { extra_id: Number(ex.id) };
+                })
+                .filter(function (ex) {
+                    return Number.isFinite(ex.extra_id) && ex.extra_id > 0;
+                });
+        }
+        return row;
+    }
+
     function buildServicesForSlotHoldPayload() {
-        return state.items.map(function (line) {
-            var row = { id: Number(line.id) };
-            if (line.service_option_id != null && line.service_option_id !== '') {
-                row.service_option_id = Number(line.service_option_id);
-            }
-            return row;
-        });
+        return state.items.map(buildServicesPayloadRow);
     }
 
     function computeServicesSignature(items) {
         var list = (items || [])
             .map(function (row) {
                 var sid = Number(row && row.id);
-                var opt = row && row.service_option_id != null && row.service_option_id !== '' ? Number(row.service_option_id) : null;
+                var opt =
+                    row && row.service_option_id != null && row.service_option_id !== ''
+                        ? Number(row.service_option_id)
+                        : null;
                 if (!Number.isFinite(sid) || sid <= 0) {
                     return null;
                 }
-                return [sid, Number.isFinite(opt) ? opt : null];
+                var extraIds = (row.extras || [])
+                    .map(function (ex) {
+                        return Number(ex && ex.id);
+                    })
+                    .filter(function (id) {
+                        return Number.isFinite(id) && id > 0;
+                    })
+                    .sort(function (a, b) {
+                        return a - b;
+                    });
+                return [sid, Number.isFinite(opt) ? opt : null, extraIds.join(',')];
             })
             .filter(function (x) {
                 return !!x;
             })
             .sort(function (a, b) {
                 if (a[0] === b[0]) {
+                    if (a[1] === b[1]) {
+                        return String(a[2]).localeCompare(String(b[2]));
+                    }
                     return (a[1] == null ? -1 : a[1]) - (b[1] == null ? -1 : b[1]);
                 }
                 return a[0] - b[0];
@@ -1493,13 +1531,7 @@
             date: dt.date,
             time: dt.time,
             agent_id: String(tech.id),
-            services: state.items.map(function (line) {
-                var row = { id: line.id };
-                if (line.service_option_id != null && line.service_option_id !== '') {
-                    row.service_option_id = Number(line.service_option_id);
-                }
-                return row;
-            }),
+            services: state.items.map(buildServicesPayloadRow),
         };
         if (slotHoldState.holdPublicId) {
             payload.slot_hold_public_id = slotHoldState.holdPublicId;
@@ -2723,6 +2755,12 @@
         if (els.modalOptionsWrap) {
             els.modalOptionsWrap.classList.add('d-none');
         }
+        if (els.modalExtras) {
+            els.modalExtras.innerHTML = '';
+        }
+        if (els.modalExtrasWrap) {
+            els.modalExtrasWrap.classList.add('d-none');
+        }
         clearModalOptionsError();
     }
 
@@ -2779,6 +2817,40 @@
         return [];
     }
 
+    function getNormalizedServiceExtras(svc) {
+        if (!svc || typeof svc !== 'object') {
+            return [];
+        }
+        var raw = svc.extras;
+        if (Array.isArray(raw)) {
+            return raw.filter(function (ex) {
+                return ex && ex.id != null && ex.id !== '';
+            });
+        }
+        if (raw && typeof raw === 'object') {
+            var keys = Object.keys(raw);
+            if (!keys.length) {
+                return [];
+            }
+            var allNumeric = keys.every(function (k) {
+                return /^\d+$/.test(k);
+            });
+            if (allNumeric) {
+                return keys
+                    .sort(function (a, b) {
+                        return Number(a) - Number(b);
+                    })
+                    .map(function (k) {
+                        return raw[k];
+                    })
+                    .filter(function (ex) {
+                        return ex && ex.id != null && ex.id !== '';
+                    });
+            }
+        }
+        return [];
+    }
+
     function syncPendingOptionFromDom() {
         if (!state.pending || !state.pending.service) {
             return;
@@ -2804,6 +2876,116 @@
             }
         });
         state.pending.selectedOption = found;
+    }
+
+    function syncPendingExtrasFromDom() {
+        if (!state.pending || !state.pending.service) {
+            return;
+        }
+        var svc = state.pending.service;
+        var extras = getNormalizedServiceExtras(svc);
+        svc.extras = extras;
+        if (!extras.length || !els.modalExtras) {
+            state.pending.selectedExtras = [];
+            return;
+        }
+        var checked = els.modalExtras.querySelectorAll('input[name="booking-service-extra"]:checked');
+        var selected = [];
+        checked.forEach(function (input) {
+            var want = String(input.value);
+            extras.forEach(function (ex) {
+                if (String(ex.id) === want) {
+                    selected.push(ex);
+                }
+            });
+        });
+        state.pending.selectedExtras = selected;
+    }
+
+    function sumExtrasMetrics(extras) {
+        return (extras || []).reduce(
+            function (acc, ex) {
+                acc.price += Number(ex.price) || 0;
+                acc.durationMinutes += Number(ex.durationMinutes) || 0;
+                return acc;
+            },
+            { price: 0, durationMinutes: 0 },
+        );
+    }
+
+    function buildLineFromServiceSelection(svc, opt, selectedExtras) {
+        var basePrice = opt ? Number(opt.price) : Number(svc.price);
+        var baseMinutes = opt ? Number(opt.durationMinutes) : Number(svc.durationMinutes);
+        if (!Number.isFinite(basePrice)) {
+            basePrice = 0;
+        }
+        if (!Number.isFinite(baseMinutes)) {
+            baseMinutes = 0;
+        }
+        var extraTotals = sumExtrasMetrics(selectedExtras);
+        var totalPrice = Math.round((basePrice + extraTotals.price) * 100) / 100;
+        var totalMinutes = baseMinutes + extraTotals.durationMinutes;
+        var line = {
+            lineId: generateLineId(),
+            id: svc.id,
+            name: opt ? opt.name : svc.name,
+            duration: formatBookingMinutesLabel(totalMinutes),
+            durationMinutes: totalMinutes,
+            price: totalPrice,
+            priceFormatted: formatMoneyEUR(totalPrice),
+            extras: (selectedExtras || []).map(function (ex) {
+                return {
+                    id: ex.id,
+                    name: ex.name,
+                    duration: ex.duration,
+                    durationMinutes: Number(ex.durationMinutes) || 0,
+                    price: Number(ex.price) || 0,
+                    priceFormatted: ex.priceFormatted || formatMoneyEUR(ex.price),
+                };
+            }),
+            editSnapshot: cloneServiceForEditStorage(svc),
+            fees: feesFromServiceSnapshot(svc),
+        };
+        if (opt) {
+            line.service_option_id = opt.id;
+        }
+        return line;
+    }
+
+    function updateModalMetaFromSelection(service) {
+        if (!els.modalMeta || !service) {
+            return;
+        }
+        syncPendingOptionFromDom();
+        syncPendingExtrasFromDom();
+        var opt = state.pending ? state.pending.selectedOption : null;
+        var selectedExtras = state.pending ? state.pending.selectedExtras || [] : [];
+        var opts = getNormalizedServiceOptions(service);
+        var basePrice;
+        var baseMinutes;
+        if (opts.length) {
+            if (opt) {
+                basePrice = Number(opt.price) || 0;
+                baseMinutes = Number(opt.durationMinutes) || 0;
+            } else {
+                var sum = modalSummaryFromOptions(service);
+                els.modalMeta.textContent = joinPriceAndDuration(
+                    service.summaryPriceLabel || sum.price,
+                    service.summaryDurationLabel || sum.duration,
+                );
+                return;
+            }
+        } else {
+            basePrice = Number(service.price) || 0;
+            baseMinutes = Number(service.durationMinutes) || 0;
+        }
+        var extraTotals = sumExtrasMetrics(selectedExtras);
+        var totalPrice = Math.round((basePrice + extraTotals.price) * 100) / 100;
+        var totalMinutes = baseMinutes + extraTotals.durationMinutes;
+        els.modalMeta.textContent = joinPriceAndDuration(
+            formatMoneyEUR(totalPrice),
+            formatBookingMinutesLabel(totalMinutes),
+        );
     }
 
     function setModalConfirmEnabled(enabled) {
@@ -2876,6 +3058,7 @@
             id: svc.id,
             name: svc.name,
             options: [],
+            extras: [],
             duration: svc.duration,
             durationMinutes: Number(svc.durationMinutes) || 0,
             price: svc.price,
@@ -2894,6 +3077,19 @@
                     durationMinutes: Number(opt.durationMinutes) || 0,
                     price: opt.price,
                     priceFormatted: opt.priceFormatted,
+                };
+            });
+        }
+        var extraList = getNormalizedServiceExtras(svc);
+        if (extraList.length) {
+            o.extras = extraList.map(function (ex) {
+                return {
+                    id: ex.id,
+                    name: ex.name,
+                    duration: ex.duration,
+                    durationMinutes: Number(ex.durationMinutes) || 0,
+                    price: ex.price,
+                    priceFormatted: ex.priceFormatted,
                 };
             });
         }
@@ -2924,16 +3120,21 @@
         }
     }
 
-    function populateModalFromService(service, preselectOptionId) {
+    function populateModalFromService(service, preselectOptionId, preselectExtraIds) {
         if (!els.modalTitle || !els.modalMeta) {
             return;
         }
         clearModalServiceOptions();
         els.modalTitle.textContent = service.name || '';
+        preselectExtraIds = Array.isArray(preselectExtraIds) ? preselectExtraIds : [];
 
         var opts = getNormalizedServiceOptions(service);
         if (opts.length) {
             service.options = opts;
+        }
+        var extras = getNormalizedServiceExtras(service);
+        if (extras.length) {
+            service.extras = extras;
         }
 
         if (opts.length > 0) {
@@ -2974,6 +3175,7 @@
                     input.addEventListener('change', function () {
                         syncPendingOptionFromDom();
                         clearModalOptionsError();
+                        updateModalMetaFromSelection(service);
                     });
                     radWrap.appendChild(input);
                     label.appendChild(main);
@@ -2989,6 +3191,51 @@
             );
         }
 
+        if (extras.length > 0 && els.modalExtrasWrap && els.modalExtras) {
+            els.modalExtrasWrap.classList.remove('d-none');
+            extras.forEach(function (ex) {
+                var label = document.createElement('label');
+                label.className = 'booking-modal-option';
+                var main = document.createElement('div');
+                main.className = 'booking-modal-option__main';
+                var nameEl = document.createElement('span');
+                nameEl.className = 'booking-modal-option__name';
+                nameEl.textContent = ex.name;
+                var metaEl = document.createElement('span');
+                metaEl.className = 'booking-modal-option__meta';
+                metaEl.textContent = joinPriceAndDuration(
+                    ex.priceFormatted != null ? ex.priceFormatted : formatMoneyEUR(ex.price),
+                    ex.duration
+                );
+                main.appendChild(nameEl);
+                main.appendChild(metaEl);
+                var checkWrap = document.createElement('div');
+                checkWrap.className = 'booking-modal-option__radio';
+                var input = document.createElement('input');
+                input.type = 'checkbox';
+                input.name = 'booking-service-extra';
+                input.value = String(ex.id);
+                input.setAttribute('aria-label', ex.name);
+                if (
+                    preselectExtraIds.some(function (id) {
+                        return String(id) === String(ex.id);
+                    })
+                ) {
+                    input.checked = true;
+                }
+                input.addEventListener('change', function () {
+                    syncPendingExtrasFromDom();
+                    updateModalMetaFromSelection(service);
+                });
+                checkWrap.appendChild(input);
+                label.appendChild(main);
+                label.appendChild(checkWrap);
+                els.modalExtras.appendChild(label);
+            });
+            syncPendingExtrasFromDom();
+        }
+
+        updateModalMetaFromSelection(service);
         setModalConfirmEnabled(true);
     }
 
@@ -3015,11 +3262,15 @@
                 summaryDurationLabel: entry.summaryDurationLabel,
             });
             merged.options = getNormalizedServiceOptions(entry);
+            merged.extras = getNormalizedServiceExtras(entry);
             var catalogFees = feesFromServiceSnapshot(entry);
             if (catalogFees.length) {
                 merged.fees = catalogFees;
             }
             if (merged.options.length) {
+                return merged;
+            }
+            if (merged.extras.length) {
                 return merged;
             }
         } catch (e2) {
@@ -3037,6 +3288,7 @@
             lineId: null,
             service: service,
             selectedOption: null,
+            selectedExtras: [],
         };
         setModalFooterMode('add');
         populateModalFromService(service, null);
@@ -3059,15 +3311,20 @@
         }
         svc = mergeServiceSnapshotFromOptionsCatalog(svc, line);
         svc.options = getNormalizedServiceOptions(svc);
+        svc.extras = getNormalizedServiceExtras(svc);
         state.pending = {
             mode: 'edit',
             lineId: line.lineId,
             service: svc,
             selectedOption: null,
+            selectedExtras: [],
         };
         setModalFooterMode('edit');
         var pre = line.service_option_id != null ? line.service_option_id : null;
-        populateModalFromService(svc, pre);
+        var preExtras = (line.extras || []).map(function (ex) {
+            return ex.id;
+        });
+        populateModalFromService(svc, pre, preExtras);
         syncPendingOptionFromDom();
         clearModalOptionsError();
         var m = getModalInstance();
@@ -3083,7 +3340,9 @@
         var svc = state.pending.service;
         var lineId = state.pending.lineId;
         syncPendingOptionFromDom();
+        syncPendingExtrasFromDom();
         var opt = state.pending.selectedOption;
+        var selectedExtras = state.pending.selectedExtras || [];
         var editOpts = getNormalizedServiceOptions(svc);
         svc.options = editOpts;
         if (editOpts.length) {
@@ -3098,13 +3357,16 @@
                 closeModal();
                 return;
             }
-            line.name = opt.name;
-            line.duration = opt.duration;
-            line.durationMinutes = Number(opt.durationMinutes) || 0;
-            line.price = opt.price;
-            line.priceFormatted = opt.priceFormatted;
-            line.service_option_id = opt.id;
-            line.editSnapshot = cloneServiceForEditStorage(svc);
+            var updated = buildLineFromServiceSelection(svc, opt, selectedExtras);
+            line.name = updated.name;
+            line.duration = updated.duration;
+            line.durationMinutes = updated.durationMinutes;
+            line.price = updated.price;
+            line.priceFormatted = updated.priceFormatted;
+            line.service_option_id = updated.service_option_id;
+            line.extras = updated.extras;
+            line.editSnapshot = updated.editSnapshot;
+            line.fees = updated.fees;
             persist();
             renderSummary();
             if (bookingRefreshDateTimeSlotsFn) {
@@ -3112,6 +3374,27 @@
             }
             closeModal();
             return;
+        }
+        var lineNoOpts = state.items.find(function (l) {
+            return l.lineId === lineId;
+        });
+        if (!lineNoOpts) {
+            closeModal();
+            return;
+        }
+        var updatedNoOpts = buildLineFromServiceSelection(svc, null, selectedExtras);
+        lineNoOpts.name = updatedNoOpts.name;
+        lineNoOpts.duration = updatedNoOpts.duration;
+        lineNoOpts.durationMinutes = updatedNoOpts.durationMinutes;
+        lineNoOpts.price = updatedNoOpts.price;
+        lineNoOpts.priceFormatted = updatedNoOpts.priceFormatted;
+        lineNoOpts.extras = updatedNoOpts.extras;
+        lineNoOpts.editSnapshot = updatedNoOpts.editSnapshot;
+        lineNoOpts.fees = updatedNoOpts.fees;
+        persist();
+        renderSummary();
+        if (bookingRefreshDateTimeSlotsFn) {
+            bookingRefreshDateTimeSlotsFn();
         }
         closeModal();
     }
@@ -3140,7 +3423,9 @@
         }
         var svc = state.pending.service;
         syncPendingOptionFromDom();
+        syncPendingExtrasFromDom();
         var opt = state.pending.selectedOption;
+        var selectedExtras = state.pending.selectedExtras || [];
         if (getNormalizedServiceOptions(svc).length) {
             if (!opt) {
                 showModalOptionsError('Seleciona uma opção para continuar.');
@@ -3153,22 +3438,7 @@
             );
             return;
         }
-        var line = {
-            lineId: generateLineId(),
-            id: svc.id,
-            name: opt ? opt.name : svc.name,
-            duration: opt ? opt.duration : svc.duration,
-            durationMinutes: opt
-                ? Number(opt.durationMinutes) || 0
-                : Number(svc.durationMinutes) || 0,
-            price: opt ? opt.price : svc.price,
-            priceFormatted: opt ? opt.priceFormatted : svc.priceFormatted,
-        };
-        if (opt) {
-            line.service_option_id = opt.id;
-        }
-        line.editSnapshot = cloneServiceForEditStorage(svc);
-        line.fees = feesFromServiceSnapshot(svc);
+        var line = buildLineFromServiceSelection(svc, opt, selectedExtras);
         state.items.push(line);
         persist();
         renderSummary();
@@ -4958,9 +5228,10 @@
         var registerEmailInput = document.getElementById('booking-auth-register-email');
         var registerPhoneWrap = document.getElementById('booking-auth-register-phone-wrap');
         var registerPhoneInput = document.getElementById('booking-auth-register-phone');
+        var registerTermsCheckbox = document.getElementById('booking-auth-register-terms');
         var registerSubmitBtn = document.getElementById('booking-auth-register-submit');
 
-        if (!stepIdent || !stepCode || !stepRegister || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !tabPhoneBtn || !tabEmailBtn || !panelPhone || !panelEmail || !loginEmailInput || !loginPhoneInput || !emailNextBtn || !codeInput || !codeSubmitBtn || !codeResendBtn || !codeStatus || !registerNameInput || !registerEmailWrap || !registerEmailInput || !registerPhoneWrap || !registerPhoneInput || !registerSubmitBtn || codeDigitInputs.length !== 6) {
+        if (!stepIdent || !stepCode || !stepRegister || !errorBox || !modalBackBtn || !modalTitle || !modalSubtitle || !tabPhoneBtn || !tabEmailBtn || !panelPhone || !panelEmail || !loginEmailInput || !loginPhoneInput || !emailNextBtn || !codeInput || !codeSubmitBtn || !codeResendBtn || !codeStatus || !registerNameInput || !registerEmailWrap || !registerEmailInput || !registerPhoneWrap || !registerPhoneInput || !registerTermsCheckbox || !registerSubmitBtn || codeDigitInputs.length !== 6) {
             return null;
         }
 
@@ -5031,7 +5302,11 @@
             } else if (mode === 'register') {
                 modalTitle.textContent = 'Criar conta';
                 modalSubtitle.textContent = 'Quase pronto. Complete os dados para criar a conta.';
+                updateRegisterSubmitState();
             }
+        }
+        function updateRegisterSubmitState() {
+            registerSubmitBtn.disabled = !registerTermsCheckbox.checked;
         }
         function setRegisterMode(channel) {
             var byPhone = channel === 'phone';
@@ -5040,6 +5315,8 @@
             registerEmailInput.value = '';
             registerPhoneInput.value = '';
             registerNameInput.value = '';
+            registerTermsCheckbox.checked = false;
+            updateRegisterSubmitState();
             if (!byPhone) {
                 ensureAuthIntlInputs().then(function () {
                     var iti = window.intlTelInput && window.intlTelInput.getInstance(registerPhoneInput);
@@ -5356,9 +5633,16 @@
         codeSubmitBtn.addEventListener('click', function () {
             submitOtpCode();
         });
+        registerTermsCheckbox.addEventListener('change', updateRegisterSubmitState);
+
         registerSubmitBtn.addEventListener('click', function () {
+            if (!registerTermsCheckbox.checked) {
+                showError('Deve aceitar os Termos e Condições e a Política de Privacidade para criar a conta.');
+                return;
+            }
             var payload = {
                 name: String(registerNameInput.value || '').trim(),
+                terms_accepted: true,
             };
             if (currentAuthChannel === 'phone') {
                 payload.email = String(registerEmailInput.value || '').trim().toLowerCase();
@@ -5386,6 +5670,7 @@
                 })
                 .finally(function () {
                     setLoading(registerSubmitBtn, false, '', 'Criar conta');
+                    updateRegisterSubmitState();
                 });
         });
 

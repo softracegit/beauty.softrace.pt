@@ -38,6 +38,7 @@ class BookingClientAuthRegistrationTest extends TestCase
             'name' => 'Nome Actualizado',
             'email' => $sharedEmail,
             'phone' => '',
+            'terms_accepted' => true,
         ]);
 
         $response->assertOk()
@@ -52,6 +53,8 @@ class BookingClientAuthRegistrationTest extends TestCase
         $client->refresh();
         $this->assertSame('Nome Actualizado', $client->name);
         $this->assertSame(self::PHONE_E164, $client->phone);
+        $this->assertNotNull($client->terms_accepted_at);
+        $this->assertSame((string) config('legal.privacy_version'), $client->privacy_policy_version);
     }
 
     public function test_complete_registration_phone_channel_creates_new_client_when_phone_unknown(): void
@@ -65,6 +68,7 @@ class BookingClientAuthRegistrationTest extends TestCase
             'name' => 'Cliente Novo',
             'email' => $email,
             'phone' => '',
+            'terms_accepted' => true,
         ]);
 
         $response->assertOk()->assertJson(['ok' => true]);
@@ -97,6 +101,7 @@ class BookingClientAuthRegistrationTest extends TestCase
             'name' => 'Tentativa',
             'email' => 'different@example.test',
             'phone' => '',
+            'terms_accepted' => true,
         ]);
 
         $response->assertStatus(422);
@@ -109,9 +114,25 @@ class BookingClientAuthRegistrationTest extends TestCase
             'name' => 'Sem Sessão',
             'email' => 'orphan@example.test',
             'phone' => '',
+            'terms_accepted' => true,
         ]);
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['login']);
+    }
+
+    public function test_complete_registration_rejects_without_terms_accepted(): void
+    {
+        $response = $this->withSession([
+            'booking_auth.pending_registration.channel' => 'phone',
+            'booking_auth.pending_registration.identifier' => self::PHONE_E164,
+        ])->postJson($this->bookingBasePath().'/auth/complete-registration', [
+            'name' => 'Sem Termos',
+            'email' => 'noterms@example.test',
+            'phone' => '',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['terms_accepted']);
     }
 }

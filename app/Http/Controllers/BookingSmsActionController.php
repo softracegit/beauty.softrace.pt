@@ -174,7 +174,12 @@ class BookingSmsActionController extends Controller
                 'calendarEvent.user:id,name',
                 'calendarEvent.client:id,name,email,phone',
                 'calendarEvent.service:id,name',
-                'calendarEvent.eventServiceItems.service:id,name',
+                'calendarEvent.eventServiceItems.service:id,name,category_id',
+                'calendarEvent.eventServiceItems.service.category:id,name',
+                'calendarEvent.eventServiceItems.extras' => fn ($q) => $q->orderBy('sort_order'),
+                'calendarEvent.eventServiceItems.extras.extra:id,name,price,duration',
+                'calendarEvent.onlineBooking',
+                'calendarEvent.sale',
             ])
             ->first();
 

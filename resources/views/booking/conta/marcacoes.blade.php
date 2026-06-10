@@ -42,7 +42,12 @@
                             @endif
                         @endif
 
-                        @include('booking.conta.partials.marcacoes', ['marcacoes' => $marcacoes])
+                        @include('booking.conta.partials.marcacoes', [
+                            'marcacoes' => $marcacoes,
+                            'showSectionHeader' => false,
+                            'plainListLayout' => true,
+                            'showNoOnlineDepositNote' => false,
+                        ])
                     </div>
                 </main>
             </div>

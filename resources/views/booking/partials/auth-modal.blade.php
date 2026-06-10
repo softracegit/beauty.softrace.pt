@@ -82,7 +82,21 @@
                         <label for="booking-auth-register-phone" class="form-label small text-muted mb-1">Telemóvel</label>
                         <input id="booking-auth-register-phone" type="tel" class="form-control" autocomplete="tel">
                     </div>
-                    <button type="button" id="booking-auth-register-submit" class="btn btn-dark w-100">Criar conta</button>
+                    <div class="form-check mb-3">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="booking-auth-register-terms"
+                            value="1"
+                        >
+                        <label class="form-check-label small text-muted" for="booking-auth-register-terms">
+                            Li e aceito os
+                            <a href="{{ route('legal.terms') }}" target="_blank" rel="noopener noreferrer">Termos e Condições</a>
+                            e a
+                            <a href="{{ route('legal.privacy') }}" target="_blank" rel="noopener noreferrer">Política de Privacidade</a>.
+                        </label>
+                    </div>
+                    <button type="button" id="booking-auth-register-submit" class="btn btn-dark w-100" disabled>Criar conta</button>
                 </div>
             </div>
         </div>

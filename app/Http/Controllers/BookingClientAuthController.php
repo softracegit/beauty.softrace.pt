@@ -199,6 +199,9 @@ class BookingClientAuthController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:32'],
+            'terms_accepted' => ['accepted'],
+        ], [
+            'terms_accepted.accepted' => 'Deve aceitar os Termos e Condições e a Política de Privacidade para criar a conta.',
         ]);
 
         $name = trim((string) $validated['name']);
@@ -262,6 +265,7 @@ class BookingClientAuthController extends Controller
             if (trim((string) ($existingClient->email ?? '')) === '') {
                 $existingClient->email = $emailNorm;
             }
+            $existingClient->fill($this->legalAcceptanceAttributes());
 
             try {
                 $existingClient->save();
@@ -282,6 +286,7 @@ class BookingClientAuthController extends Controller
                     'email' => $emailNorm,
                     'phone' => $phoneE164,
                     'type' => Client::TYPE_POTENCIAL_CLIENTE,
+                    ...$this->legalAcceptanceAttributes(),
                 ]);
             } catch (QueryException $e) {
                 $this->throwFriendlyDuplicateEntryIfApplicable($e);
@@ -630,6 +635,17 @@ class BookingClientAuthController extends Controller
             self::PENDING_REG_CHANNEL_KEY,
             self::PENDING_REG_IDENTIFIER_KEY,
         ]);
+    }
+
+    /**
+     * @return array{terms_accepted_at: \Illuminate\Support\Carbon, privacy_policy_version: string}
+     */
+    private function legalAcceptanceAttributes(): array
+    {
+        return [
+            'terms_accepted_at' => now(),
+            'privacy_policy_version' => (string) config('legal.privacy_version'),
+        ];
     }
 
     private function bookingPublicStoreId(): int

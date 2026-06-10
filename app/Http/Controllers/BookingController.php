@@ -43,6 +43,9 @@ class BookingController extends Controller
                             'options' => function ($oq) {
                                 $oq->orderBy('sort_order');
                             },
+                            'extras' => function ($eq) {
+                                $eq->orderBy('sort_order');
+                            },
                             'fees' => function ($fq) {
                                 $fq->orderBy('sort_order')->orderBy('name');
                             },
@@ -425,6 +428,8 @@ class BookingController extends Controller
                 'service.category:id,name',
                 'eventServiceItems.service:id,name,category_id',
                 'eventServiceItems.service.category:id,name',
+                'eventServiceItems.extras' => fn ($q) => $q->orderBy('sort_order'),
+                'eventServiceItems.extras.extra:id,name,price,duration',
                 'onlineBooking',
                 'sale',
             ])

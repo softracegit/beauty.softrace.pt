@@ -13,6 +13,10 @@
                     <div id="booking-modal-options" class="booking-modal-options" role="radiogroup" aria-label="Variante do serviço"></div>
                     <p id="booking-modal-options-error" class="booking-modal-options-error text-danger small mt-2 mb-0 d-none" role="alert"></p>
                 </div>
+                <div id="booking-modal-extras-wrap" class="d-none mt-3">
+                    <p class="small fw-semibold text-dark mb-2">Extras sugeridos</p>
+                    <div id="booking-modal-extras" class="booking-modal-options" role="group" aria-label="Extras do serviço"></div>
+                </div>
             </div>
             <div class="modal-footer border-0 pt-0 booking-modal-footer">
                 <div id="booking-modal-footer-add" class="booking-modal-footer__pane w-100">

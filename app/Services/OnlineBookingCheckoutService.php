@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Agent;
 use App\Models\CalendarEvent;
+use App\Models\CalendarEventServiceExtra;
 use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\Service;
@@ -50,6 +51,8 @@ class OnlineBookingCheckoutService
             'services' => ['required', 'array', 'min:1'],
             'services.*.id' => ['required', 'integer', 'exists:services,id'],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
+            'services.*.extras' => ['nullable', 'array'],
+            'services.*.extras.*.extra_id' => ['required', 'integer', 'exists:extras,id'],
             'send_invoice_email' => ['sometimes', 'boolean'],
             'want_invoice_with_nif' => ['sometimes', 'boolean'],
             'invoice_email' => ['nullable', 'string', 'email', 'max:255'],
@@ -71,6 +74,8 @@ class OnlineBookingCheckoutService
             'services' => ['required', 'array', 'min:1'],
             'services.*.id' => ['required', 'integer', 'exists:services,id'],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
+            'services.*.extras' => ['nullable', 'array'],
+            'services.*.extras.*.extra_id' => ['required', 'integer', 'exists:extras,id'],
         ];
     }
 
@@ -229,7 +234,7 @@ class OnlineBookingCheckoutService
         $endForDb = $slot['endForDb'];
 
         $servicesSubtotal = round(
-            (float) array_sum(array_map(fn (array $line): float => (float) $line['price'], $bookingLines)),
+            (float) array_sum(array_map(fn (array $line): float => $this->bookingLineTotalPrice($line), $bookingLines)),
             2,
         );
         $storeId = (int) ($bookingLines[0]['service']->store_id ?? 0);
@@ -298,7 +303,7 @@ class OnlineBookingCheckoutService
             fn (array $line): int => (int) $line['service']->id,
             $bookingLines,
         )));
-        $totalDuration = (int) array_sum(array_map(fn (array $line): int => (int) $line['duration'], $bookingLines));
+        $totalDuration = (int) array_sum(array_map(fn (array $line): int => $this->bookingLineTotalDuration($line), $bookingLines));
         if ($totalDuration <= 0) {
             throw ValidationException::withMessages([
                 'services' => ['Duração total inválida.'],
@@ -390,7 +395,10 @@ class OnlineBookingCheckoutService
 
         $services = Service::query()
             ->whereIn('id', $serviceIds)
-            ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
+            ->with([
+                'options' => fn ($q) => $q->orderBy('sort_order'),
+                'extras' => fn ($q) => $q->orderBy('sort_order'),
+            ])
             ->get()
             ->keyBy('id');
 
@@ -460,10 +468,82 @@ class OnlineBookingCheckoutService
                 'price' => $price,
                 'original_price' => $originalPrice,
                 'display_name' => $displayName,
+                'extras' => $this->resolveOnlineBookingExtrasForServiceLine($service, $row['extras'] ?? [], $idx),
             ];
         }
 
         return $lines;
+    }
+
+    /**
+     * @param  list<mixed>  $extrasInput
+     * @return list<array{extra_id: int, duration: int, price: float}>
+     */
+    private function resolveOnlineBookingExtrasForServiceLine(Service $service, array $extrasInput, int $serviceIdx): array
+    {
+        if ($extrasInput === []) {
+            return [];
+        }
+
+        $resolved = [];
+        $seen = [];
+        foreach ($extrasInput as $exIdx => $exRow) {
+            if (! is_array($exRow)) {
+                throw ValidationException::withMessages([
+                    "services.{$serviceIdx}.extras.{$exIdx}" => ['Extra inválido.'],
+                ]);
+            }
+
+            $extraId = (int) ($exRow['extra_id'] ?? 0);
+            if ($extraId <= 0) {
+                throw ValidationException::withMessages([
+                    "services.{$serviceIdx}.extras.{$exIdx}.extra_id" => ['Extra inválido.'],
+                ]);
+            }
+
+            if (isset($seen[$extraId])) {
+                continue;
+            }
+
+            if (! $service->extras->contains('id', $extraId)) {
+                throw ValidationException::withMessages([
+                    "services.{$serviceIdx}.extras.{$exIdx}.extra_id" => ['Este extra não está disponível para o serviço selecionado.'],
+                ]);
+            }
+
+            /** @var \App\Models\Extra $extra */
+            $extra = $service->extras->firstWhere('id', $extraId);
+            $resolved[] = [
+                'extra_id' => $extraId,
+                'duration' => max(0, (int) $extra->duration),
+                'price' => round((float) $extra->price, 2),
+            ];
+            $seen[$extraId] = true;
+        }
+
+        return $resolved;
+    }
+
+    private function bookingLineTotalDuration(array $line): int
+    {
+        $base = (int) ($line['duration'] ?? 0);
+        $extraMinutes = array_sum(array_map(
+            fn (array $extra): int => (int) ($extra['duration'] ?? 0),
+            $line['extras'] ?? [],
+        ));
+
+        return $base + $extraMinutes;
+    }
+
+    private function bookingLineTotalPrice(array $line): float
+    {
+        $base = (float) ($line['price'] ?? 0);
+        $extraPrice = array_sum(array_map(
+            fn (array $extra): float => (float) ($extra['price'] ?? 0),
+            $line['extras'] ?? [],
+        ));
+
+        return round($base + $extraPrice, 2);
     }
 
     /**
@@ -576,6 +656,7 @@ class OnlineBookingCheckoutService
                 'duration' => (int) $line['duration'],
                 'price' => (float) $line['price'],
                 'original_price' => (float) $line['original_price'],
+                'extras' => $line['extras'] ?? [],
             ];
         }
 
@@ -583,7 +664,7 @@ class OnlineBookingCheckoutService
         $notesTrim = isset($validated['notes']) ? trim((string) $validated['notes']) : '';
         $description = $notesTrim !== '' ? $notesTrim : null;
 
-        return DB::transaction(function () use ($title, $startForDb, $endForDb, $description, $userId, $client, $firstService, $servicesPayload) {
+        return DB::transaction(function () use ($title, $startForDb, $endForDb, $description, $userId, $client, $firstService, $servicesPayload, $bookingLines) {
             if ($this->userHasCalendarConflict($userId, $startForDb, $endForDb)) {
                 throw ValidationException::withMessages([
                     'time' => ['Este horário acabou de ser ocupado. Escolhe outro.'],
@@ -614,6 +695,21 @@ class OnlineBookingCheckoutService
                     'original_price' => $item['original_price'],
                     'sort_order' => $i,
                 ]);
+            }
+
+            $ev->load('eventServices');
+            $ordered = $ev->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
+            foreach ($ordered as $i => $svc) {
+                $extras = $bookingLines[$i]['extras'] ?? [];
+                foreach ($extras as $j => $ex) {
+                    CalendarEventServiceExtra::create([
+                        'calendar_event_service_id' => $svc->pivot->id,
+                        'extra_id' => (int) ($ex['extra_id'] ?? 0),
+                        'duration' => isset($ex['duration']) ? (int) $ex['duration'] : null,
+                        'price' => isset($ex['price']) ? (float) $ex['price'] : null,
+                        'sort_order' => $j,
+                    ]);
+                }
             }
 
             return $ev;

@@ -25,6 +25,7 @@ use App\Http\Controllers\DefinicoesController;
 use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\MarketingSmsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OpportunityController;
@@ -47,6 +48,12 @@ use Illuminate\Support\Facades\Route;
 | Assets estáticos: public/booking-assets/{css,js,img} (não usar public/booking — conflita com a rota /booking)
 */
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
+
+Route::prefix('legal')->name('legal.')->group(function () {
+    Route::get('/termos', [LegalController::class, 'terms'])->name('terms');
+    Route::get('/privacidade', [LegalController::class, 'privacy'])->name('privacy');
+    Route::get('/cookies', [LegalController::class, 'cookies'])->name('cookies');
+});
 
 Route::get('/booking', function () {
     return redirect()->route('booking.index', [

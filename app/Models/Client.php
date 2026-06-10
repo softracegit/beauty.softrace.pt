@@ -56,6 +56,8 @@ class Client extends Model
         'notify_email_booking_updates',
         'notify_email_booking_reminders',
         'notify_sms_booking_reminders',
+        'terms_accepted_at',
+        'privacy_policy_version',
         'wallet_balance_cents',
     ];
 
@@ -75,6 +77,7 @@ class Client extends Model
         'notify_email_booking_updates' => 'boolean',
         'notify_email_booking_reminders' => 'boolean',
         'notify_sms_booking_reminders' => 'boolean',
+        'terms_accepted_at' => 'datetime',
         'wallet_balance_cents' => 'integer',
     ];
 
