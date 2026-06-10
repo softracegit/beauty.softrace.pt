@@ -1,6 +1,6 @@
 @extends('booking.layout')
 
-@section('title', 'Serviços')
+@section('title', __('booking.services.page_title'))
 
 @section('body_class', 'booking-page booking-page--services')
 
@@ -23,8 +23,8 @@
                     <div class="row mt-4">
                         <div class="col-12">
                             <div class="alert alert-light border text-center" role="status">
-                                <p class="fw-semibold mb-1">Nenhum serviço disponível.</p>
-                                <p class="text-muted small mb-0">Cria categorias e serviços no CRM para os veres listados aqui.</p>
+                                <p class="fw-semibold mb-1">{{ __('booking.services.empty_title') }}</p>
+                                <p class="text-muted small mb-0">{{ __('booking.services.empty_hint') }}</p>
                             </div>
                         </div>
                     </div>
@@ -50,13 +50,13 @@
                                 <h2
                                     id="booking-services-page-heading"
                                     class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1"
-                                    data-heading-empty="Adicione os serviços que pretende"
-                                    data-heading-has-items="Adicione mais serviços à sua marcação"
-                                >Adicione os serviços que pretende</h2>
-                                <section class="booking-category-section booking-category-section--chips mb-4 pb-1" aria-label="Atalhos por categoria">
+                                    data-heading-empty="{{ __('booking.services.heading_empty') }}"
+                                    data-heading-has-items="{{ __('booking.services.heading_has_items') }}"
+                                >{{ __('booking.services.heading_empty') }}</h2>
+                                <section class="booking-category-section booking-category-section--chips mb-4 pb-1" aria-label="{{ __('booking.services.category_shortcuts_aria') }}">
                                     <div class="card border shadow-sm rounded-3 booking-category-card booking-category-card--chips">
-                                        <nav class="booking-category-chips" aria-label="Categorias de serviço">
-                                            <button type="button" class="booking-category-chips__arrow booking-category-chips__arrow--left" aria-label="Ver categorias anteriores">
+                                        <nav class="booking-category-chips" aria-label="{{ __('booking.services.categories_nav_aria') }}">
+                                            <button type="button" class="booking-category-chips__arrow booking-category-chips__arrow--left" aria-label="{{ __('booking.services.scroll_categories_prev_aria') }}">
                                                 <i class="bi bi-chevron-left" aria-hidden="true"></i>
                                             </button>
                                             <div class="booking-category-chips__scroll">
@@ -73,7 +73,7 @@
                                                     >{{ $category->name }}</button>
                                                 @endforeach
                                             </div>
-                                            <button type="button" class="booking-category-chips__arrow booking-category-chips__arrow--right" aria-label="Ver mais categorias">
+                                            <button type="button" class="booking-category-chips__arrow booking-category-chips__arrow--right" aria-label="{{ __('booking.services.scroll_categories_next_aria') }}">
                                                 <i class="bi bi-chevron-right" aria-hidden="true"></i>
                                             </button>
                                         </nav>
@@ -123,7 +123,7 @@
                                                             $rowDurationLabel = $minDur === $maxDur
                                                                 ? $bookingFmtMinutes($minDur)
                                                                 : $bookingFmtMinutes($minDur).'+';
-                                                            $rowPriceLabel = 'Desde '.number_format($minPrice, 2, ',', '.')."\u{00A0}€";
+                                                            $rowPriceLabel = __('booking.services.price_from').' '.number_format($minPrice, 2, ',', '.')."\u{00A0}€";
                                                             $optionsPayload = $service->options->map(static function ($opt) {
                                                                 $p = $opt->online_price ?? $opt->price;
 
@@ -194,7 +194,7 @@
 
                         <div class="col-lg-4 booking-summary-column">
                             @include('booking.partials.summary-panel', [
-                                'summaryTitle' => 'Resumo da marcação',
+                                'summaryTitle' => __('booking.services.summary_title'),
                                 'showNextButton' => true,
                                 'nextUrl' => route('booking.technician', ['store' => $bookingStoreSlug], false),
                             ])

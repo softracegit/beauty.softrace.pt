@@ -1,21 +1,21 @@
 <x-mail::message>
-# Olá,
+# {{ __('booking.mail.auth_code_greeting') }}
 
-Recebemos um pedido de acesso à sua conta de marcação.
+{{ __('booking.mail.auth_code_intro') }}
 
-O seu código de verificação é:
+{{ __('booking.mail.auth_code_label') }}
 
 <p style="margin: 14px 0 18px 0; font-size: 28px; font-weight: 800; letter-spacing: 0.08em; color: #111827;">
 {{ $code }}
 </p>
 
-Este código expira em {{ $ttlMinutes }} minutos.
+{{ __('booking.mail.auth_code_expires', ['minutes' => $ttlMinutes]) }}
 
-Se não pediu este código, ignore este e-mail.
+{{ __('booking.mail.auth_code_ignore') }}
 
 @if (! empty($continueUrl))
 <x-mail::button :url="$continueUrl">
-Continuar na marcação online
+{{ __('booking.mail.auth_code_continue') }}
 </x-mail::button>
 @endif
 

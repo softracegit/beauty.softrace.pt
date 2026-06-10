@@ -212,15 +212,19 @@ html {
         margin-right: 0.65rem;
     }
 
-    .booking-navbar-account__toggle {
+    .booking-navbar-account__toggle,
+    .booking-navbar-lang__toggle {
         height: 2.5rem;
         min-height: 2.5rem;
         padding-top: 0;
         padding-bottom: 0;
-        padding-left: 0.55rem;
-        padding-right: 0.55rem;
         box-sizing: border-box;
         align-items: center;
+    }
+
+    .booking-navbar-account__toggle {
+        padding-left: 0.55rem;
+        padding-right: 0.55rem;
     }
 }
 
@@ -229,6 +233,15 @@ html {
     font-size: 0.8125rem;
     letter-spacing: 0.02em;
     line-height: 1;
+}
+
+.booking-navbar-account__toggle,
+.booking-navbar-lang__toggle {
+    height: 2.125rem;
+    min-height: 2.125rem;
+    padding-top: 0;
+    padding-bottom: 0;
+    box-sizing: border-box;
 }
 
 .booking-navbar-account__toggle {
@@ -315,6 +328,72 @@ html {
 
 .booking-navbar-account__menu .dropdown-item.text-danger .booking-navbar-account__item-icon {
     opacity: 1;
+}
+
+.booking-navbar-lang {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.booking-navbar-lang__toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    border-color: #d1d5db !important;
+}
+
+.booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark:hover,
+.booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark:focus-visible,
+.booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark:active,
+.booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark.show {
+    border-color: #d1d5db !important;
+}
+
+.booking-navbar-lang__toggle-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.booking-navbar-lang__toggle-icon {
+    flex-shrink: 0;
+    font-size: 1.05rem;
+    line-height: 1;
+    opacity: 0.9;
+}
+
+.booking-navbar-lang__code {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1;
+}
+
+.booking-navbar-lang__menu {
+    z-index: 1050;
+    min-width: 0;
+    width: max-content;
+    margin-top: 0 !important;
+    box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.1);
+    top: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+    transform: none !important;
+}
+
+.booking-navbar-lang__menu .dropdown-item {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-align: center;
+    padding: 0.45rem 0.85rem;
+    white-space: nowrap;
 }
 
 .booking-offcanvas {
@@ -934,6 +1013,33 @@ button.booking-offcanvas-nav__link {
 
     /* Sem caret do Bootstrap no botão de perfil (só ícone) */
     .booking-navbar .booking-navbar-account__toggle.dropdown-toggle::after {
+        display: none !important;
+    }
+
+    .booking-navbar .booking-navbar-lang__toggle-icon {
+        font-size: 1.35rem;
+        line-height: 1;
+    }
+
+    .booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark {
+        border-color: transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+    }
+
+    .booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark:hover,
+    .booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark:active,
+    .booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark:focus-visible,
+    .booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark.show {
+        border-color: transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        color: var(--booking-text) !important;
+    }
+
+    .booking-navbar .booking-navbar-lang__toggle.dropdown-toggle::after {
         display: none !important;
     }
 

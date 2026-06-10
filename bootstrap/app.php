@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'cash.register.open' => \App\Http\Middleware\EnsureCashRegisterOpen::class,
             'super.admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'booking' => \App\Http\Middleware\BookingContext::class,
+            'booking.locale' => \App\Http\Middleware\SetBookingLocale::class,
             'booking.client' => \App\Http\Middleware\EnsureUserIsBookingClient::class,
         ]);
 

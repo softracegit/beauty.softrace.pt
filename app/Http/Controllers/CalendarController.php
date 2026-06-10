@@ -27,6 +27,7 @@ use App\Services\CancellationPolicyService;
 use App\Services\CashRegisterService;
 use App\Services\ClientWalletService;
 use App\Support\ApplicableFees;
+use App\Support\BookingLocale;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -1333,7 +1334,9 @@ class CalendarController extends Controller
                 && filter_var($clientEmail, FILTER_VALIDATE_EMAIL)
             ) {
                 try {
-                    Notification::route('mail', $this->resolveClientNotificationRecipientEmail($clientEmail))->notify(new ClientAppointmentRescheduledNotification(
+                    Notification::locale(BookingLocale::emailLocale())
+                        ->route('mail', $this->resolveClientNotificationRecipientEmail($clientEmail))
+                        ->notify(new ClientAppointmentRescheduledNotification(
                         (int) $freshEvent->id,
                         $notifyClientPrevStart?->toIso8601String(),
                         $notifyClientPrevEnd?->toIso8601String()
@@ -1539,7 +1542,8 @@ class CalendarController extends Controller
                 && filter_var($email, FILTER_VALIDATE_EMAIL)
             ) {
                 try {
-                    Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
+                    Notification::locale(BookingLocale::emailLocale())
+                        ->route('mail', $this->resolveClientNotificationRecipientEmail($email))
                         ->notify(new ClientAppointmentCancelledNotification($calendarEvent->id));
                 } catch (\Throwable $e) {
                     \Log::warning('Falha ao enviar email de cancelamento ao cliente.', [
@@ -1996,7 +2000,8 @@ class CalendarController extends Controller
         }
 
         try {
-            Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
+            Notification::locale(BookingLocale::emailLocale())
+                ->route('mail', $this->resolveClientNotificationRecipientEmail($email))
                 ->notify(new ClientAppointmentCreatedNotification((int) $event->id));
         } catch (\Throwable $e) {
             \Log::warning('Falha ao enviar email de marcacao criada ao cliente.', [

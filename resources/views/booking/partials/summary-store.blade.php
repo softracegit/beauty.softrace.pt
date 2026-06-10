@@ -1,17 +1,17 @@
 @php
     $profile = $bookingStoreProfile ?? ($bookingStore?->publicBookingProfile() ?? []);
-    $storeName = (string) ($profile['name'] ?? ($businessName ?? 'Loja'));
+    $storeName = (string) ($profile['name'] ?? ($businessName ?? __('booking.nav.default_store')));
     $storePhotoUrl = (string) ($profile['photo'] ?? '');
     $weeklySchedule = $bookingWeeklySchedule ?? ($bookingStore?->normalizedWeeklySchedule() ?? \App\Models\Store::defaultWeeklySchedule());
     $hoursUi = \App\Support\BookingStoreOpenStatus::publicUiState($weeklySchedule);
 @endphp
-<section class="booking-summary-store" aria-label="Loja">
+<section class="booking-summary-store" aria-label="{{ __('booking.nav.default_store') }}">
     <button
         type="button"
         class="booking-summary-store__trigger"
         data-bs-toggle="offcanvas"
         data-bs-target="#bookingStoreDetails"
-        aria-label="Ver informação da loja, morada e horários"
+        aria-label="{{ __('booking.partials.store_trigger_aria') }}"
     >
         <span class="booking-summary-store__inner">
             <span class="booking-summary-store__photo">

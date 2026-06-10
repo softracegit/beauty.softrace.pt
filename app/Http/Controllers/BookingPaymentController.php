@@ -20,6 +20,7 @@ use App\Services\ClientWalletService;
 use App\Services\OnlineBookingCheckoutService;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
+use App\Support\BookingLocale;
 use App\Support\CurrentStore;
 use App\Support\StoreBusinessTime;
 use Illuminate\Http\JsonResponse;
@@ -58,7 +59,7 @@ class BookingPaymentController extends Controller
 
         if (! CrmSetting::onlineBookingPaymentRequired($storeId)) {
             return response()->json([
-                'message' => 'O pagamento online está desactivado. Confirma a marcação sem pagamento.',
+                'message' => __('booking.validation.payment_disabled'),
             ], 422);
         }
         $slotHoldPublicId = trim((string) $request->input('slot_hold_public_id', ''));
@@ -72,7 +73,7 @@ class BookingPaymentController extends Controller
         $secret = config('stripe.secret');
         if (! is_string($secret) || $secret === '') {
             return response()->json([
-                'message' => 'Pagamentos online não estão configurados.',
+                'message' => __('booking.validation.payment_not_configured'),
             ], 503);
         }
 
@@ -84,7 +85,7 @@ class BookingPaymentController extends Controller
         $remaining = round($total - $paidAmount, 2);
         if ($paidAmount <= 0) {
             throw ValidationException::withMessages([
-                'services' => ['O valor do depósito é zero. Contacta a loja.'],
+                'services' => [__('booking.validation.deposit_zero')],
             ]);
         }
 
@@ -110,7 +111,7 @@ class BookingPaymentController extends Controller
 
         if ($currency === 'eur' && $stripeCents > 0 && $stripeCents < 50) {
             throw ValidationException::withMessages([
-                'services' => ['O valor mínimo para pagamento com cartão é 0,50 €. Usa créditos da carteira ou escolhe mais serviços.'],
+                'services' => [__('booking.validation.card_minimum')],
             ]);
         }
 
@@ -135,7 +136,7 @@ class BookingPaymentController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json(['message' => 'Não foi possível iniciar o pagamento. Tenta novamente.'], 500);
+            return response()->json(['message' => __('booking.validation.payment_start_failed')], 500);
         }
 
         if ($stripeCents <= 0 && $walletApplyCents > 0) {
@@ -171,7 +172,7 @@ class BookingPaymentController extends Controller
             $booking->delete();
 
             $payload = [
-                'message' => 'Não foi possível preparar o pagamento no servidor (contacto com o Stripe). Isto acontece antes de introduzires o cartão — costuma ser configuração (chaves, versão da API) ou rede. Tenta mais tarde ou contacta a loja.',
+                'message' => __('booking.validation.payment_prepare_failed'),
             ];
             if (config('app.debug')) {
                 $payload['message'] .= ' [Debug] '.$e->getMessage();
@@ -192,7 +193,7 @@ class BookingPaymentController extends Controller
 
         $publishable = config('stripe.key');
         if (! is_string($publishable) || $publishable === '') {
-            return response()->json(['message' => 'Chave pública Stripe em falta.'], 503);
+            return response()->json(['message' => __('booking.validation.stripe_key_missing')], 503);
         }
 
         return response()->json([
@@ -228,7 +229,7 @@ class BookingPaymentController extends Controller
 
         $secret = config('stripe.secret');
         if (! is_string($secret) || $secret === '') {
-            return response()->json(['message' => 'Pagamentos online não estão configurados.'], 503);
+            return response()->json(['message' => __('booking.validation.payment_not_configured')], 503);
         }
 
         $this->configureStripeSdk();
@@ -251,7 +252,7 @@ class BookingPaymentController extends Controller
             if ($routeStore instanceof Store && (int) $booking->store_id !== (int) $routeStore->id) {
                 DB::rollBack();
 
-                return response()->json(['message' => 'Esta marcação não pertence a esta loja.'], 403);
+                return response()->json(['message' => __('booking.validation.appointment_wrong_store')], 403);
             }
 
             if ($booking->authenticated_booking_user_id !== null) {
@@ -259,7 +260,7 @@ class BookingPaymentController extends Controller
                 if ((int) $booking->authenticated_booking_user_id !== (int) $uid) {
                     DB::rollBack();
 
-                    return response()->json(['message' => 'Sessão inválida para concluir esta marcação.'], 403);
+                    return response()->json(['message' => __('booking.validation.payment_session_invalid')], 403);
                 }
             }
 
@@ -291,7 +292,7 @@ class BookingPaymentController extends Controller
                 if (! is_string($piId) || $piId === '' || $piId !== $booking->stripe_payment_intent_id) {
                     DB::rollBack();
 
-                    return response()->json(['message' => 'Identificador de pagamento inválido.'], 422);
+                    return response()->json(['message' => __('booking.validation.payment_id_invalid')], 422);
                 }
 
                 try {
@@ -299,7 +300,7 @@ class BookingPaymentController extends Controller
                 } catch (ApiErrorException $e) {
                     DB::rollBack();
 
-                    return response()->json(['message' => 'Não foi possível verificar o pagamento no Stripe.'], 422);
+                    return response()->json(['message' => __('booking.validation.payment_verify_failed')], 422);
                 }
 
                 if ($intent->status !== 'succeeded') {
@@ -311,7 +312,7 @@ class BookingPaymentController extends Controller
                     ]);
 
                     return response()->json([
-                        'message' => 'O pagamento não foi concluído. Verifica os dados do cartão e tenta novamente.',
+                        'message' => __('booking.validation.payment_not_completed'),
                     ], 422);
                 }
 
@@ -319,7 +320,7 @@ class BookingPaymentController extends Controller
                     DB::rollBack();
                     report(new \RuntimeException('Stripe amount mismatch for booking '.$booking->id));
 
-                    return response()->json(['message' => 'Valor do pagamento não coincide. Contacta a loja.'], 422);
+                    return response()->json(['message' => __('booking.validation.payment_amount_mismatch')], 422);
                 }
             }
 
@@ -355,7 +356,7 @@ class BookingPaymentController extends Controller
                     [
                         'booking_id' => $booking->id,
                         'calendar_event_id' => $event->id,
-                        'description' => 'Utilizado no pré-pagamento online',
+                        'description' => __('booking.messages.wallet_used_prepayment'),
                         'created_by_type' => ClientWalletTransaction::CREATED_BY_CLIENT,
                         'created_by_user_id' => $actor instanceof User ? $actor->id : null,
                     ],
@@ -376,19 +377,19 @@ class BookingPaymentController extends Controller
         } catch (InsufficientWalletBalanceException $e) {
             DB::rollBack();
 
-            return response()->json(['message' => 'Saldo de créditos insuficiente.'], 422);
+            return response()->json(['message' => __('booking.validation.wallet_insufficient')], 422);
         } catch (ValidationException $e) {
             DB::rollBack();
             throw $e;
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             DB::rollBack();
 
-            return response()->json(['message' => 'Marcação não encontrada.'], 404);
+            return response()->json(['message' => __('booking.validation.appointment_not_found')], 404);
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
 
-            return response()->json(['message' => 'Não foi possível guardar a marcação após o pagamento. Contacta a loja.'], 500);
+            return response()->json(['message' => __('booking.validation.appointment_save_after_payment_failed')], 500);
         }
 
         if ($event !== null && $resolvedUserId !== null) {
@@ -433,7 +434,7 @@ class BookingPaymentController extends Controller
 
         if (CrmSetting::onlineBookingPaymentRequired($storeId)) {
             return response()->json([
-                'message' => 'O pagamento online está activo. Usa o fluxo normal de checkout.',
+                'message' => __('booking.validation.payment_use_checkout'),
             ], 422);
         }
         $slotHoldPublicId = trim((string) $request->input('slot_hold_public_id', ''));
@@ -464,7 +465,7 @@ class BookingPaymentController extends Controller
         } catch (\Throwable $e) {
             report($e);
 
-            return response()->json(['message' => 'Não foi possível guardar a marcação. Tenta novamente ou contacta a loja.'], 500);
+            return response()->json(['message' => __('booking.validation.appointment_save_failed')], 500);
         }
 
         if ($event !== null && $resolvedUserId !== null) {
@@ -546,7 +547,7 @@ class BookingPaymentController extends Controller
                 'booking_public_id' => $bookingPublicId,
                 'booking_id' => $bookingId,
             ],
-            'description' => 'Depósito marcação online — '.config('app.name'),
+            'description' => __('booking.messages.stripe_deposit_description', ['title' => config('app.name')]),
         ];
         if (is_string($email) && trim($email) !== '') {
             $base['receipt_email'] = trim($email);
@@ -778,8 +779,8 @@ class BookingPaymentController extends Controller
 
         $eventTitle = trim((string) ($eventModel?->title ?? ''));
         $descricaoReserva = $eventTitle !== ''
-            ? $eventTitle.' — pré-pagamento (marcação online)'
-            : 'Pré-pagamento (marcação online)';
+            ? __('booking.messages.prepayment_title_with_service', ['title' => $eventTitle])
+            : __('booking.messages.prepayment_title');
 
         $sort = 0;
         SaleItem::create([
@@ -900,7 +901,9 @@ class BookingPaymentController extends Controller
             return;
         }
         try {
-            Notification::route('mail', $email)->notify(new ClientAppointmentCreatedNotification($eventId));
+            Notification::locale(BookingLocale::emailLocale())
+                ->route('mail', $email)
+                ->notify(new ClientAppointmentCreatedNotification($eventId));
         } catch (\Throwable $e) {
             Log::warning('Falha ao enviar email de marcacao confirmada ao cliente.', [
                 'calendar_event_id' => $eventId,

@@ -1,6 +1,6 @@
 @extends('booking.layout')
 
-@section('title', 'Carteira')
+@section('title', __('booking.account.wallet_page_title'))
 
 @section('body_class', 'booking-page booking-page--conta')
 

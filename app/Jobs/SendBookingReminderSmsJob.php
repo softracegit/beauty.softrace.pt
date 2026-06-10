@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\BookingSmsActionLink;
 use App\Models\CalendarEvent;
 use App\Services\TwilioSmsService;
+use App\Support\BookingLocale;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
@@ -80,13 +81,19 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 $actionLink->save();
             }
             $manageUrl = URL::route('booking.sms.manage', ['token' => $actionLink->token]);
-            $whenLabel = $this->formatWhenLabel($startAt, $tz);
-            $body = sprintf(
-                "%s lembra da sua marcacao %s\n\nConfirmar marcação:\n%s\n\nObrigado\n+351300505149 / +351928116651",
-                $storeName,
-                $whenLabel,
-                $manageUrl
-            );
+
+            $previousLocale = app()->getLocale();
+            try {
+                BookingLocale::apply(BookingLocale::fromPhone($client->phone));
+                $whenLabel = $this->formatWhenLabel($startAt, $tz);
+                $body = __('booking.sms.reminder_body', [
+                    'store' => $storeName,
+                    'when' => $whenLabel,
+                    'url' => $manageUrl,
+                ]);
+            } finally {
+                BookingLocale::apply($previousLocale);
+            }
 
             $sms->send($client->phone, $body);
 
@@ -123,13 +130,16 @@ class SendBookingReminderSmsJob implements ShouldQueue
         $now = now($timezone);
 
         if ($startAt->isSameDay($now)) {
-            return 'hoje às '.$startAt->format('H:i');
+            return __('booking.sms.reminder_when_today', ['time' => $startAt->format('H:i')]);
         }
 
         if ($startAt->isSameDay($now->copy()->addDay())) {
-            return 'amanhã às '.$startAt->format('H:i');
+            return __('booking.sms.reminder_when_tomorrow', ['time' => $startAt->format('H:i')]);
         }
 
-        return sprintf('em %s às %s', $startAt->format('d/m/Y'), $startAt->format('H:i'));
+        return __('booking.sms.reminder_when_date', [
+            'date' => $startAt->format('d/m/Y'),
+            'time' => $startAt->format('H:i'),
+        ]);
     }
 }

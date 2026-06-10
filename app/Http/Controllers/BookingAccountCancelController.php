@@ -32,7 +32,7 @@ class BookingAccountCancelController extends Controller
 
         $reason = trim((string) ($validated['cancellation_reason'] ?? ''));
         if ($reason === '') {
-            $reason = 'Cancelado pelo cliente na área reservada.';
+            $reason = __('booking.messages.cancel_default_reason_account');
         }
 
         try {
@@ -89,40 +89,40 @@ class BookingAccountCancelController extends Controller
         }
 
         if ($event->isMarcacaoStatusLocked()) {
-            abort(422, 'Esta marcação já não pode ser cancelada.');
+            abort(422, __('booking.validation.cancel_not_allowed'));
         }
 
         if (($event->status ?? '') === CalendarEvent::STATUS_COMPLETO) {
-            abort(422, 'Marcações já pagas não podem ser canceladas online.');
+            abort(422, __('booking.validation.cancel_paid_not_allowed'));
         }
 
         if (! $event->start_at) {
-            abort(422, 'Marcação sem data definida.');
+            abort(422, __('booking.validation.cancel_no_date'));
         }
 
         $tz = $this->policyService->businessTimezoneForStore((int) $event->store_id);
         $startLocal = Carbon::instance($event->start_at)->timezone($tz);
         if ($startLocal->lte(now($tz))) {
-            abort(422, 'Só pode cancelar marcações futuras.');
+            abort(422, __('booking.validation.cancel_past_only_future'));
         }
     }
 
     private function successMessage(\App\Services\AppointmentCancellationResult $result): string
     {
         if ($result->alreadyCancelled) {
-            return 'Esta marcação já estava cancelada.';
+            return __('booking.messages.cancel_already_cancelled');
         }
 
         if ($result->walletCredited && $result->walletCreditAmountCents > 0) {
             $amount = number_format($result->walletCreditAmountCents / 100, 2, ',', ' ');
 
-            return 'Marcação cancelada. O pré-pagamento de '.$amount.' € foi convertido em créditos na sua carteira.';
+            return __('booking.messages.cancel_success_credit', ['amount' => $amount]);
         }
 
         if ($result->policy->isWithinNoticePeriod) {
-            return 'Marcação cancelada com sucesso.';
+            return __('booking.messages.cancel_success');
         }
 
-        return 'Marcação cancelada. O pré-pagamento online não foi convertido em créditos (fora do prazo de aviso).';
+        return __('booking.messages.cancel_success_no_credit');
     }
 }

@@ -21,7 +21,7 @@ class BookingContactVerificationCodeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Código de verificação da conta'
+            subject: __('booking.mail.verification_subject'),
         );
     }
 

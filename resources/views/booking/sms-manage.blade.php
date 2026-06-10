@@ -1,6 +1,6 @@
 @extends('booking.layout')
 
-@section('title', 'Gerir marcação')
+@section('title', __('booking.sms_manage.page_title'))
 
 @section('body_class', 'booking-page booking-page--conta booking-page--sms-manage')
 
@@ -44,21 +44,21 @@
                         @include('booking.conta.partials.marcacoes', [
                             'marcacoes' => $marcacao,
                             'showSectionHeader' => true,
-                            'sectionTitle' => 'Gerir marcação',
-                            'sectionSubtitle' => 'Confirme ou cancele a sua marcação',
+                            'sectionTitle' => __('booking.sms_manage.section_title'),
+                            'sectionSubtitle' => __('booking.sms_manage.section_subtitle'),
                             'showStatusBadges' => false,
                             'showNoOnlineDepositNote' => false,
                             'actionButtons' => array_filter([
                                 ($canCancelOnline ?? true) ? [
                                     'action' => '#',
-                                    'label' => 'Não vou',
+                                    'label' => __('booking.sms_manage.btn_wont_go'),
                                     'class' => 'btn btn-outline-danger btn-sm px-3',
                                     'type' => 'button',
                                     'button_id' => 'smsManageCancelBtn',
                                 ] : null,
                                 [
                                     'action' => route('booking.sms.confirm', ['token' => $token]),
-                                    'label' => 'Sim, vou',
+                                    'label' => __('booking.sms_manage.btn_will_go'),
                                     'class' => 'btn btn-success btn-sm px-3',
                                     'button_id' => 'smsManageConfirmBtn',
                                 ],
@@ -67,11 +67,16 @@
 
                         @if (! ($canCancelOnline ?? true) && isset($cancellationPolicy) && $cancellationPolicy->hasPaidDeposit)
                             <div class="alert alert-warning small py-2 px-3 mt-3 mb-0">
-                                Já não é possível cancelar sem perder o pré-pagamento
                                 @if ($cancellationPolicy->eligibleDepositCreditCents > 0)
-                                    de {{ number_format($cancellationPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ') }} €
+                                    {{ __('booking.sms_manage.cannot_cancel_warning', [
+                                        'amount' => number_format($cancellationPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ').' €',
+                                        'deadline' => $cancellationPolicy->deadlineFormatted(),
+                                    ]) }}
+                                @else
+                                    {{ __('booking.sms_manage.cannot_cancel_warning_no_amount', [
+                                        'deadline' => $cancellationPolicy->deadlineFormatted(),
+                                    ]) }}
                                 @endif
-                                . O prazo era até {{ $cancellationPolicy->deadlineFormatted() }}.
                             </div>
                         @endif
                     </div>
@@ -86,19 +91,21 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header pb-3">
-                    <h4 class="modal-title mb-0 fw-semibold" id="smsCancelReasonModalLabel">Cancelar marcação</h4>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    <h4 class="modal-title mb-0 fw-semibold" id="smsCancelReasonModalLabel">{{ __('booking.sms_manage.cancel_modal_title') }}</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('booking.sms_manage.close_aria') }}"></button>
                 </div>
                 <form method="POST" action="{{ route('booking.sms.cancel', ['token' => $token]) }}" id="smsCancelReasonForm">
                     @csrf
                     <div class="modal-body">
                         @if (isset($cancellationPolicy))
                             <p class="small mb-2">
-                                Pode cancelar até <strong>{{ $cancellationPolicy->deadlineFormatted() }}</strong>.
+                                {{ __('booking.sms_manage.cancel_modal_deadline', ['deadline' => $cancellationPolicy->deadlineFormatted()]) }}
                             </p>
                             @if ($cancellationPolicy->hasPaidDeposit && $cancellationPolicy->isWithinNoticePeriod && $cancellationPolicy->eligibleDepositCreditCents > 0)
                                 <p class="small text-muted mb-2">
-                                    O pré-pagamento de {{ number_format($cancellationPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ') }} € será convertido em créditos na carteira (não é reembolso bancário).
+                                    {{ __('booking.sms_manage.cancel_modal_deposit_credit', [
+                                        'amount' => number_format($cancellationPolicy->eligibleDepositCreditCents / 100, 2, ',', ' '),
+                                    ]) }}
                                 </p>
                             @endif
                         @endif
@@ -107,19 +114,19 @@
                                 'storeId' => (int) ($event->store_id ?? 0),
                             ])
                         </p>
-                        <label for="smsCancelReasonInput" class="form-label">Razão do cancelamento</label>
+                        <label for="smsCancelReasonInput" class="form-label">{{ __('booking.sms_manage.cancel_reason_label') }}</label>
                         <textarea
                             class="form-control"
                             id="smsCancelReasonInput"
                             name="cancellation_reason"
                             rows="3"
                             maxlength="1000"
-                            placeholder="Indique a razão (opcional)"
+                            placeholder="{{ __('booking.sms_manage.cancel_reason_placeholder') }}"
                         ></textarea>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Voltar</button>
-                        <button type="submit" class="btn btn-danger">Confirmar cancelamento</button>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('booking.sms_manage.cancel_back') }}</button>
+                        <button type="submit" class="btn btn-danger">{{ __('booking.sms_manage.cancel_confirm') }}</button>
                     </div>
                 </form>
             </div>

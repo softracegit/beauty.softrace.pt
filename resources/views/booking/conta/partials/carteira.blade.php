@@ -20,11 +20,10 @@
 <section id="carteira" class="booking-account-wallet mb-3">
     <div class="card border shadow-sm rounded-3 mb-3">
         <div class="card-body py-4 px-3 px-md-4 text-center">
-            <p class="small fw-semibold text-uppercase text-muted mb-2">Saldo disponível</p>
+            <p class="small fw-semibold text-uppercase text-muted mb-2">{{ __('booking.account.wallet_balance_label') }}</p>
             <p class="display-6 fw-semibold text-dark mb-2">{{ $fmtMoney($balanceCents) }}</p>
             <p class="small text-muted mb-0 mx-auto" style="max-width: 28rem;">
-                Créditos da {{ $businessName }} para usar em marcações ou pagamentos na loja.
-                Não são reembolsos bancários.
+                {{ __('booking.account.wallet_balance_hint', ['business' => $businessName]) }}
             </p>
         </div>
     </div>
@@ -32,23 +31,23 @@
     <div class="card border shadow-sm rounded-3">
         <div class="card-body p-3 p-md-4">
             <header class="mb-3">
-                <h2 class="h6 fw-semibold text-dark mb-1">Histórico</h2>
-                <p class="small text-muted mb-0">Movimentos de créditos na sua carteira.</p>
+                <h2 class="h6 fw-semibold text-dark mb-1">{{ __('booking.account.wallet_history_title') }}</h2>
+                <p class="small text-muted mb-0">{{ __('booking.account.wallet_history_subtitle') }}</p>
             </header>
 
             @if (! $transactions || $transactions->isEmpty())
                 <div class="text-center py-5 px-3 rounded-3 border bg-light bg-opacity-50">
-                    <p class="small text-muted mb-0">Ainda não tem movimentos na carteira.</p>
+                    <p class="small text-muted mb-0">{{ __('booking.account.wallet_empty') }}</p>
                 </div>
             @else
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0 booking-account-wallet__table">
                         <thead>
                             <tr class="small text-muted">
-                                <th scope="col" class="fw-semibold">Data</th>
-                                <th scope="col" class="fw-semibold">Descrição</th>
-                                <th scope="col" class="fw-semibold text-end">Valor</th>
-                                <th scope="col" class="fw-semibold text-end d-none d-md-table-cell">Saldo</th>
+                                <th scope="col" class="fw-semibold">{{ __('booking.account.wallet_col_date') }}</th>
+                                <th scope="col" class="fw-semibold">{{ __('booking.account.wallet_col_description') }}</th>
+                                <th scope="col" class="fw-semibold text-end">{{ __('booking.account.wallet_col_amount') }}</th>
+                                <th scope="col" class="fw-semibold text-end d-none d-md-table-cell">{{ __('booking.account.wallet_col_balance') }}</th>
                             </tr>
                         </thead>
                         <tbody>

@@ -46,7 +46,7 @@ class BookingSlotHoldService
             );
             if ($conflict) {
                 throw ValidationException::withMessages([
-                    'time' => ["Este horário acabou de ser reservado por outro cliente.\nPor favor escolha outro horário."],
+                    'time' => [__('booking.validation.slot_taken')],
                 ]);
             }
 
@@ -81,14 +81,14 @@ class BookingSlotHoldService
 
             if (! $hold || $hold->released_at !== null) {
                 throw ValidationException::withMessages([
-                    'hold' => ['Reserva temporária não encontrada.'],
+                    'hold' => [__('booking.validation.hold_not_found')],
                 ]);
             }
 
             if ($actor instanceof User && $actor->isBookingClient()) {
                 if ($hold->booking_user_id !== null && (int) $hold->booking_user_id !== (int) $actor->id) {
                     throw ValidationException::withMessages([
-                        'hold' => ['Esta reserva não pertence à sessão atual.'],
+                        'hold' => [__('booking.validation.hold_wrong_session')],
                     ]);
                 }
             }
@@ -108,7 +108,7 @@ class BookingSlotHoldService
                 $hold->save();
 
                 throw ValidationException::withMessages([
-                    'time' => ["Este horário acabou de ser reservado por outro cliente.\nPor favor escolha outro horário."],
+                    'time' => [__('booking.validation.slot_taken')],
                 ]);
             }
 
@@ -140,7 +140,7 @@ class BookingSlotHoldService
     {
         if ($publicId === '' || $sessionToken === '') {
             throw ValidationException::withMessages([
-                'time' => ['A reserva temporária expirou. Escolhe novamente data e hora.'],
+                'time' => [__('booking.validation.hold_expired')],
             ]);
         }
 
@@ -152,21 +152,21 @@ class BookingSlotHoldService
 
         if (! $hold || $hold->released_at !== null || $hold->expires_at === null || $hold->expires_at->lte(now())) {
             throw ValidationException::withMessages([
-                'time' => ['A reserva temporária expirou. Escolhe novamente data e hora.'],
+                'time' => [__('booking.validation.hold_expired')],
             ]);
         }
 
         $urlStore = request()->route('store');
         if ($urlStore instanceof \App\Models\Store && (int) $hold->store_id !== (int) $urlStore->id) {
             throw ValidationException::withMessages([
-                'time' => ['A reserva temporária não é válida para esta loja.'],
+                'time' => [__('booking.validation.hold_wrong_store')],
             ]);
         }
 
         if ($actor instanceof User && $actor->isBookingClient()) {
             if ($hold->booking_user_id !== null && (int) $hold->booking_user_id !== (int) $actor->id) {
                 throw ValidationException::withMessages([
-                    'time' => ['A reserva temporária não pertence à tua sessão.'],
+                    'time' => [__('booking.validation.hold_wrong_user')],
                 ]);
             }
         }
@@ -184,7 +184,7 @@ class BookingSlotHoldService
             || (string) $hold->services_signature !== $candidateServicesSig
         ) {
             throw ValidationException::withMessages([
-                'time' => ['A seleção mudou e a reserva temporária já não é válida.'],
+                'time' => [__('booking.validation.hold_selection_changed')],
             ]);
         }
 

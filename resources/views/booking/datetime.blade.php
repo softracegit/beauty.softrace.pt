@@ -1,6 +1,6 @@
 @extends('booking.layout')
 
-@section('title', 'Data e hora')
+@section('title', __('booking.flow.datetime_page_title'))
 
 @section('body_class', 'booking-page booking-page--datetime')
 
@@ -22,7 +22,7 @@
                     <div class="col-lg-8">
                         <main class="pt-1">
                             <div class="d-flex align-items-center mb-3 ps-1 booking-page-main-heading">
-                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">Dia e hora da marcação</h1>
+                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">{{ __('booking.flow.datetime_heading') }}</h1>
                             </div>
 
                             <section class="booking-category-section mb-4 pb-1">
@@ -31,44 +31,44 @@
                                         <input id="booking-calendar" type="text" class="form-control d-none" aria-hidden="true" tabindex="-1">
                                         <div id="booking-week-view" class="booking-week-view d-none">
                                             <div class="booking-week-view__header">
-                                                <button type="button" id="booking-week-prev" class="booking-week-view__nav" aria-label="Semana anterior">
+                                                <button type="button" id="booking-week-prev" class="booking-week-view__nav" aria-label="{{ __('booking.flow.week_prev_aria') }}">
                                                     <i class="bi bi-arrow-left"></i>
                                                 </button>
                                                 <h2 id="booking-week-title" class="booking-week-view__title mb-0" aria-live="polite"></h2>
-                                                <button type="button" id="booking-week-next" class="booking-week-view__nav" aria-label="Semana seguinte">
+                                                <button type="button" id="booking-week-next" class="booking-week-view__nav" aria-label="{{ __('booking.flow.week_next_aria') }}">
                                                     <i class="bi bi-arrow-right"></i>
                                                 </button>
                                             </div>
-                                            <div id="booking-week-days" class="booking-week-view__days" role="listbox" aria-label="Selecionar dia da semana"></div>
+                                            <div id="booking-week-days" class="booking-week-view__days" role="listbox" aria-label="{{ __('booking.flow.select_day_aria') }}"></div>
                                         </div>
-                                        <button type="button" id="booking-calendar-view-toggle" class="booking-calendar-view-toggle is-week" aria-expanded="true" aria-controls="booking-week-view" aria-label="Alternar para vista mensal">
+                                        <button type="button" id="booking-calendar-view-toggle" class="booking-calendar-view-toggle is-week" aria-expanded="true" aria-controls="booking-week-view" aria-label="{{ __('booking.flow.toggle_month_aria') }}">
                                             <i class="bi bi-chevron-down" aria-hidden="true"></i>
                                         </button>
 
                                         <div id="booking-slots" class="booking-slots">
-                                            <h2 id="booking-slots-day" class="booking-slots__day h6 fw-semibold mb-3">Seleciona um dia</h2>
+                                            <h2 id="booking-slots-day" class="booking-slots__day h6 fw-semibold mb-3">{{ __('booking.flow.select_day_heading') }}</h2>
 
                                             <div id="booking-slots-status" class="booking-slots__status small mb-3" aria-live="polite"></div>
 
                                             <div id="booking-slots-suggested-wrap" class="booking-slots-suggested-wrap mb-3 d-none">
-                                                <p class="booking-slots-suggested-wrap__label small fw-semibold text-dark mb-2">Próximos horários sugeridos</p>
+                                                <p class="booking-slots-suggested-wrap__label small fw-semibold text-dark mb-2">{{ __('booking.flow.suggested_label') }}</p>
                                                 <div id="booking-slots-suggested-list" class="booking-slots__list"></div>
                                             </div>
 
                                             <div id="booking-slots-periods" class="d-none">
                                                 <div class="booking-slots__period mb-3">
-                                                    <h3 class="booking-slots__period-title small text-muted mb-2">Manhã</h3>
+                                                    <h3 class="booking-slots__period-title small text-muted mb-2">{{ __('booking.flow.period_morning') }}</h3>
                                                     <div id="booking-slots-morning" class="booking-slots__list"></div>
                                                 </div>
 
                                                 <div class="booking-slots__period">
-                                                    <h3 class="booking-slots__period-title small text-muted mb-2">Tarde</h3>
+                                                    <h3 class="booking-slots__period-title small text-muted mb-2">{{ __('booking.flow.period_afternoon') }}</h3>
                                                     <div id="booking-slots-afternoon" class="booking-slots__list"></div>
                                                 </div>
                                             </div>
 
                                             <button type="button" id="booking-slots-more" class="btn btn-link btn-sm px-0 text-decoration-none booking-slots-more d-none" aria-expanded="false" aria-controls="booking-slots-periods">
-                                                Ver mais horários
+                                                {{ __('booking.flow.show_more_slots') }}
                                             </button>
                                         </div>
                                     </div>
@@ -79,7 +79,7 @@
 
                     <div class="col-lg-4 booking-summary-column">
                         @include('booking.partials.summary-panel', [
-                            'summaryTitle' => 'Resumo da marcação',
+                            'summaryTitle' => __('booking.partials.summary_title'),
                             'showNextButton' => true,
                             'nextUrl' => route('booking.step3', ['store' => $bookingStoreSlug], false),
                             'nextRequires' => 'datetime',

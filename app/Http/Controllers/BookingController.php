@@ -235,7 +235,7 @@ class BookingController extends Controller
                 return [
                     'id' => (int) $agent->id,
                     'name' => (string) $agent->name,
-                    'specialization' => Agent::specializationLabel($agent->specialization) ?? 'Técnica',
+                    'specialization' => Agent::specializationLabel($agent->specialization) ?? __('booking.flow.default_specialization'),
                     'avatar' => $agent->avatar ? asset('storage/'.$agent->avatar) : null,
                     'serviceIds' => $agent->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
                 ];
@@ -473,13 +473,13 @@ class BookingController extends Controller
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Dados pessoais guardados.',
+                'message' => __('booking.messages.personal_data_saved'),
             ]);
         }
 
         return redirect()
             ->route('booking.conta.index', ['store' => $this->bookingStoreSlug()])
-            ->with('success', 'Dados pessoais guardados.');
+            ->with('success', __('booking.messages.personal_data_saved'));
     }
 
     /**
@@ -512,13 +512,13 @@ class BookingController extends Controller
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Preferências de notificações guardadas.',
+                'message' => __('booking.messages.notification_preferences_saved'),
             ]);
         }
 
         return redirect()
             ->route('booking.conta.settings', ['store' => $this->bookingStoreSlug()])
-            ->with('success', 'Preferências de notificações guardadas.');
+            ->with('success', __('booking.messages.notification_preferences_saved'));
     }
 
     private function carbonToWeekdayKey(Carbon $day): string

@@ -148,18 +148,18 @@ class CancellationPolicyService
         $date = trim($date);
         $time = trim($time);
         if ($date === '' || $time === '') {
-            return ['ready' => false, 'message' => 'Seleciona data e hora para ver o prazo de cancelamento.'];
+            return ['ready' => false, 'message' => __('booking.cancellation_policy.preview_select_datetime')];
         }
 
         try {
             $startLocal = Carbon::createFromFormat('Y-m-d H:i', $date.' '.$time, $timezone);
         } catch (\Exception) {
-            return ['ready' => false, 'message' => 'Data ou hora inválidas.'];
+            return ['ready' => false, 'message' => __('booking.cancellation_policy.preview_invalid_datetime')];
         }
 
         $nowLocal = now($timezone);
         if ($startLocal->lte($nowLocal)) {
-            return ['ready' => false, 'message' => 'A marcação deve ser numa data futura.'];
+            return ['ready' => false, 'message' => __('booking.cancellation_policy.preview_must_be_future')];
         }
 
         $deadlineLocal = $startLocal->copy()->subHours($noticeHours);
@@ -205,41 +205,54 @@ class CancellationPolicyService
         $deadlineSeconds = $deadlineLocal->getTimestamp() - $nowLocal->getTimestamp();
         $deadlinePercent = round(100 * max(0, min(1, $deadlineSeconds / $rangeSeconds)), 1);
 
-        $startLocalFmt = $startLocal->copy()->locale('pt_PT');
-        $deadlineLocalFmt = $deadlineLocal->copy()->locale('pt_PT');
+        $uiLocale = app()->getLocale();
+        $carbonLocale = match ($uiLocale) {
+            'en' => 'en_GB',
+            'es' => 'es_ES',
+            default => 'pt_PT',
+        };
+        $startLocalFmt = $startLocal->copy()->locale($carbonLocale);
+        $deadlineLocalFmt = $deadlineLocal->copy()->locale($carbonLocale);
 
-        $appointmentLabel = ucfirst($startLocalFmt->translatedFormat('j M'));
+        $appointmentLabel = ucfirst($startLocalFmt->translatedFormat($uiLocale === 'en' ? 'M j' : 'j M'));
         $appointmentTime = $startLocalFmt->format('H:i');
-        $deadlineLimitLabel = ucfirst($deadlineLocalFmt->translatedFormat('j M')).', '.$deadlineLocalFmt->format('H:i');
-        $descriptionDeadline = $deadlineLocalFmt->translatedFormat('H:i').' de '.$deadlineLocalFmt->translatedFormat('l, j \d\e F');
+        $deadlineLimitLabel = $this->formatDeadlineLimitLabel($deadlineLocalFmt);
+        $descriptionDeadline = $this->formatDescriptionDeadline($deadlineLocalFmt);
 
         $canCancel = $policy->isWithinNoticePeriod;
         $cancellationUnavailable = ! $canCancel;
 
         if ($policy->noticeHoursApplied <= 0) {
-            $deadlineBadge = 'Cancelar antes do início da marcação';
+            $deadlineBadge = __('booking.cancellation_policy.badge_before_start');
             $deadlinePercent = 100.0;
-            $description = 'Pode cancelar até ao início da marcação. Fora desse momento, o pré-pagamento não é reembolsado.';
+            $description = __('booking.cancellation_policy.description_before_start');
             $warningMessage = '';
             $cancellationUnavailable = false;
             $canCancel = true;
         } elseif ($cancellationUnavailable) {
-            $deadlineBadge = 'Sem possibilidade de cancelar';
+            $deadlineBadge = __('booking.cancellation_policy.badge_no_cancel');
             $deadlinePercent = 0.0;
-            $warningMessage = 'O prazo para cancelar sem perder o pré-pagamento ('.$deadlineLimitLabel.') já terminou. '
-                .'Ao confirmar a marcação, não poderá cancelar com devolução do pré-pagamento.';
-            $description = 'Limite de cancelamento: '.$deadlineLimitLabel.'. '
-                .'Após confirmar, o pré-pagamento não é reembolsado em caso de cancelamento.';
+            $warningMessage = __('booking.cancellation_policy.warning_past_deadline', [
+                'deadline' => $deadlineLimitLabel,
+            ]);
+            $description = __('booking.cancellation_policy.description_past_deadline', [
+                'deadline' => $deadlineLimitLabel,
+            ]);
         } else {
-            $deadlineBadge = 'Cancelar antes de '.ucfirst($deadlineLocalFmt->translatedFormat('j M')).' às '.$deadlineLocalFmt->format('H:i');
+            $deadlineBadge = __('booking.cancellation_policy.badge_before_deadline', [
+                'date' => ucfirst($deadlineLocalFmt->translatedFormat($uiLocale === 'en' ? 'M j' : 'j M')),
+                'time' => $deadlineLocalFmt->format('H:i'),
+            ]);
             $warningMessage = '';
-            $description = 'Cancele ou reagende antes das '.$descriptionDeadline.'. Fora deste prazo, o pré-pagamento não é reembolsado.';
+            $description = __('booking.cancellation_policy.description_within_deadline', [
+                'deadline' => $descriptionDeadline,
+            ]);
         }
 
         return [
             'ready' => true,
             'notice_hours' => $policy->noticeHoursApplied,
-            'now_label' => 'Hoje',
+            'now_label' => __('booking.cancellation_policy.now_label'),
             'appointment_label' => $appointmentLabel,
             'appointment_time' => $appointmentTime,
             'deadline_badge' => $deadlineBadge,
@@ -251,6 +264,30 @@ class CancellationPolicyService
             'warning_message' => $warningMessage,
             'deadline_limit_label' => $deadlineLimitLabel,
         ];
+    }
+
+    private function formatDeadlineLimitLabel(CarbonInterface $deadlineLocalFmt): string
+    {
+        if (app()->getLocale() === 'en') {
+            return ucfirst($deadlineLocalFmt->translatedFormat('M j')).', '.$deadlineLocalFmt->format('H:i');
+        }
+
+        return ucfirst($deadlineLocalFmt->translatedFormat('j M')).', '.$deadlineLocalFmt->format('H:i');
+    }
+
+    private function formatDescriptionDeadline(CarbonInterface $deadlineLocalFmt): string
+    {
+        if (app()->getLocale() === 'en') {
+            return __('booking.cancellation_policy.deadline_detail', [
+                'time' => $deadlineLocalFmt->format('H:i'),
+                'weekday_date' => $deadlineLocalFmt->translatedFormat('l, F j'),
+            ]);
+        }
+
+        return __('booking.cancellation_policy.deadline_detail', [
+            'time' => $deadlineLocalFmt->format('H:i'),
+            'weekday_date' => $deadlineLocalFmt->translatedFormat('l, j \d\e F'),
+        ]);
     }
 
     private function isValidTimezone(string $timezone): bool

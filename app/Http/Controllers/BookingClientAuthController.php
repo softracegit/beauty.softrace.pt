@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Services\BookingOtpSendRateLimiter;
 use App\Services\TwilioSmsService;
+use App\Support\BookingLocale;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
 use Illuminate\Database\QueryException;
@@ -63,12 +64,21 @@ class BookingClientAuthController extends Controller
         try {
             if ($target['channel'] === 'email') {
                 $continueUrl = route('booking.index', ['store' => app(CurrentStore::class)->get()->slug]);
-                Mail::mailer('booking')->to($target['identifier'])->send(new BookingAuthCodeMail($code, $ttlMinutes, $continueUrl));
+                Mail::mailer('booking')
+                    ->locale(BookingLocale::emailLocale())
+                    ->to($target['identifier'])
+                    ->send(new BookingAuthCodeMail($code, $ttlMinutes, $continueUrl));
             } else {
-                $this->twilioSmsService->send(
-                    $target['identifier'],
-                    sprintf('O seu código de acesso é %s. Expira em %d minutos.', $code, $ttlMinutes)
-                );
+                $previousLocale = app()->getLocale();
+                try {
+                    BookingLocale::apply(BookingLocale::fromPhone($target['identifier']));
+                    $this->twilioSmsService->send(
+                        $target['identifier'],
+                        __('booking.sms.auth_code', ['code' => $code, 'minutes' => $ttlMinutes])
+                    );
+                } finally {
+                    BookingLocale::apply($previousLocale);
+                }
             }
         } catch (\Throwable $e) {
             Log::error('Envio do código de acesso (booking) falhou.', [
@@ -78,7 +88,7 @@ class BookingClientAuthController extends Controller
                 'message' => $e->getMessage(),
             ]);
             throw ValidationException::withMessages([
-                'login' => ['Não foi possível enviar o código agora. Tente novamente em instantes.'],
+                'login' => [__('booking.validation.otp_send_failed')],
             ]);
         }
 
@@ -140,7 +150,7 @@ class BookingClientAuthController extends Controller
 
         if (! $authCode) {
             throw ValidationException::withMessages([
-                'code' => ['Código inválido ou expirado. Solicite um novo código.'],
+                'code' => [__('booking.validation.code_invalid_expired')],
             ]);
         }
 
@@ -149,7 +159,7 @@ class BookingClientAuthController extends Controller
         if (! $isValid) {
             $authCode->save();
             throw ValidationException::withMessages([
-                'code' => ['Código inválido. Verifique e tente novamente.'],
+                'code' => [__('booking.validation.code_invalid')],
             ]);
         }
         $authCode->consumed_at = now();
@@ -191,7 +201,7 @@ class BookingClientAuthController extends Controller
         $identifier = (string) $request->session()->get(self::PENDING_REG_IDENTIFIER_KEY, '');
         if ($channel === '' || $identifier === '') {
             throw ValidationException::withMessages([
-                'login' => ['A sessão de registo expirou. Peça um novo código.'],
+                'login' => [__('booking.validation.registration_session_expired')],
             ]);
         }
 
@@ -201,13 +211,13 @@ class BookingClientAuthController extends Controller
             'phone' => ['nullable', 'string', 'max:32'],
             'terms_accepted' => ['accepted'],
         ], [
-            'terms_accepted.accepted' => 'Deve aceitar os Termos e Condições e a Política de Privacidade para criar a conta.',
+            'terms_accepted.accepted' => __('booking.validation.terms_required'),
         ]);
 
         $name = trim((string) $validated['name']);
         if ($name === '') {
             throw ValidationException::withMessages([
-                'name' => ['Indique o nome.'],
+                'name' => [__('booking.validation.name_required')],
             ]);
         }
 
@@ -215,7 +225,7 @@ class BookingClientAuthController extends Controller
             $emailNorm = strtolower(trim((string) ($validated['email'] ?? '')));
             if ($emailNorm === '') {
                 throw ValidationException::withMessages([
-                    'email' => ['Indique o email para criar a conta.'],
+                    'email' => [__('booking.validation.email_register_required')],
                 ]);
             }
             $phoneE164 = trim((string) $identifier);
@@ -224,7 +234,7 @@ class BookingClientAuthController extends Controller
             $phoneE164 = PhoneDisplay::toE164((string) ($validated['phone'] ?? ''));
             if ($phoneE164 === null) {
                 throw ValidationException::withMessages([
-                    'phone' => ['Indique um telemóvel válido para criar a conta.'],
+                    'phone' => [__('booking.validation.phone_register_invalid')],
                 ]);
             }
         }
@@ -237,7 +247,7 @@ class BookingClientAuthController extends Controller
                     'client_id' => $existingClient->id,
                 ]);
                 throw ValidationException::withMessages([
-                    'login' => ['Esta conta já existe. Inicie sessão com o código enviado.'],
+                    'login' => [__('booking.validation.account_exists_login')],
                 ]);
             }
 
@@ -248,14 +258,14 @@ class BookingClientAuthController extends Controller
                 $clientEmail = strtolower(trim((string) ($existingClient->email ?? '')));
                 if ($clientEmail !== '' && $clientEmail !== $emailNorm) {
                     throw ValidationException::withMessages([
-                        'email' => ['Este telemóvel já está associado a outro email na loja. Use o contacto habitual ou fale com a loja.'],
+                        'email' => [__('booking.validation.phone_email_conflict')],
                     ]);
                 }
             } else {
                 $rawPhone = trim((string) ($existingClient->phone ?? ''));
                 if ($rawPhone !== '' && ! $this->clientPhoneMatchesE164($existingClient, $phoneE164)) {
                     throw ValidationException::withMessages([
-                        'phone' => ['Este telemóvel não coincide com o email na nossa base de dados.'],
+                        'phone' => [__('booking.validation.phone_db_mismatch')],
                     ]);
                 }
             }
@@ -332,7 +342,7 @@ class BookingClientAuthController extends Controller
 
         if ($rawLogin === '') {
             throw ValidationException::withMessages([
-                'login' => ['Indique o email ou telemóvel.'],
+                'login' => [__('booking.validation.login_identifier_required')],
             ]);
         }
 
@@ -340,7 +350,7 @@ class BookingClientAuthController extends Controller
             $email = strtolower($rawLogin);
             if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 throw ValidationException::withMessages([
-                    'login' => ['Indique um email válido.'],
+                    'login' => [__('booking.validation.login_email_invalid')],
                 ]);
             }
 
@@ -350,7 +360,7 @@ class BookingClientAuthController extends Controller
         $phone = PhoneDisplay::toE164($rawLogin);
         if ($phone === null) {
             throw ValidationException::withMessages([
-                'login' => ['Indique um telemóvel válido (ex.: +351912345678).'],
+                'login' => [__('booking.validation.login_phone_invalid')],
             ]);
         }
 
@@ -363,7 +373,7 @@ class BookingClientAuthController extends Controller
 
     private function createBookingUserForClient(Client $client, string $userEmail): User
     {
-        $displayName = trim((string) $client->name) !== '' ? (string) $client->name : 'Cliente';
+        $displayName = trim((string) $client->name) !== '' ? (string) $client->name : __('booking.messages.default_client_name');
 
         $client->loadMissing('store');
         $user = User::query()->create([
@@ -437,7 +447,7 @@ class BookingClientAuthController extends Controller
         }
         if ($clientIds->count() > 1) {
             throw ValidationException::withMessages([
-                'login' => ['Existe mais do que um cliente com este telemóvel. Contacte o suporte para unificar os registos.'],
+                'login' => [__('booking.validation.duplicate_phone_users')],
             ]);
         }
 
@@ -455,13 +465,13 @@ class BookingClientAuthController extends Controller
             ->get();
         if ($matchingUsers->count() > 1) {
             throw ValidationException::withMessages([
-                'login' => ['Este email está duplicado em utilizadores. Contacte o suporte.'],
+                'login' => [__('booking.validation.duplicate_email_users')],
             ]);
         }
         $single = $matchingUsers->first();
         if ($single instanceof User && ! $single->isBookingClient()) {
             throw ValidationException::withMessages([
-                'login' => ['Este email já está associado a outro tipo de conta. Use outro email.'],
+                'login' => [__('booking.validation.email_wrong_account_type')],
             ]);
         }
 
@@ -473,7 +483,7 @@ class BookingClientAuthController extends Controller
             ->count();
         if ($clients > 1) {
             throw ValidationException::withMessages([
-                'login' => ['Existe mais do que um cliente com este email. Contacte o suporte para unificar os registos.'],
+                'login' => [__('booking.validation.duplicate_email_clients')],
             ]);
         }
     }
@@ -490,7 +500,7 @@ class BookingClientAuthController extends Controller
 
         if ($matches->count() > 1) {
             throw ValidationException::withMessages([
-                'login' => ['Existe mais do que um cliente com este telemóvel. Contacte o suporte para unificar os registos.'],
+                'login' => [__('booking.validation.duplicate_phone_users')],
             ]);
         }
     }
@@ -509,7 +519,7 @@ class BookingClientAuthController extends Controller
 
             if ($matches->count() > 1) {
                 throw ValidationException::withMessages([
-                    'login' => ['Existe mais do que um cliente com este telemóvel. Contacte o suporte para unificar os registos.'],
+                    'login' => [__('booking.validation.duplicate_phone_users')],
                 ]);
             }
 
@@ -548,13 +558,13 @@ class BookingClientAuthController extends Controller
         $emailNorm = strtolower(trim($emailNorm));
         if ($emailNorm === '') {
             throw ValidationException::withMessages([
-                'email' => ['Indique um email válido.'],
+                'email' => [__('booking.validation.login_email_invalid')],
             ]);
         }
 
         if (User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->exists()) {
             throw ValidationException::withMessages([
-                'email' => ['Este email já está associado a uma conta. Use outro email ou inicie sessão.'],
+                'email' => [__('booking.validation.email_taken_user')],
             ]);
         }
 
@@ -570,7 +580,7 @@ class BookingClientAuthController extends Controller
 
         if ($q->exists()) {
             throw ValidationException::withMessages([
-                'email' => ['Este email já está associado a um cliente. Use outro email ou inicie sessão.'],
+                'email' => [__('booking.validation.email_taken_client')],
             ]);
         }
     }
@@ -580,7 +590,7 @@ class BookingClientAuthController extends Controller
         $phoneE164 = trim($phoneE164);
         if ($phoneE164 === '') {
             throw ValidationException::withMessages([
-                'phone' => ['Indique um telemóvel válido.'],
+                'phone' => [__('booking.validation.phone_invalid')],
             ]);
         }
 
@@ -594,7 +604,7 @@ class BookingClientAuthController extends Controller
 
         if ($conflict) {
             throw ValidationException::withMessages([
-                'phone' => ['Este telemóvel já está associado a outro cliente. Indique outro número ou inicie sessão.'],
+                'phone' => [__('booking.validation.phone_taken')],
             ]);
         }
     }
@@ -624,7 +634,7 @@ class BookingClientAuthController extends Controller
                 'exception' => $e::class,
             ]);
             throw ValidationException::withMessages([
-                'login' => ['Não foi possível concluir o registo. Se já tiver conta, inicie sessão; caso contrário, contacte a loja.'],
+                'login' => [__('booking.validation.registration_failed')],
             ]);
         }
     }

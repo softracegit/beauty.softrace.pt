@@ -1,6 +1,6 @@
 @extends('booking.layout')
 
-@section('title', 'Marcações')
+@section('title', __('booking.account.appointments_page_title'))
 
 @section('body_class', 'booking-page booking-page--conta')
 
@@ -30,14 +30,18 @@
                                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success mb-3" style="width: 3.5rem; height: 3.5rem;" aria-hidden="true">
                                     <i class="bi bi-check-lg fs-4"></i>
                                 </span>
-                                <h1 class="booking-services-heading h5 fw-semibold text-dark mb-2">Marcação confirmada</h1>
+                                <h1 class="booking-services-heading h5 fw-semibold text-dark mb-2">{{ __('booking.account.appointment_confirmed') }}</h1>
                                 <p class="text-muted small mb-0">
-                                    Recebemos o teu pedido. A equipa da <span class="fw-semibold text-dark">{{ $businessName }}</span> pode contactar-te se for necessário.
+                                    {!! str_replace(
+                                        ':business',
+                                        '<span class="fw-semibold text-dark">' . e($businessName) . '</span>',
+                                        __('booking.account.appointment_confirm_body')
+                                    ) !!}
                                 </p>
                             </div>
                             @if (request()->boolean('primeira_marcacao'))
                                 <div class="alert alert-info small py-2 px-3 mb-4 text-start" role="status">
-                                    Foi criada a tua <strong>conta de marcação</strong>. Nas próximas vezes entra com código enviado por email para preencheres os dados mais rapidamente.
+                                    {!! __('booking.account.first_booking_alert_html') !!}
                                 </div>
                             @endif
                         @endif
@@ -77,6 +81,7 @@
 
                 var modal = new bootstrap.Modal(modalEl);
                 var cancelUrlTemplate = @json($accountCancelUrlTemplate);
+                var accountI18n = @json(trans('booking.account'));
 
                 document.querySelectorAll('.account-cancel-marcacao-btn').forEach(function (btn) {
                     btn.addEventListener('click', function () {
@@ -94,16 +99,16 @@
 
                         if (intro) {
                             if (within && deposit && credit !== '') {
-                                intro.textContent = 'O pré-pagamento de ' + credit + ' € será convertido em créditos na sua carteira (não é reembolso bancário).';
+                                intro.textContent = accountI18n.cancel_modal_intro_credit.replace(':amount', credit);
                             } else if (within) {
-                                intro.textContent = 'A marcação será cancelada sem penalização.';
+                                intro.textContent = accountI18n.cancel_modal_intro_no_penalty;
                             } else {
-                                intro.textContent = 'A marcação será cancelada.';
+                                intro.textContent = accountI18n.cancel_modal_intro_default;
                             }
                         }
                         if (deadline) {
                             deadline.textContent = deadlineText !== ''
-                                ? 'Pode cancelar até ' + deadlineText + '.'
+                                ? accountI18n.cancel_modal_deadline.replace(':deadline', deadlineText)
                                 : '';
                             deadline.classList.toggle('d-none', deadlineText === '');
                         }

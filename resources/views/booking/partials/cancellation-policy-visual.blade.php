@@ -10,7 +10,7 @@
     aria-live="polite"
 >
     <div id="booking-cancel-policy-empty" class="booking-cancel-policy__empty small text-muted">
-        Seleciona data e hora da marcação para ver até quando podes cancelar sem perder o pré-pagamento.
+        {{ __('booking.js.cancellation_select_datetime') }}
     </div>
 
     <div id="booking-cancel-policy-timeline" class="booking-cancel-policy__timeline d-none">
@@ -33,7 +33,7 @@
                 </div>
             </div>
             <div class="booking-cancel-policy__axis">
-                <span id="booking-cancel-policy-now-label" class="booking-cancel-policy__axis-label">Hoje</span>
+                <span id="booking-cancel-policy-now-label" class="booking-cancel-policy__axis-label">{{ __('booking.js.cancellation_today') }}</span>
                 <span id="booking-cancel-policy-appt-label" class="booking-cancel-policy__axis-label booking-cancel-policy__axis-end"></span>
             </div>
         </div>

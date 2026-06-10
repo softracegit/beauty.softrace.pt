@@ -21,8 +21,8 @@
                 </p>
                 <div class="card border shadow-sm rounded-3">
                     <div class="card-body">
-                        <p class="fw-semibold mb-2">Data e hora</p>
-                        <p class="text-muted small mb-0">O calendário e a escolha de técnico serão configurados no próximo passo.</p>
+                        <p class="fw-semibold mb-2">{{ __('booking.flow.service_datetime_heading') }}</p>
+                        <p class="text-muted small mb-0">{{ __('booking.flow.service_placeholder') }}</p>
                     </div>
                 </div>
             </div>

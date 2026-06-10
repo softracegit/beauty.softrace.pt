@@ -8,9 +8,9 @@
     $enableClientCancel = (bool) ($enableClientCancel ?? false);
     $bookingStoreSlug = (string) ($bookingStoreSlug ?? '');
     $policyService = $enableClientCancel ? app(CancellationPolicyService::class) : null;
-    $sectionTitle = $sectionTitle ?? 'Histórico de marcações';
-    $sectionSubtitle = $sectionSubtitle ?? 'Resumo das tuas marcações, valores e estado.';
-    $emptyMessage = $emptyMessage ?? 'Ainda não tens marcações registadas nesta conta.';
+    $sectionTitle = $sectionTitle ?? __('booking.account.appointments_history_title');
+    $sectionSubtitle = $sectionSubtitle ?? __('booking.account.appointments_history_subtitle');
+    $emptyMessage = $emptyMessage ?? __('booking.account.appointments_empty');
     $showSectionHeader = $showSectionHeader ?? true;
     $showStatusBadges = $showStatusBadges ?? true;
     $showNoOnlineDepositNote = $showNoOnlineDepositNote ?? true;
@@ -82,15 +82,15 @@
                             $whenLabel = '—';
                             if ($start) {
                                 if ($isLocked) {
-                                    $whenLabel = 'Encerrada';
+                                    $whenLabel = __('booking.account.when_closed');
                                 } elseif ($isDone) {
-                                    $whenLabel = 'Concluída';
+                                    $whenLabel = __('booking.account.when_completed');
                                 } elseif ($start->gt($nowTz)) {
-                                    $whenLabel = 'Futura';
+                                    $whenLabel = __('booking.account.when_future');
                                 } elseif ($end && $end->lt($nowTz)) {
-                                    $whenLabel = 'Passada';
+                                    $whenLabel = __('booking.account.when_past');
                                 } else {
-                                    $whenLabel = 'Hoje / em curso';
+                                    $whenLabel = __('booking.account.when_today');
                                 }
                             }
 
@@ -108,7 +108,7 @@
                                 ? (float) ($sale->valor_pago ?? 0)
                                 : ($pagoOnline > 0 ? $pagoOnline : $totalComTaxas);
                             $hasPaymentRecorded = ($pagoOnline > 0.004) || ($sale !== null);
-                            $primaryAmountLabel = $hasPaymentRecorded ? 'Valor pago' : 'Valor total';
+                            $primaryAmountLabel = $hasPaymentRecorded ? __('booking.account.amount_paid') : __('booking.account.amount_total');
 
                             $showFaltaLoja = $ob
                                 && (float) ($ob->remaining_amount ?? 0) > 0.004
@@ -123,9 +123,9 @@
                             $metodoOnlineLabel = '—';
                             if ($pagoOnline > 0.004) {
                                 if ($ob && trim((string) ($ob->stripe_payment_intent_id ?? '')) !== '') {
-                                    $metodoOnlineLabel = 'Cartão online';
+                                    $metodoOnlineLabel = __('booking.account.payment_online_card');
                                 } elseif ($ob) {
-                                    $metodoOnlineLabel = 'Online';
+                                    $metodoOnlineLabel = __('booking.account.payment_online');
                                 }
                             }
 
@@ -154,7 +154,7 @@
                                 <div class="booking-marcacao-card__when">
                                     <div class="booking-marcacao-card__date text-dark fw-semibold">
                                         @if ($start)
-                                            {{ $start->copy()->locale('pt')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}
+                                            {{ $start->copy()->locale(app()->getLocale())->isoFormat(__('booking.account.date_format')) }}
                                         @else
                                             —
                                         @endif
@@ -186,7 +186,7 @@
                                                 $optName = trim((string) ($row->option_name ?? ''));
                                                 $serviceTitle = $optName !== ''
                                                     ? $optName
-                                                    : ($parentName !== '' ? $parentName : 'Serviço');
+                                                    : ($parentName !== '' ? $parentName : __('booking.account.service_fallback'));
                                                 $linePrice = (float) ($row->price ?? 0);
                                                 $catLabel = trim((string) ($row->service?->category?->name ?? ''));
                                                 $rowExtras = $row->relationLoaded('extras') ? $row->extras : collect();
@@ -215,7 +215,7 @@
                                                     @php
                                                         $extraName = trim((string) ($extraPivot->extra?->name ?? ''));
                                                         if ($extraName === '') {
-                                                            $extraName = 'Extra';
+                                                            $extraName = __('booking.account.extra_fallback');
                                                         }
                                                         $extraPrice = (float) ($extraPivot->price ?? $extraPivot->extra?->price ?? 0);
                                                     @endphp
@@ -231,7 +231,7 @@
                                             @php
                                                 $fallbackName = trim((string) ($ev->title ?? ''));
                                                 if ($fallbackName === '') {
-                                                    $fallbackName = 'Marcação';
+                                                    $fallbackName = __('booking.account.appointment_fallback');
                                                 }
                                                 $fallbackCat = trim((string) ($ev->service?->category?->name ?? ''));
                                             @endphp
@@ -261,7 +261,7 @@
                                         <div class="booking-marcacao-card__section booking-marcacao-card__section--boxed booking-marcacao-card__section--total-snapshot">
                                             @if ($showServicesSubtotalLine)
                                                 <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--lead">
-                                                    <span class="booking-marcacao-card__total-line__label">Total serviços</span>
+                                                    <span class="booking-marcacao-card__total-line__label">{{ __('booking.account.total_services') }}</span>
                                                     <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($pivotTotal) }}</span>
                                                 </div>
                                             @endif
@@ -273,17 +273,17 @@
                                             @endforeach
                                             @if ($feesTotal > 0.004 || $serviceRows->count() > 1)
                                                 <div class="booking-marcacao-card__total-line {{ $gorjeta > 0.004 ? 'booking-marcacao-card__total-line--split' : 'booking-marcacao-card__total-line--lead' }}">
-                                                    <span class="booking-marcacao-card__total-line__label">Total</span>
+                                                    <span class="booking-marcacao-card__total-line__label">{{ __('booking.account.total') }}</span>
                                                     <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($totalComTaxas) }}</span>
                                                 </div>
                                             @endif
                                             @if ($gorjeta > 0.004)
                                                 <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--split">
-                                                    <span class="booking-marcacao-card__total-line__label">Gorjeta</span>
+                                                    <span class="booking-marcacao-card__total-line__label">{{ __('booking.account.tip') }}</span>
                                                     <span class="booking-marcacao-card__total-line__value booking-marcacao-card__total-line__value--soft">{{ $fmtMoney($gorjeta) }}</span>
                                                 </div>
                                                 <div class="booking-marcacao-card__total-line booking-marcacao-card__total-line--grand">
-                                                    <span class="booking-marcacao-card__total-line__label booking-marcacao-card__total-line__label--grand">Total (serviços + taxas + gorjeta)</span>
+                                                    <span class="booking-marcacao-card__total-line__label booking-marcacao-card__total-line__label--grand">{{ __('booking.account.total_with_tip') }}</span>
                                                     <span class="booking-marcacao-card__total-line__value">{{ $fmtMoney($totalComGorjeta) }}</span>
                                                 </div>
                                             @endif
@@ -293,13 +293,13 @@
 
                                 @if ($ev->description)
                                     <div class="booking-marcacao-card__section booking-marcacao-card__section--notes">
-                                        <h3 class="booking-marcacao-card__label">Notas</h3>
+                                        <h3 class="booking-marcacao-card__label">{{ __('booking.account.notes') }}</h3>
                                         <p class="booking-marcacao-card__notes small text-muted mb-0">{{ \Illuminate\Support\Str::limit(strip_tags((string) $ev->description), 400) }}</p>
                                     </div>
                                 @endif
 
                                 <div class="booking-marcacao-card__section booking-marcacao-card__section--payments">
-                                    <h3 class="booking-marcacao-card__label">Pagamentos</h3>
+                                    <h3 class="booking-marcacao-card__label">{{ __('booking.account.payments') }}</h3>
                                     <div class="booking-marcacao-stats @unless ($showFaltaLoja) booking-marcacao-stats--four @endunless">
                                         @unless ($showFaltaLoja)
                                             <div class="booking-marcacao-stat">
@@ -308,7 +308,7 @@
                                             </div>
                                         @endunless
                                         <div class="booking-marcacao-stat">
-                                            <span class="booking-marcacao-stat__label">Pré-pagamento</span>
+                                            <span class="booking-marcacao-stat__label">{{ __('booking.account.prepayment') }}</span>
                                             <div class="booking-marcacao-stat__amount-block">
                                                 <span class="booking-marcacao-stat__value">
                                                     {{ $fmtMoney($pagoOnline) }}
@@ -321,15 +321,15 @@
                                         </div>
                                         @if ($showFaltaLoja)
                                             <div class="booking-marcacao-stat">
-                                                <span class="booking-marcacao-stat__label">Falta</span>
+                                                <span class="booking-marcacao-stat__label">{{ __('booking.account.remaining') }}</span>
                                                 <div class="booking-marcacao-stat__amount-block">
                                                     <span class="booking-marcacao-stat__value text-warning">{{ $fmtMoney($faltaAmount) }}</span>
-                                                    <span class="booking-marcacao-stat__method">Por pagar na loja</span>
+                                                    <span class="booking-marcacao-stat__method">{{ __('booking.account.pay_in_store') }}</span>
                                                 </div>
                                             </div>
                                         @else
                                             <div class="booking-marcacao-stat">
-                                                <span class="booking-marcacao-stat__label">Pago em loja</span>
+                                                <span class="booking-marcacao-stat__label">{{ __('booking.account.paid_in_store') }}</span>
                                                 <div class="booking-marcacao-stat__amount-block">
                                                     <span class="booking-marcacao-stat__value">{{ $fmtMoney($pagoLoja) }}</span>
                                                     <span class="booking-marcacao-stat__method">{{ $metodoLojaLabel }}</span>
@@ -338,14 +338,14 @@
                                         @endif
                                         @unless ($showFaltaLoja)
                                             <div class="booking-marcacao-stat">
-                                                <span class="booking-marcacao-stat__label">Gorjeta</span>
+                                                <span class="booking-marcacao-stat__label">{{ __('booking.account.tip') }}</span>
                                                 <span class="booking-marcacao-stat__value">{{ $fmtMoney($gorjeta) }}</span>
                                             </div>
                                         @endunless
                                     </div>
 
                                     @if (! $ob && $showNoOnlineDepositNote)
-                                        <p class="small text-muted mb-0 mt-2">Sem registo de depósito online (marcação sem pagamento antecipado ou criada na receção).</p>
+                                        <p class="small text-muted mb-0 mt-2">{{ __('booking.account.no_online_deposit_note') }}</p>
                                     @endif
                                 </div>
 
@@ -360,27 +360,32 @@
                                             data-deposit="{{ $cancelPolicy?->hasPaidDeposit ? '1' : '0' }}"
                                             data-credit="{{ $cancelPolicy && $cancelPolicy->eligibleDepositCreditCents > 0 ? number_format($cancelPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ') : '' }}"
                                         >
-                                            Cancelar marcação
+                                            {{ __('booking.account.cancel_appointment') }}
                                         </button>
                                     </div>
                                 @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && ! $isDone && $cancelPolicy && ! $cancelPolicy->isWithinNoticePeriod && $cancelPolicy->hasPaidDeposit)
                                     <div class="alert alert-warning small py-2 px-3 mb-0 mt-2">
-                                        Já não é possível cancelar online sem perder o pré-pagamento
                                         @if ($cancelPolicy->eligibleDepositCreditCents > 0)
-                                            de {{ number_format($cancelPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ') }} €
+                                            {{ __('booking.account.cannot_cancel_online', [
+                                                'amount' => number_format($cancelPolicy->eligibleDepositCreditCents / 100, 2, ',', ' '),
+                                                'deadline' => $cancelPolicy->deadlineFormatted(),
+                                            ]) }}
+                                        @else
+                                            {{ __('booking.account.cannot_cancel_online_no_amount', [
+                                                'deadline' => $cancelPolicy->deadlineFormatted(),
+                                            ]) }}
                                         @endif
-                                        . O prazo era até {{ $cancelPolicy->deadlineFormatted() }}.
                                     </div>
                                 @endif
 
                                 @if ($isLocked)
                                     <div class="booking-marcacao-card__alert small">
-                                        <div class="fw-semibold text-dark mb-1">Cancelamento / falta</div>
+                                        <div class="fw-semibold text-dark mb-1">{{ __('booking.account.cancellation_section_title') }}</div>
                                         @if ($ev->cancellation_type)
-                                            <div class="text-muted">Tipo:
+                                            <div class="text-muted">{{ __('booking.account.cancellation_type_label') }}
                                                 {{ $ev->cancellation_type === CalendarEvent::STATUS_FALTOU
-                                                    ? 'Faltou'
-                                                    : ($ev->cancellation_type === CalendarEvent::STATUS_ANULADO ? 'Anulado' : 'Cancelamento') }}
+                                                    ? __('booking.account.cancellation_type_no_show')
+                                                    : ($ev->cancellation_type === CalendarEvent::STATUS_ANULADO ? __('booking.account.cancellation_type_voided') : __('booking.account.cancellation_type_cancelled')) }}
                                             </div>
                                         @endif
                                         @if ($ev->cancellation_reason)
@@ -388,11 +393,11 @@
                                         @endif
                                         <div class="text-muted mt-2 small">
                                             @if ($ev->avisou_dentro_prazo !== null)
-                                                Aviso no prazo: {{ $ev->avisou_dentro_prazo ? 'Sim' : 'Não' }}
+                                                {{ __('booking.account.notice_in_time') }} {{ $ev->avisou_dentro_prazo ? __('booking.account.yes') : __('booking.account.no') }}
                                             @endif
                                             @if ($ev->refund_reserva !== null)
                                                 @if ($ev->avisou_dentro_prazo !== null) · @endif
-                                                Reembolso pré-pagamento: {{ $ev->refund_reserva ? 'Sim' : 'Não' }}
+                                                {{ __('booking.account.deposit_refund') }} {{ $ev->refund_reserva ? __('booking.account.yes') : __('booking.account.no') }}
                                             @endif
                                         </div>
                                     </div>
@@ -404,7 +409,7 @@
             @endif
 
             <div class="booking-marcacao-policy mt-3 pt-3 border-top">
-                <h3 class="booking-marcacao-card__label mb-2">Política de cancelamento</h3>
+                <h3 class="booking-marcacao-card__label mb-2">{{ __('booking.account.cancellation_policy_heading') }}</h3>
                 @include('booking.partials.cancellation-policy-notice')
             </div>
 
@@ -424,7 +429,7 @@
                                 class="{{ $button['class'] ?? 'btn btn-primary btn-sm px-3' }}"
                                 type="{{ $button['type'] ?? 'submit' }}"
                                 @if (! empty($button['button_id'])) id="{{ $button['button_id'] }}" @endif
-                            >{{ $button['label'] ?? 'Confirmar' }}</button>
+                            >{{ $button['label'] ?? __('booking.account.confirm') }}</button>
                         </form>
                     @endforeach
                 </div>
@@ -437,8 +442,8 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header pb-3">
-                    <h4 class="modal-title mb-0 fw-semibold" id="accountCancelMarcacaoModalLabel">Cancelar marcação</h4>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    <h4 class="modal-title mb-0 fw-semibold" id="accountCancelMarcacaoModalLabel">{{ __('booking.account.cancel_modal_title') }}</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('booking.auth.close_aria') }}"></button>
                 </div>
                 <form method="POST" action="#" id="accountCancelMarcacaoForm">
                     @csrf
@@ -446,19 +451,19 @@
                         <p class="small text-muted mb-2" id="accountCancelMarcacaoIntro"></p>
                         <p class="small mb-3" id="accountCancelMarcacaoDeadline"></p>
                         @include('booking.partials.cancellation-policy-notice')
-                        <label for="accountCancelReasonInput" class="form-label mt-3">Razão (opcional)</label>
+                        <label for="accountCancelReasonInput" class="form-label mt-3">{{ __('booking.account.cancel_reason_label') }}</label>
                         <textarea
                             class="form-control"
                             id="accountCancelReasonInput"
                             name="cancellation_reason"
                             rows="3"
                             maxlength="1000"
-                            placeholder="Indique a razão do cancelamento"
+                            placeholder="{{ __('booking.account.cancel_reason_placeholder') }}"
                         ></textarea>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Voltar</button>
-                        <button type="submit" class="btn btn-danger">Confirmar cancelamento</button>
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ __('booking.account.cancel_back') }}</button>
+                        <button type="submit" class="btn btn-danger">{{ __('booking.account.cancel_confirm') }}</button>
                     </div>
                 </form>
             </div>

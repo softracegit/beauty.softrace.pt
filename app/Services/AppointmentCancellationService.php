@@ -8,6 +8,7 @@ use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\ClientWalletTransaction;
 use App\Notifications\ClientAppointmentCancelledNotification;
+use App\Support\BookingLocale;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -225,7 +226,8 @@ class AppointmentCancellationService
         }
 
         try {
-            Notification::route('mail', $email)
+            Notification::locale(BookingLocale::emailLocale())
+                ->route('mail', $email)
                 ->notify(new ClientAppointmentCancelledNotification($event->id));
         } catch (\Throwable $e) {
             Log::warning('Falha ao enviar email de cancelamento ao cliente.', [

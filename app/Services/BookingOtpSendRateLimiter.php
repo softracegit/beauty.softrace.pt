@@ -107,10 +107,7 @@ final class BookingOtpSendRateLimiter
     private function throwCooldown(string $errorKey, int $retryAfterSeconds): never
     {
         $retryAfterSeconds = max(1, $retryAfterSeconds);
-        $msg = sprintf(
-            'Aguarde %d segundos antes de pedir um novo código.',
-            $retryAfterSeconds
-        );
+        $msg = __('booking.validation.otp_wait_seconds', ['seconds' => $retryAfterSeconds]);
 
         throw new HttpResponseException(response()->json([
             'message' => $msg,
@@ -122,11 +119,8 @@ final class BookingOtpSendRateLimiter
     private function throwLockout(string $errorKey, int $lockoutHours): never
     {
         $msg = $lockoutHours === 1
-            ? 'Foram feitos demasiados pedidos de código. Tente novamente daqui a 1 hora.'
-            : sprintf(
-                'Foram feitos demasiados pedidos de código. Tente novamente daqui a %d horas.',
-                $lockoutHours
-            );
+            ? __('booking.validation.otp_too_many_hour')
+            : __('booking.validation.otp_too_many_hours', ['hours' => $lockoutHours]);
 
         throw new HttpResponseException(response()->json([
             'message' => $msg,

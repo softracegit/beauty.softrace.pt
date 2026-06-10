@@ -21,7 +21,7 @@ class BookingSavedCardController extends Controller
     {
         $customerId = $this->resolveStripeCustomerIdForBookingActor($request->user());
         if (! is_string($customerId) || $customerId === '') {
-            return response()->json(['message' => 'Não foi possível preparar o cartão para esta conta.'], 422);
+            return response()->json(['message' => __('booking.validation.card_prepare_failed')], 422);
         }
 
         $this->configureStripeSdk();
@@ -43,12 +43,12 @@ class BookingSavedCardController extends Controller
                 'message' => $e->getMessage(),
             ]);
 
-            return response()->json(['message' => 'Não foi possível preparar a validação do cartão.'], 422);
+            return response()->json(['message' => __('booking.validation.card_validation_prepare_failed')], 422);
         }
 
         $publishable = config('stripe.key');
         if (! is_string($publishable) || $publishable === '') {
-            return response()->json(['message' => 'Chave pública Stripe em falta.'], 503);
+            return response()->json(['message' => __('booking.validation.stripe_key_missing')], 503);
         }
 
         return response()->json([
@@ -65,12 +65,12 @@ class BookingSavedCardController extends Controller
 
         $actor = $request->user();
         if (! ($actor instanceof User) || ! $actor->isBookingClient()) {
-            return response()->json(['message' => 'Sessão inválida para gerir cartões.'], 403);
+            return response()->json(['message' => __('booking.validation.card_session_invalid')], 403);
         }
 
         $client = $actor->loadMissing('client')->client;
         if (! $client instanceof Client) {
-            return response()->json(['message' => 'Conta sem cliente associado.'], 422);
+            return response()->json(['message' => __('booking.validation.card_no_client')], 422);
         }
 
         $this->configureStripeSdk();
@@ -78,16 +78,16 @@ class BookingSavedCardController extends Controller
         try {
             $intent = SetupIntent::retrieve((string) $request->string('setup_intent_id'));
         } catch (ApiErrorException $e) {
-            return response()->json(['message' => 'Não foi possível verificar o cartão.'], 422);
+            return response()->json(['message' => __('booking.validation.card_verify_failed')], 422);
         }
 
         if ($intent->status !== 'succeeded') {
-            return response()->json(['message' => 'A validação do cartão não foi concluída.'], 422);
+            return response()->json(['message' => __('booking.validation.card_validation_incomplete')], 422);
         }
 
         $paymentMethodId = is_string($intent->payment_method) ? $intent->payment_method : null;
         if (! $paymentMethodId) {
-            return response()->json(['message' => 'Cartão inválido.'], 422);
+            return response()->json(['message' => __('booking.validation.card_invalid')], 422);
         }
 
         try {
@@ -101,17 +101,17 @@ class BookingSavedCardController extends Controller
                 // Campo pode não existir em versões antigas/contas antigas; segue sem bloquear.
             }
         } catch (ApiErrorException $e) {
-            return response()->json(['message' => 'Não foi possível obter os dados do cartão.'], 422);
+            return response()->json(['message' => __('booking.validation.card_details_failed')], 422);
         }
 
         if (($method->type ?? null) !== 'card' || ! isset($method->card)) {
-            return response()->json(['message' => 'O método guardado não é um cartão.'], 422);
+            return response()->json(['message' => __('booking.validation.card_not_card_method')], 422);
         }
 
         $customerId = trim((string) ($client->stripe_customer_id ?? ''));
         $pmCustomer = is_string($method->customer) ? $method->customer : '';
         if ($customerId === '' || $pmCustomer === '' || $pmCustomer !== $customerId) {
-            return response()->json(['message' => 'O cartão não está associado a esta conta.'], 422);
+            return response()->json(['message' => __('booking.validation.card_wrong_account')], 422);
         }
 
         DB::transaction(function () use ($client, $method, $customerId): void {
@@ -150,17 +150,17 @@ class BookingSavedCardController extends Controller
     {
         $client = $this->resolveClientFromBookingActor($request->user());
         if (! $client) {
-            return response()->json(['message' => 'Sessão inválida para gerir cartões.'], 403);
+            return response()->json(['message' => __('booking.validation.card_session_invalid')], 403);
         }
 
         if ((int) $card->client_id !== (int) $client->id || $card->detached_at !== null) {
-            return response()->json(['message' => 'Cartão não encontrado.'], 404);
+            return response()->json(['message' => __('booking.validation.card_not_found')], 404);
         }
 
         try {
             $this->setDefaultCardForClient($client, $card->stripe_payment_method_id);
         } catch (ApiErrorException) {
-            return response()->json(['message' => 'Não foi possível definir o cartão principal.'], 422);
+            return response()->json(['message' => __('booking.validation.card_default_failed')], 422);
         }
 
         return response()->json([
@@ -173,10 +173,10 @@ class BookingSavedCardController extends Controller
     {
         $client = $this->resolveClientFromBookingActor($request->user());
         if (! $client) {
-            return response()->json(['message' => 'Sessão inválida para gerir cartões.'], 403);
+            return response()->json(['message' => __('booking.validation.card_session_invalid')], 403);
         }
         if ((int) $card->client_id !== (int) $client->id || $card->detached_at !== null) {
-            return response()->json(['message' => 'Cartão não encontrado.'], 404);
+            return response()->json(['message' => __('booking.validation.card_not_found')], 404);
         }
 
         $this->configureStripeSdk();
@@ -191,7 +191,7 @@ class BookingSavedCardController extends Controller
                 'message' => $e->getMessage(),
             ]);
 
-            return response()->json(['message' => 'Não foi possível remover o cartão.'], 422);
+            return response()->json(['message' => __('booking.validation.card_remove_failed')], 422);
         }
 
         DB::transaction(function () use ($client, $card): void {

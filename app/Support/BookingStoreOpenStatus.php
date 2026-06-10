@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\Agent;
 use App\Models\Store;
 use Carbon\CarbonImmutable;
 
@@ -27,7 +26,7 @@ final class BookingStoreOpenStatus
             $nextOpen = self::nextOpenLabel($schedule, $now, $tz);
 
             return [
-                'label' => 'Fechado',
+                'label' => __('booking.partials.store_status_closed'),
                 'css_class' => 'booking-offcanvas__status-closed',
                 'suffix' => $nextOpen !== null ? ' · '.$nextOpen : '',
             ];
@@ -41,19 +40,19 @@ final class BookingStoreOpenStatus
         $isOpenNow = $currentMinutes >= $openMinutes && $currentMinutes < $closeMinutes;
         $minutesToClose = $closeMinutes - $currentMinutes;
         $isClosingSoon = $isOpenNow && $minutesToClose <= 30;
-        $closeLabel = 'Fecha às '.$closeStr;
-        $openLabel = 'Abre às '.$openStr;
+        $closeLabel = __('booking.partials.store_closes_at', ['time' => $closeStr]);
+        $openLabel = __('booking.partials.store_opens_at', ['time' => $openStr]);
 
         if ($isClosingSoon) {
             return [
-                'label' => 'Quase a fechar',
+                'label' => __('booking.partials.store_status_closing_soon'),
                 'css_class' => 'booking-offcanvas__status-warning',
                 'suffix' => ' · '.$closeLabel,
             ];
         }
         if ($isOpenNow) {
             return [
-                'label' => 'Aberto',
+                'label' => __('booking.partials.store_status_open'),
                 'css_class' => 'booking-offcanvas__status-open',
                 'suffix' => ' · '.$closeLabel,
             ];
@@ -64,7 +63,7 @@ final class BookingStoreOpenStatus
             : ' · '.$openLabel;
 
         return [
-            'label' => 'Fechado',
+            'label' => __('booking.partials.store_status_closed'),
             'css_class' => 'booking-offcanvas__status-closed',
             'suffix' => $suffix,
         ];
@@ -84,11 +83,14 @@ final class BookingStoreOpenStatus
             }
             $openStr = self::minutesToTimeLabel((int) $window[0]);
             if ($i === 0) {
-                return 'Abre às '.$openStr;
+                return __('booking.partials.store_opens_at', ['time' => $openStr]);
             }
-            $dayLabel = Agent::weekdayLabels()[$key] ?? $key;
+            $dayLabel = __('booking.weekdays.'.$key);
 
-            return 'Abre '.$dayLabel.' às '.$openStr;
+            return __('booking.partials.store_opens_weekday_at', [
+                'weekday' => $dayLabel,
+                'time' => $openStr,
+            ]);
         }
 
         return null;

@@ -1,6 +1,32 @@
 (function () {
     'use strict';
 
+    var locale = (typeof window !== 'undefined' && window.bookingLocale) ? window.bookingLocale : 'pt-PT';
+
+    function stripeLocale() {
+        var normalized = String(locale).toLowerCase();
+        if (normalized.indexOf('en') === 0) {
+            return 'en';
+        }
+        if (normalized.indexOf('es') === 0) {
+            return 'es';
+        }
+        return 'pt';
+    }
+
+    function t(key, replacements) {
+        var account = window.bookingAccountI18n || {};
+        var js = window.bookingI18n || {};
+        var str = account[key] || js[key] || key;
+        if (!replacements) {
+            return str;
+        }
+        Object.keys(replacements).forEach(function (k) {
+            str = str.split(':' + k).join(String(replacements[k]));
+        });
+        return str;
+    }
+
     function getCsrfToken() {
         var m = document.querySelector('meta[name="csrf-token"]');
         return m ? m.getAttribute('content') : '';
@@ -36,7 +62,7 @@
 
     function renderCards(container, cards) {
         if (!Array.isArray(cards) || !cards.length) {
-            container.innerHTML = '<p class="small text-muted mb-0">Sem cartões guardados.</p>';
+            container.innerHTML = '<p class="small text-muted mb-0">' + t('no_saved_cards') + '</p>';
             return;
         }
         container.innerHTML = cards
@@ -44,10 +70,12 @@
                 var expMonth = card.exp_month != null ? String(card.exp_month).padStart(2, '0') : '--';
                 var expYear = card.exp_year != null ? String(card.exp_year) : '----';
                 var defaultHtml = card.is_default
-                    ? '<span class="badge text-bg-success">Principal</span>'
+                    ? '<span class="badge text-bg-success">' + t('card_default_badge') + '</span>'
                     : '<button type="button" class="btn btn-link btn-sm p-0 js-card-default" data-card-id="' +
                       card.id +
-                      '">Definir principal</button>';
+                      '">' +
+                      t('set_default_card') +
+                      '</button>';
                 return (
                     '<div class="d-flex align-items-center justify-content-between gap-2 py-2 border-top">' +
                     '<div class="small">' +
@@ -56,17 +84,17 @@
                     ' •••• ' +
                     card.last4 +
                     '</div>' +
-                    '<div class="text-muted">Validade ' +
-                    expMonth +
-                    '/' +
-                    expYear +
+                    '<div class="text-muted">' +
+                    t('card_expiry', { month: expMonth, year: expYear }) +
                     '</div>' +
                     '</div>' +
                     '<div class="d-flex align-items-center gap-2">' +
                     defaultHtml +
                     '<button type="button" class="btn btn-link btn-sm text-danger p-0 js-card-remove" data-card-id="' +
                     card.id +
-                    '">Remover</button>' +
+                    '">' +
+                    t('remove_card') +
+                    '</button>' +
                     '</div>' +
                     '</div>'
                 );
@@ -111,9 +139,13 @@
             errorEl.classList.toggle('d-none', !message);
         }
 
+        function jsT(key) {
+            return (window.bookingI18n && window.bookingI18n[key]) || key;
+        }
+
         function setLoading(isLoading) {
             submitBtn.disabled = isLoading;
-            submitBtn.textContent = isLoading ? 'A guardar...' : 'Guardar cartão';
+            submitBtn.textContent = isLoading ? jsT('cards_saving') : t('save_card');
         }
 
         function openAddCard() {
@@ -122,17 +154,15 @@
             postJson(setupUrl, {})
                 .then(function (res) {
                     if (!res.ok || !res.data || !res.data.client_secret) {
-                        setError((res.data && res.data.message) || 'Não foi possível iniciar a validação do cartão.');
+                        setError((res.data && res.data.message) || jsT('card_validation_prepare_failed'));
                         return;
                     }
                     clientSecret = res.data.client_secret;
                     if (typeof window.Stripe !== 'function') {
-                        setError('Stripe.js não está disponível.');
+                        setError(jsT('cards_stripe_unavailable'));
                         return;
                     }
-                    if (!stripe) {
-                        stripe = window.Stripe(publishableKey, { locale: 'pt' });
-                    }
+                    stripe = window.Stripe(publishableKey, { locale: stripeLocale() });
                     if (mount) {
                         mount.innerHTML = '';
                     }
@@ -151,7 +181,7 @@
                     cardElement.mount(mount);
                 })
                 .catch(function () {
-                    setError('Erro de rede ao preparar o cartão.');
+                    setError(jsT('cards_network_prepare_error'));
                 });
         }
 
@@ -169,11 +199,12 @@
             mount.innerHTML = '';
             elements = null;
             cardElement = null;
+            stripe = null;
         }
 
         function confirmAddCard() {
             if (!stripe || !elements || !clientSecret) {
-                setError('Inicie novamente o formulário de cartão.');
+                setError(jsT('cards_restart_form'));
                 return;
             }
             setLoading(true);
@@ -184,20 +215,20 @@
                 })
                 .then(function (result) {
                     if (result.error) {
-                        setError(result.error.message || 'Não foi possível validar o cartão.');
+                        setError(result.error.message || jsT('card_verify_failed'));
                         setLoading(false);
                         return;
                     }
                     var setupIntent = result.setupIntent;
                     if (!setupIntent || setupIntent.status !== 'succeeded') {
-                        setError('A validação do cartão não foi concluída.');
+                        setError(jsT('card_validation_incomplete'));
                         setLoading(false);
                         return;
                     }
                     postJson(syncUrl, { setup_intent_id: setupIntent.id }).then(function (res) {
                         setLoading(false);
                         if (!res.ok || !res.data || !res.data.success) {
-                            setError((res.data && res.data.message) || 'Não foi possível guardar o cartão.');
+                            setError((res.data && res.data.message) || jsT('card_prepare_failed'));
                             return;
                         }
                         renderCards(list, res.data.cards || []);
@@ -205,7 +236,7 @@
                     });
                 })
                 .catch(function () {
-                    setError('Erro ao confirmar o cartão.');
+                    setError(jsT('cards_confirm_error'));
                     setLoading(false);
                 });
         }
@@ -229,7 +260,7 @@
             var removeBtn = event.target.closest('.js-card-remove');
             if (removeBtn) {
                 var removeId = removeBtn.getAttribute('data-card-id');
-                if (!window.confirm('Remover este cartão guardado?')) {
+                if (!window.confirm(jsT('cards_confirm_remove'))) {
                     return;
                 }
                 postJson(destroyUrlTpl.replace('__CARD__', removeId), null, 'DELETE').then(function (res) {

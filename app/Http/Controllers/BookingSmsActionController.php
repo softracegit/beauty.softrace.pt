@@ -9,6 +9,7 @@ use App\Models\ClientWalletTransaction;
 use App\Models\CrmSetting;
 use App\Services\AppointmentCancellationService;
 use App\Services\CancellationPolicyService;
+use App\Support\BookingLocale;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -18,14 +19,15 @@ class BookingSmsActionController extends Controller
         private AppointmentCancellationService $cancellationService,
         private CancellationPolicyService $policyService,
     ) {}
+
     public function manage(string $token): View
     {
         $resolved = $this->resolveLink($token);
         if (! $resolved['ok']) {
             return $this->resultView(
                 false,
-                'Link inválido ou expirado',
-                'Este link já não é válido. Peça um novo lembrete.',
+                __('booking.sms_action_result.invalid_link_title'),
+                __('booking.sms_action_result.invalid_link_message'),
                 '',
                 config('app.name', 'Loja'),
                 'error'
@@ -68,8 +70,8 @@ class BookingSmsActionController extends Controller
         if (! $resolved['ok']) {
             return $this->resultView(
                 false,
-                'Link inválido ou expirado',
-                'Este link já não é válido. Peça um novo lembrete.',
+                __('booking.sms_action_result.invalid_link_title'),
+                __('booking.sms_action_result.invalid_link_message'),
                 '',
                 config('app.name', 'Loja'),
                 'error'
@@ -82,20 +84,20 @@ class BookingSmsActionController extends Controller
         $currentStatus = (string) ($calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO);
         $result = [
             'ok' => false,
-            'title' => 'Não foi possível atualizar a marcação',
-            'message' => 'Tente novamente mais tarde ou contacte a loja.',
+            'title' => __('booking.sms_action_result.update_failed_title'),
+            'message' => __('booking.sms_action_result.update_failed_message'),
         ];
 
         if (in_array($currentStatus, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true)) {
             $result = [
                 'ok' => false,
-                'title' => 'Marcação já fechada',
-                'message' => 'Esta marcação já está cancelada ou marcada como falta.',
+                'title' => __('booking.sms_action_result.already_closed_title'),
+                'message' => __('booking.sms_action_result.already_closed_message'),
             ];
         } elseif ($targetStatus === CalendarEvent::STATUS_CANCELADO) {
             $finalReason = $cancellationReason !== ''
                 ? $cancellationReason
-                : 'Cancelado pelo cliente via link SMS.';
+                : __('booking.sms_action_result.default_cancel_reason');
 
             try {
                 $cancelResult = $this->cancellationService->cancel($calendarEvent, [
@@ -108,28 +110,28 @@ class BookingSmsActionController extends Controller
 
                 $result = [
                     'ok' => true,
-                    'title' => 'Marcação cancelada',
+                    'title' => __('booking.sms_action_result.cancelled_title'),
                     'message' => $this->cancellationSuccessMessage($cancelResult),
                 ];
             } catch (AppointmentCancellationException $e) {
                 $result = [
                     'ok' => false,
-                    'title' => 'Não foi possível cancelar',
+                    'title' => __('booking.sms_action_result.cancel_failed_title'),
                     'message' => $e->getMessage(),
                 ];
             }
         } elseif ($currentStatus === CalendarEvent::STATUS_CONFIRMADO) {
             $result = [
                 'ok' => true,
-                'title' => 'Marcação já confirmada',
-                'message' => 'A sua marcação já se encontra confirmada.',
+                'title' => __('booking.sms_action_result.already_confirmed_title'),
+                'message' => __('booking.sms_action_result.already_confirmed_message'),
             ];
         } else {
             if (! $calendarEvent->canTransitionTo(CalendarEvent::STATUS_CONFIRMADO)) {
                 $result = [
                     'ok' => false,
-                    'title' => 'Não foi possível confirmar',
-                    'message' => 'O estado atual da marcação não permite confirmação.',
+                    'title' => __('booking.sms_action_result.confirm_failed_title'),
+                    'message' => __('booking.sms_action_result.confirm_failed_message'),
                 ];
             } else {
                 $calendarEvent->forceFill([
@@ -142,8 +144,8 @@ class BookingSmsActionController extends Controller
 
                 $result = [
                     'ok' => true,
-                    'title' => 'Marcação confirmada',
-                    'message' => 'Obrigado. A sua marcação ficou confirmada.',
+                    'title' => __('booking.sms_action_result.confirmed_title'),
+                    'message' => __('booking.sms_action_result.confirmed_message'),
                 ];
             }
         }
@@ -187,6 +189,11 @@ class BookingSmsActionController extends Controller
             return ['ok' => false];
         }
 
+        $phone = $link->calendarEvent->client?->phone;
+        if (is_string($phone) && trim($phone) !== '') {
+            BookingLocale::apply(BookingLocale::fromPhone($phone));
+        }
+
         return [
             'ok' => true,
             'event' => $link->calendarEvent,
@@ -198,10 +205,10 @@ class BookingSmsActionController extends Controller
         if ($result->walletCredited && $result->walletCreditAmountCents > 0) {
             $amount = number_format($result->walletCreditAmountCents / 100, 2, ',', ' ');
 
-            return 'A sua marcação foi cancelada. O pré-pagamento de '.$amount.' € foi convertido em créditos na sua carteira (não é reembolso bancário).';
+            return __('booking.sms_action_result.cancelled_with_credit', ['amount' => $amount]);
         }
 
-        return 'A sua marcação foi cancelada com sucesso.';
+        return __('booking.sms_action_result.cancelled_success');
     }
 
     private function resultView(

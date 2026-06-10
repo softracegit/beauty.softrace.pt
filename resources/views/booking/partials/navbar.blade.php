@@ -10,7 +10,7 @@
             $bookingUserDisplayName = trim((string) (auth()->user()->email ?? ''));
         }
         if ($bookingUserDisplayName === '') {
-            $bookingUserDisplayName = 'Conta';
+            $bookingUserDisplayName = __('booking.nav.account_fallback');
         }
 
         $nameForInitials = trim((string) auth()->user()->name);
@@ -50,12 +50,19 @@
         default => null,
     };
     $bookingSteps = [
-        ['label' => 'Serviços', 'route' => 'booking.index'],
-        ['label' => 'Staff', 'route' => 'booking.technician'],
-        ['label' => 'Dia / Hora', 'route' => 'booking.datetime'],
-        ['label' => 'Confirmação', 'route' => 'booking.step3'],
+        ['label' => __('booking.nav.step_services'), 'route' => 'booking.index'],
+        ['label' => __('booking.nav.step_staff'), 'route' => 'booking.technician'],
+        ['label' => __('booking.nav.step_datetime'), 'route' => 'booking.datetime'],
+        ['label' => __('booking.nav.step_confirmation'), 'route' => 'booking.step3'],
     ];
-    $bookingBusinessDisplayName = trim((string) ($businessName ?? $bookingStore?->name ?? config('app.name', 'Loja')));
+    $bookingBusinessDisplayName = trim((string) ($businessName ?? $bookingStore?->name ?? config('app.name', __('booking.nav.default_store'))));
+    $bookingCurrentLocale = app()->getLocale();
+    $bookingLocaleCodes = [
+        'pt' => 'PT',
+        'en' => 'EN',
+        'es' => 'ES',
+    ];
+    $bookingCurrentLocaleCode = $bookingLocaleCodes[$bookingCurrentLocale] ?? strtoupper($bookingCurrentLocale);
     $bookingNavbarStoreTitleUpper = mb_strtoupper($bookingBusinessDisplayName, 'UTF-8');
     $bookingIndexUrl = route('booking.index', ['store' => $bookingStoreSlug], false);
     $bookingNavbarBackUrl = match ($bookingRouteName) {
@@ -73,7 +80,7 @@
                     <a
                         href="{{ $bookingNavbarBackUrl }}"
                         class="booking-navbar__back"
-                        aria-label="Voltar"
+                        aria-label="{{ __('booking.nav.back') }}"
                     >
                         <i class="bi bi-chevron-left" aria-hidden="true"></i>
                     </a>
@@ -85,7 +92,7 @@
         <div class="booking-navbar__cell booking-navbar__cell--center">
             <span class="booking-navbar__store-title">{{ $bookingNavbarStoreTitleUpper }}</span>
             @if ($showBookingSteps)
-                <ol class="booking-navbar-steps d-none" aria-label="Passos da marcação">
+                <ol class="booking-navbar-steps d-none" aria-label="{{ __('booking.nav.steps_aria') }}">
                     @foreach ($bookingSteps as $idx => $step)
                         @php
                             $stepNum = $idx + 1;
@@ -117,10 +124,11 @@
                     <a
                         href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"
                         class="booking-navbar-new-booking d-none d-lg-inline-flex"
-                        aria-label="Nova marcação"
+                        aria-label="{{ __('booking.nav.new_booking_aria') }}"
                     >
                         <i class="bi bi-plus-lg" aria-hidden="true"></i>
                     </a>
+                    @include('booking.partials.navbar-lang-dropdown')
                     <div class="dropdown booking-navbar-account">
                         <button
                             type="button"
@@ -131,7 +139,7 @@
                             aria-expanded="false"
                             aria-haspopup="menu"
                             aria-controls="booking-navbar-account-dropdown"
-                            aria-label="Menu da conta de {{ $bookingUserDisplayName }}"
+                            aria-label="{{ __('booking.nav.account_menu_aria', ['name' => $bookingUserDisplayName]) }}"
                         >
                             <span class="booking-navbar-account__toggle-inner">
                                 <i class="bi bi-person booking-navbar-account__toggle-icon" aria-hidden="true"></i>
@@ -143,56 +151,57 @@
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-plus-circle booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                    <span>Nova marcação</span>
+                                    <span>{{ __('booking.nav.new_booking') }}</span>
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.index', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-person booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                    <span>Perfil</span>
+                                    <span>{{ __('booking.nav.profile') }}</span>
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.marcacoes', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-calendar3 booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                    <span>Marcações</span>
+                                    <span>{{ __('booking.nav.appointments') }}</span>
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.carteira', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-wallet2 booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                    <span>Carteira</span>
+                                    <span>{{ __('booking.nav.wallet') }}</span>
                                 </a>
                             </li>
                             <li>
                                 <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.conta.settings', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-gear booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                    <span>Definições</span>
+                                    <span>{{ __('booking.nav.settings') }}</span>
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <a class="dropdown-item text-danger d-flex align-items-center gap-2" href="{{ route('booking.logout', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-box-arrow-right booking-navbar-account__item-icon" aria-hidden="true"></i>
-                                    <span>Terminar sessão</span>
+                                    <span>{{ __('booking.nav.logout') }}</span>
                                 </a>
                             </li>
                         </ul>
                     </div>
                 </div>
             @else
+                @include('booking.partials.navbar-lang-dropdown')
                 @if ($bookingDisableAuthModal)
                     <a href="{{ route('booking.login', ['store' => $bookingStoreSlug], false) }}" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap" id="booking-navbar-open-auth">
                         <i class="bi bi-person d-lg-none booking-navbar__auth-open-icon" aria-hidden="true"></i>
-                        <span class="visually-hidden d-lg-none">Iniciar sessão</span>
-                        <span class="d-none d-lg-inline">Iniciar sessão</span>
+                        <span class="visually-hidden d-lg-none">{{ __('booking.nav.login') }}</span>
+                        <span class="d-none d-lg-inline">{{ __('booking.nav.login') }}</span>
                     </a>
                 @else
                     <button type="button" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap js-booking-open-auth-modal" id="booking-navbar-open-auth">
                         <i class="bi bi-person d-lg-none booking-navbar__auth-open-icon" aria-hidden="true"></i>
-                        <span class="visually-hidden d-lg-none">Iniciar sessão</span>
-                        <span class="d-none d-lg-inline">Iniciar sessão</span>
+                        <span class="visually-hidden d-lg-none">{{ __('booking.nav.login') }}</span>
+                        <span class="d-none d-lg-inline">{{ __('booking.nav.login') }}</span>
                     </button>
                 @endif
             @endif

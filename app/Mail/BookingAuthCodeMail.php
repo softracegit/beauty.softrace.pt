@@ -22,7 +22,7 @@ class BookingAuthCodeMail extends Mailable
     {
         // Separador: hífen ASCII (-), nunca travessão (—), para cabeçalhos Subject.
         return new Envelope(
-            subject: 'Codigo de acesso - '.(string) config('app.name'),
+            subject: __('booking.mail.auth_code_subject', ['app' => (string) config('app.name')]),
         );
     }
 

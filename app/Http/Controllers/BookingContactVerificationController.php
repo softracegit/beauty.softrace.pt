@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\User;
 use App\Services\BookingOtpSendRateLimiter;
 use App\Services\TwilioSmsService;
+use App\Support\BookingLocale;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
 use Illuminate\Http\JsonResponse;
@@ -32,7 +33,7 @@ class BookingContactVerificationController extends Controller
         $client = $user->loadMissing('client')->client;
         if (! $client instanceof Client) {
             throw ValidationException::withMessages([
-                'verify' => ['Conta de cliente não encontrada.'],
+                'verify' => [__('booking.validation.verify_client_not_found')],
             ]);
         }
 
@@ -47,14 +48,14 @@ class BookingContactVerificationController extends Controller
             $target = strtolower(trim((string) $user->email));
             if ($target === '') {
                 throw ValidationException::withMessages([
-                    'verify' => ['Defina um email válido na conta para poder verificar.'],
+                    'verify' => [__('booking.validation.verify_email_missing')],
                 ]);
             }
         } else {
             $target = PhoneDisplay::toE164((string) $client->phone);
             if ($target === null) {
                 throw ValidationException::withMessages([
-                    'verify' => ['Defina um telemóvel válido na conta para poder verificar.'],
+                    'verify' => [__('booking.validation.verify_phone_missing')],
                 ]);
             }
         }
@@ -82,9 +83,21 @@ class BookingContactVerificationController extends Controller
         try {
             if ($channel === 'email') {
                 $continueUrl = route('booking.index', ['store' => app(CurrentStore::class)->get()->slug]);
-                Mail::mailer('booking')->to($target)->send(new BookingContactVerificationCodeMail($code, $ttlMinutes, $continueUrl));
+                Mail::mailer('booking')
+                    ->locale(BookingLocale::emailLocale())
+                    ->to($target)
+                    ->send(new BookingContactVerificationCodeMail($code, $ttlMinutes, $continueUrl));
             } else {
-                $this->twilioSmsService->send($target, sprintf('Código de verificação da conta: %s. Expira em %d minutos.', $code, $ttlMinutes));
+                $previousLocale = app()->getLocale();
+                try {
+                    BookingLocale::apply(BookingLocale::fromPhone($target));
+                    $this->twilioSmsService->send(
+                        $target,
+                        __('booking.sms.verification_code', ['code' => $code, 'minutes' => $ttlMinutes])
+                    );
+                } finally {
+                    BookingLocale::apply($previousLocale);
+                }
             }
         } catch (\Throwable $e) {
             Log::error('Envio de código de verificação de contacto falhou.', [
@@ -96,15 +109,15 @@ class BookingContactVerificationController extends Controller
             ]);
 
             throw ValidationException::withMessages([
-                'verify' => ['Não foi possível enviar o código agora. Tente novamente em instantes.'],
+                'verify' => [__('booking.validation.otp_send_failed')],
             ]);
         }
 
         $this->otpSendRateLimiter->recordSuccessfulSend($rateBucket);
 
         $message = $channel === 'email'
-            ? 'Código enviado para o email.'
-            : 'Código enviado por SMS para o telemóvel.';
+            ? __('booking.messages.verification_code_sent_email')
+            : __('booking.messages.verification_code_sent_sms');
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -125,7 +138,7 @@ class BookingContactVerificationController extends Controller
         $client = $user->loadMissing('client')->client;
         if (! $client instanceof Client) {
             throw ValidationException::withMessages([
-                'verify' => ['Conta de cliente não encontrada.'],
+                'verify' => [__('booking.validation.verify_client_not_found')],
             ]);
         }
 
@@ -140,14 +153,14 @@ class BookingContactVerificationController extends Controller
             $target = strtolower(trim((string) $user->email));
             if ($target === '') {
                 throw ValidationException::withMessages([
-                    'verify' => ['Defina um email válido antes de verificar.'],
+                    'verify' => [__('booking.validation.verify_email_missing')],
                 ]);
             }
         } else {
             $target = PhoneDisplay::toE164((string) $client->phone);
             if ($target === null) {
                 throw ValidationException::withMessages([
-                    'verify' => ['Defina um telemóvel válido antes de verificar.'],
+                    'verify' => [__('booking.validation.verify_phone_missing')],
                 ]);
             }
         }
@@ -163,7 +176,7 @@ class BookingContactVerificationController extends Controller
 
         if (! $authCode) {
             throw ValidationException::withMessages([
-                'verify' => ['Código inválido ou expirado. Peça um novo código.'],
+                'verify' => [__('booking.validation.verify_code_invalid_expired')],
             ]);
         }
 
@@ -172,7 +185,7 @@ class BookingContactVerificationController extends Controller
         if (! $isValid) {
             $authCode->save();
             throw ValidationException::withMessages([
-                'verify' => ['Código inválido. Verifique e tente novamente.'],
+                'verify' => [__('booking.validation.verify_code_invalid')],
             ]);
         }
 
@@ -190,8 +203,8 @@ class BookingContactVerificationController extends Controller
         }
 
         $message = $channel === 'email'
-            ? 'Email verificado com sucesso.'
-            : 'Telemóvel verificado com sucesso.';
+            ? __('booking.messages.email_verified')
+            : __('booking.messages.phone_verified');
 
         if ($request->expectsJson()) {
             return response()->json([

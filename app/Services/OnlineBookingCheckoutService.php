@@ -140,7 +140,7 @@ class OnlineBookingCheckoutService
         $digits = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
         if (strlen($digits) !== 9) {
             throw ValidationException::withMessages([
-                'billing_nif' => ['Indique um NIF com 9 dígitos.'],
+                'billing_nif' => [__('booking.validation.billing_nif_digits')],
             ]);
         }
     }
@@ -176,7 +176,7 @@ class OnlineBookingCheckoutService
         }
         if ($storeIds->count() > 1) {
             throw ValidationException::withMessages([
-                'services' => ['Os serviços não pertencem à mesma loja.'],
+                'services' => [__('booking.validation.services_different_stores')],
             ]);
         }
 
@@ -198,7 +198,7 @@ class OnlineBookingCheckoutService
         $fromServices = $this->storeIdFromBookingServices($servicesInput);
         if ($fromServices !== $expected) {
             throw ValidationException::withMessages([
-                'services' => ['Os serviços não pertencem a esta loja.'],
+                'services' => [__('booking.validation.services_wrong_store')],
             ]);
         }
     }
@@ -286,7 +286,7 @@ class OnlineBookingCheckoutService
         $agentKey = $validated['agent_id'];
         if ($agentKey !== 'any' && ! ctype_digit((string) $agentKey)) {
             throw ValidationException::withMessages([
-                'agent_id' => ['Seleção de técnica inválida.'],
+                'agent_id' => [__('booking.validation.agent_invalid')],
             ]);
         }
 
@@ -294,7 +294,7 @@ class OnlineBookingCheckoutService
         $day = Carbon::parse($validated['date'], $tz)->startOfDay()->timezone($tz);
         if ($day->lt(now($tz)->startOfDay())) {
             throw ValidationException::withMessages([
-                'date' => ['Data inválida.'],
+                'date' => [__('booking.validation.date_invalid')],
             ]);
         }
 
@@ -306,7 +306,7 @@ class OnlineBookingCheckoutService
         $totalDuration = (int) array_sum(array_map(fn (array $line): int => $this->bookingLineTotalDuration($line), $bookingLines));
         if ($totalDuration <= 0) {
             throw ValidationException::withMessages([
-                'services' => ['Duração total inválida.'],
+                'services' => [__('booking.validation.duration_invalid')],
             ]);
         }
 
@@ -318,7 +318,7 @@ class OnlineBookingCheckoutService
         $leadLimit = now($tz)->addMinutes($minLeadMinutes);
         if ($startLocal->lt($leadLimit)) {
             throw ValidationException::withMessages([
-                'time' => ['Esta marcação deve ser feita com pelo menos '.$minLeadMinutes.' minutos de antecedência.'],
+                'time' => [__('booking.validation.min_lead_time', ['minutes' => $minLeadMinutes])],
             ]);
         }
         $tzApp = (string) config('app.timezone');
@@ -328,7 +328,7 @@ class OnlineBookingCheckoutService
         $eligible = $this->agentsEligibleForServices($serviceIds);
         if ($eligible->isEmpty()) {
             throw ValidationException::withMessages([
-                'services' => ['Não há técnica disponível para esta combinação de serviços.'],
+                'services' => [__('booking.validation.no_technician_for_services')],
             ]);
         }
 
@@ -337,12 +337,12 @@ class OnlineBookingCheckoutService
             $agent = $eligible->firstWhere('id', (int) $agentKey);
             if (! $agent || ! $agent->user_id) {
                 throw ValidationException::withMessages([
-                    'agent_id' => ['Técnica inválida ou incompatível com o carrinho.'],
+                    'agent_id' => [__('booking.validation.technician_invalid')],
                 ]);
             }
             if (! $this->slotFitsAgentSchedule($agent, $startLocal, $endLocal)) {
                 throw ValidationException::withMessages([
-                    'time' => ['Este horário já não está disponível. Escolhe outro.'],
+                    'time' => [__('booking.validation.slot_unavailable')],
                 ]);
             }
             $userId = (int) $agent->user_id;
@@ -355,14 +355,14 @@ class OnlineBookingCheckoutService
             }
             if ($userId === null) {
                 throw ValidationException::withMessages([
-                    'time' => ['Não há técnico disponível neste horário. Escolhe outra hora ou data.'],
+                    'time' => [__('booking.validation.no_technician_at_time')],
                 ]);
             }
         }
 
         if (User::find($userId)?->role === User::ROLE_ADMIN) {
             throw ValidationException::withMessages([
-                'agent_id' => ['Não foi possível concluir a marcação.'],
+                'agent_id' => [__('booking.validation.booking_failed')],
             ]);
         }
 
@@ -404,7 +404,7 @@ class OnlineBookingCheckoutService
 
         if ($services->count() !== count($serviceIds)) {
             throw ValidationException::withMessages([
-                'services' => ['Um ou mais serviços são inválidos.'],
+                'services' => [__('booking.validation.services_invalid')],
             ]);
         }
 
@@ -412,7 +412,7 @@ class OnlineBookingCheckoutService
         foreach ($servicesInput as $idx => $row) {
             if (! is_array($row)) {
                 throw ValidationException::withMessages([
-                    'services' => ['Pedido inválido.'],
+                    'services' => [__('booking.validation.request_invalid')],
                 ]);
             }
 
@@ -420,7 +420,7 @@ class OnlineBookingCheckoutService
             $service = $services->get($sid);
             if (! $service) {
                 throw ValidationException::withMessages([
-                    "services.{$idx}.id" => ['Serviço inválido.'],
+                    "services.{$idx}.id" => [__('booking.validation.service_invalid')],
                 ]);
             }
 
@@ -431,17 +431,17 @@ class OnlineBookingCheckoutService
             if ($hasVariants) {
                 if (! $optId) {
                     throw ValidationException::withMessages([
-                        "services.{$idx}.service_option_id" => ['Selecione a variante do serviço.'],
+                        "services.{$idx}.service_option_id" => [__('booking.validation.option_required')],
                     ]);
                 }
                 if (! $service->options->contains('id', $optId)) {
                     throw ValidationException::withMessages([
-                        "services.{$idx}.service_option_id" => ['A variante não pertence a este serviço.'],
+                        "services.{$idx}.service_option_id" => [__('booking.validation.option_wrong_service')],
                     ]);
                 }
             } elseif ($optId) {
                 throw ValidationException::withMessages([
-                    "services.{$idx}.service_option_id" => ['Este serviço não tem variantes.'],
+                    "services.{$idx}.service_option_id" => [__('booking.validation.service_no_options')],
                 ]);
             }
 
@@ -451,7 +451,7 @@ class OnlineBookingCheckoutService
             $duration = $option ? (int) $option->duration : (int) $service->duration;
             if ($duration <= 0) {
                 throw ValidationException::withMessages([
-                    "services.{$idx}.id" => ['Duração inválida.'],
+                    "services.{$idx}.id" => [__('booking.validation.line_duration_invalid')],
                 ]);
             }
 
@@ -490,14 +490,14 @@ class OnlineBookingCheckoutService
         foreach ($extrasInput as $exIdx => $exRow) {
             if (! is_array($exRow)) {
                 throw ValidationException::withMessages([
-                    "services.{$serviceIdx}.extras.{$exIdx}" => ['Extra inválido.'],
+                    "services.{$serviceIdx}.extras.{$exIdx}" => [__('booking.validation.extra_invalid')],
                 ]);
             }
 
             $extraId = (int) ($exRow['extra_id'] ?? 0);
             if ($extraId <= 0) {
                 throw ValidationException::withMessages([
-                    "services.{$serviceIdx}.extras.{$exIdx}.extra_id" => ['Extra inválido.'],
+                    "services.{$serviceIdx}.extras.{$exIdx}.extra_id" => [__('booking.validation.extra_invalid')],
                 ]);
             }
 
@@ -507,7 +507,7 @@ class OnlineBookingCheckoutService
 
             if (! $service->extras->contains('id', $extraId)) {
                 throw ValidationException::withMessages([
-                    "services.{$serviceIdx}.extras.{$exIdx}.extra_id" => ['Este extra não está disponível para o serviço selecionado.'],
+                    "services.{$serviceIdx}.extras.{$exIdx}.extra_id" => [__('booking.validation.extra_unavailable')],
                 ]);
             }
 
@@ -579,7 +579,7 @@ class OnlineBookingCheckoutService
             $phoneE164 = PhoneDisplay::toE164(trim((string) ($validated['phone'] ?? '')));
             if ($phoneE164 === null || $phoneE164 === '') {
                 throw ValidationException::withMessages([
-                    'phone' => ['Telemóvel inválido.'],
+                    'phone' => [__('booking.validation.phone_invalid')],
                 ]);
             }
             if ($name !== '') {
@@ -667,7 +667,7 @@ class OnlineBookingCheckoutService
         return DB::transaction(function () use ($title, $startForDb, $endForDb, $description, $userId, $client, $firstService, $servicesPayload, $bookingLines) {
             if ($this->userHasCalendarConflict($userId, $startForDb, $endForDb)) {
                 throw ValidationException::withMessages([
-                    'time' => ['Este horário acabou de ser ocupado. Escolhe outro.'],
+                    'time' => [__('booking.validation.slot_taken_short')],
                 ]);
             }
 
@@ -905,14 +905,14 @@ class OnlineBookingCheckoutService
         $phoneE164 = PhoneDisplay::toE164(trim($phoneRaw));
         if ($phoneE164 === null || $phoneE164 === '') {
             throw ValidationException::withMessages([
-                'phone' => ['Telemóvel inválido.'],
+                'phone' => [__('booking.validation.phone_invalid')],
             ]);
         }
 
         $emailNorm = strtolower(trim($email));
         if ($emailNorm === '') {
             throw ValidationException::withMessages([
-                'email' => ['O email é obrigatório.'],
+                'email' => [__('booking.validation.email_required')],
             ]);
         }
 
@@ -921,8 +921,8 @@ class OnlineBookingCheckoutService
 
         if ($byPhone && $byEmail && $byPhone->id !== $byEmail->id) {
             throw ValidationException::withMessages([
-                'email' => ['O email e o telemóvel não correspondem à mesma ficha. Contacta a loja.'],
-                'phone' => ['O email e o telemóvel não correspondem à mesma ficha. Contacta a loja.'],
+                'email' => [__('booking.validation.email_phone_mismatch')],
+                'phone' => [__('booking.validation.email_phone_mismatch')],
             ]);
         }
 
@@ -932,7 +932,7 @@ class OnlineBookingCheckoutService
                 : '';
             if ($clientEmail !== '' && $clientEmail !== $emailNorm) {
                 throw ValidationException::withMessages([
-                    'email' => ['Este email não coincide com o telemóvel indicado na nossa base de dados.'],
+                    'email' => [__('booking.validation.email_db_mismatch')],
                 ]);
             }
         }
@@ -940,7 +940,7 @@ class OnlineBookingCheckoutService
         if ($byEmail && ! $byPhone) {
             if (! $this->phonesMatchClient($byEmail, $phoneE164)) {
                 throw ValidationException::withMessages([
-                    'phone' => ['Este telemóvel não coincide com o email na nossa base de dados.'],
+                    'phone' => [__('booking.validation.phone_db_mismatch')],
                 ]);
             }
         }
@@ -962,7 +962,7 @@ class OnlineBookingCheckoutService
             $emailOk = strtolower(trim((string) ($client->email ?? ''))) === $emailNorm;
             if (! $phoneOk || ! $emailOk) {
                 throw ValidationException::withMessages([
-                    'email' => ['Os dados não coincidem com a conta registada.'],
+                    'email' => [__('booking.validation.account_data_mismatch')],
                 ]);
             }
             $this->throwRequiresBookingLogin();
@@ -996,14 +996,14 @@ class OnlineBookingCheckoutService
         $phoneE164 = PhoneDisplay::toE164(trim($phoneRaw));
         if ($phoneE164 === null || $phoneE164 === '') {
             throw ValidationException::withMessages([
-                'phone' => ['Telemóvel inválido.'],
+                'phone' => [__('booking.validation.phone_invalid')],
             ]);
         }
 
         $emailNorm = strtolower(trim($email));
         if ($emailNorm === '') {
             throw ValidationException::withMessages([
-                'email' => ['O email é obrigatório.'],
+                'email' => [__('booking.validation.email_required')],
             ]);
         }
 
@@ -1012,8 +1012,8 @@ class OnlineBookingCheckoutService
 
         if ($byPhone && $byEmail && $byPhone->id !== $byEmail->id) {
             throw ValidationException::withMessages([
-                'email' => ['O email e o telemóvel não correspondem à mesma ficha. Contacta a loja.'],
-                'phone' => ['O email e o telemóvel não correspondem à mesma ficha. Contacta a loja.'],
+                'email' => [__('booking.validation.email_phone_mismatch')],
+                'phone' => [__('booking.validation.email_phone_mismatch')],
             ]);
         }
 
@@ -1023,7 +1023,7 @@ class OnlineBookingCheckoutService
                 : '';
             if ($clientEmail !== '' && $clientEmail !== $emailNorm) {
                 throw ValidationException::withMessages([
-                    'email' => ['Este email não coincide com o telemóvel indicado na nossa base de dados.'],
+                    'email' => [__('booking.validation.email_db_mismatch')],
                 ]);
             }
         }
@@ -1031,7 +1031,7 @@ class OnlineBookingCheckoutService
         if ($byEmail && ! $byPhone) {
             if (! $this->phonesMatchClient($byEmail, $phoneE164)) {
                 throw ValidationException::withMessages([
-                    'phone' => ['Este telemóvel não coincide com o email na nossa base de dados.'],
+                    'phone' => [__('booking.validation.phone_db_mismatch')],
                 ]);
             }
         }
@@ -1049,7 +1049,7 @@ class OnlineBookingCheckoutService
                 $emailOk = strtolower(trim((string) ($client->email ?? ''))) === $emailNorm;
                 if (! $phoneOk || ! $emailOk) {
                     throw ValidationException::withMessages([
-                        'email' => ['Os dados não coincidem com a conta registada.'],
+                        'email' => [__('booking.validation.account_data_mismatch')],
                     ]);
                 }
                 $this->throwRequiresBookingLogin();
@@ -1160,7 +1160,7 @@ class OnlineBookingCheckoutService
         $driverCode = (int) ($e->errorInfo[1] ?? 0);
         if ($sqlState === '23000' && $driverCode === 1062) {
             throw ValidationException::withMessages([
-                'email' => ['Não foi possível guardar os dados. Se o email ou telemóvel já estiverem registados, inicie sessão ou contacte a loja.'],
+                'email' => [__('booking.validation.duplicate_save')],
             ]);
         }
     }
@@ -1170,7 +1170,7 @@ class OnlineBookingCheckoutService
         $exists = User::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->exists();
         if ($exists) {
             throw ValidationException::withMessages([
-                'email' => ['Este email já está associado a uma conta. Inicia sessão para continuar.'],
+                'email' => [__('booking.validation.email_already_registered')],
             ]);
         }
     }
@@ -1207,9 +1207,9 @@ class OnlineBookingCheckoutService
     private function throwRequiresBookingLogin(): void
     {
         throw new HttpResponseException(response()->json([
-            'message' => 'Já tens conta de marcação com estes dados.',
+            'message' => __('booking.validation.requires_login'),
             'errors' => [
-                'email' => ['Inicia sessão com o link enviado por email ou pede um novo link na página de acesso.'],
+                'email' => [__('booking.validation.requires_login_hint')],
             ],
             'requires_login' => true,
         ], 422));

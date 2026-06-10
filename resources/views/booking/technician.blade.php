@@ -1,6 +1,6 @@
 @extends('booking.layout')
 
-@section('title', 'Técnica')
+@section('title', __('booking.flow.technician_page_title'))
 
 @section('body_class', 'booking-page booking-page--technician')
 
@@ -14,24 +14,24 @@
                     <div class="col-lg-8">
                         <main class="pt-1">
                             <div class="d-flex align-items-center mb-3 ps-1 booking-page-main-heading">
-                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">Escolha o staff</h1>
+                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">{{ __('booking.flow.technician_heading') }}</h1>
                             </div>
 
                             <section class="booking-category-section mb-4 pb-1">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
                                         <ul id="booking-technician-list" class="list-unstyled mb-0" role="list">
-                                            <li class="booking-technician-row booking-technician-row--any" data-tech-id="any" data-any-staff="1" data-tech-specialization="Sem preferência de técnica" data-tech-avatar="" data-tech-service-ids='[]'>
+                                            <li class="booking-technician-row booking-technician-row--any" data-tech-id="any" data-any-staff="1" data-tech-specialization="{{ __('booking.flow.no_preference') }}" data-tech-avatar="" data-tech-service-ids='[]'>
                                                 <label class="booking-technician-row__label" for="booking-technician-any">
                                                     <div class="booking-technician-row__avatar booking-technician-row__avatar--icon">
                                                         <i class="bi bi-people-fill" aria-hidden="true"></i>
                                                     </div>
                                                     <div class="booking-technician-row__text">
-                                                        <span class="booking-technician-row__name">Qualquer staff</span>
-                                                        <span class="booking-technician-row__meta">Sem preferência de técnica</span>
+                                                        <span class="booking-technician-row__name">{{ __('booking.flow.any_staff') }}</span>
+                                                        <span class="booking-technician-row__meta">{{ __('booking.flow.no_preference') }}</span>
                                                     </div>
                                                     <div class="booking-technician-row__choice">
-                                                        <input id="booking-technician-any" class="form-check-input" type="radio" name="booking-technician" value="any" aria-label="Selecionar qualquer staff">
+                                                        <input id="booking-technician-any" class="form-check-input" type="radio" name="booking-technician" value="any" aria-label="{{ __('booking.flow.select_any_aria') }}">
                                                     </div>
                                                 </label>
                                             </li>
@@ -62,7 +62,7 @@
                                                             <span class="booking-technician-row__meta">{{ $tech['specialization'] }}</span>
                                                         </div>
                                                         <div class="booking-technician-row__choice">
-                                                            <input id="booking-technician-{{ $tech['id'] }}" class="form-check-input" type="radio" name="booking-technician" value="{{ $tech['id'] }}" aria-label="Selecionar {{ $tech['name'] }}">
+                                                            <input id="booking-technician-{{ $tech['id'] }}" class="form-check-input" type="radio" name="booking-technician" value="{{ $tech['id'] }}" aria-label="{{ __('booking.flow.select_technician_aria', ['name' => $tech['name']]) }}">
                                                         </div>
                                                     </label>
                                                 </li>
@@ -76,7 +76,7 @@
 
                     <div class="col-lg-4 booking-summary-column">
                         @include('booking.partials.summary-panel', [
-                            'summaryTitle' => 'Resumo da marcação',
+                            'summaryTitle' => __('booking.partials.summary_title'),
                             'showNextButton' => true,
                             'nextUrl' => route('booking.datetime', ['store' => $bookingStoreSlug], false),
                             'nextRequires' => 'technician',

@@ -4,6 +4,26 @@
 (function () {
     'use strict';
 
+    var locale = (typeof window !== 'undefined' && window.bookingLocale) ? window.bookingLocale : 'pt-PT';
+    function stripeLocale() {
+        var normalized = String(locale).toLowerCase();
+        if (normalized.indexOf('en') === 0) {
+            return 'en';
+        }
+        if (normalized.indexOf('es') === 0) {
+            return 'es';
+        }
+        return 'pt';
+    }
+    function t(key, replacements) {
+        var str = (window.bookingI18n && window.bookingI18n[key]) || key;
+        if (!replacements) return str;
+        Object.keys(replacements).forEach(function (k) {
+            str = str.split(':' + k).join(String(replacements[k]));
+        });
+        return str;
+    }
+
     function readBookingStoreSlug() {
         var body = typeof document !== 'undefined' ? document.body : null;
         if (!body) {
@@ -86,7 +106,7 @@
 
     function formatMoneyEUR(amount) {
         return (
-            new Intl.NumberFormat('pt-PT', {
+            new Intl.NumberFormat(locale, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
             }).format(amount) + '\u00A0€'
@@ -372,7 +392,7 @@
         }, 0);
     }
 
-    function formatDurationPT(totalMinutes) {
+    function formatDuration(totalMinutes) {
         var mins = Math.max(0, Math.round(Number(totalMinutes) || 0));
         var hours = Math.floor(mins / 60);
         var rest = mins % 60;
@@ -384,8 +404,9 @@
         }
         return rest + 'min';
     }
+    var formatDurationPT = formatDuration;
 
-    function formatDateLabelPt(dateIso) {
+    function formatDateLabel(dateIso) {
         if (!dateIso || !/^\d{4}-\d{2}-\d{2}$/.test(String(dateIso))) {
             return '';
         }
@@ -397,12 +418,13 @@
         if (isNaN(d.getTime())) {
             return '';
         }
-        var weekday = new Intl.DateTimeFormat('pt-PT', { weekday: 'long' }).format(d);
-        var monthLabel = new Intl.DateTimeFormat('pt-PT', { month: 'long' }).format(d);
+        var weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(d);
+        var monthLabel = new Intl.DateTimeFormat(locale, { month: 'long' }).format(d);
         var weekdayCap = weekday.charAt(0).toUpperCase() + weekday.slice(1);
         var monthCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
         return weekdayCap + ', ' + day + ' ' + monthCap;
     }
+    var formatDateLabelPt = formatDateLabel;
 
     function formatEndTime(startTime, totalMinutes) {
         if (!startTime || !/^\d{2}:\d{2}$/.test(String(startTime))) {
@@ -613,7 +635,7 @@
                     line.extras.forEach(function (ex) {
                         var extraEl = document.createElement('span');
                         extraEl.className = 'booking-summary-line__extra';
-                        extraEl.textContent = '+ ' + (ex.name || 'Extra');
+                        extraEl.textContent = '+ ' + (ex.name || t('extra_fallback'));
                         body.appendChild(extraEl);
                     });
                 }
@@ -637,7 +659,7 @@
                 editBtn.type = 'button';
                 editBtn.className = 'booking-summary-line__edit';
                 var editLabel = optionName ? parentName + ' — ' + optionName : parentName;
-                editBtn.setAttribute('aria-label', 'Editar ' + editLabel);
+                editBtn.setAttribute('aria-label', t('edit_service_aria', { label: editLabel }));
                 editBtn.innerHTML = '<i class="bi bi-pencil-square" aria-hidden="true"></i>';
                 editBtn.addEventListener('click', function () {
                     openEditModal(line);
@@ -684,7 +706,7 @@
             }
             if (els.summaryTotalCount) {
                 var count = state.items.length;
-                els.summaryTotalCount.textContent = count + ' ' + (count === 1 ? 'serviço' : 'serviços');
+                els.summaryTotalCount.textContent = count + ' ' + t(count === 1 ? 'service_one' : 'services_other');
             }
             if (els.summaryTotalDuration) {
                 els.summaryTotalDuration.textContent = formatDurationPT(getTotalDurationMinutes());
@@ -1468,21 +1490,21 @@
         }
         if (checkoutPaymentState.intentPrepareInFlight) {
             setCheckoutNextBtnColor(false);
-            setCheckoutNextBtnLoading(true, 'A preparar pagamento...');
+            setCheckoutNextBtnLoading(true, t('preparing_payment'));
             return;
         }
         if (walletCoversFullDeposit()) {
             setCheckoutNextBtnColor(true);
-            setCheckoutNextBtnLoading(false, 'Confirmar');
+            setCheckoutNextBtnLoading(false, t('confirm'));
             return;
         }
         if (checkoutPaymentState.clientSecret) {
             setCheckoutNextBtnColor(true);
-            setCheckoutNextBtnLoading(false, 'Confirmar');
+            setCheckoutNextBtnLoading(false, t('confirm'));
             return;
         }
         setCheckoutNextBtnColor(false);
-        setCheckoutNextBtnLoading(false, 'Pagamento');
+        setCheckoutNextBtnLoading(false, t('payment'));
     }
 
     function detachCheckoutPaymentIntent() {
@@ -1510,7 +1532,7 @@
         clearCheckoutIntentCacheStorage();
         if (els.nextBtn) {
             setCheckoutNextBtnColor(false);
-            els.nextBtn.textContent = isCheckoutPaymentRequired() ? 'Pagamento' : 'Marcar';
+            els.nextBtn.textContent = isCheckoutPaymentRequired() ? t('payment') : t('book');
         }
         updateBookingDepositAmountDisplay();
         syncCheckoutConfirmButtonState();
@@ -1571,7 +1593,7 @@
                 return;
             }
             setCheckoutError(
-                'Não foi possível aplicar os créditos da carteira ao pagamento. Desmarca a opção de créditos ou contacta a loja.',
+                t('wallet_apply_failed'),
             );
             return;
         }
@@ -1594,7 +1616,7 @@
         var urls = getBookingPaymentUrls();
         if (!urls || !urls.intentUrl) {
             checkoutPaymentState.intentPrepareInFlight = false;
-            setCheckoutError('Serviço de marcação indisponível.');
+            setCheckoutError(t('booking_unavailable'));
             return;
         }
         if (!slotHoldState.holdPublicId || !slotHoldState.expiresAt || new Date(slotHoldState.expiresAt).getTime() <= Date.now()) {
@@ -1635,7 +1657,7 @@
                 }
                 checkoutPaymentState.intentPrepareInFlight = false;
                 if (!res.ok || !res.data) {
-                    var msg = 'Não foi possível iniciar o pagamento.';
+                    var msg = t('payment_start_failed');
                     if (res.data && res.data.message) {
                         msg = res.data.message;
                     }
@@ -1651,7 +1673,7 @@
                     return;
                 }
                 if (!res.data.client_secret) {
-                    var msgNoSecret = 'Não foi possível iniciar o pagamento.';
+                    var msgNoSecret = t('payment_start_failed');
                     if (res.data.message) {
                         msgNoSecret = res.data.message;
                     }
@@ -1667,7 +1689,7 @@
                     return;
                 }
                 checkoutPaymentState.intentPrepareInFlight = false;
-                setCheckoutError('Erro de rede. Tenta novamente.');
+                setCheckoutError(t('network_error'));
                 syncCheckoutConfirmButtonState();
             });
     }
@@ -1755,9 +1777,9 @@
             timelineEl.classList.add('d-none');
             if (!dt || !dt.date || !dt.time) {
                 emptyEl.textContent =
-                    'Seleciona data e hora da marcação para ver até quando podes cancelar sem perder o pré-pagamento.';
+                    t('cancellation_select_datetime');
             } else {
-                emptyEl.textContent = 'Não foi possível carregar o prazo de cancelamento.';
+                emptyEl.textContent = t('cancellation_load_failed');
             }
             return;
         }
@@ -1773,7 +1795,7 @@
 
         emptyEl.classList.remove('d-none');
         timelineEl.classList.add('d-none');
-        emptyEl.textContent = 'A carregar prazo de cancelamento…';
+        emptyEl.textContent = t('cancellation_loading');
 
         var url = previewUrl + (previewUrl.indexOf('?') >= 0 ? '&' : '?') + 'date=' + encodeURIComponent(dt.date) + '&time=' + encodeURIComponent(dt.time);
 
@@ -1796,7 +1818,7 @@
                     timelineEl.classList.add('d-none');
                     emptyEl.textContent =
                         (data && data.message) ||
-                        'Seleciona data e hora da marcação para ver até quando podes cancelar sem perder o pré-pagamento.';
+                        t('cancellation_select_datetime');
                     return;
                 }
 
@@ -1829,7 +1851,7 @@
                 }
                 if (badgeLimit) {
                     if (unavailable && data.deadline_limit_label) {
-                        badgeLimit.textContent = 'Limite: ' + data.deadline_limit_label;
+                        badgeLimit.textContent = t('cancellation_limit_prefix') + ' ' + data.deadline_limit_label;
                         badgeLimit.classList.remove('d-none');
                     } else {
                         badgeLimit.textContent = '';
@@ -1837,7 +1859,7 @@
                     }
                 }
                 if (nowLabel) {
-                    nowLabel.textContent = data.now_label || 'Hoje';
+                    nowLabel.textContent = data.now_label || t('cancellation_today');
                 }
                 if (apptLabel) {
                     var apptDate = data.appointment_label || '';
@@ -1868,7 +1890,7 @@
                 }
                 emptyEl.classList.remove('d-none');
                 timelineEl.classList.add('d-none');
-                emptyEl.textContent = 'Não foi possível carregar o prazo de cancelamento. Tenta novamente.';
+                emptyEl.textContent = t('cancellation_load_retry');
             });
     }
 
@@ -1919,14 +1941,18 @@
     }
 
     function formatPtDateHeading(date) {
-        var weekdays = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-        var months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        return weekdays[date.getDay()] + ', ' + date.getDate() + ' ' + months[date.getMonth()] + ' ' + date.getFullYear();
+        var weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date);
+        var monthLabel = new Intl.DateTimeFormat(locale, { month: 'long' }).format(date);
+        var weekdayCap = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+        var monthCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+        return weekdayCap + ', ' + date.getDate() + ' ' + monthCap + ' ' + date.getFullYear();
     }
 
     function formatPtMonthYear(monthIdx, year) {
-        var months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        return months[monthIdx] + ' ' + year;
+        var d = new Date(year, monthIdx, 1);
+        var monthLabel = new Intl.DateTimeFormat(locale, { month: 'long' }).format(d);
+        var monthCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+        return monthCap + ' ' + year;
     }
 
     function syncFlatpickrMonthTitle(instance) {
@@ -2126,8 +2152,8 @@
             return date.getFullYear() + '-' + pad2(date.getMonth() + 1) + '-' + pad2(date.getDate());
         }
 
-        function formatPtWeekdayShort(date) {
-            var text = new Intl.DateTimeFormat('pt-PT', { weekday: 'short' }).format(date).replace('.', '');
+        function formatWeekdayShort(date) {
+            var text = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(date).replace('.', '');
             return text.charAt(0).toUpperCase() + text.slice(1);
         }
 
@@ -2262,7 +2288,7 @@
                 container.innerHTML = '';
                 var emptyEl = document.createElement('p');
                 emptyEl.className = 'text-muted small mb-0';
-                emptyEl.textContent = 'Sem horários disponíveis';
+                emptyEl.textContent = t('slots_empty');
                 container.appendChild(emptyEl);
                 return;
             }
@@ -2298,7 +2324,7 @@
 
             if (!slotsUiExpanded) {
                 moreBtn.classList.remove('d-none');
-                moreBtn.textContent = 'Ver mais horários';
+                moreBtn.textContent = t('slots_show_more');
                 moreBtn.setAttribute('aria-expanded', 'false');
                 setSlotsPeriodsWrapperVisible(false);
                 fillSlotPeriod(morningWrap, []);
@@ -2315,7 +2341,7 @@
                 moreBtn.classList.add('d-none');
             } else {
                 moreBtn.classList.remove('d-none');
-                moreBtn.textContent = 'Ver menos horários';
+                moreBtn.textContent = t('slots_show_less');
                 moreBtn.setAttribute('aria-expanded', 'true');
             }
         }
@@ -2396,7 +2422,7 @@
             suggestedWrap.classList.add('d-none');
             suggestedList.innerHTML = '';
             moreBtn.classList.add('d-none');
-            showSlotsStatus('loading', 'A carregar horários…');
+            showSlotsStatus('loading', t('slots_loading'));
             setSlotsPeriodsWrapperVisible(false);
 
             if (availabilityAbort) {
@@ -2421,7 +2447,7 @@
                     clearSlotsStatus();
                     showSlotsStatus(
                         'error',
-                        'Não foi possível carregar os horários. Atualiza a página e tenta novamente.'
+                        t('slots_load_failed')
                     );
                     slotsUiExpanded = false;
                     cachedFilteredSlots = [];
@@ -2455,7 +2481,7 @@
 
                 var wd = document.createElement('span');
                 wd.className = 'booking-week-view__weekday';
-                wd.textContent = formatPtWeekdayShort(d);
+                wd.textContent = formatWeekdayShort(d);
                 var dn = document.createElement('span');
                 dn.className = 'booking-week-view__daynum';
                 dn.textContent = String(d.getDate());
@@ -2501,7 +2527,7 @@
             weekView.classList.toggle('d-none', !isWeek);
             calendarViewToggle.classList.toggle('is-week', isWeek);
             calendarViewToggle.setAttribute('aria-expanded', isWeek ? 'true' : 'false');
-            calendarViewToggle.setAttribute('aria-label', isWeek ? 'Alternar para vista mensal' : 'Alternar para vista semanal');
+            calendarViewToggle.setAttribute('aria-label', isWeek ? t('toggle_month_view') : t('toggle_week_view'));
             if (isWeek) {
                 renderWeekView();
             }
@@ -2589,7 +2615,7 @@
                 }
                 availabilityAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
                 var signal = availabilityAbort ? availabilityAbort.signal : undefined;
-                showSlotsStatus('loading', 'A atualizar horários…');
+                showSlotsStatus('loading', t('slots_updating'));
                 fetchAvailabilitySlots(selectedDate, agentId, durationM, signal)
                     .then(function (slots) {
                         applySlotsToDom(selectedDateObj, slots);
@@ -2599,7 +2625,7 @@
                             return;
                         }
                         clearSlotsStatus();
-                        showSlotsStatus('error', 'Não foi possível atualizar os horários. Tenta novamente.');
+                        showSlotsStatus('error', t('slots_update_failed'));
                     });
             }
         });
@@ -3347,7 +3373,7 @@
         svc.options = editOpts;
         if (editOpts.length) {
             if (!opt) {
-                showModalOptionsError('Seleciona uma opção para continuar.');
+                showModalOptionsError(t('select_option_required'));
                 return;
             }
             var line = state.items.find(function (l) {
@@ -3428,13 +3454,13 @@
         var selectedExtras = state.pending.selectedExtras || [];
         if (getNormalizedServiceOptions(svc).length) {
             if (!opt) {
-                showModalOptionsError('Seleciona uma opção para continuar.');
+                showModalOptionsError(t('select_option_required'));
                 return;
             }
         }
         if (isServiceParentInCart(svc.id)) {
             showModalOptionsError(
-                'Este serviço já está na marcação. Usa Editar no resumo para mudar a opção.'
+                t('service_already_in_cart')
             );
             return;
         }
@@ -3658,7 +3684,7 @@
         if (wantNif && wantNif.checked && nifInput) {
             var d = String(nifInput.value || '').replace(/\D/g, '');
             if (d.length !== 9) {
-                nifInput.setCustomValidity('Indique um NIF com 9 dígitos.');
+                nifInput.setCustomValidity(t('nif_invalid'));
                 nifInput.reportValidity();
                 return false;
             }
@@ -3669,7 +3695,7 @@
         if (send && send.checked && supp) {
             var em = String(supp.value || '').trim();
             if (!em) {
-                supp.setCustomValidity('Indique o email para receber a fatura.');
+                supp.setCustomValidity(t('invoice_email_required'));
                 supp.reportValidity();
                 return false;
             }
@@ -3821,8 +3847,8 @@
                 validationNumberType: 'MOBILE',
                 utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/utils.js',
                 i18n: Object.assign({}, ptI18n, {
-                    searchPlaceholder: 'Pesquisar',
-                    zeroSearchResults: 'Nenhum resultado',
+                    searchPlaceholder: t('intl_search_placeholder'),
+                    zeroSearchResults: t('intl_no_results'),
                 }),
             });
             phoneInput.addEventListener('countrychange', syncContactState);
@@ -3965,7 +3991,7 @@
         if (typeof window.HttpFriendlyErrors !== 'undefined' && window.HttpFriendlyErrors.resolveError) {
             return window.HttpFriendlyErrors.resolveError(response.status, data, fallback);
         }
-        var msg = data && data.message ? data.message : fallback || 'Não foi possível processar o pedido.';
+        var msg = data && data.message ? data.message : fallback || t('request_failed');
         if (data && data.errors) {
             var firstKey = Object.keys(data.errors)[0];
             if (firstKey && Array.isArray(data.errors[firstKey]) && data.errors[firstKey][0]) {
@@ -3973,7 +3999,7 @@
             }
         }
         if (response.status === 419 || (msg && /csrf|token mismatch|page expired/i.test(msg))) {
-            return 'A sua sessão expirou ou a página ficou aberta demasiado tempo. Atualize a página e tente novamente.';
+            return t('session_expired');
         }
         return msg;
     }
@@ -3985,9 +4011,9 @@
             return window.HttpFriendlyErrors.slotHoldExtendError(status, raw, fallback);
         }
         if (status === 419 || /csrf|token mismatch|page expired|sua sessão expirou/i.test(raw)) {
-            return 'Ocorreu um erro, por favor pressione «Voltar ao início».';
+            return t('slot_extend_session_error');
         }
-        return raw || fallback || 'Não foi possível prolongar a reserva.';
+        return raw || fallback || t('slot_extend_failed');
     }
 
     /** intl-tel-input — mesma configuração que CRM / agenda (PT, strictMode, countryOrder). */
@@ -4023,8 +4049,8 @@
                 validationNumberType: 'MOBILE',
                 utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/utils.js',
                 i18n: Object.assign({}, ptI18n, {
-                    searchPlaceholder: 'Pesquisar',
-                    zeroSearchResults: 'Nenhum resultado',
+                    searchPlaceholder: t('intl_search_placeholder'),
+                    zeroSearchResults: t('intl_no_results'),
                 }),
             });
         });
@@ -4051,7 +4077,7 @@
         if (isLoading) {
             els.nextBtn.disabled = true;
             els.nextBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-            els.nextBtn.setAttribute('aria-label', label || 'A processar...');
+            els.nextBtn.setAttribute('aria-label', label || t('processing'));
             return;
         }
         els.nextBtn.disabled = false;
@@ -4064,9 +4090,9 @@
     /** Rótulo do botão quando se sai de loading (evita ficar preso em spinner). */
     function checkoutDefaultNextLabel() {
         if (!isCheckoutPaymentRequired()) {
-            return 'Marcar';
+            return t('book');
         }
-        return 'Confirmar';
+        return t('confirm');
     }
 
     function setCheckoutNextBtnColor(isFinalPayment) {
@@ -4158,7 +4184,7 @@
                 })
                 .then(function (data) {
                     if (!r.ok) {
-                        var errMsg = resolveFetchErrorMessage(r, data, 'Não foi possível processar o pedido.');
+                        var errMsg = resolveFetchErrorMessage(r, data, t('request_failed'));
                         if (isBookingCsrfError(r.status, errMsg) && !csrfRetried) {
                             return refreshBookingCsrfToken().then(function (refreshed) {
                                 if (refreshed) {
@@ -4432,7 +4458,7 @@
             var conflictMsg =
                 err && err.message
                     ? err.message
-                    : 'Esta hora já está reservada, por favor seleccione outra hora.';
+                    : t('slot_conflict');
             if (!suppressSlotHoldUiErrors) {
                 setDateTimeSlotsNotice('error', conflictMsg);
             }
@@ -4477,7 +4503,7 @@
                 var holdId = slotHoldState.holdPublicId;
                 var token = ensureSlotHoldSessionToken();
                 if (!urls || !urls.extendUrl || !holdId) {
-                    setSlotHoldModalFeedback('Não foi possível prolongar agora. Volte ao início para escolher novamente o horário.');
+                    setSlotHoldModalFeedback(t('slot_extend_failed_now'));
                     return;
                 }
                 setSlotHoldModalFeedback('');
@@ -4492,9 +4518,9 @@
                     startSlotHoldTimer();
                     modal.hide();
                 }).catch(function (err) {
-                    var msg = resolveSlotHoldExtendError(err, 'Não foi possível prolongar a reserva.');
+                    var msg = resolveSlotHoldExtendError(err, t('slot_extend_failed'));
                     var slotTakenByOther =
-                        msg.indexOf('Este horário acabou de ser reservado por outro cliente') !== -1;
+                        msg.indexOf(t('slot_taken_by_other')) !== -1;
                     if (slotTakenByOther) {
                         var savedDate = slotHoldState.date || '';
                         slotHoldShowZeroDuringExpiredModal = false;
@@ -4544,7 +4570,7 @@
                 checkoutPaymentState.elements = null;
                 if (!checkoutPaymentState.stripe) {
                     checkoutPaymentState.stripe = window.Stripe(checkoutPaymentState.publishableKey, {
-                        locale: 'pt',
+                        locale: stripeLocale(),
                     });
                 }
                 var elements = checkoutPaymentState.stripe.elements({
@@ -4567,7 +4593,7 @@
                 });
                 return true;
             } catch (e) {
-                var errMsg = e && e.message ? e.message : 'Erro ao inicializar o Stripe.';
+                var errMsg = e && e.message ? e.message : t('stripe_init_error');
                 setStripeInlineError(errMsg);
                 return true;
             }
@@ -4584,7 +4610,7 @@
                 clearInterval(iv);
                 if (typeof window.Stripe !== 'function') {
                     setStripeInlineError(
-                        'O script do Stripe ainda não está disponível. Verifica a rede, desactiva bloqueadores de anúncios e recarrega a página.'
+                        t('stripe_script_unavailable')
                     );
                 }
             }
@@ -4595,16 +4621,16 @@
         if (!checkoutIntentMatchesWalletPreference()) {
             detachCheckoutPaymentIntent();
             ensureCheckoutPaymentIntent();
-            setStripeInlineError('A preparar o pagamento com os valores correctos...');
-            setCheckoutNextBtnLoading(false, 'Pagamento');
+            setStripeInlineError(t('preparing_payment_amounts'));
+            setCheckoutNextBtnLoading(false, t('payment'));
             return;
         }
         if (!checkoutPaymentState.stripe || !checkoutPaymentState.elements) {
-            setStripeInlineError('Inicia o pagamento novamente.');
+            setStripeInlineError(t('restart_payment'));
             setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
-        setCheckoutNextBtnLoading(true, 'A confirmar pagamento...');
+        setCheckoutNextBtnLoading(true, t('confirming_payment'));
         setStripeInlineError('');
         var contact = getCheckoutContactPayload() || {};
         var baseUrl = window.location.href.split('#')[0].split('?')[0];
@@ -4625,28 +4651,28 @@
             })
             .then(function (result) {
                 if (result.error) {
-                    setStripeInlineError(result.error.message || 'Pagamento recusado.');
-                    setCheckoutNextBtnLoading(false, 'Confirmar');
+                    setStripeInlineError(result.error.message || t('payment_declined'));
+                    setCheckoutNextBtnLoading(false, t('confirm'));
                     return;
                 }
                 var pi = result.paymentIntent;
                 if (pi && pi.status === 'succeeded' && checkoutPaymentState.bookingPublicId) {
                     finalizeBookingAfterPayment(checkoutPaymentState.bookingPublicId, pi.id);
                 } else {
-                    setCheckoutNextBtnLoading(false, 'Confirmar');
+                    setCheckoutNextBtnLoading(false, t('confirm'));
                 }
             })
             .catch(function () {
-                setStripeInlineError('Erro ao confirmar o pagamento. Tenta novamente.');
-                setCheckoutNextBtnLoading(false, 'Confirmar');
+                setStripeInlineError(t('payment_confirm_error'));
+                setCheckoutNextBtnLoading(false, t('confirm'));
             });
     }
 
     function finalizeBookingAfterPayment(bookingPublicId, paymentIntentId) {
         var urls = getBookingPaymentUrls();
         if (!urls || !urls.completeUrl) {
-            setCheckoutError('Serviço de marcação indisponível.');
-            setCheckoutNextBtnLoading(false, 'Confirmar');
+            setCheckoutError(t('booking_unavailable'));
+            setCheckoutNextBtnLoading(false, t('confirm'));
             return;
         }
         var ac = new AbortController();
@@ -4714,7 +4740,7 @@
                     window.location.href = res.data.redirect;
                     return;
                 }
-                var msg = 'Não foi possível concluir a marcação.';
+                var msg = t('checkout_complete_failed');
                 if (res.data && res.data.message) {
                     msg = res.data.message;
                 }
@@ -4733,12 +4759,12 @@
                     }
                 }
                 setCheckoutError(msg);
-                setCheckoutNextBtnLoading(false, 'Confirmar');
+                setCheckoutNextBtnLoading(false, t('confirm'));
                 renderSummary();
             })
             .catch(function () {
-                setCheckoutError('Erro de rede. Tenta novamente.');
-                setCheckoutNextBtnLoading(false, 'Confirmar');
+                setCheckoutError(t('network_error'));
+                setCheckoutNextBtnLoading(false, t('confirm'));
                 renderSummary();
             })
             .finally(function () {
@@ -4766,7 +4792,7 @@
         if (!pi || status !== 'succeeded' || !storedId) {
             return;
         }
-        setCheckoutNextBtnLoading(true, 'A preparar pagamento...');
+        setCheckoutNextBtnLoading(true, t('preparing_payment'));
         finalizeBookingAfterPayment(storedId, pi);
     }
 
@@ -4789,7 +4815,7 @@
             window.location.href = res.data.redirect;
             return;
         }
-        var msg = 'Não foi possível concluir a marcação.';
+        var msg = t('checkout_complete_failed');
         if (res.data && res.data.message) {
             msg = res.data.message;
         }
@@ -4808,7 +4834,7 @@
             }
         }
         setCheckoutError(msg);
-        var btnFinal = isCheckoutPaymentRequired() ? 'Confirmar' : 'Marcar';
+        var btnFinal = isCheckoutPaymentRequired() ? t('confirm') : t('book');
         setCheckoutNextBtnLoading(false, btnFinal);
         renderSummary();
     }
@@ -4842,8 +4868,8 @@
                 handleConfirmWithoutPaymentResponse(res);
             })
             .catch(function () {
-                setCheckoutError('Erro de rede. Tenta novamente.');
-                setCheckoutNextBtnLoading(false, 'Marcar');
+                setCheckoutError(t('network_error'));
+                setCheckoutNextBtnLoading(false, t('book'));
                 renderSummary();
             });
     }
@@ -4853,17 +4879,17 @@
         var noPayUrl = getBookingConfirmWithoutPaymentUrl();
         if (isCheckoutPaymentRequired()) {
             if (!urls || !urls.intentUrl || !urls.completeUrl) {
-                setCheckoutError('Serviço de marcação indisponível.');
+                setCheckoutError(t('booking_unavailable'));
                 setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
                 return;
             }
         } else if (!noPayUrl) {
-            setCheckoutError('Serviço de marcação indisponível.');
+            setCheckoutError(t('booking_unavailable'));
             setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
         if (!slotHoldState.holdPublicId || !slotHoldState.expiresAt || new Date(slotHoldState.expiresAt).getTime() <= Date.now()) {
-            setCheckoutError('A reserva temporária expirou. Escolhe novamente data e hora.');
+            setCheckoutError(t('slot_hold_expired_checkout'));
             onSlotHoldExpired();
             setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
@@ -4873,21 +4899,21 @@
 
         var built = buildCheckoutSubmissionPayload(true);
         if (!built.valid) {
-            setCheckoutError('Falta informação. Volta atrás e completa todos os passos.');
+            setCheckoutError(t('checkout_missing_info'));
             setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
         var payload = built.payload;
 
         if (!isCheckoutPaymentRequired()) {
-            setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+            setCheckoutNextBtnLoading(true, t('confirming_booking'));
             submitBookingConfirmWithoutPayment(noPayUrl, payload);
             return;
         }
 
         if (walletCoversFullDeposit()) {
             if (checkoutPaymentState.bookingPublicId) {
-                setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+                setCheckoutNextBtnLoading(true, t('confirming_booking'));
                 finalizeBookingAfterPayment(checkoutPaymentState.bookingPublicId, null);
                 return;
             }
@@ -4895,7 +4921,7 @@
             if (!checkoutIntentMatchesWalletPreference()) {
                 detachCheckoutPaymentIntent();
                 ensureCheckoutPaymentIntent();
-                setCheckoutNextBtnLoading(false, 'Pagamento');
+                setCheckoutNextBtnLoading(false, t('payment'));
                 return;
             }
             confirmStripePayment();
@@ -4905,7 +4931,7 @@
             return;
         } else {
             ensureCheckoutPaymentIntent();
-            setCheckoutNextBtnLoading(false, 'Pagamento');
+            setCheckoutNextBtnLoading(false, t('payment'));
             return;
         }
 
@@ -4915,7 +4941,7 @@
             /* ignore */
         }
 
-        setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+        setCheckoutNextBtnLoading(true, t('confirming_booking'));
         fetch(urls.intentUrl, {
             method: 'POST',
             credentials: 'same-origin',
@@ -4939,7 +4965,7 @@
             })
             .then(function (res) {
                 if (!res.ok || !res.data || (!res.data.client_secret && !res.data.wallet_only)) {
-                    var msg = 'Não foi possível iniciar o pagamento.';
+                    var msg = t('payment_start_failed');
                     if (res.data && res.data.message) {
                         msg = res.data.message;
                     }
@@ -4959,7 +4985,7 @@
                     }
                     setCheckoutError(msg);
                     setCheckoutNextBtnColor(false);
-                    setCheckoutNextBtnLoading(false, 'Pagamento');
+                    setCheckoutNextBtnLoading(false, t('payment'));
                     renderSummary();
                     return;
                 }
@@ -4968,7 +4994,7 @@
                     cacheCheckoutIntentResponse(d);
                     applyStripeIntentSnapshot(snapshotFromIntentResponse(d));
                     updateBookingDepositAmountDisplay();
-                    setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+                    setCheckoutNextBtnLoading(true, t('confirming_booking'));
                     finalizeBookingAfterPayment(d.booking_public_id, null);
                     return;
                 }
@@ -4976,9 +5002,9 @@
                 renderSummary();
             })
             .catch(function () {
-                setCheckoutError('Erro de rede. Tenta novamente.');
+                setCheckoutError(t('network_error'));
                 setCheckoutNextBtnColor(false);
-                setCheckoutNextBtnLoading(false, 'Pagamento');
+                setCheckoutNextBtnLoading(false, t('payment'));
                 renderSummary();
             });
     }
@@ -5257,10 +5283,10 @@
             if (loading) {
                 btn.disabled = true;
                 btn.setAttribute('data-prev-text', btn.textContent || '');
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' + (labelLoading || 'A processar...');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>' + (labelLoading || t('processing'));
             } else {
                 btn.disabled = false;
-                btn.textContent = labelDefault || btn.getAttribute('data-prev-text') || 'Seguinte';
+                btn.textContent = labelDefault || btn.getAttribute('data-prev-text') || t('next');
             }
         }
         function ensureAuthIntlInputs() {
@@ -5294,14 +5320,14 @@
             errorBox.classList.add('d-none');
             errorBox.textContent = '';
             if (mode === 'ident') {
-                modalTitle.textContent = 'Iniciar sessão ou Criar conta';
-                modalSubtitle.textContent = 'Recebe um código por email ou SMS para entrar.';
+                modalTitle.textContent = t('auth_title_login_register');
+                modalSubtitle.textContent = t('auth_subtitle_otp');
             } else if (mode === 'code') {
-                modalTitle.textContent = 'Introduza o código';
-                modalSubtitle.textContent = 'Enviámos um código para ' + currentAuthIdentifier + '.';
+                modalTitle.textContent = t('auth_title_code');
+                modalSubtitle.textContent = t('auth_subtitle_code_sent', { identifier: currentAuthIdentifier });
             } else if (mode === 'register') {
-                modalTitle.textContent = 'Criar conta';
-                modalSubtitle.textContent = 'Quase pronto. Complete os dados para criar a conta.';
+                modalTitle.textContent = t('auth_title_register');
+                modalSubtitle.textContent = t('auth_subtitle_register');
                 updateRegisterSubmitState();
             }
         }
@@ -5350,19 +5376,19 @@
             if (activeAuthTab === 'email') {
                 var email = String(loginEmailInput.value || '').trim().toLowerCase();
                 if (!email) {
-                    return { error: 'Indique o email.' };
+                    return { error: t('auth_email_required') };
                 }
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    return { error: 'Indique um email válido.' };
+                    return { error: t('auth_email_invalid') };
                 }
                 return { channel: 'email', identifier: email, payload: { email: email } };
             }
             var phoneE164 = getBookingIntlE164(loginPhoneInput);
             if (!phoneE164) {
                 if (loginPhoneInput.value.trim() === '') {
-                    return { error: 'Indique o número de telemóvel.' };
+                    return { error: t('auth_phone_required') };
                 }
-                return { error: 'Indique um telemóvel válido (ex.: 9 dígitos em Portugal).' };
+                return { error: t('auth_phone_invalid_pt') };
             }
             return { channel: 'phone', identifier: phoneE164, payload: { phone: phoneE164 } };
         }
@@ -5383,21 +5409,21 @@
             if (left <= 0) {
                 clearResendCooldownTimer();
                 codeResendBtn.disabled = false;
-                codeResendBtn.textContent = 'Reenviar código';
+                codeResendBtn.textContent = t('auth_resend_code');
                 if (currentStep === 'ident' && !emailBusy) {
                     emailNextBtn.disabled = false;
-                    emailNextBtn.textContent = 'Receber código';
+                    emailNextBtn.textContent = t('auth_receive_code');
                 }
                 return;
             }
             codeResendBtn.disabled = true;
-            codeResendBtn.textContent = 'Reenviar código (' + left + 's)';
+            codeResendBtn.textContent = t('auth_resend_code_countdown', { seconds: left });
             if (currentStep === 'ident' && emailSendMatchesCooldownTarget() && !emailBusy) {
                 emailNextBtn.disabled = true;
-                emailNextBtn.textContent = 'Receber código (' + left + 's)';
+                emailNextBtn.textContent = t('auth_receive_code_countdown', { seconds: left });
             } else if (currentStep === 'ident' && !emailBusy) {
                 emailNextBtn.disabled = false;
-                emailNextBtn.textContent = 'Receber código';
+                emailNextBtn.textContent = t('auth_receive_code');
             }
         }
         function startResendCooldownFromNow() {
@@ -5424,7 +5450,7 @@
             }
             var code = getOtpCode();
             if (code.length !== 6) {
-                showError('Indique o código de 6 dígitos.');
+                showError(t('auth_code_required'));
                 return;
             }
             if (!currentAuthIdentifier) {
@@ -5432,7 +5458,7 @@
                 return;
             }
             isSubmittingCode = true;
-            setLoading(codeSubmitBtn, true, 'A validar...', 'Entrar');
+            setLoading(codeSubmitBtn, true, t('auth_validating'), t('auth_enter'));
             postJson(verifyCodeUrl, currentAuthChannel === 'email'
                 ? { email: currentAuthIdentifier, code: code }
                 : { phone: currentAuthIdentifier, code: code })
@@ -5451,11 +5477,11 @@
                     }
                 })
                 .catch(function (err) {
-                    showError(err && err.message ? err.message : 'Não foi possível validar o código.');
+                    showError(err && err.message ? err.message : t('auth_code_invalid'));
                 })
                 .finally(function () {
                     isSubmittingCode = false;
-                    setLoading(codeSubmitBtn, false, '', 'Entrar');
+                    setLoading(codeSubmitBtn, false, '', t('auth_enter'));
                 });
         }
         function getOtpCode() {
@@ -5490,7 +5516,7 @@
         function requestCode(parsedOverride) {
             var parsed = parsedOverride || getAuthRequestPayload();
             if (!parsed) {
-                showError('Indique o email ou o telemóvel.');
+                showError(t('auth_identifier_required'));
                 return Promise.reject(new Error('invalid_login'));
             }
             if (parsed.error) {
@@ -5506,14 +5532,14 @@
                 Date.now() - lastCodeRequestAt < minMs
             ) {
                 var waitSec = Math.max(1, Math.ceil((minMs - (Date.now() - lastCodeRequestAt)) / 1000));
-                showError('Aguarde ' + waitSec + ' segundos antes de pedir um novo código.');
+                showError(t('auth_resend_wait', { seconds: waitSec }));
                 return Promise.reject(new Error('invalid_login'));
             }
 
             currentAuthIdentifier = parsed.identifier;
             currentAuthChannel = parsed.channel;
-            setLoading(emailNextBtn, true, 'A enviar...', 'Receber código');
-            setLoading(codeResendBtn, true, 'A enviar...', 'Reenviar código');
+            setLoading(emailNextBtn, true, t('auth_sending'), t('auth_receive_code'));
+            setLoading(codeResendBtn, true, t('auth_sending'), t('auth_resend_code'));
             return postJson(requestCodeUrl, parsed.payload)
                 .then(function (res) {
                     if (res && res.identifier) {
@@ -5537,8 +5563,8 @@
                     return res;
                 })
                 .finally(function () {
-                    setLoading(emailNextBtn, false, '', 'Receber código');
-                    setLoading(codeResendBtn, false, '', 'Reenviar código');
+                    setLoading(emailNextBtn, false, '', t('auth_receive_code'));
+                    setLoading(codeResendBtn, false, '', t('auth_resend_code'));
                 });
         }
 
@@ -5637,7 +5663,7 @@
 
         registerSubmitBtn.addEventListener('click', function () {
             if (!registerTermsCheckbox.checked) {
-                showError('Deve aceitar os Termos e Condições e a Política de Privacidade para criar a conta.');
+                showError(t('auth_terms_required'));
                 return;
             }
             var payload = {
@@ -5649,13 +5675,13 @@
             } else {
                 var regPhone = getBookingIntlE164(registerPhoneInput);
                 if (!regPhone) {
-                    showError('Indique um telemóvel válido para criar a conta.');
+                    showError(t('auth_phone_register_invalid'));
                     return;
                 }
                 payload.phone = regPhone;
             }
 
-            setLoading(registerSubmitBtn, true, 'A criar...', 'Criar conta');
+            setLoading(registerSubmitBtn, true, t('auth_creating'), t('auth_create_account'));
             postJson(completeRegistrationUrl, payload)
                 .then(function () {
                     var doReload = reloadAfterAuthSuccess;
@@ -5666,10 +5692,10 @@
                     }
                 })
                 .catch(function (err) {
-                    showError(err && err.message ? err.message : 'Não foi possível criar a conta.');
+                    showError(err && err.message ? err.message : t('auth_register_failed'));
                 })
                 .finally(function () {
-                    setLoading(registerSubmitBtn, false, '', 'Criar conta');
+                    setLoading(registerSubmitBtn, false, '', t('auth_create_account'));
                     updateRegisterSubmitState();
                 });
         });
@@ -5682,7 +5708,7 @@
             var minMs = Math.max(0, parseInt(String(resendCooldownSeconds), 10) || 0) * 1000;
             if (minMs > 0 && Date.now() - lastCodeRequestAt < minMs) {
                 var waitSec = Math.max(1, Math.ceil((minMs - (Date.now() - lastCodeRequestAt)) / 1000));
-                showCodeStatus('Aguarde ' + waitSec + ' segundos antes de pedir um novo código.');
+                showCodeStatus(t('auth_resend_wait', { seconds: waitSec }));
                 return;
             }
             var resendParsed = buildResendPayload();
@@ -5881,7 +5907,7 @@
                 if (phoneInput && typeof window.intlTelInput === 'function' && phoneInput.value.trim() !== '') {
                     var iti = window.intlTelInput.getInstance(phoneInput);
                     if (iti && !iti.isValidNumber()) {
-                        phoneInput.setCustomValidity('Indique um telemóvel válido para o país selecionado.');
+                        phoneInput.setCustomValidity(t('phone_invalid_country'));
                         phoneInput.reportValidity();
                         return;
                     }
@@ -5890,9 +5916,9 @@
                 flushGuestContactFromDomToStorage();
                 persist();
                 if (walletCoversFullDeposit()) {
-                    setCheckoutNextBtnLoading(true, 'A confirmar marcação...');
+                    setCheckoutNextBtnLoading(true, t('confirming_booking'));
                 } else if (!checkoutPaymentState.clientSecret) {
-                    setCheckoutNextBtnLoading(true, 'A preparar pagamento...');
+                    setCheckoutNextBtnLoading(true, t('preparing_payment'));
                 }
                 submitBookingCheckout();
                 return;

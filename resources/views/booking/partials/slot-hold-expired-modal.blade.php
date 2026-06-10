@@ -8,21 +8,21 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
             <div class="modal-header border-0 pb-1">
-                <h2 class="h5 mb-0" id="booking-slot-hold-expired-title">Precisa de mais tempo?</h2>
+                <h2 class="h5 mb-0" id="booking-slot-hold-expired-title">{{ __('booking.slot_hold.modal_title') }}</h2>
             </div>
             <div class="modal-body pt-1">
                 <p class="text-muted small mb-0">
-                    A reserva temporária deste horário expirou.<br />
-                    Pode prolongar por mais tempo ou voltar ao início da marcação.
+                    {{ __('booking.slot_hold.modal_body') }}<br />
+                    {{ __('booking.slot_hold.modal_body_continue') }}
                 </p>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <p id="booking-slot-hold-feedback" class="small text-danger mb-2 w-100 d-none"></p>
                 <button type="button" class="btn btn-outline-secondary" id="booking-slot-hold-restart">
-                    Voltar ao início
+                    {{ __('booking.slot_hold.restart') }}
                 </button>
                 <button type="button" class="btn btn-dark" id="booking-slot-hold-extend">
-                    Aumentar tempo
+                    {{ __('booking.slot_hold.extend') }}
                 </button>
             </div>
         </div>

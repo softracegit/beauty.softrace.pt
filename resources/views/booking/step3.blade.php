@@ -1,6 +1,6 @@
 @extends('booking.layout')
 
-@section('title', 'Checkout')
+@section('title', __('booking.flow.step3_page_title'))
 
 @section('body_class', 'booking-page booking-page--step3')
 
@@ -36,7 +36,7 @@
                     <div class="col-lg-8">
                         <main class="pt-1">
                             <div class="d-flex align-items-center mb-3 ps-1 booking-page-main-heading">
-                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">Informação de contacto</h1>
+                                <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">{{ __('booking.flow.step3_heading') }}</h1>
                             </div>
 
                             <section class="booking-category-section mb-4 pb-1">
@@ -54,7 +54,11 @@
                                                 $welcomeFirst = $welcomeFirst !== '' ? explode(' ', $welcomeFirst, 2)[0] : '';
                                             @endphp
                                             <h2 class="h6 fw-semibold text-dark mb-2 booking-step3-welcome">
-                                                Olá@if($welcomeFirst !== ''), {{ $welcomeFirst }}@endif
+                                                @if($welcomeFirst !== '')
+                                                    {{ __('booking.flow.welcome_name', ['name' => $welcomeFirst]) }}
+                                                @else
+                                                    {{ __('booking.flow.welcome') }}
+                                                @endif
                                             </h2>
                                             @if($bookingClientHasFullProfile)
                                                 <form id="booking-checkout-form" novalidate>
@@ -66,67 +70,67 @@
                                                         <div class="mb-0"><span class="text-dark fw-medium">{{ $bookingClient->formatted_phone ?? $bookingClient->phone ?? '—' }}</span></div>
                                                     </div>
                                                     <div class="mb-0">
-                                                        <label for="booking-contact-notes" class="form-label small text-muted mb-1">Observações</label>
-                                                        <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="Deseja incluir mais alguma informação?"></textarea>
+                                                        <label for="booking-contact-notes" class="form-label small text-muted mb-1">{{ __('booking.flow.notes_label') }}</label>
+                                                        <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="{{ __('booking.flow.notes_placeholder_logged_in') }}"></textarea>
                                                     </div>
                                                 </form>
                                             @else
                                                 <form id="booking-checkout-form" novalidate>
                                                     <div class="alert alert-light border small mb-3" role="status">
-                                                        Complete o seu nome e telemóvel para concluir a marcação.
+                                                        {{ __('booking.flow.complete_profile_alert') }}
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label for="booking-contact-name" class="form-label small text-muted mb-1">Nome</label>
+                                                        <label for="booking-contact-name" class="form-label small text-muted mb-1">{{ __('booking.flow.name_label') }}</label>
                                                         <input id="booking-contact-name" name="name" type="text" class="form-control" autocomplete="name" required value="{{ e($bookingClient->name ?? '') }}">
                                                     </div>
 
                                                     <div class="row g-3 mb-3">
                                                         <div class="col-12 col-md-6">
-                                                            <label for="booking-contact-phone" class="form-label small text-muted mb-1">Telemóvel</label>
+                                                            <label for="booking-contact-phone" class="form-label small text-muted mb-1">{{ __('booking.flow.phone_label') }}</label>
                                                             <input id="booking-contact-phone" name="phone_display" type="tel" class="form-control booking-phone-input" autocomplete="tel" required value="{{ e($bookingClient->formatted_phone ?? $bookingClient->phone ?? '') }}">
                                                             <input id="booking-contact-phone-e164" name="phone" type="hidden" value="{{ e($bookingClient->phone ?? '') }}">
                                                         </div>
                                                         <div class="col-12 col-md-6">
-                                                            <label for="booking-contact-email" class="form-label small text-muted mb-1">Email</label>
+                                                            <label for="booking-contact-email" class="form-label small text-muted mb-1">{{ __('booking.flow.email_label') }}</label>
                                                             <input id="booking-contact-email" name="email" type="email" class="form-control" autocomplete="email" required value="{{ e($bookingClient->email ?? '') }}" @if(trim((string) ($bookingClient->email ?? '')) !== '') readonly @endif>
                                                         </div>
                                                     </div>
 
                                                     <div class="mb-0">
-                                                        <label for="booking-contact-notes" class="form-label small text-muted mb-1">Observações</label>
-                                                        <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="Alergias, preferências, observações..."></textarea>
+                                                        <label for="booking-contact-notes" class="form-label small text-muted mb-1">{{ __('booking.flow.notes_label') }}</label>
+                                                        <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="{{ __('booking.flow.notes_placeholder') }}"></textarea>
                                                     </div>
                                                 </form>
                                             @endif
                                         @else
-                                            <h2 class="h6 fw-semibold text-dark mb-2 booking-step3-welcome">Olá</h2>
+                                            <h2 class="h6 fw-semibold text-dark mb-2 booking-step3-welcome">{{ __('booking.flow.welcome') }}</h2>
                                             <form id="booking-checkout-form" novalidate>
                                                 <div class="mb-3">
-                                                    <label for="booking-contact-name" class="form-label small text-muted mb-1">Nome</label>
+                                                    <label for="booking-contact-name" class="form-label small text-muted mb-1">{{ __('booking.flow.name_label') }}</label>
                                                     <input id="booking-contact-name" name="name" type="text" class="form-control" autocomplete="name" required>
                                                 </div>
 
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-12 col-md-6">
-                                                        <label for="booking-contact-phone" class="form-label small text-muted mb-1">Telemóvel</label>
+                                                        <label for="booking-contact-phone" class="form-label small text-muted mb-1">{{ __('booking.flow.phone_label') }}</label>
                                                         <input id="booking-contact-phone" name="phone_display" type="tel" class="form-control booking-phone-input" autocomplete="tel" required>
                                                         <input id="booking-contact-phone-e164" name="phone" type="hidden">
                                                     </div>
                                                     <div class="col-12 col-md-6">
-                                                        <label for="booking-contact-email" class="form-label small text-muted mb-1">Email</label>
+                                                        <label for="booking-contact-email" class="form-label small text-muted mb-1">{{ __('booking.flow.email_label') }}</label>
                                                         <input id="booking-contact-email" name="email" type="email" class="form-control" autocomplete="email" required>
                                                     </div>
                                                 </div>
 
                                                 <div class="mb-0">
-                                                    <label for="booking-contact-notes" class="form-label small text-muted mb-1">Observações</label>
-                                                    <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="Alergias, preferências, observações..."></textarea>
+                                                    <label for="booking-contact-notes" class="form-label small text-muted mb-1">{{ __('booking.flow.notes_label') }}</label>
+                                                    <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="{{ __('booking.flow.notes_placeholder') }}"></textarea>
                                                 </div>
                                             </form>
 
                                             <p class="small text-muted mt-3 mb-0">
-                                                Já tens conta?
-                                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none fw-semibold js-booking-open-auth-modal">Entrar com código</button>
+                                                {{ __('booking.flow.already_have_account') }}
+                                                <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none fw-semibold js-booking-open-auth-modal">{{ __('booking.flow.login_with_code') }}</button>
                                             </p>
                                         @endif
 
@@ -134,10 +138,10 @@
                                 </div>
                             </section>
 
-                            <section class="booking-category-section mb-4 pb-1" aria-label="Opções de fatura">
+                            <section class="booking-category-section mb-4 pb-1" aria-label="{{ __('booking.flow.invoice_section_aria') }}">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
-                                        <h2 class="h6 fw-semibold text-dark mb-2">Fatura</h2>
+                                        <h2 class="h6 fw-semibold text-dark mb-2">{{ __('booking.flow.invoice_heading') }}</h2>
                                         @include('booking.partials.checkout-invoice-options', ['bookingClient' => $bookingClient ?? null])
                                     </div>
                                 </div>
@@ -147,26 +151,27 @@
                                 <div id="booking-payment-panel" class="card border shadow-sm rounded-3 booking-category-card d-none">
                                     <div class="card-body p-3 p-md-4">
                                         <header class="mb-3">
-                                            <h2 class="h6 fw-semibold text-dark mb-2">Pré-pagamento da marcação</h2>
+                                            <h2 class="h6 fw-semibold text-dark mb-2">{{ __('booking.flow.payment_heading') }}</h2>
                                             <p class="small text-muted mb-0">
-                                                Para garantir o teu horário, pedimos um <strong>pré-pagamento</strong> agora.
-                                                O restante do valor paga-se no dia do serviço, na loja.
+                                                {{ __('booking.flow.payment_intro') }}
                                             </p>
                                         </header>
 
                                         <div class="booking-payment-breakdown rounded-3 mb-3">
                                             <div class="booking-payment-breakdown__row">
-                                                <span class="booking-payment-breakdown__label">Total da marcação</span>
+                                                <span class="booking-payment-breakdown__label">{{ __('booking.flow.payment_total') }}</span>
                                                 <span class="booking-payment-breakdown__value" id="booking-pay-total-amount">—</span>
                                             </div>
+                                            @php
+                                                $depositLine = __('booking.flow.payment_deposit', ['percent' => 'DEPOSIT_PCT_PLACEHOLDER']);
+                                                [$depositBefore, $depositAfter] = array_pad(explode('DEPOSIT_PCT_PLACEHOLDER', $depositLine, 2), 2, '');
+                                            @endphp
                                             <div class="booking-payment-breakdown__row">
-                                                <span class="booking-payment-breakdown__label">
-                                                    Pré-pagamento (<span id="booking-pay-deposit-pct">—</span>%)
-                                                </span>
+                                                <span class="booking-payment-breakdown__label">{!! $depositBefore !!}<span id="booking-pay-deposit-pct">—</span>{!! $depositAfter !!}</span>
                                                 <span class="booking-payment-breakdown__value" id="booking-pay-deposit-amount">—</span>
                                             </div>
                                             <div class="booking-payment-breakdown__row booking-payment-breakdown__row--muted">
-                                                <span class="booking-payment-breakdown__label">A pagar no dia do serviço</span>
+                                                <span class="booking-payment-breakdown__label">{{ __('booking.flow.payment_remaining') }}</span>
                                                 <span class="booking-payment-breakdown__value" id="booking-pay-remaining-amount">—</span>
                                             </div>
                                         </div>
@@ -176,10 +181,14 @@
                                                     <input class="form-check-input" type="checkbox" id="booking-wallet-apply" value="1" checked>
                                                     <label class="form-check-label" for="booking-wallet-apply">
                                                         <span class="booking-payment-wallet-option__title d-block fw-semibold text-dark">
-                                                            Usar créditos da minha carteira
+                                                            {{ __('booking.flow.wallet_use_title') }}
                                                         </span>
+                                                        @php
+                                                            $walletHint = __('booking.flow.wallet_use_hint', ['balance' => 'WALLET_BALANCE_PLACEHOLDER']);
+                                                            [$walletHintBefore, $walletHintAfter] = array_pad(explode('WALLET_BALANCE_PLACEHOLDER', $walletHint, 2), 2, '');
+                                                        @endphp
                                                         <span class="booking-payment-wallet-option__hint d-block small text-muted mt-1">
-                                                            Tens <strong id="booking-wallet-balance-display">{{ number_format($walletBalanceCents / 100, 2, ',', ' ') }} €</strong> disponíveis.
+                                                            {!! $walletHintBefore !!}<strong id="booking-wallet-balance-display">{{ number_format($walletBalanceCents / 100, 2, ',', ' ') }} €</strong>{!! $walletHintAfter !!}
                                                         </span>
                                                     </label>
                                                 </div>
@@ -189,22 +198,21 @@
                                             <div class="d-flex gap-2 align-items-start">
                                                 <i class="bi bi-check-circle-fill text-success booking-payment-credits-only__icon" aria-hidden="true"></i>
                                                 <div class="small">
-                                                    <p class="fw-semibold text-dark mb-1">Pagamento só com créditos</p>
+                                                    <p class="fw-semibold text-dark mb-1">{{ __('booking.flow.wallet_covers_title') }}</p>
                                                     <p class="text-muted mb-0">
-                                                        O pré-pagamento será debitado da tua carteira. Não precisas de pagar nada neste passo —
-                                                        clica em <strong>Confirmar</strong> para concluir a marcação.
+                                                        {{ __('booking.flow.wallet_covers_body') }}
                                                     </p>
                                                 </div>
                                             </div>
                                         </div>
                                         <div id="booking-stripe-payment-wrap" class="booking-payment-card-section">
-                                            <p class="fw-semibold text-dark small mb-1">Pagamento</p>
+                                            <p class="fw-semibold text-dark small mb-1">{{ __('booking.flow.payment_section_title') }}</p>
                                             <p id="booking-pay-wallet-used-line" class="small text-muted mb-1 d-none">
-                                                Créditos a usar:
+                                                {{ __('booking.flow.wallet_used_line') }}
                                                 <strong class="text-success" id="booking-pay-wallet-used-amount">—</strong>
                                             </p>
                                             <p class="small text-muted mb-3">
-                                                Valor a pagar agora:
+                                                {{ __('booking.flow.pay_now_line') }}
                                                 <strong id="booking-pay-card-amount">—</strong>
                                             </p>
                                             <div id="booking-stripe-mount" class="mb-2"></div>
@@ -214,10 +222,10 @@
                                 </div>
                             </section>
 
-                            <section class="booking-category-section mb-4 pb-1" aria-label="Política de cancelamento">
+                            <section class="booking-category-section mb-4 pb-1" aria-label="{{ __('booking.flow.cancellation_heading') }}">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
-                                        <h3 class="h6 fw-semibold text-dark mb-0 pb-3 border-bottom">Política de cancelamento</h3>
+                                        <h3 class="h6 fw-semibold text-dark mb-0 pb-3 border-bottom">{{ __('booking.flow.cancellation_heading') }}</h3>
                                         <div class="pt-3">
                                         @include('booking.partials.cancellation-policy-visual', [
                                             'bookingCancellationPreviewUrl' => $bookingCancellationPreviewUrl ?? null,
@@ -231,11 +239,11 @@
 
                     <div class="col-lg-4 booking-summary-column">
                         @include('booking.partials.summary-panel', [
-                            'summaryTitle' => 'Resumo da marcação',
+                            'summaryTitle' => __('booking.partials.summary_title'),
                             'showNextButton' => true,
                             'nextUrl' => '#',
                             'nextRequires' => 'checkout',
-                            'nextLabel' => ($onlineBookingPaymentRequired ?? true) ? 'Confirmar' : 'Marcar',
+                            'nextLabel' => ($onlineBookingPaymentRequired ?? true) ? __('booking.flow.confirm_button') : __('booking.flow.book_button'),
                             'nextClass' => ($onlineBookingPaymentRequired ?? true) ? 'btn-dark' : 'btn-success',
                         ])
                     </div>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#ffffff">
-    <title>@yield('title', 'Marcação') — {{ trim((string) ($businessName ?? config('app.name'))) }}</title>
+    <title>@yield('title', __('booking.layout.default_title')) — {{ trim((string) ($businessName ?? config('app.name'))) }}</title>
 
     {{-- Mesma stack de fonte que o SmartAdmin (template público) --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -45,6 +45,10 @@
     {{-- Stacks antes de app.js: flatpickr, etc. --}}
     @stack('scripts')
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/js/intlTelInput.min.js" defer></script>
+    <script>
+        window.bookingLocale = @json(\App\Support\BookingLocale::intlLocale());
+        window.bookingI18n = @json(trans('booking.js'));
+    </script>
     <script src="{{ asset('booking-assets/js/app.js') }}?v={{ file_exists(public_path('booking-assets/js/app.js')) ? filemtime(public_path('booking-assets/js/app.js')) : time() }}" defer></script>
 </body>
 </html>
