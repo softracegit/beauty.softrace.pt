@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\CrmSetting;
 use App\Models\Store;
+use App\Support\BookingTheme;
 use App\Support\CurrentStore;
 use Closure;
 use Illuminate\Http\Request;
@@ -66,6 +67,11 @@ class BookingContext
             'bookingCancellationPolicyNotice',
             CrmSetting::bookingCancellationPolicyNoticeText($store->id),
         );
+        $resolvedTheme = BookingTheme::resolve(null, $store->id);
+        View::share('bookingTheme', $resolvedTheme);
+        View::share('bookingThemeMeta', BookingTheme::resolved($store->id));
+        View::share('bookingUsesRefinedLayout', BookingTheme::usesRefinedLayout($resolvedTheme));
+        View::share('bookingIsElegantTheme', BookingTheme::usesRefinedLayout($resolvedTheme));
 
         return $next($request);
     }

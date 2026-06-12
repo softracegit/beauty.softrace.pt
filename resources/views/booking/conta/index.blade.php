@@ -9,8 +9,8 @@
         @include('booking.partials.navbar')
 
         <div class="flex-grow-1 booking-main-body">
-            <div class="container booking-container-wide px-3 pb-4 pt-0">
-                <main class="pt-1 booking-account-layout">
+            <div @class(['container booking-container-wide px-3 pb-4 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
+                <main @class(['pt-1 booking-account-layout', 'booking-elegant-account-layout' => ($bookingUsesRefinedLayout ?? false)])>
                     @if ($errors->any())
                         <div class="alert alert-danger small mb-3">
                             {{ $errors->first() }}
@@ -53,6 +53,11 @@
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'perfil'])
 
                     <div class="booking-account-content">
+                        @include('booking.partials.elegant-account-header', [
+                            'elegantAccountEyebrow' => __('booking.elegant.account_profile_eyebrow'),
+                            'elegantAccountTitle' => __('booking.nav.profile'),
+                            'elegantAccountSubtitle' => __('booking.elegant.account_profile_subtitle'),
+                        ])
                         <section id="perfil" class="mb-3">
                             <div class="card border shadow-sm rounded-3 mb-3 booking-profile-completion">
                                 <div class="card-body py-3">

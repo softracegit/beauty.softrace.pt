@@ -12,7 +12,7 @@
         @include('booking.partials.navbar')
 
         <div class="flex-grow-1 booking-main-body">
-            <div class="container booking-container-wide px-3 pb-2 pt-0">
+            <div @class(['container booking-container-wide px-3 pb-2 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
                 @if (session('status'))
                     <div class="alert alert-success py-2 px-3 small mt-2 mb-2" role="status">{{ session('status') }}</div>
                 @endif
@@ -44,12 +44,16 @@
                         };
                         $bookingServiceOptionsCatalog = [];
                     @endphp
-                    <div class="row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row">
-                        <div class="col-lg-8">
+                    <div @class(['row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row', 'booking-elegant-split' => ($bookingUsesRefinedLayout ?? false)])>
+                        <div class="col-lg-8 booking-elegant-main">
                             <main class="pt-1">
+                                @include('booking.partials.elegant-flow-header', ['elegantActiveStep' => 1])
                                 <h2
                                     id="booking-services-page-heading"
-                                    class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1"
+                                    @class([
+                                        'booking-services-heading h6 fw-semibold text-dark mb-3 ps-1',
+                                        'booking-elegant-hide-heading' => ($bookingUsesRefinedLayout ?? false),
+                                    ])
                                     data-heading-empty="{{ __('booking.services.heading_empty') }}"
                                     data-heading-has-items="{{ __('booking.services.heading_has_items') }}"
                                 >{{ __('booking.services.heading_empty') }}</h2>
@@ -192,7 +196,7 @@
                             </main>
                         </div>
 
-                        <div class="col-lg-4 booking-summary-column">
+                        <div @class(['col-lg-4 booking-summary-column', 'booking-elegant-summary' => ($bookingUsesRefinedLayout ?? false)])>
                             @include('booking.partials.summary-panel', [
                                 'summaryTitle' => __('booking.services.summary_title'),
                                 'showNextButton' => true,

@@ -9,8 +9,11 @@
     $slotHoldSeconds = max(10, \App\Models\CrmSetting::bookingSlotHoldMinutes() * 60);
 @endphp
 
-<aside class="pt-1 booking-summary-panel" aria-label="{{ __('booking.partials.summary_title') }}">
-    <h2 class="booking-services-heading h6 fw-semibold text-dark mb-3 ps-1 booking-summary-panel__title d-none d-lg-block">{{ $summaryTitle }}</h2>
+<aside @class(['pt-1 booking-summary-panel', 'booking-summary-panel--elegant' => ($bookingUsesRefinedLayout ?? false)]) aria-label="{{ __('booking.partials.summary_title') }}">
+    <h2 @class([
+        'booking-services-heading h6 fw-semibold text-dark mb-3 ps-1 booking-summary-panel__title d-none d-lg-block',
+        'booking-summary-panel__title--elegant' => ($bookingUsesRefinedLayout ?? false),
+    ])>{{ ($bookingUsesRefinedLayout ?? false) ? __('booking.elegant.summary_label') : $summaryTitle }}</h2>
     <div class="card border shadow-sm rounded-3 booking-summary-card">
         <div class="card-body booking-summary-card__body">
             <div class="booking-summary-scroll" id="booking-summary-scroll">
@@ -21,7 +24,19 @@
                     </p>
                 </section>
 
-                <section id="booking-summary-technician" class="booking-summary-extra is-hidden" aria-label="{{ __('booking.partials.summary_technician_aria') }}">
+                @if ($bookingUsesRefinedLayout ?? false)
+                    <div class="booking-elegant-summary-scheduling">
+                @endif
+
+                <section
+                    id="booking-summary-technician"
+                    @class([
+                        'is-hidden',
+                        'booking-summary-extra' => ! ($bookingUsesRefinedLayout ?? false),
+                        'booking-elegant-summary-scheduling__item' => ($bookingUsesRefinedLayout ?? false),
+                    ])
+                    aria-label="{{ __('booking.partials.summary_technician_aria') }}"
+                >
                     <div class="booking-summary-tech">
                         <div id="booking-summary-tech-avatar" class="booking-summary-tech__avatar" aria-hidden="true"></div>
                         <div class="booking-summary-tech__body">
@@ -31,7 +46,15 @@
                     </div>
                 </section>
 
-                <section id="booking-summary-datetime" class="booking-summary-extra is-hidden" aria-label="{{ __('booking.partials.summary_datetime_aria') }}">
+                <section
+                    id="booking-summary-datetime"
+                    @class([
+                        'is-hidden',
+                        'booking-summary-extra' => ! ($bookingUsesRefinedLayout ?? false),
+                        'booking-elegant-summary-scheduling__item' => ($bookingUsesRefinedLayout ?? false),
+                    ])
+                    aria-label="{{ __('booking.partials.summary_datetime_aria') }}"
+                >
                     <div class="booking-summary-datetime">
                         <span class="booking-summary-datetime__icon" aria-hidden="true">
                             <i class="bi bi-calendar3"></i>
@@ -43,7 +66,18 @@
                     </div>
                 </section>
 
-                <div class="booking-summary-services booking-summary-extra">
+                @if ($bookingUsesRefinedLayout ?? false)
+                    </div>
+                @endif
+
+                @if ($bookingUsesRefinedLayout ?? false)
+                    <div class="booking-elegant-summary-services-box">
+                @endif
+
+                <div @class([
+                    'booking-summary-services',
+                    'booking-summary-extra' => ! ($bookingUsesRefinedLayout ?? false),
+                ])>
                     <div id="booking-summary-empty" class="booking-summary-empty">
                         <p class="mb-0">{{ __('booking.partials.summary_empty') }}</p>
                     </div>
@@ -51,6 +85,10 @@
                     <ul id="booking-summary-list" class="booking-summary-list list-unstyled is-hidden" role="list"></ul>
                     <div id="booking-summary-fees" class="booking-summary-fees is-hidden" role="list" aria-label="{{ __('booking.partials.summary_fees_aria') }}"></div>
                 </div>
+
+                @if ($bookingUsesRefinedLayout ?? false)
+                    </div>
+                @endif
             </div>
 
             <div class="booking-summary-footer">

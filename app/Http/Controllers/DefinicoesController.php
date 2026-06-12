@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\CrmSetting;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
+use App\Support\BookingTheme;
 use App\Support\CurrentStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -97,6 +98,8 @@ class DefinicoesController extends Controller
             'bookingCancellationNoticeHours' => CrmSetting::bookingCancellationNoticeHours($storeId),
             'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRulesUi(),
             'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule($storeId),
+            'bookingTheme' => CrmSetting::bookingTheme($storeId),
+            'bookingThemes' => BookingTheme::registry(),
         ]);
     }
 
@@ -113,6 +116,7 @@ class DefinicoesController extends Controller
             'booking_any_staff_rule' => ['nullable', 'string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
             'booking_any_staff_rule_options' => ['nullable', 'array', 'min:1', 'max:1'],
             'booking_any_staff_rule_options.*' => ['string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
+            'booking_theme' => ['nullable', 'string', 'in:'.implode(',', array_keys(BookingTheme::registry()))],
         ], [
             'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
             'booking_slot_hold_minutes.max' => 'O tempo de reserva não pode exceder 240 minutos.',
@@ -147,6 +151,10 @@ class DefinicoesController extends Controller
             $selectedRule,
             $storeId
         );
+
+        if (array_key_exists('booking_theme', $validated)) {
+            CrmSetting::setBookingTheme((string) $validated['booking_theme'], $storeId);
+        }
 
         return redirect()
             ->route('definicoes.marcacoes')

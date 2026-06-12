@@ -28,6 +28,21 @@ return [
         'default_title' => 'Booking',
     ],
 
+    'elegant' => [
+        'services_title' => 'Booking services',
+        'step_staff' => 'Staff',
+        'step_date' => 'Date',
+        'step_payment' => 'Payment',
+        'summary_label' => 'Booking summary',
+        'account_eyebrow' => 'Your appointments',
+        'account_profile_eyebrow' => 'My account',
+        'account_profile_subtitle' => 'Manage your personal details and contact preferences.',
+        'account_wallet_eyebrow' => 'My account',
+        'account_wallet_subtitle' => 'View your wallet balance and transactions.',
+        'account_settings_eyebrow' => 'My account',
+        'account_settings_subtitle' => 'Notification preferences and account settings.',
+    ],
+
     'services' => [
         'page_title' => 'Services',
         'heading_empty' => 'Add the services you want',

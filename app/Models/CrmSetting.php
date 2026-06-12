@@ -19,6 +19,8 @@ class CrmSetting extends Model
 
     public const KEY_BOOKING_CANCELLATION_NOTICE_HOURS = 'booking.cancellation_notice_hours';
 
+    public const KEY_BOOKING_THEME = 'booking.theme';
+
     public const BOOKING_CANCELLATION_NOTICE_HOURS_MIN = 0;
 
     public const BOOKING_CANCELLATION_NOTICE_HOURS_MAX = 168;
@@ -244,5 +246,19 @@ class CrmSetting extends Model
         $value = self::getString(self::KEY_BOOKING_ANY_STAFF_RULE, $default, $storeId);
 
         return array_key_exists($value, $rules) ? $value : $default;
+    }
+
+    public static function bookingTheme(?int $storeId = null): string
+    {
+        return \App\Support\BookingTheme::resolve(
+            self::getString(self::KEY_BOOKING_THEME, \App\Support\BookingTheme::DEFAULT, $storeId),
+            $storeId,
+        );
+    }
+
+    public static function setBookingTheme(string $themeId, ?int $storeId = null): void
+    {
+        $resolved = \App\Support\BookingTheme::resolve($themeId, $storeId);
+        self::setString(self::KEY_BOOKING_THEME, $resolved, $storeId);
     }
 }

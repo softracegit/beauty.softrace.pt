@@ -63,7 +63,9 @@
         'es' => 'ES',
     ];
     $bookingCurrentLocaleCode = $bookingLocaleCodes[$bookingCurrentLocale] ?? strtoupper($bookingCurrentLocale);
-    $bookingNavbarStoreTitleUpper = mb_strtoupper($bookingBusinessDisplayName, 'UTF-8');
+    $bookingNavbarStoreTitleUpper = ($bookingUsesRefinedLayout ?? false)
+        ? $bookingBusinessDisplayName
+        : mb_strtoupper($bookingBusinessDisplayName, 'UTF-8');
     $bookingIndexUrl = route('booking.index', ['store' => $bookingStoreSlug], false);
     $bookingNavbarBackUrl = match ($bookingRouteName) {
         'booking.technician' => $bookingIndexUrl,

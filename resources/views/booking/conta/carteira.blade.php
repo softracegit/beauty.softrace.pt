@@ -9,8 +9,8 @@
         @include('booking.partials.navbar')
 
         <div class="flex-grow-1 booking-main-body">
-            <div class="container booking-container-wide px-3 pb-4 pt-0">
-                <main class="pt-1 booking-account-layout">
+            <div @class(['container booking-container-wide px-3 pb-4 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
+                <main @class(['pt-1 booking-account-layout', 'booking-elegant-account-layout' => ($bookingUsesRefinedLayout ?? false)])>
                     @if ($errors->any())
                         <div class="alert alert-danger small mb-3">
                             {{ $errors->first() }}
@@ -25,6 +25,11 @@
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'carteira'])
 
                     <div class="booking-account-content">
+                        @include('booking.partials.elegant-account-header', [
+                            'elegantAccountEyebrow' => __('booking.elegant.account_wallet_eyebrow'),
+                            'elegantAccountTitle' => __('booking.nav.wallet'),
+                            'elegantAccountSubtitle' => __('booking.elegant.account_wallet_subtitle'),
+                        ])
                         @include('booking.conta.partials.carteira', [
                             'balanceCents' => $balanceCents,
                             'transactions' => $transactions,

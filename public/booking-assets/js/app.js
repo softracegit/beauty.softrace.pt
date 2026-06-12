@@ -612,24 +612,16 @@
                     line.service_option_id != null &&
                     line.service_option_id !== '' &&
                     String(line.service_option_id) !== 'undefined';
-                var parentName = hasOption && snap && snap.name ? snap.name : line.name || '';
-                var optionName =
-                    hasOption && snap && snap.name && line.name && line.name !== snap.name ? line.name : '';
+                var parentName = hasOption && snap && snap.name ? snap.name : '';
+                var displayName = line.name || parentName || '';
 
                 var body = document.createElement('div');
                 body.className = 'booking-summary-line__body';
 
                 var serviceNameEl = document.createElement('span');
                 serviceNameEl.className = 'booking-summary-line__service';
-                serviceNameEl.textContent = parentName;
+                serviceNameEl.textContent = displayName;
                 body.appendChild(serviceNameEl);
-
-                if (optionName) {
-                    var optionEl = document.createElement('span');
-                    optionEl.className = 'booking-summary-line__option';
-                    optionEl.textContent = optionName;
-                    body.appendChild(optionEl);
-                }
 
                 if (Array.isArray(line.extras) && line.extras.length) {
                     line.extras.forEach(function (ex) {
@@ -658,7 +650,10 @@
                 var editBtn = document.createElement('button');
                 editBtn.type = 'button';
                 editBtn.className = 'booking-summary-line__edit';
-                var editLabel = optionName ? parentName + ' — ' + optionName : parentName;
+                var editLabel =
+                    hasOption && parentName && displayName && displayName !== parentName
+                        ? parentName + ' — ' + displayName
+                        : displayName;
                 editBtn.setAttribute('aria-label', t('edit_service_aria', { label: editLabel }));
                 editBtn.innerHTML = '<i class="bi bi-pencil-square" aria-hidden="true"></i>';
                 editBtn.addEventListener('click', function () {

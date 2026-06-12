@@ -4,23 +4,35 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#ffffff">
+    @php
+        $bookingThemeId = $bookingTheme ?? \App\Support\BookingTheme::DEFAULT;
+        $bookingThemeMeta = $bookingThemeMeta ?? \App\Support\BookingTheme::resolved();
+        $bookingThemeFonts = $bookingThemeMeta['fonts'] ?? null;
+        $bookingThemeCssFiles = \App\Support\BookingTheme::cssAssetPaths();
+    @endphp
+    <meta name="theme-color" content="{{ \App\Support\BookingTheme::themeColor() }}">
     <title>@yield('title', __('booking.layout.default_title')) — {{ trim((string) ($businessName ?? config('app.name'))) }}</title>
 
-    {{-- Mesma stack de fonte que o SmartAdmin (template público) --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    @if ($bookingThemeFonts)
+        <link href="{{ $bookingThemeFonts }}" rel="stylesheet">
+    @endif
 
     <link rel="stylesheet" href="{{ asset('template/vendor/bootstrap/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('template/vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/css/intlTelInput.css">
     <link rel="stylesheet" href="{{ asset('booking-assets/css/app.css') }}?v={{ file_exists(public_path('booking-assets/css/app.css')) ? filemtime(public_path('booking-assets/css/app.css')) : time() }}">
+    @foreach ($bookingThemeCssFiles as $bookingThemeCss)
+        @php($bookingThemeCssPath = public_path($bookingThemeCss))
+        <link rel="stylesheet" href="{{ asset($bookingThemeCss) }}?v={{ file_exists($bookingThemeCssPath) ? filemtime($bookingThemeCssPath) : time() }}">
+    @endforeach
     @stack('head')
 </head>
 @php($bookingStoreSlug = $bookingStoreSlug ?? \App\Models\Store::defaultPublicBookingStoreSlug())
 <body
     class="booking-body @yield('body_class')"
+    data-booking-theme="{{ $bookingThemeId }}"
     data-booking-store-slug="{{ $bookingStoreSlug }}"
     data-booking-index-url="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"
     data-booking-auth-request-code-url="{{ route('booking.auth.request_code', ['store' => $bookingStoreSlug], false) }}"

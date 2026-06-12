@@ -9,11 +9,15 @@
         @include('booking.partials.navbar')
 
         <div class="flex-grow-1 booking-main-body">
-            <div class="container booking-container-wide px-3 pb-2 pt-0">
-                <div class="row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row">
-                    <div class="col-lg-8">
+            <div @class(['container booking-container-wide px-3 pb-2 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
+                <div @class(['row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row', 'booking-elegant-split' => ($bookingUsesRefinedLayout ?? false)])>
+                    <div class="col-lg-8 booking-elegant-main">
                         <main class="pt-1">
-                            <div class="d-flex align-items-center mb-3 ps-1 booking-page-main-heading">
+                            @include('booking.partials.elegant-flow-header', [
+                                'elegantActiveStep' => 2,
+                                'elegantFlowTitle' => __('booking.flow.technician_heading'),
+                            ])
+                            <div @class(['d-flex align-items-center mb-3 ps-1 booking-page-main-heading', 'booking-elegant-hide-heading' => ($bookingUsesRefinedLayout ?? false)])>
                                 <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">{{ __('booking.flow.technician_heading') }}</h1>
                             </div>
 
@@ -74,7 +78,7 @@
                         </main>
                     </div>
 
-                    <div class="col-lg-4 booking-summary-column">
+                    <div @class(['col-lg-4 booking-summary-column', 'booking-elegant-summary' => ($bookingUsesRefinedLayout ?? false)])>
                         @include('booking.partials.summary-panel', [
                             'summaryTitle' => __('booking.partials.summary_title'),
                             'showNextButton' => true,

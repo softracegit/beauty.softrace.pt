@@ -28,6 +28,21 @@ return [
         'default_title' => 'Reserva',
     ],
 
+    'elegant' => [
+        'services_title' => 'Servicios de la reserva',
+        'step_staff' => 'Staff',
+        'step_date' => 'Fecha',
+        'step_payment' => 'Pago',
+        'summary_label' => 'Resumen de la reserva',
+        'account_eyebrow' => 'Tus citas',
+        'account_profile_eyebrow' => 'Mi cuenta',
+        'account_profile_subtitle' => 'Gestiona tus datos personales y preferencias de contacto.',
+        'account_wallet_eyebrow' => 'Mi cuenta',
+        'account_wallet_subtitle' => 'Consulta el saldo y movimientos de tu monedero.',
+        'account_settings_eyebrow' => 'Mi cuenta',
+        'account_settings_subtitle' => 'Preferencias de notificación y ajustes de la cuenta.',
+    ],
+
     'services' => [
         'page_title' => 'Servicios',
         'heading_empty' => 'Añade los servicios que quieras',

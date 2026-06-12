@@ -9,8 +9,8 @@
         @include('booking.partials.navbar')
 
         <div class="flex-grow-1 booking-main-body">
-            <div class="container booking-container-wide px-3 pb-4 pt-0">
-                <main class="pt-1 booking-account-layout">
+            <div @class(['container booking-container-wide px-3 pb-4 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
+                <main @class(['pt-1 booking-account-layout', 'booking-elegant-account-layout' => ($bookingUsesRefinedLayout ?? false)])>
                     @if ($errors->any())
                         <div class="alert alert-danger small mb-3">
                             {{ $errors->first() }}
@@ -25,6 +25,11 @@
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'definicoes'])
 
                     <div class="booking-account-content">
+                        @include('booking.partials.elegant-account-header', [
+                            'elegantAccountEyebrow' => __('booking.elegant.account_settings_eyebrow'),
+                            'elegantAccountTitle' => __('booking.nav.settings'),
+                            'elegantAccountSubtitle' => __('booking.elegant.account_settings_subtitle'),
+                        ])
                         <section id="notificacoes" class="booking-category-section mb-3">
                             <div class="card border shadow-sm rounded-3">
                                 <div class="card-body py-3">

@@ -28,6 +28,21 @@ return [
         'default_title' => 'Marcação',
     ],
 
+    'elegant' => [
+        'services_title' => 'Serviços da marcação',
+        'step_staff' => 'Staff',
+        'step_date' => 'Data',
+        'step_payment' => 'Pagamento',
+        'summary_label' => 'Resumo da marcação',
+        'account_eyebrow' => 'As tuas marcações',
+        'account_profile_eyebrow' => 'A minha conta',
+        'account_profile_subtitle' => 'Gere os teus dados pessoais e preferências de contacto.',
+        'account_wallet_eyebrow' => 'A minha conta',
+        'account_wallet_subtitle' => 'Consulta o saldo e movimentos da tua carteira.',
+        'account_settings_eyebrow' => 'A minha conta',
+        'account_settings_subtitle' => 'Preferências de notificação e definições da conta.',
+    ],
+
     'services' => [
         'page_title' => 'Serviços',
         'heading_empty' => 'Adicione os serviços que pretende',

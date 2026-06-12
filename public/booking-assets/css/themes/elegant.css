@@ -1,0 +1,69 @@
+/*
+ * Tema Elegante — paleta e tipografia serif.
+ */
+[data-booking-theme="elegant"] {
+    --booking-bg: #f9f8f6;
+    --booking-text: #111111;
+    --booking-muted: #7a7a7a;
+    --booking-border: #e0ddd6;
+    --booking-accent: #111111;
+    --booking-surface: #ffffff;
+    --booking-elegant-summary-box-bg: #f0ece6;
+}
+
+[data-booking-theme="elegant"].booking-body,
+[data-booking-theme="elegant"] .booking-body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+[data-booking-theme="elegant"] .booking-navbar__store-title {
+    font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 1.35rem !important;
+    letter-spacing: 0.01em;
+    text-transform: none;
+}
+
+[data-booking-theme="elegant"] .booking-elegant-flow-header__title {
+    font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+    font-style: italic;
+}
+
+[data-booking-theme="elegant"] #bookingModal .modal-title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+[data-booking-theme="elegant"] .booking-elegant-account-header__title {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+}
+
+[data-booking-theme="elegant"] .booking-marcacao-card__date {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+[data-booking-theme="elegant"] .booking-modal-option:has(input:checked) {
+    background: rgba(17, 17, 17, 0.04);
+}
+
+[data-booking-theme="elegant"] .booking-account-nav__link:hover {
+    background: rgba(17, 17, 17, 0.03);
+}
+
+[data-booking-theme="elegant"] .booking-account-nav__link.is-active {
+    background: rgba(17, 17, 17, 0.04);
+}
+
+[data-booking-theme="elegant"] .btn-dark {
+    --bs-btn-hover-bg: #2a2a2a;
+    --bs-btn-hover-border-color: #2a2a2a;
+}
+
+[data-booking-theme="elegant"] .btn-outline-dark {
+    --bs-btn-hover-bg: rgba(17, 17, 17, 0.04);
+}
+
+[data-booking-theme="elegant"] #bookingModal .modal-content {
+    box-shadow: 0 16px 40px rgba(17, 17, 17, 0.1) !important;
+}

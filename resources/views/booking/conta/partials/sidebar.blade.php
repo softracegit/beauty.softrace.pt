@@ -7,9 +7,16 @@
     }
 @endphp
 
-<aside class="booking-account-sidebar card border shadow-sm rounded-3">
-    <div class="card-body py-3">
-        <p class="small fw-semibold text-uppercase text-muted mb-3 ms-2 mt-2">{{ $accountUserName }}</p>
+<aside @class([
+    'booking-account-sidebar',
+    'booking-account-sidebar--elegant' => ($bookingUsesRefinedLayout ?? false),
+    'card border shadow-sm rounded-3' => ! ($bookingUsesRefinedLayout ?? false),
+])>
+    <div @class(['py-3', 'card-body' => ! ($bookingUsesRefinedLayout ?? false), 'booking-account-sidebar__inner' => ($bookingUsesRefinedLayout ?? false)])>
+        <p @class([
+            'small fw-semibold text-uppercase text-muted mb-3 ms-2 mt-2',
+            'booking-account-sidebar__user' => ($bookingUsesRefinedLayout ?? false),
+        ])>{{ $accountUserName }}</p>
         <nav class="booking-account-nav">
             <a href="{{ route('booking.conta.index', ['store' => $bookingStoreSlug], false) }}" class="booking-account-nav__link d-flex align-items-center gap-2 {{ $accountNavActive === 'perfil' ? 'is-active' : '' }}">
                 <i class="bi bi-person" aria-hidden="true"></i>

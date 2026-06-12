@@ -9,8 +9,8 @@
         @include('booking.partials.navbar')
 
         <div class="flex-grow-1 booking-main-body">
-            <div class="container booking-container-wide px-3 pb-4 pt-0">
-                <main class="pt-1 booking-account-layout">
+            <div @class(['container booking-container-wide px-3 pb-4 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
+                <main @class(['pt-1 booking-account-layout', 'booking-elegant-account-layout' => ($bookingUsesRefinedLayout ?? false)])>
                     @if ($errors->any())
                         <div class="alert alert-danger small mb-3">
                             {{ $errors->first() }}
@@ -25,6 +25,11 @@
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'marcacoes'])
 
                     <div class="booking-account-content">
+                        @include('booking.partials.elegant-account-header', [
+                            'elegantAccountTitle' => __('booking.account.appointments_history_title'),
+                            'elegantAccountSubtitle' => __('booking.account.appointments_history_subtitle'),
+                        ])
+
                         @if (request()->boolean('marcacao_confirmada'))
                             <div class="text-center mb-4">
                                 <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success mb-3" style="width: 3.5rem; height: 3.5rem;" aria-hidden="true">
