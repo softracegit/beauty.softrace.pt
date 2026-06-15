@@ -4,6 +4,23 @@
     $agentMorphClass = (new \App\Models\Agent())->getMorphClass();
     $serviceMorphClass = (new \App\Models\Service())->getMorphClass();
     $extraMorphClass = (new \App\Models\Extra())->getMorphClass();
+    $formatActivityValue = static function ($value) {
+        if ($value === null) {
+            return '—';
+        }
+        if (is_bool($value)) {
+            return $value ? 'Sim' : 'Não';
+        }
+        if (is_array($value) || is_object($value)) {
+            $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+            return $json !== false ? (strlen($json) > 50 ? substr($json, 0, 50).'…' : $json) : '[valor complexo]';
+        }
+
+        $str = (string) $value;
+
+        return strlen($str) > 50 ? substr($str, 0, 50).'…' : $str;
+    };
 @endphp
 
 @if(isset($activities) && $activities->count() > 0)
@@ -73,7 +90,7 @@
                                         $oldVal = $old[$attr] ?? null;
                                     @endphp
                                     @if($oldVal != $newVal)
-                                        <span class="d-block">{{ $attr }}: {{ is_bool($oldVal) ? ($oldVal ? 'Sim' : 'Não') : (strlen((string)$oldVal) > 50 ? substr($oldVal, 0, 50).'…' : $oldVal) }} → {{ is_bool($newVal) ? ($newVal ? 'Sim' : 'Não') : (strlen((string)$newVal) > 50 ? substr($newVal, 0, 50).'…' : $newVal) }}</span>
+                                        <span class="d-block">{{ $attr }}: {{ $formatActivityValue($oldVal) }} → {{ $formatActivityValue($newVal) }}</span>
                                     @endif
                                 @endforeach
                             </div>
