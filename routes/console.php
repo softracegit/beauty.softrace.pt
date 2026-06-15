@@ -357,3 +357,82 @@ Artisan::command(
 
     return self::SUCCESS;
 })->purpose('Importa CSVs do Zappy (serviços, clientes, marcações, vendas)');
+
+Artisan::command(
+    'store:purge-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql (por defeito: storage/app/exports/store_{id}_purge.sql)}',
+    function () {
+        $storeId = max(1, (int) $this->option('store'));
+        $output = $this->option('output')
+            ?: storage_path('app/exports/store_'.$storeId.'_purge.sql');
+
+        $dir = dirname($output);
+        if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            $this->error('Não foi possível criar a pasta: '.$dir);
+
+            return self::FAILURE;
+        }
+
+        $sql = (new \App\Services\StoreDataSqlPurger($storeId))->purgeSql();
+        file_put_contents($output, $sql);
+
+        $this->info('SQL de limpeza gravado em: '.$output);
+        $this->comment('Executar no servidor via phpMyAdmin ANTES de importar store_'.$storeId.'_data.sql');
+
+        return self::SUCCESS;
+    }
+)->purpose('Gera SQL para limpar dados da loja no servidor (evita erros #1062 Duplicate entry)');
+
+Artisan::command(
+    'store:agents-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql (por defeito: storage/app/exports/store_{id}_agents.sql)}',
+    function () {
+        $storeId = max(1, (int) $this->option('store'));
+        $output = $this->option('output')
+            ?: storage_path('app/exports/store_'.$storeId.'_agents.sql');
+
+        $dir = dirname($output);
+        if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            $this->error('Não foi possível criar a pasta: '.$dir);
+
+            return self::FAILURE;
+        }
+
+        file_put_contents($output, (new \App\Services\StoreAgentsSqlExporter($storeId))->export());
+        $this->info('SQL de agentes gravado em: '.$output);
+        $this->comment('Importar no servidor se técnicos/agenda não aparecerem (users devem existir com os mesmos emails).');
+
+        return self::SUCCESS;
+    }
+)->purpose('Gera SQL de agentes ligados a users por email (para o servidor)');
+
+Artisan::command(
+    'store:export-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql (por defeito: storage/app/exports/store_{id}_data.sql)} {--without-org-store : Não exportar organizations/stores} {--with-purge : Gerar também o SQL de limpeza (store_{id}_purge.sql)}',
+    function () {
+        $storeId = max(1, (int) $this->option('store'));
+        $withoutOrgStore = (bool) $this->option('without-org-store');
+        $output = $this->option('output')
+            ?: storage_path('app/exports/store_'.$storeId.'_data.sql');
+
+        $dir = dirname($output);
+        if (! is_dir($dir) && ! mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            $this->error('Não foi possível criar a pasta: '.$dir);
+
+            return self::FAILURE;
+        }
+
+        $exporter = new \App\Services\StoreDataSqlExporter($storeId);
+        $sql = $exporter->export($withoutOrgStore);
+
+        file_put_contents($output, $sql);
+
+        $sizeKb = round(filesize($output) / 1024, 1);
+        $this->info('Export SQL gravado em: '.$output.' ('.$sizeKb.' KB)');
+
+        if ((bool) $this->option('with-purge')) {
+            $purgePath = storage_path('app/exports/store_'.$storeId.'_purge.sql');
+            file_put_contents($purgePath, (new \App\Services\StoreDataSqlPurger($storeId))->purgeSql());
+            $this->info('SQL de limpeza gravado em: '.$purgePath);
+        }
+
+        return self::SUCCESS;
+    }
+)->purpose('Exporta dados da loja (clientes, serviços, marcações, vendas…) para importar no servidor via phpMyAdmin');

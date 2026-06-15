@@ -33,8 +33,23 @@ class EnsureUserHasAgent
             ]);
         }
 
-        // Se o user não tem agent associado, redirecionar para uma página de erro ou logout
         if (! $user->agent) {
+            if ($user instanceof User && $this->canAccessBackofficeWithoutAgent($user)) {
+                $stores = $user->accessibleStores();
+                if ($stores->isEmpty()) {
+                    auth()->logout();
+
+                    return redirect()->route('login')
+                        ->with('error', 'A sua conta não está associada a uma loja. Contacte o administrador.');
+                }
+
+                if ($user->organization_id === null) {
+                    $user->forceFill(['organization_id' => $stores->first()->organization_id])->saveQuietly();
+                }
+
+                return $next($request);
+            }
+
             auth()->logout();
 
             return redirect()->route('login')
@@ -60,5 +75,14 @@ class EnsureUserHasAgent
         }
 
         return $next($request);
+    }
+
+    /**
+     * Administradores e receção podem aceder ao backoffice sem ficha de agente
+     * (prestadores precisam de agente: agenda, horários, serviços).
+     */
+    private function canAccessBackofficeWithoutAgent(User $user): bool
+    {
+        return $user->isAdmin() || $user->isRececao();
     }
 }

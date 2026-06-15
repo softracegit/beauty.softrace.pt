@@ -31,6 +31,10 @@ class SetCurrentStore
         $agent = $user->agent;
         $homeStore = $agent?->store;
         if ($homeStore === null) {
+            $accessible = $user->accessibleStores();
+            $homeStore = $accessible->first();
+        }
+        if ($homeStore === null) {
             abort(503, 'A sua conta não está associada a uma loja. Contacte o administrador.');
         }
 
