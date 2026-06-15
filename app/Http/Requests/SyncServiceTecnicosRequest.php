@@ -21,7 +21,7 @@ class SyncServiceTecnicosRequest extends FormRequest
     {
         return Agent::query()
             ->forStore(current_store_id())
-            ->whereHas('user', fn ($q) => $q->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]))
+            ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->values()

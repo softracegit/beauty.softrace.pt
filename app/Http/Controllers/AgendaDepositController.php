@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\DeniesPrestadorPayments;
+
 use App\Exceptions\AgendaDepositException;
 use App\Models\CalendarEvent;
+use App\Models\CrmSetting;
 use App\Services\AgendaDepositResult;
 use App\Services\AgendaDepositService;
 use App\Services\VendusInvoiceEmailService;
@@ -18,6 +21,8 @@ use Stripe\Stripe;
 
 class AgendaDepositController extends Controller
 {
+    use DeniesPrestadorPayments;
+
     public function __construct(
         private readonly AgendaDepositService $depositService,
         private readonly VendusInvoiceService $vendusInvoiceService,
@@ -29,6 +34,10 @@ class AgendaDepositController extends Controller
      */
     public function show(Request $request, CalendarEvent $calendarEvent): JsonResponse
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $this->assertMarcacaoInStore($calendarEvent);
 
         $customAmount = $this->optionalCustomAmount($request);
@@ -49,10 +58,14 @@ class AgendaDepositController extends Controller
      */
     public function store(Request $request, CalendarEvent $calendarEvent): JsonResponse
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $this->assertMarcacaoInStore($calendarEvent);
 
         $validated = $request->validate([
-            'payment_method' => ['nullable', 'string', 'in:dinheiro'],
+            'payment_method' => ['nullable', 'string', 'in:dinheiro,mbway,transferencia'],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
             'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
@@ -85,6 +98,10 @@ class AgendaDepositController extends Controller
      */
     public function createMbwayIntent(Request $request, CalendarEvent $calendarEvent): JsonResponse
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $this->assertMarcacaoInStore($calendarEvent);
 
         $validated = $request->validate([
@@ -114,7 +131,16 @@ class AgendaDepositController extends Controller
      */
     public function finalizeMbway(Request $request, CalendarEvent $calendarEvent): JsonResponse
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $this->assertMarcacaoInStore($calendarEvent);
+        if (! CrmSetting::onlineBookingPaymentRequired(current_store_id())) {
+            return response()->json([
+                'error' => 'Pagamentos automáticos estão desativados. Registe o MB WAY manualmente (dinheiro/MB WAY).',
+            ], 422);
+        }
 
         $validated = $request->validate([
             'payment_intent_id' => ['required', 'string', 'max:255'],
@@ -153,7 +179,16 @@ class AgendaDepositController extends Controller
      */
     public function storeCard(Request $request, CalendarEvent $calendarEvent): JsonResponse
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $this->assertMarcacaoInStore($calendarEvent);
+        if (! CrmSetting::onlineBookingPaymentRequired(current_store_id())) {
+            return response()->json([
+                'error' => 'Pagamentos com cartão guardado requerem pagamentos online ativos nas definições.',
+            ], 422);
+        }
 
         $clientId = (int) ($calendarEvent->client_id ?? 0);
 

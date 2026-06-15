@@ -142,7 +142,7 @@
                                 </div>
                             </section>
 
-                            <section class="booking-category-section mb-4 pb-1" aria-label="{{ __('booking.flow.invoice_section_aria') }}">
+                            <section class="booking-category-section mb-4 pb-1"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif aria-label="{{ __('booking.flow.invoice_section_aria') }}">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
                                         <h2 class="h6 fw-semibold text-dark mb-2">{{ __('booking.flow.invoice_heading') }}</h2>
@@ -233,6 +233,7 @@
                                         <div class="pt-3">
                                         @include('booking.partials.cancellation-policy-visual', [
                                             'bookingCancellationPreviewUrl' => $bookingCancellationPreviewUrl ?? null,
+                                            'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired ?? true,
                                         ])
                                         </div>
                                     </div>

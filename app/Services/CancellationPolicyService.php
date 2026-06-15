@@ -163,6 +163,7 @@ class CancellationPolicyService
         }
 
         $deadlineLocal = $startLocal->copy()->subHours($noticeHours);
+        $paymentRequired = CrmSetting::onlineBookingPaymentRequired($storeId);
         $policy = new CancellationPolicyResult(
             isWithinNoticePeriod: $nowLocal->lte($deadlineLocal),
             noticeHoursApplied: $noticeHours,
@@ -170,11 +171,11 @@ class CancellationPolicyService
             appointmentStartAtLocal: $startLocal,
             cancellationDeadlineLocal: $deadlineLocal,
             evaluatedAtLocal: $nowLocal,
-            hasPaidDeposit: true,
+            hasPaidDeposit: $paymentRequired,
             eligibleDepositCreditCents: 0,
         );
 
-        return $this->timelinePayloadFromPolicy($policy);
+        return $this->timelinePayloadFromPolicy($policy, $storeId);
     }
 
     /**
@@ -195,11 +196,14 @@ class CancellationPolicyService
      *     appointment_time: string,
      * }
      */
-    private function timelinePayloadFromPolicy(CancellationPolicyResult $policy): array
+    private function timelinePayloadFromPolicy(CancellationPolicyResult $policy, ?int $storeId = null): array
     {
         $nowLocal = $policy->evaluatedAtLocal;
         $startLocal = $policy->appointmentStartAtLocal;
         $deadlineLocal = $policy->cancellationDeadlineLocal;
+        $paymentRequired = $storeId !== null
+            ? CrmSetting::onlineBookingPaymentRequired($storeId)
+            : true;
 
         $rangeSeconds = max(1, $startLocal->getTimestamp() - $nowLocal->getTimestamp());
         $deadlineSeconds = $deadlineLocal->getTimestamp() - $nowLocal->getTimestamp();
@@ -225,28 +229,42 @@ class CancellationPolicyService
         if ($policy->noticeHoursApplied <= 0) {
             $deadlineBadge = __('booking.cancellation_policy.badge_before_start');
             $deadlinePercent = 100.0;
-            $description = __('booking.cancellation_policy.description_before_start');
+            $description = $paymentRequired
+                ? __('booking.cancellation_policy.description_before_start')
+                : __('booking.cancellation_policy.description_before_start_no_payment');
             $warningMessage = '';
             $cancellationUnavailable = false;
             $canCancel = true;
         } elseif ($cancellationUnavailable) {
             $deadlineBadge = __('booking.cancellation_policy.badge_no_cancel');
             $deadlinePercent = 0.0;
-            $warningMessage = __('booking.cancellation_policy.warning_past_deadline', [
-                'deadline' => $deadlineLimitLabel,
-            ]);
-            $description = __('booking.cancellation_policy.description_past_deadline', [
-                'deadline' => $deadlineLimitLabel,
-            ]);
+            $warningMessage = $paymentRequired
+                ? __('booking.cancellation_policy.warning_past_deadline', [
+                    'deadline' => $deadlineLimitLabel,
+                ])
+                : __('booking.cancellation_policy.warning_past_deadline_no_payment', [
+                    'deadline' => $deadlineLimitLabel,
+                ]);
+            $description = $paymentRequired
+                ? __('booking.cancellation_policy.description_past_deadline', [
+                    'deadline' => $deadlineLimitLabel,
+                ])
+                : __('booking.cancellation_policy.description_past_deadline_no_payment', [
+                    'deadline' => $deadlineLimitLabel,
+                ]);
         } else {
             $deadlineBadge = __('booking.cancellation_policy.badge_before_deadline', [
                 'date' => ucfirst($deadlineLocalFmt->translatedFormat($uiLocale === 'en' ? 'M j' : 'j M')),
                 'time' => $deadlineLocalFmt->format('H:i'),
             ]);
             $warningMessage = '';
-            $description = __('booking.cancellation_policy.description_within_deadline', [
-                'deadline' => $descriptionDeadline,
-            ]);
+            $description = $paymentRequired
+                ? __('booking.cancellation_policy.description_within_deadline', [
+                    'deadline' => $descriptionDeadline,
+                ])
+                : __('booking.cancellation_policy.description_within_deadline_no_payment', [
+                    'deadline' => $descriptionDeadline,
+                ]);
         }
 
         return [

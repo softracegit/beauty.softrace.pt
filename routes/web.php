@@ -197,10 +197,15 @@ Route::middleware(['auth', 'super.admin'])->prefix('super-admin')->name('super-a
 });
 
 // Rotas protegidas (requerem autenticação e agent associado)
-Route::middleware(['auth', 'has.agent', 'set.current.store'])->group(function () {
+Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'])->group(function () {
     Route::post('loja-activa', [CurrentStoreController::class, 'update'])->name('current-store.update');
 
     Route::get('/', function () {
+        $user = auth()->user();
+        if ($user instanceof \App\Models\User && $user->isPrestador()) {
+            return redirect()->route('agenda.index');
+        }
+
         return redirect()->route('dashboard');
     });
 

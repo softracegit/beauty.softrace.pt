@@ -51,6 +51,62 @@ document.addEventListener('DOMContentLoaded', function() {
     const clientesBaseUrl = C.clientesBaseUrl || '';
     const csrf = (C.csrf || "");
     const currentUserIsAdmin = !!C.currentUserIsAdmin;
+    const agendaPerms = C.permissions || {};
+    const isPrestadorStaff = !!agendaPerms.isPrestador;
+    if (isPrestadorStaff && calendarEl) {
+        calendarEl.classList.add('agenda-calendar--prestador');
+    }
+    const canProcessPayments = agendaPerms.canProcessPayments !== false;
+    const canViewClientContacts = agendaPerms.canViewClientContacts !== false;
+    const canViewClientProfile = agendaPerms.canViewClientProfile !== false;
+    const canViewInvoices = agendaPerms.canViewInvoices !== false;
+    const canReassignMarcacao = agendaPerms.canReassignMarcacao !== false;
+    const canChangeMarcacaoClient = agendaPerms.canChangeMarcacaoClient !== false;
+    const prestadorAllowedStatuses = Array.isArray(agendaPerms.prestadorAllowedStatuses)
+        ? agendaPerms.prestadorAllowedStatuses
+        : ['chegou', 'iniciado'];
+    const prestadorEditableStatuses = Array.isArray(agendaPerms.prestadorEditableStatuses)
+        ? agendaPerms.prestadorEditableStatuses
+        : ['agendado', 'notificado', 'confirmado', 'chegou', 'iniciado'];
+
+    function applyAgendaClientPrivacyUi(prefix) {
+        var phoneEl = $id(prefix + 'ClientSelectedPhone');
+        if (phoneEl) {
+            phoneEl.classList.toggle('d-none', !canViewClientContacts);
+        }
+        var nifRow = document.querySelector('#' + prefix + 'ClientSelectedCard .agenda-oc-client-nif-row');
+        if (nifRow) {
+            nifRow.classList.toggle('d-none', !canViewClientContacts);
+        }
+        var profile = $id(prefix + 'ClientProfileLink');
+        if (profile) {
+            profile.classList.toggle('d-none', !canViewClientProfile);
+        }
+    }
+
+    function eventDetailHasPersistedId() {
+        var fromInput = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        var fromData = eventDetailCurrentData && eventDetailCurrentData.id;
+        return !!String(fromInput || fromData || '').trim();
+    }
+
+    function eventDetailMarcacaoClientLocked() {
+        return !canChangeMarcacaoClient && eventDetailHasPersistedId();
+    }
+
+    function lockAgendaMemberSelectIfNeeded(selectEl, choicesInstance) {
+        if (!selectEl || canReassignMarcacao) {
+            return;
+        }
+        selectEl.disabled = true;
+        if (choicesInstance && typeof choicesInstance.disable === 'function') {
+            choicesInstance.disable();
+        }
+        if (selectEl.nextElementSibling && selectEl.nextElementSibling.classList && selectEl.nextElementSibling.classList.contains('choices')) {
+            selectEl.nextElementSibling.style.pointerEvents = 'none';
+            selectEl.nextElementSibling.style.opacity = '0.7';
+        }
+    }
 
     let allResources = [];
     let consultantFilterIds = [];
@@ -994,6 +1050,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentStatus === 'faltou' || currentStatus === 'cancelado' || currentStatus === 'anulado') {
             return;
         }
+        if (isPrestadorStaff && prestadorEditableStatuses.indexOf(currentStatus) === -1) {
+            return;
+        }
         var statusOpts = [
             { status: 'agendado', label: 'Agendado', icon: 'ri-time-fill agenda-status-icon-agendado' },
             { status: 'notificado', label: 'Notificado', icon: 'ri-notification-3-fill agenda-status-icon-notificado' },
@@ -1018,6 +1077,10 @@ document.addEventListener('DOMContentLoaded', function() {
         list.className = 'agenda-status-dropdown-list';
         statusOpts.forEach(function(o) {
             if (o.isCancelAction && (currentStatus === 'faltou' || currentStatus === 'cancelado' || currentStatus === 'anulado')) return;
+            if (isPrestadorStaff) {
+                if (o.isCancelAction) return;
+                if (prestadorAllowedStatuses.indexOf(o.status) === -1) return;
+            }
             if (!o.isCancelAction && o.status === currentStatus) return;
             var a = document.createElement('a');
             a.href = '#';
@@ -1073,6 +1136,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             list.appendChild(a);
         });
+        if (!list.children.length) return;
         menu.appendChild(list);
         var offset = 4;
         menu.style.left = (clientX + offset) + 'px';
@@ -1152,6 +1216,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var ext = event.extendedProps || {};
         var statusLabels = STATUS_LABELS;
         var isTempoPessoal = (ext.event_type || '') === 'tempo_pessoal';
+        var hideQuickviewFinancials = isPrestadorStaff && !isTempoPessoal;
         var personalTimeType = ext.personal_time_type || {};
         var status = ext.status || 'agendado';
         var statusLabel = isTempoPessoal ? 'Tempo pessoal' : (statusLabels[status] || status);
@@ -1257,7 +1322,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nameSpan.className = 'agenda-quickview-client-name';
         nameSpan.textContent = clientName;
         clientTextWrap.appendChild(nameSpan);
-        if (clientPhone) {
+        if (clientPhone && canViewClientContacts) {
             var phoneSpan = document.createElement('span');
             phoneSpan.className = 'agenda-quickview-client-phone';
             phoneSpan.textContent = clientPhone;
@@ -1292,10 +1357,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     left.appendChild(meta);
                 }
                 row.appendChild(left);
-                var priceEl = document.createElement('div');
-                priceEl.className = 'agenda-quickview-service-price';
-                priceEl.textContent = s.formatted_price || (parseFloat(s.price) || 0).toFixed(2).replace('.', ',') + ' €';
-                row.appendChild(priceEl);
+                if (!hideQuickviewFinancials) {
+                    var priceEl = document.createElement('div');
+                    priceEl.className = 'agenda-quickview-service-price';
+                    priceEl.textContent = s.formatted_price || (parseFloat(s.price) || 0).toFixed(2).replace('.', ',') + ' €';
+                    row.appendChild(priceEl);
+                }
                 body.appendChild(row);
 
                 // Extras associados ao serviço, cada um como uma linha própria
@@ -1327,21 +1394,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     extraRow.appendChild(extraLeft);
 
-                    var extraPriceEl = document.createElement('div');
-                    extraPriceEl.className = 'agenda-quickview-service-price';
-                    if (typeof ex.formatted_price === 'string' && ex.formatted_price.trim() !== '') {
-                        extraPriceEl.textContent = ex.formatted_price;
-                    } else if (ex.price != null) {
-                        extraPriceEl.textContent = (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €';
-                    } else {
-                        extraPriceEl.textContent = '';
+                    if (!hideQuickviewFinancials) {
+                        var extraPriceEl = document.createElement('div');
+                        extraPriceEl.className = 'agenda-quickview-service-price';
+                        if (typeof ex.formatted_price === 'string' && ex.formatted_price.trim() !== '') {
+                            extraPriceEl.textContent = ex.formatted_price;
+                        } else if (ex.price != null) {
+                            extraPriceEl.textContent = (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €';
+                        } else {
+                            extraPriceEl.textContent = '';
+                        }
+                        extraRow.appendChild(extraPriceEl);
                     }
-                    extraRow.appendChild(extraPriceEl);
 
                     body.appendChild(extraRow);
                 });
             });
 
+            if (!hideQuickviewFinancials) {
             quickviewFees.forEach(function(f) {
                 var feeRow = document.createElement('div');
                 feeRow.className = 'agenda-quickview-service-row agenda-quickview-fee-row';
@@ -1359,6 +1429,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 feeRow.appendChild(feePriceEl);
                 body.appendChild(feeRow);
             });
+            }
         } else {
             var serviceName = (ext.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             if (serviceName || userName) {
@@ -1381,7 +1452,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     left.appendChild(meta);
                 }
                 row.appendChild(left);
-                if (totalPriceStr) {
+                if (totalPriceStr && !hideQuickviewFinancials) {
                     var priceEl = document.createElement('div');
                     priceEl.className = 'agenda-quickview-service-price';
                     priceEl.textContent = totalPriceStr;
@@ -1391,7 +1462,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        if (!isTempoPessoal) {
+        if (!isTempoPessoal && !hideQuickviewFinancials) {
             var totalRow = document.createElement('div');
             totalRow.className = 'agenda-quickview-service-row';
             totalRow.style.marginTop = '0.5rem';
@@ -1836,6 +1907,42 @@ document.addEventListener('DOMContentLoaded', function() {
     var paymentModalInvoiceOnlyAmount = null;
     var eventDetailSameDayPayable = null;
 
+    function paymentModalStripePaymentsEnabled() {
+        return C.onlineBookingPaymentRequired !== false;
+    }
+
+    function paymentModalManualPaymentMethodValues() {
+        return ['dinheiro', 'mbway', 'transferencia'];
+    }
+
+    function paymentModalIsManualPaymentMethod(method) {
+        return paymentModalManualPaymentMethodValues().indexOf(String(method || '').trim()) >= 0;
+    }
+
+    function paymentModalSyncMbwayPhoneVisibility(method) {
+        var phoneWrap = $id('paymentMbwayPhoneWrap');
+        if (!phoneWrap) return;
+        var show = String(method || '').trim() === 'mbway' && paymentModalStripePaymentsEnabled();
+        phoneWrap.classList.toggle('d-none', !show);
+    }
+
+    function paymentModalSyncManualPaymentTilesVisibility() {
+        var transferBtn = $id('paymentMethodTransferenciaBtn');
+        var manual = !paymentModalStripePaymentsEnabled();
+        if (transferBtn) {
+            transferBtn.classList.toggle('d-none', !manual);
+        }
+        var pmv = $id('paymentMethodValue');
+        var method = pmv ? String(pmv.value || '').trim() : '';
+        if (transferBtn && method === 'transferencia' && !manual) {
+            pmv.value = '';
+            transferBtn.classList.remove('active');
+            transferBtn.setAttribute('aria-pressed', 'false');
+            method = '';
+        }
+        paymentModalSyncMbwayPhoneVisibility(method);
+    }
+
     function paymentModalIsReserva() {
         return paymentModalMode === 'reserva';
     }
@@ -1985,6 +2092,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalSyncReservaWalletUi();
         paymentModalSyncCartaoTileVisibility();
         paymentModalSyncCreditosTileVisibility();
+        paymentModalSyncManualPaymentTilesVisibility();
     }
 
     function paymentModalCreditosButtonLabel() {
@@ -2204,7 +2312,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var subtitle = $id('paymentMethodCartaoSubtitle');
         if (!cartaoBtn) return;
         var cards = paymentModalSavedCards || [];
-        var showCard = !paymentModalIsInvoiceOnly() && !paymentModalIsFinalizeDraft() && cards.length > 0;
+        var showCard = paymentModalStripePaymentsEnabled()
+            && !paymentModalIsInvoiceOnly()
+            && !paymentModalIsFinalizeDraft()
+            && cards.length > 0;
         cartaoBtn.classList.toggle('d-none', !showCard);
         if (subtitle) {
             if (showCard) {
@@ -2319,11 +2430,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var phoneInput = $id('paymentMbwayPhone');
         if (phoneWrap && phoneInput) {
             phoneWrap.classList.add('d-none');
-            var rawPhone = '';
-            if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
-                rawPhone = String(eventDetailSelectedClient.phone || '');
+            if (paymentModalStripePaymentsEnabled()) {
+                var rawPhone = '';
+                if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
+                    rawPhone = String(eventDetailSelectedClient.phone || '');
+                }
+                phoneInput.value = rawPhone;
             }
-            phoneInput.value = rawPhone;
         }
         var customIn = $id('paymentReservaCustomAmount');
         if (customIn) customIn.value = '';
@@ -2334,15 +2447,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         paymentModalUpdateReservaHero();
         paymentModalFetchWalletBalance(function() {
-            paymentModalFetchSavedCards(function() {
+            var afterCards = function() {
                 paymentModalFetchDepositPreview(function() {
                     if (paymentModalReservaPreview && paymentModalReservaPreview.can_collect === false) {
                         showToast('Não é possível cobrar o pré-pagamento nesta marcação.', 'warning');
                     }
+                    paymentModalSyncManualPaymentTilesVisibility();
                     bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
                     paymentModalSetPayButtonEnabled();
                 });
-            });
+            };
+            if (paymentModalStripePaymentsEnabled()) {
+                paymentModalFetchSavedCards(afterCards);
+            } else {
+                paymentModalSavedCards = [];
+                paymentModalSelectedSavedCardId = null;
+                paymentModalSyncCartaoTileVisibility();
+                afterCards();
+            }
         });
     }
 
@@ -2388,6 +2510,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 paymentModalPopulateClientHero();
                 paymentModalInitInvoiceDelivery();
                 paymentModalUpdateTotals();
+                paymentModalSyncManualPaymentTilesVisibility();
                 bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
                 paymentModalSetPayButtonEnabled();
             })
@@ -2600,6 +2723,11 @@ document.addEventListener('DOMContentLoaded', function() {
         function syncEventDetailFaturaButtons() {
         var wrap = $id('eventDetailFaturasWrap');
         if (!wrap) return;
+        if (!canViewInvoices) {
+            wrap.innerHTML = '';
+            wrap.classList.add('d-none');
+            return;
+        }
         wrap.innerHTML = '';
         var activeCaixa = eventDetailCurrentData && eventDetailCurrentData.active_caixa_sale;
         var list = eventDetailBuildFaturaMenuList();
@@ -2926,6 +3054,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
+        var offcanvasFooter = $id('eventDetailOffcanvasFooter');
+        if (offcanvasFooter) {
+            offcanvasFooter.classList.toggle('d-none', isPrestadorStaff);
+        }
+        var paymentsUiEnabled = canProcessPayments;
+        var paymentWrap = $id('eventDetailPaymentWrap');
+        if (paymentWrap) {
+            paymentWrap.classList.toggle('d-none', !paymentsUiEnabled);
+        }
+        if (!paymentsUiEnabled) {
+            ['eventDetailPaymentBtn', 'eventDetailPaymentDropup', 'eventDetailReservaBtn', 'eventDetailOpenCashRegisterBtn', 'eventDetailPagoBadge'].forEach(function(btnId) {
+                var el = $id(btnId);
+                if (el) el.classList.add('d-none');
+            });
+            var faturasWrapEarly = $id('eventDetailFaturasWrap');
+            if (faturasWrapEarly) {
+                faturasWrapEarly.innerHTML = '';
+                faturasWrapEarly.classList.add('d-none');
+            }
+        }
         var payBtn = $id('eventDetailPaymentBtn');
         var payDropup = $id('eventDetailPaymentDropup');
         var payAllHint = $id('eventDetailPayAllHint');
@@ -2960,7 +3108,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var hasSameDayOptions = showPayBtn && sameDayOthers.length > 0 && !isFaturar;
         var pagoBadge = $id('eventDetailPagoBadge');
         if (payBtn) {
-            payBtn.classList.toggle('d-none', !showPayBtn || hasSameDayOptions);
+            payBtn.classList.toggle('d-none', !paymentsUiEnabled || !showPayBtn || hasSameDayOptions);
             payBtn.textContent = isFaturar ? 'Faturar' : 'Pagamento';
             payBtn.disabled = showPayBtn && !cashRegisterOpen && !isFaturar;
             if (showPayBtn && !cashRegisterOpen && !isFaturar) {
@@ -2972,7 +3120,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         if (payDropup) {
-            payDropup.classList.toggle('d-none', !hasSameDayOptions);
+            payDropup.classList.toggle('d-none', !paymentsUiEnabled || !hasSameDayOptions);
         }
         var payDropupToggle = $id('eventDetailPaymentDropupToggle');
         if (payDropupToggle) {
@@ -3001,7 +3149,7 @@ document.addEventListener('DOMContentLoaded', function() {
             payAllAmount.textContent = '...';
         }
         if (pagoBadge) {
-            pagoBadge.classList.toggle('d-none', !showPagoBadge);
+            pagoBadge.classList.toggle('d-none', !paymentsUiEnabled || !showPagoBadge);
         }
         var canShowReserva = false;
         if (reservaBtn) {
@@ -3026,7 +3174,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     canShowReserva = !hasReservaSale && bookingPaid + 0.00001 < subtotal;
                 }
             }
-            reservaBtn.classList.toggle('d-none', !canShowReserva);
+            reservaBtn.classList.toggle('d-none', !paymentsUiEnabled || !canShowReserva);
             var unsaved = !eventId;
             var cashRegisterOpen = agendaCashRegisterOpenFromData(eventDetailCurrentData);
             reservaBtn.disabled = unsaved || hideSaveClose || (canShowReserva && !cashRegisterOpen);
@@ -3046,9 +3194,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 && !hideSaveClose
                 && !paymentBlockedStatus
                 && (showPayBtn || canShowReserva);
-            openCashBtn.classList.toggle('d-none', !showOpenCashShortcut);
+            openCashBtn.classList.toggle('d-none', !paymentsUiEnabled || !showOpenCashShortcut);
         }
-        if (hasSameDayOptions) {
+        if (hasSameDayOptions && paymentsUiEnabled) {
             refreshPayAllAmountFromCheckoutPreview();
         }
         syncEventDetailFaturaButtons();
@@ -3074,15 +3222,16 @@ document.addEventListener('DOMContentLoaded', function() {
         var ocClientProfile = $id('eventDetailOcClientProfileLink');
         var ocClientTabs = $id('eventDetailOcClientTabs');
         var ocNotSel = $id('eventDetailOcClientNotSelectedWrap');
+        var lockMarcacaoClient = eventDetailMarcacaoClientLocked();
         if (statusWrap) statusWrap.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
         if (observacoes) observacoes.disabled = lockServicesExceptNif;
         if (addMoreBtn) { addMoreBtn.disabled = lockServicesExceptNif; addMoreBtn.style.display = lockServicesExceptNif ? 'none' : ''; }
         if (addMoreWrap) addMoreWrap.style.display = lockServicesExceptNif ? 'none' : '';
-        if (ocMember) ocMember.disabled = lockServicesExceptNif;
+        if (ocMember) ocMember.disabled = lockServicesExceptNif || !canReassignMarcacao;
         if (ocDate) ocDate.disabled = lockServicesExceptNif;
         if (ocTime) ocTime.disabled = lockServicesExceptNif;
         if (eventDetailOcChoicesInstances.member && typeof eventDetailOcChoicesInstances.member.disable === 'function') {
-            if (lockServicesExceptNif) {
+            if (lockServicesExceptNif || !canReassignMarcacao) {
                 eventDetailOcChoicesInstances.member.disable();
             } else if (typeof eventDetailOcChoicesInstances.member.enable === 'function') {
                 eventDetailOcChoicesInstances.member.enable();
@@ -3103,8 +3252,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         if (ocMember && ocMember.nextElementSibling && ocMember.nextElementSibling.classList && ocMember.nextElementSibling.classList.contains('choices')) {
-            ocMember.nextElementSibling.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
-            ocMember.nextElementSibling.style.opacity = lockServicesExceptNif ? '0.7' : '';
+            ocMember.nextElementSibling.style.pointerEvents = (lockServicesExceptNif || !canReassignMarcacao) ? 'none' : '';
+            ocMember.nextElementSibling.style.opacity = (lockServicesExceptNif || !canReassignMarcacao) ? '0.7' : '';
         }
         if (ocTime && ocTime.nextElementSibling && ocTime.nextElementSibling.classList && ocTime.nextElementSibling.classList.contains('choices')) {
             ocTime.nextElementSibling.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
@@ -3124,15 +3273,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         if (ocServiceWrap) ocServiceWrap.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
-        if (ocClientEdit) ocClientEdit.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
-        if (ocClientCancelEdit) ocClientCancelEdit.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
+        if (ocClientEdit) {
+            ocClientEdit.classList.toggle('d-none', lockMarcacaoClient);
+            ocClientEdit.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
+        }
+        if (ocClientCancelEdit) {
+            ocClientCancelEdit.classList.toggle('d-none', lockMarcacaoClient);
+            ocClientCancelEdit.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
+        }
         if (ocClientNifEdit) ocClientNifEdit.style.pointerEvents = lockNifRow ? 'none' : '';
         if (ocClientNifInput) ocClientNifInput.disabled = lockNifRow;
         if (ocClientNifSave) ocClientNifSave.disabled = lockNifRow;
         if (ocClientNifCancel) ocClientNifCancel.disabled = lockNifRow;
         if (ocClientProfile) ocClientProfile.style.pointerEvents = '';
-        if (ocClientTabs) ocClientTabs.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
-        if (ocNotSel) ocNotSel.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
+        if (ocClientTabs) ocClientTabs.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
+        if (ocNotSel) ocNotSel.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
         var selectedList = $id('eventDetailOcSelectedServicesList');
         if (selectedList) selectedList.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
         var editModal = $id('eventDetailEditModal');
@@ -3191,6 +3346,70 @@ document.addEventListener('DOMContentLoaded', function() {
                     return acc + Math.max(0, parseFloat(row.amount_due) || 0);
                 }, 0);
                 payAllAmount.textContent = eventDetailMoney(totalAllDue);
+            });
+    }
+
+    function agendaOcCaptureSubmitDefaultHtml() {
+        var btn = $id('agendaOcSubmit');
+        if (btn && !agendaOcSubmitDefaultHtml) {
+            agendaOcSubmitDefaultHtml = btn.innerHTML;
+        }
+    }
+
+    function agendaOcReleaseSubmitButton() {
+        var btn = $id('agendaOcSubmit');
+        if (!btn) return;
+        agendaOcCaptureSubmitDefaultHtml();
+        btn.disabled = false;
+        btn.innerHTML = agendaOcSubmitDefaultHtml || 'Criar marcação';
+    }
+
+    function openMarcacaoDetailOffcanvas(eventId, options) {
+        options = options || {};
+        if (!eventId || eventDetailModalLoading) {
+            if (typeof options.onDetailOffcanvasFailed === 'function') {
+                options.onDetailOffcanvasFailed();
+            }
+            return;
+        }
+        eventDetailModalLoading = true;
+        fetch((C.urlEvents || '') + '/' + encodeURIComponent(String(eventId)), {
+            headers: { 'Accept': 'application/json' }
+        })
+            .then(function(r) {
+                if (!r.ok) throw new Error('Evento não encontrado');
+                return r.json();
+            })
+            .then(function(data) {
+                if (options.hideCreateOffcanvas) {
+                    bootstrap.Offcanvas.getInstance($id('agendaMarcacaoTestOffcanvas'))?.hide();
+                }
+                if (data.event_type === 'tempo_pessoal') {
+                    populateTempoPessoalModal(data);
+                    bootstrap.Modal.getOrCreateInstance($id('tempoPessoalModal')).show();
+                    if (typeof options.onDetailOffcanvasShown === 'function') {
+                        options.onDetailOffcanvasShown();
+                    }
+                } else {
+                    populateEventDetailEditModal(data);
+                    var detailEl = $id('eventDetailEditModal');
+                    var detailOc = bootstrap.Offcanvas.getOrCreateInstance(detailEl);
+                    if (typeof options.onDetailOffcanvasShown === 'function' && detailEl) {
+                        detailEl.addEventListener('shown.bs.offcanvas', function onDetailShown() {
+                            detailEl.removeEventListener('shown.bs.offcanvas', onDetailShown);
+                            options.onDetailOffcanvasShown();
+                        });
+                    }
+                    detailOc.show();
+                }
+                eventDetailModalLoading = false;
+            })
+            .catch(function() {
+                eventDetailModalLoading = false;
+                if (typeof options.onDetailOffcanvasFailed === 'function') {
+                    options.onDetailOffcanvasFailed();
+                }
+                showToast('Erro ao carregar a marcação.', 'error');
             });
     }
 
@@ -3504,8 +3723,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var pl = $id('eventDetailOcClientProfileLink');
         if (pl) {
             pl.href = clientesBaseUrl + '/' + c.id;
-            pl.classList.remove('d-none');
+            pl.classList.toggle('d-none', !canViewClientProfile);
         }
+        applyAgendaClientPrivacyUi('eventDetailOc');
         if (c.avatar_url && av) {
             av.src = c.avatar_url;
             av.classList.remove('d-none');
@@ -3522,7 +3742,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sc) sc.classList.remove('d-none');
         var cedit = $id('eventDetailOcClientEditBtn');
         var ceditCancel = $id('eventDetailOcClientCancelEditBtn');
-        if (cedit) cedit.classList.remove('d-none');
+        if (cedit) cedit.classList.toggle('d-none', eventDetailMarcacaoClientLocked());
         if (ceditCancel) ceditCancel.classList.add('d-none');
         eventDetailOcSetNifInlineMode(false);
         eventDetailOcClientBeforeEdit = null;
@@ -3545,6 +3765,9 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcChoicesInstances.client = new Choices(clientSel, eventDetailOcClientChoicesOpts());
     }
     function eventDetailOcEnterClientSearchMode() {
+        if (eventDetailMarcacaoClientLocked()) {
+            return;
+        }
         eventDetailOcClientBeforeEdit = eventDetailSelectedClient ? Object.assign({}, eventDetailSelectedClient) : null;
         eventDetailSelectedClient = null;
         eventDetailOcClearNewClientForm();
@@ -4343,6 +4566,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        if (!canProcessPayments) {
+            reservaSummary.classList.add('d-none');
+            pagoSummary.classList.add('d-none');
+            totalMain.classList.remove('d-none');
+            var dueOnly = eventDetailEffectiveAmountDueEur();
+            var displayTotal = dueOnly > 0.00001 ? dueOnly : total;
+            var totalPriceEl = $id('eventDetailTotalPrice');
+            if (totalPriceEl) {
+                totalPriceEl.textContent = eventDetailMoney(displayTotal);
+            }
+            return;
+        }
+
         var prepagamentoPaid = eventDetailPrepagamentoPaidAmount();
         var caixaPaid = eventDetailCaixaPaidAmount();
         var invoiceSettled = !!(eventDetailCurrentData && eventDetailCurrentData.invoice_settled);
@@ -4474,6 +4710,7 @@ document.addEventListener('DOMContentLoaded', function() {
     /** Com serviços já escolhidos: se false, o select fica oculto até clicar em «Adicionar serviços». */
     var agendaOcShowServicePicker = true;
     var agendaOcTestFormBound = false;
+    var agendaOcSubmitDefaultHtml = '';
     var agendaOcDateFlatpickr = null;
     var agendaOcClientSearchTimer = null;
     var agendaOcClientRemoteSearchBound = false;
@@ -4658,8 +4895,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var pl = $id('agendaOcClientProfileLink');
         if (pl) {
             pl.href = clientesBaseUrl + '/' + c.id;
-            pl.classList.remove('d-none');
+            pl.classList.toggle('d-none', !canViewClientProfile);
         }
+        applyAgendaClientPrivacyUi('agendaOc');
         if (c.avatar_url && av) {
             av.src = c.avatar_url;
             av.classList.remove('d-none');
@@ -5168,6 +5406,7 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleOutOfHoursWarning('agendaOcHorarioAviso', false, 'agendaOcHorarioAvisoWrap');
         agendaOcDestroyTestChoices();
         agendaOcResetClientUi();
+        agendaOcReleaseSubmitButton();
 
         var startD = new Date(startStr);
         if (isNaN(startD.getTime())) {
@@ -5197,6 +5436,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (memberId) {
             memSel.value = memberId;
         }
+        lockAgendaMemberSelectIfNeeded(memSel, null);
 
         var ymd = startD.getFullYear() + '-' + String(startD.getMonth() + 1).padStart(2, '0') + '-' + String(startD.getDate()).padStart(2, '0');
         /* Hora do intervalo passado (clique na grelha); toolbar/mobile «Adicionar» já envia getClosestSlotToNow() ≈ agora. */
@@ -5453,20 +5693,32 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     })
                     .then(function(res) {
-                        btn.disabled = false;
-                        btn.innerHTML = origHtml;
                         if (res.success && res.event) {
                             if (typeof calendar !== 'undefined') {
                                 calendar.refetchEvents();
                             }
-                            bootstrap.Offcanvas.getInstance($id('agendaMarcacaoTestOffcanvas'))?.hide();
+                            var createdId = res.event.id || (res.event.extendedProps && res.event.extendedProps.id);
+                            if (createdId) {
+                                openMarcacaoDetailOffcanvas(createdId, {
+                                    hideCreateOffcanvas: true,
+                                    onDetailOffcanvasShown: function() {
+                                        agendaOcReleaseSubmitButton();
+                                    },
+                                    onDetailOffcanvasFailed: function() {
+                                        agendaOcReleaseSubmitButton();
+                                    },
+                                });
+                            } else {
+                                agendaOcReleaseSubmitButton();
+                                bootstrap.Offcanvas.getInstance($id('agendaMarcacaoTestOffcanvas'))?.hide();
+                            }
                         } else {
+                            agendaOcReleaseSubmitButton();
                             showToast(res.message || 'Erro ao criar marcação.', 'error');
                         }
                     })
                     .catch(function(err) {
-                        btn.disabled = false;
-                        btn.innerHTML = origHtml;
+                        agendaOcReleaseSubmitButton();
                         var msg = (err && err.message && String(err.message).indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação.';
                         showToast(msg, 'error');
                     });
@@ -5912,6 +6164,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!wrap) {
             return;
         }
+        if (!canProcessPayments) {
+            wrap.innerHTML = '';
+            wrap.classList.add('d-none');
+            return;
+        }
         wrap.innerHTML = '';
         var fees = eventDetailApplicableFees();
         if (!fees.length) {
@@ -6227,8 +6484,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (method === 'cartao') {
             return (paymentModalSavedCards || []).length > 0;
         }
-        if (method !== 'dinheiro' && method !== 'mbway') return false;
-        if (paymentModalIsReserva() && method === 'mbway') {
+        if (!paymentModalIsManualPaymentMethod(method)) return false;
+        if (paymentModalIsReserva() && method === 'mbway' && paymentModalStripePaymentsEnabled()) {
             var stripeDue = paymentModalGetStripeDueCents();
             if (stripeDue > 0 && stripeDue < 50) return false;
         }
@@ -6648,6 +6905,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         paymentModalFetchWalletBalance(function() {
             paymentModalFetchSavedCards(function() {
+                paymentModalSyncManualPaymentTilesVisibility();
                 bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
                 paymentModalSetPayButtonEnabled();
             });
@@ -6717,6 +6975,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (wrap) wrap.classList.add('d-none');
         if (btn) btn.setAttribute('aria-expanded', 'false');
         if (icon) icon.className = 'ph ph-caret-down';
+        paymentModalSyncManualPaymentTilesVisibility();
     });
 
     $('#paymentMethodToggleGroup').addEventListener('click', function(e) {
@@ -6730,10 +6989,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.setAttribute('aria-pressed', 'true');
         var method = card.dataset.method || '';
         $id('paymentMethodValue').value = method;
-        var phoneWrap = $id('paymentMbwayPhoneWrap');
-        if (phoneWrap) {
-            phoneWrap.classList.toggle('d-none', method !== 'mbway');
-        }
+        paymentModalSyncMbwayPhoneVisibility(method);
         if (method === 'creditos_carteira') {
             if (paymentModalIsReserva()) return;
             var dueCents = paymentModalGetAmountDueCents();
@@ -6987,7 +7243,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            if (method === 'mbway') {
+            if (method === 'mbway' && paymentModalStripePaymentsEnabled()) {
                 var mbwayPhoneInputR = $id('paymentMbwayPhone');
                 var mbwayPhoneR = mbwayPhoneInputR ? String(mbwayPhoneInputR.value || '').trim() : '';
                 fetch(paymentModalDepositUrl('agendaDepositMbwayIntentUrl', eventId), {
@@ -7088,10 +7344,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            var cashBody = Object.assign({}, depositBase);
-            if (method === 'dinheiro') {
-                cashBody.payment_method = 'dinheiro';
+            if (!paymentModalIsManualPaymentMethod(method)) {
+                paymentModalRestoreConfirmButton();
+                showToast('Selecione um meio de pagamento.', 'error');
+                return;
             }
+            var cashBody = Object.assign({ payment_method: method }, depositBase);
             fetch(paymentModalDepositUrl('agendaDepositStoreUrl', eventId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
@@ -7141,7 +7399,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Nenhum serviço para faturar.', 'error');
             return;
         }
-        if (!paymentModalIsInvoiceOnly() && method === 'mbway') {
+        if (!paymentModalIsInvoiceOnly() && method === 'mbway' && paymentModalStripePaymentsEnabled()) {
             var mbwayPhoneInput = $id('paymentMbwayPhone');
             var mbwayPhone = mbwayPhoneInput ? String(mbwayPhoneInput.value || '').trim() : '';
             fetch(C.agendaCheckoutMbwayIntentUrl || '', {
@@ -7937,6 +8195,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(failureCallback);
         },
         resourceLabelContent: function(arg) {
+            if (isPrestadorStaff) {
+                return { html: '' };
+            }
             const res = arg.resource;
             const title = agendaTechnicianFirstName(res.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             const ext = res.extendedProps || {};
@@ -9120,6 +9381,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var ev = calendar.getEventById(evEl.dataset.eventId);
         if (!ev) return;
         if (ev.extendedProps && ev.extendedProps.invoice_settled) return;
+        if (isPrestadorStaff) {
+            var quickStatus = String((ev.extendedProps && ev.extendedProps.status) || 'agendado').toLowerCase();
+            if (prestadorEditableStatuses.indexOf(quickStatus) === -1) return;
+        }
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -9942,6 +10207,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     $id('eventDetailStatusMenu').querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
+        if (isPrestadorStaff) {
+            var optStatus = opt.dataset.status || '';
+            if (optStatus === 'cancelar' || (optStatus && prestadorAllowedStatuses.indexOf(optStatus) === -1)) {
+                opt.classList.add('d-none');
+            }
+        }
         opt.addEventListener('click', function(e) {
             e.preventDefault();
             var status = this.dataset.status;

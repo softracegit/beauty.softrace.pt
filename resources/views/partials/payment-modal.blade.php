@@ -149,6 +149,10 @@
                         <i class="ph ph-device-mobile tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">MB Way</span>
                     </button>
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="transferencia" aria-pressed="false" id="paymentMethodTransferenciaBtn">
+                        <i class="ph ph-bank tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Transferência</span>
+                    </button>
                     <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="creditos_carteira" aria-pressed="false" id="paymentMethodCreditosCarteiraBtn">
                         <i class="ph ph-wallet tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">Créditos</span>

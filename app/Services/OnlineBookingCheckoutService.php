@@ -86,11 +86,21 @@ class OnlineBookingCheckoutService
      */
     public function validateBookingRequest(Request $request): array
     {
-        $request->merge($this->mergeInvoiceEmailIntoPayload($request->all()));
+        $paymentRequired = $this->onlinePaymentRequiredForServices($request->input('services', []));
+
+        if ($paymentRequired) {
+            $request->merge($this->mergeInvoiceEmailIntoPayload($request->all()));
+        }
+
         $validated = $request->validate($this->bookingRequestRules());
-        $this->enforceBookingInvoiceRules($validated);
-        if ($this->truthy($validated['want_invoice_with_nif'] ?? null)) {
-            $validated['billing_nif'] = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+
+        if ($paymentRequired) {
+            $this->enforceBookingInvoiceRules($validated);
+            if ($this->truthy($validated['want_invoice_with_nif'] ?? null)) {
+                $validated['billing_nif'] = preg_replace('/\D/', '', (string) ($validated['billing_nif'] ?? ''));
+            }
+        } else {
+            $validated = $this->stripBookingInvoiceOptions($validated);
         }
 
         return $validated;
@@ -143,6 +153,38 @@ class OnlineBookingCheckoutService
                 'billing_nif' => [__('booking.validation.billing_nif_digits')],
             ]);
         }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>|mixed  $servicesInput
+     */
+    private function onlinePaymentRequiredForServices(mixed $servicesInput): bool
+    {
+        if (! is_array($servicesInput) || $servicesInput === []) {
+            return true;
+        }
+
+        try {
+            return CrmSetting::onlineBookingPaymentRequired($this->storeIdFromBookingServices($servicesInput));
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function stripBookingInvoiceOptions(array $validated): array
+    {
+        unset(
+            $validated['send_invoice_email'],
+            $validated['want_invoice_with_nif'],
+            $validated['invoice_email'],
+            $validated['billing_nif'],
+        );
+
+        return $validated;
     }
 
     private function truthy(mixed $value): bool

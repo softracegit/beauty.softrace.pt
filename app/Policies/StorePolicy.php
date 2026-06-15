@@ -25,6 +25,6 @@ class StorePolicy
      */
     public function switchTo(User $user, Store $store): bool
     {
-        return $this->view($user, $store);
+        return $user->canSwitchStore() && $this->view($user, $store);
     }
 }

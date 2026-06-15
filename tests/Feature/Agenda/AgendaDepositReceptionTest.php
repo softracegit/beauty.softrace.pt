@@ -10,6 +10,7 @@ use App\Models\CalendarEventService;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\ClientWalletTransaction;
+use App\Models\CrmSetting;
 use App\Models\Organization;
 use App\Models\Sale;
 use App\Models\Service;
@@ -159,6 +160,56 @@ class AgendaDepositReceptionTest extends TestCase
             'calendar_event_id' => $fixture['event']->id,
             'scope' => Sale::SCOPE_BOOKING_RESERVA,
             'payment_method' => Sale::PAYMENT_DINHEIRO,
+            'valor_pago' => 10.0,
+            'status' => Sale::STATUS_PAGO,
+        ]);
+    }
+
+    public function test_manual_mbway_deposit_when_online_payments_disabled(): void
+    {
+        Config::set('booking.deposit_percent', 20);
+        $fixture = $this->agendaDepositFixture(50.0);
+        CrmSetting::setBool(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, false, $fixture['store']->id);
+
+        $this->actingAs($fixture['staff'])
+            ->withSession([SetCurrentStore::SESSION_KEY => $fixture['store']->id])
+            ->postJson(route('agenda.deposit.store', $fixture['event']), [
+                'payment_method' => Sale::PAYMENT_MBWAY,
+                'invoice_fiscal_mode' => 'consumer',
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('deposit_amount', 10);
+
+        $this->assertDatabaseHas('sales', [
+            'calendar_event_id' => $fixture['event']->id,
+            'scope' => Sale::SCOPE_BOOKING_RESERVA,
+            'payment_method' => Sale::PAYMENT_MBWAY,
+            'valor_pago' => 10.0,
+            'status' => Sale::STATUS_PAGO,
+        ]);
+    }
+
+    public function test_manual_transferencia_deposit_when_online_payments_disabled(): void
+    {
+        Config::set('booking.deposit_percent', 20);
+        $fixture = $this->agendaDepositFixture(50.0);
+        CrmSetting::setBool(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, false, $fixture['store']->id);
+
+        $this->actingAs($fixture['staff'])
+            ->withSession([SetCurrentStore::SESSION_KEY => $fixture['store']->id])
+            ->postJson(route('agenda.deposit.store', $fixture['event']), [
+                'payment_method' => Sale::PAYMENT_TRANSFERENCIA,
+                'invoice_fiscal_mode' => 'consumer',
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('deposit_amount', 10);
+
+        $this->assertDatabaseHas('sales', [
+            'calendar_event_id' => $fixture['event']->id,
+            'scope' => Sale::SCOPE_BOOKING_RESERVA,
+            'payment_method' => Sale::PAYMENT_TRANSFERENCIA,
             'valor_pago' => 10.0,
             'status' => Sale::STATUS_PAGO,
         ]);

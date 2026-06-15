@@ -272,16 +272,16 @@
                     <div class="mb-3">
                         <label for="tempoPessoalMembro" class="form-label">Membro</label>
                         <select class="form-select" id="tempoPessoalMembro" name="user_id">
-                            @if(auth()->user()->role === \App\Models\User::ROLE_ADMIN)
+                            @if(auth()->user()->isAdmin() || auth()->user()->isRececao())
                                 <option value="">Selecionar membro</option>
+                                @foreach($users as $u)
+                                    @if($u->id !== auth()->id() && $u->role !== \App\Models\User::ROLE_ADMIN)
+                                        <option value="{{ $u->id }}">{{ $u->name }}</option>
+                                    @endif
+                                @endforeach
                             @else
-                                <option value="">Eu ({{ auth()->user()->name }})</option>
+                                <option value="{{ auth()->id() }}">{{ auth()->user()->name }}</option>
                             @endif
-                            @foreach($users as $u)
-                                @if($u->id !== auth()->id() && $u->role !== \App\Models\User::ROLE_ADMIN)
-                                    <option value="{{ $u->id }}">{{ $u->name }}</option>
-                                @endif
-                            @endforeach
                         </select>
                     </div>
                     <div class="mb-3">
@@ -551,7 +551,7 @@
             </div>
         </form>
     </div>
-    <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch">
+    <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch @if(auth()->user()->isPrestador()) d-none @endif" id="eventDetailOffcanvasFooter">
         <div class="d-flex align-items-center pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
             <div class="event-detail-total-line flex-grow-1 min-w-0" id="eventDetailTotalLeft">
                 <span class="event-detail-total-line__part" id="eventDetailTotalMain">
@@ -613,6 +613,17 @@
 
 @php
     $me = auth()->user();
+    $agendaPermissions = [
+        'isPrestador' => $me->isPrestador(),
+        'canProcessPayments' => $me->canProcessPayments(),
+        'canViewClientContacts' => $me->canViewClientContactDetails(),
+        'canViewClientProfile' => $me->canViewClientProfile(),
+        'canViewInvoices' => $me->canViewInvoices(),
+        'canReassignMarcacao' => $me->canReassignMarcacao(),
+        'canChangeMarcacaoClient' => $me->canChangeMarcacaoClient(),
+        'prestadorAllowedStatuses' => $me->prestadorAllowedMarcacaoStatuses(),
+        'prestadorEditableStatuses' => $me->prestadorEditableMarcacaoStatuses(),
+    ];
     $agendaEventsBase = rtrim(url('agenda/events'), '/');
     $agendaClientsBase = rtrim(url('agenda/clients'), '/');
     $usersForConsultant = ($users ?? collect())->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()->all();
@@ -631,6 +642,7 @@ window.AGENDA_CONFIG = {
     resourcesUrl: @json(route('agenda.resources')),
     clientesBaseUrl: @json(url('clientes')),
     currentUserIsAdmin: @json(auth()->user()->role === \App\Models\User::ROLE_ADMIN),
+    permissions: @json($agendaPermissions),
     authId: @json(auth()->id()),
     authName: @json(auth()->user()->name ?? 'Eu'),
     authEmail: @json(auth()->user()->email ?? ''),
@@ -661,6 +673,7 @@ window.AGENDA_CONFIG = {
     agendaSlotMin: @json($agendaSlotMin ?? '09:00'),
     agendaSlotMax: @json($agendaSlotMax ?? '20:00'),
     cashRegisterOpen: @json($cashRegisterOpen ?? false),
+    onlineBookingPaymentRequired: @json($onlineBookingPaymentRequired ?? true),
 };
 </script>
 <script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>

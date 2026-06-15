@@ -192,6 +192,17 @@ class CrmSetting extends Model
     {
         $hours = self::bookingCancellationNoticeHours($storeId);
         $notice = self::bookingCancellationNoticeHoursLabel($hours);
+        $paymentRequired = self::onlineBookingPaymentRequired($storeId);
+
+        if (! $paymentRequired) {
+            if ($hours <= 0) {
+                return 'Pode cancelar '.$notice.'.';
+            }
+
+            return 'As marcações só podem ser canceladas online com um aviso prévio de '
+                .$notice
+                .' em relação à hora da marcação.';
+        }
 
         if ($hours <= 0) {
             return 'Pode cancelar '.$notice.'. Fora deste momento, o pré-pagamento online não é devolvido (nem em dinheiro nem em créditos).';

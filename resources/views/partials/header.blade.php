@@ -1,8 +1,11 @@
 <!-- Header -->
+@php
+  $navUser = auth()->user();
+@endphp
 <header class="header">
   <!-- Header Left -->
   <div class="header-left">
-    <a href="{{ route('dashboard') }}" class="header-logo">
+    <a href="{{ route($navUser->backofficeHomeRoute()) }}" class="header-logo">
       <img src="{{ asset('template/img/logo-color-icon.png') }}" alt="{{ config('app.name') }}">
       <span>{{ config('app.name') }}</span>
     </a>
@@ -19,12 +22,14 @@
           <h6>Acesso rápido</h6>
         </div>
         <div class="quickaccess-grid">
+          @if($navUser->canAccessDashboard())
           <a href="{{ route('dashboard') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
               <i class="ph ph-house"></i>
             </span>
             <span class="quickaccess-label">Dashboard</span>
           </a>
+          @endif
           <a href="{{ route('agenda.index') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
               <i class="ph ph-calendar-blank"></i>
@@ -37,24 +42,31 @@
             </span>
             <span class="quickaccess-label">Nova marcação</span>
           </a>
+          @if($navUser->canAccessClientes())
           <a href="{{ route('clientes.index') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
               <i class="ph ph-smiley"></i>
             </span>
             <span class="quickaccess-label">Clientes</span>
           </a>
+          @endif
+          @if($navUser->canAccessCatalog())
           <a href="{{ route('services.index') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
               <i class="ph ph-book-open"></i>
             </span>
             <span class="quickaccess-label">Serviços</span>
           </a>
+          @endif
+          @if($navUser->canAccessEquipa())
           <a href="{{ route('equipa.index') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
               <i class="ph ph-users"></i>
             </span>
             <span class="quickaccess-label">Equipa</span>
           </a>
+          @endif
+          @if($navUser->canAccessRelatorios())
           <a href="{{ route('relatorios.vendas') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
               <i class="ph ph-chart-line-up"></i>
@@ -67,10 +79,12 @@
             </span>
             <span class="quickaccess-label">Marcações</span>
           </a>
+          @endif
         </div>
       </div>
     </div>
     @isset($activeStore, $selectableStores)
+    @if($navUser->canSwitchStore())
     <div class="header-action dropdown store-selector-dropdown">
       <button
         class="dropdown-toggle d-inline-flex align-items-center gap-1"
@@ -108,6 +122,7 @@
         @endif
       </div>
     </div>
+    @endif
     @endisset
     @if(!empty($cashRegisterCanManage))
     @php
@@ -259,7 +274,7 @@
       <span class="mobile-menu-label">Ecrã inteiro</span>
     </button>
     @isset($activeStore, $selectableStores)
-      @if ($selectableStores->count() > 1)
+      @if ($navUser->canSwitchStore() && $selectableStores->count() > 1)
         <div class="px-3 pt-2 pb-0 small text-muted text-uppercase">Loja</div>
         @foreach ($selectableStores as $store)
           @if ((int) $store->id === (int) $activeStore->id)

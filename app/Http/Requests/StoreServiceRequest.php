@@ -56,7 +56,7 @@ class StoreServiceRequest extends FormRequest
                         ->whereIn('user_id', function ($q): void {
                             $q->select('id')
                                 ->from((new User)->getTable())
-                                ->whereIn('role', [User::ROLE_PRESTADOR, User::ROLE_TECNICO]);
+                                ->whereIn('role', User::serviceProviderRoles());
                         });
                 }),
             ],

@@ -1,6 +1,7 @@
 @php
     $previewUrl = $bookingCancellationPreviewUrl
         ?? route('booking.cancellation.preview', ['store' => $bookingStoreSlug ?? \App\Models\Store::defaultPublicBookingStoreSlug()]);
+    $onlineBookingPaymentRequired = $onlineBookingPaymentRequired ?? true;
 @endphp
 
 <div
@@ -10,7 +11,9 @@
     aria-live="polite"
 >
     <div id="booking-cancel-policy-empty" class="booking-cancel-policy__empty small text-muted">
-        {{ __('booking.js.cancellation_select_datetime') }}
+        {{ ($onlineBookingPaymentRequired ?? true)
+            ? __('booking.js.cancellation_select_datetime')
+            : __('booking.js.cancellation_select_datetime_no_payment') }}
     </div>
 
     <div id="booking-cancel-policy-timeline" class="booking-cancel-policy__timeline d-none">

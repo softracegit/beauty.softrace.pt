@@ -58,12 +58,14 @@ class User extends Authenticatable
     // Roles (Tipo de Membro - focado em serviços: nails, barbeiros, pets, etc.)
     public const ROLE_ADMIN = 'admin';
 
+    /** @deprecated Migrado para {@see ROLE_ADMIN} */
     public const ROLE_GERENTE = 'gerente';
 
     public const ROLE_RECECAO = 'rececao';
 
     public const ROLE_PRESTADOR = 'prestador';
 
+    /** @deprecated Migrado para {@see ROLE_PRESTADOR} */
     public const ROLE_TECNICO = 'tecnico';
 
     /** Conta de cliente para marcação online (magic link / password opcional). */
@@ -74,18 +76,45 @@ class User extends Authenticatable
 
     public static function roles(): array
     {
-        return [
-            self::ROLE_ADMIN => 'Administrador',
-            self::ROLE_GERENTE => 'Gerente',
-            self::ROLE_RECECAO => 'Receção',
-            self::ROLE_PRESTADOR => 'Prestador(a) de Serviços',
-            self::ROLE_TECNICO => 'Técnico(a)',
+        return self::staffAssignableRoles() + [
             self::ROLE_CLIENTE => 'Cliente (marcação online)',
         ];
     }
 
+    /** Tipos de membro atribuíveis manualmente na ficha de equipa. */
+    public static function staffAssignableRoles(): array
+    {
+        return [
+            self::ROLE_ADMIN => 'Administrador',
+            self::ROLE_RECECAO => 'Receção',
+            self::ROLE_PRESTADOR => 'Prestador(a) de Serviços',
+        ];
+    }
+
+    public static function roleLabel(?string $role): string
+    {
+        if ($role === null || $role === '') {
+            return '—';
+        }
+
+        return self::roles()[$role]
+            ?? match ($role) {
+                self::ROLE_GERENTE => 'Administrador',
+                self::ROLE_TECNICO => 'Prestador(a) de Serviços',
+                default => ucfirst(str_replace('_', ' ', $role)),
+            };
+    }
+
     /** Tipos de membro em que o campo Especialização se aplica. */
     public static function rolesWithSpecialization(): array
+    {
+        return [
+            self::ROLE_PRESTADOR,
+        ];
+    }
+
+    /** Papéis de prestador de serviços (inclui legado técnico). */
+    public static function serviceProviderRoles(): array
     {
         return [
             self::ROLE_PRESTADOR,
@@ -189,8 +218,18 @@ class User extends Authenticatable
         return $this->hasRole(self::ROLE_ADMIN);
     }
 
+    public function isRececao(): bool
+    {
+        return $this->hasRole(self::ROLE_RECECAO);
+    }
+
+    public function isPrestador(): bool
+    {
+        return in_array($this->role, self::serviceProviderRoles(), true);
+    }
+
     /**
-     * Check if user is gerente (manager)
+     * @deprecated Gerente foi removido; mantido para compatibilidade com dados antigos.
      */
     public function isGerente(): bool
     {
@@ -198,19 +237,152 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is diretor (legacy alias: gerente)
+     * @deprecated Alias legado de gerente.
      */
     public function isDiretor(): bool
     {
         return $this->isGerente();
     }
 
-    /**
-     * Check if user can manage agents/members
-     */
     public function canManageAgents(): bool
     {
-        return $this->isAdmin() || $this->isGerente();
+        return $this->isAdmin();
+    }
+
+    public function canViewAllAgenda(): bool
+    {
+        return $this->isAdmin() || $this->isRececao();
+    }
+
+    public function canManageCashRegister(): bool
+    {
+        return $this->isAdmin() || $this->isRececao();
+    }
+
+    public function canSwitchStore(): bool
+    {
+        return ! $this->isPrestador() && ! $this->isRececao();
+    }
+
+    public function canProcessPayments(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    public function canViewClientContactDetails(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    public function canViewClientProfile(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    public function canViewInvoices(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    public function canReassignMarcacao(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    /** Prestador não pode trocar o cliente numa marcação já existente. */
+    public function canChangeMarcacaoClient(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    /** Estados que o prestador pode definir numa marcação. */
+    public function prestadorAllowedMarcacaoStatuses(): array
+    {
+        return ['chegou', 'iniciado'];
+    }
+
+    /** Estados em que o prestador pode editar o conteúdo da marcação (serviços, extras, etc.). */
+    public function prestadorEditableMarcacaoStatuses(): array
+    {
+        return ['agendado', 'notificado', 'confirmado', 'chegou', 'iniciado'];
+    }
+
+    public function canAccessDashboard(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    public function canAccessClientes(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    public function canAccessCatalog(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canAccessMarketing(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
+    public function canAccessEquipa(): bool
+    {
+        return $this->canManageAgents();
+    }
+
+    public function canAccessRelatorios(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canAccessDefinicoes(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function backofficeHomeRoute(): string
+    {
+        return $this->isPrestador() ? 'agenda.index' : 'dashboard';
+    }
+
+    /**
+     * Rotas de página do backoffice acessíveis (recepção tem restrições; prestador só agenda).
+     */
+    public function canAccessRoute(string $routeName): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->isPrestador()) {
+            return str_starts_with($routeName, 'agenda.')
+                || str_starts_with($routeName, 'notifications.');
+        }
+
+        if ($this->isRececao()) {
+            $deniedPrefixes = [
+                'definicoes.',
+                'relatorios.',
+                'activity.',
+                'equipa.',
+                'services.',
+                'categories.',
+                'extras.',
+                'fees.',
+            ];
+
+            foreach ($deniedPrefixes as $prefix) {
+                if (str_starts_with($routeName, $prefix)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return true;
     }
 
     /**

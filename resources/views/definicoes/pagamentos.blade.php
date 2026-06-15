@@ -41,8 +41,9 @@
           <div class="flex-grow-1" style="max-width: 36rem;">
             <div class="fw-semibold mb-1">Pagamento nas marcações online</div>
             <p class="small text-muted mb-0">
-              Quando está desligado, o passo de pagamento não aparece e a marcação fica confirmada após os dados de contacto
-              (o cliente paga na loja, se aplicável).
+              Quando está ligado, o site público e a agenda usam Stripe (cartão e MB WAY automático).
+              Quando está desligado, o passo de pagamento e as opções de fatura no site não aparecem; na agenda os pagamentos são manuais
+              (dinheiro, transferência ou MB WAY registado apenas como controlo interno).
             </p>
           </div>
           <div class="form-check form-switch m-0">

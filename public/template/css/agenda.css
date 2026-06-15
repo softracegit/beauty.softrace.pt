@@ -1326,6 +1326,10 @@ body.page-agenda .app-wrapper .container-fluid {
     padding-bottom: 0 !important;
     text-align: center !important;
 }
+.agenda-calendar--prestador.fc-resourceTimeGridDay-view .fc-scrollgrid-section-header,
+.agenda-calendar--prestador .fc-resourceTimeGridDay-view .fc-scrollgrid-section-header {
+    display: none !important;
+}
 
 .fc th {
     text-align: center !important;

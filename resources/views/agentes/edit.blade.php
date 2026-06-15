@@ -129,7 +129,7 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Tipo de Membro <span class="text-danger">*</span></label>
                                 <select name="role" class="form-select @error('role') is-invalid @enderror" required>
-                                    @foreach(\App\Models\User::roles() as $value => $label)
+                                    @foreach(\App\Models\User::staffAssignableRoles() as $value => $label)
                                         <option value="{{ $value }}" {{ old('role', $agente->user->role ?? 'prestador') == $value ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>

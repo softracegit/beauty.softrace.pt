@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'has.agent' => \App\Http\Middleware\EnsureUserHasAgent::class,
             'set.current.store' => \App\Http\Middleware\SetCurrentStore::class,
             'cash.register.open' => \App\Http\Middleware\EnsureCashRegisterOpen::class,
+            'backoffice.access' => \App\Http\Middleware\EnsureBackofficeAccess::class,
             'super.admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'booking' => \App\Http\Middleware\BookingContext::class,
             'booking.locale' => \App\Http\Middleware\SetBookingLocale::class,
@@ -39,6 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->redirectUsersTo(function (Request $request) {
             $user = $request->user();
+            if ($user instanceof User && $user->isPrestador()) {
+                return route('agenda.index');
+            }
             if ($user instanceof User && $user->isBookingClient()) {
                 return route('booking.index', [
                     'store' => $user->bookingPublicHomeStoreSlug(),

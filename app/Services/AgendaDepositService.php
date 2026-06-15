@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\BookingSavedCard;
 use App\Models\CalendarEvent;
 use App\Models\Client;
+use App\Models\CrmSetting;
 use App\Models\ClientWalletTransaction;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -190,8 +191,11 @@ class AgendaDepositService
 
         $paymentMethod = (string) ($options['payment_method'] ?? '');
         if ($stripePortionCents > 0) {
-            if ($paymentMethod !== Sale::PAYMENT_DINHEIRO) {
-                throw new AgendaDepositException('Para o valor em falta após créditos, use dinheiro, MB WAY ou cartão guardado.');
+            if ($paymentMethod === Sale::PAYMENT_MBWAY && CrmSetting::onlineBookingPaymentRequired((int) $calendarEvent->store_id)) {
+                throw new AgendaDepositException('MB WAY automático requer pagamentos online ativos. Use cartão guardado ou desative pagamentos Stripe nas definições para MB WAY manual.');
+            }
+            if (! in_array($paymentMethod, [Sale::PAYMENT_DINHEIRO, Sale::PAYMENT_MBWAY, Sale::PAYMENT_TRANSFERENCIA], true)) {
+                throw new AgendaDepositException('Para o valor em falta após créditos, use dinheiro, MB WAY ou transferência.');
             }
         } elseif ($walletApplyCents <= 0) {
             throw new AgendaDepositException('Indique créditos da carteira ou um método de pagamento.');
@@ -207,7 +211,7 @@ class AgendaDepositService
             $depositCents,
             $walletApplyCents,
             $stripePortionCents,
-            $stripePortionCents > 0 ? Sale::PAYMENT_DINHEIRO : null,
+            $stripePortionCents > 0 ? $paymentMethod : null,
             $fiscal,
             (int) ($options['staff_user_id'] ?? 0) ?: null,
             $this->resolveInvoiceStatusFromCheckoutMode($options['checkout_mode'] ?? 'faturar'),

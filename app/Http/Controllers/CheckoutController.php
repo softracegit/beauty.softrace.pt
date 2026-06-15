@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\DeniesPrestadorPayments;
+
 use App\Exceptions\InsufficientWalletBalanceException;
 use App\Models\Booking;
 use App\Models\CalendarEvent;
@@ -29,6 +31,8 @@ use Stripe\Stripe;
 
 class CheckoutController extends Controller
 {
+    use DeniesPrestadorPayments;
+
     public function __construct(
         private readonly VendusInvoiceService $vendusInvoiceService,
         private readonly VendusInvoiceEmailService $vendusInvoiceEmailService,
@@ -41,6 +45,10 @@ class CheckoutController extends Controller
      */
     public function checkout(CalendarEvent $calendarEvent)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
             return response()->json(['error' => 'Apenas marcações podem ir a checkout.'], 422);
         }
@@ -121,6 +129,10 @@ class CheckoutController extends Controller
      */
     public function store(Request $request)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $validated = $request->validate([
             'event_id' => ['required', 'exists:calendar_events,id'],
             'event_ids' => ['sometimes', 'array', 'min:1'],
@@ -383,6 +395,16 @@ class CheckoutController extends Controller
      */
     public function createMbwayIntent(Request $request)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
+        if (! CrmSetting::onlineBookingPaymentRequired(current_store_id())) {
+            return response()->json([
+                'error' => 'Pagamentos automáticos estão desativados. Registe o MB WAY manualmente na caixa.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'event_id' => ['required', 'exists:calendar_events,id'],
             'event_ids' => ['sometimes', 'array', 'min:1'],
@@ -498,6 +520,16 @@ class CheckoutController extends Controller
      */
     public function finalizeMbway(Request $request)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
+        if (! CrmSetting::onlineBookingPaymentRequired(current_store_id())) {
+            return response()->json([
+                'error' => 'Pagamentos automáticos estão desativados. Registe o MB WAY manualmente na caixa.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'payment_intent_id' => ['required', 'string', 'max:255'],
             'event_id' => ['required', 'exists:calendar_events,id'],
@@ -605,6 +637,10 @@ class CheckoutController extends Controller
      */
     public function pdf(Request $request, Sale $sale)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $sale->load(['client', 'items', 'calendarEvent.eventServiceItems.extras.extra']);
 
         $pdf = Pdf::loadView('pdf.invoice', ['sale' => $sale])
@@ -624,6 +660,10 @@ class CheckoutController extends Controller
      */
     public function vendusPdf(Sale $sale)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         if ((int) $sale->store_id !== (int) current_store_id()) {
             abort(404);
         }
@@ -652,6 +692,10 @@ class CheckoutController extends Controller
      */
     public function creditNotePdf(Sale $sale)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         if ((int) $sale->store_id !== (int) current_store_id()) {
             abort(404);
         }
@@ -680,6 +724,10 @@ class CheckoutController extends Controller
      */
     public function finalizeInvoice(Request $request, Sale $sale)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $validated = $request->validate([
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
@@ -773,6 +821,10 @@ class CheckoutController extends Controller
      */
     public function revert(Request $request, Sale $sale)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $validated = $request->validate([
             'reason' => ['required', 'string', 'max:1000'],
             'final_invoice_only' => ['sometimes', 'boolean'],
@@ -930,6 +982,10 @@ class CheckoutController extends Controller
      */
     public function sendMarcacaoInvoicesEmail(CalendarEvent $calendarEvent)
     {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
         $calendarEvent = CalendarEvent::query()
             ->forStore(current_store_id())
             ->whereKey($calendarEvent->id)

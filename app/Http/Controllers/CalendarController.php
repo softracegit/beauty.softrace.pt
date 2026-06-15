@@ -86,9 +86,14 @@ class CalendarController extends Controller
             ->orderBy('users.name')
             ->get();
 
+        if (auth()->user()->isPrestador()) {
+            $users = $users->where('id', auth()->id())->values();
+        }
+
         $today = now();
         $nationalHolidaysPt = $this->ptNationalHolidayDatesBetweenYears((int) $today->format('Y') - 1, (int) $today->format('Y') + 2);
         $posGorjetaEnabled = CrmSetting::posGorjetaEnabled(current_store_id());
+        $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired(current_store_id());
 
         $store = current_store()->get();
         $storeWeeklySchedule = $store->normalizedWeeklySchedule();
@@ -102,6 +107,7 @@ class CalendarController extends Controller
             'personalTimeTypes',
             'nationalHolidaysPt',
             'posGorjetaEnabled',
+            'onlineBookingPaymentRequired',
             'storeWeeklySchedule',
             'agendaSlotMin',
             'agendaSlotMax',
@@ -182,6 +188,10 @@ class CalendarController extends Controller
             ->orderBy('name')
             ->get();
 
+        if (auth()->user()->isPrestador()) {
+            $agents = $agents->filter(fn (Agent $agent): bool => (int) $agent->user_id === (int) auth()->id())->values();
+        }
+
         $result = $agents->map(function ($agent) {
             $avatarNum = ($agent->id % 9) + 1;
             $avatarUrl = $agent->avatar
@@ -232,8 +242,8 @@ class CalendarController extends Controller
                     ->orWhereNotIn('status', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO, CalendarEvent::STATUS_FALTOU]);
             });
 
-        // Verificar se o utilizador pode ver todos os eventos (admin ou diretor)
-        $canViewAll = auth()->user()->canManageAgents();
+        // Verificar se o utilizador pode ver todos os eventos (admin ou receção)
+        $canViewAll = auth()->user()->canViewAllAgenda();
 
         $activeAgentUserIds = Agent::forStore(current_store_id())->where('status', Agent::STATUS_ACTIVE)
             ->where('visible_in_agenda', true)
@@ -523,6 +533,10 @@ class CalendarController extends Controller
      */
     public function clientWallet(Client $client): JsonResponse
     {
+        if (auth()->user()->isPrestador()) {
+            return response()->json(['message' => 'Sem permissão.'], 403);
+        }
+
         if ((int) $client->store_id !== (int) current_store_id()) {
             abort(404);
         }
@@ -541,6 +555,10 @@ class CalendarController extends Controller
      */
     public function clientSavedCards(Client $client): JsonResponse
     {
+        if (auth()->user()->isPrestador()) {
+            return response()->json(['message' => 'Sem permissão.'], 403);
+        }
+
         if ((int) $client->store_id !== (int) current_store_id()) {
             abort(404);
         }
@@ -566,7 +584,7 @@ class CalendarController extends Controller
                 $arr['formatted_phone'] = $client->formatted_phone;
                 $arr['avatar_url'] = $client->avatar ? asset('storage/'.$client->avatar) : null;
 
-                return response()->json([$arr]);
+                return response()->json([$this->sanitizeClientPayloadForUser($arr)]);
             }
 
             return response()->json([]);
@@ -576,9 +594,11 @@ class CalendarController extends Controller
 
         if (strlen($search) >= 1) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%");
+                $q->where('name', 'like', "%{$search}%");
+                if (auth()->user()->canViewClientContactDetails()) {
+                    $q->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                }
             });
         }
 
@@ -588,7 +608,7 @@ class CalendarController extends Controller
             $arr['formatted_phone'] = $c->formatted_phone;
             $arr['avatar_url'] = $c->avatar ? asset('storage/'.$c->avatar) : null;
 
-            return $arr;
+            return $this->sanitizeClientPayloadForUser($arr);
         });
 
         return response()->json($result);
@@ -639,11 +659,14 @@ class CalendarController extends Controller
             'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
         ];
 
-        return response()->json($result);
+        return response()->json($this->sanitizeClientPayloadForUser($result));
     }
 
     public function updateClientNif(Request $request, Client $client)
     {
+        if (auth()->user()->isPrestador()) {
+            return response()->json(['message' => 'Sem permissão.'], 403);
+        }
         $validated = $request->validate([
             'nif' => ['required', 'digits:9'],
         ], [
@@ -671,6 +694,8 @@ class CalendarController extends Controller
      */
     public function show(CalendarEvent $calendarEvent)
     {
+        $this->assertCanAccessCalendarEvent($calendarEvent);
+
         try {
             $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventServices.fees', 'eventable', 'personalTimeType', 'sales', 'sale']);
             $calendarEvent->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
@@ -935,7 +960,7 @@ class CalendarController extends Controller
 
             $payload['cash_register_open'] = $this->cashRegisterIsOpen();
 
-            return response()->json($payload);
+            return response()->json($this->sanitizeEventPayloadForUser($payload));
         } catch (\Exception $e) {
             \Log::error('Erro ao carregar evento: '.$e->getMessage(), [
                 'event_id' => $calendarEvent->id,
@@ -953,6 +978,16 @@ class CalendarController extends Controller
     {
         if ((int) $calendarEvent->store_id !== (int) current_store_id()) {
             abort(404);
+        }
+
+        $this->assertCanAccessCalendarEvent($calendarEvent);
+
+        if (auth()->user()->isPrestador()) {
+            return response()->json([
+                'count' => 0,
+                'total_due' => 0.0,
+                'rows' => [],
+            ]);
         }
 
         if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
@@ -1028,6 +1063,9 @@ class CalendarController extends Controller
         }
 
         $validated['user_id'] = $validated['user_id'] ?? auth()->id();
+        if (auth()->user()->isPrestador()) {
+            $validated['user_id'] = auth()->id();
+        }
         $validated['client_id'] = $request->input('client_id');
         if ($validated['user_id'] && User::find($validated['user_id'])?->role === User::ROLE_ADMIN) {
             return response()->json([
@@ -1096,6 +1134,12 @@ class CalendarController extends Controller
      */
     public function update(Request $request, CalendarEvent $calendarEvent)
     {
+        $this->assertCanAccessCalendarEvent($calendarEvent);
+
+        if ($denied = $this->denyPrestadorRestrictedMarcacaoUpdate($request, $calendarEvent)) {
+            return $denied;
+        }
+
         if ($this->isMarcacaoFullySettled($calendarEvent)) {
             return response()->json([
                 'success' => false,
@@ -1364,6 +1408,8 @@ class CalendarController extends Controller
      */
     public function destroy(CalendarEvent $calendarEvent)
     {
+        $this->assertCanAccessCalendarEvent($calendarEvent);
+
         $isOwner = $calendarEvent->user_id === null || $calendarEvent->user_id === auth()->id();
         $adminCanDeleteTempoPessoal = $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL && auth()->user()->canManageAgents();
         if (! $isOwner && ! $adminCanDeleteTempoPessoal) {
@@ -1389,6 +1435,13 @@ class CalendarController extends Controller
      */
     public function updateStatus(Request $request, CalendarEvent $calendarEvent)
     {
+        $this->assertCanAccessCalendarEvent($calendarEvent);
+
+        $user = auth()->user();
+        if ($denied = $this->denyPrestadorMarcacaoStatusChange($user, $calendarEvent, (string) $request->input('status', ''))) {
+            return $denied;
+        }
+
         if ($this->isMarcacaoFullySettled($calendarEvent)) {
             return response()->json([
                 'success' => false,
@@ -2181,5 +2234,157 @@ class CalendarController extends Controller
     private function cashRegisterIsOpen(): bool
     {
         return $this->cashRegisterService->getOpenSession((int) current_store_id()) !== null;
+    }
+
+    private function assertCanAccessCalendarEvent(CalendarEvent $calendarEvent): void
+    {
+        if ((int) $calendarEvent->store_id !== (int) current_store_id()) {
+            abort(404);
+        }
+
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            abort(403);
+        }
+
+        if ($user->isPrestador() && (int) $calendarEvent->user_id !== (int) $user->id) {
+            abort(403, 'Sem permissão para aceder a esta marcação.');
+        }
+    }
+
+    private function denyPrestadorRestrictedMarcacaoUpdate(Request $request, CalendarEvent $calendarEvent): ?JsonResponse
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->isPrestador()) {
+            return null;
+        }
+
+        if ($request->has('user_id')) {
+            $newUserId = $request->input('user_id') ? (int) $request->input('user_id') : null;
+            $currentUserId = $calendarEvent->user_id ? (int) $calendarEvent->user_id : null;
+            if ($newUserId !== $currentUserId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não pode reatribuir a marcação a outro profissional.',
+                ], 403);
+            }
+        }
+
+        if ($request->has('client_id') && ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO) {
+            $newClientId = $request->input('client_id') ? (int) $request->input('client_id') : null;
+            $currentClientId = $calendarEvent->client_id ? (int) $calendarEvent->client_id : null;
+            if ($newClientId !== $currentClientId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não pode alterar o cliente desta marcação.',
+                ], 403);
+            }
+        }
+
+        if ($request->has('status')) {
+            if ($denied = $this->denyPrestadorMarcacaoStatusChange($user, $calendarEvent, (string) $request->input('status'))) {
+                return $denied;
+            }
+        }
+
+        return null;
+    }
+
+    private function denyPrestadorMarcacaoStatusChange(?User $user, CalendarEvent $calendarEvent, string $requestedStatus): ?JsonResponse
+    {
+        if (! $user instanceof User || ! $user->isPrestador()) {
+            return null;
+        }
+
+        $currentStatus = (string) ($calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO);
+
+        if ($requestedStatus === $currentStatus) {
+            if (! in_array($currentStatus, $user->prestadorEditableMarcacaoStatuses(), true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não pode editar marcações neste estado.',
+                ], 403);
+            }
+
+            return null;
+        }
+
+        if (! in_array($currentStatus, $user->prestadorEditableMarcacaoStatuses(), true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não pode editar marcações neste estado.',
+            ], 403);
+        }
+
+        if (! in_array($requestedStatus, $user->prestadorAllowedMarcacaoStatuses(), true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sem permissão para alterar para este estado.',
+            ], 403);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function sanitizeEventPayloadForUser(array $payload): array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->isPrestador()) {
+            return $payload;
+        }
+
+        unset(
+            $payload['client_email'],
+            $payload['client_phone'],
+            $payload['client_nif'],
+            $payload['client_formatted_phone'],
+            $payload['client_has_email'],
+        );
+
+        $payload['existing_sale'] = null;
+        $payload['sales_invoices'] = [];
+        $payload['active_caixa_sale'] = null;
+        $payload['cancelled_final_invoice'] = null;
+        $payload['event_detail_nif_only_editable'] = false;
+        $payload['booking_paid_amount'] = 0.0;
+        $payload['invoice_settled'] = false;
+        $payload['pending_final_invoice'] = false;
+        $payload['catalog_fees'] = [];
+        $payload['charged_fees'] = [];
+        $payload['cash_register_open'] = false;
+        $payload['can_collect_deposit'] = false;
+        $payload['has_booking_reserva_sale'] = false;
+        $payload['has_saved_cards'] = false;
+        $payload['deposit_percent'] = 0;
+        $payload['deposit_amount_expected'] = 0.0;
+        $payload['prepayment_wallet_only'] = false;
+        $payload['same_day_payable'] = ['count' => 0, 'total_due' => 0.0, 'rows' => []];
+
+        foreach ($payload['event_services'] ?? [] as $index => $service) {
+            if (is_array($service)) {
+                $service['fees'] = [];
+                $payload['event_services'][$index] = $service;
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function sanitizeClientPayloadForUser(array $payload): array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->canViewClientContactDetails()) {
+            unset($payload['email'], $payload['phone'], $payload['formatted_phone'], $payload['nif']);
+        }
+
+        return $payload;
     }
 }

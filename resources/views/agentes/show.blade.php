@@ -26,7 +26,7 @@
         <div class="uview-badges">
             @if($agente->user)
                 <span class="users-role" style="background: color-mix(in srgb, var(--accent-color), transparent 88%); color: var(--accent-color);">
-                    <i class="ph ph-shield-chevron"></i> {{ \App\Models\User::roles()[$agente->user->role] ?? $agente->user->role }}
+                    <i class="ph ph-shield-chevron"></i> {{ \App\Models\User::roleLabel($agente->user->role ?? null) }}
                 </span>
             @endif
             <span class="users-status {{ $statusClass }}"><span class="users-status-dot"></span> {{ $statusLabel }}</span>
@@ -173,7 +173,7 @@
                         @if($agente->user)
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Tipo de Membro</div>
-                            <div class="uview-detail-value">{{ \App\Models\User::roles()[$agente->user->role] ?? $agente->user->role }}</div>
+                            <div class="uview-detail-value">{{ \App\Models\User::roleLabel($agente->user->role ?? null) }}</div>
                         </div>
                         @endif
                         <div class="uview-detail-row">
@@ -467,7 +467,7 @@
                     @if($agente->user)
                     <div class="uview-status-item">
                         <span class="uview-status-label">Tipo de Membro</span>
-                        <span class="uview-status-value">{{ \App\Models\User::roles()[$agente->user->role] ?? $agente->user->role }}</span>
+                        <span class="uview-status-value">{{ \App\Models\User::roleLabel($agente->user->role ?? null) }}</span>
                     </div>
                     @endif
                     <div class="uview-status-item">

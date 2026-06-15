@@ -218,9 +218,7 @@ class CashRegisterService
 
     public function userCanManageCashRegister(User $user): bool
     {
-        return $user->isAdmin()
-            || $user->isGerente()
-            || $user->hasRole(User::ROLE_RECECAO);
+        return $user->canManageCashRegister();
     }
 
     public function assignPendingBookingOrphansToSession(CashRegisterSession $session): int

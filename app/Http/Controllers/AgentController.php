@@ -81,7 +81,7 @@ class AgentController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', Rule::in(array_keys(User::roles()))],
+            'role' => ['required', Rule::in(array_keys(User::staffAssignableRoles()))],
             'phone' => ['nullable', 'string', 'max:50'],
             'nif' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date', 'before:today'],
@@ -292,7 +292,7 @@ class AgentController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($agente->user_id)],
-            'role' => ['required', Rule::in(array_keys(User::roles()))],
+            'role' => ['required', Rule::in(array_keys(User::staffAssignableRoles()))],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'phone' => ['nullable', 'string', 'max:50'],
             'nif' => ['nullable', 'string', 'max:20'],
