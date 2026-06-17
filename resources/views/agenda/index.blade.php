@@ -551,7 +551,7 @@
             </div>
         </form>
     </div>
-    <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch @if(auth()->user()->isPrestador()) d-none @endif" id="eventDetailOffcanvasFooter">
+    <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch" id="eventDetailOffcanvasFooter">
         <div class="d-flex align-items-center pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
             <div class="event-detail-total-line flex-grow-1 min-w-0" id="eventDetailTotalLeft">
                 <span class="event-detail-total-line__part" id="eventDetailTotalMain">
@@ -615,6 +615,7 @@
     $me = auth()->user();
     $agendaPermissions = [
         'isPrestador' => $me->isPrestador(),
+        'canCreateMarcacao' => $me->canCreateMarcacao(),
         'canProcessPayments' => $me->canProcessPayments(),
         'canViewClientContacts' => $me->canViewClientContactDetails(),
         'canViewClientProfile' => $me->canViewClientProfile(),

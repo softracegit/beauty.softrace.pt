@@ -10012,6 +10012,29 @@ textarea.form-control {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color), transparent 85%);
 }
 
+.users-toolbar .form-select.users-toolbar-select {
+  width: auto;
+  min-width: 8.5rem;
+  height: 38px;
+  min-height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.8125rem;
+  border-color: var(--border-color);
+  background-color: var(--background-color);
+  color: var(--default-color);
+  border-radius: var(--radius-md);
+}
+
+.users-toolbar .users-toolbar-submit.btn {
+  height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8125rem;
+}
+
 .users-filter-group {
   display: flex;
   align-items: center;

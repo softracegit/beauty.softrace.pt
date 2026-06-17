@@ -10,7 +10,9 @@ class LegalPagesTest extends TestCase
     {
         $this->get(route('legal.terms'))
             ->assertOk()
-            ->assertSee('Termos e Condições', false);
+            ->assertSee('Termos e Condições', false)
+            ->assertSee('Serão Casual Lda.', false)
+            ->assertDontSee('booking-navbar', false);
     }
 
     public function test_legal_privacy_page_is_accessible(): void

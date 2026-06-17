@@ -64,10 +64,15 @@ class BookingClientAuthController extends Controller
         try {
             if ($target['channel'] === 'email') {
                 $continueUrl = route('booking.index', ['store' => app(CurrentStore::class)->get()->slug]);
-                Mail::mailer('booking')
-                    ->locale(BookingLocale::emailLocale())
-                    ->to($target['identifier'])
-                    ->send(new BookingAuthCodeMail($code, $ttlMinutes, $continueUrl));
+                $previousLocale = app()->getLocale();
+                BookingLocale::apply(BookingLocale::emailLocale());
+                try {
+                    Mail::mailer('booking')
+                        ->to($target['identifier'])
+                        ->send(new BookingAuthCodeMail($code, $ttlMinutes, $continueUrl));
+                } finally {
+                    BookingLocale::apply($previousLocale);
+                }
             } else {
                 $previousLocale = app()->getLocale();
                 try {

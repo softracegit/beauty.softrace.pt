@@ -47,7 +47,16 @@ class AgentController extends Controller
             });
         }
 
-        $agents = $query->with('user')->paginate(9)->withQueryString();
+        $statusFilter = (string) $request->input('status', '');
+        if ($statusFilter === 'all') {
+            // Sem filtro de estado.
+        } elseif ($statusFilter === Agent::STATUS_INACTIVE) {
+            $query->where('status', Agent::STATUS_INACTIVE);
+        } else {
+            $query->where('status', '!=', Agent::STATUS_INACTIVE);
+        }
+
+        $agents = $query->with('user')->paginate(30)->withQueryString();
 
         return view('agentes.index', compact('agents'));
     }

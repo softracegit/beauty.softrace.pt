@@ -86,7 +86,12 @@
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link {{ request()->routeIs('dashboard') && !request()->routeIs('dashboard.*') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+          <a class="panel-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+            Resumo
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard.marcacoes') ? 'active' : '' }}" href="{{ route('dashboard.marcacoes') }}">
             Marcações e Serviços
           </a>
         </li>
@@ -115,11 +120,13 @@
             Ver agenda
           </a>
         </li>
+        @if(!$navUser->isPrestador())
         <li>
           <a class="panel-link {{ request()->routeIs('agenda.index') && request()->query('novaMarcacao') ? 'active' : '' }}" href="{{ route('agenda.index') }}?novaMarcacao=1">
             Nova marcação
           </a>
         </li>
+        @endif
       </ul>
     </div>
 

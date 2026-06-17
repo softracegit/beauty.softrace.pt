@@ -1,5 +1,5 @@
 name;email;mobile;gender;birth_month;birth_day;birth_year;vat_number;createdon
-Veronica Martins;Veromartins16@gmail.com;+35915814100;f;9;16;1981;;23/02/2022 19:31
+Veronica Martins;Veromartins16@gmail.com;+351915814100;f;9;16;1981;;23/02/2022 19:31
 Catarina Prata;catbprata@gmail.com;+351963160999;;;;0;;21/03/2024 11:34
 Rosmery;;+351920131488;f;;;0;;25/03/2024 10:46
 Rosa Mendes;rositamartins12@gmail.com;+351963768861;f;11;12;1949;;25/03/2024 16:08
@@ -380,7 +380,7 @@ Laiza Pereira;laizapereira.pt@gmail.com;+351966114518;;;;0;;21/05/2025 21:23
 Bárbara Fernandes;bafifernandes@gmail.com;+351963503375;;;;0;;24/05/2025 17:17
 Inês Cardoso;inessoarescardoso@hotmail.com;+351915553117;;;;0;;25/01/2022 16:53
 Naomi Moura;;+351927144052;f;;;0;;26/05/2025 09:12
-Maria  Dunas;;+351936047416;f;;;0;;26/05/2025 13:29
+Maria  Dunas;;+351936047416;f;11;16;2006;;26/05/2025 13:29
 Rosete Cunha;;+351919929567;f;;;0;;26/05/2025 17:56
 masleia Matioli;masleia_rosa@hotmail.com;+351920262687;;;;0;;27/05/2025 10:04
 Tatiana Boucinha;;+351967255701;f;;;0;;28/05/2025 11:26
@@ -417,11 +417,11 @@ Marina De;mari.inague@gmail.com;+351934526937;;;;0;;11/06/2025 12:59
 Theresa da;theresa-kraemer1994@web.de;+491753808914;;;;0;;11/06/2025 17:55
 Teresa Sanches;tsegurosanches@gmail.com;+351919332356;;;;0;;27/02/2023 10:01
 Benedetta Freda;;+393318815204;f;;;0;;12/06/2025 16:58
-Ana Génio;anaagenio@gmail.com;+351918834171;;;;0;;30/01/2022 12:15
+Ana Génio;anaagenio@gmail.com;+351918834171;f;;;0;247721530;30/01/2022 12:15
 Ana Fonseca;anaclaraff98@gmail.com;+393516964812;;;;0;;13/06/2025 10:16
 Michele Mardones;;+351916017992;f;;;0;;13/06/2025 17:35
 Maria Rosária;mariamulaza@hotmail.com;+351931309478;;;;0;;14/06/2025 11:19
-Ana  Pedro Fonseca;anapedrinho@live.com.pt;+351939671937;;;;0;;14/06/2025 14:29
+Ana  Pedro Fonseca;anapedrinho@live.com.pt;+351939671937;f;7;27;2001;;14/06/2025 14:29
 daniela brito;bsamuela65@gmail.com;+351932582393;;;;0;;14/06/2025 19:22
 rita cruz;aritavcruz@hotmail.com;+351919757920;;;;0;;01/10/2020 11:15
 Flora Figueiredo;floraoliveirafigueiredo@gmail.com;+351917522427;;;;0;;17/06/2025 11:06
@@ -441,7 +441,7 @@ Naomi Moura;naomibmsantos@gmail.com;+351927144052;;;;0;;23/06/2025 07:43
 Claudia Figueiredo;;+351938882367;f;;;0;;23/06/2025 11:15
 Joanna Habiak;Jhabiak@yahoo.com;+34664184213;;;;0;;24/06/2025 06:54
 Ana Beatriz Lourenço;;+351927662944;f;;;0;;24/06/2025 11:36
-Ana Santos;;+351914792471;f;;;0;;24/06/2025 15:03
+Ana Santos Marnoto;;+351914792471;f;;;0;;24/06/2025 15:03
 Rafaela Hemprew;rafaela.scartabelli2004@gmail.com;+351913988055;;;;0;;24/06/2025 17:58
 Nele Widmann;nele-widmann@web.de;+491794273751;;;;0;;26/06/2025 10:49
 Margarette Canas;marg82canas@gmail.com;+351963058522;f;;;0;209119250;26/06/2025 16:51
@@ -572,7 +572,7 @@ Rafaela Santos;rafaelastona803@gmail.com;+351928283284;f;11;21;2000;314369333;13
 freitas sandra;sandrafreitas@hotmail.fr;+33615131411;;;;0;;14/08/2025 14:25
 Margarida Génio;margaridagenio@gmail.com;+351931445229;;;;0;;15/08/2025 19:35
 Alice Alho;alice.alho.25@gmail.com;+351915365807;;;;0;;16/08/2025 09:25
-Andreia Vitória;atvitoria@hotmail.com;+351966653943;;;;0;;16/08/2025 09:27
+Andreia Vitória;atvitoria@hotmail.com;+351966653943;f;;;0;228027551;16/08/2025 09:27
 Vera Medeiros;medeirosveralidia@gmail.com;+351918855694;f;;;0;256376123;16/08/2025 14:06
 Margo da Sillva;;+33781146881;f;;;0;;16/08/2025 17:47
 Myrelle Sabino;myrellemsabino@gmail.com;+351962650366;f;9;9;1998;314870512;06/06/2024 13:13
@@ -839,7 +839,7 @@ Paula Colon;;+351910741012;m;8;14;2004;;27/11/2025 14:17
 Maria do Ceu;dikirsh@hotmail.com;+351964553650;f;;;0;182418707;27/11/2025 17:21
 Teresa Morgado;Teresa23_morgado@hotmail.com;+351969256597;;;;0;;01/08/2024 15:13
 Carla Pereira;carladpereira82@gmail.com;+351936243225;m;;;0;;28/11/2025 13:11
-Evellin Fraccaro;Evellinfraccaro@gmail.com;+351933833316;;;;0;;29/11/2025 11:57
+Evellin Fraccaro;Evellinfraccaro@gmail.com;+35193383336;;;;0;;29/11/2025 11:57
 Carla Martinho;;+351914026373;f;;;0;;29/11/2025 15:13
 taisa romeira;taisaromeira18@gmail.com;+351928316647;;;;0;;22/10/2025 12:27
 Elisangela Cardoso;Elisangela.fpacardoso@gmail.com;+351965221118;;;;0;;29/11/2025 19:06
@@ -849,7 +849,6 @@ Ana Marques;a_anamarques@hotmail.com;+351913038298;f;3;8;1993;232466564;28/10/20
 Claudia Godinho;godinhoana2@gmail.com;+351966789566;m;;;0;216227674;07/08/2023 18:11
 Matilde Oliveira;matildesilveiraoliveira@gmail.com;+351912009985;;;;0;;29/11/2025 23:17
 Carolina Silva;carolinacabral19.22@gmail.com;+351910790485;f;1;7;2003;;30/11/2025 13:16
-Sofia Duarte;sofia_duarte92@hotmail.com;+351911007422;;;;0;;01/12/2025 12:37
 Ana Santos;anabsantos694@gmail.com;+351964150507;;;;0;;01/12/2025 15:46
 Kinga Krokosz;kinga.krokosz@gmail.com;+48788049035;;;;0;;29/11/2025 13:10
 Isabelle Souza;isabellelopes2011@live.com;+351968032003;;;;0;;02/10/2024 13:16
@@ -870,7 +869,7 @@ Palmira;;+351962739986;m;;;0;;10/12/2025 17:01
 Mariana  Paiva;marianapaiva96025@gmail.com;+351914669519;;;;0;;17/01/2025 07:49
 Marta Santos;martabdsantos02@gmail.com;+351969158339;;;;0;;11/12/2025 14:55
 Maria Neiva;neivasantos.maria@gmail.com;+351915440250;f;12;17;1999;;20/11/2025 13:15
-Mercedes Fernandes;mercedesconangla@gmail.com;+351935072466;;;;0;;12/03/2021 16:21
+Mercedes Fernandes;mercedesconangla@gmail.com;+351935072466;f;;;0;251224481;12/03/2021 16:21
 raquel batista;raquel.alexandra.batista@gmail.com;+351916950390;;;;0;;12/12/2025 17:56
 Ingrid Mei;ilovetrastevere@gmail.com;+393807583995;;;;0;;15/12/2025 13:41
 claudia santos;;+351920744893;m;;;0;;15/12/2025 17:05
@@ -899,7 +898,6 @@ Thea Cho;t.cho0906@gmail.com;+14384087561;;;;0;;14/04/2023 20:07
 Sandra Oliveira;Styna@live.co.uk;+447891781255;;;;0;;27/12/2025 20:54
 Mariana Perna;marianafperna@gmail.com;+351965593794;;;;0;;04/10/2025 10:32
 Andre pereira;;+351927749925;m;;;0;;29/12/2025 13:33
-paula fernandes;;+351913687525;m;;;0;;29/12/2025 14:29
 Yuliana Alexandra Colmenares;Colmeyulia0405@gmail.com;+351916647396;f;;;0;326853790;29/12/2025 16:20
 Carla Pereira;Carladpereira82@gmail.com;+351936243225;;;;0;;01/01/2026 22:16
 Renata Figueiredo;re.figueiredo.0712@gmail.com;+351931477240;;;;0;;02/01/2026 10:18
@@ -967,9 +965,8 @@ Serenela Antunes;aserenela@gmail.com;+351911968019;f;6;25;1994;241439779;03/02/2
 Monica Silva;;+351927826583;f;;;0;;03/02/2026 16:39
 Cristiana Teixeira;cristianateixeira46@hotmail.com;+351939621594;f;;;0;;04/02/2026 19:40
 Cátia Lykhenko;catia.lykhenko@gmail.com;+3519631120543;f;7;18;2009;;05/02/2026 08:26
-Ana Raquel Rocha;;;f;;;0;;05/02/2026 12:58
 Marlene Saria;marlene141414@icloud.com;+436644006725;;;;0;;05/02/2026 18:03
-Bruna Taila;;+351910682754;f;;;0;;05/02/2026 18:38
+Bruna Taila;bmafissane@gmail.com;+351910682754;f;;;0;;05/02/2026 18:38
 Lidia Yasmin Pinheiro;;+351920781427;f;;;0;;06/02/2026 11:38
 Ines Santos;dinisgeongina603@gmail.com;+351931934120;f;;;0;;06/02/2026 16:14
 Carolina Gualdron;;+351910325621;f;;;0;;06/02/2026 17:11
@@ -980,7 +977,7 @@ Cristina Marques;cristina.maria.valente.marques@gmail.com;+351916995185;;;;0;;08
 Adriana Caetano;adrianambcaetano@hotmail.com;+351969358919;;;;0;;02/07/2024 22:37
 Margarida Neto;margaridapn.662005@gmail.com;+351917277616;f;6;6;2005;258767510;09/02/2026 01:15
 Miryan Charles;miryan.charles@gmail.com;+351935973181;f;;;0;271869674;09/02/2026 11:52
-Rodrigues Vanina;vaninarodrigues21@ua.pt;+351935466219;;;;0;;30/05/2024 08:57
+Rodrigues Vanina;vaninarodrigues21@ua.pt;+351935466219;f;4;21;2003;;30/05/2024 08:57
 Myrane Do Vale;dovalemyrane@gmail.com;+351913432837;;;;0;;25/07/2023 02:05
 Nubia Galvao;gfassessoria.pt@gmail.com;+351937432607;f;;;0;;09/02/2026 23:26
 Viviana Vidal;vdvidal1234@hotmail.com;+351933749269;f;12;28;1999;243992505;02/04/2025 22:55
@@ -991,7 +988,7 @@ Sara Silva;sarasilvabasel@hotmail.com;+351926654630;;;;0;;10/02/2026 18:59
 Larissa Carvalho;Salinaodonto@gmail.com;+351931696117;;;;0;;11/02/2026 15:52
 Tanya Sousa;Tanyasousa@hotmail.com;+351915005059;;;;0;231904517;11/05/2023 01:53
 Maria Correia;maria.s.correia2008@gmail.com;+351926943796;f;5;29;2008;;12/02/2026 09:02
-Heloisa Aquino;heloisa.aquinohsa@hotmail.com;+351960344635;f;1;17;1999;;08/04/2025 08:27
+Heloisa Aquino;heloisa.aquinohsa@hotmail.com;+351935085756;f;1;17;1999;;08/04/2025 08:27
 Isabelle Valente;isabellevalentec@gmail.com;+351932353986;f;9;25;2000;313446385;12/02/2026 10:31
 Ana  Paula Lima;;+351937640956;f;;;0;;12/02/2026 10:49
 Matilde Vieira;;+351933055585;f;;;0;;12/02/2026 13:52
@@ -1037,8 +1034,8 @@ melissa suarez;;+351929406261;f;;;0;;27/02/2026 13:51
 Alessia Chirico;alessiadpg777@gmail.com;+393663027101;;;;0;;27/02/2026 13:51
 Sara Anzalone;sara.anzalone894@gmail.com;;;;;0;;27/02/2026 13:51
 Angela Gaspar;angelagaspar2000@gmail.com;+351912374014;f;;;0;261468634;28/02/2026 15:09
-Lena Polyvyannaya;Lpoly@hotmail.com;+351922002905;;;;0;;28/02/2026 19:59
-Maria Portugal;Mjpdias23@gmail.com;+351918629986;;;;0;255862300;01/03/2026 16:21
+Lena Polyvyannaya;Lpoly.temp@outlook.com;+351922002905;;;;0;;28/02/2026 19:59
+Cap. Maria Portugal;Mjpdias23@gmail.com;+351918629983;;;;0;255862300;01/03/2026 16:21
 Silvia Nunes;Silvia.ferreira.illertissen@gmail.com;+4915237205212;;;;0;;01/03/2026 20:30
 Lara Capela;laralocapela@gmail.com;+351964470156;;;;0;;01/03/2026 21:03
 Júlia Sant?anna;juliasantanna084@gmail.com;+351913128826;;;;0;334141575;02/03/2026 09:51
@@ -1084,18 +1081,18 @@ Diogo Bastos;;+351910420410;m;;;0;;21/03/2026 12:04
 Mariana Godinho;marianagodinhosilva2010@gmail.com;+351913339190;f;1;20;2010;;15/01/2025 20:47
 Vanessa Tanko;vanessaanko9@gmail.com;+351961133386;;;;0;;23/03/2026 11:33
 Zaida Ramos;zaidaramos1@gmail.com;+31629542622;;;;0;;23/03/2026 12:11
-Rebecca Seoane;rebecca.seoane@gmail.com;+5521994801963;f;;;0;328688347;23/03/2026 13:47
+Rebecca Seoane;rebecca.seoane@gmail.com;+5521994801963;f;6;3;1985;328688347;23/03/2026 13:47
 Hilda luis;;+351923173874;f;;;0;;23/03/2026 14:34
 Joyce Silva;Joyce.esperanca90@gmail.com;+351927028063;;;;0;327342102;24/03/2026 11:41
 maria carvalho;Mjdscarvalho@gmail.com;+351910488212;;;;0;263608336;27/04/2025 13:18
 Gisela Migueis;;+12015327370;f;;;0;;25/03/2026 15:31
 Julia Ratajczak;juliaratajczak2002@icloud.com;+447960675136;;;;0;;25/03/2026 22:16
-Nagela Abravanel;nagelaabravanel@gmail.com;+351934370858;;;;0;;26/03/2026 01:10
+Nagela Abravanel;nagelaabravanel@gmail.com;+351934332569;;;;0;;26/03/2026 01:10
 marcia gonçalves;mg925291199@gmail.com;+351932820016;;;;0;;26/03/2026 14:42
 Samira Rosario;Samira.costa.rosario@gmail.com;+351967989180;f;7;12;1983;316149004;26/03/2026 16:45
 Ida Sundbeck;ida.valo.sundbeck@hotmail.com;+4793665703;;;;0;;27/03/2026 15:49
 Helle Mård;helle.mard@gmail.com;+35145914023;;;;0;;28/03/2026 02:05
-Defela Oliveira;oliveira.sefora5@gmail.com;+351926430119;;;;0;;28/03/2026 17:45
+Sefora Oliveira;oliveira.sefora5@gmail.com;+351926430119;;;;0;;28/03/2026 17:45
 Luciene Cristina;lcdoroch.advocacia@gmail.com;+35165996898860;;;;0;;29/03/2026 10:41
 Mariana Osório;silvamnm@gmail.com;+351964090016;;;;0;;10/01/2022 16:42
 Inês Trindade;inesjt.98@gmail.com;+351937192442;f;;;0;251423964;29/03/2026 14:18
@@ -1107,7 +1104,6 @@ Daniela Jimenez;;+34603338051;f;;;0;;31/03/2026 17:30
 Yulimar Estefania;yulimarfrias@gmail.com;+351913303251;;;;0;;31/03/2026 20:09
 Gisell Carolina;gisellfrias1@gmail.com;+351933921345;;;;0;;31/03/2026 20:12
 Yoengri Iriarte;yoeiriarte1@gmail.com;+351916823520;;;;0;329518127;31/03/2026 20:18
-Luciana de;luciana.clementino49@my.com;+351964579024;f;11;19;1973;;04/11/2025 01:17
 Siara Rosario;;+351967989091;f;;;0;;01/04/2026 13:17
 Andrea Pena;;+34627676389;f;;;0;;01/04/2026 18:22
 Patrícia Maribel;Knlyzz.mari@gmail.com;+351961817774;;;;0;;02/04/2026 10:53
@@ -1122,7 +1118,7 @@ Andreia Fonseca;andreiafonseca2005marketing@gmail.com;+351936756491;;;;0;;06/04/
 andreia teixeira;andreia_teixeira1@sapo.pt;+351965744777;m;;;0;212389068;07/04/2026 13:39
 Claudia Altamirano;;+3461041415606;f;;;0;;08/04/2026 13:45
 regina mourisca;regina.mourisca@gmail.com;+351938192920;;;;0;;21/01/2022 13:39
-Maria Reis;mariareisalves180@gmail.com;+351928974726;;;;0;;22/02/2024 22:53
+Maria Reis;mariareisalves180@gmail.com;+351928374726;;;;0;;22/02/2024 22:53
 Florinda Silva;;+351919147479;f;;;0;108072835;09/04/2026 13:26
 Ana Grazielle;grazzyleaal278@gmail.com;+351929466701;;;;0;;09/04/2026 15:06
 Isabel Nkumba;catondiisabel@gmail.com;+351933630200;f;;;0;329839071;09/04/2026 15:32
@@ -1137,7 +1133,7 @@ Ana Pinho;anspinho36@gmail.com;+351928486631;;;;0;;14/04/2026 08:59
 Fabrício Marques;fabriciomarquesjf@gmail.com;+351928494456;;;;0;;14/04/2026 15:24
 lisa graziano;wineharp5280@gmail.com;+351938025880;m;;;0;;15/04/2026 15:53
 De la Viuda;;+33682402273;f;;;0;;15/04/2026 16:56
-Telma Ramos;ipodtelma@gmail.com;+351925258056;;;;0;;04/05/2022 22:23
+Telma Ramos;ipodtelma@gmail.com;+32488873992;;;;0;;04/05/2022 22:23
 maya marques;mayasm5201@gmail.com;+351927525193;;;;0;;22/01/2026 13:45
 Ana Rita Pedreiras;anaritapedreiras@gmail.com;+351918438925;;;;0;;17/04/2026 10:57
 Ana Margarida da Costa;margaridapinho97@gmail.com;+351913016079;;;;0;225833450;17/04/2026 13:49
@@ -1186,12 +1182,12 @@ Djelisa Barbosa;djelisa66@gmail.com;+351932453818;f;;;0;284176060;29/04/2026 15:
 Erica Alves;;+556392472071;f;;;0;;29/04/2026 16:45
 astrid denecker;astrid.denecker@hotmail.fr;+33606939282;m;;;0;;30/04/2026 14:29
 Barbara Vidrago;barbara.r.vidrago@gmail.com;+351929302704;;;;0;;01/05/2026 18:33
-Luvi Indjai;injailuvi@gmail.com;+351923127085;;;;0;;01/05/2026 23:08
+Luvi Indjai;injailuvi@gmail.com;+351923127085;f;;;0;305223313;01/05/2026 23:08
 Maria Ribeiro;Maguia.j@gmail.com;+32470010433;;;;0;;02/05/2026 14:30
 Rita Amaro;rita.cca01@gmail.com;+351914459705;;;;0;;07/10/2024 18:50
 Lara Carvalho;laraoliveira4556@gmail.com;+351966297354;;;;0;;03/05/2026 07:50
 Alexandra Tojal;Leo.alexandra.tojal@gmail.com;+351912157963;f;;;0;225738198;03/05/2026 12:33
-Beatriz San;beatriz.emeterio@hotmail.com;+351917460521;;;;0;;03/05/2026 15:36
+Beatriz San;beatriz.emeterio@hotmail.com;+351917460521;f;;;0;265719437;03/05/2026 15:36
 Maria Dos;lilianadossantos693@gmail.com;+351967404316;f;;;0;323953069;03/05/2026 17:16
 Ines Correia;inescorreia1038@gmail.com;+351965647708;f;;;0;234072768;03/12/2024 15:52
 bruna gonçalves;;+351914406253;m;;;0;;04/05/2026 11:25
@@ -1209,7 +1205,7 @@ Marilyn Fernandes;;+351913270400;f;;;0;;06/05/2026 14:23
 Daniel Simões;createdfos@gmail.com;+351919790140;m;;;0;;06/05/2026 16:07
 Lara Silveira;larasilveiraluz2021@gmail.com;+351934714040;;;;0;;07/05/2026 09:22
 Maria jose Monica;;+351938608740;f;;;0;;07/05/2026 09:27
-paula fernandez;;+351913687525;f;;;0;;07/05/2026 13:37
+paula fernandes;;+351913687525;f;;;0;;07/05/2026 13:37
 Jéssica Ferreira;ramosferreirajessicamatilde@gmail.com;+351926030340;f;;;0;255789440;09/04/2026 19:49
 Edilaine Gomes;gedilaine38@gmail.com;+351933326235;;;;0;;07/05/2026 21:24
 Margarida Magalhaes;margaridamotamm8@gmail.com;+351925975798;;;;0;;01/10/2024 09:20
@@ -1225,7 +1221,7 @@ Carlota Ávila;loloavila99@gmail.com;+351967188823;;;;0;;10/05/2026 16:59
 Carolina  Barros Almeida;carol.almeida98@hotmail.com;+351910351607;;;;0;;10/07/2023 15:20
 Yoima Garcia;;+351928310751;f;;;0;;11/05/2026 10:58
 Belmifer Maio;bcmaio@gmail.com;+351918982813;f;;;0;;11/05/2026 17:27
-Sandrine Marques;sandrinelaeticia@hotmail.com;+351911523768;;;;0;;20/01/2022 14:51
+Sandrine Marques;sandrinelaeticia@hotmail.com;+351911523768;f;;;0;230937985;20/01/2022 14:51
 Kaja Wiater;kajarozi.wiater@gmail.com;+351936841023;;;;0;;12/05/2026 11:40
 Zaida Alexandra Ramos;zaida.alexandra.ramos@gmail.com;+351925258056;;;;0;;10/03/2026 13:13
 cintia Almeida;almeidacintia2002@gmail.com;+351929463392;;;;0;;02/02/2024 21:51
@@ -1233,15 +1229,15 @@ Agatha Silva;agathaaquino01@gmail.com;+351922238559;;;;0;;13/05/2026 15:17
 Andreia Fonseca;andreiappfonseca@gmail.com;+351968045686;f;;;0;233144030;28/02/2026 18:16
 Olímpia Mussai;Olympiamussai@gmail.com;+351924809144;;;;0;;14/05/2026 08:58
 Juliana Sério;juliana.serio04@gmail.com;+351910741849;;;;0;;14/05/2026 13:10
-Sara Figueiredo;;+351964254234;f;;;0;;14/05/2026 16:10
+Sara Figueiredo;saravento@sapo.pt;+351964254234;f;;;0;222269634;14/05/2026 16:10
 Camila Santiago;camisofisant@gmail.com;+351910241841;f;;;0;;15/05/2026 09:13
 janaina medeiros;;+351933071132;m;;;0;;15/05/2026 16:40
 ariana Fonseca;Ariana_gata25@hotmail.com;+351910244862;;;;0;;11/01/2023 12:09
-Alexandra Machado;creeper.d3v1l@gmail.com;+351934754346;;;;0;;16/05/2026 08:18
+Alexandra Machado;creeper.d3v1l@gmail.com;+351934754346;f;;;0;258517891;16/05/2026 08:18
 Joana Filipa Silva;;+351919983229;f;;;0;;16/05/2026 12:14
 Rafael cruz;;+351938809408;m;;;0;;16/05/2026 14:49
 Patricia Morera;;+351918650550;m;;;0;;16/05/2026 15:47
-Leonor Silva;lmsleonorr@gmail.com;+351936307399;;;;0;;01/09/2024 14:19
+Leonor Silva;lmsleonorr@gmail.com;+351936307399;f;;;0;263159027;01/09/2024 14:19
 Emiliana Santiago;emilianasantnunez@gmail.com;+351916867642;f;5;26;2006;283630043;05/05/2024 21:28
 Veerle Soeters;Veerlesoeters@hotmail.com;+31622896654;;;;0;;17/05/2026 21:57
 sara vieira;sarasofiavieira@gmail.com;+351933090666;;;;0;;22/12/2021 08:19
@@ -1251,3 +1247,109 @@ Milene Tomás;milene.ft@gmail.com;+351932057119;;;;0;;02/04/2025 10:39
 Maria Alejandra Sanchez;;+351926999608;f;;;0;;18/05/2026 20:35
 Maria DOS;alisson.dsts@gmail.com;+33659618660;;;;0;;19/05/2026 16:57
 Alessandra Suiojd;;+351938556075;f;;;0;;20/05/2026 10:22
+Gracinda Ribeiro;gabriela.ryan@gmail.com;+19296710079;;;;0;;21/05/2026 10:49
+michele mardones;mardones78@outlook.com;+351916017992;;;;0;;21/05/2026 15:29
+Sara Jewell;;+447951793818;f;;;0;;22/05/2026 09:20
+Amayri Dias;amaryriDiaz@hotmail.com;+351965655308;f;10;13;1990;;22/05/2026 11:42
+Catarina Costa;catarina.810@hotmail.com;+351967545448;f;;;0;;22/05/2026 12:10
+divika;;+919167993239;m;;;0;;22/05/2026 12:21
+angela santos;Santosangela75289@gmail.com;+351911118256;;;;0;;22/05/2026 16:18
+Amira Besss;;+351913673418;;;;0;;23/05/2026 08:32
+Germarys Munoz;gema.bodegon@gmail.com;+351910165704;;;;0;324856822;23/05/2026 08:49
+Liana Cruz;lianacruz1105@gmail.com;+351934565667;;;;0;;23/05/2026 12:56
+Delia Silvasan;dedes987@gmail.com;+447501227429;;;;0;;23/05/2026 15:01
+Catia Simoes;;+41762810425;f;;;0;;23/05/2026 15:45
+Natália Marlene;derekmiguel2626@gmail.com;+351936121839;;;;0;298402122;18/01/2022 13:27
+Dafne Miranda;dafnegmiranda@gmail.com;+5548991041026;;;;0;;23/05/2026 18:34
+Kelliane Alves;kellianealves1991@gmail.com;+351913608931;f;;;0;337620180;24/05/2026 02:39
+Esmeralda Ferreira;esmeferreira2022@gmail.come;+351961421112;;;;0;;24/05/2026 16:36
+Silvia Nunes;Silvia.nunes.kirchberg@gmail.com;+351936836931;;;;0;;25/05/2026 05:21
+Camila Santiago;camisofisant@gmail.com;+351910241841;;;;0;;10/07/2025 16:23
+Ana Raquel Rocha;;+351914127269;f;;;0;;25/05/2026 18:36
+Beatriz Santos;beatriz1997santos@gmail.com;+351910043321;f;;;0;225081733;24/08/2022 14:27
+Marta Nunes;martaisnunes@gmail.com;+351965040219;;;;0;;26/05/2026 07:37
+Ana Leonor;ls.leonorsantos@gmail.com;+351938959940;;;;0;;26/05/2026 09:39
+Ana Silva;anabeatriz_silva@outlook.pt;+351911039860;;;;0;;26/05/2026 12:36
+Mariana Silva;marianasilva2010@icloud.com;+351913339190;;;;0;;08/05/2025 16:09
+Eva Gradim;evagradim@gmail.com;+351966969495;;;;0;;26/05/2026 19:00
+Íris Koszucka;iriskoszucka@icloud.com;+351918384662;;;;0;;26/05/2026 19:12
+Alcina (helena);;+351960439847;f;;;0;;27/05/2026 16:30
+Lisete Pereira;Clsantos.p80@gmail.com;+351933846436;f;;;0;202252361;16/03/2026 13:44
+Sofia Fernandes;sofiafernandes1029@gmail.com;+351939253693;;;;0;;27/05/2026 17:34
+Daniela Costa;danielafilipa.s.costa@gmail.com;+351939064010;;;;0;;28/07/2025 23:27
+maria alejandra;marynunezbevital@gmail.com;+351911761952;;;;0;;27/05/2026 21:44
+teresa marques 1;tergommar@hotmail.com;+351967118214;f;;;0;217494340;28/05/2026 09:37
+Margarida Folipe;margaridaprelhazfilipe@gmail.com;+351928025794;;;;0;;28/05/2026 14:24
+Bruna Merendeiro;merendeirobruna@gmail.com;+351910407322;;;;0;;02/02/2024 00:53
+Jennifer Valentim;jen.valentim@gmail.com;+447384345402;;;;0;;29/05/2026 15:33
+sofia diegues;sofia.r.diegues@gmail.com;+351924455620;;;;0;;22/04/2024 20:07
+serena rosa;guyvania@hotmail.com;+351936148532;;;;0;;29/05/2026 18:25
+Luciana de;luciana51clementino25@gmail.com;+351964579024;f;11;19;1973;;02/08/2025 14:03
+Silva Tatiana;tatiana1811@hotmail.com;+351937109831;;;;0;;02/11/2021 09:39
+Maria do Ceu   *;;+351964205687;f;;;0;;30/05/2026 09:22
+sondis;;;m;;;0;;30/05/2026 13:13
+Amber George;ambercgeorge23@gmail.com;+16787273432;;;;0;;30/05/2026 18:43
+Susana Seixas;susana.seixas.si@gmail.com;+351911520188;;;;0;;20/08/2024 09:06
+Jessica Rocha;;+351912365668;f;;;0;;30/05/2026 20:40
+Ana Pereira;anamarafuz@hotmail.com;+351914114153;f;;;0;221433023;21/03/2022 13:45
+Ana carvalho;carvalhoana279@gmail.com;+351916848012;;;;0;;01/06/2026 09:05
+Ana Gomes;anafortizgomes@gmail.com;+351938495122;;;;0;;01/06/2026 09:53
+Carmín Ailén;carrminailen@gmail.com;+351913788733;;;;0;;01/06/2026 12:00
+Liliana ferreira;lilianaferr55@gmail.com;+351924042806;;;;0;;23/06/2025 17:15
+Maria Brandao;;?+351 934 934 879? +351;m;;;0;;01/06/2026 18:55
+Eliane Saraiva;eliane.gomes97@hotmail.com;+41764521518;;;;0;;08/02/2023 08:52
+Rafaela Marques;;+351912563129;f;;;0;;02/06/2026 11:25
+Natacha Santos;;+351930610349;f;;;0;;02/06/2026 16:58
+goreti graça;mgoretita@hotmail.com;+351910984430;;;;0;;02/06/2026 17:36
+Nicoleta pricope;;+34642568406;f;;;0;;02/06/2026 17:40
+Caty Queiros;;+351932269952;f;;;0;;02/06/2026 18:18
+Nubia Galvao;geral@gfassessoria.pt;+351937432607;;;;0;;25/08/2025 02:31
+Catia Ferreira;catia.rcf94@hotmail.com;+351913528275;;;;0;;11/09/2024 06:05
+Joelma José;joelmaturma18@gmail.com;+351932161056;;;;0;;03/06/2026 14:06
+kaola Ferreira;;+351931756660;f;;;0;;03/06/2026 17:56
+Joana dos;sonidsantos@sapo.pt;+351928054238;;;;0;;18/12/2021 09:30
+Inês Soares;umainessoares@gmail.com;+351918808686;f;;;0;241788595;05/06/2026 09:55
+Sofia Duarte;sofia_duarte92@hormail.com;+351911007422;;;;0;;05/06/2026 10:42
+Celia Peixoto;peixoto.celia@gmail.com;+351966448036;;;;0;;05/06/2026 15:41
+Jacqueline Kautz;jacquelinekautz@yahoo.com.br;+351927556772;f;;;0;290286522;06/06/2026 09:12
+Madalena Ponces;poncesmadalena@gmail.com;+351967143242;;;;0;;12/03/2026 22:12
+Iara Violante;iarabdviolante@gmail.com;+351965677226;;;;0;;07/06/2026 16:50
+Patricia Pinho;Hpmpinho@hotmail.com;+351916099881;f;;;0;224928147;16/04/2023 15:35
+Inês Morgado;inesmorgado21@gmail.com;+351967921471;;;;0;;20/06/2021 20:35
+Maria Ferreira;mariafff06@gmail.com;+351911060108;;;;0;;08/05/2026 17:54
+ana machado;anaduamac@gmail.com;+351962779290;;;;0;;07/06/2026 21:44
+Sofia Ferreira;ferreira.sofiagomes@gmail.com;+351939186719;;;;0;;08/06/2026 10:17
+Nina Andrade;ninalmeidandrade@gmail.com;+351912340932;;;;0;;08/06/2026 14:02
+Brigite Martins;brigite.fm@gmail.com;+351913515727;;;;0;;22/12/2021 12:07
+Martina Pascarella;martinapascarella06@gmail.com;+393311073457;;;;0;;08/06/2026 21:42
+Jenny magalhães;janevamagalhaes2@gmail.com;+351932405830;;;;0;;09/06/2026 08:31
+Marta Barbosa;martabdsantos171@gmail.com;+351969158339;;;;0;;09/06/2026 11:56
+jeane lopes;jllopesbarros@gmail.com;+351933909822;;;;0;;05/06/2026 09:58
+Rita Fernandes;ritacarmona@gmx.com;+351917739698;f;10;22;1984;235789801;27/02/2026 14:59
+Hadassa Batista;hadassabatista236@gmail.com;+351932331131;;;;0;;09/06/2026 23:16
+Forest Victoria;Vict_oria@hotmail.fr;+33666781668;;;;0;;10/06/2026 10:00
+andreina padron;andreinapadron_0001@hotmail.com;+351914448578;;;;0;;10/06/2026 21:12
+Ana Marques *;;+351910038320;f;;;0;;11/06/2026 17:25
+Hélène Souvignet;helene.souvignet@gmail.com;+33781741897;;;;0;;07/06/2025 19:53
+Mariana Maia;mariana_maia5@hotmail.com;+351915751474;f;;;0;244729255;09/04/2023 10:56
+Paula Martins;paula.mmf@gmail.com;+351919228614;f;;;0;171185641;12/06/2026 16:42
+BILLY Samantha;billysamantha06@gmail.com;+33643699939;;;;0;;23/02/2026 21:03
+Claudia Seguel;claudia.seguel7@gmail.com;+351931625520;;;;0;;12/06/2026 23:09
+Bruna sampaio;;+351939387069;m;;;0;;13/06/2026 08:11
+Carla Oliveira;carla.c.oliveira2009@gmail.com;+351914141482;f;;;0;225735440;13/06/2026 09:31
+soizic fouilland;fouilland.soizic@gmail.com;+33695390069;;;;0;;13/06/2026 13:26
+Joao Vicente Rodrigues;Joaovicenterodrigues@hotmail.com;+351918572401;f;;;0;260819050;13/06/2026 16:42
+Rudvânia Kapita;rudvaniakapita@gmail.com;+351933099110;;;;0;;13/06/2026 18:24
+Tamiris da;tamiris_dacosta@hotmail.com;+353879877344;;;;0;;05/05/2025 14:07
+nidia costa;nidiacosta91@hotmail.com;+351960423163;;;;0;;21/03/2026 15:19
+Liam adballa;liam-a-2002@hotmail.com;+34677641561;f;;;0;;14/06/2026 15:42
+Sandra Sarrico Vieira;sandrasarricovieira@gmail.com;+351911730128;f;;;0;199114765;15/06/2026 10:10
+maggie watkins;;+18285455644;m;;;0;;15/06/2026 12:17
+Geysielle Santos;geysiellelarissa6@gmail.com;+351925159714;;;;0;;15/06/2026 14:11
+Serenela Antunes;aserenela@gmail.com;+351911968019;;;;0;;10/08/2022 06:35
+Cloe Catarino;;+351915935877;f;;;0;;15/06/2026 18:09
+Joana Sousa;joana.garrido@hotmail.com;+351912474390;;;;0;;19/04/2026 12:59
+Rosa  Oliveira;rosa.oliveira@ditame.com;+351963437603;;;;0;;18/07/2025 22:14
+Sofia Fonseca;;+351917597368;f;;;0;;16/06/2026 09:33
+Cristiana Suarez;;+351915922078;f;;;0;;16/06/2026 12:02
+Anabela Silva;anabelasilva282@gmail.com;+351934005908;f;;;0;260338168;16/06/2026 17:46

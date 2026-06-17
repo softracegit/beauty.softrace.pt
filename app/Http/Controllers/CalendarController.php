@@ -1064,6 +1064,12 @@ class CalendarController extends Controller
 
         $validated['user_id'] = $validated['user_id'] ?? auth()->id();
         if (auth()->user()->isPrestador()) {
+            if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sem permissão para criar marcações.',
+                ], 403);
+            }
             $validated['user_id'] = auth()->id();
         }
         $validated['client_id'] = $request->input('client_id');
@@ -2353,8 +2359,6 @@ class CalendarController extends Controller
         $payload['booking_paid_amount'] = 0.0;
         $payload['invoice_settled'] = false;
         $payload['pending_final_invoice'] = false;
-        $payload['catalog_fees'] = [];
-        $payload['charged_fees'] = [];
         $payload['cash_register_open'] = false;
         $payload['can_collect_deposit'] = false;
         $payload['has_booking_reserva_sale'] = false;
@@ -2363,13 +2367,6 @@ class CalendarController extends Controller
         $payload['deposit_amount_expected'] = 0.0;
         $payload['prepayment_wallet_only'] = false;
         $payload['same_day_payable'] = ['count' => 0, 'total_due' => 0.0, 'rows' => []];
-
-        foreach ($payload['event_services'] ?? [] as $index => $service) {
-            if (is_array($service)) {
-                $service['fees'] = [];
-                $payload['event_services'][$index] = $service;
-            }
-        }
 
         return $payload;
     }

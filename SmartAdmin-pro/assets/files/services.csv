@@ -1,51 +1,110 @@
-name;category;unit_price;iva;price;price_online;duration
-Manicure Tradicional;Manicure;12,1951;0,23;15;15;45
-Manicure Tradicional  (Masculina);Manicure;12,1951;0,23;15;15;45
-Verniz de Gel / Gelinho;Manicure;16,2602;0,23;20;20;60
-Manuten��o de gel / Acrilico ( de outra Profissional Externa );Manicure;24,3902;0,23;30;30;120
-Unhas de Gel (Sobre o Tamanho da Unha Natural );Manicure;19,5122;0,23;24;24;70
-Unhas de Gel c/Extens�o;Manicure;28,4553;0,23;35;35;125
-Manuten��o de Gel;Manicure;21,9512;0,23;27;27;100
-Unha de Acrilico ( Sobre o Tamanho da Unha Natural );Manicure;21,9512;0,23;27;27;70
-Unhas de Acr�lico c/ Extens�o;Manicure;30,8943;0,23;38;38;125
-Manuten��o de Acrilico;Manicure;22,7642;0,23;28;28;100
-Baby Boomer gel;Manicure;4,065;0,23;5;5;20
-Francesinha;Manicure;3,252;0,23;4;4;15
-Baby color Boomer;Manicure;2,439;0,23;3;3;15
-Full Nail Art ( pre�o a definir consoante ao design );Manicure;0;0,23;0;0;30
-Nails Art ( Decora��o);Manicure;2,439;0,23;3;3;20
-Nail Art 3D;Manicure;4,065;0,23;5;5;20
-Remo��o de Verniz Gel /Gelinho;Manicure;6,5041;0,23;8;8;20
-Remo��o de Gel / Acrilico;Manicure;8,1301;0,23;10;10;30
-Repara��o de Uma Unha de Gel;Manicure;2,439;0,23;3;3;15
-Pedicure Tradicional;Pedicure;16,2602;0,23;20;20;45
-Pedicure Tradicional (Masculina);Pedicure;17,8862;0,23;22;22;60
-Pedicure com Verniz Gel / Gelinho;Pedicure;17,8862;0,23;22;22;60
-Pedicure com Gel;Pedicure;21,1382;0,23;26;26;90
-Reconstru��o Unha dedo grande do p�;Pedicure;3,252;0,23;4;4;10
-Pedicure normal + SPA;Pedicure;20,3252;0,23;25;25;90
-Pedicure com Verniz Gel + SPA;Pedicure;22,7642;0,23;28;28;100
-Bu�o ( depila��o com Cera );Est�tica Rosto;4,065;0,23;5;5;15
-Nariz ( depila��o com Cera );Est�tica Rosto;4,065;0,23;5;5;15
-Limpeza de Pele ( MK );Est�tica Rosto;36,5854;0,23;45;45;80
-Hidrata��o Labial;Est�tica Rosto;12,1951;0,23;15;15;30
-Bu�o com Dermaplaning (MK);Est�tica Rosto;4,065;0,23;5;5;15
-Dermaplaning Facial (MK);Est�tica Rosto;19,5122;0,23;24;24;45
-Massagem Facial;Est�tica Rosto;16,2602;0,23;20;20;30
-Bu�o com Dermaplaning (AV);Est�tica Rosto;4,065;0,23;5;5;15
-Remo��o de Extens�o de Pestana;Est�tica Rosto;4,065;0,23;5;5;45
-Lash Liftting;Est�tica Rosto;24,3902;0,23;30;30;45
-Design Personalizado  de Sobrancelhas;Est�tica Rosto;12,1951;0,23;15;15;30
-Design de Sobrancelhas com Henna;Est�tica Rosto;16,2602;0,23;20;20;65
-Brown Lamination;Est�tica Rosto;28,4553;0,23;35;35;80
-Extens�o de pestanas POP Color ( por Or�amento );Est�tica Rosto;0;0,23;0;0;40
-Extens�o de Pestanas Fio a Fio Clasicos;Est�tica Rosto;28,4553;0,23;35;35;140
-Manuten��o  de pestanas Fio a Fio Clasico;Est�tica Rosto;20,3252;0,23;25;25;120
-Extens�o de Pestanas Volume Brasileiro;Est�tica Rosto;28,4553;0,23;35;35;100
-Manuten��o Volume Brasileiro ( at� 4 semanas );Est�tica Rosto;21,9512;0,23;27;27;95
-Extes�o de Pestanas Volume 3D;Est�tica Rosto;32,5203;0,23;40;40;90
-Manuten��o Volume 3D ( at� 4 semanas );Est�tica Rosto;21,9512;0,23;27;27;95
-Extens�o de Pestanas Volume Russo;Est�tica Rosto;32,5203;0,23;40;40;100
-Manuten��o Volume Russo ( at� 4 semanas );Est�tica Rosto;21,9512;0,23;27;27;95
-Extens�o de Pestanas Mega Volume;Est�tica Rosto;36,5854;0,23;45;45;110
-Manuten��o Mega Volume ( at� 4 semanas );Est�tica Rosto;28,4553;0,23;35;35;95
+﻿name;category;price;tax_value;duration
+Manicure Tradicional;Serviços de manicure;15.00;0,23;45
+Manicure Tradicional  (Masculina);Serviços de manicure;15.00;0,23;45
+Verniz de Gel / Gelinho;Serviços de manicure;20.00;0,23;60
+Manutenção de gel / Acrilico ( de outra Profissional Externa );Serviços de manicure;30.00;0,23;120
+Unhas de Gel (Sobre o Tamanho da Unha Natural );Serviços de manicure;24.00;0,23;70
+Unhas de Gel c/Extensão;Serviços de manicure;35.00;0,23;125
+Manutenção de Gel;Serviços de manicure;27.00;0,23;100
+Unha de Acrilico ( Sobre o Tamanho da Unha Natural );Serviços de manicure;27.00;0,23;70
+Unhas de Acrílico c/ Extensão;Serviços de manicure;38.00;0,23;125
+Manutenção de Acrilico;Serviços de manicure;30.00;0,23;100
+Baby Boomer gel;Serviços de manicure;5.00;0,23;20
+Francesinha;Serviços de manicure;4.00;0,23;15
+Baby color Boomer;Serviços de manicure;3.00;0,23;15
+Full Nail Art ( preço a definir consoante ao design );Serviços de manicure;0.00;0,23;30
+Nails Art ( Decoração);Serviços de manicure;3.00;0,23;20
+Nail Art 3D;Serviços de manicure;5.00;0,23;20
+Remoção de Verniz Gel /Gelinho;Serviços de manicure;8.00;0,23;20
+Remoção de Gel / Acrilico;Serviços de manicure;10.00;0,23;30
+Reparação de Uma Unha de Gel;Serviços de manicure;3.00;0,23;15
+Pedicure Tradicional;Serviços de pedicure;20.00;0,23;45
+Pedicure Tradicional (Masculina);Serviços de pedicure;22.00;0,23;60
+Pedicure com Verniz Gel / Gelinho;Serviços de pedicure;25.00;0,23;60
+Pedicure com Gel;Serviços de pedicure;26.00;0,23;90
+Reconstrução Unha dedo grande do pé;Serviços de pedicure;4.00;0,23;10
+Pedicure normal + SPA;Serviços de pedicure;26.00;0,23;90
+Pedicure com Verniz Gel + SPA;Serviços de pedicure;28.00;0,23;100
+Manicure + Pedicure Normal;PACK ESPECIAL;28.00;0,23;90
+Verniz Gel + Pedicure Normal;PACK ESPECIAL;34.00;0,23;120
+Verniz Gel + Pedicure com Verniz Gel;PACK ESPECIAL;36.00;0,23;135
+Manutenção de Unhas de Gel + Pedicure Normal;PACK ESPECIAL;42.00;0,23;145
+Manutenção de Unhas de Gel + Pedicure com Verniz Gel;PACK ESPECIAL;47.00;0,23;160
+Unhas de Gel com Extensão + Pedicure Normal;PACK ESPECIAL;52.00;0,23;175
+Unhas de Gel com Extensão + Pedicure com Verniz Gel;PACK ESPECIAL;54.00;0,23;195
+Buço ( depilação com Cera );ESTÉTICA ROSTO;5.00;0,23;15
+Nariz ( depilação com Cera );ESTÉTICA ROSTO;5.00;0,23;15
+Limpeza de Pele ( MK );ESTÉTICA ROSTO;45.00;0,23;80
+Hidratação Labial;ESTÉTICA ROSTO;15.00;0,23;30
+Buço com Dermaplaning (MK);ESTÉTICA ROSTO;5.00;0,23;15
+Dermaplaning Facial (MK);ESTÉTICA ROSTO;24.00;0,23;45
+Massagem Facial;ESTÉTICA ROSTO;20.00;0,23;30
+Buço com Dermaplaning (AV);ESTÉTICA ROSTO;5.00;0,23;15
+Remoção de Extensão de Pestana;ESTÉTICA ROSTO;5.00;0,23;45
+Remoção de Extenção de Pestanas ( profissional externa );ESTÉTICA ROSTO;10.00;0,23;35
+Lash Liftting;ESTÉTICA ROSTO;30.00;0,23;45
+Design Personalizado  de Sobrancelhas;ESTÉTICA ROSTO;15.00;0,23;30
+Design de Sobrancelhas com Henna;ESTÉTICA ROSTO;20.00;0,23;65
+Brown Lamination;ESTÉTICA ROSTO;35.00;0,23;80
+Extensão de pestanas POP Color ( por Orçamento );ESTÉTICA ROSTO;0.00;0,23;40
+Extensão de Pestanas Fio a Fio Clasicos;ESTÉTICA ROSTO;35.00;0,23;140
+Manutenção  de pestanas Fio a Fio Clasico;ESTÉTICA ROSTO;25.00;0,23;120
+Extensão de Pestanas Volume Brasileiro;ESTÉTICA ROSTO;35.00;0,23;100
+Manutenção Volume Brasileiro ( até 4 semanas );ESTÉTICA ROSTO;27.00;0,23;95
+Extesão de Pestanas Volume 3D;ESTÉTICA ROSTO;40.00;0,23;90
+Manutenção Volume 3D ( até 4 semanas );ESTÉTICA ROSTO;27.00;0,23;95
+Extensão de Pestanas Volume Russo;ESTÉTICA ROSTO;40.00;0,23;100
+Manutenção Volume Russo ( até 4 semanas );ESTÉTICA ROSTO;27.00;0,23;95
+Extensão de Pestanas Mega Volume;ESTÉTICA ROSTO;45.00;0,23;110
+Manutenção Mega Volume ( até 4 semanas );ESTÉTICA ROSTO;35.00;0,23;95
+Massagem Relaxante com Ventosaterapia (Corpo Inteiro 60');MASSAGENS TERAPÊUTICAS;38.00;0,23;60
+Massagem Relaxante com Ventosaterapia (Corpo Inteiro 30');MASSAGENS TERAPÊUTICAS;29.00;0,23;30
+Massagem Modeladora com Endermoterapia (Corpo Inteiro 60');MASSAGENS TERAPÊUTICAS;40.00;0,23;60
+Massagem Modeladora com Endermoterapia (Localizada 30');MASSAGENS TERAPÊUTICAS;28.00;0,23;30
+Massagem Modeladora  com Endermoterapia + Drenagem Linfática ( Corpo Inteiro );MASSAGENS TERAPÊUTICAS;42.00;0,23;60
+Drenagem Linfática  Brasileira (Corpo Inteiro);MASSAGENS TERAPÊUTICAS;40.00;0,23;60
+VentosaTerapia ( Corpo Inteiro 60?);MASSAGENS TERAPÊUTICAS;40.00;0,23;70
+VentosaTerapia ( Corpo Inteiro 35?);MASSAGENS TERAPÊUTICAS;30.00;0,23;35
+Massagem Relaxante (Corpo Inteiro 60');MASSAGENS TERAPÊUTICAS;35.00;0,23;60
+Massagem Relaxante ( Corpo Inteiro 30');MASSAGENS TERAPÊUTICAS;28.00;0,23;30
+Massagem Relaxante Local (pernas ou costas 60');MASSAGENS TERAPÊUTICAS;30.00;0,23;60
+Massagem Relaxante Local (pernas ou costas 30');MASSAGENS TERAPÊUTICAS;25.00;0,23;30
+Pack 2 Sessões Relaxante com Ventosaterapia (Corpo Inteiro 60');Pack Massagens Terapêuticas;73.00;0,23;60
+Pack 4 Sessões Relaxante com Ventosaterapia (Corpo Inteiro 60');Pack Massagens Terapêuticas;150.00;0,23;60
+Pack- 2 Sessões Massagem Modeladora com Endermoterapia ( Corpo Inteiro );Pack Massagens Terapêuticas;76.00;0,23;60
+Pack_- 4 sessões  Massagem Modeladora com Endermoterapia;Pack Massagens Terapêuticas;156.00;0,23;60
+Pack- 2 Sessões Modeladora com Endermo + Drenagem;Pack Massagens Terapêuticas;78.00;0,23;60
+Pack- 4 Sessões Modeladora com Endermo + Drenagem;Pack Massagens Terapêuticas;160.00;0,23;60
+Pack- 4 Sessões Massagem Relaxante ( Corpo inteiro 60' );Pack Massagens Terapêuticas;136.00;0,23;60
+Pack- 2 Sessões Massagem Relaxante (Corpo Inteiro 60' );Pack Massagens Terapêuticas;67.00;0,23;60
+Pack- 2 Sessões Massagem Relaxante Localizada (30´);Pack Massagens Terapêuticas;54.00;0,23;30
+Pack- 4 Sessões Massagem Relaxante Localizada ( 30');Pack Massagens Terapêuticas;100.00;0,23;30
+Pack- 4 Sessões Drenagem Linfática ( Corpo Inteiro );Pack Massagens Terapêuticas;156.00;0,23;60
+Pack- 2 Sessões Drenagem Linfática  ( Corpo Inteiro );Pack Massagens Terapêuticas;76.00;0,23;60
+L - Manicure Normal;L-Manicure;17.00;0,23;45
+L- Verniz Gel / Gelinho;L-Manicure;22.00;0,23;60
+L-Unhas de Gel;L-Manicure;26.00;0,23;70
+L-Unhas de Gel c/Extensão;L-Manicure;37.00;0,23;125
+L-Manutenção de Gel;L-Manicure;27.00;0,23;100
+L-Unhas de Acrilico c/ Extensão;L-Manicure;40.00;0,23;125
+L-Manutenção de Acrilico;L-Manicure;30.00;0,23;100
+L-Unhas de Gel com Fibra de Vidro;L-Manicure;37.00;0,23;125
+L- Francesinha / Baby Color Boomer;L-Manicure;5.00;0,23;15
+L-Nails Art ( Decoração ) + ( Pedras por orçamento );L-Manicure;5.00;0,23;20
+L-Nail Art 3D;L-Manicure;7.00;0,23;20
+L-Reparção de Uma Unha de Gel;L-Manicure;5.00;0,23;15
+L-Remoção de Verniz Gel / Gelinho;L-Manicure;10.00;0,23;20
+L-Remoção de Gel;L-Manicure;12.00;0,23;30
+L-Pedicure Normal;L-Pedicure;22.00;0,23;45
+L-Pedicure com Verniz Gel / Gelinho;L-Pedicure;24.00;0,23;60
+L-Pedicure com Gel;L-Pedicure;28.00;0,23;90
+L-Reconstrução da Unha Grande do pé;L-Pedicure;6.00;0,23;10
+L-Pedicure Normal + SPA;L-Pedicure;27.00;0,23;75
+L-Pedicure com Verniz Gel +SPA;L-Pedicure;30.00;0,23;90
+L-Manicure + Pedicure Normal;L-Pack Especial;30.00;0,23;90
+L-Verniz Gel + Pedicure Normal;L-Pack Especial;36.00;0,23;120
+L- Verniz Gel + Pedicure com Verniz Gel;L-Pack Especial;40.00;0,23;120
+L-Manutenção de Unhas de Gel + Pedicure Normal;L-Pack Especial;45.00;0,23;145
+L-Manutenção de Unhas de Gel + Pedicure com Verniz Gel;L-Pack Especial;50.00;0,23;160
+L-Unhas de Gel com Extensão + Pedicure Normal;L-Pack Especial;55.00;0,23;175
+L-Unhas de Gel com Extensão + Pedicure com Verniz Gel;L-Pack Especial;58.00;0,23;195

@@ -1,5 +1,22 @@
 @extends('partials.layouts.main')
 @section('title', 'Dashboard - Ocupação | Beauty CRM')
+@section('css')
+<style>
+.dash-welcome--ocupacao .dash-welcome-title {
+    margin: 0;
+}
+.dash-welcome--ocupacao .dash-welcome-text {
+    margin: 0;
+}
+.dash-welcome--ocupacao .dash-welcome-filters .form-select {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.5;
+    min-height: 0;
+}
+</style>
+@endsection
 @section('content')
 
 @if (session('success'))
@@ -10,15 +27,27 @@
 @endif
 
 <!-- Welcome Banner -->
-<div class="dash-welcome mb-4">
-    <div class="dash-welcome-content">
-        <h2 class="dash-welcome-title">Ocupação</h2>
-        <p class="dash-welcome-text">Taxa de ocupação, horários de pico, dias mais ocupados e duração média. Regras: slots de 60 min, 9h–19h, Seg–Sáb.</p>
-    </div>
-    <div class="dash-welcome-actions">
-        <a href="{{ route('agenda.index') }}" class="btn btn-primary">
-            <i class="ph ph-calendar-blank me-2"></i> Ver Agenda
-        </a>
+<div class="dash-welcome mb-4 dash-welcome--ocupacao">
+    <div class="d-flex align-items-center justify-content-between gap-3 w-100">
+        <div class="dash-welcome-content flex-grow-1 min-w-0">
+            <h2 class="dash-welcome-title">Ocupação</h2>
+            <p class="dash-welcome-text mt-2">Taxa de ocupação dos prestadores de serviços, horários de pico, dias mais ocupados e duração média. Slots de 90 min conforme o horário da loja ({{ $storeHoursLabel ?? '—' }}).</p>
+        </div>
+        <form method="GET" action="{{ route('dashboard.ocupacao') }}" class="dash-welcome-filters d-flex align-items-center gap-2 flex-shrink-0">
+            <select id="ocupacaoFilterMonth" name="month" class="form-select form-select-sm" style="min-width: 10rem;" aria-label="Mês">
+                @foreach($monthOptions ?? [] as $monthValue => $monthLabel)
+                    <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>
+                @endforeach
+            </select>
+            <select id="ocupacaoFilterYear" name="year" class="form-select form-select-sm" style="min-width: 6rem;" aria-label="Ano">
+                @foreach($availableYears ?? [now()->year] as $yearValue)
+                    <option value="{{ $yearValue }}" {{ (int) ($year ?? now()->year) === (int) $yearValue ? 'selected' : '' }}>{{ $yearValue }}</option>
+                @endforeach
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm text-nowrap">
+                <i class="ph ph-funnel me-1"></i> Filtrar
+            </button>
+        </form>
     </div>
 </div>
 
@@ -30,7 +59,7 @@
         </div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ $taxaOcupacaoMes ?? 0 }}%</div>
-            <div class="dash-kpi-label">Ocupação este mês</div>
+            <div class="dash-kpi-label">Ocupação em {{ $periodLabel ?? 'este mês' }}</div>
         </div>
     </div>
 
@@ -40,7 +69,7 @@
         </div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ $taxaOcupacaoSemana ?? 0 }}%</div>
-            <div class="dash-kpi-label">Ocupação esta semana</div>
+            <div class="dash-kpi-label">Ocupação na semana ({{ $weekPeriodLabel ?? '—' }})</div>
         </div>
     </div>
 
@@ -50,7 +79,7 @@
         </div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ number_format($filledSlotsMonth ?? 0, 0, ',', '.') }} / {{ number_format($totalSlotsMonth ?? 0, 0, ',', '.') }}</div>
-            <div class="dash-kpi-label">Slots preenchidos / total (mês)</div>
+            <div class="dash-kpi-label">Slots preenchidos / total ({{ $periodLabel ?? 'mês' }})</div>
         </div>
     </div>
 
@@ -82,6 +111,33 @@
         </div>
         <div class="card-body">
             <div class="chart-container" id="diasOcupadosChart"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Slots com menor ocupação -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-1">Slots com menor ocupação</h5>
+        <p class="small text-muted mb-0">Horários recorrentes (dia + janela de 90 min) com mais capacidade por preencher em {{ $periodLabel ?? 'o período' }}.</p>
+    </div>
+    <div class="card-body">
+        <div class="region-list">
+            @forelse($slotsMaisVazios ?? [] as $slot)
+                <div class="region-item">
+                    <div class="region-info">
+                        <span class="region-name">{{ $slot->slot_label }}</span>
+                    </div>
+                    <div class="region-stats">
+                        <div class="progress region-progress">
+                            <div class="progress-bar bg-warning" style="width: {{ min($slot->taxa_vazio, 100) }}%"></div>
+                        </div>
+                        <span class="region-value">{{ $slot->taxa_vazio }}% vazio · {{ $slot->empty_slots }}/{{ $slot->total_slots }} slots livres · {{ $slot->taxa_ocupacao }}% ocupação</span>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center text-muted py-3">Sem dados de slots para o período ou sem prestadores ativos.</div>
+            @endforelse
         </div>
     </div>
 </div>
@@ -122,7 +178,7 @@
 
     <div class="card">
         <div class="card-header">
-            <h5 class="card-title">Ocupação por técnico (este mês)</h5>
+            <h5 class="card-title">Ocupação por técnico ({{ $periodLabel ?? 'este mês' }})</h5>
         </div>
         <div class="card-body">
             <div class="region-list">
@@ -139,7 +195,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="text-center text-muted py-3">Nenhum técnico ativo ou sem dados no período.</div>
+                    <div class="text-center text-muted py-3">Nenhum prestador de serviços ativo ou sem dados no período.</div>
                 @endforelse
             </div>
         </div>
@@ -150,7 +206,7 @@
 <div class="dash-grid dash-grid-2x2 mb-4">
     <div class="card">
         <div class="card-header">
-            <h5 class="card-title">Resumo do mês</h5>
+            <h5 class="card-title">Resumo de {{ $periodLabel ?? 'este mês' }}</h5>
         </div>
         <div class="card-body">
             <div class="dash-targets">
@@ -177,10 +233,12 @@
         </div>
         <div class="card-body">
             <ul class="list-unstyled mb-0 small">
-                <li><strong>Slot:</strong> 60 min</li>
-                <li><strong>Horário considerado:</strong> 9h–19h</li>
-                <li><strong>Dias úteis:</strong> Segunda a Sábado</li>
-                <li><strong>Slots por dia por técnico:</strong> 10</li>
+                <li><strong>Slot:</strong> 90 min</li>
+                <li><strong>Horário da loja:</strong> {{ $storeHoursLabel ?? '—' }}</li>
+                <li><strong>Dias abertos:</strong> {{ $storeOpenDaysLabel ?: '—' }}</li>
+                <li><strong>Slots médios por dia / prestador:</strong> {{ $avgSlotsPerOpenDayPerTech ?? 0 }}</li>
+                <li><strong>Prestadores ativos:</strong> {{ $numTecnicos ?? 0 }}</li>
+                <li><strong>Fuso horário:</strong> {{ $ocupacaoTimezoneLabel ?? '—' }}</li>
             </ul>
         </div>
     </div>

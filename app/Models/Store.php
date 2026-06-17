@@ -236,8 +236,12 @@ class Store extends Model
         return 'varia por dia';
     }
 
+    /** Margem extra (minutos) após o fecho habitual na grelha da agenda (marcações que ultrapassam o horário). */
+    public const AGENDA_SLOT_END_MARGIN_MINUTES = 60;
+
     /**
      * Intervalo [min, max] em HH:MM para a grelha da agenda (todos os dias ativos).
+     * O máximo inclui {@see AGENDA_SLOT_END_MARGIN_MINUTES} após o fecho da loja.
      *
      * @return array{0: string, 1: string}
      */
@@ -257,8 +261,11 @@ class Store extends Model
             $maxM = max($maxM, $e);
         }
         if (! $found) {
-            return ['09:00', '20:00'];
+            $minM = Agent::timeStringToMinutes('09:00');
+            $maxM = Agent::timeStringToMinutes('20:00');
         }
+
+        $maxM = min(24 * 60, $maxM + self::AGENDA_SLOT_END_MARGIN_MINUTES);
 
         return [
             sprintf('%02d:%02d', intdiv($minM, 60), $minM % 60),

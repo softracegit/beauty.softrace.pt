@@ -57,6 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
         calendarEl.classList.add('agenda-calendar--prestador');
     }
     const canProcessPayments = agendaPerms.canProcessPayments !== false;
+    const canCreateMarcacao = agendaPerms.canCreateMarcacao !== false;
     const canViewClientContacts = agendaPerms.canViewClientContacts !== false;
     const canViewClientProfile = agendaPerms.canViewClientProfile !== false;
     const canViewInvoices = agendaPerms.canViewInvoices !== false;
@@ -1216,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var ext = event.extendedProps || {};
         var statusLabels = STATUS_LABELS;
         var isTempoPessoal = (ext.event_type || '') === 'tempo_pessoal';
-        var hideQuickviewFinancials = isPrestadorStaff && !isTempoPessoal;
+        var hideQuickviewPaymentDetails = isPrestadorStaff && !isTempoPessoal;
         var personalTimeType = ext.personal_time_type || {};
         var status = ext.status || 'agendado';
         var statusLabel = isTempoPessoal ? 'Tempo pessoal' : (statusLabels[status] || status);
@@ -1357,12 +1358,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     left.appendChild(meta);
                 }
                 row.appendChild(left);
-                if (!hideQuickviewFinancials) {
-                    var priceEl = document.createElement('div');
-                    priceEl.className = 'agenda-quickview-service-price';
-                    priceEl.textContent = s.formatted_price || (parseFloat(s.price) || 0).toFixed(2).replace('.', ',') + ' €';
-                    row.appendChild(priceEl);
-                }
+                var priceEl = document.createElement('div');
+                priceEl.className = 'agenda-quickview-service-price';
+                priceEl.textContent = s.formatted_price || (parseFloat(s.price) || 0).toFixed(2).replace('.', ',') + ' €';
+                row.appendChild(priceEl);
                 body.appendChild(row);
 
                 // Extras associados ao serviço, cada um como uma linha própria
@@ -1394,24 +1393,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     extraRow.appendChild(extraLeft);
 
-                    if (!hideQuickviewFinancials) {
-                        var extraPriceEl = document.createElement('div');
-                        extraPriceEl.className = 'agenda-quickview-service-price';
-                        if (typeof ex.formatted_price === 'string' && ex.formatted_price.trim() !== '') {
-                            extraPriceEl.textContent = ex.formatted_price;
-                        } else if (ex.price != null) {
-                            extraPriceEl.textContent = (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €';
-                        } else {
-                            extraPriceEl.textContent = '';
-                        }
-                        extraRow.appendChild(extraPriceEl);
+                    var extraPriceEl = document.createElement('div');
+                    extraPriceEl.className = 'agenda-quickview-service-price';
+                    if (typeof ex.formatted_price === 'string' && ex.formatted_price.trim() !== '') {
+                        extraPriceEl.textContent = ex.formatted_price;
+                    } else if (ex.price != null) {
+                        extraPriceEl.textContent = (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €';
+                    } else {
+                        extraPriceEl.textContent = '';
                     }
+                    extraRow.appendChild(extraPriceEl);
 
                     body.appendChild(extraRow);
                 });
             });
 
-            if (!hideQuickviewFinancials) {
             quickviewFees.forEach(function(f) {
                 var feeRow = document.createElement('div');
                 feeRow.className = 'agenda-quickview-service-row agenda-quickview-fee-row';
@@ -1429,7 +1425,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 feeRow.appendChild(feePriceEl);
                 body.appendChild(feeRow);
             });
-            }
         } else {
             var serviceName = (ext.service_name || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             if (serviceName || userName) {
@@ -1452,7 +1447,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     left.appendChild(meta);
                 }
                 row.appendChild(left);
-                if (totalPriceStr && !hideQuickviewFinancials) {
+                if (totalPriceStr) {
                     var priceEl = document.createElement('div');
                     priceEl.className = 'agenda-quickview-service-price';
                     priceEl.textContent = totalPriceStr;
@@ -1462,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        if (!isTempoPessoal && !hideQuickviewFinancials) {
+        if (!isTempoPessoal) {
             var totalRow = document.createElement('div');
             totalRow.className = 'agenda-quickview-service-row';
             totalRow.style.marginTop = '0.5rem';
@@ -1478,7 +1473,7 @@ document.addEventListener('DOMContentLoaded', function() {
             totalRow.appendChild(totalVal);
             body.appendChild(totalRow);
 
-            if (bookingPaidAmount > 0.00001) {
+            if (!hideQuickviewPaymentDetails && bookingPaidAmount > 0.00001) {
                 var reservaRow = document.createElement('div');
                 reservaRow.className = 'agenda-quickview-service-row';
                 var reservaLeft = document.createElement('div');
@@ -1492,7 +1487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body.appendChild(reservaRow);
             }
 
-            if (invoiceSettled) {
+            if (!hideQuickviewPaymentDetails && invoiceSettled) {
                 var paidRow = document.createElement('div');
                 paidRow.className = 'agenda-quickview-service-row';
                 var paidLeft = document.createElement('div');
@@ -1504,7 +1499,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 paidVal.textContent = finalPaidAmount.toFixed(2).replace('.', ',') + ' €';
                 paidRow.appendChild(paidVal);
                 body.appendChild(paidRow);
-            } else {
+            } else if (!hideQuickviewPaymentDetails) {
                 if (bookingPaidAmount > 0.00001) {
                     var dueRow = document.createElement('div');
                     dueRow.className = 'agenda-quickview-service-row';
@@ -1520,7 +1515,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            if (ext.pending_final_invoice) {
+            if (!hideQuickviewPaymentDetails && ext.pending_final_invoice) {
                 var pendingNotice = document.createElement('div');
                 pendingNotice.className = 'agenda-quickview-pending-invoice-notice';
                 var pendingIcon = document.createElement('i');
@@ -3056,7 +3051,11 @@ document.addEventListener('DOMContentLoaded', function() {
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
         var offcanvasFooter = $id('eventDetailOffcanvasFooter');
         if (offcanvasFooter) {
-            offcanvasFooter.classList.toggle('d-none', isPrestadorStaff);
+            offcanvasFooter.classList.remove('d-none');
+        }
+        var footerActions = $id('eventDetailFooterActionsRow');
+        if (footerActions) {
+            footerActions.classList.toggle('d-none', !canProcessPayments);
         }
         var paymentsUiEnabled = canProcessPayments;
         var paymentWrap = $id('eventDetailPaymentWrap');
@@ -4570,11 +4569,9 @@ document.addEventListener('DOMContentLoaded', function() {
             reservaSummary.classList.add('d-none');
             pagoSummary.classList.add('d-none');
             totalMain.classList.remove('d-none');
-            var dueOnly = eventDetailEffectiveAmountDueEur();
-            var displayTotal = dueOnly > 0.00001 ? dueOnly : total;
             var totalPriceEl = $id('eventDetailTotalPrice');
             if (totalPriceEl) {
-                totalPriceEl.textContent = eventDetailMoney(displayTotal);
+                totalPriceEl.textContent = eventDetailMoney(total);
             }
             return;
         }
@@ -5604,6 +5601,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             $id('agendaMarcacaoTestForm').addEventListener('submit', function(e) {
                 e.preventDefault();
+                if (!canCreateMarcacao) {
+                    showToast('Sem permissão para criar marcações.', 'error');
+                    return;
+                }
                 var mid = ($id('agendaOcMember').value || '').trim();
                 if (!mid) {
                     showToast('Selecione um profissional.', 'error');
@@ -5847,6 +5848,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function openNovaMarcacaoModal(startStr, endStr, resourceId, preSelectedClientId) {
+        if (!canCreateMarcacao) {
+            showToast('Sem permissão para criar marcações.', 'error');
+            return;
+        }
         openAgendaMarcacaoTestOffcanvas(startStr, endStr, resourceId, preSelectedClientId);
     }
 
@@ -6162,11 +6167,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function eventDetailOcRenderFeesList() {
         var wrap = $id('eventDetailOcFeesList');
         if (!wrap) {
-            return;
-        }
-        if (!canProcessPayments) {
-            wrap.innerHTML = '';
-            wrap.classList.add('d-none');
             return;
         }
         wrap.innerHTML = '';
@@ -8138,24 +8138,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            var options = [
-                {
+            var options = [];
+            if (canCreateMarcacao) {
+                options.push({
                     label: 'Nova marcação',
                     icon: 'bi bi-calendar-check',
                     iconColor: 'var(--accent-color, #0d6efd)',
                     action: function() {
                         openNovaMarcacaoModal(startStr, endStr, resourceId);
                     }
-                },
-                {
-                    label: 'Novo tempo pessoal',
-                    icon: 'bi bi-person',
-                    iconColor: 'var(--bs-secondary, #6c757d)',
-                    action: function() {
-                        openTempoPessoalModal(startStr, endStr, resourceId);
-                    }
+                });
+            }
+            options.push({
+                label: 'Novo tempo pessoal',
+                icon: 'bi bi-person',
+                iconColor: 'var(--bs-secondary, #6c757d)',
+                action: function() {
+                    openTempoPessoalModal(startStr, endStr, resourceId);
                 }
-            ];
+            });
             clearAgendaHoverHighlight();
             var ev = info.jsEvent;
             var cx = ev.clientX;
@@ -9235,6 +9236,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 '</div>';
             document.body.appendChild(addModal);
         }
+        if (!canCreateMarcacao) {
+            document.getElementById('agendaMobileAddBookingBtn')?.classList.add('d-none');
+        }
     }
 
     function updateAgendaMobileViewList() {
@@ -9546,7 +9550,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .finally(function() {
                     eventDetailModalLoading = false;
                 });
-        } else if (novaMarcacao === '1') {
+        } else if (novaMarcacao === '1' && canCreateMarcacao) {
             var now = new Date();
             var min = now.getMinutes();
             var roundedMin = Math.ceil(min / 15) * 15;
@@ -9742,17 +9746,20 @@ document.addEventListener('DOMContentLoaded', function() {
         menu.id = 'adicionarDropdownMenu';
         menu.className = 'dropdown-menu dropdown-menu-end agenda-adicionar-dropdown-menu';
         menu.setAttribute('aria-labelledby', 'adicionarDropdownBtn');
-        var optMarcacao = document.createElement('a');
-        optMarcacao.className = 'dropdown-item';
-        optMarcacao.href = '#';
-        optMarcacao.innerHTML = '<i class="bi bi-calendar-check me-2"></i> Nova marcação';
-        optMarcacao.addEventListener('click', function(e) {
-            e.preventDefault();
-            var slot = getClosestSlotToNow();
-            var resourceId = (viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null;
-            openNovaMarcacaoModal(slot.startStr, slot.endStr, resourceId);
-            bootstrap.Dropdown.getInstance(addBtn)?.hide();
-        });
+        if (canCreateMarcacao) {
+            var optMarcacao = document.createElement('a');
+            optMarcacao.className = 'dropdown-item';
+            optMarcacao.href = '#';
+            optMarcacao.innerHTML = '<i class="bi bi-calendar-check me-2"></i> Nova marcação';
+            optMarcacao.addEventListener('click', function(e) {
+                e.preventDefault();
+                var slot = getClosestSlotToNow();
+                var resourceId = (viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null;
+                openNovaMarcacaoModal(slot.startStr, slot.endStr, resourceId);
+                bootstrap.Dropdown.getInstance(addBtn)?.hide();
+            });
+            menu.appendChild(optMarcacao);
+        }
         var optTempoPessoal = document.createElement('a');
         optTempoPessoal.className = 'dropdown-item';
         optTempoPessoal.href = '#';
@@ -9764,7 +9771,6 @@ document.addEventListener('DOMContentLoaded', function() {
             openTempoPessoalModal(slot.startStr, slot.endStr, resourceId);
             bootstrap.Dropdown.getInstance(addBtn)?.hide();
         });
-        menu.appendChild(optMarcacao);
         menu.appendChild(optTempoPessoal);
         btnParent.appendChild(menu);
         bootstrap.Dropdown.getOrCreateInstance(addBtn);

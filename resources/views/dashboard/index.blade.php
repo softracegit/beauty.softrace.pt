@@ -1,5 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', 'Dashboard | Beauty CRM')
+@section('title', 'Dashboard - Marcações e Serviços | Beauty CRM')
 @section('content')
 
 @if (session('success'))
@@ -9,24 +9,16 @@
     </div>
 @endif
 
-<!-- Welcome Banner -->
 <div class="dash-welcome mb-4">
-    <div class="dash-welcome-content">
-        <h2 class="dash-welcome-title">Bem-vindo de volta, {{ auth()->user()->name }}</h2>
-        <p class="dash-welcome-text">Visão geral das marcações e dos seus serviços.</p>
-    </div>
-    <div class="dash-welcome-actions">
-        <div class="dash-date">
-            <i class="bi bi-calendar3"></i>
-            <span id="dashDate"></span>
+    <div class="d-flex align-items-center justify-content-between gap-3 w-100">
+        <div class="dash-welcome-content">
+            <h2 class="dash-welcome-title mb-0">Marcações e Serviços</h2>
         </div>
-        <div class="dash-date">
-            <i class="bi bi-clock"></i>
-            <span id="dashTime"></span>
+        <div class="dash-welcome-actions flex-shrink-0">
+            <a href="{{ route('agenda.index') }}" class="btn btn-primary">
+                <i class="ph ph-calendar-blank me-2"></i> Ver Agenda
+            </a>
         </div>
-        <a href="{{ route('agenda.index') }}" class="btn btn-primary ms-2">
-            <i class="ph ph-calendar-blank me-2"></i> Ver Agenda
-        </a>
     </div>
 </div>
 
@@ -361,16 +353,6 @@
 @section('js')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var dateEl = document.getElementById('dashDate');
-    var timeEl = document.getElementById('dashTime');
-    function updateDateTime() {
-        var now = new Date();
-        if (dateEl) dateEl.textContent = now.toLocaleDateString('pt-PT', { month: 'short', day: 'numeric', year: 'numeric' });
-        if (timeEl) timeEl.textContent = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    }
-    updateDateTime();
-    setInterval(updateDateTime, 1000);
-
     const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#6366f1';
     const successColor = getComputedStyle(document.documentElement).getPropertyValue('--success-color').trim() || '#10b981';
     const warningColor = getComputedStyle(document.documentElement).getPropertyValue('--warning-color').trim() || '#f59e0b';

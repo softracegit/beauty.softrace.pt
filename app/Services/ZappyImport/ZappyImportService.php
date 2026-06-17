@@ -14,6 +14,7 @@ use App\Models\Store;
 use App\Models\ZappyImportRef;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ZappyImportService
@@ -81,6 +82,9 @@ class ZappyImportService
      */
     private array $mergeChainHeads = [];
 
+    /** @var array<string, Carbon> */
+    private array $clientCreatedOnByName = [];
+
     public function __construct(
         private readonly ZappyCsvReader $reader = new ZappyCsvReader,
     ) {}
@@ -102,17 +106,20 @@ class ZappyImportService
         bool $repairSaleDiscounts = false,
         bool $repairMissingServices = false,
         bool $repairDistributeSales = false,
+        bool $repairClientDates = false,
+        bool $repairSaleDates = false,
     ): array {
         $this->storeId = $storeId;
         $this->dryRun = $dryRun;
         $this->fresh = $fresh;
         $this->resetRuntimeState();
 
-        if ($repairTimes || $repairInvoiceAlerts || $repairMergeConsecutive || $repairRelinkSales || $repairOrphanPaid || $repairSaleDiscounts || $repairMissingServices || $repairDistributeSales) {
+        if ($repairTimes || $repairInvoiceAlerts || $repairMergeConsecutive || $repairRelinkSales || $repairOrphanPaid || $repairSaleDiscounts || $repairMissingServices || $repairDistributeSales || $repairClientDates || $repairSaleDates) {
             $repairStats = [];
             if ($repairTimes) {
                 $repairStats = array_merge($repairStats, $this->repairSplitOverMergedAppointments());
                 $repairStats = array_merge($repairStats, $this->repairAppointmentTimes());
+                $repairStats = array_merge($repairStats, $this->repairMergedAppointmentWindows());
                 $repairStats = array_merge($repairStats, $this->repairRelinkSalesOffCancelledEvents());
                 $repairStats = array_merge($repairStats, $this->repairDistributeSalesToEvents());
             }
@@ -126,10 +133,12 @@ class ZappyImportService
                 $repairStats = array_merge($repairStats, $this->repairRelinkSalesOffCancelledEvents());
                 $repairStats = array_merge($repairStats, $this->repairDistributeSalesToEvents());
                 $repairStats = array_merge($repairStats, $this->repairSalesEventLinks());
+                $repairStats = array_merge($repairStats, $this->repairConsolidateDuplicateEventSales());
             }
             if ($repairDistributeSales) {
                 $repairStats = array_merge($repairStats, $this->repairRelinkSalesOffCancelledEvents());
                 $repairStats = array_merge($repairStats, $this->repairDistributeSalesToEvents());
+                $repairStats = array_merge($repairStats, $this->repairConsolidateDuplicateEventSales());
             }
             if ($repairOrphanPaid) {
                 $repairStats = array_merge($repairStats, $this->repairOrphanPaidAppointments());
@@ -137,8 +146,14 @@ class ZappyImportService
             if ($repairSaleDiscounts) {
                 $repairStats = array_merge($repairStats, $this->repairImportedSaleDiscounts());
             }
+            if ($repairSaleDates) {
+                $repairStats = array_merge($repairStats, $this->repairImportedSaleDates());
+            }
             if ($repairMissingServices) {
                 $repairStats = array_merge($repairStats, $this->repairMissingAppointmentServices());
+            }
+            if ($repairClientDates) {
+                $repairStats = array_merge($repairStats, $this->repairImportedClientCreatedAt());
             }
 
             return $repairStats;
@@ -159,6 +174,7 @@ class ZappyImportService
         $this->loadExistingServiceRefs();
         $this->loadExistingClientRefs();
         $this->loadExistingAppointmentIndex();
+        $this->loadClientCreatedOnIndex();
 
         $order = ['services', 'clients', 'appointments', 'sales'];
         foreach ($order as $step) {
@@ -206,6 +222,7 @@ class ZappyImportService
         $this->mergeChainHeads = [];
         $this->usedPhones = [];
         $this->usedEmails = [];
+        $this->clientCreatedOnByName = [];
         $this->defaultServiceIdResolved = 0;
     }
 
@@ -505,7 +522,7 @@ class ZappyImportService
                 continue;
             }
 
-            $client = Client::withoutEvents(fn () => Client::create([
+            $client = $this->createClientRecord([
                 'store_id' => $this->storeId,
                 'name' => $name,
                 'email' => $email ?: null,
@@ -513,9 +530,7 @@ class ZappyImportService
                 'gender' => $gender,
                 'birth_date' => $birthDate,
                 'nif' => $nif,
-                'created_at' => $createdAt,
-                'updated_at' => $createdAt,
-            ]));
+            ], $createdAt);
 
             if ($phone) {
                 $this->usedPhones[$this->normalizePhoneKey($phone)] = true;
@@ -529,6 +544,110 @@ class ZappyImportService
             $this->saveRef(ZappyImportRef::TYPE_CLIENT, $refKey, (int) $client->id, ['name' => $name]);
             $this->bump('clients_created');
         }
+    }
+
+    private function loadClientCreatedOnIndex(): void
+    {
+        $this->clientCreatedOnByName = [];
+        foreach ($this->reader->read($this->csvPath('clients')) as $row) {
+            $name = trim($row['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+            $createdAt = $this->parseDateTimeDMY($row['createdon'] ?? '');
+            if ($createdAt === null) {
+                continue;
+            }
+            $key = $this->normalizeName($name);
+            $existing = $this->clientCreatedOnByName[$key] ?? null;
+            if ($existing === null || $createdAt->lt($existing)) {
+                $this->clientCreatedOnByName[$key] = $createdAt;
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function createClientRecord(array $attributes, Carbon $createdAt): Client
+    {
+        return Client::withoutEvents(function () use ($attributes, $createdAt): Client {
+            $client = new Client($attributes);
+            $client->created_at = $createdAt;
+            $client->updated_at = $createdAt;
+            $client->save();
+
+            return $client;
+        });
+    }
+
+    /**
+     * Repõe created_at/updated_at dos clientes importados a partir de clientes.csv (coluna createdon).
+     *
+     * @return array<string, int>
+     */
+    public function repairImportedClientCreatedAt(): array
+    {
+        $this->loadExistingClientRefs();
+        $this->loadClientCreatedOnIndex();
+
+        $updated = 0;
+        $unchanged = 0;
+        $skipped = 0;
+
+        foreach ($this->reader->read($this->csvPath('clients')) as $row) {
+            $name = trim($row['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+
+            $createdAt = $this->parseDateTimeDMY($row['createdon'] ?? '');
+            if ($createdAt === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            $clientId = $this->resolveClientIdByName($name);
+            if ($clientId === null || $clientId <= 0) {
+                $skipped++;
+
+                continue;
+            }
+
+            $client = Client::query()->where('store_id', $this->storeId)->find($clientId);
+            if ($client === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            if ($client->created_at !== null && $client->created_at->equalTo($createdAt)) {
+                $unchanged++;
+
+                continue;
+            }
+
+            if ($this->dryRun) {
+                $updated++;
+
+                continue;
+            }
+
+            Client::withoutEvents(function () use ($client, $createdAt): void {
+                $client->update([
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ]);
+            });
+            $updated++;
+        }
+
+        return [
+            'clients_dates_repaired' => $updated,
+            'clients_dates_unchanged' => $unchanged,
+            'clients_dates_skipped' => $skipped,
+        ];
     }
 
     private function importAppointments(): void
@@ -619,11 +738,17 @@ class ZappyImportService
                         $itemName,
                         $updatedAt,
                     );
+                    $this->saveRef(ZappyImportRef::TYPE_APPOINTMENT, $fingerprint, $chainHead['event_id'], [
+                        'client' => $clientName,
+                        'item' => $itemName,
+                        'provider' => $provider,
+                    ]);
                 }
+                $mergedEnd = $endAt->gt($chainHead['end_at']) ? $endAt->copy() : $chainHead['end_at']->copy();
                 $this->mergeChainHeads[$chainKey] = [
                     'event_id' => $chainHead['event_id'],
                     'start_at' => $chainHead['start_at'],
-                    'end_at' => $endAt,
+                    'end_at' => $mergedEnd,
                     'status_label' => $statusLabel,
                     'client_name' => $clientName,
                     'payment_key' => $chainHead['payment_key'] !== '' ? $chainHead['payment_key'] : $this->paymentMergeKey($row),
@@ -1051,12 +1176,14 @@ class ZappyImportService
             return $fakeId;
         }
 
-        $client = Client::withoutEvents(fn () => Client::create([
+        $createdAt = $this->clientCreatedOnByName[$norm] ?? now();
+
+        $client = $this->createClientRecord([
             'store_id' => $this->storeId,
             'name' => $name,
             'email' => null,
             'phone' => null,
-        ]));
+        ], $createdAt);
 
         $this->pushClientNameIndex($norm, (int) $client->id);
         $this->saveRef(ZappyImportRef::TYPE_CLIENT, 'placeholder:'.$norm, (int) $client->id);
@@ -1199,6 +1326,20 @@ class ZappyImportService
             return null;
         }
 
+        $dmy = $this->parseDateTimeDMY($value);
+        if ($dmy !== null) {
+            return $dmy;
+        }
+
+        foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d', 'd M Y H:i', 'd M Y'] as $format) {
+            try {
+                $dt = Carbon::createFromFormat($format, $value, $this->sourceTimezone());
+
+                return $this->toStorageTimezone($dt);
+            } catch (\Throwable) {
+            }
+        }
+
         try {
             $local = Carbon::parse($value, $this->sourceTimezone());
 
@@ -1264,6 +1405,7 @@ class ZappyImportService
 
         $split = 0;
         $skipped = 0;
+        $windows = 0;
 
         foreach ($byEvent as $eventId => $eventRefs) {
             if (count($eventRefs) <= 1) {
@@ -1319,6 +1461,17 @@ class ZappyImportService
             unset($cluster);
 
             if (count($clusters) <= 1) {
+                if (count($slots) > 1) {
+                    if ($this->dryRun) {
+                        $windows++;
+                    } else {
+                        $event = CalendarEvent::query()->find($eventId);
+                        if ($event !== null) {
+                            $this->applyClusterWindowToEvent($event, $slots);
+                            $windows++;
+                        }
+                    }
+                }
                 $skipped++;
 
                 continue;
@@ -1343,7 +1496,149 @@ class ZappyImportService
         return [
             'appointments_split' => $split,
             'appointments_split_skipped' => $skipped,
+            'appointments_windows_repaired' => $windows,
         ];
+    }
+
+    /**
+     * Ajusta início/fim de visitas com vários serviços ao intervalo Zappy (máx. de início+duração por linha CSV).
+     *
+     * @return array<string, int>
+     */
+    public function repairMergedAppointmentWindows(): array
+    {
+        $this->agentUserMap = config('zappy_import.agent_user_map', []);
+        $this->ignoredAgents = config('zappy_import.ignored_agent_names', []);
+        $this->loadExistingServiceRefs();
+
+        $userIdToProvider = [];
+        foreach ($this->agentUserMap as $name => $uid) {
+            $userIdToProvider[(int) $uid] = $name;
+        }
+
+        $zappyEventIds = ZappyImportRef::query()
+            ->where('store_id', $this->storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_APPOINTMENT)
+            ->distinct()
+            ->pluck('local_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        $repaired = 0;
+        $skipped = 0;
+        $unchanged = 0;
+
+        foreach ($zappyEventIds as $eventId) {
+            $event = CalendarEvent::query()
+                ->with(['eventServices', 'client'])
+                ->find($eventId);
+            if ($event === null || $event->eventServices->count() < 2) {
+                $skipped++;
+
+                continue;
+            }
+
+            $slots = $this->buildCsvSlotsForMergedEvent($event, $userIdToProvider);
+            if (count($slots) < 2) {
+                $skipped++;
+
+                continue;
+            }
+
+            $windowStart = $slots[0]['start_at'];
+            $windowEnd = $slots[0]['end_at'];
+            foreach ($slots as $slot) {
+                if ($slot['start_at']->lt($windowStart)) {
+                    $windowStart = $slot['start_at'];
+                }
+                if ($slot['end_at']->gt($windowEnd)) {
+                    $windowEnd = $slot['end_at'];
+                }
+            }
+
+            if ($event->start_at->equalTo($windowStart) && $event->end_at->equalTo($windowEnd)) {
+                $unchanged++;
+
+                continue;
+            }
+
+            if ($this->dryRun) {
+                $repaired++;
+
+                continue;
+            }
+
+            $this->applyClusterWindowToEvent($event, $slots);
+            $repaired++;
+        }
+
+        return [
+            'appointments_merged_windows_repaired' => $repaired,
+            'appointments_merged_windows_unchanged' => $unchanged,
+            'appointments_merged_windows_skipped' => $skipped,
+        ];
+    }
+
+    /**
+     * @param  array<int, string>  $userIdToProvider
+     * @return list<array{start_at: Carbon, end_at: Carbon, row: array<string, string>, item_name: string}>
+     */
+    private function buildCsvSlotsForMergedEvent(CalendarEvent $event, array $userIdToProvider): array
+    {
+        $clientName = trim((string) ($event->client?->name ?? ''));
+        if ($clientName === '') {
+            return [];
+        }
+
+        $eventDay = $event->start_at->copy()->timezone($this->sourceTimezone())->format('Y-m-d');
+        $serviceIds = $event->eventServices->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $expectedProvider = $userIdToProvider[(int) ($event->user_id ?? 0)] ?? null;
+
+        $slots = [];
+        foreach ($this->reader->read($this->csvPath('appointments')) as $row) {
+            $rowClient = trim($row['client_name'] ?? '');
+            if ($this->normalizeName($rowClient) !== $this->normalizeName($clientName)) {
+                continue;
+            }
+
+            $provider = trim($row['service_provider'] ?? '');
+            if ($provider !== '' && $this->isIgnoredAgent($provider)) {
+                continue;
+            }
+            if ($expectedProvider !== null && $provider !== '' && $provider !== $expectedProvider) {
+                continue;
+            }
+
+            $startAt = $this->parseDateTimeDMY($row['date'] ?? '');
+            if ($startAt === null) {
+                continue;
+            }
+            if ($startAt->copy()->timezone($this->sourceTimezone())->format('Y-m-d') !== $eventDay) {
+                continue;
+            }
+
+            $itemName = trim($row['item_name'] ?? '');
+            if ($itemName === '') {
+                continue;
+            }
+
+            [$serviceId] = $this->resolveServiceIdForImport($itemName);
+            if ($serviceId === null || ! in_array((int) $serviceId, $serviceIds, true)) {
+                continue;
+            }
+
+            $duration = max(1, (int) ($this->serviceDurations[$serviceId] ?? 30));
+            $slots[] = [
+                'start_at' => $startAt,
+                'end_at' => $startAt->copy()->addMinutes($duration),
+                'row' => $row,
+                'item_name' => $itemName,
+            ];
+        }
+
+        usort($slots, fn (array $a, array $b): int => $a['start_at']->timestamp <=> $b['start_at']->timestamp);
+
+        return $slots;
     }
 
     /**
@@ -1576,7 +1871,9 @@ class ZappyImportService
                 ->where('local_id', $eventId)
                 ->count();
 
-            if ($refsOnEvent <= 1) {
+            $servicesOnEvent = $event->eventServices()->count();
+
+            if ($refsOnEvent <= 1 && $servicesOnEvent <= 1) {
                 if ($event->start_at->equalTo($correctStart) && $event->end_at->equalTo($correctEnd)) {
                     $unchanged++;
 
@@ -1701,6 +1998,67 @@ class ZappyImportService
         }
 
         return ['sales_discount_updated' => $updated, 'sales_discount_skipped' => $skipped];
+    }
+
+    /**
+     * Corrige data_emissao das vendas importadas a partir da coluna date do vendas.csv (formato d/m/Y).
+     *
+     * @return array<string, int>
+     */
+    public function repairImportedSaleDates(): array
+    {
+        $dateByDoc = [];
+        foreach ($this->reader->read($this->csvPath('sales')) as $row) {
+            $docId = trim($row['doc_id'] ?? '');
+            if ($docId === '' || isset($dateByDoc[$docId])) {
+                continue;
+            }
+
+            $parsed = $this->parseDateTimeIso($row['date'] ?? '');
+            if ($parsed !== null) {
+                $dateByDoc[$docId] = $parsed;
+            }
+        }
+
+        $updated = 0;
+        $skipped = 0;
+
+        $sales = Sale::query()
+            ->where('store_id', $this->storeId)
+            ->where('numero_fatura', 'not like', 'ZAPPY-%')
+            ->get(['id', 'numero_fatura', 'data_emissao', 'created_at', 'updated_at']);
+
+        foreach ($sales as $sale) {
+            $baseDoc = $this->baseInvoiceNumber((string) $sale->numero_fatura);
+            $parsed = $dateByDoc[$baseDoc] ?? null;
+            if ($parsed === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            $newDate = $parsed->toDateString();
+            if ((string) $sale->data_emissao === $newDate) {
+                $skipped++;
+
+                continue;
+            }
+
+            if ($this->dryRun) {
+                $updated++;
+
+                continue;
+            }
+
+            $sale->update([
+                'data_emissao' => $newDate,
+                'created_at' => $parsed,
+                'updated_at' => $parsed,
+            ]);
+            $updated++;
+        }
+
+        return ['sales_dates_updated' => $updated, 'sales_dates_skipped' => $skipped];
     }
 
     /**
@@ -1975,6 +2333,8 @@ class ZappyImportService
                 $eventGroups[$eventId][] = $line;
             }
 
+            $eventGroups = $this->expandEventGroupsWithOrphanLines($lines, $eventGroups);
+
             if ($eventGroups === []) {
                 continue;
             }
@@ -1993,11 +2353,13 @@ class ZappyImportService
                         $distributed++;
                     } else {
                         $this->reshapeSaleForEvent($sale, $onlyEventId, $eventGroups[$onlyEventId]);
+                        $this->pruneRedundantSplitSalesForDocument($docId, $eventGroups, (int) $sale->id);
                         $distributed++;
                     }
                 } else {
                     if (! $this->dryRun) {
                         $this->reshapeSaleForEvent($sale, $onlyEventId, $eventGroups[$onlyEventId]);
+                        $this->pruneRedundantSplitSalesForDocument($docId, $eventGroups, (int) $sale->id);
                     }
                 }
 
@@ -2022,14 +2384,20 @@ class ZappyImportService
                 $this->removeSyntheticSaleForEventIfCovered($eventId, $syntheticRemoved);
             }
 
+            if (! $this->dryRun) {
+                $this->pruneRedundantSplitSalesForDocument($docId, $eventGroups, (int) $sale->id);
+            }
+
             $distributed++;
         }
 
-        return [
+        $consolidateStats = $this->repairConsolidateDuplicateEventSales();
+
+        return array_merge([
             'sales_distributed' => $distributed,
             'sales_zappy_refs_updated' => $zappyRefsUpdated,
             'sales_synthetic_removed' => $syntheticRemoved,
-        ];
+        ], $consolidateStats);
     }
 
     /**
@@ -2153,9 +2521,87 @@ class ZappyImportService
 
                 return $bestEventId;
             }
+
+            $fallback = $this->matchAppointmentByDay(
+                $day->copy()->timezone($this->sourceTimezone())->startOfDay(),
+                $clientName,
+                $itemName,
+                $saleUserId,
+                $clientId,
+            );
+            if ($fallback !== null) {
+                return $fallback;
+            }
         }
 
         return $this->resolveSaleCalendarEventId($line, $clientId);
+    }
+
+    /**
+     * Quando visitas foram fundidas num evento, linhas extra da mesma fatura podem falhar o fingerprint
+     * mas o serviço já está no evento — incluir na repartição para o total bater certo.
+     *
+     * @param  list<array<string, string>>  $lines
+     * @param  array<int, list<array<string, string>>>  $eventGroups
+     * @return array<int, list<array<string, string>>>
+     */
+    private function expandEventGroupsWithOrphanLines(array $lines, array $eventGroups): array
+    {
+        if ($eventGroups === [] || count($eventGroups) !== 1) {
+            return $eventGroups;
+        }
+
+        $onlyEventId = (int) array_key_first($eventGroups);
+        $assigned = $eventGroups[$onlyEventId];
+        if (count($assigned) >= count($lines)) {
+            return $eventGroups;
+        }
+
+        $assignedKeys = array_map(fn (array $line): string => $this->saleLineIdentityKey($line), $assigned);
+        foreach ($lines as $line) {
+            if (in_array($this->saleLineIdentityKey($line), $assignedKeys, true)) {
+                continue;
+            }
+            if ($this->saleLineServiceExistsOnEvent($line, $onlyEventId)) {
+                $eventGroups[$onlyEventId][] = $line;
+                $assignedKeys[] = $this->saleLineIdentityKey($line);
+            }
+        }
+
+        return $eventGroups;
+    }
+
+    /**
+     * @param  array<string, string>  $line
+     */
+    private function saleLineIdentityKey(array $line): string
+    {
+        return implode('|', [
+            trim($line['item_name'] ?? ''),
+            trim($line['appointment_id'] ?? ''),
+            trim($line['item_total_price'] ?? ''),
+        ]);
+    }
+
+    /**
+     * @param  array<string, string>  $line
+     */
+    private function saleLineServiceExistsOnEvent(array $line, int $eventId): bool
+    {
+        $itemName = trim($line['item_name'] ?? '');
+        if ($itemName === '') {
+            return false;
+        }
+
+        $serviceId = $this->resolveServiceIdForImport($itemName)[0];
+        if ($serviceId === null || $serviceId <= 0) {
+            return false;
+        }
+
+        return DB::table('calendar_event_services')
+            ->where('calendar_event_id', $eventId)
+            ->where('service_id', $serviceId)
+            ->exists();
     }
 
     /**
@@ -2320,6 +2766,226 @@ class ZappyImportService
         $synthetic->items()->delete();
         $synthetic->delete();
         $removedCounter++;
+    }
+
+    /**
+     * Remove vendas repartidas obsoletas quando a fatura passa a pertencer a um único evento.
+     *
+     * @param  array<int, list<array<string, string>>>  $eventGroups
+     */
+    private function pruneRedundantSplitSalesForDocument(string $docId, array $eventGroups, int $parentSaleId): void
+    {
+        if ($this->dryRun || $eventGroups === []) {
+            return;
+        }
+
+        $eventIds = array_map('intval', array_keys($eventGroups));
+
+        if (count($eventGroups) === 1) {
+            $splits = Sale::query()
+                ->where('store_id', $this->storeId)
+                ->where('id', '!=', $parentSaleId)
+                ->where('numero_fatura', 'like', $docId.'@%')
+                ->where('status', '!=', Sale::STATUS_ANULADO)
+                ->get();
+
+            foreach ($splits as $split) {
+                $this->deleteImportedSale($split);
+            }
+
+            return;
+        }
+
+        $firstEventId = (int) array_key_first($eventGroups);
+        $redundantOnFirst = Sale::query()
+            ->where('store_id', $this->storeId)
+            ->where('numero_fatura', Str::limit($docId.'@'.$firstEventId, 64, ''))
+            ->where('id', '!=', $parentSaleId)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->get();
+
+        foreach ($redundantOnFirst as $split) {
+            $this->deleteImportedSale($split);
+        }
+
+        $stale = Sale::query()
+            ->where('store_id', $this->storeId)
+            ->where('numero_fatura', 'like', $docId.'@%')
+            ->whereNotIn('calendar_event_id', $eventIds)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->get();
+
+        foreach ($stale as $split) {
+            $this->deleteImportedSale($split);
+        }
+    }
+
+    /**
+     * Elimina vendas em duplicado no mesmo evento quando a soma excede o subtotal da visita.
+     *
+     * @return array<string, int>
+     */
+    public function repairConsolidateDuplicateEventSales(): array
+    {
+        $removed = 0;
+
+        $eventIds = Sale::query()
+            ->where('store_id', $this->storeId)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->whereNotNull('calendar_event_id')
+            ->select('calendar_event_id')
+            ->groupBy('calendar_event_id')
+            ->havingRaw('count(*) > 1')
+            ->pluck('calendar_event_id');
+
+        foreach ($eventIds as $eventId) {
+            $event = CalendarEvent::query()
+                ->with('eventServices')
+                ->find((int) $eventId);
+
+            if ($event === null || $event->event_type !== CalendarEvent::TYPE_MARCACAO || $event->status !== CalendarEvent::STATUS_COMPLETO) {
+                continue;
+            }
+
+            $subtotal = round((float) $event->eventServices->sum(fn ($s) => (float) ($s->pivot->price ?? 0)), 2);
+            if ($subtotal <= 0) {
+                continue;
+            }
+
+            $sales = Sale::query()
+                ->where('store_id', $this->storeId)
+                ->where('calendar_event_id', $event->id)
+                ->where('status', '!=', Sale::STATUS_ANULADO)
+                ->orderBy('id')
+                ->get();
+
+            if ($sales->count() < 2) {
+                continue;
+            }
+
+            if (round((float) $sales->sum('total'), 2) <= $subtotal + 0.05) {
+                continue;
+            }
+
+            $byDoc = [];
+            foreach ($sales as $sale) {
+                $byDoc[$this->baseInvoiceNumber((string) $sale->numero_fatura)][] = $sale;
+            }
+
+            foreach ($byDoc as $docSales) {
+                if (count($docSales) < 2) {
+                    continue;
+                }
+
+                $keep = $this->pickBestSaleForEvent($docSales, (int) $event->id, $subtotal);
+                foreach ($docSales as $sale) {
+                    if ((int) $sale->id === (int) $keep->id) {
+                        continue;
+                    }
+
+                    if ($this->dryRun) {
+                        $removed++;
+
+                        continue;
+                    }
+
+                    $this->deleteImportedSale($sale);
+                    $removed++;
+                }
+            }
+
+            $sales = Sale::query()
+                ->where('store_id', $this->storeId)
+                ->where('calendar_event_id', $event->id)
+                ->where('status', '!=', Sale::STATUS_ANULADO)
+                ->orderBy('id')
+                ->get();
+
+            if ($sales->count() < 2 || round((float) $sales->sum('total'), 2) <= $subtotal + 0.05) {
+                continue;
+            }
+
+            $keep = $this->pickBestSaleForEvent($sales->all(), (int) $event->id, $subtotal);
+            foreach ($sales as $sale) {
+                if ((int) $sale->id === (int) $keep->id) {
+                    continue;
+                }
+
+                if ($this->dryRun) {
+                    $removed++;
+
+                    continue;
+                }
+
+                $this->deleteImportedSale($sale);
+                $removed++;
+            }
+        }
+
+        return ['sales_duplicates_removed' => $removed];
+    }
+
+    private function baseInvoiceNumber(string $numero): string
+    {
+        if (str_contains($numero, '@')) {
+            return explode('@', $numero, 2)[0];
+        }
+
+        return $numero;
+    }
+
+    /**
+     * @param  list<Sale>  $sales
+     */
+    private function pickBestSaleForEvent(array $sales, int $eventId, float $subtotal): Sale
+    {
+        $best = $sales[0];
+        $bestScore = PHP_INT_MAX;
+
+        foreach ($sales as $sale) {
+            $total = round((float) $sale->total, 2);
+            $score = abs($total - $subtotal);
+
+            if (str_ends_with((string) $sale->numero_fatura, '@'.$eventId)) {
+                $score -= 0.01;
+            }
+
+            if ($this->saleHasImportRef((int) $sale->id)) {
+                $score -= 0.02;
+            }
+
+            if ($total > $subtotal + 0.05) {
+                $score += 100;
+            }
+
+            if ($score < $bestScore) {
+                $bestScore = $score;
+                $best = $sale;
+            }
+        }
+
+        return $best;
+    }
+
+    private function saleHasImportRef(int $saleId): bool
+    {
+        return ZappyImportRef::query()
+            ->where('store_id', $this->storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_SALE)
+            ->where('local_id', $saleId)
+            ->exists();
+    }
+
+    private function deleteImportedSale(Sale $sale): void
+    {
+        ZappyImportRef::query()
+            ->where('store_id', $this->storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_SALE)
+            ->where('local_id', $sale->id)
+            ->delete();
+
+        $sale->items()->delete();
+        $sale->delete();
     }
 
     /**
@@ -2730,8 +3396,12 @@ class ZappyImportService
             $event->load('eventServices');
         }
 
+        $endAt = ($event->end_at !== null && $event->end_at->gt($newEndAt))
+            ? $event->end_at->copy()
+            : $newEndAt;
+
         $event->update([
-            'end_at' => $newEndAt,
+            'end_at' => $endAt,
             'title' => $this->buildMergedEventTitle($event, $clientName),
             'updated_at' => $updatedAt,
         ]);
@@ -3145,8 +3815,12 @@ class ZappyImportService
      *
      * @return array<string, int>
      */
-    public function purgeImportedData(int $storeId, bool $dryRun, bool $purgeClients = true): array
-    {
+    public function purgeImportedData(
+        int $storeId,
+        bool $dryRun,
+        bool $purgeClients = true,
+        bool $purgeCatalog = false,
+    ): array {
         if (! Store::query()->whereKey($storeId)->exists()) {
             throw new \InvalidArgumentException("Loja #{$storeId} não existe.");
         }
@@ -3160,6 +3834,11 @@ class ZappyImportService
         $deletableClientIds = $purgeClients
             ? $this->filterDeletableImportedClientIds($storeId, $clientIds, $eventIds, $saleIds)
             : [];
+
+        $importedServiceIds = $purgeCatalog ? $this->collectImportedServiceIds($storeId) : [];
+        $catalogStats = $purgeCatalog
+            ? $this->countCatalogPurgeTargets($storeId, $importedServiceIds)
+            : ['services' => 0, 'extras' => 0, 'fees' => 0];
 
         $stats = [
             'calendar_events' => count($eventIds),
@@ -3176,13 +3855,16 @@ class ZappyImportService
                 ? (int) ClientWalletTransaction::query()->whereIn('client_id', $deletableClientIds)->count()
                 : 0,
             'zappy_refs' => (int) ZappyImportRef::query()->where('store_id', $storeId)->count(),
+            'services' => $catalogStats['services'],
+            'extras' => $catalogStats['extras'],
+            'fees' => $catalogStats['fees'],
         ];
 
         if ($dryRun) {
             return $stats;
         }
 
-        DB::transaction(function () use ($storeId, $eventIds, $saleIds, $deletableClientIds, &$stats): void {
+        DB::transaction(function () use ($storeId, $eventIds, $saleIds, $deletableClientIds, $purgeCatalog, $importedServiceIds, &$stats): void {
             if ($eventIds !== []) {
                 $stats['bookings_unlinked'] = Booking::query()
                     ->whereIn('calendar_event_id', $eventIds)
@@ -3228,10 +3910,85 @@ class ZappyImportService
                 });
             }
 
+            if ($purgeCatalog) {
+                $this->purgeCatalogForStore($storeId, $importedServiceIds);
+            }
+
             ZappyImportRef::query()->where('store_id', $storeId)->delete();
         });
 
         return $stats;
+    }
+
+    /**
+     * Serviços criados pelo import Zappy (ref TYPE_SERVICE). Serviços manuais sem ref mantêm-se.
+     *
+     * @return list<int>
+     */
+    private function collectImportedServiceIds(int $storeId): array
+    {
+        return ZappyImportRef::query()
+            ->where('store_id', $storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_SERVICE)
+            ->pluck('local_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<int>  $importedServiceIds
+     * @return array{services: int, extras: int, fees: int}
+     */
+    private function countCatalogPurgeTargets(int $storeId, array $importedServiceIds): array
+    {
+        $extraCategoryIds = DB::table('extra_categories')
+            ->where('store_id', $storeId)
+            ->pluck('id');
+
+        return [
+            'services' => count($importedServiceIds),
+            'extras' => $extraCategoryIds->isEmpty()
+                ? 0
+                : (int) DB::table('extras')->whereIn('extra_category_id', $extraCategoryIds)->count(),
+            'fees' => (int) DB::table('fees')->where('store_id', $storeId)->count(),
+        ];
+    }
+
+    /**
+     * @param  list<int>  $importedServiceIds
+     */
+    private function purgeCatalogForStore(int $storeId, array $importedServiceIds): void
+    {
+        if ($importedServiceIds !== []) {
+            DB::table('agent_service')->whereIn('service_id', $importedServiceIds)->delete();
+            if (Schema::hasTable('service_fee')) {
+                DB::table('service_fee')->whereIn('service_id', $importedServiceIds)->delete();
+            }
+            if (Schema::hasTable('service_options')) {
+                DB::table('service_options')->whereIn('service_id', $importedServiceIds)->delete();
+            }
+            DB::table('service_extra')->whereIn('service_id', $importedServiceIds)->delete();
+            Service::withoutEvents(fn () => Service::query()
+                ->where('store_id', $storeId)
+                ->whereIn('id', $importedServiceIds)
+                ->delete());
+        }
+
+        $extraCategoryIds = DB::table('extra_categories')
+            ->where('store_id', $storeId)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($extraCategoryIds !== []) {
+            DB::table('extras')->whereIn('extra_category_id', $extraCategoryIds)->delete();
+            DB::table('extra_categories')->where('store_id', $storeId)->delete();
+        }
+
+        DB::table('fees')->where('store_id', $storeId)->delete();
     }
 
     /**

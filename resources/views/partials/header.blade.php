@@ -36,12 +36,14 @@
             </span>
             <span class="quickaccess-label">Agenda</span>
           </a>
+          @if(!$navUser->isPrestador())
           <a href="{{ route('agenda.index', ['novaMarcacao' => 1]) }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">
               <i class="ph ph-calendar-plus"></i>
             </span>
             <span class="quickaccess-label">Nova marcação</span>
           </a>
+          @endif
           @if($navUser->canAccessClientes())
           <a href="{{ route('clientes.index') }}" class="quickaccess-item">
             <span class="quickaccess-icon" style="--qa-color: var(--accent-color)">

@@ -9,12 +9,15 @@ class StoreDataSqlExporter
 {
     private int $storeId;
 
+    private string $mode;
+
     /** @var array<string, list<int>> */
     private array $idSets = [];
 
-    public function __construct(int $storeId = 1)
+    public function __construct(int $storeId = 1, string $mode = StoreDataSqlPurger::MODE_DATA)
     {
         $this->storeId = $storeId;
+        $this->mode = $mode;
     }
 
     public function export(bool $withoutOrgStore = false): string
@@ -23,6 +26,8 @@ class StoreDataSqlExporter
 
         $lines = [];
         $lines[] = '-- Export loja store_id='.$this->storeId.' gerado em '.now()->toDateTimeString();
+        $lines[] = '-- Modo: '.$this->mode;
+        $lines[] = 'SET @store_id := '.$this->storeId.';';
         $lines[] = 'SET NAMES utf8mb4;';
         $lines[] = 'SET FOREIGN_KEY_CHECKS=0;';
         $lines[] = '';
@@ -42,6 +47,20 @@ class StoreDataSqlExporter
             }
         }
 
+        if ($this->mode === StoreDataSqlPurger::MODE_DATA) {
+            $serviceRemap = $this->dumpServiceIdRemapSql();
+            if ($serviceRemap !== '') {
+                $lines[] = $serviceRemap;
+                $lines[] = '';
+            }
+        }
+
+        $userRemap = $this->dumpCalendarUserIdRemapSql();
+        if ($userRemap !== '') {
+            $lines[] = $userRemap;
+            $lines[] = '';
+        }
+
         $lines[] = 'SET FOREIGN_KEY_CHECKS=1;';
 
         return implode("\n", $lines);
@@ -52,18 +71,16 @@ class StoreDataSqlExporter
      */
     private function exportOrder(): array
     {
-        return [
-            'organizations',
-            'stores',
+        $catalog = [
             'categories',
             'extra_categories',
             'services',
             'extras',
             'service_extra',
             'fees',
-            'agents',
-            'agent_service',
-            'personal_time_types',
+        ];
+
+        $data = [
             'clients',
             'calendar_events',
             'calendar_event_services',
@@ -73,10 +90,24 @@ class StoreDataSqlExporter
             'sale_calendar_events',
             'client_wallet_transactions',
             'bookings',
-            'crm_settings',
             'zappy_import_refs',
             'cash_register_sessions',
         ];
+
+        $full = [
+            'organizations',
+            'stores',
+            'agents',
+            'agent_service',
+            'personal_time_types',
+            'crm_settings',
+        ];
+
+        return match ($this->mode) {
+            StoreDataSqlPurger::MODE_FULL => array_merge($full, $catalog, $data),
+            StoreDataSqlPurger::MODE_CATALOG => array_merge($catalog, $data),
+            default => $data,
+        };
     }
 
     private function collectIdSets(): void
@@ -275,6 +306,82 @@ class StoreDataSqlExporter
             $colList = implode(', ', array_map(fn (string $c) => '`'.$c.'`', $columns));
             $lines[] = 'INSERT INTO `agents` ('.$colList.') SELECT '.implode(', ', $selectParts).';';
         }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Ajusta service_id nas marcações/vendas para o catálogo já existente no servidor (match por nome).
+     */
+    private function dumpServiceIdRemapSql(): string
+    {
+        if (! Schema::hasTable('services')) {
+            return '';
+        }
+
+        $services = DB::table('services')
+            ->where('store_id', $this->storeId)
+            ->orderBy('id')
+            ->get(['id', 'name']);
+
+        if ($services->isEmpty()) {
+            return '';
+        }
+
+        $lines = [
+            '-- Remapear service_id local → catálogo do servidor (por nome do serviço)',
+            'DROP TEMPORARY TABLE IF EXISTS `_zappy_service_id_map`;',
+            'CREATE TEMPORARY TABLE `_zappy_service_id_map` (`old_id` INT NOT NULL, `name` VARCHAR(255) NOT NULL, PRIMARY KEY (`old_id`));',
+        ];
+
+        $mapValues = [];
+        foreach ($services as $service) {
+            $mapValues[] = '('.(int) $service->id.', '.$this->sqlValue((string) $service->name).')';
+        }
+
+        foreach (array_chunk($mapValues, 50) as $chunk) {
+            $lines[] = 'INSERT INTO `_zappy_service_id_map` (`old_id`, `name`) VALUES '.implode(', ', $chunk).';';
+        }
+
+        if (Schema::hasTable('calendar_event_services')) {
+            $lines[] = <<<'SQL'
+UPDATE calendar_event_services ces
+INNER JOIN `_zappy_service_id_map` m ON m.old_id = ces.service_id
+INNER JOIN calendar_events ce ON ce.id = ces.calendar_event_id
+SET ces.service_id = COALESCE(
+    (SELECT s.id FROM services s WHERE s.store_id = @store_id AND s.name = m.name LIMIT 1),
+    ces.service_id
+)
+WHERE ce.store_id = @store_id;
+SQL;
+        }
+
+        if (Schema::hasTable('sale_items')) {
+            $lines[] = <<<'SQL'
+UPDATE sale_items si
+INNER JOIN `_zappy_service_id_map` m ON m.old_id = si.service_id
+INNER JOIN sales sa ON sa.id = si.sale_id
+SET si.service_id = COALESCE(
+    (SELECT s.id FROM services s WHERE s.store_id = @store_id AND s.name = m.name LIMIT 1),
+    si.service_id
+)
+WHERE sa.store_id = @store_id AND si.service_id IS NOT NULL;
+SQL;
+        }
+
+        if (Schema::hasTable('calendar_events') && Schema::hasColumn('calendar_events', 'service_id')) {
+            $lines[] = <<<'SQL'
+UPDATE calendar_events ce
+INNER JOIN `_zappy_service_id_map` m ON m.old_id = ce.service_id
+SET ce.service_id = COALESCE(
+    (SELECT s.id FROM services s WHERE s.store_id = @store_id AND s.name = m.name LIMIT 1),
+    ce.service_id
+)
+WHERE ce.store_id = @store_id AND ce.service_id IS NOT NULL;
+SQL;
+        }
+
+        $lines[] = 'DROP TEMPORARY TABLE IF EXISTS `_zappy_service_id_map`;';
 
         return implode("\n", $lines);
     }

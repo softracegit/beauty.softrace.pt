@@ -269,6 +269,11 @@ class User extends Authenticatable
         return ! $this->isPrestador();
     }
 
+    public function canCreateMarcacao(): bool
+    {
+        return ! $this->isPrestador();
+    }
+
     public function canViewClientContactDetails(): bool
     {
         return ! $this->isPrestador();

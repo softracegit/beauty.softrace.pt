@@ -91,9 +91,9 @@ return [
 
     'legal' => [
         'footer_aria' => 'Legal documents',
-        'terms' => 'Terms',
-        'privacy' => 'Privacy',
-        'cookies' => 'Cookies',
+        'terms' => 'Terms and Conditions',
+        'privacy' => 'Privacy Policy',
+        'cookies' => 'Cookie Policy',
     ],
 
     'cancellation_policy' => [

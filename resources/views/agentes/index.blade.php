@@ -10,10 +10,12 @@
 @endif
 
 @php
-    $totalAgentes = $agents->total();
-    $activeCount = \App\Models\Agent::where('status', \App\Models\Agent::STATUS_ACTIVE)->count();
-    $inactiveCount = \App\Models\Agent::where('status', \App\Models\Agent::STATUS_INACTIVE)->count();
-    $onLeaveCount = \App\Models\Agent::where('status', \App\Models\Agent::STATUS_ON_LEAVE)->count();
+    $storeAgentsQuery = \App\Models\Agent::query()->forStore(current_store_id());
+    $totalAgentes = (clone $storeAgentsQuery)->count();
+    $activeCount = (clone $storeAgentsQuery)->where('status', \App\Models\Agent::STATUS_ACTIVE)->count();
+    $inactiveCount = (clone $storeAgentsQuery)->where('status', \App\Models\Agent::STATUS_INACTIVE)->count();
+    $onLeaveCount = (clone $storeAgentsQuery)->where('status', \App\Models\Agent::STATUS_ON_LEAVE)->count();
+    $currentStatusFilter = request('status', '');
 @endphp
 
 <!-- Agentes Stats Strip (based on users-stats) -->
@@ -57,7 +59,12 @@
                     <i class="ph ph-magnifying-glass"></i>
                     <input type="text" name="search" placeholder="Pesquisar membros..." value="{{ request('search') }}">
                 </div>
-                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                <select name="status" class="form-select users-toolbar-select" onchange="this.form.submit()" aria-label="Filtrar por estado">
+                    <option value="" {{ $currentStatusFilter === '' ? 'selected' : '' }}>Ativos</option>
+                    <option value="inactive" {{ $currentStatusFilter === 'inactive' ? 'selected' : '' }}>Inativos</option>
+                    <option value="all" {{ $currentStatusFilter === 'all' ? 'selected' : '' }}>Todos</option>
+                </select>
+                <button type="submit" class="btn btn-outline-secondary users-toolbar-submit">
                     <i class="ph ph-magnifying-glass me-1"></i> Pesquisar
                 </button>
             </form>

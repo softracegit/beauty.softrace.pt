@@ -1,0 +1,51 @@
+name;category;unit_price;iva;price;price_online;duration
+Manicure Tradicional;Manicure;12,1951;0,23;15;15;45
+Manicure Tradicional  (Masculina);Manicure;12,1951;0,23;15;15;45
+Verniz de Gel / Gelinho;Manicure;16,2602;0,23;20;20;60
+Manutenção de gel / Acrilico ( de outra Profissional Externa );Manicure;24,3902;0,23;30;30;120
+Unhas de Gel (Sobre o Tamanho da Unha Natural );Manicure;19,5122;0,23;24;24;70
+Unhas de Gel c/Extensão;Manicure;28,4553;0,23;35;35;125
+Manutenção de Gel;Manicure;21,9512;0,23;27;27;100
+Unha de Acrilico ( Sobre o Tamanho da Unha Natural );Manicure;21,9512;0,23;27;27;70
+Unhas de Acrílico c/ Extensão;Manicure;30,8943;0,23;38;38;125
+Manutenção de Acrilico;Manicure;22,7642;0,23;28;28;100
+Baby Boomer gel;Manicure;4,065;0,23;5;5;20
+Francesinha;Manicure;3,252;0,23;4;4;15
+Baby color Boomer;Manicure;2,439;0,23;3;3;15
+Full Nail Art ( preço a definir consoante ao design );Manicure;0;0,23;0;0;30
+Nails Art ( Decoração);Manicure;2,439;0,23;3;3;20
+Nail Art 3D;Manicure;4,065;0,23;5;5;20
+Remoção de Verniz Gel /Gelinho;Manicure;6,5041;0,23;8;8;20
+Remoção de Gel / Acrilico;Manicure;8,1301;0,23;10;10;30
+Reparação de Uma Unha de Gel;Manicure;2,439;0,23;3;3;15
+Pedicure Tradicional;Pedicure;16,2602;0,23;20;20;45
+Pedicure Tradicional (Masculina);Pedicure;17,8862;0,23;22;22;60
+Pedicure com Verniz Gel / Gelinho;Pedicure;17,8862;0,23;22;22;60
+Pedicure com Gel;Pedicure;21,1382;0,23;26;26;90
+Reconstrução Unha dedo grande do pé;Pedicure;3,252;0,23;4;4;10
+Pedicure normal + SPA;Pedicure;20,3252;0,23;25;25;90
+Pedicure com Verniz Gel + SPA;Pedicure;22,7642;0,23;28;28;100
+Buço ( depilação com Cera );Estética Rosto;4,065;0,23;5;5;15
+Nariz ( depilação com Cera );Estética Rosto;4,065;0,23;5;5;15
+Limpeza de Pele ( MK );Estética Rosto;36,5854;0,23;45;45;80
+Hidratação Labial;Estética Rosto;12,1951;0,23;15;15;30
+Buço com Dermaplaning (MK);Estética Rosto;4,065;0,23;5;5;15
+Dermaplaning Facial (MK);Estética Rosto;19,5122;0,23;24;24;45
+Massagem Facial;Estética Rosto;16,2602;0,23;20;20;30
+Buço com Dermaplaning (AV);Estética Rosto;4,065;0,23;5;5;15
+Remoção de Extensão de Pestana;Estética Rosto;4,065;0,23;5;5;45
+Lash Liftting;Estética Rosto;24,3902;0,23;30;30;45
+Design Personalizado  de Sobrancelhas;Estética Rosto;12,1951;0,23;15;15;30
+Design de Sobrancelhas com Henna;Estética Rosto;16,2602;0,23;20;20;65
+Brown Lamination;Estética Rosto;28,4553;0,23;35;35;80
+Extensão de pestanas POP Color ( por Orçamento );Estética Rosto;0;0,23;0;0;40
+Extensão de Pestanas Fio a Fio Clasicos;Estética Rosto;28,4553;0,23;35;35;140
+Manutenção  de pestanas Fio a Fio Clasico;Estética Rosto;20,3252;0,23;25;25;120
+Extensão de Pestanas Volume Brasileiro;Estética Rosto;28,4553;0,23;35;35;100
+Manutenção Volume Brasileiro ( até 4 semanas );Estética Rosto;21,9512;0,23;27;27;95
+Extesão de Pestanas Volume 3D;Estética Rosto;32,5203;0,23;40;40;90
+Manutenção Volume 3D ( até 4 semanas );Estética Rosto;21,9512;0,23;27;27;95
+Extensão de Pestanas Volume Russo;Estética Rosto;32,5203;0,23;40;40;100
+Manutenção Volume Russo ( até 4 semanas );Estética Rosto;21,9512;0,23;27;27;95
+Extensão de Pestanas Mega Volume;Estética Rosto;36,5854;0,23;45;45;110
+Manutenção Mega Volume ( até 4 semanas );Estética Rosto;28,4553;0,23;35;35;95

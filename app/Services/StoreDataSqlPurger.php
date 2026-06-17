@@ -4,7 +4,18 @@ namespace App\Services;
 
 class StoreDataSqlPurger
 {
-    public function __construct(private int $storeId = 1) {}
+    public const MODE_DATA = 'data';
+
+    /** Dados + catálogo (serviços, extras, taxas); preserva users e agents. */
+    public const MODE_CATALOG = 'catalog';
+
+    /** Tudo incluindo agents (não apaga users). */
+    public const MODE_FULL = 'full';
+
+    public function __construct(
+        private int $storeId = 1,
+        private string $mode = self::MODE_DATA,
+    ) {}
 
     public function purgeSql(): string
     {
@@ -12,9 +23,9 @@ class StoreDataSqlPurger
 
         $lines = [];
         $lines[] = '-- Limpeza de dados da loja store_id='.$storeId;
+        $lines[] = '-- Modo: '.$this->modeLabel();
         $lines[] = '-- Executar no servidor ANTES de importar store_'.$storeId.'_data.sql';
         $lines[] = '-- Gerado em '.now()->toDateTimeString();
-        $lines[] = '-- ATENÇÃO: apaga todos os dados de agenda/booking desta loja (não apaga users).';
         $lines[] = '';
         $lines[] = 'SET @store_id := '.$storeId.';';
         $lines[] = 'SET NAMES utf8mb4;';
@@ -33,10 +44,37 @@ class StoreDataSqlPurger
         return implode("\n", $lines);
     }
 
+    private function modeLabel(): string
+    {
+        return match ($this->mode) {
+            self::MODE_CATALOG => 'dados + catálogo (categorias, serviços, extras, taxas; preserva users/agents)',
+            self::MODE_FULL => 'completo (inclui agents; não apaga users)',
+            default => 'só dados (preserva users, agents, serviços)',
+        };
+    }
+
     /**
      * @return array<string, string>
      */
     private function deleteStatements(): array
+    {
+        $statements = $this->dataDeleteStatements();
+
+        if ($this->mode === self::MODE_CATALOG || $this->mode === self::MODE_FULL) {
+            $statements += $this->catalogDeleteStatements();
+        }
+
+        if ($this->mode === self::MODE_FULL) {
+            $statements += $this->teamDeleteStatements();
+        }
+
+        return $statements;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function dataDeleteStatements(): array
     {
         return [
             'SMS / links de marcação' => <<<'SQL'
@@ -97,10 +135,33 @@ SQL,
             'Referências importação Zappy' => <<<'SQL'
 DELETE FROM zappy_import_refs WHERE store_id = @store_id
 SQL,
-            'Serviços por agente' => <<<'SQL'
+            'Desassociar users ↔ clientes da loja (não apaga users)' => <<<'SQL'
+UPDATE users u
+INNER JOIN clients c ON c.id = u.client_id
+SET u.client_id = NULL
+WHERE c.store_id = @store_id
+SQL,
+            'Clientes' => <<<'SQL'
+DELETE FROM clients WHERE store_id = @store_id
+SQL,
+            'Sessões de caixa' => <<<'SQL'
+DELETE FROM cash_register_sessions WHERE store_id = @store_id
+SQL,
+        ];
+    }
+
+    /**
+     * Catálogo da loja (serviços, categorias, extras, taxas); preserva users e agents.
+     *
+     * @return array<string, string>
+     */
+    private function catalogDeleteStatements(): array
+    {
+        return [
+            'Serviços por agente (só pivots dos serviços da loja)' => <<<'SQL'
 DELETE ags FROM agent_service ags
-INNER JOIN agents a ON a.id = ags.agent_id
-WHERE a.store_id = @store_id
+INNER JOIN services sv ON sv.id = ags.service_id
+WHERE sv.store_id = @store_id
 SQL,
             'Taxas por serviço' => <<<'SQL'
 DELETE sf FROM service_fee sf
@@ -117,28 +178,16 @@ DELETE se FROM service_extra se
 INNER JOIN services sv ON sv.id = se.service_id
 WHERE sv.store_id = @store_id
 SQL,
-            'Desassociar users ↔ clientes da loja' => <<<'SQL'
-UPDATE users u
-INNER JOIN clients c ON c.id = u.client_id
-SET u.client_id = NULL
-WHERE c.store_id = @store_id
-SQL,
-            'Clientes' => <<<'SQL'
-DELETE FROM clients WHERE store_id = @store_id
-SQL,
-            'Agentes' => <<<'SQL'
-DELETE FROM agents WHERE store_id = @store_id
-SQL,
             'Extras' => <<<'SQL'
 DELETE e FROM extras e
 INNER JOIN extra_categories ec ON ec.id = e.extra_category_id
 WHERE ec.store_id = @store_id
 SQL,
-            'Serviços' => <<<'SQL'
-DELETE FROM services WHERE store_id = @store_id
-SQL,
             'Categorias de extras' => <<<'SQL'
 DELETE FROM extra_categories WHERE store_id = @store_id
+SQL,
+            'Serviços' => <<<'SQL'
+DELETE FROM services WHERE store_id = @store_id
 SQL,
             'Categorias de serviços' => <<<'SQL'
 DELETE FROM categories WHERE store_id = @store_id
@@ -146,14 +195,23 @@ SQL,
             'Taxas (fees)' => <<<'SQL'
 DELETE FROM fees WHERE store_id = @store_id
 SQL,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function teamDeleteStatements(): array
+    {
+        return [
+            'Agentes' => <<<'SQL'
+DELETE FROM agents WHERE store_id = @store_id
+SQL,
             'Tipos de tempo pessoal' => <<<'SQL'
 DELETE FROM personal_time_types WHERE store_id = @store_id
 SQL,
             'Definições CRM' => <<<'SQL'
 DELETE FROM crm_settings WHERE store_id = @store_id
-SQL,
-            'Sessões de caixa' => <<<'SQL'
-DELETE FROM cash_register_sessions WHERE store_id = @store_id
 SQL,
         ];
     }

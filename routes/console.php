@@ -213,16 +213,22 @@ Artisan::command('wallet:reconcile {--store=} {--fix}', function (ClientWalletSe
 })->purpose('Audita consistência entre ledger e saldo em cache das carteiras');
 
 Artisan::command(
-    'zappy:purge {--store=1 : ID da loja} {--dry-run : Simular sem apagar} {--force : Não pedir confirmação} {--without-clients : Não apagar clientes importados do Zappy}',
+    'zappy:purge {--store=1 : ID da loja} {--dry-run : Simular sem apagar} {--force : Não pedir confirmação} {--without-clients : Não apagar clientes importados do Zappy} {--with-catalog : Apagar também serviços importados, extras e taxas}',
     function (ZappyImportService $importer) {
         $storeId = (int) ($this->option('store') ?: config('zappy_import.default_store_id', 1));
         $dryRun = (bool) $this->option('dry-run');
         $force = (bool) $this->option('force');
         $purgeClients = ! (bool) $this->option('without-clients');
+        $purgeCatalog = (bool) $this->option('with-catalog');
 
         $this->warn($purgeClients
-            ? 'Remove marcações, vendas e clientes importados do Zappy. Serviços do catálogo mantêm-se.'
-            : 'Remove marcações e vendas importadas do Zappy (clientes mantêm-se). Serviços do catálogo mantêm-se.');
+            ? 'Remove marcações, vendas e clientes importados do Zappy.'
+            : 'Remove marcações e vendas importadas do Zappy (clientes mantêm-se).');
+        if ($purgeCatalog) {
+            $this->warn('Com --with-catalog: apaga serviços com ref Zappy, extras e taxas da loja (categorias de serviços mantêm-se).');
+        } else {
+            $this->comment('Serviços/extras/taxas mantêm-se. Use --with-catalog para reimportar o catálogo do CSV.');
+        }
 
         if (! $dryRun && ! $force && ! $this->confirm("Apagar dados Zappy da loja #{$storeId}?", false)) {
             $this->comment('Cancelado.');
@@ -231,7 +237,7 @@ Artisan::command(
         }
 
         try {
-            $stats = $importer->purgeImportedData($storeId, $dryRun, $purgeClients);
+            $stats = $importer->purgeImportedData($storeId, $dryRun, $purgeClients, $purgeCatalog);
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
 
@@ -266,8 +272,10 @@ Artisan::command(
 
         $this->newLine();
         $this->line('Reimportação recomendada:');
-        $this->line('  1. php artisan zappy:import --store='.$storeId);
-        $this->line('  2. php artisan zappy:import --store='.$storeId.' --repair-times --repair-orphan-paid --repair-missing-services');
+        $catalog = $purgeCatalog ? ' --with-catalog' : '';
+        $this->line('  1. php artisan zappy:purge --store='.$storeId.$catalog.' --force');
+        $this->line('  2. php artisan zappy:import --store='.$storeId);
+        $this->line('  3. php artisan zappy:import --store='.$storeId.' --repair-times --repair-orphan-paid --repair-missing-services --repair-sale-discounts --repair-sale-dates --repair-relink-sales --repair-client-dates');
         if (! $purgeClients) {
             $this->comment('Nota: usou --without-clients; a lista de clientes não foi limpa.');
         }
@@ -277,7 +285,7 @@ Artisan::command(
 )->purpose('Apaga marcações/vendas/referências importadas do Zappy (preparar reimportação)');
 
 Artisan::command(
-    'zappy:import {--store=1 : ID da loja} {--dry-run : Simular sem gravar} {--fresh : Apagar referências Zappy da loja antes de importar} {--only= : Passos separados por vírgula (services,clients,appointments,sales)} {--repair-times : Corrigir horas das marcações já importadas (fuso Zappy→UTC)} {--repair-invoice-alerts : Atualizar scope das vendas importadas para caixa_liquidacao} {--repair-merge : Fundir marcações consecutivas do mesmo cliente/técnica} {--repair-relink-sales : Religar vendas (inclui fora de canceladas + repartição)} {--repair-orphan-paid : Corrigir marcações pagas sem venda (relink ou venda sintética)} {--repair-sale-discounts : Preencher desconto das vendas importadas a partir do CSV} {--repair-missing-services : Associar serviço por defeito a marcações importadas sem serviço} {--repair-distribute-sales : Repartir faturas por evento após separação de visitas}',
+    'zappy:import {--store=1 : ID da loja} {--dry-run : Simular sem gravar} {--fresh : Apagar referências Zappy da loja antes de importar} {--only= : Passos separados por vírgula (services,clients,appointments,sales)} {--repair-times : Corrigir horas das marcações já importadas (fuso Zappy→UTC)} {--repair-invoice-alerts : Atualizar scope das vendas importadas para caixa_liquidacao} {--repair-merge : Fundir marcações consecutivas do mesmo cliente/técnica} {--repair-relink-sales : Religar vendas (inclui fora de canceladas + repartição)} {--repair-orphan-paid : Corrigir marcações pagas sem venda (relink ou venda sintética)} {--repair-sale-discounts : Preencher desconto das vendas importadas a partir do CSV} {--repair-sale-dates : Corrigir data_emissao das vendas importadas a partir do CSV} {--repair-missing-services : Associar serviço por defeito a marcações importadas sem serviço} {--repair-client-dates : Corrigir data de criação dos clientes a partir do CSV Zappy} {--repair-distribute-sales : Repartir faturas por evento após separação de visitas}',
     function (ZappyImportService $importer) {
     $storeId = (int) ($this->option('store') ?: config('zappy_import.default_store_id', 1));
     $dryRun = (bool) $this->option('dry-run');
@@ -288,18 +296,20 @@ Artisan::command(
     $repairRelinkSales = (bool) $this->option('repair-relink-sales');
     $repairOrphanPaid = (bool) $this->option('repair-orphan-paid');
     $repairSaleDiscounts = (bool) $this->option('repair-sale-discounts');
+    $repairSaleDates = (bool) $this->option('repair-sale-dates');
     $repairMissingServices = (bool) $this->option('repair-missing-services');
     $repairDistributeSales = (bool) $this->option('repair-distribute-sales');
+    $repairClientDates = (bool) $this->option('repair-client-dates');
     $only = trim((string) ($this->option('only') ?? ''));
 
-    if ($repairTimes || $repairInvoiceAlerts || $repairMerge || $repairRelinkSales || $repairOrphanPaid || $repairSaleDiscounts || $repairMissingServices || $repairDistributeSales) {
+    if ($repairTimes || $repairInvoiceAlerts || $repairMerge || $repairRelinkSales || $repairOrphanPaid || $repairSaleDiscounts || $repairSaleDates || $repairMissingServices || $repairDistributeSales || $repairClientDates) {
         $this->info(sprintf(
             'Reparação importação Zappy → loja #%d%s',
             $storeId,
             $dryRun ? ' [DRY-RUN]' : '',
         ));
         try {
-            $stats = $importer->run($storeId, $dryRun, false, [], $repairTimes, $repairInvoiceAlerts, $repairMerge, $repairRelinkSales, $repairOrphanPaid, $repairSaleDiscounts, $repairMissingServices, $repairDistributeSales);
+            $stats = $importer->run($storeId, $dryRun, false, [], $repairTimes, $repairInvoiceAlerts, $repairMerge, $repairRelinkSales, $repairOrphanPaid, $repairSaleDiscounts, $repairMissingServices, $repairDistributeSales, $repairClientDates, $repairSaleDates);
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
 
@@ -359,9 +369,14 @@ Artisan::command(
 })->purpose('Importa CSVs do Zappy (serviços, clientes, marcações, vendas)');
 
 Artisan::command(
-    'store:purge-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql (por defeito: storage/app/exports/store_{id}_purge.sql)}',
+    'store:purge-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql} {--with-catalog : Apagar também serviços, extras e taxas (preserva users/agents)} {--full : Apagar também agents e CRM}',
     function () {
         $storeId = max(1, (int) $this->option('store'));
+        $mode = (bool) $this->option('full')
+            ? \App\Services\StoreDataSqlPurger::MODE_FULL
+            : ((bool) $this->option('with-catalog')
+                ? \App\Services\StoreDataSqlPurger::MODE_CATALOG
+                : \App\Services\StoreDataSqlPurger::MODE_DATA);
         $output = $this->option('output')
             ?: storage_path('app/exports/store_'.$storeId.'_purge.sql');
 
@@ -372,11 +387,15 @@ Artisan::command(
             return self::FAILURE;
         }
 
-        $sql = (new \App\Services\StoreDataSqlPurger($storeId))->purgeSql();
+        $sql = (new \App\Services\StoreDataSqlPurger($storeId, $mode))->purgeSql();
         file_put_contents($output, $sql);
 
         $this->info('SQL de limpeza gravado em: '.$output);
-        $this->comment('Executar no servidor via phpMyAdmin ANTES de importar store_'.$storeId.'_data.sql');
+        $this->comment(match ($mode) {
+            \App\Services\StoreDataSqlPurger::MODE_FULL => 'Modo completo: inclui agents.',
+            \App\Services\StoreDataSqlPurger::MODE_CATALOG => 'Modo catálogo: apaga categorias, serviços, extras e taxas; preserva users e agents.',
+            default => 'Modo dados: preserva users, agents e catálogo.',
+        });
 
         return self::SUCCESS;
     }
@@ -405,10 +424,15 @@ Artisan::command(
 )->purpose('Gera SQL de agentes ligados a users por email (para o servidor)');
 
 Artisan::command(
-    'store:export-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql (por defeito: storage/app/exports/store_{id}_data.sql)} {--without-org-store : Não exportar organizations/stores} {--with-purge : Gerar também o SQL de limpeza (store_{id}_purge.sql)}',
+    'store:export-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql} {--without-org-store : Não exportar organizations/stores} {--with-purge : Gerar também o SQL de limpeza} {--with-catalog : Incluir serviços, extras e taxas no export/purge} {--full : Export/purge completo (inclui agents)}',
     function () {
         $storeId = max(1, (int) $this->option('store'));
         $withoutOrgStore = (bool) $this->option('without-org-store');
+        $mode = (bool) $this->option('full')
+            ? \App\Services\StoreDataSqlPurger::MODE_FULL
+            : ((bool) $this->option('with-catalog')
+                ? \App\Services\StoreDataSqlPurger::MODE_CATALOG
+                : \App\Services\StoreDataSqlPurger::MODE_DATA);
         $output = $this->option('output')
             ?: storage_path('app/exports/store_'.$storeId.'_data.sql');
 
@@ -419,20 +443,25 @@ Artisan::command(
             return self::FAILURE;
         }
 
-        $exporter = new \App\Services\StoreDataSqlExporter($storeId);
+        $exporter = new \App\Services\StoreDataSqlExporter($storeId, $mode);
         $sql = $exporter->export($withoutOrgStore);
 
         file_put_contents($output, $sql);
 
         $sizeKb = round(filesize($output) / 1024, 1);
         $this->info('Export SQL gravado em: '.$output.' ('.$sizeKb.' KB)');
+        $this->comment(match ($mode) {
+            \App\Services\StoreDataSqlPurger::MODE_FULL => 'Modo completo: inclui catálogo e agents.',
+            \App\Services\StoreDataSqlPurger::MODE_CATALOG => 'Modo catálogo: dados + categorias, serviços, extras e taxas (sem users/agents).',
+            default => 'Modo dados: clientes, marcações, vendas… (preserva catálogo no servidor).',
+        });
 
         if ((bool) $this->option('with-purge')) {
             $purgePath = storage_path('app/exports/store_'.$storeId.'_purge.sql');
-            file_put_contents($purgePath, (new \App\Services\StoreDataSqlPurger($storeId))->purgeSql());
+            file_put_contents($purgePath, (new \App\Services\StoreDataSqlPurger($storeId, $mode))->purgeSql());
             $this->info('SQL de limpeza gravado em: '.$purgePath);
         }
 
         return self::SUCCESS;
     }
-)->purpose('Exporta dados da loja (clientes, serviços, marcações, vendas…) para importar no servidor via phpMyAdmin');
+)->purpose('Exporta dados da loja para importar no servidor via phpMyAdmin');

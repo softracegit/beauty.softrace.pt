@@ -209,7 +209,8 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
         return redirect()->route('dashboard');
     });
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'resumo'])->name('dashboard');
+    Route::get('/dashboard/marcacoes', [DashboardController::class, 'marcacoes'])->name('dashboard.marcacoes');
     Route::get('/dashboard/imoveis', [DashboardController::class, 'imoveis'])->name('dashboard.imoveis');
     Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
     Route::get('/dashboard/clientes', [DashboardController::class, 'clientes'])->name('dashboard.clientes');

@@ -54,10 +54,30 @@ return [
      * Nome do técnico no CSV Zappy => user_id na agenda.
      */
     'agent_user_map' => [
+        // Equipa atual
         'Laissa Osto' => 2,
         'Sandy Hurtado' => 3,
         'Vanessa Pereira' => 4,
         'Andrea Velasquez' => 5,
+        // Histórico Zappy (*@historico.zappy)
+        'Agatha Vitoria' => 17,
+        'Alejandra Silva' => 34,
+        'Aline Castro' => 18,
+        'Andreia Pais' => 19,
+        'Carolina Barboza' => 20,
+        'Carol Santana' => 21,
+        'Cátia Gomes' => 22,
+        'Fabiana Dinis' => 23,
+        'Hellen Coura' => 24,
+        'Joice Moura' => 25,
+        'Lua Chaves' => 26,
+        'Mariann Marquez' => 27,
+        'Melissa Kellen' => 28,
+        'Miriam Batista' => 29,
+        'Renata Gouveia' => 30,
+        'Tassia Gonçalves' => 31,
+        'Tatiana Pereira' => 32,
+        'Val Martins' => 33,
     ],
 
     /**
@@ -65,7 +85,6 @@ return [
      */
     'ignored_agent_names' => [
         'Daniel Simões',
-        'Alejandra Silva',
     ],
 
     /**
