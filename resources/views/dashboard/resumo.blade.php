@@ -40,10 +40,19 @@
     border-radius: 0.2rem;
     flex-shrink: 0;
 }
-#resumoPeriodTabs {
+#resumoTelemovelChart .apexcharts-datalabel-value,
+#resumoEmailChart .apexcharts-datalabel-value,
+#resumoAniversarioChart .apexcharts-datalabel-value {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    fill: var(--heading-color) !important;
+}
+#resumoPeriodTabs,
+#resumoChartTabs {
     border-bottom: 1px solid var(--border-color);
 }
-#resumoPeriodTabs .nav-link {
+#resumoPeriodTabs .nav-link,
+#resumoChartTabs .nav-link {
     position: relative;
     border: none !important;
     margin-bottom: 0;
@@ -51,7 +60,8 @@
     font-weight: 500;
     background: transparent !important;
 }
-#resumoPeriodTabs .nav-link::after {
+#resumoPeriodTabs .nav-link::after,
+#resumoChartTabs .nav-link::after {
     content: '';
     position: absolute;
     left: 0.75rem;
@@ -64,17 +74,29 @@
     z-index: 2;
 }
 #resumoPeriodTabs .nav-link:hover::after,
-#resumoPeriodTabs .nav-link:focus::after {
+#resumoPeriodTabs .nav-link:focus::after,
+#resumoChartTabs .nav-link:hover::after,
+#resumoChartTabs .nav-link:focus::after {
     height: 2px;
     opacity: 0.45;
 }
-#resumoPeriodTabs .nav-link.active {
+#resumoPeriodTabs .nav-link.active,
+#resumoChartTabs .nav-link.active {
     color: var(--accent-color);
     font-weight: 600;
 }
-#resumoPeriodTabs .nav-link.active::after {
+#resumoPeriodTabs .nav-link.active::after,
+#resumoChartTabs .nav-link.active::after {
     height: 4px;
     opacity: 1;
+}
+.resumo-chart-tab-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
 }
 </style>
 @endsection
@@ -184,68 +206,91 @@
     @endforeach
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex flex-wrap align-items-start justify-content-between gap-3">
-                <div>
-                    <h5 class="card-title mb-0">Vendas</h5>
-                    <p class="card-subtitle text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
+@php
+    $chartTabs = [
+        'vendas' => 'Vendas',
+        'atendidos' => 'Clientes atendidos',
+        'novos' => 'Clientes novos',
+    ];
+@endphp
+
+<div class="card mb-4">
+    <div class="card-body pb-4 pt-3">
+        <ul class="nav nav-tabs nav-tabs-bordered mb-0" id="resumoChartTabs" role="tablist">
+            @foreach($chartTabs as $chartKey => $chartLabel)
+                <li class="nav-item" role="presentation">
+                    <button
+                        class="nav-link {{ $loop->first ? 'active' : '' }}"
+                        id="resumo-chart-tab-{{ $chartKey }}"
+                        data-bs-toggle="tab"
+                        data-bs-target="#resumo-chart-pane-{{ $chartKey }}"
+                        type="button"
+                        role="tab"
+                        aria-controls="resumo-chart-pane-{{ $chartKey }}"
+                        aria-selected="{{ $loop->first ? 'true' : 'false' }}"
+                    >{{ $chartLabel }}</button>
+                </li>
+            @endforeach
+        </ul>
+
+        <div class="tab-content pt-4" id="resumoChartTabContent">
+            <div
+                class="tab-pane fade show active"
+                id="resumo-chart-pane-vendas"
+                role="tabpanel"
+                aria-labelledby="resumo-chart-tab-vendas"
+            >
+                <div class="resumo-chart-tab-toolbar">
+                    <p class="text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
+                    <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de vendas" data-chart-target="resumoVendasChart">
+                        <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
+                            <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
+                        </button>
+                        <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $currentYear }}">
+                            <span class="dash-resumo-year-swatch" style="background-color: var(--accent-color);"></span>{{ $currentYear }}
+                        </button>
+                    </div>
                 </div>
-                <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de vendas" data-chart-target="resumoVendasChart">
-                    <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
-                        <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
-                    </button>
-                    <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $currentYear }}">
-                        <span class="dash-resumo-year-swatch" style="background-color: var(--accent-color);"></span>{{ $currentYear }}
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
                 <div class="chart-container chart-container-lg" id="resumoVendasChart"></div>
             </div>
-        </div>
-    </div>
 
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex flex-wrap align-items-start justify-content-between gap-3">
-                <div>
-                    <h5 class="card-title mb-0">Clientes atendidos</h5>
-                    <p class="card-subtitle text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
+            <div
+                class="tab-pane fade"
+                id="resumo-chart-pane-atendidos"
+                role="tabpanel"
+                aria-labelledby="resumo-chart-tab-atendidos"
+            >
+                <div class="resumo-chart-tab-toolbar">
+                    <p class="text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
+                    <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de clientes atendidos" data-chart-target="resumoAtendidosChart">
+                        <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
+                            <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
+                        </button>
+                        <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $currentYear }}">
+                            <span class="dash-resumo-year-swatch" style="background-color: var(--accent-color);"></span>{{ $currentYear }}
+                        </button>
+                    </div>
                 </div>
-                <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de clientes atendidos" data-chart-target="resumoAtendidosChart">
-                    <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
-                        <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
-                    </button>
-                    <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $currentYear }}">
-                        <span class="dash-resumo-year-swatch" style="background-color: var(--accent-color);"></span>{{ $currentYear }}
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
                 <div class="chart-container chart-container-lg" id="resumoAtendidosChart"></div>
             </div>
-        </div>
-    </div>
 
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex flex-wrap align-items-start justify-content-between gap-3">
-                <div>
-                    <h5 class="card-title mb-0">Clientes novos</h5>
-                    <p class="card-subtitle text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
+            <div
+                class="tab-pane fade"
+                id="resumo-chart-pane-novos"
+                role="tabpanel"
+                aria-labelledby="resumo-chart-tab-novos"
+            >
+                <div class="resumo-chart-tab-toolbar">
+                    <p class="text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
+                    <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de clientes novos" data-chart-target="resumoNovosChart">
+                        <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
+                            <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
+                        </button>
+                        <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $currentYear }}">
+                            <span class="dash-resumo-year-swatch" style="background-color: var(--accent-color);"></span>{{ $currentYear }}
+                        </button>
+                    </div>
                 </div>
-                <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de clientes novos" data-chart-target="resumoNovosChart">
-                    <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
-                        <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
-                    </button>
-                    <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $currentYear }}">
-                        <span class="dash-resumo-year-swatch" style="background-color: var(--accent-color);"></span>{{ $currentYear }}
-                    </button>
-                </div>
-            </div>
-            <div class="card-body">
                 <div class="chart-container chart-container-lg" id="resumoNovosChart"></div>
             </div>
         </div>
@@ -269,7 +314,7 @@
                 <div class="chart-container" id="resumoTelemovelChart"></div>
                 <div class="text-center mt-2">
                     <strong>{{ $clientesContacto['com_telemovel'] ?? 0 }}</strong>
-                    <span class="text-muted">de {{ $clientesContacto['total'] ?? 0 }} ({{ $pctTelemovel }}%)</span>
+                    <span class="text-muted">de {{ $clientesContacto['total'] ?? 0 }}</span>
                 </div>
             </div>
         </div>
@@ -284,7 +329,7 @@
                 <div class="chart-container" id="resumoEmailChart"></div>
                 <div class="text-center mt-2">
                     <strong>{{ $clientesContacto['com_email'] ?? 0 }}</strong>
-                    <span class="text-muted">de {{ $clientesContacto['total'] ?? 0 }} ({{ $pctEmail }}%)</span>
+                    <span class="text-muted">de {{ $clientesContacto['total'] ?? 0 }}</span>
                 </div>
             </div>
         </div>
@@ -299,7 +344,7 @@
                 <div class="chart-container" id="resumoAniversarioChart"></div>
                 <div class="text-center mt-2">
                     <strong>{{ $clientesContacto['com_aniversario'] ?? 0 }}</strong>
-                    <span class="text-muted">de {{ $clientesContacto['total'] ?? 0 }} ({{ $pctAniversario }}%)</span>
+                    <span class="text-muted">de {{ $clientesContacto['total'] ?? 0 }}</span>
                 </div>
             </div>
         </div>
@@ -410,8 +455,27 @@ document.addEventListener('DOMContentLoaded', function() {
     novosChart.render();
     bindYearToggles(novosChart, 'resumoNovosChart');
 
-    function contactDonutOptions(comCount, total, colors) {
+    var resumoBarCharts = {
+        'resumo-chart-pane-vendas': vendasChart,
+        'resumo-chart-pane-atendidos': atendidosChart,
+        'resumo-chart-pane-novos': novosChart
+    };
+    document.querySelectorAll('#resumoChartTabs [data-bs-toggle="tab"]').forEach(function(tabEl) {
+        tabEl.addEventListener('shown.bs.tab', function(event) {
+            var paneId = event.target.getAttribute('data-bs-target');
+            if (paneId && paneId.charAt(0) === '#') {
+                paneId = paneId.slice(1);
+            }
+            var chart = resumoBarCharts[paneId];
+            if (chart) {
+                chart.updateOptions({}, false, true);
+            }
+        });
+    });
+
+    function contactDonutOptions(comCount, total, percent, colors) {
         var semCount = Math.max(0, total - comCount);
+        var pctLabel = Number(percent).toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 1 }) + '%';
         return {
             series: [comCount, semCount],
             chart: { type: 'donut', height: 240, fontFamily: 'inherit' },
@@ -423,10 +487,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         size: '72%',
                         labels: {
                             show: true,
+                            name: { show: false },
+                            value: {
+                                show: true,
+                                fontSize: '24px',
+                                fontWeight: 700
+                            },
                             total: {
                                 show: true,
-                                label: 'Total',
-                                formatter: function() { return total.toLocaleString('pt-PT'); }
+                                showAlways: true,
+                                label: '\u00A0',
+                                formatter: function() { return pctLabel; }
                             }
                         }
                     }
@@ -439,22 +510,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     var totalClientes = @json((int) ($clientesContacto['total'] ?? 0));
+    var pctTelemovel = @json($pctTelemovel);
+    var pctEmail = @json($pctEmail);
+    var pctAniversario = @json($pctAniversario);
 
     new ApexCharts(document.querySelector('#resumoTelemovelChart'), contactDonutOptions(
         @json((int) ($clientesContacto['com_telemovel'] ?? 0)),
         totalClientes,
+        pctTelemovel,
         [successColor, borderColor]
     )).render();
 
     new ApexCharts(document.querySelector('#resumoEmailChart'), contactDonutOptions(
         @json((int) ($clientesContacto['com_email'] ?? 0)),
         totalClientes,
+        pctEmail,
         [accentColor, borderColor]
     )).render();
 
     new ApexCharts(document.querySelector('#resumoAniversarioChart'), contactDonutOptions(
         @json((int) ($clientesContacto['com_aniversario'] ?? 0)),
         totalClientes,
+        pctAniversario,
         [warningColor, borderColor]
     )).render();
 });

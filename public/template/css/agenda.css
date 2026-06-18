@@ -21,6 +21,16 @@
 .agenda-marcacao-test-offcanvas.offcanvas-end {
     border-left: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
 }
+@media (max-width: 767.98px) {
+    .agenda-marcacao-test-offcanvas {
+        --bs-offcanvas-width: 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .agenda-marcacao-test-offcanvas.offcanvas-end {
+        border-left: none;
+    }
+}
 /* Foco no contentor ao abrir (focus trap): sem anel/outline extra do tema por cima dessa borda */
 .agenda-marcacao-test-offcanvas:focus,
 .agenda-marcacao-test-offcanvas:focus-visible {
