@@ -2601,14 +2601,14 @@ a.header-action:hover {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .panel-link {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  font-size: 0.8125rem;
+  padding: 10.5px 12px;
+  font-size: 0.88rem;
   font-weight: 400;
   color: var(--sidebar-color);
   text-decoration: none;
