@@ -23,8 +23,25 @@
     vertical-align: middle;
     background-color: #f3f4f6;
 }
-.users-table tbody tr.service-tech-category-row th {
+.service-tech-category-row th {
     background-color: #f3f4f6 !important;
+}
+.service-tech-select-all-wrap {
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: center;
+}
+.service-tech-select-all-wrap .form-check-input {
+    width: 1.75rem !important;
+    height: 1.75rem !important;
+    margin: 0;
+    border-color: #ccc !important;
+    border-width: 2px !important;
+    cursor: pointer;
+}
+.service-tech-select-all-wrap .form-check-input:checked {
+    background-color: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
 }
 </style>
 @endsection
@@ -54,7 +71,7 @@
                             @if($category->services->isEmpty())
                                 @continue
                             @endif
-                            <tr class="table-light service-tech-category-row">
+                            <tr class="table-light service-tech-category-row" data-category-id="{{ $category->id }}">
                                 <th scope="col" class="service-tech-service-col">
                                     <span class="contacts-group-dot d-inline-block rounded-circle align-middle me-2" style="width:8px;height:8px;background:{{ $category->color ?? 'var(--bs-secondary)' }};"></span>
                                     <span>{{ $category->name }} ({{ $category->services->count() }})</span>
@@ -83,6 +100,15 @@
                                             @endif
                                             <span>{{ $agent->name }}</span>
                                         </span>
+                                        <div class="service-tech-select-all-wrap">
+                                            <input
+                                                type="checkbox"
+                                                class="form-check-input service-tech-category-select-all"
+                                                data-category-id="{{ $category->id }}"
+                                                data-agent-id="{{ $agent->id }}"
+                                                aria-label="Seleccionar todos os serviços de {{ $category->name }} para {{ $agent->name }}"
+                                            >
+                                        </div>
                                     </th>
                                 @endforeach
                             </tr>
@@ -103,6 +129,8 @@
                                                     name="assignments[{{ $service->id }}][]"
                                                     value="{{ $agent->id }}"
                                                     id="m{{ $service->id }}a{{ $agent->id }}"
+                                                    data-category-id="{{ $category->id }}"
+                                                    data-agent-id="{{ $agent->id }}"
                                                     @checked(in_array($agent->id, $assignedIds, true))
                                                     aria-label="{{ $service->name }} — {{ $agent->name }}"
                                                 >
@@ -127,6 +155,59 @@
 @endsection
 
 @section('js')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('services-matrix-form');
+    if (!form) {
+        return;
+    }
+
+    function serviceCheckboxes(categoryId, agentId) {
+        return form.querySelectorAll(
+            '.service-tech-checkbox[data-category-id="' + categoryId + '"][data-agent-id="' + agentId + '"]'
+        );
+    }
+
+    function updateCategorySelectAll(categoryId, agentId) {
+        var boxes = serviceCheckboxes(categoryId, agentId);
+        var selectAll = form.querySelector(
+            '.service-tech-category-select-all[data-category-id="' + categoryId + '"][data-agent-id="' + agentId + '"]'
+        );
+        if (!selectAll || boxes.length === 0) {
+            return;
+        }
+
+        var checkedCount = Array.from(boxes).filter(function(cb) { return cb.checked; }).length;
+        selectAll.checked = checkedCount === boxes.length;
+        selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+    }
+
+    form.querySelectorAll('.service-tech-category-select-all').forEach(function(selectAll) {
+        selectAll.addEventListener('change', function() {
+            var categoryId = this.getAttribute('data-category-id');
+            var agentId = this.getAttribute('data-agent-id');
+            serviceCheckboxes(categoryId, agentId).forEach(function(cb) {
+                cb.checked = selectAll.checked;
+            });
+            selectAll.indeterminate = false;
+        });
+
+        updateCategorySelectAll(
+            selectAll.getAttribute('data-category-id'),
+            selectAll.getAttribute('data-agent-id')
+        );
+    });
+
+    form.querySelectorAll('.service-tech-checkbox').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            updateCategorySelectAll(
+                this.getAttribute('data-category-id'),
+                this.getAttribute('data-agent-id')
+            );
+        });
+    });
+});
+</script>
 @if (session('success'))
 <script>
 document.addEventListener('DOMContentLoaded', function() {
