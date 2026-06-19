@@ -190,6 +190,13 @@ class ZappyImportService
             };
         }
 
+        if (! $dryRun && (in_array('appointments', $steps, true) || in_array('sales', $steps, true))) {
+            $placeholderStats = $this->repairPlaceholderClientCreatedAt();
+            foreach ($placeholderStats as $key => $value) {
+                $this->stats[$key] = ($this->stats[$key] ?? 0) + $value;
+            }
+        }
+
         return $this->stats;
     }
 
@@ -201,6 +208,8 @@ class ZappyImportService
             'clients_created' => 0,
             'clients_skipped' => 0,
             'clients_phone_cleared' => 0,
+            'placeholder_clients_dates_repaired' => 0,
+            'placeholder_clients_dates_unchanged' => 0,
             'appointments_created' => 0,
             'appointments_skipped' => 0,
             'appointments_ignored_agent' => 0,
@@ -208,6 +217,7 @@ class ZappyImportService
             'appointments_no_service' => 0,
             'appointments_default_service' => 0,
             'appointments_merged' => 0,
+            'appointments_client_from_notes' => 0,
             'appointments_ignored_holiday' => 0,
             'sales_created' => 0,
             'sales_skipped' => 0,
@@ -487,9 +497,14 @@ class ZappyImportService
                 ? 'phone:'.$this->normalizePhoneKey($phone)
                 : ($email !== '' ? 'email:'.mb_strtolower($email, 'UTF-8') : 'name:'.$this->normalizeName($name).':'.$i);
 
+            $createdAt = $this->parseClientCreatedOn($row['createdon'] ?? '');
+
             if ($this->refExists(ZappyImportRef::TYPE_CLIENT, $refKey)) {
                 $clientId = (int) $this->getRefLocalId(ZappyImportRef::TYPE_CLIENT, $refKey);
                 $this->pushClientNameIndex($this->normalizeName($name), $clientId);
+                if ($createdAt !== null && ! $this->dryRun) {
+                    $this->applyImportedClientCreatedAt($clientId, $createdAt);
+                }
                 $this->bump('clients_skipped');
 
                 continue;
@@ -512,7 +527,7 @@ class ZappyImportService
                 $row['birth_month'] ?? '',
                 $row['birth_day'] ?? ''
             );
-            $createdAt = $this->parseDateTimeDMY($row['createdon'] ?? '') ?? now();
+            $createdAt = $this->parseClientCreatedOn($row['createdon'] ?? '') ?? now();
             $nif = trim($row['vat_number'] ?? '') ?: null;
 
             if ($this->dryRun) {
@@ -542,7 +557,10 @@ class ZappyImportService
 
             $this->pushClientNameIndex($this->normalizeName($name), (int) $client->id);
             $this->pushClientMatchKeyIndex($this->clientMatchKey($name), (int) $client->id);
-            $this->saveRef(ZappyImportRef::TYPE_CLIENT, $refKey, (int) $client->id, ['name' => $name]);
+            $this->saveRef(ZappyImportRef::TYPE_CLIENT, $refKey, (int) $client->id, [
+                'name' => $name,
+                'createdon' => $createdAt->toIso8601String(),
+            ]);
             $this->bump('clients_created');
         }
     }
@@ -555,7 +573,7 @@ class ZappyImportService
             if ($name === '') {
                 continue;
             }
-            $createdAt = $this->parseDateTimeDMY($row['createdon'] ?? '');
+            $createdAt = $this->parseClientCreatedOn($row['createdon'] ?? '');
             if ($createdAt === null) {
                 continue;
             }
@@ -574,12 +592,79 @@ class ZappyImportService
     {
         return Client::withoutEvents(function () use ($attributes, $createdAt): Client {
             $client = new Client($attributes);
+            $client->timestamps = false;
             $client->created_at = $createdAt;
             $client->updated_at = $createdAt;
             $client->save();
 
-            return $client;
+            return $client->fresh() ?? $client;
         });
+    }
+
+    /** Repõe created_at/updated_at com a data createdon do Zappy. Devolve true se alterou. */
+    private function applyImportedClientCreatedAt(int $clientId, Carbon $createdAt): bool
+    {
+        $client = Client::query()->where('store_id', $this->storeId)->find($clientId);
+        if ($client === null) {
+            return false;
+        }
+
+        if ($client->created_at !== null && $client->created_at->equalTo($createdAt)) {
+            return false;
+        }
+
+        if ($this->dryRun) {
+            return true;
+        }
+
+        // created_at não está em $fillable — usar query builder para não ser ignorado.
+        Client::withoutEvents(function () use ($clientId, $createdAt): void {
+            Client::query()
+                ->where('id', $clientId)
+                ->update([
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ]);
+        });
+
+        return true;
+    }
+
+    private function resolveImportedClientIdFromCsvRow(array $row, int $rowIndex): ?int
+    {
+        $name = trim($row['name'] ?? '');
+        $phone = trim($row['mobile'] ?? '');
+        $email = trim($row['email'] ?? '');
+
+        if ($phone !== '') {
+            $clientId = $this->getRefLocalId(ZappyImportRef::TYPE_CLIENT, 'phone:'.$this->normalizePhoneKey($phone));
+            if ($clientId !== null && $clientId > 0) {
+                return (int) $clientId;
+            }
+        }
+
+        if ($email !== '') {
+            $clientId = $this->getRefLocalId(ZappyImportRef::TYPE_CLIENT, 'email:'.mb_strtolower($email, 'UTF-8'));
+            if ($clientId !== null && $clientId > 0) {
+                return (int) $clientId;
+            }
+        }
+
+        if ($name !== '') {
+            $clientId = $this->getRefLocalId(
+                ZappyImportRef::TYPE_CLIENT,
+                'name:'.$this->normalizeName($name).':'.$rowIndex
+            );
+            if ($clientId !== null && $clientId > 0) {
+                return (int) $clientId;
+            }
+
+            $resolved = $this->resolveClientIdByName($name);
+
+            return $resolved !== null && $resolved > 0 ? $resolved : null;
+        }
+
+        return null;
     }
 
     /**
@@ -596,21 +681,21 @@ class ZappyImportService
         $unchanged = 0;
         $skipped = 0;
 
-        foreach ($this->reader->read($this->csvPath('clients')) as $row) {
+        foreach ($this->reader->read($this->csvPath('clients')) as $i => $row) {
             $name = trim($row['name'] ?? '');
             if ($name === '') {
                 continue;
             }
 
-            $createdAt = $this->parseDateTimeDMY($row['createdon'] ?? '');
+            $createdAt = $this->parseClientCreatedOn($row['createdon'] ?? '');
             if ($createdAt === null) {
                 $skipped++;
 
                 continue;
             }
 
-            $clientId = $this->resolveClientIdByName($name);
-            if ($clientId === null || $clientId <= 0) {
+            $clientId = $this->resolveImportedClientIdFromCsvRow($row, $i);
+            if ($clientId === null) {
                 $skipped++;
 
                 continue;
@@ -635,20 +720,17 @@ class ZappyImportService
                 continue;
             }
 
-            Client::withoutEvents(function () use ($client, $createdAt): void {
-                $client->update([
-                    'created_at' => $createdAt,
-                    'updated_at' => $createdAt,
-                ]);
-            });
+            $this->applyImportedClientCreatedAt($clientId, $createdAt);
             $updated++;
         }
 
-        return [
+        $placeholderStats = $this->repairPlaceholderClientCreatedAt();
+
+        return array_merge([
             'clients_dates_repaired' => $updated,
             'clients_dates_unchanged' => $unchanged,
             'clients_dates_skipped' => $skipped,
-        ];
+        ], $placeholderStats);
     }
 
     private function importAppointments(): void
@@ -698,12 +780,23 @@ class ZappyImportService
                 continue;
             }
 
+            $clientNameForLink = $clientName;
+            if ($clientNameForLink === '' && $eventType === CalendarEvent::TYPE_MARCACAO && $notes !== '') {
+                $inferredClient = $this->inferClientNameFromAppointmentNotes($notes);
+                if ($inferredClient !== null) {
+                    $clientNameForLink = $inferredClient;
+                    $this->bump('appointments_client_from_notes');
+                }
+            }
+
             $clientId = null;
-            if ($eventType === CalendarEvent::TYPE_MARCACAO && $clientName !== '') {
-                $clientId = $this->resolveClientIdByName($clientName);
+            if ($eventType === CalendarEvent::TYPE_MARCACAO && $clientNameForLink !== '') {
+                $clientId = $this->resolveClientIdByName($clientNameForLink);
                 if ($clientId === null) {
-                    $clientId = $this->createPlaceholderClient($clientName);
+                    $clientId = $this->createPlaceholderClient($clientNameForLink, $startAt);
                     $this->bump('appointments_no_client');
+                } else {
+                    $this->maybeBackdatePlaceholderClient($clientId, $startAt);
                 }
             }
 
@@ -774,7 +867,12 @@ class ZappyImportService
 
             $title = $eventType === CalendarEvent::TYPE_TEMPO_PESSOAL
                 ? ($notes !== '' ? $notes : 'Tempo pessoal')
-                : ($clientName !== '' ? $clientName.' — '.$itemName : ($itemName !== '' ? $itemName : 'Marcação cancelada'));
+                : match (true) {
+                    $clientNameForLink !== '' && $itemName !== '' => $clientNameForLink.' — '.$itemName,
+                    $clientNameForLink !== '' => $clientNameForLink,
+                    $itemName !== '' => $itemName,
+                    default => 'Marcação cancelada',
+                };
 
             if ($this->dryRun) {
                 $fakeId = -1000 - $rowIndex;
@@ -830,7 +928,7 @@ class ZappyImportService
             $eventId = (int) $event->id;
             $this->registerAppointmentFingerprint($fingerprint, $eventId);
             $this->saveRef(ZappyImportRef::TYPE_APPOINTMENT, $fingerprint, $eventId, [
-                'client' => $clientName,
+                'client' => $clientNameForLink !== '' ? $clientNameForLink : $clientName,
                 'item' => $itemName,
                 'provider' => $provider,
             ]);
@@ -853,6 +951,33 @@ class ZappyImportService
         $notes = trim($row['notes'] ?? '');
 
         return $notes !== '' && (bool) preg_match('/^feriado\b/iu', $notes);
+    }
+
+    /**
+     * Lista de espera Zappy: notas «espera Nome Cliente» sem client_name no CSV.
+     */
+    private function inferClientNameFromAppointmentNotes(string $notes): ?string
+    {
+        $notes = trim($notes);
+        if ($notes === '') {
+            return null;
+        }
+
+        $firstLine = trim(strtok($notes, "\r\n"));
+        if ($firstLine === '' || preg_match('/^espera\s+(.+)$/iu', $firstLine, $matches) !== 1) {
+            return null;
+        }
+
+        $name = trim($matches[1], " \t.,;:-");
+        if ($name === '' || mb_strlen($name) < 2) {
+            return null;
+        }
+
+        if (preg_match('/^\d+$/', $name)) {
+            return null;
+        }
+
+        return $name;
     }
 
     private function parseAppointmentDate(string $value): ?Carbon
@@ -899,13 +1024,16 @@ class ZappyImportService
 
             $first = $lines[0];
             $clientName = trim($first['client_name'] ?? '');
+            $saleDateHint = $this->parseDateTimeIso($first['date'] ?? '');
             $clientId = $clientName !== '' ? $this->resolveClientIdByName($clientName) : null;
 
             if ($clientId === null && $clientName !== '') {
-                $clientId = $this->createPlaceholderClient($clientName);
+                $clientId = $this->createPlaceholderClient($clientName, $saleDateHint);
+            } elseif ($clientId !== null) {
+                $this->maybeBackdatePlaceholderClient($clientId, $saleDateHint);
             }
 
-            $dataEmissao = $this->parseDateTimeIso($first['date'] ?? '') ?? now();
+            $dataEmissao = $saleDateHint ?? now();
             $total = 0.0;
             $desconto = 0.0;
             foreach ($lines as $line) {
@@ -1191,11 +1319,13 @@ class ZappyImportService
         return $best;
     }
 
-    private function createPlaceholderClient(string $name): ?int
+    private function createPlaceholderClient(string $name, ?Carbon $firstSeenAt = null): ?int
     {
         $norm = $this->normalizeName($name);
         $existing = $this->resolveClientIdByName($name);
         if ($existing !== null) {
+            $this->maybeBackdatePlaceholderClient($existing, $firstSeenAt);
+
             return $existing;
         }
 
@@ -1206,7 +1336,7 @@ class ZappyImportService
             return $fakeId;
         }
 
-        $createdAt = $this->clientCreatedOnByName[$norm] ?? now();
+        $createdAt = $this->pickEarliestCarbon($firstSeenAt, $this->clientCreatedOnByName[$norm] ?? null) ?? now();
 
         $client = $this->createClientRecord([
             'store_id' => $this->storeId,
@@ -1219,6 +1349,139 @@ class ZappyImportService
         $this->saveRef(ZappyImportRef::TYPE_CLIENT, 'placeholder:'.$norm, (int) $client->id);
 
         return (int) $client->id;
+    }
+
+    /**
+     * Clientes placeholder (sem ficha em clientes.csv): created_at = 1.ª marcação ou 1.ª venda.
+     *
+     * @return array<string, int>
+     */
+    public function repairPlaceholderClientCreatedAt(): array
+    {
+        $placeholderClientIds = ZappyImportRef::query()
+            ->where('store_id', $this->storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_CLIENT)
+            ->where('zappy_key', 'like', 'placeholder:%')
+            ->pluck('local_id')
+            ->unique()
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->values();
+
+        $updated = 0;
+        $unchanged = 0;
+
+        foreach ($placeholderClientIds as $clientId) {
+            $earliest = $this->resolveEarliestActivityDateForClient($clientId);
+            if ($earliest === null) {
+                continue;
+            }
+
+            $client = Client::query()->where('store_id', $this->storeId)->find($clientId);
+            if ($client === null) {
+                continue;
+            }
+
+            if ($client->created_at !== null && $client->created_at->equalTo($earliest)) {
+                $unchanged++;
+
+                continue;
+            }
+
+            if ($this->dryRun) {
+                $updated++;
+
+                continue;
+            }
+
+            $this->applyImportedClientCreatedAt($clientId, $earliest);
+            $updated++;
+        }
+
+        return [
+            'placeholder_clients_dates_repaired' => $updated,
+            'placeholder_clients_dates_unchanged' => $unchanged,
+        ];
+    }
+
+    private function isPlaceholderClientId(int $clientId): bool
+    {
+        return ZappyImportRef::query()
+            ->where('store_id', $this->storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_CLIENT)
+            ->where('local_id', $clientId)
+            ->where('zappy_key', 'like', 'placeholder:%')
+            ->exists();
+    }
+
+    private function maybeBackdatePlaceholderClient(int $clientId, ?Carbon $candidate): void
+    {
+        if ($candidate === null || $this->dryRun || ! $this->isPlaceholderClientId($clientId)) {
+            return;
+        }
+
+        $client = Client::query()->where('store_id', $this->storeId)->find($clientId);
+        if ($client === null || $client->created_at === null) {
+            return;
+        }
+
+        if ($candidate->gte($client->created_at)) {
+            return;
+        }
+
+        $this->applyImportedClientCreatedAt($clientId, $candidate);
+    }
+
+    private function resolveEarliestActivityDateForClient(int $clientId): ?Carbon
+    {
+        $eventMin = CalendarEvent::query()
+            ->where('store_id', $this->storeId)
+            ->where('client_id', $clientId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->min('start_at');
+
+        $saleMin = Sale::query()
+            ->where('store_id', $this->storeId)
+            ->where('client_id', $clientId)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->min('data_emissao');
+
+        $earliest = null;
+
+        if ($eventMin !== null) {
+            $earliest = Carbon::parse($eventMin);
+        }
+
+        if ($saleMin !== null) {
+            $saleDay = Carbon::parse($saleMin)->startOfDay();
+            if ($earliest === null) {
+                $earliest = $saleDay;
+            } elseif ($saleDay->toDateString() < $earliest->toDateString()) {
+                $earliest = $saleDay;
+            }
+        }
+
+        return $earliest;
+    }
+
+    /**
+     * @param  Carbon|null  ...$candidates
+     */
+    private function pickEarliestCarbon(?Carbon ...$candidates): ?Carbon
+    {
+        $earliest = null;
+
+        foreach ($candidates as $candidate) {
+            if ($candidate === null) {
+                continue;
+            }
+
+            if ($earliest === null || $candidate->lt($earliest)) {
+                $earliest = $candidate;
+            }
+        }
+
+        return $earliest;
     }
 
     private function resolveClientIdByName(string $name): ?int
@@ -1347,6 +1610,20 @@ class ZappyImportService
         }
 
         return null;
+    }
+
+    /**
+     * Data de registo do cliente no Zappy (clientes.csv → createdon).
+     * Aceita d/m/Y e Y-m-d H:i:s; ignora placeholders inválidos do export.
+     */
+    private function parseClientCreatedOn(string $value): ?Carbon
+    {
+        $value = trim(str_replace('"', '', $value));
+        if ($value === '' || str_starts_with($value, '0000-00-00')) {
+            return null;
+        }
+
+        return $this->parseDateTimeIso($value);
     }
 
     private function parseDateTimeIso(string $value): ?Carbon

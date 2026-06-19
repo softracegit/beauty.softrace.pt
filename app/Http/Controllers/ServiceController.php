@@ -225,8 +225,9 @@ class ServiceController extends Controller
             ->forStore(current_store_id())
             ->where('status', Agent::STATUS_ACTIVE)
             ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
+            ->orderBy('agenda_order')
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'avatar', 'agenda_order']);
 
         return view('services.tecnicos', [
             'categories' => $categories,
