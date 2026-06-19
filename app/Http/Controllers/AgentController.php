@@ -184,7 +184,8 @@ class AgentController extends Controller
 
         $activities = $agente->activities()
             ->with('causer')
-            ->latest()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(100)
             ->get();
 

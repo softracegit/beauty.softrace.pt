@@ -1,42 +1,34 @@
 @php
+    use App\Support\ActivityLogDisplay;
+
     $calendarEventMorphClass = (new \App\Models\CalendarEvent())->getMorphClass();
     $clientMorphClass = (new \App\Models\Client())->getMorphClass();
     $agentMorphClass = (new \App\Models\Agent())->getMorphClass();
     $serviceMorphClass = (new \App\Models\Service())->getMorphClass();
     $extraMorphClass = (new \App\Models\Extra())->getMorphClass();
-    $formatActivityValue = static function ($value) {
-        if ($value === null) {
-            return '—';
-        }
-        if (is_bool($value)) {
-            return $value ? 'Sim' : 'Não';
-        }
-        if (is_array($value) || is_object($value)) {
-            $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-            return $json !== false ? (strlen($json) > 50 ? substr($json, 0, 50).'…' : $json) : '[valor complexo]';
-        }
-
-        $str = (string) $value;
-
-        return strlen($str) > 50 ? substr($str, 0, 50).'…' : $str;
-    };
 @endphp
 
 @if(isset($activities) && $activities->count() > 0)
     <div class="activity-log">
         @foreach($activities as $activity)
             @php
+                $activityStoreId = (int) ($activity->store_id ?? 0) ?: null;
                 $eventIcon = match($activity->event ?? '') {
                     'created' => 'ph ph-plus-circle',
                     'updated' => 'ph ph-pencil-simple',
                     'deleted' => 'ph ph-trash',
+                    'pre_pagamento', 'marcacao_paga' => 'ph ph-money',
+                    'fatura_gerada' => 'ph ph-receipt',
+                    'servicos_alterados' => 'ph ph-scissors',
+                    'caixa_aberta' => 'ph ph-lock-open',
+                    'caixa_fechada' => 'ph ph-lock-key',
                     default => 'ph ph-info',
                 };
                 $eventClass = match($activity->event ?? '') {
                     'created' => 'bg-success-light text-success',
                     'updated' => 'bg-primary-light text-primary',
                     'deleted' => 'bg-danger-light text-danger',
+                    'pre_pagamento', 'marcacao_paga', 'fatura_gerada', 'servicos_alterados', 'caixa_aberta', 'caixa_fechada' => 'bg-success-light text-success',
                     default => 'bg-secondary-light text-secondary',
                 };
 
@@ -90,14 +82,39 @@
                                         $oldVal = $old[$attr] ?? null;
                                     @endphp
                                     @if($oldVal != $newVal)
-                                        <span class="d-block">{{ $attr }}: {{ $formatActivityValue($oldVal) }} → {{ $formatActivityValue($newVal) }}</span>
+                                        <span class="d-block">{{ ActivityLogDisplay::attributeLabel($attr) }}: {{ ActivityLogDisplay::formatChange($attr, $oldVal, $newVal, $activityStoreId) }}</span>
                                     @endif
+                                @endforeach
+                            </div>
+                        @endif
+                    @elseif($activity->properties)
+                        @php
+                            $props = $activity->properties;
+                            $propsArr = is_object($props) && method_exists($props, 'toArray')
+                                ? $props->toArray()
+                                : (is_array($props) ? $props : []);
+                            $customProps = array_diff_key($propsArr, array_flip(['attributes', 'old']));
+                            $alteracoes = $customProps['alteracoes'] ?? null;
+                            unset($customProps['alteracoes']);
+                        @endphp
+                        @if(is_array($alteracoes) && $alteracoes !== [])
+                            <div class="activity-description small text-muted">
+                                @foreach($alteracoes as $line)
+                                    <span class="d-block">{{ $line }}</span>
+                                @endforeach
+                            </div>
+                        @endif
+                        @if(!empty($customProps))
+                            <div class="activity-description small text-muted">
+                                @foreach($customProps as $propKey => $propVal)
+                                    @if(in_array($propKey, ['password'], true)) @continue @endif
+                                    <span class="d-block">{{ ActivityLogDisplay::paymentPropertyLabel($propKey) }}: {{ ActivityLogDisplay::formatValue($propKey, $propVal, $activityStoreId) }}</span>
                                 @endforeach
                             </div>
                         @endif
                     @endif
                     <div class="activity-time">
-                        <i class="ph ph-clock"></i> {{ $activity->created_at->format('d/m/Y H:i') }}
+                        <i class="ph ph-clock"></i> {{ ActivityLogDisplay::formatLogTimestamp($activity->created_at, $activityStoreId) }}
                         @if($activity->causer)
                             por {{ $activity->causer->name }}
                         @endif

@@ -6085,6 +6085,49 @@ textarea.form-control {
   color: var(--accent-color);
 }
 
+.nav-tabs-bordered.crm-segment-tabs {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link {
+  position: relative;
+  border: none !important;
+  margin-bottom: 0;
+  padding-bottom: calc(0.625rem + 4px);
+  font-weight: 500;
+  background: transparent !important;
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: -1px;
+  height: 0;
+  background: var(--accent-color);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.15s ease, opacity 0.15s ease;
+  z-index: 2;
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link:hover::after,
+.nav-tabs-bordered.crm-segment-tabs .nav-link:focus::after {
+  height: 2px;
+  opacity: 0.45;
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link.active {
+  color: var(--accent-color);
+  font-weight: 600;
+  border-bottom-color: transparent !important;
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link.active::after {
+  height: 4px;
+  opacity: 1;
+}
+
 /* Pills */
 .nav-pills .nav-link {
   background: none;
@@ -9722,6 +9765,84 @@ textarea.form-control {
 
 .session-revoke {
   flex-shrink: 0;
+}
+
+.activity-log-toolbar .users-toolbar-left {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.activity-filter-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: max-content;
+}
+
+.activity-filter-search {
+  width: 11rem;
+  flex-shrink: 0;
+}
+
+.activity-filter-search.activity-filter-search--wide {
+  width: 14rem;
+}
+
+.activity-filter-date {
+  width: 6.5rem;
+  min-width: 6.5rem;
+  height: 38px;
+  padding: 0 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.activity-filter-date::placeholder {
+  color: var(--muted-color);
+}
+
+.activity-filter-select {
+  width: auto;
+  min-width: 6.5rem;
+  max-width: 10rem;
+  height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.8125rem;
+}
+
+.activity-filter-select.activity-filter-select--action {
+  min-width: 6.75rem;
+  max-width: 7.5rem;
+}
+
+.activity-filter-select.activity-filter-select--type {
+  min-width: 7rem;
+  max-width: 9rem;
+}
+
+.activity-filter-select.activity-filter-select--route {
+  min-width: 8rem;
+  max-width: 14rem;
+}
+
+.activity-filter-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  margin-left: 0.15rem;
+}
+
+.activity-filter-actions .btn {
+  height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 /*--------------------------------------------------------------

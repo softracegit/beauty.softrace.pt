@@ -79,7 +79,7 @@
     // Icon bar items: switch active panel section
     iconbarItems.forEach(function(item) {
       item.addEventListener('click', function(e) {
-        // Se tiver data-navigate-on-click, deixa o link navegar (ex.: Agenda)
+        // Apenas a Agenda navega ao clicar; as restantes abrem o painel lateral.
         if (this.hasAttribute('data-navigate-on-click')) {
           return;
         }
@@ -126,7 +126,7 @@
       body.classList.remove('sidebar-panel-collapsed');
     }
 
-    // On tablet, auto-open the active sidebar panel section (except Agenda).
+    // On tablet, auto-open the active sidebar panel section (except routes with collapsed panel by default).
     // This keeps the panel state in sync with the current route after icon-bar navigation.
     if (window.innerWidth >= 768 && window.innerWidth < 1280) {
       var activePanelSection = document.querySelector('.sidebar-panel-section.active');

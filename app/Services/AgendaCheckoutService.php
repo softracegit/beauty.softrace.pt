@@ -18,6 +18,7 @@ class AgendaCheckoutService
     public function __construct(
         private readonly ClientWalletService $walletService,
         private readonly CashRegisterService $cashRegisterService,
+        private readonly MarcacaoPaymentActivityLogger $paymentActivityLogger,
     ) {}
 
     /**
@@ -186,7 +187,7 @@ class AgendaCheckoutService
         $numeroFatura = Sale::nextNumeroFatura((int) $now->format('Y'), (int) $now->format('m'), $storeId);
 
         try {
-            return DB::transaction(function () use (
+            $sale = DB::transaction(function () use (
                 $events,
                 $client,
                 $items,
@@ -277,7 +278,9 @@ class AgendaCheckoutService
                             'created_at' => now(),
                         ]
                     );
+                    $event->disableLogging();
                     $event->update(['status' => CalendarEvent::STATUS_COMPLETO]);
+                    $event->enableLogging();
                 }
 
                 return $sale;
@@ -285,5 +288,9 @@ class AgendaCheckoutService
         } catch (InsufficientWalletBalanceException $e) {
             throw $e;
         }
+
+        $this->paymentActivityLogger->logCheckoutCompleted($events, $sale);
+
+        return $sale;
     }
 }

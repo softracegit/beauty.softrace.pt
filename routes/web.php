@@ -197,15 +197,10 @@ Route::middleware(['auth', 'super.admin'])->prefix('super-admin')->name('super-a
 });
 
 // Rotas protegidas (requerem autenticação e agent associado)
-Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'])->group(function () {
+Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access', 'log.page.view'])->group(function () {
     Route::post('loja-activa', [CurrentStoreController::class, 'update'])->name('current-store.update');
 
     Route::get('/', function () {
-        $user = auth()->user();
-        if ($user instanceof \App\Models\User && $user->isPrestador()) {
-            return redirect()->route('agenda.index');
-        }
-
         return redirect()->route('dashboard');
     });
 
@@ -217,6 +212,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('/dashboard/ocupacao', [DashboardController::class, 'ocupacao'])->name('dashboard.ocupacao');
 
     Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    Route::get('/activity/navegacao', [ActivityLogController::class, 'navigation'])->name('activity.navigation');
 
     Route::get('notificacoes', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notificacoes/api', [NotificationController::class, 'apiList'])->name('notifications.api');

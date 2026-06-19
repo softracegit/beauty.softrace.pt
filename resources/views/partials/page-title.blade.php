@@ -140,8 +140,15 @@
         $breadcrumbs[] = [
             'label' => 'Activity Log',
             'url' => route('activity.index'),
-            'active' => true
+            'active' => $currentRoute === 'activity.index',
         ];
+        if ($currentRoute === 'activity.navigation') {
+            $breadcrumbs[] = [
+                'label' => 'Navegação',
+                'url' => null,
+                'active' => true,
+            ];
+        }
     } elseif (str_starts_with($currentRoute, 'marketing.')) {
         $breadcrumbs[] = [
             'label' => 'Marketing',

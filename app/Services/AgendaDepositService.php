@@ -25,6 +25,7 @@ class AgendaDepositService
     public function __construct(
         private readonly ClientWalletService $walletService,
         private readonly CashRegisterService $cashRegisterService,
+        private readonly MarcacaoPaymentActivityLogger $paymentActivityLogger,
     ) {}
 
     public function depositPercent(): int
@@ -634,13 +635,23 @@ class AgendaDepositService
 
                 $this->markBookingPaid($booking, $depositAmount, $walletApplyCents, $subtotal);
 
-                return new AgendaDepositResult(
+                $result = new AgendaDepositResult(
                     $booking->fresh(),
                     $sale,
                     $depositAmount,
                     $walletApplyCents,
                     $stripePortionCents,
                 );
+
+                $causer = $this->paymentActivityLogger->resolveCauser($staffUserId);
+                $this->paymentActivityLogger->logPrePagamentoRecebido(
+                    $lockedEvent,
+                    $depositAmount,
+                    $sale,
+                    $causer,
+                );
+
+                return $result;
             });
         } catch (InsufficientWalletBalanceException) {
             throw new AgendaDepositException('Saldo de créditos insuficiente.');

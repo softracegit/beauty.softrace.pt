@@ -101,6 +101,50 @@
   color: var(--accent-color);
 }
 
+/* Segment tabs (Dashboard Resumo charts, Activity Log, etc.) */
+.nav-tabs-bordered.crm-segment-tabs {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link {
+  position: relative;
+  border: none !important;
+  margin-bottom: 0;
+  padding-bottom: calc(0.625rem + 4px);
+  font-weight: 500;
+  background: transparent !important;
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: -1px;
+  height: 0;
+  background: var(--accent-color);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.15s ease, opacity 0.15s ease;
+  z-index: 2;
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link:hover::after,
+.nav-tabs-bordered.crm-segment-tabs .nav-link:focus::after {
+  height: 2px;
+  opacity: 0.45;
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link.active {
+  color: var(--accent-color);
+  font-weight: 600;
+  border-bottom-color: transparent !important;
+}
+
+.nav-tabs-bordered.crm-segment-tabs .nav-link.active::after {
+  height: 4px;
+  opacity: 1;
+}
+
 /* Pills */
 .nav-pills .nav-link {
   background: none;

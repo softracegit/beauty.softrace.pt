@@ -62,7 +62,13 @@ class CalendarEvent extends Model
                 default => 'Evento criado na agenda',
             };
         } elseif ($eventName === 'updated') {
-            $activity->description = $this->describeActivityUpdate();
+            // Logs manuais (pagamentos, serviços, etc.) não têm attributes/old — não sobrescrever a descrição.
+            $props = $activity->properties;
+            $attrs = is_object($props) ? $props->get('attributes') : ($props['attributes'] ?? null);
+            $old = is_object($props) ? $props->get('old') : ($props['old'] ?? null);
+            if ($attrs !== null || $old !== null) {
+                $activity->description = $this->describeActivityUpdate();
+            }
         } elseif ($eventName === 'deleted') {
             $activity->description = match ($this->event_type) {
                 self::TYPE_MARCACAO => 'Marcação eliminada',

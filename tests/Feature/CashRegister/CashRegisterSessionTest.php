@@ -108,6 +108,21 @@ class CashRegisterSessionTest extends TestCase
             'status' => CashRegisterSession::STATUS_OPEN,
             'opening_float_cents' => 10050,
         ]);
+
+        $session = CashRegisterSession::query()
+            ->where('store_id', $fx['store']->id)
+            ->where('status', CashRegisterSession::STATUS_OPEN)
+            ->first();
+
+        $this->assertNotNull($session);
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => $session->getMorphClass(),
+            'subject_id' => $session->id,
+            'event' => 'caixa_aberta',
+            'description' => 'Caixa aberta',
+            'causer_id' => $fx['staff']->id,
+            'store_id' => $fx['store']->id,
+        ]);
     }
 
     public function test_second_open_on_same_store_fails(): void
@@ -348,6 +363,15 @@ class CashRegisterSessionTest extends TestCase
         $this->assertSame(13500, (int) $session->closing_cash_counted_cents);
         $this->assertEquals(140.0, (float) ($session->closing_summary['expected_cash_in_drawer'] ?? 0));
         $this->assertEquals(-5.0, (float) ($session->closing_summary['cash_difference'] ?? 0));
+
+        $this->assertDatabaseHas('activity_log', [
+            'subject_type' => $session->getMorphClass(),
+            'subject_id' => $session->id,
+            'event' => 'caixa_fechada',
+            'description' => 'Caixa fechada',
+            'causer_id' => $fx['staff']->id,
+            'store_id' => $fx['store']->id,
+        ]);
     }
 
     public function test_checkout_blocked_again_after_close(): void

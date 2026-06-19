@@ -1,0 +1,30 @@
+---
+description: Fuso horário ao exibir datas e horas na UI e APIs
+alwaysApply: true
+---
+
+# Fuso horário (datas e horas)
+
+A app grava **instantes reais em UTC** na BD (`app.timezone` = UTC). A exibição usa o fuso da loja via `DateTimeDisplay` e `StoreBusinessTime`.
+
+## Regras
+
+1. **Nunca** usar `$model->start_at->format(...)` nem `Carbon::parse(...)->format(...)` directamente em views, controllers ou JSON para o utilizador.
+2. **Marcações da agenda** (`CalendarEvent` `start_at` / `end_at`): usar `DateTimeDisplay::marcacao($dt, $storeId, $format)` — converte UTC → fuso da loja.
+3. **Timestamps reais** (`created_at`, `updated_at`, pagamentos, caixa, activity log `created_at`): usar `DateTimeDisplay::formatInstant(...)` ou o alias `DateTimeDisplay::business(...)` quando não há `store_id`.
+4. **Activity log — propriedades `start_at` / `end_at`**: são relógio de parede (hora literal na coluna). Usar `DateTimeDisplay::marcacaoWallClock(...)` ou `ActivityLogDisplay` (já trata isto).
+5. Passar **`$event->store_id`** quando disponível; senão cai em `booking.business_timezone`.
+6. Comparações e queries: `StoreBusinessTime::nowForStore()`, `nowUtcForStore()`, `timezoneForStore()`.
+
+## Exemplos
+
+```php
+// Blade — hora de marcação
+DateTimeDisplay::marcacao($ev->start_at, $ev->store_id, 'H:i')
+
+// PHP — timestamp de log
+DateTimeDisplay::formatInstant($sale->created_at, $sale->store_id)
+
+// Activity log — alteração de horário (wall clock)
+DateTimeDisplay::marcacaoWallClock(Carbon::parse($value), 'd/m/Y H:i')
+```

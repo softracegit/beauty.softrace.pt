@@ -26,6 +26,7 @@ use App\Services\AppointmentCancellationService;
 use App\Services\CancellationPolicyService;
 use App\Services\CashRegisterService;
 use App\Services\ClientWalletService;
+use App\Services\MarcacaoServicesActivityLogger;
 use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
 use Carbon\Carbon;
@@ -45,6 +46,7 @@ class CalendarController extends Controller
         private AgendaDepositService $agendaDepositService,
         private AgendaSameDayPayableService $sameDayPayableService,
         private CashRegisterService $cashRegisterService,
+        private MarcacaoServicesActivityLogger $servicesActivityLogger,
     ) {}
 
     /**
@@ -1110,14 +1112,11 @@ class CalendarController extends Controller
                 }
             }
             if ($event->event_type === CalendarEvent::TYPE_MARCACAO) {
-                activity()
-                    ->performedOn($event)
-                    ->causedBy(auth()->user())
-                    ->event('updated')
-                    ->withProperties([
-                        'servicos' => $event->eventServices->pluck('name')->implode(', '),
-                    ])
-                    ->log('Serviços associados à nova marcação');
+                $this->servicesActivityLogger->logAssociated(
+                    $event,
+                    $this->marcacaoServicesSnapshotFromPayload($servicesPayload),
+                    auth()->user(),
+                );
             }
         }
 
@@ -1310,49 +1309,66 @@ class CalendarController extends Controller
                 }
             }
             $toUpdate = $this->filterCalendarEventScalarChanges($calendarEvent, $toUpdate);
+
+            $servicesWillChange = false;
+            $beforeServicesSnapshot = [];
+            $afterServicesSnapshot = [];
+            if (! empty($servicesPayload) && $calendarEvent->event_type === CalendarEvent::TYPE_MARCACAO) {
+                $beforeServicesSnapshot = $this->marcacaoServicesSnapshotFromModel($calendarEvent);
+                $afterServicesSnapshot = $this->marcacaoServicesSnapshotFromPayload($servicesPayload);
+                $servicesWillChange = json_encode($beforeServicesSnapshot) !== json_encode($afterServicesSnapshot);
+            }
+
+            $pendingTitleForServices = null;
+            if ($servicesWillChange && array_key_exists('title', $toUpdate)) {
+                $pendingTitleForServices = $toUpdate['title'];
+                unset($toUpdate['title']);
+            }
+
             if ($toUpdate !== []) {
                 $calendarEvent->update($toUpdate);
             }
 
-            if (! empty($servicesPayload) && $calendarEvent->event_type === CalendarEvent::TYPE_MARCACAO) {
-                $beforeSnapshot = $this->marcacaoServicesSnapshotFromModel($calendarEvent);
-                $afterSnapshot = $this->marcacaoServicesSnapshotFromPayload($servicesPayload);
-                if (json_encode($beforeSnapshot) !== json_encode($afterSnapshot)) {
-                    $calendarEvent->eventServices()->detach();
-                    $servicesById = Service::query()
-                        ->forStore(current_store_id())
-                        ->whereIn('id', array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload))))
-                        ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
-                        ->get()
-                        ->keyBy('id');
-                    foreach ($servicesPayload as $i => $item) {
-                        $pivot = $this->pivotAttributesForMarcacaoServiceLine($item, $i, $servicesById);
-                        $calendarEvent->eventServices()->attach((int) $item['service_id'], $pivot);
-                    }
-                    $calendarEvent->load('eventServices');
-                    $ordered = $calendarEvent->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
-                    foreach ($ordered as $i => $svc) {
-                        $extras = $servicesPayload[$i]['extras'] ?? [];
-                        foreach ($extras as $j => $ex) {
-                            \App\Models\CalendarEventServiceExtra::create([
-                                'calendar_event_service_id' => $svc->pivot->id,
-                                'extra_id' => (int) ($ex['extra_id'] ?? 0),
-                                'duration' => isset($ex['duration']) ? (int) $ex['duration'] : null,
-                                'price' => isset($ex['price']) ? (float) $ex['price'] : null,
-                                'sort_order' => $j,
-                            ]);
-                        }
-                    }
-                    $calendarEvent->refresh();
-                    activity()
-                        ->performedOn($calendarEvent)
-                        ->causedBy(auth()->user())
-                        ->event('updated')
-                        ->withProperties([
-                            'servicos' => $calendarEvent->eventServices->pluck('name')->implode(', '),
-                        ])
-                        ->log('Serviços ou extras da marcação alterados');
+            if ($servicesWillChange) {
+                $calendarEvent->eventServices()->detach();
+                $servicesById = Service::query()
+                    ->forStore(current_store_id())
+                    ->whereIn('id', array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload))))
+                    ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
+                    ->get()
+                    ->keyBy('id');
+                foreach ($servicesPayload as $i => $item) {
+                    $pivot = $this->pivotAttributesForMarcacaoServiceLine($item, $i, $servicesById);
+                    $calendarEvent->eventServices()->attach((int) $item['service_id'], $pivot);
                 }
+                $calendarEvent->load('eventServices');
+                $ordered = $calendarEvent->eventServices->sortBy(fn ($s) => $s->pivot->sort_order)->values();
+                foreach ($ordered as $i => $svc) {
+                    $extras = $servicesPayload[$i]['extras'] ?? [];
+                    foreach ($extras as $j => $ex) {
+                        \App\Models\CalendarEventServiceExtra::create([
+                            'calendar_event_service_id' => $svc->pivot->id,
+                            'extra_id' => (int) ($ex['extra_id'] ?? 0),
+                            'duration' => isset($ex['duration']) ? (int) $ex['duration'] : null,
+                            'price' => isset($ex['price']) ? (float) $ex['price'] : null,
+                            'sort_order' => $j,
+                        ]);
+                    }
+                }
+                $calendarEvent->refresh();
+
+                if ($pendingTitleForServices !== null) {
+                    $calendarEvent->disableLogging();
+                    $calendarEvent->update(['title' => $pendingTitleForServices]);
+                    $calendarEvent->enableLogging();
+                }
+
+                $this->servicesActivityLogger->logChanged(
+                    $calendarEvent,
+                    $beforeServicesSnapshot,
+                    $afterServicesSnapshot,
+                    auth()->user(),
+                );
             }
         }
 

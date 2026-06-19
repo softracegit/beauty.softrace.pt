@@ -325,6 +325,7 @@
                         <div class="activity-log">
                             @foreach($activities as $activity)
                                 @php
+                                    $activityStoreId = (int) ($activity->store_id ?? 0) ?: null;
                                     $eventIcon = match($activity->event ?? '') {
                                         'created' => 'ph ph-plus-circle',
                                         'updated' => 'ph ph-pencil-simple',
@@ -359,30 +360,30 @@
                                                         @php
                                                             $newVal = $attrs[$attr] ?? null;
                                                             $oldVal = $old[$attr] ?? null;
-                                                            $formatActivityValue = static function ($value) {
-                                                                if (is_bool($value)) {
-                                                                    return $value ? 'Sim' : 'Não';
-                                                                }
-                                                                if (is_array($value) || is_object($value)) {
-                                                                    $json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-
-                                                                    return $json !== false ? $json : '[valor complexo]';
-                                                                }
-
-                                                                $str = (string) $value;
-
-                                                                return strlen($str) > 50 ? substr($str, 0, 50).'…' : $str;
-                                                            };
                                                         @endphp
                                                         @if($oldVal != $newVal)
-                                                            <span class="d-block">{{ $attr }}: {{ $formatActivityValue($oldVal) }} → {{ $formatActivityValue($newVal) }}</span>
+                                                            <span class="d-block">{{ \App\Support\ActivityLogDisplay::attributeLabel($attr) }}: {{ \App\Support\ActivityLogDisplay::formatChange($attr, $oldVal, $newVal, $activityStoreId) }}</span>
                                                         @endif
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        @elseif($activity->properties)
+                                            @php
+                                                $propsArr = is_object($activity->properties) && method_exists($activity->properties, 'toArray')
+                                                    ? $activity->properties->toArray()
+                                                    : (array) $activity->properties;
+                                                $alteracoes = $propsArr['alteracoes'] ?? null;
+                                            @endphp
+                                            @if(is_array($alteracoes) && $alteracoes !== [])
+                                                <div class="activity-description small text-muted">
+                                                    @foreach($alteracoes as $line)
+                                                        <span class="d-block">{{ $line }}</span>
                                                     @endforeach
                                                 </div>
                                             @endif
                                         @endif
                                         <div class="activity-time">
-                                            <i class="ph ph-clock"></i> {{ $activity->created_at->format('d/m/Y H:i') }}
+                                            <i class="ph ph-clock"></i> {{ \App\Support\ActivityLogDisplay::formatLogTimestamp($activity->created_at, $activityStoreId) }}
                                             @if($activity->causer)
                                                 por {{ $activity->causer->name }}
                                             @endif

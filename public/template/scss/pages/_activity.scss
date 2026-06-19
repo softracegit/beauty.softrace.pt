@@ -7,6 +7,86 @@
   position: relative;
 }
 
+.activity-log-toolbar {
+  .users-toolbar-left {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+}
+
+.activity-filter-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: max-content;
+}
+
+.activity-filter-search {
+  width: 11rem;
+  flex-shrink: 0;
+
+  &.activity-filter-search--wide {
+    width: 14rem;
+  }
+}
+
+.activity-filter-date {
+  width: 6.5rem;
+  min-width: 6.5rem;
+  height: 38px;
+  padding: 0 0.5rem;
+  font-size: 0.8125rem;
+
+  &::placeholder {
+    color: var(--muted-color);
+  }
+}
+
+.activity-filter-select {
+  width: auto;
+  min-width: 6.5rem;
+  max-width: 10rem;
+  height: 38px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 0.8125rem;
+}
+
+.activity-filter-select--action {
+  min-width: 6.75rem;
+  max-width: 7.5rem;
+}
+
+.activity-filter-select--type {
+  min-width: 7rem;
+  max-width: 9rem;
+}
+
+.activity-filter-select--route {
+  min-width: 8rem;
+  max-width: 14rem;
+}
+
+.activity-filter-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  margin-left: 0.15rem;
+
+  .btn {
+    height: 38px;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+}
+
 .activity-date {
   position: relative;
   padding: var(--spacing-md) 0;

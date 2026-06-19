@@ -16,7 +16,11 @@
   @include('partials.head-css')
 </head>
 
-<body class="{{ request()->routeIs('agenda.*') ? 'sidebar-panel-collapsed' : '' }} {{ request()->routeIs('agenda.index') ? 'page-agenda' : '' }} {{ request()->routeIs('relatorios.*') ? 'page-relatorios' : '' }} {{ request()->routeIs('definicoes.*') ? 'definicoes-sidebar-open' : '' }}">
+@php
+  $sidebarPanelCollapsedByDefault = request()->routeIs('agenda.*')
+    || (request()->routeIs('dashboard*') && auth()->user()?->isPrestador());
+@endphp
+<body class="{{ $sidebarPanelCollapsedByDefault ? 'sidebar-panel-collapsed' : '' }} {{ request()->routeIs('agenda.index') ? 'page-agenda' : '' }} {{ request()->routeIs('relatorios.*') ? 'page-relatorios' : '' }} {{ request()->routeIs('definicoes.*') ? 'definicoes-sidebar-open' : '' }}">
   @include('partials.header')
   @include('partials.sidebar')
 

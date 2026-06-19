@@ -222,15 +222,19 @@
             </div>
           </div>
           <div class="user-dropdown-body">
-            <a class="dropdown-item" href="{{ route('dashboard') }}">
+            <a class="dropdown-item" href="{{ route($authUser->backofficeHomeRoute()) }}">
               <i class="bi bi-speedometer2"></i> Dashboard
             </a>
+            @if($authUser->canAccessDefinicoes())
             <a class="dropdown-item" href="{{ route('definicoes.index') }}">
               <i class="ph ph-gear"></i> Definições
             </a>
+            @endif
+            @if($authUser->canAccessRoute('activity.index'))
             <a class="dropdown-item" href="{{ route('activity.index') }}">
               <i class="ph ph-clock-counter-clockwise"></i> Activity Log
             </a>
+            @endif
           </div>
           <div class="user-dropdown-footer">
             <form method="POST" action="{{ route('logout') }}" class="d-inline">

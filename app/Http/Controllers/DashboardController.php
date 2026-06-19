@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\Sale;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\PrestadorDashboardService;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -21,8 +22,13 @@ class DashboardController extends Controller
     /**
      * Dashboard Resumo (página inicial do dashboard).
      */
-    public function resumo()
+    public function resumo(PrestadorDashboardService $prestadorDashboard)
     {
+        $user = auth()->user();
+        if ($user instanceof User && $user->isPrestador()) {
+            return view('dashboard.prestador', $prestadorDashboard->build($user, current_store_id()));
+        }
+
         $storeId = current_store_id();
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $currentYear = $today->year;
@@ -89,6 +95,10 @@ class DashboardController extends Controller
      */
     public function marcacoes()
     {
+        if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
+            return $redirect;
+        }
+
         $today = Carbon::today();
         $startOfWeek = $today->copy()->startOfWeek();
         $endOfWeek = $today->copy()->endOfWeek();
@@ -374,6 +384,10 @@ class DashboardController extends Controller
      */
     public function imoveis()
     {
+        if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
+            return $redirect;
+        }
+
         return view('dashboard.imoveis');
     }
 
@@ -382,6 +396,10 @@ class DashboardController extends Controller
      */
     public function negocios()
     {
+        if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
+            return $redirect;
+        }
+
         return view('dashboard.negocios');
     }
 
@@ -390,6 +408,10 @@ class DashboardController extends Controller
      */
     public function clientes()
     {
+        if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
+            return $redirect;
+        }
+
         $today = Carbon::today();
         $startOfMonth = $today->copy()->startOfMonth();
         $endOfMonth = $today->copy()->endOfMonth();
@@ -577,6 +599,9 @@ class DashboardController extends Controller
      */
     public function ocupacao(Request $request)
     {
+        if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
+            return $redirect;
+        }
         $store = current_store()->get();
         $tz = $store->bookingTimezone();
         $today = StoreBusinessTime::nowForStore(current_store_id())->startOfDay();
@@ -1241,5 +1266,15 @@ class DashboardController extends Controller
         }
 
         abort(404);
+    }
+
+    private function redirectPrestadorFromAdminDashboard(): ?\Illuminate\Http\RedirectResponse
+    {
+        $user = auth()->user();
+        if ($user instanceof User && $user->isPrestador()) {
+            return redirect()->route('dashboard');
+        }
+
+        return null;
     }
 }

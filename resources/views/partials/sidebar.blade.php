@@ -15,9 +15,15 @@
       <ul class="iconbar-menu">
         @if($navUser->canAccessDashboard())
         <li>
+          @if($navUser->isPrestador())
           <a href="{{ route('dashboard') }}" class="iconbar-item {{ request()->routeIs('dashboard*') ? 'active' : '' }}" data-panel="dashboard" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
             <i class="ph ph-house"></i>
           </a>
+          @else
+          <a href="#!" class="iconbar-item {{ request()->routeIs('dashboard*') ? 'active' : '' }}" data-panel="dashboard" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
+            <i class="ph ph-house"></i>
+          </a>
+          @endif
         </li>
         @endif
         <li>
@@ -27,35 +33,35 @@
         </li>
         @if($navUser->canAccessClientes())
         <li>
-          <a href="{{ route('clientes.index') }}" class="iconbar-item {{ request()->routeIs('clientes.*') ? 'active' : '' }}" data-panel="clientes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Clientes" aria-label="Clientes">
+          <a href="#!" class="iconbar-item {{ request()->routeIs('clientes.*') ? 'active' : '' }}" data-panel="clientes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Clientes" aria-label="Clientes">
             <i class="ph ph-smiley"></i>
           </a>
         </li>
         @endif
         @if($navUser->canAccessCatalog())
         <li>
-          <a href="{{ route('services.index') }}" class="iconbar-item {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') || request()->routeIs('fees.*') ? 'active' : '' }}" data-panel="catalogue" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
+          <a href="#!" class="iconbar-item {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') || request()->routeIs('fees.*') ? 'active' : '' }}" data-panel="catalogue" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
             <i class="ph ph-book-open"></i>
           </a>
         </li>
         @endif
         @if($navUser->canAccessMarketing())
         <li>
-          <a href="{{ route('marketing.campanhas-sms') }}" class="iconbar-item {{ request()->routeIs('marketing.*') ? 'active' : '' }}" data-panel="marketing" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Marketing" aria-label="Marketing">
+          <a href="#!" class="iconbar-item {{ request()->routeIs('marketing.*') ? 'active' : '' }}" data-panel="marketing" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Marketing" aria-label="Marketing">
             <i class="ph ph-megaphone"></i>
           </a>
         </li>
         @endif
         @if($navUser->canAccessEquipa())
         <li>
-          <a href="{{ route('equipa.index') }}" class="iconbar-item {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-panel="agentes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
+          <a href="#!" class="iconbar-item {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-panel="agentes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
             <i class="ph ph-users"></i>
           </a>
         </li>
         @endif
         @if($navUser->canAccessRelatorios())
         <li>
-          <a href="{{ route('relatorios.vendas') }}" class="iconbar-item {{ request()->routeIs('relatorios.*') ? 'active' : '' }}" data-panel="reports" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Relatórios" aria-label="Relatórios">
+          <a href="#!" class="iconbar-item {{ request()->routeIs('relatorios.*') ? 'active' : '' }}" data-panel="reports" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Relatórios" aria-label="Relatórios">
             <i class="ph ph-chart-line-up"></i>
           </a>
         </li>
@@ -65,7 +71,7 @@
 
     <div class="sidebar-iconbar-bottom">
       @if($navUser->canAccessDefinicoes())
-      <a href="{{ route('definicoes.index') }}" class="iconbar-item iconbar-bottom-item {{ request()->routeIs('definicoes.*') || request()->routeIs('activity.*') ? 'active' : '' }}" data-panel="definicoes" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Definições" aria-label="Definições">
+      <a href="#!" class="iconbar-item iconbar-bottom-item {{ request()->routeIs('definicoes.*') || request()->routeIs('activity.*') ? 'active' : '' }}" data-panel="definicoes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Definições" aria-label="Definições">
         <i class="ph ph-gear"></i>
       </a>
       @endif
@@ -85,6 +91,13 @@
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
+        @if($navUser->isPrestador())
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+            Resumo
+          </a>
+        </li>
+        @else
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
             Resumo
@@ -105,6 +118,7 @@
             Ocupação
           </a>
         </li>
+        @endif
       </ul>
     </div>
     @endif

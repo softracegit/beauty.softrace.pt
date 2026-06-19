@@ -134,6 +134,19 @@ class User extends Authenticatable
         ]);
     }
 
+    /** Membros de equipa com ficha de agente activa (opcionalmente filtrados por loja). */
+    public function scopeActiveStaff(Builder $query, ?int $storeId = null): Builder
+    {
+        return $query
+            ->where('role', '!=', self::ROLE_CLIENTE)
+            ->whereHas('agent', function (Builder $agentQuery) use ($storeId) {
+                $agentQuery->where('status', Agent::STATUS_ACTIVE);
+                if ($storeId !== null) {
+                    $agentQuery->where('store_id', $storeId);
+                }
+            });
+    }
+
     /**
      * Get the agent associated with this user (1-1 relationship)
      */
@@ -314,7 +327,7 @@ class User extends Authenticatable
 
     public function canAccessDashboard(): bool
     {
-        return ! $this->isPrestador();
+        return $this->isAdmin() || $this->isRececao() || $this->isPrestador();
     }
 
     public function canAccessClientes(): bool
@@ -349,7 +362,7 @@ class User extends Authenticatable
 
     public function backofficeHomeRoute(): string
     {
-        return $this->isPrestador() ? 'agenda.index' : 'dashboard';
+        return 'dashboard';
     }
 
     /**
@@ -363,7 +376,8 @@ class User extends Authenticatable
 
         if ($this->isPrestador()) {
             return str_starts_with($routeName, 'agenda.')
-                || str_starts_with($routeName, 'notifications.');
+                || str_starts_with($routeName, 'notifications.')
+                || $routeName === 'dashboard';
         }
 
         if ($this->isRececao()) {

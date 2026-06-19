@@ -4,10 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Activity;
 use App\Models\User;
-use Carbon\Carbon;
+use App\Models\UserPageViewLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ActivityLogController extends Controller
 {
@@ -57,49 +56,9 @@ class ActivityLogController extends Controller
         $activities = (clone $baseQuery)
             ->with('causer')
             ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->paginate(12)
             ->withQueryString();
-
-        // Sidebar stats (use the same filters as the list).
-        $totalLogs = (clone $baseQuery)->count();
-
-        $eventCounts = (clone $baseQuery)
-            ->select('event', DB::raw('count(*) as total'))
-            ->groupBy('event')
-            ->pluck('total', 'event');
-
-        $uniqueCausers = (clone $baseQuery)
-            ->where('causer_type', $userMorphClass)
-            ->distinct('causer_id')
-            ->count('causer_id');
-
-        $mostActiveUsersRows = (clone $baseQuery)
-            ->where('causer_type', $userMorphClass)
-            ->whereNotNull('causer_id')
-            ->select('causer_id', DB::raw('count(*) as total'))
-            ->groupBy('causer_id')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get();
-
-        $mostActiveUserIds = $mostActiveUsersRows->pluck('causer_id')->filter()->values()->all();
-        $mostActiveUsers = $mostActiveUserIds
-            ? User::with('agent')
-                ->whereIn('id', $mostActiveUserIds)
-                ->get()
-                ->keyBy('id')
-            : collect();
-
-        $mostActiveUsersFormatted = $mostActiveUsersRows->map(function ($row) use ($mostActiveUsers) {
-            return (object)[
-                'user_id' => (int) $row->causer_id,
-                'total' => (int) $row->total,
-                'user' => $mostActiveUsers->get((int) $row->causer_id),
-            ];
-        });
-
-        $lastActivityAtRaw = (clone $baseQuery)->max('created_at');
-        $lastActivityAt = $lastActivityAtRaw ? Carbon::parse((string) $lastActivityAtRaw) : null;
 
         // Subject type dropdown options (within the date/event/causer filters, but without subject_type filter).
         $subjectTypesQuery = $this->scopedActivityQuery();
@@ -132,15 +91,7 @@ class ActivityLogController extends Controller
             ->filter()
             ->values();
 
-        // Most active subjects (lightweight: show type + id).
-        $mostActiveSubjectsRows = (clone $baseQuery)
-            ->select('subject_type', 'subject_id', DB::raw('count(*) as total'))
-            ->whereNotNull('subject_type')
-            ->whereNotNull('subject_id')
-            ->groupBy('subject_type', 'subject_id')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get();
+        $filterUsers = $this->filterUserOptions();
 
         return view('activity.index', compact(
             'activities',
@@ -150,14 +101,80 @@ class ActivityLogController extends Controller
             'to',
             'causerId',
             'subjectType',
-            'eventCounts',
-            'uniqueCausers',
-            'totalLogs',
-            'mostActiveUsersFormatted',
-            'lastActivityAt',
             'subjectTypeOptions',
-            'mostActiveSubjectsRows'
+            'filterUsers',
         ));
+    }
+
+    public function navigation(Request $request)
+    {
+        $from = $request->get('from');
+        $to = $request->get('to');
+        $userId = $request->get('user_id');
+        $routeName = $request->get('route_name');
+        $q = trim((string) $request->get('q'));
+
+        $baseQuery = $this->scopedNavigationQuery();
+
+        if ($from) {
+            $baseQuery->whereDate('created_at', '>=', $from);
+        }
+        if ($to) {
+            $baseQuery->whereDate('created_at', '<=', $to);
+        }
+        if ($userId) {
+            $baseQuery->where('user_id', (int) $userId);
+        }
+        if ($routeName) {
+            $baseQuery->where('route_name', $routeName);
+        }
+        if ($q !== '') {
+            $baseQuery->where(function ($qq) use ($q) {
+                $qq->where('path', 'like', "%{$q}%")
+                    ->orWhere('route_name', 'like', "%{$q}%");
+            });
+        }
+
+        $logs = (clone $baseQuery)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        $routeOptions = (clone $this->scopedNavigationQuery())
+            ->select('route_name')
+            ->distinct()
+            ->whereNotNull('route_name')
+            ->orderBy('route_name')
+            ->pluck('route_name');
+
+        $filterUsers = $this->filterUserOptions();
+
+        return view('activity.navigation', compact(
+            'logs',
+            'from',
+            'to',
+            'userId',
+            'routeName',
+            'q',
+            'routeOptions',
+            'filterUsers',
+        ));
+    }
+
+    /**
+     * @return Builder<\App\Models\UserPageViewLog>
+     */
+    protected function scopedNavigationQuery(): Builder
+    {
+        $query = UserPageViewLog::query();
+        $user = auth()->user();
+        if ($user instanceof User && $user->isSuperAdmin()) {
+            return $query;
+        }
+
+        return $query->where('store_id', current_store_id());
     }
 
     /**
@@ -173,5 +190,19 @@ class ActivityLogController extends Controller
 
         return $query->where('store_id', current_store_id());
     }
-}
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, User>
+     */
+    protected function filterUserOptions()
+    {
+        $user = auth()->user();
+        $storeId = $user instanceof User && $user->isSuperAdmin()
+            ? null
+            : current_store_id();
+
+        return User::activeStaff($storeId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+    }
+}

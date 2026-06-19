@@ -149,8 +149,8 @@
                         @forelse($proximasMarcacoes ?? [] as $ev)
                             <tr>
                                 <td>
-                                    <span class="fw-medium">{{ $ev->start_at->format('d/m') }}</span>
-                                    <span class="text-muted small">{{ $ev->start_at->format('H:i') }}</span>
+                                    <span class="fw-medium">{{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id, 'd/m') }}</span>
+                                    <span class="text-muted small">{{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id, 'H:i') }}</span>
                                 </td>
                                 <td>{{ $ev->client?->name ?? '—' }}</td>
                                 <td>{{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</td>
@@ -254,7 +254,7 @@
                         </div>
                         <div class="transaction-details">
                             <div class="transaction-title">{{ $ev->client?->name ?? '—' }}</div>
-                            <div class="transaction-meta">{{ $ev->start_at->format('d/m/Y H:i') }} · {{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</div>
+                            <div class="transaction-meta">{{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id) }} · {{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</div>
                         </div>
                         <div class="transaction-amount">{{ \App\Models\CalendarEvent::statuses()[$ev->status ?? 'agendado'] ?? $ev->status }}</div>
                     </div>

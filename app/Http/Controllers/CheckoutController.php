@@ -15,6 +15,7 @@ use App\Models\SaleItem;
 use App\Notifications\ClientInvoiceAnnulledNotification;
 use App\Services\ClientWalletService;
 use App\Services\AgendaCheckoutService;
+use App\Services\MarcacaoPaymentActivityLogger;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
 use App\Support\ApplicableFees;
@@ -38,6 +39,7 @@ class CheckoutController extends Controller
         private readonly VendusInvoiceEmailService $vendusInvoiceEmailService,
         private readonly ClientWalletService $walletService,
         private readonly AgendaCheckoutService $agendaCheckoutService,
+        private readonly MarcacaoPaymentActivityLogger $paymentActivityLogger,
     ) {}
 
     /**
@@ -786,6 +788,8 @@ class CheckoutController extends Controller
 
         $this->syncSaleWithVendus($sale);
         $sale->refresh();
+
+        $this->paymentActivityLogger->logFaturaGeradaForSale($sale);
 
         $delivery = (string) ($validated['invoice_delivery'] ?? 'print');
         if (! in_array($delivery, ['email', 'print'], true)) {

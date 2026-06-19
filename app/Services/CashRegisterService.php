@@ -18,6 +18,10 @@ use RuntimeException;
 
 class CashRegisterService
 {
+    public function __construct(
+        private readonly CashRegisterActivityLogger $activityLogger,
+    ) {}
+
     public function getOpenSession(int $storeId): ?CashRegisterSession
     {
         return CashRegisterSession::query()
@@ -95,7 +99,15 @@ class CashRegisterService
 
             $this->assignPendingBookingOrphansToSession($session);
 
-            return $session->fresh(['openedBy']);
+            $session = $session->fresh(['openedBy']);
+
+            $this->activityLogger->logOpened(
+                $session,
+                $user,
+                $this->countBookingSalesAssignedToSession($session),
+            );
+
+            return $session;
         });
     }
 
@@ -213,7 +225,11 @@ class CashRegisterService
             'status' => CashRegisterSession::STATUS_CLOSED,
         ]);
 
-        return $session->fresh(['openedBy', 'closedBy']);
+        $closed = $session->fresh(['openedBy', 'closedBy']);
+
+        $this->activityLogger->logClosed($closed, $user);
+
+        return $closed;
     }
 
     public function userCanManageCashRegister(User $user): bool

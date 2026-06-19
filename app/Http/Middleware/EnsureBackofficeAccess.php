@@ -30,7 +30,7 @@ class EnsureBackofficeAccess
                 abort(403, 'Sem permissão para aceder a este recurso.');
             }
 
-            return redirect()->route('agenda.index');
+            return redirect()->route('dashboard');
         }
 
         if ($user->isRececao() && ! $user->canAccessRoute($routeName)) {
@@ -61,6 +61,6 @@ class EnsureBackofficeAccess
             }
         }
 
-        return false;
+        return $routeName === 'dashboard';
     }
 }
