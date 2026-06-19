@@ -174,11 +174,14 @@ class BookingClientAuthController extends Controller
             $request->session()->put(self::PENDING_REG_CHANNEL_KEY, $target['channel']);
             $request->session()->put(self::PENDING_REG_IDENTIFIER_KEY, $target['identifier']);
 
+            $legacyClient = $this->findLegacyClientForAuthIdentifier($target['channel'], $target['identifier']);
+
             return response()->json([
                 'ok' => true,
                 'requires_registration' => true,
                 'channel' => $target['channel'],
                 'identifier' => $target['identifier'],
+                'registration_prefill' => $this->registrationPrefillPayload($legacyClient, $target['channel'], $target['identifier']),
             ]);
         }
 
@@ -227,17 +230,29 @@ class BookingClientAuthController extends Controller
         }
 
         if ($channel === 'phone') {
+            $phoneE164 = trim((string) $identifier);
             $emailNorm = strtolower(trim((string) ($validated['email'] ?? '')));
-            if ($emailNorm === '') {
+            $legacyByPhone = $this->findLegacyClientForPendingBookingRegistration('phone', $phoneE164, '');
+            $clientEmailOnFile = $legacyByPhone instanceof Client
+                ? strtolower(trim((string) ($legacyByPhone->email ?? '')))
+                : '';
+            if ($clientEmailOnFile !== '') {
+                $emailNorm = $clientEmailOnFile;
+            } elseif ($emailNorm === '') {
                 throw ValidationException::withMessages([
                     'email' => [__('booking.validation.email_register_required')],
                 ]);
             }
-            $phoneE164 = trim((string) $identifier);
         } else {
             $emailNorm = strtolower(trim((string) $identifier));
             $phoneE164 = PhoneDisplay::toE164((string) ($validated['phone'] ?? ''));
-            if ($phoneE164 === null) {
+            $legacyByEmail = $this->findLegacyClientForPendingBookingRegistration('email', '', $emailNorm);
+            $clientPhoneOnFile = $legacyByEmail instanceof Client
+                ? PhoneDisplay::toE164((string) ($legacyByEmail->phone ?? ''))
+                : null;
+            if ($clientPhoneOnFile !== null) {
+                $phoneE164 = $clientPhoneOnFile;
+            } elseif ($phoneE164 === null) {
                 throw ValidationException::withMessages([
                     'phone' => [__('booking.validation.phone_register_invalid')],
                 ]);
@@ -258,22 +273,6 @@ class BookingClientAuthController extends Controller
 
             $this->assertEmailAvailableForBookingRegistration($emailNorm, $existingClient);
             $this->assertPhoneAvailableForBookingRegistration($phoneE164, $existingClient);
-
-            if ($channel === 'phone') {
-                $clientEmail = strtolower(trim((string) ($existingClient->email ?? '')));
-                if ($clientEmail !== '' && $clientEmail !== $emailNorm) {
-                    throw ValidationException::withMessages([
-                        'email' => [__('booking.validation.phone_email_conflict')],
-                    ]);
-                }
-            } else {
-                $rawPhone = trim((string) ($existingClient->phone ?? ''));
-                if ($rawPhone !== '' && ! $this->clientPhoneMatchesE164($existingClient, $phoneE164)) {
-                    throw ValidationException::withMessages([
-                        'phone' => [__('booking.validation.phone_db_mismatch')],
-                    ]);
-                }
-            }
 
             $existingClient->name = $name;
             $existingClient->phone = $phoneE164;
@@ -508,6 +507,56 @@ class BookingClientAuthController extends Controller
                 'login' => [__('booking.validation.duplicate_phone_users')],
             ]);
         }
+    }
+
+    private function findLegacyClientForAuthIdentifier(string $channel, string $identifier): ?Client
+    {
+        if ($channel === 'phone') {
+            return $this->findLegacyClientForPendingBookingRegistration('phone', trim($identifier), '');
+        }
+
+        return $this->findLegacyClientForPendingBookingRegistration('email', '', strtolower(trim($identifier)));
+    }
+
+    /**
+     * @return array{name: string, email: string, phone: string, name_readonly: bool, email_readonly: bool, phone_readonly: bool}
+     */
+    private function registrationPrefillPayload(?Client $client, string $channel, string $identifier): array
+    {
+        $payload = [
+            'name' => '',
+            'email' => '',
+            'phone' => '',
+            'name_readonly' => false,
+            'email_readonly' => false,
+            'phone_readonly' => false,
+        ];
+
+        if (! $client instanceof Client) {
+            return $payload;
+        }
+
+        $payload['name'] = trim((string) $client->name);
+        $clientEmail = strtolower(trim((string) ($client->email ?? '')));
+        $clientPhone = PhoneDisplay::toE164((string) ($client->phone ?? '')) ?? '';
+
+        if ($channel === 'phone') {
+            $payload['phone'] = trim($identifier);
+            $payload['phone_readonly'] = true;
+            if ($clientEmail !== '') {
+                $payload['email'] = $clientEmail;
+                $payload['email_readonly'] = true;
+            }
+        } else {
+            $payload['email'] = strtolower(trim($identifier));
+            $payload['email_readonly'] = true;
+            if ($clientPhone !== '') {
+                $payload['phone'] = $clientPhone;
+                $payload['phone_readonly'] = true;
+            }
+        }
+
+        return $payload;
     }
 
     private function findLegacyClientForPendingBookingRegistration(string $channel, string $phoneE164, string $emailNorm): ?Client

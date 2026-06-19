@@ -9,6 +9,19 @@
         }
         return old($key, $default);
     };
+    $displayName = trim((string) ($isEdit && $model ? $model->name : old('name', '')));
+    $nameParts = preg_split('/\s+/u', $displayName);
+    $nameParts = array_values(array_filter($nameParts, fn ($part) => $part !== ''));
+    if (count($nameParts) >= 2) {
+        $firstInitial = mb_substr($nameParts[0], 0, 1, 'UTF-8');
+        $lastInitial = mb_substr($nameParts[count($nameParts) - 1], 0, 1, 'UTF-8');
+        $avatarInitial = mb_strtoupper($firstInitial . $lastInitial, 'UTF-8');
+    } elseif (count($nameParts) === 1) {
+        $avatarInitial = mb_strtoupper(mb_substr($nameParts[0], 0, 1, 'UTF-8'), 'UTF-8');
+    } else {
+        $avatarInitial = '—';
+    }
+    $hasAvatar = $isEdit && $model && (bool) $model->avatar;
 @endphp
 
 <div class="uedit-grid">
@@ -18,11 +31,10 @@
         <div class="card">
             <div class="card-body">
                 <div class="uedit-avatar-wrap">
-                    @if($isEdit && $model->avatar)
+                    @if($hasAvatar)
                         <img src="{{ asset('storage/' . $model->avatar) }}" alt="Avatar" class="uedit-avatar" id="profilePreview">
                     @else
-                        @php $avatarNum = ($isEdit ? $model->id : 1) % 9 + 1; @endphp
-                        <img src="{{ asset("template/img/avatars/avatar-{$avatarNum}.webp") }}" alt="Avatar" class="uedit-avatar" id="profilePreview">
+                        <div class="uedit-avatar uedit-avatar-initials" id="profilePreview" aria-label="{{ $displayName !== '' ? $displayName : 'Cliente' }}">{{ $avatarInitial }}</div>
                     @endif
                     <div class="mt-3">
                         <input type="file" name="avatar" class="form-control" id="profileImage" accept="image/*" onchange="previewImage(this)">

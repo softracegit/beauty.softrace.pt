@@ -53,7 +53,20 @@
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('profilePreview').src = e.target.result;
+                const preview = document.getElementById('profilePreview');
+                if (!preview) {
+                    return;
+                }
+                if (preview.tagName === 'DIV') {
+                    const img = document.createElement('img');
+                    img.id = 'profilePreview';
+                    img.className = 'uedit-avatar';
+                    img.alt = 'Avatar';
+                    img.src = e.target.result;
+                    preview.replaceWith(img);
+                } else {
+                    preview.src = e.target.result;
+                }
             };
             reader.readAsDataURL(input.files[0]);
         }

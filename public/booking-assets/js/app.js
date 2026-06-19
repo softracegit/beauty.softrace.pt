@@ -5347,17 +5347,56 @@
         function updateRegisterSubmitState() {
             registerSubmitBtn.disabled = !registerTermsCheckbox.checked;
         }
-        function setRegisterMode(channel) {
+        function clearRegistrationFieldLocks() {
+            registerNameInput.readOnly = false;
+            registerEmailInput.readOnly = false;
+            registerPhoneInput.readOnly = false;
+            registerPhoneInput.disabled = false;
+        }
+        function applyRegistrationPrefill(prefill, channel) {
+            if (!prefill) {
+                return;
+            }
+            if (prefill.name) {
+                registerNameInput.value = prefill.name;
+            }
+            registerNameInput.readOnly = !!prefill.name_readonly;
+            if (channel === 'phone') {
+                if (prefill.email) {
+                    registerEmailInput.value = prefill.email;
+                }
+                registerEmailInput.readOnly = !!prefill.email_readonly;
+                return;
+            }
+            ensureAuthIntlInputs().then(function () {
+                if (prefill.phone) {
+                    var iti = window.intlTelInput && window.intlTelInput.getInstance(registerPhoneInput);
+                    if (iti && typeof iti.setNumber === 'function') {
+                        iti.setNumber(prefill.phone);
+                    }
+                }
+                if (prefill.phone_readonly) {
+                    registerPhoneInput.readOnly = true;
+                    registerPhoneInput.disabled = true;
+                }
+            });
+        }
+        function setRegisterMode(channel, prefill) {
             var byPhone = channel === 'phone';
             registerEmailWrap.classList.toggle('d-none', !byPhone);
             registerPhoneWrap.classList.toggle('d-none', byPhone);
+            clearRegistrationFieldLocks();
             registerEmailInput.value = '';
             registerPhoneInput.value = '';
             registerNameInput.value = '';
             registerTermsCheckbox.checked = false;
+            applyRegistrationPrefill(prefill, channel);
             updateRegisterSubmitState();
             if (!byPhone) {
                 ensureAuthIntlInputs().then(function () {
+                    if (prefill && prefill.phone) {
+                        return;
+                    }
                     var iti = window.intlTelInput && window.intlTelInput.getInstance(registerPhoneInput);
                     if (iti && typeof iti.setNumber === 'function') {
                         iti.setNumber('');
@@ -5477,7 +5516,7 @@
                 : { phone: currentAuthIdentifier, code: code })
                 .then(function (res) {
                     if (res && res.requires_registration) {
-                        setRegisterMode(currentAuthChannel);
+                        setRegisterMode(currentAuthChannel, res.registration_prefill || null);
                         setStep('register');
                         registerNameInput.focus();
                         return;
@@ -5600,6 +5639,7 @@
             registerNameInput.value = '';
             registerEmailInput.value = '';
             registerPhoneInput.value = '';
+            clearRegistrationFieldLocks();
             showCodeStatus('');
             clearResendCooldownTimer();
             applyOtpCooldownUi();

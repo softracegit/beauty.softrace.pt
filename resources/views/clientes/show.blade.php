@@ -5,9 +5,7 @@
 @php
     $avatarNum = ($cliente->id % 9) + 1;
     $hasAvatar = (bool) $cliente->avatar;
-    $avatarSrc = $hasAvatar
-        ? asset('storage/' . $cliente->avatar)
-        : null;
+    $avatarSrc = $hasAvatar ? asset('storage/' . $cliente->avatar) : null;
     $nameParts = preg_split('/\s+/u', trim((string) ($cliente->name ?? '')));
     $nameParts = array_values(array_filter($nameParts, fn ($part) => $part !== ''));
     if (count($nameParts) >= 2) {
@@ -27,8 +25,7 @@
     @if($hasAvatar)
         <img src="{{ $avatarSrc }}" alt="{{ $cliente->name }}" class="uview-avatar">
     @else
-        <div class="uview-avatar d-flex align-items-center justify-content-center fw-semibold"
-             style="background-color: var(--accent-soft-color, #eef2ff); color: var(--accent-color, #4f46e5); font-size: 1.5rem;">
+        <div class="uview-avatar uview-avatar-initials d-flex align-items-center justify-content-center fw-semibold">
             {{ $avatarInitial }}
         </div>
     @endif

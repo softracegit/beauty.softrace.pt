@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Client;
 use App\Models\Store;
 use App\Models\User;
+use App\Support\PhoneDisplay;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -84,12 +85,14 @@ class BookingClientAuthRegistrationTest extends TestCase
         ]);
     }
 
-    public function test_complete_registration_phone_channel_rejects_conflicting_email_on_existing_phone(): void
+    public function test_complete_registration_phone_channel_uses_existing_client_email_when_submitted_email_differs(): void
     {
-        Client::query()->create([
+        $sharedEmail = 'existing-on-file@example.test';
+
+        $client = Client::query()->create([
             'store_id' => Store::defaultPublicBookingStoreId(),
-            'name' => 'Outro',
-            'email' => 'existing-on-file@example.test',
+            'name' => 'Cliente CRM',
+            'email' => $sharedEmail,
             'phone' => self::PHONE_E164,
             'type' => Client::TYPE_POTENCIAL_CLIENTE,
         ]);
@@ -98,14 +101,83 @@ class BookingClientAuthRegistrationTest extends TestCase
             'booking_auth.pending_registration.channel' => 'phone',
             'booking_auth.pending_registration.identifier' => self::PHONE_E164,
         ])->postJson($this->bookingBasePath().'/auth/complete-registration', [
-            'name' => 'Tentativa',
+            'name' => 'Nome Actualizado',
             'email' => 'different@example.test',
             'phone' => '',
             'terms_accepted' => true,
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['email']);
+        $response->assertOk()
+            ->assertJson(['ok' => true, 'is_new_account' => true]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => $sharedEmail,
+            'role' => User::ROLE_CLIENTE,
+            'client_id' => $client->id,
+        ]);
+
+        $client->refresh();
+        $this->assertSame('Nome Actualizado', $client->name);
+        $this->assertSame($sharedEmail, strtolower((string) $client->email));
+    }
+
+    public function test_complete_registration_phone_channel_allows_missing_email_when_client_has_email_on_file(): void
+    {
+        $sharedEmail = 'legacy-with-email@example.test';
+
+        Client::query()->create([
+            'store_id' => Store::defaultPublicBookingStoreId(),
+            'name' => 'Cliente CRM',
+            'email' => $sharedEmail,
+            'phone' => self::PHONE_E164,
+            'type' => Client::TYPE_POTENCIAL_CLIENTE,
+        ]);
+
+        $response = $this->withSession([
+            'booking_auth.pending_registration.channel' => 'phone',
+            'booking_auth.pending_registration.identifier' => self::PHONE_E164,
+        ])->postJson($this->bookingBasePath().'/auth/complete-registration', [
+            'name' => 'Cliente CRM',
+            'email' => '',
+            'phone' => '',
+            'terms_accepted' => true,
+        ]);
+
+        $response->assertOk()->assertJson(['ok' => true]);
+
+        $this->assertDatabaseHas('users', [
+            'email' => $sharedEmail,
+            'role' => User::ROLE_CLIENTE,
+        ]);
+    }
+
+    public function test_complete_registration_email_channel_uses_existing_client_phone_when_submitted_phone_differs(): void
+    {
+        $sharedEmail = 'legacy-email-channel@example.test';
+        $clientPhone = '+351912345678';
+
+        $client = Client::query()->create([
+            'store_id' => Store::defaultPublicBookingStoreId(),
+            'name' => 'Cliente Email',
+            'email' => $sharedEmail,
+            'phone' => $clientPhone,
+            'type' => Client::TYPE_POTENCIAL_CLIENTE,
+        ]);
+
+        $response = $this->withSession([
+            'booking_auth.pending_registration.channel' => 'email',
+            'booking_auth.pending_registration.identifier' => $sharedEmail,
+        ])->postJson($this->bookingBasePath().'/auth/complete-registration', [
+            'name' => 'Cliente Email',
+            'email' => '',
+            'phone' => '+351900000000',
+            'terms_accepted' => true,
+        ]);
+
+        $response->assertOk()->assertJson(['ok' => true]);
+
+        $client->refresh();
+        $this->assertSame($clientPhone, PhoneDisplay::toE164((string) $client->phone));
     }
 
     public function test_complete_registration_rejects_when_pending_session_missing(): void

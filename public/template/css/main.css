@@ -10769,6 +10769,26 @@ textarea.form-control {
   border: 3px solid var(--border-color-light);
 }
 
+.uedit-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 2rem;
+  text-transform: uppercase;
+  background-color: var(--accent-soft-color, #eef2ff);
+  color: var(--accent-color, #4f46e5);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.uview-avatar-initials {
+  background-color: var(--accent-soft-color, #eef2ff);
+  color: var(--accent-color, #4f46e5);
+  font-size: 1.5rem;
+  text-transform: uppercase;
+}
+
 .uedit-section {
   margin-bottom: var(--spacing-lg);
 }
