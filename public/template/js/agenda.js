@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function agendaResolveEventStatusIcon(extProps) {
         var props = extProps || {};
         if ((props.event_type || '') === 'tempo_pessoal') {
-            return props.personal_time_type?.icon ? ('ph ' + props.personal_time_type.icon) : null;
+            return props.personal_time_type?.icon ? ('ph ' + props.personal_time_type.icon) : 'ph ph-clock';
         }
         var status = String(props.status || 'agendado').toLowerCase();
         var baseIcon = props.status_icon || STATUS_ICONS[status] || 'ri-time-fill agenda-status-icon-agendado';
@@ -1296,7 +1296,7 @@ document.addEventListener('DOMContentLoaded', function() {
             typeRow.className = 'agenda-quickview-service-row';
             var typeLeft = document.createElement('div');
             typeLeft.className = 'agenda-quickview-service-left';
-            var typeIcon = personalTimeType.icon ? ('ph ' + personalTimeType.icon) : '';
+            var typeIcon = personalTimeType.icon ? ('ph ' + personalTimeType.icon) : 'ph ph-clock';
             typeLeft.innerHTML = (typeIcon ? ('<i class="' + typeIcon + ' me-2"></i>') : '') + '<span class="agenda-quickview-service-name">' + (personalTimeType.name || event.title || '…').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>';
             typeRow.appendChild(typeLeft);
             body.appendChild(typeRow);
@@ -10119,6 +10119,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var originalHtml = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> A guardar...';
+        TempoPessoal.syncHiddenFromInputs();
         var id = $id('tempoPessoalEventId').value;
         var startVal = $id('tempoPessoalStart').value;
         var endVal = $id('tempoPessoalEnd').value;
@@ -10161,14 +10162,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (id) {
                         var ev = calendar.getEventById(id);
                         if (ev) {
-                            ev.setStart(res.event.start);
-                            ev.setEnd(res.event.end);
-                            ev.setProp('title', res.event.title);
-                            ev.setExtendedProp('event_type', 'tempo_pessoal');
-                            ev.setExtendedProp('personal_time_type_id', res.event.extendedProps?.personal_time_type_id ?? null);
-                            ev.setExtendedProp('personal_time_type', res.event.extendedProps?.personal_time_type ?? null);
-                            if (res.event.backgroundColor != null) ev.setProp('backgroundColor', res.event.backgroundColor);
+                            applyAgendaEventFromServer(ev, res.event);
                         }
+                        calendar.refetchEvents();
                     } else {
                         calendar.refetchEvents();
                     }

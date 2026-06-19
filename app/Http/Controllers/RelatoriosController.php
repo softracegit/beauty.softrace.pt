@@ -43,14 +43,7 @@ class RelatoriosController extends Controller
             ->orderBy('services.name')
             ->get();
 
-        $tecnicosOpts = User::query()
-            ->join('calendar_events', 'calendar_events.user_id', '=', 'users.id')
-            ->where('calendar_events.store_id', current_store_id())
-            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->select('users.id', 'users.name')
-            ->distinct()
-            ->orderBy('users.name')
-            ->get();
+        $tecnicosOpts = $this->membrosOptsForRelatorios();
 
         $clientesOpts = Client::query()
             ->forStore(current_store_id())
@@ -214,9 +207,7 @@ class RelatoriosController extends Controller
             $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $request->get('marcacoes_tecnico')) {
-            $lines[] = 'Técnico: '.(User::query()
-                ->whereHas('agent', fn ($q) => $q->where('store_id', current_store_id()))
-                ->find($tid)?->name ?? '—');
+            $lines[] = 'Técnico: '.(User::activeStaff(current_store_id())->find($tid)?->name ?? '—');
         }
         if ($est = $request->get('marcacoes_estado')) {
             $lines[] = 'Estado: '.(CalendarEvent::statuses()[$est] ?? $est);
@@ -364,7 +355,7 @@ class RelatoriosController extends Controller
             'vendasEstado' => $request->get('vendas_estado'),
             'clientesOpts' => $this->vendasClientesOpts(),
             'servicosOpts' => $this->vendasServicosOpts(),
-            'tecnicosOpts' => $this->vendasTecnicosOpts(),
+            'tecnicosOpts' => $this->membrosOptsForRelatorios(),
             'vendasTotais' => $this->vendasTotaisRodape($allLines),
         ]);
     }
@@ -513,9 +504,7 @@ class RelatoriosController extends Controller
             $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $request->get('vendas_tecnico')) {
-            $lines[] = 'Técnico: '.(User::query()
-                ->whereHas('agent', fn ($q) => $q->where('store_id', current_store_id()))
-                ->find($tid)?->name ?? '—');
+            $lines[] = 'Técnico: '.(User::activeStaff(current_store_id())->find($tid)?->name ?? '—');
         }
         if ($est = $request->get('vendas_estado')) {
             $label = $est === Sale::INVOICE_STATUS_RASCUNHO ? 'Rascunho' : ($est === Sale::INVOICE_STATUS_FATURADO ? 'Faturado' : $est);
@@ -919,19 +908,16 @@ class RelatoriosController extends Controller
             ->get();
     }
 
-    private function vendasTecnicosOpts(): Collection
+    /**
+     * Membros de equipa activos (filtros dos relatórios).
+     *
+     * @return Collection<int, User>
+     */
+    private function membrosOptsForRelatorios(): Collection
     {
-        return User::query()
-            ->join('calendar_events', 'calendar_events.user_id', '=', 'users.id')
-            ->join('sales', 'sales.calendar_event_id', '=', 'calendar_events.id')
-            ->where('calendar_events.store_id', current_store_id())
-            ->where('sales.store_id', current_store_id())
-            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->select('users.id', 'users.name')
-            ->distinct()
-            ->orderBy('users.name')
-            ->get();
+        return User::activeStaff(current_store_id())
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     public function comissoes(): View

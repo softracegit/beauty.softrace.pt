@@ -223,6 +223,7 @@ class ServiceController extends Controller
 
         $agents = Agent::query()
             ->forStore(current_store_id())
+            ->where('status', Agent::STATUS_ACTIVE)
             ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -242,6 +243,7 @@ class ServiceController extends Controller
 
         $allowedAgentIds = Agent::query()
             ->forStore(current_store_id())
+            ->where('status', Agent::STATUS_ACTIVE)
             ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
             ->pluck('id')
             ->all();

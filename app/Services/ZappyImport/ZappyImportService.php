@@ -208,6 +208,7 @@ class ZappyImportService
             'appointments_no_service' => 0,
             'appointments_default_service' => 0,
             'appointments_merged' => 0,
+            'appointments_ignored_holiday' => 0,
             'sales_created' => 0,
             'sales_skipped' => 0,
             'sales_ignored_agent' => 0,
@@ -663,18 +664,33 @@ class ZappyImportService
                 continue;
             }
 
-            $startAt = $this->parseDateTimeDMY($row['date'] ?? '');
+            $startAt = $this->parseAppointmentDate($row['date'] ?? '');
             if ($startAt === null) {
                 continue;
             }
 
             $statusLabel = trim($row['status'] ?? '');
+            if ($statusLabel === 'Tempo pessoal' && $this->isZappyHolidayPersonalTime($row)) {
+                $this->bump('appointments_ignored_holiday');
+
+                continue;
+            }
+
             [$eventType, $status] = $statusMap[$statusLabel] ?? ['marcacao', CalendarEvent::STATUS_AGENDADO];
 
             $userId = $provider !== '' ? ($this->agentUserMap[$provider] ?? null) : null;
             $clientName = trim($row['client_name'] ?? '');
             $itemName = trim($row['item_name'] ?? '');
-            $fingerprint = $this->appointmentFingerprint($startAt, $clientName, $itemName, (int) ($userId ?? 0));
+            $notes = trim($row['notes'] ?? '');
+            $cancelReason = trim($row['cancel_reason'] ?? '');
+            $fingerprintKey = $itemName;
+            if ($eventType === CalendarEvent::TYPE_TEMPO_PESSOAL) {
+                $fingerprintKey = $notes !== '' ? $notes : 'tempo_pessoal';
+            } elseif ($statusLabel === 'Cancelada' && $clientName === '' && $itemName === '') {
+                $fingerprintKey = 'cancel:'.$cancelReason.':'.$notes;
+            }
+
+            $fingerprint = $this->appointmentFingerprint($startAt, $clientName, $fingerprintKey, (int) ($userId ?? 0));
 
             if (isset($this->appointmentIndex[$fingerprint]) || $this->refExists(ZappyImportRef::TYPE_APPOINTMENT, $fingerprint)) {
                 $this->bump('appointments_skipped');
@@ -710,14 +726,12 @@ class ZappyImportService
 
             $endAt = $startAt->copy()->addMinutes($duration);
             $priceBase = $this->parseDecimal($row['price_base'] ?? '0');
-            $notes = trim($row['notes'] ?? '');
-            $cancelReason = trim($row['cancel_reason'] ?? '');
-            $description = $this->buildAppointmentDescription($notes, $cancelReason, $rowIndex);
+            $description = $this->buildAppointmentDescription($notes, '', $rowIndex);
             if ($usedDefaultService) {
                 $description = $this->appendZappyOriginalServiceNote($description, $itemName);
             }
 
-            $updatedAt = $this->parseDateTimeDMY($row['updated_on'] ?? '') ?? $startAt;
+            $updatedAt = $this->parseAppointmentDate($row['updated_on'] ?? '') ?? $startAt;
 
             $chainKey = $this->mergeChainKey($clientName, $userId, $startAt);
             $chainHead = $this->mergeChainHeads[$chainKey] ?? null;
@@ -759,8 +773,8 @@ class ZappyImportService
             }
 
             $title = $eventType === CalendarEvent::TYPE_TEMPO_PESSOAL
-                ? 'Tempo pessoal'
-                : ($clientName !== '' ? $clientName.' — '.$itemName : ($itemName !== '' ? $itemName : 'Marcação'));
+                ? ($notes !== '' ? $notes : 'Tempo pessoal')
+                : ($clientName !== '' ? $clientName.' — '.$itemName : ($itemName !== '' ? $itemName : 'Marcação cancelada'));
 
             if ($this->dryRun) {
                 $fakeId = -1000 - $rowIndex;
@@ -795,9 +809,9 @@ class ZappyImportService
                     'service_id' => $serviceId,
                     'event_type' => $eventType,
                     'status' => $status,
-                    'cancellation_reason' => $statusLabel === 'Cancelada' && $cancelReason !== ''
-                        ? $cancelReason
-                        : ($statusLabel === 'Cancelada' ? 'Importado Zappy' : null),
+                    'cancellation_reason' => $statusLabel === 'Cancelada'
+                        ? ($cancelReason !== '' ? $cancelReason : 'Importado Zappy')
+                        : null,
                     'created_at' => $startAt,
                     'updated_at' => $updatedAt,
                 ]);
@@ -832,6 +846,23 @@ class ZappyImportService
             }
             $this->bump('appointments_created');
         }
+    }
+
+    private function isZappyHolidayPersonalTime(array $row): bool
+    {
+        $notes = trim($row['notes'] ?? '');
+
+        return $notes !== '' && (bool) preg_match('/^feriado\b/iu', $notes);
+    }
+
+    private function parseAppointmentDate(string $value): ?Carbon
+    {
+        $value = trim(str_replace('"', '', $value));
+        if ($value === '') {
+            return null;
+        }
+
+        return $this->parseDateTimeIso($value) ?? $this->parseDateTimeDMY($value);
     }
 
     private function importSales(): void
@@ -970,16 +1001,15 @@ class ZappyImportService
     }
 
     /**
-     * Estados em que uma marcação não deve receber ligação de venda (fatura).
+     * Estados em que uma marcação pode receber ligação de venda (fatura).
+     * Apenas «Pagou» no Zappy (completo no CRM); «Chegou», «Confirmada», etc. ficam sem fatura.
      *
      * @return list<string>
      */
-    private function excludedMarcacaoStatusesForSaleLink(): array
+    private function allowedMarcacaoStatusesForSaleLink(): array
     {
         return [
-            CalendarEvent::STATUS_CANCELADO,
-            CalendarEvent::STATUS_ANULADO,
-            CalendarEvent::STATUS_FALTOU,
+            CalendarEvent::STATUS_COMPLETO,
         ];
     }
 
@@ -989,11 +1019,11 @@ class ZappyImportService
             return false;
         }
 
-        return ! in_array($event->status ?? '', $this->excludedMarcacaoStatusesForSaleLink(), true);
+        return in_array($event->status ?? '', $this->allowedMarcacaoStatusesForSaleLink(), true);
     }
 
     /**
-     * Linha do CSV marcacoes.csv que pode receber fatura (exclui Cancelada / Faltou).
+     * Linha do CSV marcacoes.csv que pode receber fatura (apenas Pagou / completo).
      *
      * @param  array<string, string>  $row
      */
@@ -1001,14 +1031,14 @@ class ZappyImportService
     {
         $statusLabel = trim($row['status'] ?? '');
         if ($statusLabel === '') {
-            return true;
+            return false;
         }
 
         $statusMap = config('zappy_import.appointment_status_map', []);
         $mapped = $statusMap[$statusLabel] ?? ['marcacao', CalendarEvent::STATUS_AGENDADO];
         $crmStatus = is_array($mapped) ? ($mapped[1] ?? CalendarEvent::STATUS_AGENDADO) : CalendarEvent::STATUS_AGENDADO;
 
-        return ! in_array($crmStatus, $this->excludedMarcacaoStatusesForSaleLink(), true);
+        return in_array($crmStatus, $this->allowedMarcacaoStatusesForSaleLink(), true);
     }
 
     /**
@@ -1019,7 +1049,7 @@ class ZappyImportService
     {
         return $query
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->whereNotIn('status', $this->excludedMarcacaoStatusesForSaleLink());
+            ->whereIn('status', $this->allowedMarcacaoStatusesForSaleLink());
     }
 
     /**
@@ -1117,16 +1147,16 @@ class ZappyImportService
 
         if ($itemName !== '') {
             $serviceId = $this->resolveServiceIdForImport($itemName)[0];
-            if ($serviceId !== null) {
-                $filtered = $events->filter(fn (CalendarEvent $e) => $e->eventServices->contains('id', $serviceId));
-                $picked = $this->pickBestEventForSaleFromCollection($filtered, $day);
-                if ($picked !== null) {
-                    return $picked;
-                }
+            if ($serviceId === null) {
+                return null;
             }
+
+            $filtered = $events->filter(fn (CalendarEvent $e) => $e->eventServices->contains('id', $serviceId));
+
+            return $this->pickBestEventForSaleFromCollection($filtered, $day);
         }
 
-        return $this->pickBestEventForSaleFromCollection($events, $day);
+        return null;
     }
 
     /**
@@ -1382,7 +1412,7 @@ class ZappyImportService
             if ($provider !== '' && $this->isIgnoredAgent($provider)) {
                 continue;
             }
-            $startAt = $this->parseDateTimeDMY($row['date'] ?? '');
+            $startAt = $this->parseAppointmentDate($row['date'] ?? '');
             if ($startAt === null) {
                 continue;
             }
@@ -1609,7 +1639,7 @@ class ZappyImportService
                 continue;
             }
 
-            $startAt = $this->parseDateTimeDMY($row['date'] ?? '');
+            $startAt = $this->parseAppointmentDate($row['date'] ?? '');
             if ($startAt === null) {
                 continue;
             }
@@ -1836,7 +1866,7 @@ class ZappyImportService
                 continue;
             }
 
-            $correctStart = $this->parseDateTimeDMY($row['date'] ?? '');
+            $correctStart = $this->parseAppointmentDate($row['date'] ?? '');
             if ($correctStart === null) {
                 continue;
             }
@@ -2087,7 +2117,7 @@ class ZappyImportService
                 continue;
             }
 
-            $startAt = $this->parseDateTimeDMY($row['date'] ?? '');
+            $startAt = $this->parseAppointmentDate($row['date'] ?? '');
             if ($startAt === null) {
                 continue;
             }
@@ -2149,7 +2179,7 @@ class ZappyImportService
 
             $updates = [
                 'service_id' => $serviceId,
-                'updated_at' => $this->parseDateTimeDMY($row['updated_on'] ?? '') ?? $event->updated_at,
+                'updated_at' => $this->parseAppointmentDate($row['updated_on'] ?? '') ?? $event->updated_at,
             ];
             if ($usedDefault) {
                 $updates['description'] = $this->appendZappyOriginalServiceNote(
@@ -2214,7 +2244,7 @@ class ZappyImportService
                 continue;
             }
 
-            $startAt = $this->parseDateTimeDMY($row['date'] ?? '');
+            $startAt = $this->parseAppointmentDate($row['date'] ?? '');
             if ($startAt === null) {
                 continue;
             }
@@ -2233,7 +2263,7 @@ class ZappyImportService
 
             $eventIds = [];
             foreach ($groupRows as $row) {
-                $startAt = $this->parseDateTimeDMY($row['date'] ?? '');
+                $startAt = $this->parseAppointmentDate($row['date'] ?? '');
                 if ($startAt === null) {
                     continue;
                 }
@@ -2411,7 +2441,7 @@ class ZappyImportService
             if ($provider !== '' && $this->isIgnoredAgent($provider)) {
                 continue;
             }
-            $startAt = $this->parseDateTimeDMY($row['date'] ?? '');
+            $startAt = $this->parseAppointmentDate($row['date'] ?? '');
             if ($startAt === null) {
                 continue;
             }
@@ -2427,8 +2457,8 @@ class ZappyImportService
 
         foreach ($index as &$rows) {
             usort($rows, function (array $a, array $b): int {
-                $ta = $this->parseDateTimeDMY($a['date'] ?? '')?->timestamp ?? 0;
-                $tb = $this->parseDateTimeDMY($b['date'] ?? '')?->timestamp ?? 0;
+                $ta = $this->parseAppointmentDate($a['date'] ?? '')?->timestamp ?? 0;
+                $tb = $this->parseAppointmentDate($b['date'] ?? '')?->timestamp ?? 0;
 
                 return $ta <=> $tb;
             });
@@ -3324,7 +3354,7 @@ class ZappyImportService
 
     private function paymentMergeKey(array $row): string
     {
-        $paidAt = $this->parseDateTimeDMY($row['payment_date'] ?? '');
+        $paidAt = $this->parseAppointmentDate($row['payment_date'] ?? '');
 
         return $paidAt?->format('Y-m-d H:i') ?? '';
     }

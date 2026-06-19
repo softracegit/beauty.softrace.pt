@@ -24,6 +24,44 @@
   });
 
   /**
+   * Esconde tooltips da iconbar (evitam tapar o sidebar-panel após clique).
+   */
+  function hideAllSidebarIconbarTooltips() {
+    if (typeof bootstrap === 'undefined' || !bootstrap.Tooltip) {
+      return;
+    }
+
+    document.querySelectorAll('.iconbar-item[data-bs-toggle="tooltip"]').forEach(function(el) {
+      var instance = bootstrap.Tooltip.getInstance(el);
+      if (instance) {
+        instance.hide();
+      }
+    });
+  }
+
+  function suppressSidebarIconbarTooltip(el) {
+    if (!el) {
+      return;
+    }
+
+    el.classList.add('iconbar-tooltip-suppressed');
+
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+      var instance = bootstrap.Tooltip.getInstance(el);
+      if (instance) {
+        instance.hide();
+      }
+    }
+  }
+
+  function clearSidebarIconbarTooltipSuppression(el) {
+    if (!el) {
+      return;
+    }
+    el.classList.remove('iconbar-tooltip-suppressed');
+  }
+
+  /**
    * Two-Panel Sidebar
    *
    * Breakpoints:
@@ -78,7 +116,18 @@
 
     // Icon bar items: switch active panel section
     iconbarItems.forEach(function(item) {
+      item.addEventListener('mouseenter', function() {
+        clearSidebarIconbarTooltipSuppression(this);
+      });
+
+      item.addEventListener('mouseleave', function() {
+        clearSidebarIconbarTooltipSuppression(this);
+      });
+
       item.addEventListener('click', function(e) {
+        hideAllSidebarIconbarTooltips();
+        suppressSidebarIconbarTooltip(this);
+
         // Apenas a Agenda navega ao clicar; as restantes abrem o painel lateral.
         if (this.hasAttribute('data-navigate-on-click')) {
           return;
@@ -353,6 +402,14 @@
       var tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
       tooltipTriggerList.forEach(function(el) {
         new bootstrap.Tooltip(el);
+
+        if (el.classList.contains('iconbar-item')) {
+          el.addEventListener('show.bs.tooltip', function(e) {
+            if (el.classList.contains('iconbar-tooltip-suppressed')) {
+              e.preventDefault();
+            }
+          });
+        }
       });
     }
   }

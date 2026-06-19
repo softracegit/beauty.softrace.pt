@@ -94,7 +94,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 0.75rem;
     margin-bottom: 1rem;
 }
@@ -241,7 +241,6 @@
                 aria-labelledby="resumo-chart-tab-vendas"
             >
                 <div class="resumo-chart-tab-toolbar">
-                    <p class="text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
                     <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de vendas" data-chart-target="resumoVendasChart">
                         <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
                             <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
@@ -261,7 +260,6 @@
                 aria-labelledby="resumo-chart-tab-atendidos"
             >
                 <div class="resumo-chart-tab-toolbar">
-                    <p class="text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
                     <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de clientes atendidos" data-chart-target="resumoAtendidosChart">
                         <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
                             <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
@@ -281,7 +279,6 @@
                 aria-labelledby="resumo-chart-tab-novos"
             >
                 <div class="resumo-chart-tab-toolbar">
-                    <p class="text-muted small mb-0">{{ $previousYear }} vs {{ $currentYear }}</p>
                     <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de clientes novos" data-chart-target="resumoNovosChart">
                         <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
                             <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
