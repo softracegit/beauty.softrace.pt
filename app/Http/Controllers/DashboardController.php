@@ -10,6 +10,7 @@ use App\Models\Client;
 use App\Models\Sale;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\FinancialDashboardService;
 use App\Services\PrestadorDashboardService;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly FinancialDashboardService $financialDashboard,
+    ) {}
+
     /**
      * Dashboard Resumo (página inicial do dashboard).
      */
@@ -88,6 +93,25 @@ class DashboardController extends Controller
             'previousYear',
             'clientesContacto',
         ));
+    }
+
+    /**
+     * Dashboard Financeiro (receitas, rankings e pré-visualização de comissões/despesas).
+     */
+    public function financeiro(Request $request)
+    {
+        if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
+            return $redirect;
+        }
+
+        $storeId = current_store_id();
+        $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
+        $year = (int) $request->input('year', $today->year);
+        $month = (int) $request->input('month', $today->month);
+
+        $data = $this->financialDashboard->build($storeId, $year, $month);
+
+        return view('dashboard.financeiro', $data);
     }
 
     /**

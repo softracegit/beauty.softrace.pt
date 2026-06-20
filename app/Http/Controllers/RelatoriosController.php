@@ -8,7 +8,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Service;
 use App\Models\User;
-use App\Support\ApplicableFees;
+use App\Services\VendasReportService;
 use App\Support\DateTimeDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -24,6 +24,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RelatoriosController extends Controller
 {
+    public function __construct(
+        private readonly VendasReportService $vendasReportService,
+    ) {}
+
     public function marcacoes(Request $request): View
     {
         $marcacoes = $this->marcacoesReportQuery($request)
@@ -376,7 +380,6 @@ class RelatoriosController extends Controller
 
         $headers = [
             'Data emissão',
-            'N.º fatura',
             'Cliente',
             'NIF',
             'Técnico',
@@ -384,7 +387,6 @@ class RelatoriosController extends Controller
             'Total (€)',
             'Taxas (€)',
             'Gorjeta (€)',
-            'Em dívida (€)',
             'Estado fatura',
         ];
         $sheet->fromArray($headers, null, 'A1');
@@ -394,7 +396,6 @@ class RelatoriosController extends Controller
             $sheet->fromArray([
                 [
                     $linha->data->format('d/m/Y'),
-                    $linha->numero_fatura,
                     $linha->cliente,
                     $linha->nif,
                     $linha->tecnico,
@@ -402,7 +403,6 @@ class RelatoriosController extends Controller
                     round((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2),
                     round((float) ($linha->taxas ?? 0), 2),
                     round((float) ($linha->gorjeta ?? 0), 2),
-                    round((float) ($linha->pendente ?? 0), 2),
                     ! empty($linha->is_anulado)
                         ? 'Anulada'
                         : (($linha->invoice_status ?? Sale::INVOICE_STATUS_FATURADO) === Sale::INVOICE_STATUS_RASCUNHO
@@ -420,12 +420,10 @@ class RelatoriosController extends Controller
                 '',
                 '',
                 '',
-                '',
                 'Subtotal',
                 round($totais['total_valor_com_gorjeta'], 2),
                 round($totais['total_taxas'] ?? 0, 2),
                 round($totais['total_gorjeta'], 2),
-                round($totais['total_divida'], 2),
                 '',
             ],
         ], null, 'A'.$rowIndex);
@@ -436,17 +434,15 @@ class RelatoriosController extends Controller
                 '',
                 '',
                 '',
-                '',
                 'Total',
                 round($totais['total_absoluto'], 2),
-                '',
                 '',
                 '',
                 '',
             ],
         ], null, 'A'.$rowIndex);
 
-        foreach (range('A', 'K') as $col) {
+        foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -518,394 +514,41 @@ class RelatoriosController extends Controller
 
     private function vendasReportQuery(Request $request): Builder
     {
-        $today = now()->startOfDay();
-        $firstDayOfMonth = now()->copy()->startOfMonth();
-
-        $desde = $request->get('vendas_desde');
-        $ate = $request->get('vendas_ate');
-        $cliente = $request->get('vendas_cliente');
-        $servico = $request->get('vendas_servico');
-        $tecnico = $request->get('vendas_tecnico');
-        $estado = (string) $request->get('vendas_estado', '');
-
-        if (! $desde) {
-            $desde = $firstDayOfMonth->toDateString();
-        }
-        if (! $ate) {
-            $ate = $today->toDateString();
-        }
-
-        $q = Sale::query()
-            ->where('store_id', current_store_id())
-            ->whereHas('calendarEvent', function (Builder $cq) {
-                $cq->where('store_id', current_store_id())
-                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
-            });
-
-        if (in_array($estado, [Sale::INVOICE_STATUS_FATURADO, Sale::INVOICE_STATUS_RASCUNHO], true)) {
-            $q->where('invoice_status', $estado);
-        } else {
-            $q->whereIn('invoice_status', [Sale::INVOICE_STATUS_FATURADO, Sale::INVOICE_STATUS_RASCUNHO]);
-        }
-
-        $q->whereDate('data_emissao', '>=', $desde);
-        $q->whereDate('data_emissao', '<=', $ate);
-
-        if ($cliente) {
-            $q->where('client_id', $cliente);
-        }
-        if ($servico) {
-            $q->whereHas('items', function (Builder $iq) use ($servico) {
-                $iq->where('tipo', SaleItem::TIPO_SERVICO)
-                    ->where('service_id', $servico);
-            });
-        }
-        if ($tecnico) {
-            $q->whereHas('calendarEvent', fn (Builder $cq) => $cq->where('store_id', current_store_id())->where('user_id', $tecnico));
-        }
-
-        return $q;
+        return $this->vendasReportService->reportQuery([
+            'desde' => $request->get('vendas_desde'),
+            'ate' => $request->get('vendas_ate'),
+            'cliente' => $request->get('vendas_cliente'),
+            'servico' => $request->get('vendas_servico'),
+            'tecnico' => $request->get('vendas_tecnico'),
+            'estado' => $request->get('vendas_estado'),
+        ]);
     }
 
     /**
-     * Totais do rodapé do relatório de vendas (todas as linhas do filtro).
-     *
      * @param  Collection<int, object>  $lines
      * @return array{total_valor: float, total_valor_com_gorjeta: float, total_gorjeta: float, total_taxas: float, total_absoluto: float, num_vendas: int, total_servicos: int, total_desconto: float, total_divida: float}
      */
     private function vendasTotaisRodape(Collection $lines): array
     {
-        $totalValor = 0.0;
-        $totalDesconto = 0.0;
-        $totalGorjeta = 0.0;
-        $totalTaxas = 0.0;
-        $totalServicos = 0;
-        // Vendas anuladas (com nota de crédito) não contam para os totais — anulam-se com a NC.
-        $activeLines = $lines->filter(fn ($linha): bool => empty($linha->is_anulado));
-        foreach ($activeLines as $linha) {
-            $totalValor += (float) $linha->valor;
-            $totalDesconto += (float) ($linha->desconto ?? 0);
-            $totalGorjeta += (float) ($linha->gorjeta ?? 0);
-            $totalTaxas += (float) ($linha->taxas ?? 0);
-            $isServiceLine = ($linha->tipo_item ?? null) === SaleItem::TIPO_SERVICO
-                || ($linha->tipo_item ?? null) === 'resumo';
-            if ($isServiceLine) {
-                $totalServicos += (int) ($linha->quantidade ?? 0);
-            }
-        }
-
-        $numVendas = $activeLines->pluck('sale_id')->unique()->count();
-
-        $totalDivida = 0.0;
-        $vistoSale = [];
-        foreach ($activeLines as $linha) {
-            $sid = (int) $linha->sale_id;
-            if (isset($vistoSale[$sid])) {
-                continue;
-            }
-            $vistoSale[$sid] = true;
-            $totalDivida += (float) ($linha->pendente ?? 0);
-        }
-
-        $totalValorComGorjeta = round($totalValor + $totalGorjeta, 2);
-        $totalTaxasRounded = round($totalTaxas, 2);
-
-        return [
-            'total_valor' => round($totalValor, 2),
-            'total_valor_com_gorjeta' => $totalValorComGorjeta,
-            'total_gorjeta' => round($totalGorjeta, 2),
-            'total_taxas' => $totalTaxasRounded,
-            'total_absoluto' => round($totalValorComGorjeta + $totalTaxasRounded, 2),
-            'num_vendas' => $numVendas,
-            'total_servicos' => $totalServicos,
-            'total_desconto' => round($totalDesconto, 2),
-            'total_divida' => round($totalDivida, 2),
-        ];
-    }
-
-    private function vendasPendenteForSale(Sale $sale): float
-    {
-        if ($sale->status === Sale::STATUS_ANULADO) {
-            return 0.0;
-        }
-
-        if ($sale->scope === Sale::SCOPE_BOOKING_RESERVA) {
-            $eventId = (int) ($sale->calendar_event_id ?? 0);
-            if ($eventId <= 0 || $this->vendasMarcacaoHasActiveCaixaSale($eventId)) {
-                return 0.0;
-            }
-
-            $event = $sale->calendarEvent;
-            if (! $event) {
-                return 0.0;
-            }
-
-            if (! $event->relationLoaded('eventServiceItems')) {
-                $event->load(['eventServiceItems.extras.extra']);
-            }
-
-            $chargeSubtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $event->eventServiceItems);
-
-            return ApplicableFees::amountDueCashFromEventId($eventId, $chargeSubtotal);
-        }
-
-        return $sale->amountDue();
-    }
-
-    private function vendasMarcacaoHasActiveCaixaSale(int $calendarEventId): bool
-    {
-        if ($calendarEventId <= 0) {
-            return false;
-        }
-
-        $saleIds = Sale::query()
-            ->where('calendar_event_id', $calendarEventId)
-            ->pluck('id')
-            ->merge(
-                DB::table('sale_calendar_events')
-                    ->where('calendar_event_id', $calendarEventId)
-                    ->pluck('sale_id')
-            )
-            ->map(fn ($id): int => (int) $id)
-            ->filter(fn (int $id): bool => $id > 0)
-            ->unique()
-            ->values()
-            ->all();
-
-        if ($saleIds === []) {
-            return false;
-        }
-
-        return Sale::query()
-            ->whereIn('id', $saleIds)
-            ->where('status', '!=', Sale::STATUS_ANULADO)
-            ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
-            ->exists();
+        return $this->vendasReportService->totaisRodape($lines);
     }
 
     /**
-     * Uma linha por venda, agregando os serviços executados (sem extras).
-     *
      * @return Collection<int, object>
      */
     private function vendasResumoCollection(Collection $sales, ?string $vendasServico): Collection
     {
-        $servicoFilter = $vendasServico !== null && $vendasServico !== '' ? (int) $vendasServico : null;
-
-        return $sales->map(function (Sale $sale) use ($servicoFilter) {
-            $serviceItems = $sale->items
-                ->where('tipo', SaleItem::TIPO_SERVICO)
-                ->when($servicoFilter, fn ($c) => $c->where('service_id', $servicoFilter))
-                ->values();
-            if ($serviceItems->isEmpty()) {
-                return null;
-            }
-
-            $serviceLabels = $serviceItems
-                ->map(fn (SaleItem $item) => $this->serviceLabelForSaleItem($item))
-                ->filter(fn (?string $label) => $label !== null && trim($label) !== '')
-                ->values();
-
-            $event = $sale->calendarEvent;
-            $client = $sale->client;
-
-            return (object) [
-                'sale' => $sale,
-                'sale_id' => $sale->id,
-                'sale_status' => $sale->status,
-                'is_anulado' => $sale->isAnulado(),
-                'credit_note_pdf_url' => $sale->hasCreditNote() ? route('sales.credit-note.pdf', $sale) : null,
-                'invoice_status' => $sale->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
-                'data' => $sale->data_emissao,
-                'numero_fatura' => $sale->numero_fatura,
-                'cliente' => $client?->name ?? '—',
-                'nif' => $client?->nif ?? '',
-                'tecnico' => $event?->user?->name ?? '—',
-                ...$this->vendasServicoColunaForSale($sale, $serviceLabels),
-                'quantidade' => (int) $serviceItems->count(),
-                'valor' => $this->vendasValorLinhaForSale($sale, $serviceItems),
-                'taxas' => (float) $sale->items
-                    ->where('tipo', SaleItem::TIPO_TAXA)
-                    ->sum(fn (SaleItem $item) => (float) $item->subtotal),
-                'tipo_item' => 'resumo',
-                'desconto' => (float) ($sale->desconto ?? 0),
-                'gorjeta' => (float) ($sale->gorjeta ?? 0),
-                'pendente' => $this->vendasPendenteForSale($sale),
-                'calendar_event_id' => $sale->calendar_event_id,
-            ];
-        })->filter()->values();
-    }
-
-    /**
-     * Valor da coluna «Total» (sem gorjeta): na liquidação em caixa usa o total da fatura
-     * (o que faltava pagar), não a soma dos preços de catálogo nas linhas.
-     *
-     * @param  Collection<int, SaleItem>  $serviceItems
-     */
-    private function vendasValorLinhaForSale(Sale $sale, Collection $serviceItems): float
-    {
-        if ($sale->scope === Sale::SCOPE_CAIXA_LIQUIDACAO) {
-            $gorjeta = (float) ($sale->gorjeta ?? 0);
-            $taxas = (float) $sale->items
-                ->where('tipo', SaleItem::TIPO_TAXA)
-                ->sum(fn (SaleItem $item) => (float) $item->subtotal);
-
-            return max(0, round((float) $sale->total - $gorjeta - $taxas, 2));
-        }
-
-        return (float) $serviceItems->sum(fn (SaleItem $item) => (float) $item->subtotal);
-    }
-
-    private function serviceLabelForSaleItem(SaleItem $item): string
-    {
-        $optionName = trim((string) ($item->calendarEventService?->option_name ?? ''));
-        if ($optionName !== '') {
-            return $optionName;
-        }
-
-        $descricao = trim((string) $item->descricao);
-        if ($descricao !== '') {
-            return $descricao;
-        }
-
-        if ($item->service) {
-            return (string) $item->service->name;
-        }
-
-        return (string) ($item->calendarEventService?->service?->name ?? '—');
-    }
-
-    /**
-     * Coluna «Serviço» no relatório de vendas (nomes + subtítulo em linha separada).
-     *
-     * @param  Collection<int, string>  $serviceLabels
-     * @return array{servico: string, servico_nomes: string, servico_subtitulo: ?string}
-     */
-    private function vendasServicoColunaForSale(Sale $sale, Collection $serviceLabels): array
-    {
-        $nomesFromEvent = $this->vendasServicoNomesFromEvent($sale);
-
-        if ($sale->scope === Sale::SCOPE_BOOKING_RESERVA) {
-            $nomes = $nomesFromEvent ?? $this->vendasPrepagamentoNomesFromDescricao($serviceLabels->first() ?? '');
-
-            return $this->vendasServicoColunaPayload($nomes, 'Pré-pagamento');
-        }
-
-        if ($sale->scope === Sale::SCOPE_CAIXA_LIQUIDACAO) {
-            $nomes = $nomesFromEvent ?? $this->vendasServicoNomesFromLabels($serviceLabels);
-
-            return $this->vendasServicoColunaPayload($nomes, 'Pagamento em loja');
-        }
-
-        $nomes = $this->vendasServicoNomesFromLabels($serviceLabels);
-
-        return $this->vendasServicoColunaPayload($nomes, null);
-    }
-
-    /**
-     * @return array{servico: string, servico_nomes: string, servico_subtitulo: ?string}
-     */
-    private function vendasServicoColunaPayload(string $nomes, ?string $subtitulo): array
-    {
-        $nomes = trim($nomes);
-        $subtitulo = $subtitulo !== null && trim($subtitulo) !== '' ? trim($subtitulo) : null;
-        $servico = $subtitulo !== null && $nomes !== ''
-            ? $nomes."\n".$subtitulo
-            : ($nomes !== '' ? $nomes : ($subtitulo ?? '—'));
-
-        return [
-            'servico' => $servico,
-            'servico_nomes' => $nomes !== '' ? $nomes : '—',
-            'servico_subtitulo' => $subtitulo,
-        ];
-    }
-
-    private function vendasServicoNomesFromEvent(Sale $sale): ?string
-    {
-        $event = $sale->calendarEvent;
-        if (! $event) {
-            return null;
-        }
-
-        $names = $event->eventServiceItems
-            ->map(function ($es) {
-                $optionName = trim((string) ($es->option_name ?? ''));
-
-                return $optionName !== '' ? $optionName : ($es->service?->name ?? null);
-            })
-            ->filter()
-            ->values();
-
-        if ($names->isEmpty()) {
-            return null;
-        }
-
-        return $names->implode(' / ');
-    }
-
-    /**
-     * @param  Collection<int, string>  $serviceLabels
-     */
-    private function vendasServicoNomesFromLabels(Collection $serviceLabels): string
-    {
-        return $serviceLabels
-            ->map(fn (string $label): string => preg_replace('/^\s*\d{1,2}:\d{2}\s*-\s*/u', '', $label) ?: $label)
-            ->filter(fn (string $label) => trim($label) !== '')
-            ->implode(', ');
-    }
-
-    private function vendasPrepagamentoNomesFromDescricao(string $descricao): string
-    {
-        $label = trim($descricao);
-        if ($label === '') {
-            return '';
-        }
-
-        $label = preg_replace('/\s*[—–-]\s*pr[eé]-pagamento\s*(\([^)]*\))?\s*$/iu', '', $label) ?? $label;
-        $label = trim($label);
-
-        if (preg_match('/^(.+?)\s+-\s+(.+)$/u', $label, $m)) {
-            return trim($m[2]);
-        }
-
-        return $label;
+        return $this->vendasReportService->resumoCollection($sales, $vendasServico);
     }
 
     private function vendasClientesOpts(): Collection
     {
-        return Client::query()
-            ->forStore(current_store_id())
-            ->whereExists(function ($q) {
-                $q->selectRaw('1')
-                    ->from('sales')
-                    ->join('calendar_events', 'calendar_events.id', '=', 'sales.calendar_event_id')
-                    ->whereColumn('sales.client_id', 'clients.id')
-                    ->where('sales.store_id', current_store_id())
-                    ->where('calendar_events.store_id', current_store_id())
-                    ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-                    ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO);
-            })
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        return $this->vendasReportService->clientesOpts();
     }
 
     private function vendasServicosOpts(): Collection
     {
-        return Service::query()
-            ->forStore(current_store_id())
-            ->join('sale_items', 'services.id', '=', 'sale_items.service_id')
-            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
-            ->where('sales.store_id', current_store_id())
-            ->where('calendar_events.store_id', current_store_id())
-            ->where('sale_items.tipo', SaleItem::TIPO_SERVICO)
-            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->select('services.id', 'services.name')
-            ->distinct()
-            ->orderBy('services.name')
-            ->get();
+        return $this->vendasReportService->servicosOpts();
     }
 
     /**

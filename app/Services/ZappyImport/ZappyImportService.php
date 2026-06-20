@@ -4117,7 +4117,7 @@ class ZappyImportService
     }
 
     /**
-     * Remove marcações, vendas, clientes e referências importadas do Zappy.
+     * Remove marcações, vendas, reservas (bookings), clientes e referências importadas do Zappy.
      * Serviços do catálogo mantêm-se. Clientes do CRM sem ref Zappy não são apagados.
      *
      * @return array<string, int>
@@ -4141,6 +4141,7 @@ class ZappyImportService
         $deletableClientIds = $purgeClients
             ? $this->filterDeletableImportedClientIds($storeId, $clientIds, $eventIds, $saleIds)
             : [];
+        $bookingIds = $this->collectImportedBookingIds($storeId, $eventIds, $clientIds);
 
         $importedServiceIds = $purgeCatalog ? $this->collectImportedServiceIds($storeId) : [];
         $catalogStats = $purgeCatalog
@@ -4156,7 +4157,7 @@ class ZappyImportService
             'clients_candidates' => count($clientIds),
             'clients' => count($deletableClientIds),
             'clients_skipped' => max(0, count($clientIds) - count($deletableClientIds)),
-            'bookings_unlinked' => 0,
+            'bookings_deleted' => count($bookingIds),
             'wallet_tx_unlinked' => 0,
             'wallet_tx_deleted' => $deletableClientIds !== []
                 ? (int) ClientWalletTransaction::query()->whereIn('client_id', $deletableClientIds)->count()
@@ -4171,12 +4172,15 @@ class ZappyImportService
             return $stats;
         }
 
-        DB::transaction(function () use ($storeId, $eventIds, $saleIds, $deletableClientIds, $purgeCatalog, $importedServiceIds, &$stats): void {
-            if ($eventIds !== []) {
-                $stats['bookings_unlinked'] = Booking::query()
-                    ->whereIn('calendar_event_id', $eventIds)
-                    ->update(['calendar_event_id' => null]);
+        DB::transaction(function () use ($storeId, $eventIds, $saleIds, $deletableClientIds, $bookingIds, $purgeCatalog, $importedServiceIds, &$stats): void {
+            if ($bookingIds !== []) {
+                Booking::query()
+                    ->where('store_id', $storeId)
+                    ->whereIn('id', $bookingIds)
+                    ->delete();
+            }
 
+            if ($eventIds !== []) {
                 $stats['wallet_tx_unlinked'] = ClientWalletTransaction::query()
                     ->whereIn('calendar_event_id', $eventIds)
                     ->update(['calendar_event_id' => null]);
@@ -4197,10 +4201,6 @@ class ZappyImportService
             }
 
             if ($deletableClientIds !== []) {
-                Booking::query()
-                    ->whereIn('client_id', $deletableClientIds)
-                    ->update(['client_id' => null]);
-
                 DB::table('users')
                     ->whereIn('client_id', $deletableClientIds)
                     ->update(['client_id' => null]);
@@ -4393,7 +4393,46 @@ class ZappyImportService
     }
 
     /**
-     * Só apaga clientes importados do Zappy sem marcações/vendas/reservas fora do âmbito do purge.
+     * Reservas (sinal receção / checkout) ligadas a eventos ou clientes do import Zappy.
+     *
+     * @param  list<int>  $eventIds
+     * @param  list<int>  $clientIds
+     * @return list<int>
+     */
+    private function collectImportedBookingIds(int $storeId, array $eventIds, array $clientIds): array
+    {
+        if ($eventIds === [] && $clientIds === []) {
+            return [];
+        }
+
+        $query = Booking::query()->where('store_id', $storeId);
+
+        $query->where(function ($q) use ($eventIds, $clientIds): void {
+            $added = false;
+            if ($eventIds !== []) {
+                $q->whereIn('calendar_event_id', $eventIds);
+                $added = true;
+            }
+            if ($clientIds !== []) {
+                if ($added) {
+                    $q->orWhereIn('client_id', $clientIds);
+                } else {
+                    $q->whereIn('client_id', $clientIds);
+                }
+            }
+        });
+
+        return $query
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Só apaga clientes importados do Zappy sem marcações/vendas fora do âmbito do purge.
      *
      * @param  list<int>  $clientIds
      * @param  list<int>  $eventIds
@@ -4426,10 +4465,6 @@ class ZappyImportService
                 ->exists();
 
             if ($hasOtherSales) {
-                continue;
-            }
-
-            if (Booking::query()->where('client_id', $clientId)->exists()) {
                 continue;
             }
 

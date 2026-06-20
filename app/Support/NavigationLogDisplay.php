@@ -10,6 +10,7 @@ class NavigationLogDisplay
         'dashboard.marcacoes' => 'Dashboard → Marcações',
         'dashboard.clientes' => 'Dashboard → Clientes',
         'dashboard.ocupacao' => 'Dashboard → Ocupação',
+        'dashboard.financeiro' => 'Dashboard → Financeiro',
         'dashboard.imoveis' => 'Dashboard → Imóveis',
         'dashboard.negocios' => 'Dashboard → Negócios',
         'agenda.index' => 'Agenda',

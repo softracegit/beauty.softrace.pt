@@ -1,5 +1,11 @@
 @extends('partials.layouts.main')
 @section('title', $cliente->name . ' | Beauty CRM')
+
+@section('css')
+<link rel="stylesheet" href="{{ asset('template/css/payment-pos-modal.css') }}?v={{ file_exists(public_path('template/css/payment-pos-modal.css')) ? filemtime(public_path('template/css/payment-pos-modal.css')) : time() }}">
+@include('relatorios.partials.vendas-table-styles', ['showClienteColumn' => false])
+@endsection
+
 @section('content')
 
 @php
@@ -322,10 +328,9 @@
                         <div class="uview-filter-field uview-filter-estado">
                             <label class="form-label small text-muted mb-0">Estado</label>
                             <select name="vendas_estado" class="form-select form-select-sm">
-                                <option value="">Todos</option>
-                                @foreach(\App\Models\Sale::statuses() as $key => $label)
-                                    <option value="{{ $key }}" {{ ($vendasEstado ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
-                                @endforeach
+                                <option value="">Faturado e Rascunho</option>
+                                <option value="{{ \App\Models\Sale::INVOICE_STATUS_FATURADO }}" {{ ($vendasEstado ?? '') === \App\Models\Sale::INVOICE_STATUS_FATURADO ? 'selected' : '' }}>Faturado</option>
+                                <option value="{{ \App\Models\Sale::INVOICE_STATUS_RASCUNHO }}" {{ ($vendasEstado ?? '') === \App\Models\Sale::INVOICE_STATUS_RASCUNHO ? 'selected' : '' }}>Rascunho</option>
                             </select>
                         </div>
                         <div class="uview-filter-submit">
@@ -334,62 +339,13 @@
                             </button>
                         </div>
                     </form>
-                    @if($vendas->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Data</th>
-                                        <th>Serviço</th>
-                                        <th class="text-center">Qtd</th>
-                                        <th class="text-end">Gorjeta</th>
-                                        <th class="text-end">Preço</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @php $totalVendas = 0; @endphp
-                                    @foreach($vendas as $linha)
-                                        @php
-                                            $linhaTotal = ($linha->preco * $linha->quantidade) + ($linha->gorjeta ?? 0);
-                                            $isAnulada = ($linha->sale_status ?? '') === \App\Models\Sale::STATUS_ANULADO;
-                                            if (!$isAnulada) {
-                                                $totalVendas += $linhaTotal;
-                                            }
-                                        @endphp
-                                        <tr class="{{ $isAnulada ? 'text-muted' : '' }}">
-                                            <td>{{ \App\Support\DateTimeDisplay::business($linha->data) }}</td>
-                                            <td>
-                                                {{ $linha->servico }}
-                                                @if($linha->tipo === 'extra')
-                                                    <span class="badge bg-info-light text-info ms-1">Extra</span>
-                                                @endif
-                                                @if($isAnulada)
-                                                    <span class="badge bg-secondary-light text-secondary ms-1">Anulada</span>
-                                                @endif
-                                            </td>
-                                            <td class="text-center">{{ $linha->quantidade }}</td>
-                                            <td class="text-end">
-                                                @if(($linha->gorjeta ?? 0) > 0)
-                                                    {{ number_format($linha->gorjeta, 2, ',', ' ') }} €
-                                                @else
-                                                    —
-                                                @endif
-                                            </td>
-                                            <td class="text-end">{{ number_format($linha->preco, 2, ',', ' ') }} €</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                                <tfoot>
-                                    <tr class="table-light fw-semibold">
-                                        <td colspan="4" class="text-end">Total</td>
-                                        <td class="text-end">{{ number_format($totalVendas, 2, ',', ' ') }} €</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    @else
-                        <p class="text-muted text-center py-3">Nenhuma venda registada.</p>
-                    @endif
+                    @include('relatorios.partials.vendas-table', [
+                        'vendas' => $vendas,
+                        'vendasTotais' => $vendasTotais,
+                        'showClienteColumn' => false,
+                        'rowIdPrefix' => 'cliente-vendas-acoes',
+                        'emptyMessage' => 'Nenhuma venda registada.',
+                    ])
                 </div>
 
                 <!-- Estatísticas Tab -->
@@ -677,8 +633,11 @@
 
 @include('partials.note-form-modal', ['route' => route('clientes.storeNote', $cliente), 'modelName' => 'cliente'])
 
+@include('partials.payment-modal')
+
 @endsection
 @section('js')
+@include('relatorios.partials.vendas-table-scripts')
 <script>
 (function() {
     const hash = window.location.hash;

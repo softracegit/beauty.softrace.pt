@@ -259,7 +259,7 @@ Artisan::command(
 
         if ($stats['clients_skipped'] > 0) {
             $this->warn(sprintf(
-                '%d cliente(s) com ref Zappy não apagado(s): têm marcações, vendas ou reservas fora do import.',
+                '%d cliente(s) com ref Zappy não apagado(s): têm marcações ou vendas fora do import.',
                 $stats['clients_skipped'],
             ));
         }

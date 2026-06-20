@@ -118,6 +118,11 @@
             Ocupação
           </a>
         </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard.financeiro') ? 'active' : '' }}" href="{{ route('dashboard.financeiro') }}">
+            Financeiro
+          </a>
+        </li>
         @endif
       </ul>
     </div>

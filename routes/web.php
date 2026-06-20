@@ -210,6 +210,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
     Route::get('/dashboard/clientes', [DashboardController::class, 'clientes'])->name('dashboard.clientes');
     Route::get('/dashboard/ocupacao', [DashboardController::class, 'ocupacao'])->name('dashboard.ocupacao');
+    Route::get('/dashboard/financeiro', [DashboardController::class, 'financeiro'])->name('dashboard.financeiro');
 
     Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
     Route::get('/activity/navegacao', [ActivityLogController::class, 'navigation'])->name('activity.navigation');

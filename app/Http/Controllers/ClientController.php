@@ -10,9 +10,11 @@ use App\Models\Local;
 use App\Models\Note;
 use App\Models\Sale;
 use App\Models\User;
+use App\Services\VendasReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -21,6 +23,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ClientController extends Controller
 {
+    public function __construct(
+        private readonly VendasReportService $vendasReportService,
+    ) {}
+
     /**
      * Display a listing of the clients.
      */
@@ -304,98 +310,37 @@ class ClientController extends Controller
             ->limit(200)
             ->get();
 
-        // Base query vendas: marcações não canceladas; estado da venda filtrável (Todos = pago + anulado)
-        $vendasQuery = Sale::query()
-            ->where('store_id', current_store_id())
-            ->where('client_id', $cliente->id)
-            ->whereHas('calendarEvent', function ($q) {
-                $q->where('store_id', current_store_id())
-                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
-            });
-        if ($vendasEstado) {
-            $vendasQuery->where('status', $vendasEstado);
-        } else {
-            $vendasQuery->whereIn('status', [Sale::STATUS_PAGO, Sale::STATUS_ANULADO]);
-        }
-
-        if ($vendasDesde) {
-            $vendasQuery->whereDate('data_emissao', '>=', $vendasDesde);
-        }
-        if ($vendasAte) {
-            $vendasQuery->whereDate('data_emissao', '<=', $vendasAte);
-        }
-
-        if ($vendasServico) {
-            // Filtrar vendas que tenham pelo menos um item de serviço com este ID
-            $vendasQuery->whereHas('items', function ($q) use ($vendasServico) {
-                $q->where('tipo', 'servico')
-                    ->where('service_id', $vendasServico);
-            });
-        }
-        if ($vendasTecnico) {
-            $vendasQuery->whereHas('calendarEvent', function ($q) use ($vendasTecnico) {
-                $q->where('user_id', $vendasTecnico);
-            });
-        }
-
-        $vendas = $vendasQuery
-            ->with(['calendarEvent', 'items.service', 'items.extra'])
+        // Vendas (mesma lógica do relatório de vendas, filtrado por cliente)
+        $sales = $this->vendasReportService->reportQuery([
+            'desde' => $vendasDesde,
+            'ate' => $vendasAte,
+            'cliente' => $cliente->id,
+            'servico' => $vendasServico,
+            'tecnico' => $vendasTecnico,
+            'estado' => $vendasEstado,
+        ])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service'])
             ->orderByDesc('data_emissao')
-            ->get()
-            ->flatMap(function (Sale $sale) use ($vendasServico) {
-                $lines = [];
+            ->orderByDesc('id')
+            ->get();
 
-                // Se houver filtro de serviço, mapear os calendar_event_service_id relevantes
-                $filteredCesIds = null;
-                if ($vendasServico) {
-                    $filteredCesIds = $sale->items
-                        ->where('tipo', 'servico')
-                        ->where('service_id', (int) $vendasServico)
-                        ->pluck('calendar_event_service_id')
-                        ->filter()
-                        ->all();
-                }
+        $allVendasLines = $this->vendasReportService->resumoCollection($sales, $vendasServico);
+        $vendasTotais = $this->vendasReportService->totaisRodape($allVendasLines);
 
-                $firstItemId = optional($sale->items->first())->id;
-
-                foreach ($sale->items as $item) {
-                    // Aplicar filtro de serviço a nível de linha
-                    if ($vendasServico) {
-                        if ($item->tipo === 'servico' && (int) $item->service_id !== (int) $vendasServico) {
-                            continue;
-                        }
-                        if ($item->tipo === 'extra' && $filteredCesIds !== null && ! in_array($item->calendar_event_service_id, $filteredCesIds, true)) {
-                            continue;
-                        }
-                    }
-
-                    $label = $item->descricao;
-                    if ($item->tipo === 'servico' && $item->service) {
-                        $label = $item->service->name;
-                    } elseif ($item->tipo === 'extra' && $item->extra) {
-                        $label = $item->extra->name;
-                    }
-
-                    $gorjetaLinha = 0.0;
-                    // A gorjeta é mostrada apenas na primeira linha da venda
-                    if ($firstItemId && $item->id === $firstItemId) {
-                        $gorjetaLinha = (float) ($sale->gorjeta ?? 0);
-                    }
-
-                    $lines[] = (object) [
-                        'data' => $sale->calendarEvent?->start_at ?? $sale->data_emissao,
-                        'servico' => $label ?? '—',
-                        'quantidade' => (int) $item->quantidade,
-                        'preco' => (float) $item->preco_unitario,
-                        'gorjeta' => $gorjetaLinha,
-                        'tipo' => $item->tipo,
-                        'sale_status' => $sale->status,
-                    ];
-                }
-
-                return $lines;
-            });
+        $vendasPage = max(1, (int) $request->get('vendas_page', 1));
+        $vendasPerPage = 100;
+        $vendasSlice = $allVendasLines->slice(($vendasPage - 1) * $vendasPerPage, $vendasPerPage)->values();
+        $vendas = new LengthAwarePaginator(
+            $vendasSlice,
+            $allVendasLines->count(),
+            $vendasPerPage,
+            $vendasPage,
+            [
+                'path' => $request->url(),
+                'pageName' => 'vendas_page',
+            ]
+        );
+        $vendas->withQueryString();
 
         // Opções para dropdowns (serviços e técnicos presentes nos dados do cliente)
         $servicosCliente = \App\Models\Service::query()
@@ -460,6 +405,7 @@ class ClientController extends Controller
             'activities',
             'marcacoes',
             'vendas',
+            'vendasTotais',
             'stats',
             'totalGasto',
             'ticketMedio',
