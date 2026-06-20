@@ -3914,7 +3914,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (!memberId) {
             eventDetailOcServicesFlat = [];
-            svcSel.innerHTML = '<option value="">Escolha um profissional</option>';
+            svcSel.innerHTML = '<option value="">Escolha primeiro o prestador(a)</option>';
             svcSel.disabled = true;
             eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
             if (done) done(null);
@@ -5364,7 +5364,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (!memberId) {
             agendaOcServicesFlat = [];
-            svcSel.innerHTML = '<option value="">Escolha um profissional</option>';
+            svcSel.innerHTML = '<option value="">Escolha primeiro o prestador(a)</option>';
             svcSel.disabled = true;
             agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
             if (done) done();

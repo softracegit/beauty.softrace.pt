@@ -75,15 +75,15 @@
                     </div>
                 </div>
                 <div id="agendaOcClientSelectedCard" class="agenda-oc-client-selected-card d-none mt-1">
-                    <div class="d-flex align-items-start gap-3">
+                    <div class="d-flex align-items-center gap-2">
                         <div class="flex-shrink-0 agenda-oc-client-col-avatar">
-                            <img id="agendaOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="75" height="75">
-                            <div id="agendaOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:75px;height:75px;font-size:1rem;">…</div>
+                            <img id="agendaOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none">
+                            <div id="agendaOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none">…</div>
                         </div>
                         <div class="flex-grow-1 min-w-0 agenda-oc-client-col-text">
                             <strong id="agendaOcClientSelectedName" class="d-block text-truncate">…</strong>
-                            <span id="agendaOcClientSelectedPhone" class="d-block small text-muted mt-1">…</span>
-                            <div class="agenda-oc-client-nif-row position-relative mt-1">
+                            <span id="agendaOcClientSelectedPhone" class="d-block small text-muted">…</span>
+                            <div class="agenda-oc-client-nif-row position-relative">
                                 <span id="agendaOcClientNifDisplayWrap" class="d-inline-flex align-items-center gap-1 small text-muted agenda-oc-client-nif-display">
                                     <span id="agendaOcClientSelectedNif">Sem NIF</span>
                                     <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-nif-edit-btn" id="agendaOcClientNifEditBtn" title="Editar NIF" aria-label="Editar NIF">
@@ -113,27 +113,33 @@
                 </div>
             </div>
             <div class="agenda-oc-field" style="order:2">
-                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcService">Serviços <span class="text-danger">*</span></label>
-                <div id="agendaOcServiceSelectWrap">
-                    <select id="agendaOcService" class="form-select form-select-sm" disabled>
-                        <option value="">Escolha um profissional</option>
-                    </select>
-                </div>
-                <div id="agendaOcSelectedServicesList" class="mt-2 d-none"></div>
-                <div id="agendaOcAddMoreServicesWrap" class="mt-2 d-none">
-                    <button type="button" id="agendaOcAddMoreServicesBtn" class="btn btn-outline-primary btn-sm agenda-oc-add-services-btn rounded-pill d-inline-flex align-items-center gap-1">
-                        <i class="ph ph-plus" aria-hidden="true"></i>
-                        <span>Adicionar serviços</span>
-                    </button>
-                </div>
-            </div>
-            <div class="mb-4 agenda-oc-field" style="order:3">
-                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcMember">Profissional <span class="text-danger">*</span></label>
+                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcMember">Prestador(a) do serviço <span class="text-danger">*</span></label>
                 <select id="agendaOcMember" class="form-select form-select-sm">
                     <option value="">Selecionar</option>
                 </select>
             </div>
+            <div class="agenda-oc-field" style="order:3">
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1 agenda-oc-services-head">
+                    <label class="form-label fw-semibold text-dark mb-0" for="agendaOcService">Serviços <span class="text-danger">*</span></label>
+                    <div id="agendaOcAddMoreServicesWrap" class="d-none flex-shrink-0">
+                        <button type="button" id="agendaOcAddMoreServicesBtn" class="btn btn-outline-primary agenda-oc-add-services-btn rounded-pill d-inline-flex align-items-center gap-1">
+                            <i class="ph ph-plus" aria-hidden="true"></i>
+                            <span>Adicionar serviços</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="agendaOcServiceSelectWrap">
+                    <select id="agendaOcService" class="form-select form-select-sm" disabled>
+                        <option value="">Escolha primeiro o prestador(a)</option>
+                    </select>
+                </div>
+                <div id="agendaOcSelectedServicesList" class="mt-2 d-none"></div>
+            </div>
             <div class="agenda-oc-field" style="order:4">
+                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcObs">Notas da Marcação</label>
+                <textarea class="form-control form-control-sm" id="agendaOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
+            </div>
+            <div class="agenda-oc-field" style="order:5">
                 <div class="mb-2 d-none" id="agendaOcHorarioAvisoWrap">
                     <div class="alert alert-warning mb-0 py-2 small" id="agendaOcHorarioAviso" role="alert">
                         <i class="ph ph-warning-circle me-1"></i>
@@ -150,10 +156,6 @@
                         <select id="agendaOcTime" class="form-select"></select>
                     </div>
                 </div>
-            </div>
-            <div class="agenda-oc-field" style="order:5">
-                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcObs">Notas da Marcação</label>
-                <textarea class="form-control form-control-sm" id="agendaOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
             </div>
         </form>
     </div>
@@ -467,15 +469,15 @@
                         </div>
                     </div>
                     <div id="eventDetailOcClientSelectedCard" class="agenda-oc-client-selected-card d-none mt-1">
-                        <div class="d-flex align-items-start gap-3">
+                        <div class="d-flex align-items-center gap-2">
                             <div class="flex-shrink-0 agenda-oc-client-col-avatar">
-                                <img id="eventDetailOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none" width="75" height="75">
-                                <div id="eventDetailOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none" style="width:75px;height:75px;font-size:1rem;">…</div>
+                                <img id="eventDetailOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none">
+                                <div id="eventDetailOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none">…</div>
                             </div>
                             <div class="flex-grow-1 min-w-0 agenda-oc-client-col-text">
                                 <strong id="eventDetailOcClientSelectedName" class="d-block text-truncate">…</strong>
-                                <span id="eventDetailOcClientSelectedPhone" class="d-block small text-muted mt-1">…</span>
-                                <div class="agenda-oc-client-nif-row position-relative mt-1">
+                                <span id="eventDetailOcClientSelectedPhone" class="d-block small text-muted">…</span>
+                                <div class="agenda-oc-client-nif-row position-relative">
                                     <span id="eventDetailOcClientNifDisplayWrap" class="d-inline-flex align-items-center gap-1 small text-muted agenda-oc-client-nif-display">
                                         <span id="eventDetailOcClientSelectedNif">Sem NIF</span>
                                         <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-nif-edit-btn" id="eventDetailOcClientNifEditBtn" title="Editar NIF" aria-label="Editar NIF">
@@ -505,28 +507,34 @@
                     </div>
                 </div>
                 <div class="agenda-oc-field" style="order:2">
-                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcService">Serviços <span class="text-danger">*</span></label>
-                    <div id="eventDetailOcServiceSelectWrap">
-                        <select id="eventDetailOcService" class="form-select form-select-sm" disabled>
-                            <option value="">Escolha um profissional</option>
-                        </select>
-                    </div>
-                    <div id="eventDetailOcSelectedServicesList" class="mt-2 d-none"></div>
-                    <div id="eventDetailOcFeesList" class="mt-2 d-none"></div>
-                    <div id="eventDetailOcAddMoreServicesWrap" class="mt-2 d-none">
-                        <button type="button" id="eventDetailOcAddMoreServicesBtn" class="btn btn-outline-primary btn-sm agenda-oc-add-services-btn rounded-pill d-inline-flex align-items-center gap-1">
-                            <i class="ph ph-plus" aria-hidden="true"></i>
-                            <span>Adicionar serviços</span>
-                        </button>
-                    </div>
-                </div>
-                <div class="mb-4 agenda-oc-field" style="order:3">
-                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcMember">Profissional <span class="text-danger">*</span></label>
+                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcMember">Prestador(a) do serviço <span class="text-danger">*</span></label>
                     <select id="eventDetailOcMember" class="form-select form-select-sm">
                         <option value="">Selecionar</option>
                     </select>
                 </div>
+                <div class="agenda-oc-field" style="order:3">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-1 agenda-oc-services-head">
+                        <label class="form-label fw-semibold text-dark mb-0" for="eventDetailOcService">Serviços <span class="text-danger">*</span></label>
+                        <div id="eventDetailOcAddMoreServicesWrap" class="d-none flex-shrink-0">
+                            <button type="button" id="eventDetailOcAddMoreServicesBtn" class="btn btn-outline-primary agenda-oc-add-services-btn rounded-pill d-inline-flex align-items-center gap-1">
+                                <i class="ph ph-plus" aria-hidden="true"></i>
+                                <span>Adicionar serviços</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="eventDetailOcServiceSelectWrap">
+                        <select id="eventDetailOcService" class="form-select form-select-sm" disabled>
+                            <option value="">Escolha primeiro o prestador(a)</option>
+                        </select>
+                    </div>
+                    <div id="eventDetailOcSelectedServicesList" class="mt-2 d-none"></div>
+                    <div id="eventDetailOcFeesList" class="mt-2 d-none"></div>
+                </div>
                 <div class="agenda-oc-field" style="order:4">
+                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcObs">Notas da Marcação</label>
+                    <textarea class="form-control form-control-sm" id="eventDetailOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
+                </div>
+                <div class="agenda-oc-field" style="order:5">
                     <div class="mb-2 d-none" id="eventDetailHorarioAvisoWrap">
                         <div class="alert alert-warning mb-0 py-2 small" id="eventDetailHorarioAviso" role="alert">
                             <i class="ph ph-warning-circle me-1"></i>
@@ -543,10 +551,6 @@
                             <select id="eventDetailOcTime" class="form-select"></select>
                         </div>
                     </div>
-                </div>
-                <div class="agenda-oc-field" style="order:5">
-                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcObs">Notas da Marcação</label>
-                    <textarea class="form-control form-control-sm" id="eventDetailOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
                 </div>
             </div>
         </form>
