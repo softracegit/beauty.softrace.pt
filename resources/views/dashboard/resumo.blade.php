@@ -111,7 +111,7 @@
 
 <div class="dash-welcome mb-4">
     <div class="dash-welcome-content">
-        <h2 class="dash-welcome-title">Bem-vindo de volta, {{ auth()->user()->name }}</h2>
+        <h2 class="dash-welcome-title">Olá de novo, {{ auth()->user()->name }}</h2>
         <p class="dash-welcome-text">Visão geral do seu negócio.</p>
     </div>
     <div class="dash-welcome-actions">
