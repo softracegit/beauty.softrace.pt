@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\BookingContactVerificationCodeMail;
 use App\Models\BookingContactVerificationCode;
 use App\Models\Client;
+use App\Models\SmsMessage;
 use App\Models\User;
 use App\Services\BookingOtpSendRateLimiter;
 use App\Services\TwilioSmsService;
@@ -98,7 +99,13 @@ class BookingContactVerificationController extends Controller
                     BookingLocale::apply(BookingLocale::fromPhone($target));
                     $this->twilioSmsService->send(
                         $target,
-                        __('booking.sms.verification_code', ['code' => $code, 'minutes' => $ttlMinutes])
+                        __('booking.sms.verification_code', ['code' => $code, 'minutes' => $ttlMinutes]),
+                        [
+                            'type' => SmsMessage::TYPE_CONTACT_VERIFICATION,
+                            'store_id' => (int) $client->store_id,
+                            'client_id' => $client->id,
+                            'client_name' => $client->name,
+                        ]
                     );
                 } finally {
                     BookingLocale::apply($previousLocale);

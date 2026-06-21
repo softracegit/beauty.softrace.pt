@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Log;
 
 final class TwilioSmsService
 {
+    public function __construct(
+        private readonly SmsMessageLogger $smsMessageLogger,
+    ) {}
+
     public function isConfigured(): bool
     {
         $c = config('services.twilio');
@@ -17,12 +21,13 @@ final class TwilioSmsService
     }
 
     /**
+     * @param  array{type?: string, store_id?: int, client_id?: int|null, client_name?: string|null, calendar_event_id?: int|null}  $logContext
      * @return array{sid: string, status: string|null}
      *
      * @throws \InvalidArgumentException
      * @throws \RuntimeException
      */
-    public function send(string $toRaw, string $body): array
+    public function send(string $toRaw, string $body, array $logContext = []): array
     {
         if (! $this->isConfigured()) {
             throw new \RuntimeException('Twilio não está configurado. Em local use TWILIO_ACCOUNT_SID_SANDBOX/TWILIO_AUTH_TOKEN_SANDBOX (ou as reais) e defina TWILIO_SMS_FROM no .env.');
@@ -55,11 +60,21 @@ final class TwilioSmsService
 
         if ($response->successful()) {
             $data = $response->json();
-
-            return [
+            $result = [
                 'sid' => (string) ($data['sid'] ?? ''),
                 'status' => isset($data['status']) ? (string) $data['status'] : null,
             ];
+
+            $this->smsMessageLogger->logSuccessfulSend(
+                $to,
+                (string) $from,
+                $body,
+                $logContext,
+                $result['sid'],
+                $result['status'],
+            );
+
+            return $result;
         }
 
         $this->logFailure($response);

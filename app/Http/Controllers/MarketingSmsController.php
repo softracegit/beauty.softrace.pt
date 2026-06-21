@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SmsMessage;
 use App\Services\TwilioSmsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +40,10 @@ class MarketingSmsController extends Controller
         }
 
         try {
-            $result = $this->twilioSms->send($validated['phone'], $validated['message']);
+            $result = $this->twilioSms->send($validated['phone'], $validated['message'], [
+                'type' => SmsMessage::TYPE_MARKETING,
+                'store_id' => current_store_id(),
+            ]);
             $sid = $result['sid'] !== '' ? $result['sid'] : '—';
             $status = $result['status'] ?? '—';
 

@@ -121,6 +121,9 @@ SQL,
             'Códigos OTP de booking' => <<<'SQL'
 DELETE FROM booking_auth_codes WHERE store_id = @store_id
 SQL,
+            'Histórico SMS' => <<<'SQL'
+DELETE FROM sms_messages WHERE store_id = @store_id
+SQL,
             'Vendas' => <<<'SQL'
 DELETE FROM sales WHERE store_id = @store_id
 SQL,

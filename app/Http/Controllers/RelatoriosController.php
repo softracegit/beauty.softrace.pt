@@ -7,9 +7,12 @@ use App\Models\Client;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Service;
+use App\Models\SmsMessage;
 use App\Models\User;
+use App\Services\SmsReportService;
 use App\Services\VendasReportService;
 use App\Support\DateTimeDisplay;
+use App\Support\StoreBusinessTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,6 +29,7 @@ class RelatoriosController extends Controller
 {
     public function __construct(
         private readonly VendasReportService $vendasReportService,
+        private readonly SmsReportService $smsReportService,
     ) {}
 
     public function marcacoes(Request $request): View
@@ -567,6 +571,38 @@ class RelatoriosController extends Controller
     {
         return view('relatorios.comissoes', [
             'pageTitle' => 'Relatórios — Comissões',
+        ]);
+    }
+
+    public function sms(Request $request): View
+    {
+        $storeId = current_store_id();
+        $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
+        $availableYears = $this->smsReportService->availableYears($storeId);
+        $year = (int) $request->get('year', $today->year);
+        $year = max($availableYears[0] ?? $today->year, min($today->year, $year));
+        $month = max(1, min(12, (int) $request->get('month', $today->month)));
+        if ($year === $today->year && $month > $today->month) {
+            $month = $today->month;
+        }
+
+        $messages = $this->smsReportService->reportQuery($storeId, $year, $month)
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id')
+            ->paginate(50)
+            ->withQueryString();
+
+        return view('relatorios.sms', [
+            'pageTitle' => 'Relatórios — SMS',
+            'messages' => $messages,
+            'summaryCounts' => $this->smsReportService->summaryCounts($storeId),
+            'month' => $month,
+            'year' => $year,
+            'monthOptions' => $this->smsReportService->monthOptions(),
+            'availableYears' => $availableYears,
+            'periodLabel' => $this->smsReportService->periodLabel($year, $month),
+            'typeLabels' => SmsMessage::typeLabels(),
+            'storeTimezone' => StoreBusinessTime::timezoneForStore($storeId),
         ]);
     }
 }

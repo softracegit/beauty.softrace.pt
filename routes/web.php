@@ -372,6 +372,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
         Route::get('vendas/pdf', [RelatoriosController::class, 'vendasPdf'])->name('vendas.pdf');
         Route::get('vendas', [RelatoriosController::class, 'vendas'])->name('vendas');
         Route::get('comissoes', [RelatoriosController::class, 'comissoes'])->name('comissoes');
+        Route::get('sms', [RelatoriosController::class, 'sms'])->name('sms');
         Route::get('caixa', [CashRegisterController::class, 'index'])->name('caixa');
     });
 

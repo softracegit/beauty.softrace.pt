@@ -302,6 +302,11 @@
           </a>
         </li>
         @endif
+        <li>
+          <a class="panel-link {{ request()->routeIs('relatorios.sms') ? 'active' : '' }}" href="{{ route('relatorios.sms') }}">
+            SMS
+          </a>
+        </li>
       </ul>
     </div>
     @endif

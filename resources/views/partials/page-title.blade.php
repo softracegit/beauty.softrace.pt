@@ -173,6 +173,7 @@
             'relatorios.vendas' => 'Vendas',
             'relatorios.comissoes' => 'Comissões',
             'relatorios.caixa' => 'Caixa',
+            'relatorios.sms' => 'SMS',
         ];
         if (isset($sectionLabels[$currentRoute])) {
             $breadcrumbs[] = [

@@ -46,6 +46,7 @@ class NavigationLogDisplay
         'relatorios.marcacoes' => 'Relatórios → Marcações',
         'relatorios.comissoes' => 'Relatórios → Comissões',
         'relatorios.caixa' => 'Relatórios → Caixa',
+        'relatorios.sms' => 'Relatórios → SMS',
         'marketing.campanhas-sms' => 'Marketing → Campanhas SMS',
         'leads.kanban' => 'Leads → Kanban',
         'leads.index' => 'Leads → Lista',

@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\BookingSmsActionLink;
 use App\Models\CalendarEvent;
+use App\Models\SmsMessage;
 use App\Services\TwilioSmsService;
 use App\Support\BookingLocale;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -95,7 +96,13 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 BookingLocale::apply($previousLocale);
             }
 
-            $sms->send($client->phone, $body);
+            $sms->send($client->phone, $body, [
+                'type' => SmsMessage::TYPE_BOOKING_REMINDER,
+                'store_id' => (int) ($event->store_id ?? 0),
+                'client_id' => $client->id,
+                'client_name' => $client->name,
+                'calendar_event_id' => $event->id,
+            ]);
 
             CalendarEvent::query()
                 ->whereKey($event->id)

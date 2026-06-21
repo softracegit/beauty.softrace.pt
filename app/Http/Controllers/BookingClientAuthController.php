@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\BookingAuthCodeMail;
 use App\Models\BookingAuthCode;
 use App\Models\Client;
+use App\Models\SmsMessage;
 use App\Models\User;
 use App\Services\BookingOtpSendRateLimiter;
 use App\Services\TwilioSmsService;
@@ -77,9 +78,16 @@ class BookingClientAuthController extends Controller
                 $previousLocale = app()->getLocale();
                 try {
                     BookingLocale::apply(BookingLocale::fromPhone($target['identifier']));
+                    $smsClient = $this->resolveClientForSmsLog($storeId, $target['identifier']);
                     $this->twilioSmsService->send(
                         $target['identifier'],
-                        __('booking.sms.auth_code', ['code' => $code, 'minutes' => $ttlMinutes])
+                        __('booking.sms.auth_code', ['code' => $code, 'minutes' => $ttlMinutes]),
+                        [
+                            'type' => SmsMessage::TYPE_AUTH_OTP,
+                            'store_id' => $storeId,
+                            'client_id' => $smsClient?->id,
+                            'client_name' => $smsClient?->name,
+                        ]
                     );
                 } finally {
                     BookingLocale::apply($previousLocale);
@@ -597,6 +605,23 @@ class BookingClientAuthController extends Controller
             ->where('email', '!=', '')
             ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])
             ->first();
+    }
+
+    private function resolveClientForSmsLog(int $storeId, string $phoneRaw): ?Client
+    {
+        $targetE164 = PhoneDisplay::toE164($phoneRaw);
+        if ($targetE164 === null) {
+            return null;
+        }
+
+        return Client::query()
+            ->forStore($storeId)
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->get(['id', 'name', 'phone'])
+            ->first(function (Client $client) use ($targetE164): bool {
+                return PhoneDisplay::toE164((string) $client->phone) === $targetE164;
+            });
     }
 
     private function bookingUserExistsForClient(Client $client): bool
