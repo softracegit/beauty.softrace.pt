@@ -8719,6 +8719,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ensureAgendaSlot24hToggle();
                 applyHolidayClassesToTimeGridColumns();
                 scheduleApplyMemberUnavailableClasses();
+                ensureAgendaMobileToolbarDateNav();
                 syncAgendaMobileControls();
             });
         },
@@ -8784,7 +8785,66 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     calendar.render();
 
-    /** Navegação por swipe (mobile): substitui as setas na toolbar + slide (arraste em tempo real + commit ao largar). */
+    function ensureAgendaMobileToolbarDateNav() {
+        var chunk = calendarEl.querySelector('.fc-header-toolbar .fc-toolbar-chunk:first-child');
+        if (!chunk) {
+            return;
+        }
+        var isMobile = isAgendaMobileViewport();
+        chunk.classList.toggle('agenda-toolbar-date-nav', isMobile);
+        if (!isMobile) {
+            return;
+        }
+
+        var prevBtn = chunk.querySelector('.fc-prev-button');
+        var nextBtn = chunk.querySelector('.fc-next-button');
+        if (!prevBtn || !nextBtn) {
+            return;
+        }
+
+        prevBtn.innerHTML = '<span class="fc-icon fc-icon-chevron-left"></span>';
+        nextBtn.innerHTML = '<span class="fc-icon fc-icon-chevron-right"></span>';
+        prevBtn.setAttribute('aria-label', 'Dia anterior');
+        prevBtn.setAttribute('title', 'Dia anterior');
+        nextBtn.setAttribute('aria-label', 'Dia seguinte');
+        nextBtn.setAttribute('title', 'Dia seguinte');
+
+        if (prevBtn.dataset.agendaMobileNavBound === '1') {
+            return;
+        }
+        prevBtn.dataset.agendaMobileNavBound = '1';
+        nextBtn.dataset.agendaMobileNavBound = '1';
+
+        function shieldToolbarNavEvent(e) {
+            e.stopPropagation();
+        }
+        ['pointerdown', 'touchstart', 'touchend'].forEach(function(evtName) {
+            prevBtn.addEventListener(evtName, shieldToolbarNavEvent, true);
+            nextBtn.addEventListener(evtName, shieldToolbarNavEvent, true);
+        });
+
+        function bindMobileNavBtn(btn, direction) {
+            btn.addEventListener('click', function(e) {
+                if (!isAgendaMobileViewport()) {
+                    return;
+                }
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                if (typeof window._agendaMobileNavigateDay === 'function') {
+                    window._agendaMobileNavigateDay(direction);
+                } else if (direction === 'next') {
+                    calendar.next();
+                } else {
+                    calendar.prev();
+                }
+            }, true);
+        }
+        bindMobileNavBtn(prevBtn, 'prev');
+        bindMobileNavBtn(nextBtn, 'next');
+    }
+
+    /** Navegação por swipe (mobile): slide no corpo + setas na toolbar ao lado do título. */
     (function setupAgendaSwipeNavigation() {
         var startX = 0;
         var startY = 0;
@@ -9355,6 +9415,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 swipeActive = false;
             }
         }, { passive: true });
+
+        window._agendaMobileNavigateDay = agendaNavigateWithSlide;
     })();
 
     let agendaMobileControlsBound = false;
@@ -9564,6 +9626,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!controls) return;
         var isMobile = isAgendaMobileViewport();
         controls.classList.toggle('is-visible', isMobile);
+        ensureAgendaMobileToolbarDateNav();
         if (!isMobile) return;
         updateAgendaMobileViewList();
         updateAgendaMobileFilterOptions();
@@ -10044,6 +10107,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         ensureAgendaSlot24hToggle();
+        ensureAgendaMobileToolbarDateNav();
         
         // Esconder título/chunk do center
         const titleEl = calendarEl.querySelector('.fc-toolbar-title');

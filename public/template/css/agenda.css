@@ -3033,20 +3033,56 @@ body.modal-open .agenda-mobile-controls {
     .fc-refreshAgenda-button {
         display: none !important;
     }
-    /* Dia / período: navegação por swipe no corpo do calendário (ver agenda.js) */
-    .fc-prev-button,
-    .fc-next-button {
-        display: none !important;
-    }
+    /* Setas só com o layout mobile ativo (evita flash antes do JS) */
     .fc-header-toolbar .fc-toolbar-chunk:first-child .fc-prev-button,
     .fc-header-toolbar .fc-toolbar-chunk:first-child .fc-next-button {
         display: none !important;
     }
+    /* Dia / período: swipe no corpo + setas ao lado do título (só o título abre o Flatpickr) */
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav {
+        gap: 0.15rem;
+    }
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-prev-button,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-next-button {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: 2.35rem;
+        height: 2.35rem;
+        min-width: 2.35rem;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0.4rem !important;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        color: var(--heading-color) !important;
+        opacity: 1 !important;
+    }
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-prev-button:hover,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-next-button:hover,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-prev-button:focus,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-next-button:focus,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-prev-button:active,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-next-button:active {
+        background: color-mix(in srgb, var(--surface-color), var(--heading-color) 8%) !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: var(--heading-color) !important;
+    }
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-prev-button .fc-icon,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-next-button .fc-icon {
+        font-size: 1.05rem;
+    }
     /* Título do dia: só texto, sem caixa/bordas (mobile) */
-    .fc .fc-currentDate-button {
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-currentDate-button {
         flex: 1 1 auto !important;
         max-width: none !important;
-        width: 100% !important;
+        width: auto !important;
+        min-width: 0;
         padding: 0.12rem 0.35rem !important;
         font-size: 0.85rem !important;
         font-weight: 600 !important;
@@ -3064,12 +3100,12 @@ body.modal-open .agenda-mobile-controls {
         cursor: pointer !important;
         touch-action: manipulation;
     }
-    .fc .fc-currentDate-button:hover,
-    .fc .fc-currentDate-button:focus,
-    .fc .fc-currentDate-button:active,
-    .fc .fc-button-primary.fc-currentDate-button:hover:not(:disabled),
-    .fc .fc-button-primary.fc-currentDate-button:focus:not(:disabled),
-    .fc .fc-button-primary.fc-currentDate-button:active:not(:disabled) {
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-currentDate-button:hover,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-currentDate-button:focus,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-currentDate-button:active,
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-button-primary.fc-currentDate-button:hover:not(:disabled),
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-button-primary.fc-currentDate-button:focus:not(:disabled),
+    .fc-header-toolbar .fc-toolbar-chunk.agenda-toolbar-date-nav .fc-button-primary.fc-currentDate-button:active:not(:disabled) {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
