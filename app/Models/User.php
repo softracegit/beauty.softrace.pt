@@ -398,6 +398,10 @@ class User extends Authenticatable
                 }
             }
 
+            if ($routeName !== 'dashboard' && str_starts_with($routeName, 'dashboard.')) {
+                return false;
+            }
+
             return true;
         }
 

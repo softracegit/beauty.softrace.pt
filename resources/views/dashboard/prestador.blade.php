@@ -13,7 +13,7 @@
     <div class="d-flex align-items-center justify-content-between gap-3 w-100 flex-wrap">
         <div class="dash-welcome-content">
             <h2 class="dash-welcome-title mb-1">Olá, {{ $agentName }}</h2>
-            <p class="dash-welcome-text mb-0">Resumo das suas marcações — {{ $periodoMesLabel }}.</p>
+            <p class="dash-welcome-text mb-0">{{ $dashboardSubtitle }} — {{ $periodoMesLabel }}.</p>
         </div>
         <div class="dash-welcome-actions flex-shrink-0">
             <a href="{{ route('agenda.index') }}" class="btn btn-primary">
@@ -121,6 +121,9 @@
                     <thead>
                         <tr>
                             <th>Hora</th>
+                            @if($storeScope ?? false)
+                            <th>Prestador</th>
+                            @endif
                             <th>Cliente</th>
                             <th>Serviço</th>
                             <th>Estado</th>
@@ -138,6 +141,9 @@
                                         <span class="text-muted small">– {{ \App\Support\DateTimeDisplay::marcacao($ev->end_at, $ev->store_id, 'H:i') }}</span>
                                     @endif
                                 </td>
+                                @if($storeScope ?? false)
+                                <td>{{ $ev->user?->agent?->name ?? $ev->user?->name ?? '—' }}</td>
+                                @endif
                                 <td>{{ $ev->client?->name ?? '—' }}</td>
                                 <td>{{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</td>
                                 <td>
@@ -148,7 +154,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-4">Sem marcações por realizar hoje.</td>
+                                <td colspan="{{ ($storeScope ?? false) ? 5 : 4 }}" class="text-center text-muted py-4">Sem marcações por realizar hoje.</td>
                             </tr>
                         @endforelse
                     </tbody>

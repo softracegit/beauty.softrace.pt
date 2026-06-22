@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use App\Support\DateTimeDisplay;
 use App\Support\PhoneDisplay;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
@@ -167,6 +169,124 @@ class Client extends Model
         }
 
         return (int) $today->diffInDays($nextBday, false);
+    }
+
+    public function isBirthdayOn(?DateTimeInterface $date, ?int $storeId = null): bool
+    {
+        if (! $this->birth_date || ! $date) {
+            return false;
+        }
+
+        $appointmentDay = DateTimeDisplay::inBusiness($date, $storeId ?? $this->store_id);
+        if (! $appointmentDay) {
+            return false;
+        }
+
+        return (int) $this->birth_date->month === (int) $appointmentDay->month
+            && (int) $this->birth_date->day === (int) $appointmentDay->day;
+    }
+
+    public function isBirthdayInMonth(?DateTimeInterface $date, ?int $storeId = null): bool
+    {
+        if (! $this->birth_date || ! $date) {
+            return false;
+        }
+
+        $appointmentDay = DateTimeDisplay::inBusiness($date, $storeId ?? $this->store_id);
+        if (! $appointmentDay) {
+            return false;
+        }
+
+        return (int) $this->birth_date->month === (int) $appointmentDay->month;
+    }
+
+    public function ageTurningOn(?DateTimeInterface $date, ?int $storeId = null): ?int
+    {
+        if (! $this->birth_date || ! $date || ! $this->isBirthdayInMonth($date, $storeId)) {
+            return null;
+        }
+
+        $appointmentDay = DateTimeDisplay::inBusiness($date, $storeId ?? $this->store_id);
+        if (! $appointmentDay) {
+            return null;
+        }
+
+        return (int) $appointmentDay->year - (int) $this->birth_date->year;
+    }
+
+    /**
+     * Destaque de aniversário face a uma data de referência (hoje na ficha, data da marcação na agenda).
+     *
+     * @return array{scope: string, tense: string, age: int, day_label: string, message: string, message_html: string}|null
+     */
+    public function birthdayHighlight(?DateTimeInterface $referenceDate = null, ?int $storeId = null, bool $sameMonthOnly = false, ?string $subjectName = null): ?array
+    {
+        if (! $this->birth_date) {
+            return null;
+        }
+
+        $ref = DateTimeDisplay::inBusiness($referenceDate ?? now(), $storeId ?? $this->store_id);
+        if (! $ref) {
+            return null;
+        }
+
+        $birthMonth = (int) $this->birth_date->month;
+        $birthDay = (int) $this->birth_date->day;
+
+        if ($sameMonthOnly && $birthMonth !== (int) $ref->month) {
+            return null;
+        }
+
+        $age = (int) $ref->year - (int) $this->birth_date->year;
+        if ($age < 1) {
+            return null;
+        }
+
+        $dayLabel = mb_strtolower($this->birth_date->copy()->locale('pt')->translatedFormat('j \d\e F'));
+        $birthdayThisYear = $this->birth_date->copy()->year($ref->year)->startOfDay();
+        $refDay = $ref->copy()->startOfDay();
+
+        if ($refDay->equalTo($birthdayThisYear)) {
+            $scope = 'day';
+            $tense = 'present';
+        } elseif ($sameMonthOnly || $birthMonth === (int) $ref->month) {
+            $scope = 'month';
+            $tense = (int) $ref->day > $birthDay ? 'past' : 'present';
+        } elseif ($refDay->greaterThan($birthdayThisYear)) {
+            $scope = 'year';
+            $tense = 'past';
+        } else {
+            $scope = 'year';
+            $tense = 'present';
+        }
+
+        $verb = $tense === 'past' ? 'fez' : 'faz';
+        $name = trim((string) ($subjectName ?? ''));
+        $namePrefix = $name !== '' ? $name.' ' : '';
+        $ageLabel = "{$age} anos";
+
+        if ($scope === 'day') {
+            $message = "Aniversário hoje! {$namePrefix}faz {$ageLabel} neste dia.";
+            $messageHtml = '<strong>Aniversário hoje!</strong> '
+                .($name !== '' ? e($name).' ' : '')
+                .'faz <strong>'.e($ageLabel).'</strong> neste dia.';
+        } else {
+            $message = "{$namePrefix}{$verb} {$ageLabel} a {$dayLabel}.";
+            if ($name === '') {
+                $message = ucfirst($verb)." {$ageLabel} a {$dayLabel}.";
+            }
+            $messageHtml = ($name !== '' ? e($name).' ' : '')
+                .e($verb).' <strong>'.e($ageLabel).'</strong> a <strong>'.e($dayLabel).'</strong>.';
+        }
+
+        return [
+            'scope' => $scope,
+            'tense' => $tense,
+            'age' => $age,
+            'day_label' => $dayLabel,
+            'message' => $message,
+            'message_html' => $messageHtml,
+        ];
     }
 
     /**

@@ -429,6 +429,7 @@ class CalendarController extends Controller
                     'payment_lines' => $paymentLines,
                     'client_id' => $event->client_id,
                     'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
+                    ...$this->clientBirthdayMetaForEvent($event->client, $event->start_at, (int) $event->store_id),
                 ],
             ];
             if ($forResources && $event->user_id) {
@@ -587,6 +588,7 @@ class CalendarController extends Controller
                 $arr = $client->only(['id', 'name', 'email', 'phone', 'nif']);
                 $arr['formatted_phone'] = $client->formatted_phone;
                 $arr['avatar_url'] = $client->avatar ? asset('storage/'.$client->avatar) : null;
+                $arr['birth_date'] = $client->birth_date?->format('Y-m-d');
 
                 return response()->json([$this->sanitizeClientPayloadForUser($arr)]);
             }
@@ -749,6 +751,8 @@ class CalendarController extends Controller
                 'client_nif' => $calendarEvent->client?->nif,
                 'client_formatted_phone' => $calendarEvent->client?->formatted_phone,
                 'client_avatar_url' => $calendarEvent->client?->avatar ? asset('storage/'.$calendarEvent->client->avatar) : null,
+                'client_birth_date' => $calendarEvent->client?->birth_date?->format('Y-m-d'),
+                ...$this->clientBirthdayMetaForEvent($calendarEvent->client, $calendarEvent->start_at, (int) $calendarEvent->store_id),
                 'event_services' => $calendarEvent->eventServices->map(function ($s) {
                     $cat = $s->category;
                     $color = $cat?->color ?? '#6c757d';
@@ -1854,6 +1858,8 @@ class CalendarController extends Controller
                 'client_phone' => $event->client?->phone,
                 'client_formatted_phone' => $event->client?->formatted_phone,
                 'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
+                'client_birth_date' => $event->client?->birth_date?->format('Y-m-d'),
+                ...$this->clientBirthdayMetaForEvent($event->client, $event->start_at, (int) $event->store_id),
                 'description' => $event->description,
                 'event_type' => $event->event_type,
                 'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
@@ -1898,6 +1904,30 @@ class CalendarController extends Controller
         }
 
         return $arr;
+    }
+
+    /**
+     * @return array{client_birthday_today: bool, client_birthday_in_month: bool, client_birthday_age: ?int, client_birthday_tense: ?string}
+     */
+    private function clientBirthdayMetaForEvent(?Client $client, ?Carbon $startAt, int $storeId): array
+    {
+        if (! $client || ! $startAt) {
+            return [
+                'client_birthday_today' => false,
+                'client_birthday_in_month' => false,
+                'client_birthday_age' => null,
+                'client_birthday_tense' => null,
+            ];
+        }
+
+        $highlight = $client->birthdayHighlight($startAt, $storeId, sameMonthOnly: true);
+
+        return [
+            'client_birthday_today' => ($highlight['scope'] ?? null) === 'day',
+            'client_birthday_in_month' => $highlight !== null,
+            'client_birthday_age' => $highlight['age'] ?? null,
+            'client_birthday_tense' => $highlight['tense'] ?? null,
+        ];
     }
 
     private static function marcacaoServiceLineLabel(CalendarEventService $item): string

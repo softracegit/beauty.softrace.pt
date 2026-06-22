@@ -754,6 +754,87 @@ body.page-agenda .app-wrapper .container-fluid {
 .fc-event-client {
     font-weight: 600;
     color: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    flex: 0 1 auto;
+}
+.fc-event-client-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+    overflow: hidden;
+    flex: 1 1 0;
+}
+.agenda-event-birthday-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 50%;
+    background: #fff;
+    color: #f97316;
+    padding: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.agenda-event-birthday-badge i {
+    font-size: 0.88rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    transform: translateX(-0.5px);
+}
+.agenda-event-birthday-badge i::before {
+    display: block;
+    line-height: 1;
+}
+.agenda-client-birthday-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.7rem;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border: 1px solid #fdba74;
+    border-radius: 0.5rem;
+    color: #9a3412;
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+.agenda-client-birthday-banner__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 50%;
+    background: #fff;
+    color: #f97316;
+    font-size: 0.88rem;
+    line-height: 1;
+    box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.25);
+}
+.agenda-client-birthday-banner__text {
+    line-height: 1.2;
+    min-width: 0;
+}
+.agenda-client-birthday-banner__text strong {
+    color: #c2410c;
+}
+.agenda-client-birthday-banner--month {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-color: #fcd34d;
+    color: #92400e;
+}
+.agenda-client-birthday-banner--month .agenda-client-birthday-banner__text strong {
+    color: #b45309;
 }
 .fc-event-line {
     line-height: 1.25;

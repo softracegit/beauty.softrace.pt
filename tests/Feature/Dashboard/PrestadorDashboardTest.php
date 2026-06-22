@@ -112,4 +112,48 @@ class PrestadorDashboardTest extends TestCase
             ->get(route('dashboard.marcacoes'))
             ->assertRedirect(route('dashboard'));
     }
+
+    public function test_rececao_sees_store_wide_dashboard(): void
+    {
+        $fx = $this->fixture();
+        $org = $fx['store']->organization;
+
+        $rececao = User::query()->create([
+            'name' => 'Receção Dash',
+            'email' => 'rececao-dash@test.test',
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_RECECAO,
+            'organization_id' => $org->id,
+        ]);
+        $rececao->stores()->sync([$fx['store']->id]);
+
+        $this->actingAs($rececao)
+            ->withSession([SetCurrentStore::SESSION_KEY => $fx['store']->id])
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Resumo da loja')
+            ->assertSee('Marcações hoje')
+            ->assertSee('Cliente Dash')
+            ->assertSee('Técnica Dash');
+    }
+
+    public function test_rececao_is_redirected_from_admin_dashboard_sections(): void
+    {
+        $fx = $this->fixture();
+        $org = $fx['store']->organization;
+
+        $rececao = User::query()->create([
+            'name' => 'Receção Dash',
+            'email' => 'rececao-dash-redirect@test.test',
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_RECECAO,
+            'organization_id' => $org->id,
+        ]);
+        $rececao->stores()->sync([$fx['store']->id]);
+
+        $this->actingAs($rececao)
+            ->withSession([SetCurrentStore::SESSION_KEY => $fx['store']->id])
+            ->get(route('dashboard.financeiro'))
+            ->assertRedirect(route('dashboard'));
+    }
 }

@@ -30,11 +30,16 @@ class DashboardController extends Controller
     public function resumo(PrestadorDashboardService $prestadorDashboard)
     {
         $user = auth()->user();
+        $storeId = current_store_id();
+
         if ($user instanceof User && $user->isPrestador()) {
-            return view('dashboard.prestador', $prestadorDashboard->build($user, current_store_id()));
+            return view('dashboard.prestador', $prestadorDashboard->build($user, $storeId));
         }
 
-        $storeId = current_store_id();
+        if ($user instanceof User && $user->isRececao()) {
+            return view('dashboard.prestador', $prestadorDashboard->buildForStore($storeId, $user));
+        }
+
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $currentYear = $today->year;
         $previousYear = $currentYear - 1;
@@ -1295,7 +1300,7 @@ class DashboardController extends Controller
     private function redirectPrestadorFromAdminDashboard(): ?\Illuminate\Http\RedirectResponse
     {
         $user = auth()->user();
-        if ($user instanceof User && $user->isPrestador()) {
+        if ($user instanceof User && ($user->isPrestador() || $user->isRececao())) {
             return redirect()->route('dashboard');
         }
 

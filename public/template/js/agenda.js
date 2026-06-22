@@ -1870,6 +1870,103 @@ document.addEventListener('DOMContentLoaded', function() {
         var nif = String(c.nif || '').trim();
         return nif !== '' ? ('NIF ' + nif) : 'Sem NIF';
     }
+    function agendaBirthdayBadgeHtml(title) {
+        var t = agendaEscAttr(title || 'Aniversário do cliente');
+        return '<span class="agenda-event-birthday-badge" title="' + t + '" aria-label="' + t + '"><i class="ri-gift-2-fill" aria-hidden="true"></i></span>';
+    }
+    function agendaClientBirthdayScope(birthDateStr, appointmentDate) {
+        if (!birthDateStr || !appointmentDate) return null;
+        var parts = String(birthDateStr).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!parts) return null;
+        var bMonth = parseInt(parts[2], 10);
+        var bDay = parseInt(parts[3], 10);
+        var a = appointmentDate instanceof Date ? appointmentDate : new Date(appointmentDate);
+        if (isNaN(a.getTime())) return null;
+        if ((a.getMonth() + 1) === bMonth && a.getDate() === bDay) return 'day';
+        if ((a.getMonth() + 1) === bMonth) return 'month';
+        return null;
+    }
+    function agendaClientBirthdayTense(birthDateStr, appointmentDate, scope) {
+        if (scope === 'day') return 'present';
+        if (scope !== 'month' || !birthDateStr || !appointmentDate) return 'present';
+        var parts = String(birthDateStr).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!parts) return 'present';
+        var bDay = parseInt(parts[3], 10);
+        var a = appointmentDate instanceof Date ? appointmentDate : new Date(appointmentDate);
+        if (isNaN(a.getTime())) return 'present';
+        return a.getDate() > bDay ? 'past' : 'present';
+    }
+    function agendaBirthdayVerb(tense) {
+        return tense === 'past' ? 'fez' : 'faz';
+    }
+    function agendaFormatBirthdayDayMonth(birthDateStr) {
+        var parts = String(birthDateStr || '').trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!parts) return '';
+        var day = parseInt(parts[3], 10);
+        var monthIdx = parseInt(parts[2], 10) - 1;
+        if (isNaN(day) || monthIdx < 0 || monthIdx > 11) return '';
+        return day + ' de ' + MONTHS_LONG[monthIdx];
+    }
+    function eventDetailOcResolveAppointmentDateForBirthday() {
+        var dStr = agendaOcReadDateStr('eventDetailOcDate', eventDetailOcDateFlatpickr);
+        if (dStr) return dStr;
+        var startAt = eventDetailCurrentData && eventDetailCurrentData.start_at;
+        if (!startAt) return null;
+        var d = new Date(startAt);
+        if (isNaN(d.getTime())) return null;
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    function eventDetailOcUpdateBirthdayBanner() {
+        var banner = $id('eventDetailOcClientBirthdayBanner');
+        var textEl = $id('eventDetailOcClientBirthdayText');
+        if (!banner) return;
+        var birthDate = (eventDetailSelectedClient && eventDetailSelectedClient.birth_date)
+            || (eventDetailCurrentData && eventDetailCurrentData.client_birth_date)
+            || null;
+        var apptDate = eventDetailOcResolveAppointmentDateForBirthday();
+        var apptInstant = apptDate ? (apptDate + 'T12:00:00') : null;
+        var scope = agendaClientBirthdayScope(birthDate, apptInstant);
+        if (!scope && eventDetailCurrentData) {
+            if (eventDetailCurrentData.client_birthday_today) scope = 'day';
+            else if (eventDetailCurrentData.client_birthday_in_month) scope = 'month';
+        }
+        if (!scope) {
+            banner.classList.add('d-none');
+            banner.classList.remove('agenda-client-birthday-banner--month');
+            return;
+        }
+        var tense = agendaClientBirthdayTense(birthDate, apptInstant, scope);
+        if (!birthDate && eventDetailCurrentData && eventDetailCurrentData.client_birthday_tense) {
+            tense = eventDetailCurrentData.client_birthday_tense;
+        }
+        var verb = agendaBirthdayVerb(tense);
+        var clientName = (eventDetailSelectedClient && eventDetailSelectedClient.name)
+            || (eventDetailCurrentData && eventDetailCurrentData.client_name)
+            || 'o cliente';
+        var nameEsc = clientName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var age = null;
+        if (birthDate && apptDate) {
+            var by = parseInt(birthDate.slice(0, 4), 10);
+            var ay = parseInt(apptDate.slice(0, 4), 10);
+            if (!isNaN(by) && !isNaN(ay)) age = ay - by;
+        } else if (eventDetailCurrentData && eventDetailCurrentData.client_birthday_age != null) {
+            age = parseInt(eventDetailCurrentData.client_birthday_age, 10);
+        }
+        var agePart = (age != null && !isNaN(age) && age > 0)
+            ? (' <strong>' + age + ' anos</strong>')
+            : ' anos';
+        var bdayWhen = agendaFormatBirthdayDayMonth(birthDate);
+        banner.classList.toggle('agenda-client-birthday-banner--month', scope === 'month');
+        if (textEl) {
+            if (scope === 'day') {
+                textEl.innerHTML = '<strong>Aniversário hoje!</strong> ' + nameEsc + ' faz' + agePart + ' neste dia.';
+            } else {
+                var whenPart = bdayWhen ? (' a <strong>' + bdayWhen + '</strong>') : ' este mês';
+                textEl.innerHTML = nameEsc + ' ' + verb + agePart + whenPart + '.';
+            }
+        }
+        banner.classList.remove('d-none');
+    }
     /** Mensagem a partir da resposta 422 do POST de cliente rápido (agenda). */
     function agendaStoreClientCreateErrorMessage(data) {
         var msg = 'Erro ao criar cliente.';
@@ -3608,7 +3705,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 phone: data.client_phone || '',
                 nif: data.client_nif || '',
                 formatted_phone: data.client_formatted_phone || '',
-                avatar_url: data.client_avatar_url || ''
+                avatar_url: data.client_avatar_url || '',
+                birth_date: data.client_birth_date || ''
             };
             eventDetailOcInitClientChoicesSelect();
             eventDetailOcApplyClientFromApi(cObj);
@@ -3618,6 +3716,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetailOcChoicesInstances.client.setChoices([{ value: String(cObj.id), label: cLabel }], 'value', 'label', true);
                 try { eventDetailOcChoicesInstances.client.setChoiceByValue(String(cObj.id)); } catch (e) { /* ignore */ }
             }
+            eventDetailOcUpdateBirthdayBanner();
         } else {
             eventDetailOcEnterClientSearchMode();
         }
@@ -3662,6 +3761,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetailOcSyncPickersFromHidden();
             setEventDetailPaymentAndReadOnly(eventDetailExistingSale, 'marcacao', eventDetailSelectedServices.length);
             updateEventDetailOutOfHoursWarning();
+            eventDetailOcUpdateBirthdayBanner();
             window._eventDetailOcPopulating = false;
         });
     }
@@ -3776,6 +3876,8 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcSetNifInlineMode(false);
         eventDetailSelectedClient = null;
         eventDetailOcClearNewClientForm();
+        var birthdayBanner = $id('eventDetailOcClientBirthdayBanner');
+        if (birthdayBanner) birthdayBanner.classList.add('d-none');
         var tabBtn = $id('eventDetailOcTabExistingBtn');
         if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
             try { bootstrap.Tab.getOrCreateInstance(tabBtn).show(); } catch (err) { /* ignore */ }
@@ -3790,7 +3892,8 @@ document.addEventListener('DOMContentLoaded', function() {
             nif: c.nif || '',
             formatted_phone: c.formatted_phone || '',
             email: c.email || '',
-            avatar_url: c.avatar_url || ''
+            avatar_url: c.avatar_url || '',
+            birth_date: c.birth_date || ''
         };
         var av = $id('eventDetailOcClientAvatar');
         var fb = $id('eventDetailOcClientAvatarFallback');
@@ -3826,6 +3929,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ceditCancel) ceditCancel.classList.add('d-none');
         eventDetailOcSetNifInlineMode(false);
         eventDetailOcClientBeforeEdit = null;
+        eventDetailOcUpdateBirthdayBanner();
         if (eventDetailCurrentData) {
             setEventDetailPaymentAndReadOnly(
                 eventDetailExistingSale,
@@ -4065,6 +4169,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     onChange: function() {
                         eventDetailOcSyncHiddenFromPickers();
                         updateEventDetailOutOfHoursWarning();
+                        eventDetailOcUpdateBirthdayBanner();
                     }
                 });
                 if (eventDetailOcDateFlatpickr && eventDetailOcDateFlatpickr.altInput) {
@@ -8048,7 +8153,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Linha 1: ícone + cliente (ou título)
-            const line1 = iconHtml + '<strong class="fc-event-client">' + (clientName || fallbackTitle || '…') + '</strong>';
+            var birthdayHtml = '';
+            if (extProps.client_birthday_in_month && !isTempoPessoal) {
+                var bdayTitle = extProps.client_birthday_today ? 'Aniversário hoje' : 'Aniversário este mês';
+                birthdayHtml = agendaBirthdayBadgeHtml(bdayTitle);
+            }
+            const line1 = iconHtml + '<span class="fc-event-client-row"><strong class="fc-event-client">' + (clientName || fallbackTitle || '…') + '</strong>' + birthdayHtml + '</span>';
 
             // Linha 2: serviço + extras
             let line2 = serviceName || '';

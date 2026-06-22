@@ -15,7 +15,7 @@
       <ul class="iconbar-menu">
         @if($navUser->canAccessDashboard())
         <li>
-          @if($navUser->isPrestador())
+          @if($navUser->isPrestador() || $navUser->isRececao())
           <a href="{{ route('dashboard') }}" class="iconbar-item {{ request()->routeIs('dashboard*') ? 'active' : '' }}" data-panel="dashboard" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
             <i class="ph ph-house"></i>
           </a>
@@ -91,7 +91,7 @@
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
-        @if($navUser->isPrestador())
+        @if($navUser->isPrestador() || $navUser->isRececao())
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
             Resumo
@@ -212,11 +212,13 @@
             Novo cliente
           </a>
         </li>
+        @if(!$navUser->isRececao())
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard.clientes') ? 'active' : '' }}" href="{{ route('dashboard.clientes') }}">
             Estatísticas
           </a>
         </li>
+        @endif
       </ul>
     </div>
     @endif

@@ -106,9 +106,20 @@
                         </div>
                         @endif
                         @if($cliente->birth_date)
+                        @php
+                            $clienteBirthdayHighlight = $cliente->birthdayHighlight(sameMonthOnly: true);
+                        @endphp
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Data de Nascimento</div>
-                            <div class="uview-detail-value">{{ $cliente->birth_date->format('d/m/Y') }}</div>
+                            <div class="uview-detail-value">
+                                {{ $cliente->birth_date->format('d/m/Y') }}
+                                @if($clienteBirthdayHighlight)
+                                <div class="client-birthday-highlight client-birthday-highlight--{{ $clienteBirthdayHighlight['scope'] }} client-birthday-highlight--{{ $clienteBirthdayHighlight['tense'] }}" role="status">
+                                    <i class="ri-gift-2-fill" aria-hidden="true"></i>
+                                    <span>{!! $clienteBirthdayHighlight['message_html'] !!}</span>
+                                </div>
+                                @endif
+                            </div>
                         </div>
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Idade</div>

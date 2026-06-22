@@ -10630,6 +10630,50 @@ textarea.form-control {
   color: var(--heading-color);
 }
 
+.client-birthday-highlight {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 1px solid #fdba74;
+  color: #9a3412;
+}
+
+.client-birthday-highlight i {
+  font-size: 0.95rem;
+  color: #f97316;
+  flex-shrink: 0;
+}
+
+.client-birthday-highlight--day {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: #fdba74;
+  color: #9a3412;
+}
+
+.client-birthday-highlight--month,
+.client-birthday-highlight--year.client-birthday-highlight--present {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.client-birthday-highlight--past {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.client-birthday-highlight--past i {
+  color: #64748b;
+}
+
 /* User View Sidebar Cards */
 .uview-stats {
   display: grid;
