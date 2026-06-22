@@ -7950,7 +7950,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var iconHtml = '';
             if (isTempoPessoal && statusIcon) {
                 iconHtml = '<i class="' + statusIcon + ' fc-event-status-icon" aria-hidden="true"></i>';
-            } else if (isPaidFlowStatus) {
+            } else if (isPaidFlowStatus && canProcessPayments) {
                 iconHtml = agendaFcEventPaymentIconsHtml(extProps, invoiceSettled);
             } else if (statusIcon) {
                 var iconTitle = paymentIconTitle || 'Alterar estado';

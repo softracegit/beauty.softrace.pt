@@ -62,7 +62,7 @@ class CategoryController extends Controller
     public function show(Request $request, Category $category)
     {
         if ($request->ajax() || $request->wantsJson()) {
-            return response()->json($category);
+            return response()->json($category->fresh());
         }
 
         return redirect()->route('services.index');

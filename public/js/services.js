@@ -311,6 +311,50 @@ document.addEventListener('DOMContentLoaded', function() {
         return div;
     }
     let editCategoryColorChoices = null; // instância para atualizar a cor ao abrir o modal
+    let editCategoryLoadToken = 0;
+
+    function parseCategoryHiddenFromBooking(value) {
+        return value === true || value === 1 || value === '1';
+    }
+
+    function fillEditCategoryModal(cat) {
+        if (!cat || !cat.id) return;
+        document.getElementById('editCategoryId').value = cat.id;
+        document.getElementById('editCategoryName').value = cat.name || '';
+        document.getElementById('editCategoryDescription').value = cat.description || '';
+        const hiddenBookingEl = document.getElementById('editCategoryHiddenFromBooking');
+        if (hiddenBookingEl) {
+            hiddenBookingEl.checked = parseCategoryHiddenFromBooking(cat.hidden_from_booking);
+        }
+        const color = String(cat.color || '').trim();
+        const colorSelect = document.getElementById('editCategoryColorSelect');
+        if (colorSelect) colorSelect.value = color;
+        if (editCategoryColorChoices && typeof editCategoryColorChoices.setChoiceByValue === 'function') {
+            editCategoryColorChoices.setChoiceByValue(color);
+        }
+    }
+
+    function resetEditCategoryModal() {
+        const hiddenBookingEl = document.getElementById('editCategoryHiddenFromBooking');
+        if (hiddenBookingEl) hiddenBookingEl.checked = false;
+    }
+
+    function openEditCategoryModal(categoryId) {
+        const loadToken = ++editCategoryLoadToken;
+        fetch(`/categories/${categoryId}`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(cat => {
+                if (loadToken !== editCategoryLoadToken) return;
+                fillEditCategoryModal(cat);
+                const modalEl = document.getElementById('editCategoryModal');
+                modalEl.addEventListener('shown.bs.modal', function once() {
+                    modalEl.removeEventListener('shown.bs.modal', once);
+                    requestAnimationFrame(function() { fillEditCategoryModal(cat); });
+                }, { once: true });
+                bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            })
+            .catch(err => { console.error(err); showToast('Erro ao carregar categoria', 'error'); });
+    }
     if (typeof Choices !== 'undefined') {
         const colorChoicesOptions = {
             searchEnabled: false,
@@ -595,30 +639,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (e.target.closest('.category-header-edit-btn')) {
                 e.preventDefault();
-                fetch(`/categories/${categoryId}`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(r => r.json())
-                    .then(cat => {
-                        document.getElementById('editCategoryId').value = cat.id;
-                        document.getElementById('editCategoryName').value = cat.name || '';
-                        document.getElementById('editCategoryDescription').value = cat.description || '';
-                        const hiddenBookingEl = document.getElementById('editCategoryHiddenFromBooking');
-                        if (hiddenBookingEl) hiddenBookingEl.checked = !!cat.hidden_from_booking;
-                        const color = String(cat.color || '').trim();
-                        const colorSelect = document.getElementById('editCategoryColorSelect');
-                        if (colorSelect) colorSelect.value = color;
-                        const modalEl = document.getElementById('editCategoryModal');
-                        const doSetColor = function() {
-                            if (editCategoryColorChoices && typeof editCategoryColorChoices.setChoiceByValue === 'function') {
-                                editCategoryColorChoices.setChoiceByValue(color);
-                            }
-                        };
-                        modalEl.addEventListener('shown.bs.modal', function once() {
-                            modalEl.removeEventListener('shown.bs.modal', once);
-                            requestAnimationFrame(function() { doSetColor(); });
-                        }, { once: true });
-                        bootstrap.Modal.getOrCreateInstance(modalEl).show();
-                    })
-                    .catch(err => { console.error(err); showToast('Erro ao carregar categoria', 'error'); });
+                openEditCategoryModal(categoryId);
                 return;
             }
             if (e.target.closest('.category-header-add-service-btn')) {
@@ -1382,6 +1403,7 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Guardar';
         }
+        resetEditCategoryModal();
     });
 
     document.getElementById('addServiceModal')?.addEventListener('hidden.bs.modal', function() {

@@ -1066,12 +1066,6 @@ class CalendarController extends Controller
 
         $validated['user_id'] = $validated['user_id'] ?? auth()->id();
         if (auth()->user()->isPrestador()) {
-            if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Sem permissão para criar marcações.',
-                ], 403);
-            }
             $validated['user_id'] = auth()->id();
         }
         $validated['client_id'] = $request->input('client_id');
