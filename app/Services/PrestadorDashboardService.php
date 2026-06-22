@@ -24,8 +24,8 @@ class PrestadorDashboardService
      *   dashboardSubtitle: string,
      *   storeScope: bool,
      *   marcacoesHoje: int,
+     *   faltasHoje: int,
      *   marcacoesEsteMes: int,
-     *   marcacoesMesPorRealizar: int,
      *   clientesAtendidosMes: int,
      *   marcacoesEstaSemana: int,
      *   marcacoesConcluidasHoje: int,
@@ -53,8 +53,8 @@ class PrestadorDashboardService
      *   dashboardSubtitle: string,
      *   storeScope: bool,
      *   marcacoesHoje: int,
+     *   faltasHoje: int,
      *   marcacoesEsteMes: int,
-     *   marcacoesMesPorRealizar: int,
      *   clientesAtendidosMes: int,
      *   marcacoesEstaSemana: int,
      *   marcacoesConcluidasHoje: int,
@@ -81,8 +81,8 @@ class PrestadorDashboardService
      *   dashboardSubtitle: string,
      *   storeScope: bool,
      *   marcacoesHoje: int,
+     *   faltasHoje: int,
      *   marcacoesEsteMes: int,
-     *   marcacoesMesPorRealizar: int,
      *   clientesAtendidosMes: int,
      *   marcacoesEstaSemana: int,
      *   marcacoesConcluidasHoje: int,
@@ -110,13 +110,13 @@ class PrestadorDashboardService
             ->whereBetween('start_at', [$startOfDay, $endOfDay])
             ->count();
 
-        $marcacoesEsteMes = (clone $base())
-            ->whereBetween('start_at', [$startOfMonth, $endOfMonth])
+        $faltasHoje = (clone $base())
+            ->whereBetween('start_at', [$startOfDay, $endOfDay])
+            ->where('status', CalendarEvent::STATUS_FALTOU)
             ->count();
 
-        $marcacoesMesPorRealizar = (clone $base())
+        $marcacoesEsteMes = (clone $base())
             ->whereBetween('start_at', [$startOfMonth, $endOfMonth])
-            ->whereNotIn('status', array_merge(self::COMPLETED_STATUSES, [CalendarEvent::STATUS_FALTOU]))
             ->count();
 
         $clientesAtendidosMes = (int) (clone $base())
@@ -181,8 +181,8 @@ class PrestadorDashboardService
 
         return array_merge($meta, [
             'marcacoesHoje' => $marcacoesHoje,
+            'faltasHoje' => $faltasHoje,
             'marcacoesEsteMes' => $marcacoesEsteMes,
-            'marcacoesMesPorRealizar' => $marcacoesMesPorRealizar,
             'clientesAtendidosMes' => $clientesAtendidosMes,
             'marcacoesEstaSemana' => $marcacoesEstaSemana,
             'marcacoesConcluidasHoje' => $marcacoesConcluidasHoje,

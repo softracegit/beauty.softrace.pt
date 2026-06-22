@@ -35,44 +35,12 @@
     </div>
 
     <div class="dash-kpi">
-        <div class="dash-kpi-icon success">
-            <i class="ph-duotone ph-calendar-check"></i>
+        <div class="dash-kpi-icon danger">
+            <i class="ph-duotone ph-user-minus"></i>
         </div>
         <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $marcacoesEsteMes }}</div>
-            <div class="dash-kpi-label">Marcações este mês</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon warning">
-            <i class="ph-duotone ph-hourglass-medium"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $marcacoesMesPorRealizar }}</div>
-            <div class="dash-kpi-label">Por realizar este mês</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon info">
-            <i class="ph-duotone ph-user-check"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $clientesAtendidosMes }}</div>
-            <div class="dash-kpi-label">Clientes atendidos (mês)</div>
-        </div>
-    </div>
-</div>
-
-<div class="dash-kpi-strip mb-4">
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon primary">
-            <i class="ph-duotone ph-calendar-blank"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $marcacoesEstaSemana }}</div>
-            <div class="dash-kpi-label">Marcações esta semana</div>
+            <div class="dash-kpi-value">{{ $faltasHoje }}</div>
+            <div class="dash-kpi-label">Faltas hoje</div>
         </div>
     </div>
 
@@ -95,6 +63,28 @@
             <div class="dash-kpi-label">Horas agendadas hoje</div>
         </div>
     </div>
+</div>
+
+<div class="dash-kpi-strip mb-4">
+    <div class="dash-kpi">
+        <div class="dash-kpi-icon primary">
+            <i class="ph-duotone ph-calendar-blank"></i>
+        </div>
+        <div class="dash-kpi-body">
+            <div class="dash-kpi-value">{{ $marcacoesEstaSemana }}</div>
+            <div class="dash-kpi-label">Marcações esta semana</div>
+        </div>
+    </div>
+
+    <div class="dash-kpi">
+        <div class="dash-kpi-icon success">
+            <i class="ph-duotone ph-calendar-check"></i>
+        </div>
+        <div class="dash-kpi-body">
+            <div class="dash-kpi-value">{{ $marcacoesEsteMes }}</div>
+            <div class="dash-kpi-label">Marcações este mês</div>
+        </div>
+    </div>
 
     <div class="dash-kpi">
         <div class="dash-kpi-icon danger">
@@ -103,6 +93,16 @@
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ $faltasEsteMes }}</div>
             <div class="dash-kpi-label">Faltas este mês</div>
+        </div>
+    </div>
+
+    <div class="dash-kpi">
+        <div class="dash-kpi-icon info">
+            <i class="ph-duotone ph-user-check"></i>
+        </div>
+        <div class="dash-kpi-body">
+            <div class="dash-kpi-value">{{ $clientesAtendidosMes }}</div>
+            <div class="dash-kpi-label">Clientes atendidos (mês)</div>
         </div>
     </div>
 </div>

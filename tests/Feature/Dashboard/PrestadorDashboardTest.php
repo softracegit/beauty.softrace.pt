@@ -192,7 +192,7 @@ class PrestadorDashboardTest extends TestCase
         $this->assertSame(1, $prestadorMetrics['marcacoesHoje']);
         $this->assertSame(1, $prestadorMetrics['marcacoesEsteMes']);
         $this->assertSame(1, $storeMetrics['marcacoesHoje']);
-        $this->assertSame(1, $storeMetrics['marcacoesMesPorRealizar']);
+        $this->assertSame(0, $storeMetrics['faltasHoje']);
     }
 
     public function test_dashboard_metrics_exclude_cancelled_appointments(): void
