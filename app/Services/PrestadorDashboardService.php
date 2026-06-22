@@ -13,12 +13,6 @@ use Illuminate\Support\Collection;
 class PrestadorDashboardService
 {
     /** @var list<string> */
-    private const EXCLUDED_STATUSES = [
-        CalendarEvent::STATUS_CANCELADO,
-        CalendarEvent::STATUS_ANULADO,
-    ];
-
-    /** @var list<string> */
     private const COMPLETED_STATUSES = [
         CalendarEvent::STATUS_COMPLETO,
         CalendarEvent::STATUS_TERMINADO,
@@ -108,48 +102,50 @@ class PrestadorDashboardService
         $endOfWeek = $today->copy()->endOfWeek();
         $startOfMonth = $today->copy()->startOfMonth();
         $endOfMonth = $today->copy()->endOfMonth();
-        $nowUtc = StoreBusinessTime::nowUtcForStore($storeId);
+        $now = StoreBusinessTime::nowForStore($storeId);
 
         $base = fn () => $this->baseQuery($storeId, $userId);
 
         $marcacoesHoje = (clone $base())
-            ->whereBetween('start_at', $this->utcBounds($startOfDay, $endOfDay))
+            ->whereBetween('start_at', [$startOfDay, $endOfDay])
             ->count();
 
         $marcacoesEsteMes = (clone $base())
-            ->whereBetween('start_at', $this->utcBounds($startOfMonth, $endOfMonth))
+            ->whereBetween('start_at', [$startOfMonth, $endOfMonth])
             ->count();
 
         $marcacoesMesPorRealizar = (clone $base())
-            ->whereBetween('start_at', $this->utcBounds($startOfMonth, $endOfMonth))
-            ->whereNotIn('status', array_merge(self::EXCLUDED_STATUSES, self::COMPLETED_STATUSES, [CalendarEvent::STATUS_FALTOU]))
+            ->whereBetween('start_at', [$startOfMonth, $endOfMonth])
+            ->whereNotIn('status', array_merge(self::COMPLETED_STATUSES, [CalendarEvent::STATUS_FALTOU]))
             ->count();
 
         $clientesAtendidosMes = (int) (clone $base())
-            ->whereBetween('start_at', $this->utcBounds($startOfMonth, $endOfMonth))
+            ->whereBetween('start_at', [$startOfMonth, $endOfMonth])
             ->whereIn('status', self::COMPLETED_STATUSES)
             ->whereNotNull('client_id')
             ->distinct('client_id')
             ->count('client_id');
 
         $marcacoesEstaSemana = (clone $base())
-            ->whereBetween('start_at', $this->utcBounds($startOfWeek, $endOfWeek))
+            ->whereBetween('start_at', [$startOfWeek, $endOfWeek])
             ->count();
 
-        $marcacoesConcluidasHoje = (clone $base())
-            ->whereBetween('start_at', $this->utcBounds($startOfDay, $endOfDay))
-            ->whereIn('status', self::COMPLETED_STATUSES)
-            ->count();
+        $marcacoesConcluidasHoje = $this->applyAlreadyPassedToday(
+            (clone $base())
+                ->whereBetween('start_at', [$startOfDay, $endOfDay])
+                ->where('status', '!=', CalendarEvent::STATUS_FALTOU),
+            $now,
+        )->count();
 
         $faltasEsteMes = (clone $base())
-            ->whereBetween('start_at', $this->utcBounds($startOfMonth, $endOfMonth))
+            ->whereBetween('start_at', [$startOfMonth, $endOfMonth])
             ->where('status', CalendarEvent::STATUS_FALTOU)
             ->count();
 
         $proximasMarcacoesHoje = (clone $base())
-            ->where('start_at', '>=', $nowUtc)
-            ->where('start_at', '<=', $this->utcBounds($startOfDay, $endOfDay)[1])
-            ->whereNotIn('status', array_merge(self::EXCLUDED_STATUSES, self::COMPLETED_STATUSES, [CalendarEvent::STATUS_FALTOU]))
+            ->where('start_at', '>=', $now)
+            ->where('start_at', '<=', $endOfDay)
+            ->whereNotIn('status', array_merge(self::COMPLETED_STATUSES, [CalendarEvent::STATUS_FALTOU]))
             ->with(['client', 'eventServices', 'user.agent'])
             ->orderBy('start_at')
             ->limit(12)
@@ -167,9 +163,10 @@ class PrestadorDashboardService
             ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
             ->where('calendar_events.store_id', $storeId)
             ->where('services.store_id', $storeId)
+            ->whereNull('calendar_events.personal_time_type_id')
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->whereNotIn('calendar_events.status', self::EXCLUDED_STATUSES)
-            ->whereBetween('calendar_events.start_at', $this->utcBounds($startOfMonth, $endOfMonth));
+            ->whereNotIn('calendar_events.status', CalendarEvent::dashboardExcludedStatuses())
+            ->whereBetween('calendar_events.start_at', [$startOfMonth, $endOfMonth]);
 
         if ($userId !== null) {
             $servicosQuery->where('calendar_events.user_id', $userId);
@@ -203,8 +200,7 @@ class PrestadorDashboardService
     private function baseQuery(int $storeId, ?int $userId = null): Builder
     {
         $query = CalendarEvent::forStore($storeId)
-            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->whereNotIn('status', self::EXCLUDED_STATUSES);
+            ->countableForDashboard();
 
         if ($userId !== null) {
             $query->where('user_id', $userId);
@@ -214,20 +210,26 @@ class PrestadorDashboardService
     }
 
     /**
-     * @return array{0: Carbon, 1: Carbon}
+     * Marcações de hoje cujo horário já passou (fim ≤ agora, ou início < agora sem fim).
+     *
+     * @param  Builder<CalendarEvent>  $query
+     * @return Builder<CalendarEvent>
      */
-    private function utcBounds(Carbon $startLocal, Carbon $endLocal): array
+    private function applyAlreadyPassedToday(Builder $query, Carbon $now): Builder
     {
-        return [
-            StoreBusinessTime::toUtcInstant($startLocal),
-            StoreBusinessTime::toUtcInstant($endLocal),
-        ];
+        return $query->where(function (Builder $q) use ($now) {
+            $q->where(function (Builder $q2) use ($now) {
+                $q2->whereNotNull('end_at')->where('end_at', '<=', $now);
+            })->orWhere(function (Builder $q2) use ($now) {
+                $q2->whereNull('end_at')->where('start_at', '<', $now);
+            });
+        });
     }
 
     private function horasAgendadasEntre(int $storeId, ?int $userId, Carbon $startLocal, Carbon $endLocal): float
     {
         $eventIds = $this->baseQuery($storeId, $userId)
-            ->whereBetween('start_at', $this->utcBounds($startLocal, $endLocal))
+            ->whereBetween('start_at', [$startLocal, $endLocal])
             ->pluck('id');
 
         if ($eventIds->isEmpty()) {

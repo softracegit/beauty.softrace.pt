@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -160,6 +161,41 @@ class CalendarEvent extends Model
     public const STATUS_ANULADO = 'anulado';
 
     public const STATUS_COMPLETO = 'completo';
+
+    /**
+     * Marcações reais da agenda (exclui tempo pessoal e outros tipos de evento).
+     *
+     * @param  Builder<CalendarEvent>  $query
+     * @return Builder<CalendarEvent>
+     */
+    public function scopeOnlyMarcacoes(Builder $query): Builder
+    {
+        return $query
+            ->where('event_type', self::TYPE_MARCACAO)
+            ->whereNull('personal_time_type_id');
+    }
+
+    /**
+     * Marcações que entram nas métricas do dashboard (sem canceladas/anuladas).
+     *
+     * @param  Builder<CalendarEvent>  $query
+     * @return Builder<CalendarEvent>
+     */
+    public function scopeCountableForDashboard(Builder $query): Builder
+    {
+        return $query
+            ->onlyMarcacoes()
+            ->whereNotIn('status', self::dashboardExcludedStatuses());
+    }
+
+    /** @return list<string> */
+    public static function dashboardExcludedStatuses(): array
+    {
+        return [
+            self::STATUS_CANCELADO,
+            self::STATUS_ANULADO,
+        ];
+    }
 
     protected $fillable = [
         'store_id',

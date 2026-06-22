@@ -82,7 +82,7 @@
         </div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ $marcacoesConcluidasHoje }}</div>
-            <div class="dash-kpi-label">Concluídas hoje</div>
+            <div class="dash-kpi-label">Já decorridas hoje</div>
         </div>
     </div>
 

@@ -18,7 +18,7 @@
 
 @php
   $sidebarPanelCollapsedByDefault = request()->routeIs('agenda.*')
-    || (request()->routeIs('dashboard*') && auth()->user()?->isPrestador());
+    || (request()->routeIs('dashboard*') && (auth()->user()?->isPrestador() || auth()->user()?->isRececao()));
 @endphp
 <body class="{{ $sidebarPanelCollapsedByDefault ? 'sidebar-panel-collapsed' : '' }} {{ request()->routeIs('agenda.index') ? 'page-agenda' : '' }} {{ request()->routeIs('relatorios.*') ? 'page-relatorios' : '' }} {{ request()->routeIs('definicoes.*') ? 'definicoes-sidebar-open' : '' }}">
   @include('partials.header')
