@@ -330,6 +330,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function pad2(n) {
         return String(n).padStart(2, '0');
     }
+    /** Rótulos da coluna de horas: 13:00, :15, :30, :45 */
+    function agendaSlotLabelContent(arg) {
+        if (!arg || !arg.date) {
+            return { html: '' };
+        }
+        var mins = arg.date.getMinutes();
+        var text = mins === 0
+            ? pad2(arg.date.getHours()) + ':00'
+            : ':' + pad2(mins);
+        var cls = mins === 0 ? 'agenda-slot-label-hour' : 'agenda-slot-label-quarter';
+
+        return { html: '<span class="agenda-slot-label ' + cls + '">' + text + '</span>' };
+    }
     function formatLocalYmd(d) {
         return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
     }
@@ -7948,12 +7961,12 @@ document.addEventListener('DOMContentLoaded', function() {
         slotMinTime: initialAgendaSlots.min,
         slotMaxTime: initialAgendaSlots.max,
         slotDuration: '00:15:00',
-        slotLabelInterval: '01:00',
+        slotLabelInterval: '00:15:00',
         allDaySlot: false,
         nowIndicator: true,
         scrollTime: new Date().toTimeString().slice(0, 5) + ':00',
         scrollTimeReset: false,
-        slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        slotLabelContent: agendaSlotLabelContent,
         /* Horário/título já vão no eventContent; sem isto o TimeGrid mostra .fc-event-time por cima e parece duplicado */
         displayEventTime: false,
         slotLaneDidMount: function(arg) {
@@ -7991,6 +8004,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 out.push('agenda-slot-outside-hours');
             }
             if (isNationalHolidayPtAtDate(arg.date)) out.push('agenda-slot-holiday');
+            if (arg.date && arg.date.getMinutes() !== 0) {
+                out.push('agenda-grid-line-quarter');
+            }
 
             return out;
         },
@@ -8843,7 +8859,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 slotMaxTime: get('slotMaxTime'),
                 slotDuration: get('slotDuration'),
                 slotLabelInterval: get('slotLabelInterval'),
-                slotLabelFormat: get('slotLabelFormat'),
+                slotLabelContent: get('slotLabelContent'),
                 allDaySlot: get('allDaySlot'),
                 nowIndicator: false,
                 scrollTime: get('scrollTime'),

@@ -683,6 +683,7 @@ body.page-agenda .app-wrapper .container-fluid {
 .fc-timegrid .fc-timegrid-axis th {
     border-top: none !important;
     border-bottom: none !important;
+    background-color: var(--surface-color, #fff) !important;
 }
 .fc-direction-ltr .fc-timegrid-col-events {
     margin: 2px 12px 0px 0px !important;
@@ -1223,6 +1224,20 @@ body.page-agenda .app-wrapper .container-fluid {
     transform: translateY(-2.5px);
     color: var(--heading-color) !important;
 }
+.fc-timegrid-slot-label-cushion .agenda-slot-label {
+    display: block;
+    line-height: 1.1;
+}
+.fc-timegrid-slot-label-cushion .agenda-slot-label-hour {
+    font-weight: 600;
+}
+.fc-timegrid-slot-label-cushion .agenda-slot-label-quarter {
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: var(--bs-secondary-color, #6c757d) !important;
+    padding-left: 0.45rem;
+    transform: translateY(-1px);
+}
 
 .fc-daygrid-day-number {
     text-align: left !important;
@@ -1239,6 +1254,29 @@ body.page-agenda .app-wrapper .container-fluid {
 }
 .fc .fc-timegrid-slot {
     background-color: transparent !important;
+}
+/* Linhas horizontais da grelha (só colunas de marcações, não a coluna das horas). */
+.fc .fc-timegrid .fc-timegrid-slots td.fc-timegrid-slot:not(.fc-timegrid-slot-label),
+.fc .fc-timegrid-slot:not(.fc-timegrid-slot-label) {
+    border-top: 1px solid var(--agenda-timegrid-line) !important;
+}
+.fc .fc-timegrid-slot.agenda-grid-line-quarter:not(.fc-timegrid-slot-label),
+.fc .fc-timegrid .fc-timegrid-slots td.fc-timegrid-slot.agenda-grid-line-quarter:not(.fc-timegrid-slot-label) {
+    border-top-color: var(--agenda-timegrid-line-quarter) !important;
+}
+.fc .fc-timegrid-slot.fc-timegrid-slot-label,
+.fc .fc-timegrid .fc-timegrid-axis td.fc-timegrid-slot-label {
+    border-top: none !important;
+    border-bottom: none !important;
+    background-color: var(--surface-color, #fff) !important;
+}
+:root {
+    --agenda-timegrid-line: var(--border-color-dark, #cbd5e0);
+    --agenda-timegrid-line-quarter: rgba(15, 23, 42, 0.03);
+}
+[data-theme="dark"] {
+    --agenda-timegrid-line: var(--border-color-dark, #475569);
+    --agenda-timegrid-line-quarter: rgba(241, 245, 249, 0.035);
 }
 /*
  * Uma camada de riscas por célula (sem slot + evento no mesmo sítio):
