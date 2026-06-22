@@ -102,7 +102,9 @@ class CategoryController extends Controller
      */
     public function update(UpdateCategoryRequest $request, Category $category)
     {
-        $category->update($request->validated());
+        $data = $request->validated();
+        $data['hidden_from_booking'] = $request->boolean('hidden_from_booking');
+        $category->update($data);
 
         if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {
             return response()->json([

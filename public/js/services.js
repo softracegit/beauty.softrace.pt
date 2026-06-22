@@ -553,6 +553,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function updateCategoryBookingHiddenIndicator(sidebarItem, hidden) {
+        if (!sidebarItem) return;
+        sidebarItem.setAttribute('data-hidden-from-booking', hidden ? '1' : '0');
+        let icon = sidebarItem.querySelector('.services-category-hidden-booking-icon');
+        if (hidden) {
+            if (!icon) {
+                icon = document.createElement('i');
+                icon.className = 'ph ph-eye-slash text-muted small services-category-hidden-booking-icon';
+                icon.title = 'Oculta no booking';
+                icon.setAttribute('aria-hidden', 'true');
+                const badge = sidebarItem.querySelector('.badge');
+                if (badge) sidebarItem.insertBefore(icon, badge);
+                else sidebarItem.appendChild(icon);
+            }
+        } else if (icon) {
+            icon.remove();
+        }
+    }
+
     // Category selection (apenas itens da sidebar; não os blocos de extras nos modais)
     const categoriesList = document.getElementById('categoriesList');
     if (categoriesList) {
@@ -582,6 +601,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('editCategoryId').value = cat.id;
                         document.getElementById('editCategoryName').value = cat.name || '';
                         document.getElementById('editCategoryDescription').value = cat.description || '';
+                        const hiddenBookingEl = document.getElementById('editCategoryHiddenFromBooking');
+                        if (hiddenBookingEl) hiddenBookingEl.checked = !!cat.hidden_from_booking;
                         const color = String(cat.color || '').trim();
                         const colorSelect = document.getElementById('editCategoryColorSelect');
                         if (colorSelect) colorSelect.value = color;
@@ -1000,6 +1021,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const categoryId = document.getElementById('editCategoryId').value;
         const formData = new FormData(this);
+        formData.delete('hidden_from_booking');
+        formData.append('hidden_from_booking', document.getElementById('editCategoryHiddenFromBooking')?.checked ? '1' : '0');
         
         fetch(`/categories/${categoryId}`, {
             method: 'POST',
@@ -1027,10 +1050,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (sidebarItem) {
                         const dot = sidebarItem.querySelector('.contacts-group-dot');
                         if (dot) dot.style.background = cat.color || '';
-                        const spans = sidebarItem.querySelectorAll('span');
-                        if (spans.length >= 2) spans[1].textContent = cat.name || '';
+                        const nameEl = sidebarItem.querySelector('.contacts-group-item__name');
+                        if (nameEl) nameEl.textContent = cat.name || '';
+                        else {
+                            const spans = sidebarItem.querySelectorAll('span');
+                            if (spans.length >= 2) spans[1].textContent = cat.name || '';
+                        }
                         sidebarItem.setAttribute('data-category-name', cat.name || '');
                         sidebarItem.setAttribute('data-category-color', cat.color || '');
+                        updateCategoryBookingHiddenIndicator(sidebarItem, !!cat.hidden_from_booking);
                     }
                     const header = document.querySelector(`.services-category-header[data-category-id="${cat.id}"]`);
                     if (header) {

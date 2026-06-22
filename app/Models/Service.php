@@ -61,6 +61,17 @@ class Service extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function isBookableOnline(): bool
+    {
+        $this->loadMissing('category');
+
+        if (! $this->category) {
+            return true;
+        }
+
+        return ! $this->category->hidden_from_booking;
+    }
+
     /**
      * Get the agents associated with this service
      */

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,10 +18,12 @@ class Category extends Model
         'description',
         'color',
         'sort_order',
+        'hidden_from_booking',
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
+        'hidden_from_booking' => 'boolean',
     ];
 
     /**
@@ -45,5 +48,10 @@ class Category extends Model
     public function activeServices(): HasMany
     {
         return $this->hasMany(Service::class)->orderBy('sort_order');
+    }
+
+    public function scopeVisibleInBooking(Builder $query): Builder
+    {
+        return $query->where('hidden_from_booking', false);
     }
 }

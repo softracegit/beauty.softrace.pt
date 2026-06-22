@@ -17,6 +17,7 @@ use App\Services\ClientWalletService;
 use App\Support\CurrentStore;
 use App\Support\WeeklyScheduleWindow;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,6 +36,7 @@ class BookingController extends Controller
         $storeId = $this->bookingStoreId();
         $categories = Category::query()
             ->where('store_id', $storeId)
+            ->visibleInBooking()
             ->with([
                 'services' => function ($q) use ($storeId) {
                     $q->where('store_id', $storeId)
@@ -317,6 +319,7 @@ class BookingController extends Controller
     public function showService(Store $store, Service $service): View
     {
         abort_unless((int) $store->id === (int) $service->store_id, 404);
+        abort_unless($service->isBookableOnline(), 404);
 
         return view('booking.service', [
             'service' => $service,
@@ -707,6 +710,10 @@ class BookingController extends Controller
         return Service::query()
             ->where('store_id', $storeId)
             ->whereIn('id', $serviceIds)
+            ->where(function (Builder $q): void {
+                $q->whereNull('category_id')
+                    ->orWhereHas('category', fn (Builder $cq) => $cq->where('hidden_from_booking', false));
+            })
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->values()

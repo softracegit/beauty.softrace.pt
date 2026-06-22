@@ -438,6 +438,7 @@ class OnlineBookingCheckoutService
         $services = Service::query()
             ->whereIn('id', $serviceIds)
             ->with([
+                'category:id,hidden_from_booking',
                 'options' => fn ($q) => $q->orderBy('sort_order'),
                 'extras' => fn ($q) => $q->orderBy('sort_order'),
             ])
@@ -448,6 +449,14 @@ class OnlineBookingCheckoutService
             throw ValidationException::withMessages([
                 'services' => [__('booking.validation.services_invalid')],
             ]);
+        }
+
+        foreach ($services as $service) {
+            if (! $service->isBookableOnline()) {
+                throw ValidationException::withMessages([
+                    'services' => [__('booking.validation.services_invalid')],
+                ]);
+            }
         }
 
         $lines = [];

@@ -204,9 +204,13 @@
                     <a href="#" class="contacts-group-item {{ $selectedCategory && $selectedCategory->id === $category->id ? 'active' : '' }}" 
                        data-category-id="{{ $category->id }}" 
                        data-category-name="{{ $category->name }}"
-                       data-category-color="{{ $category->color }}">
+                       data-category-color="{{ $category->color }}"
+                       data-hidden-from-booking="{{ $category->hidden_from_booking ? '1' : '0' }}">
                         <span class="contacts-group-dot" style="background: {{ $category->color }};"></span>
-                        <span>{{ $category->name }}</span>
+                        <span class="contacts-group-item__name">{{ $category->name }}</span>
+                        @if($category->hidden_from_booking)
+                            <i class="ph ph-eye-slash text-muted small services-category-hidden-booking-icon" title="Oculta no booking" aria-hidden="true"></i>
+                        @endif
                         <span class="badge">{{ $category->services_count ?? $category->services()->count() }}</span>
                     </a>
                 @empty
@@ -394,6 +398,11 @@
                             <option value="#a5f3fc">Ciano Claro</option>
                             <option value="#bae6fd">Azul Gelo</option>
                         </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="hidden_from_booking" value="1" id="editCategoryHiddenFromBooking">
+                        <label class="form-check-label" for="editCategoryHiddenFromBooking">Ocultar no Booking</label>
+                        <div class="form-text">A categoria e os seus serviços deixam de aparecer na marcação online.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
