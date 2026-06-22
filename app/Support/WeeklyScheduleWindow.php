@@ -75,7 +75,8 @@ final class WeeklyScheduleWindow
     }
 
     /**
-     * Interseção loja ∩ membro para marcações e agenda.
+     * Janela efetiva do membro para marcações: início = max(loja, membro);
+     * fim = horário do membro se for depois do fecho da loja, senão interseção.
      *
      * @return array{0: int, 1: int}|null
      */
@@ -97,7 +98,15 @@ final class WeeklyScheduleWindow
             return null;
         }
 
-        return self::intersectWindows($storeWindow, $agentWindow);
+        $start = max((int) $storeWindow[0], (int) $agentWindow[0]);
+        $storeEnd = (int) $storeWindow[1];
+        $agentEnd = (int) $agentWindow[1];
+        $end = $agentEnd > $storeEnd ? $agentEnd : min($storeEnd, $agentEnd);
+        if ($start >= $end) {
+            return null;
+        }
+
+        return [$start, $end];
     }
 
     /**

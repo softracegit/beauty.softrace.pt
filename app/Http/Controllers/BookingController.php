@@ -153,7 +153,15 @@ class BookingController extends Controller
                 return response()->json(['slots' => []]);
             }
 
-            $candidateSlots = $this->buildAvailableSlots($winStart, $storeEnd, $duration, []);
+            $latestEnd = (int) $storeDayWindow[1];
+            foreach ($eligibleAgents as $agent) {
+                $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dayKey, $storeSchedule);
+                if ($window !== null) {
+                    $latestEnd = max($latestEnd, (int) $window[1]);
+                }
+            }
+
+            $candidateSlots = $this->buildAvailableSlots($winStart, $latestEnd, $duration, []);
             $slots = array_values(array_filter($candidateSlots, function (string $time) use ($eligibleAgents, $day, $duration, $storeSchedule, $holdSessionToken): bool {
                 [$h, $m] = array_map('intval', explode(':', $time));
                 $slotStartMin = $h * 60 + $m;

@@ -3,14 +3,9 @@
 namespace App\Support;
 
 use App\Models\ClientWalletTransaction;
-use App\Services\CancellationPolicyService;
 
 class ClientWalletTransactionLabel
 {
-    public function __construct(
-        private CancellationPolicyService $policyService,
-    ) {}
-
     public function forTransaction(ClientWalletTransaction $transaction): string
     {
         $stored = trim((string) ($transaction->description ?? ''));
@@ -37,8 +32,8 @@ class ClientWalletTransactionLabel
             return 'Crédito por cancelamento de marcação';
         }
 
-        $tz = $this->policyService->businessTimezoneForStore((int) ($event->store_id ?? 0) ?: null);
-        $start = $event->start_at->copy()->timezone($tz)->format('d/m/Y H:i');
+        $storeId = (int) ($event->store_id ?? 0) ?: null;
+        $start = DateTimeDisplay::marcacao($event->start_at, $storeId, 'd/m/Y H:i');
 
         return 'Crédito por cancelamento da marcação de '.$start;
     }
@@ -47,8 +42,8 @@ class ClientWalletTransactionLabel
     {
         $event = $transaction->calendarEvent;
         if ($event?->start_at) {
-            $tz = $this->policyService->businessTimezoneForStore((int) ($event->store_id ?? 0) ?: null);
-            $start = $event->start_at->copy()->timezone($tz)->format('d/m/Y H:i');
+            $storeId = (int) ($event->store_id ?? 0) ?: null;
+            $start = DateTimeDisplay::marcacao($event->start_at, $storeId, 'd/m/Y H:i');
 
             return 'Utilizado na marcação de '.$start;
         }

@@ -3,11 +3,11 @@
 namespace App\Notifications;
 
 use App\Models\CalendarEvent;
+use App\Support\DateTimeDisplay;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Carbon;
 
 class ClientAppointmentCancelledNotification extends Notification implements ShouldQueue
 {
@@ -31,13 +31,11 @@ class ClientAppointmentCancelledNotification extends Notification implements Sho
             ->with(['client', 'service', 'eventServices', 'store'])
             ->findOrFail($this->calendarEventId);
 
-        $tz = config('app.timezone');
+        $storeId = (int) ($event->store_id ?? 0) ?: null;
         $clientName = $event->client?->name ?? '';
         $greetingName = $clientName !== '' ? explode(' ', trim($clientName), 2)[0] : '';
 
-        $start = $event->start_at
-            ? Carbon::parse($event->start_at)->timezone($tz)->format('d/m/Y \à\s H:i')
-            : '—';
+        $start = DateTimeDisplay::marcacao($event->start_at, $storeId, 'd/m/Y \à\s H:i');
 
         $services = $event->eventServices->isNotEmpty()
             ? $event->eventServices

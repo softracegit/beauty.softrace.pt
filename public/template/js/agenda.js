@@ -300,12 +300,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    /** Fora do horário do membro, mas só dentro do horário da loja (evita riscas duplas loja+membro). */
+    /** Fora do horário efetivo do membro (loja + extensão do horário da técnica). */
     function isMemberUnavailableSlotAt(date, userId) {
         if (!userId || !(date instanceof Date) || isNaN(date.getTime())) return false;
-        if (isOutsideStoreHoursAtDate(date)) return false;
 
-        return isOutsideMemberWindowAtInstant(date, userId);
+        return isOutsideEffectiveHoursAtDate(date, userId);
     }
     function applyMemberUnavailableClassesToTimeGridSlots() {
         if (!calendarEl) return;
@@ -341,7 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return x;
     }
     /**
-     * Membro fora do horário, só dentro da janela em que a loja está aberta (sem sobrepor riscas da loja).
+     * Membro fora do horário efetivo (pode ultrapassar o fecho da loja se a técnica trabalhar mais tarde).
      */
     function generateMemberUnavailableBackgroundEvents(info, viewType) {
         if (!C.memberWeeklySchedules) return [];
@@ -363,18 +362,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return out;
         }
 
-        function clipToStoreOpenWindow(segStart, segEnd, dayDate) {
-            var win = getStoreDayWindowStrings(dayDate);
-            if (!win) return null;
-            var s = segStart < win.start ? win.start : segStart;
-            var e = segEnd > win.end ? win.end : segEnd;
+        function clipMemberBgSegment(segStart, segEnd) {
+            var s = segStart < grid.start ? grid.start : segStart;
+            var e = segEnd > grid.end ? grid.end : segEnd;
             if (s >= e) return null;
 
             return { start: s, end: e };
         }
 
-        function pushMemberBg(uid, ymd, segmentKey, segStart, segEnd, dayDate) {
-            var clipped = clipToStoreOpenWindow(segStart, segEnd, dayDate);
+        function pushMemberBg(uid, ymd, segmentKey, segStart, segEnd) {
+            var clipped = clipMemberBgSegment(segStart, segEnd);
             if (!clipped) return;
             out.push({
                 id: 'member-unavail|' + uid + '|' + ymd + '|' + segmentKey,
@@ -386,6 +383,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        var grid = agendaVisibleSlotTimeBounds();
+
         memberIds.forEach(function(uid) {
             var sched = C.memberWeeklySchedules[String(uid)];
             if (!sched) return;
@@ -396,15 +395,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 var ymd = formatLocalYmd(day);
 
                 if (!cfg || !parseScheduleDayEnabled(cfg.enabled)) {
-                    pushMemberBg(uid, ymd, 'all', '00:00', '24:00', day);
+                    pushMemberBg(uid, ymd, 'all', grid.start, grid.end);
                 } else {
                     var startTime = String(cfg.start || '00:00');
                     var endTime = String(cfg.end || '24:00');
-                    if (startTime > '00:00') {
-                        pushMemberBg(uid, ymd, 'before', '00:00', startTime, day);
+                    if (startTime > grid.start) {
+                        pushMemberBg(uid, ymd, 'before', grid.start, startTime);
                     }
-                    if (endTime < '24:00') {
-                        pushMemberBg(uid, ymd, 'after', endTime, '24:00', day);
+                    if (endTime < grid.end) {
+                        pushMemberBg(uid, ymd, 'after', endTime, grid.end);
                     }
                 }
                 day = addDaysLocal(day, 1);
@@ -458,7 +457,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         className: ['agenda-store-unavailable-bg'],
                     });
                 }
-                if (cfg.end && cfg.end < grid.end) {
+                var skipStoreAfter = viewType === 'resourceTimeGridDay';
+                if (!skipStoreAfter && selectedConsultantId) {
+                    var eff = getEffectiveMemberDayWindow(day, selectedConsultantId);
+                    if (eff && timeStrToMinutes(eff.end) > timeStrToMinutes(cfg.end)) {
+                        skipStoreAfter = true;
+                    }
+                }
+                if (!skipStoreAfter && cfg.end && cfg.end < grid.end) {
                     out.push({
                         id: baseId + '|after',
                         start: ymd + 'T' + cfg.end + ':00',
@@ -555,6 +561,53 @@ document.addEventListener('DOMContentLoaded', function() {
         if (p.length < 2) return 0;
         return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
     }
+    function minutesToTimeStr(mins) {
+        var h = Math.floor(mins / 60);
+        var m = mins % 60;
+        return pad2(h) + ':' + pad2(m);
+    }
+    function getMemberDayConfig(d, userId) {
+        if (!userId || !C.memberWeeklySchedules) return null;
+        var sched = C.memberWeeklySchedules[String(userId)];
+        if (!sched) return null;
+        if (!(d instanceof Date) || isNaN(d.getTime())) return null;
+        var key = weekKeyFromDate(d);
+        var cfg = sched[key];
+        if (!cfg || !parseScheduleDayEnabled(cfg.enabled)) return null;
+
+        return {
+            start: cfg.start || DEFAULT_STORE_DAY.start,
+            end: cfg.end || DEFAULT_STORE_DAY.end,
+        };
+    }
+    function getEffectiveMemberDayWindow(d, userId) {
+        var storeWin = getStoreDayWindowStrings(d);
+        var memberCfg = getMemberDayConfig(d, userId);
+        if (!storeWin) return null;
+        if (!memberCfg) return storeWin;
+        var storeStartM = timeStrToMinutes(storeWin.start);
+        var storeEndM = timeStrToMinutes(storeWin.end);
+        var memberStartM = timeStrToMinutes(memberCfg.start);
+        var memberEndM = timeStrToMinutes(memberCfg.end);
+        var startM = Math.max(storeStartM, memberStartM);
+        var endM = memberEndM > storeEndM ? memberEndM : Math.min(storeEndM, memberEndM);
+
+        return {
+            start: minutesToTimeStr(startM),
+            end: minutesToTimeStr(endM),
+        };
+    }
+    function isOutsideEffectiveHoursAtDate(d, userId) {
+        if (!(d instanceof Date) || isNaN(d.getTime())) return false;
+        if (!userId || !C.memberWeeklySchedules || !C.memberWeeklySchedules[String(userId)]) {
+            return isOutsideStoreHoursAtDate(d);
+        }
+        var eff = getEffectiveMemberDayWindow(d, userId);
+        if (!eff) return true;
+        var mins = getMinutesFromDate(d);
+
+        return mins < timeStrToMinutes(eff.start) || mins >= timeStrToMinutes(eff.end);
+    }
     function isOutsideMemberWindowAtInstant(d, userId) {
         if (!userId || !C.memberWeeklySchedules) return false;
         var sched = C.memberWeeklySchedules[String(userId)];
@@ -605,16 +658,31 @@ document.addEventListener('DOMContentLoaded', function() {
         var endM = getMinutesFromDate(end);
         return startM < sm || endM > em;
     }
+    function intersectsOutsideEffectiveHours(start, end, userId) {
+        if (!(start instanceof Date) || isNaN(start.getTime())) return false;
+        if (!(end instanceof Date) || isNaN(end.getTime())) {
+            return isOutsideEffectiveHoursAtDate(start, userId);
+        }
+        if (end.getTime() < start.getTime()) return true;
+        if (start.toDateString() !== end.toDateString()) return true;
+        if (end.getTime() === start.getTime()) {
+            return isOutsideEffectiveHoursAtDate(start, userId);
+        }
+        var eff = getEffectiveMemberDayWindow(start, userId);
+        if (!eff) return true;
+        var startM = getMinutesFromDate(start);
+        var endM = getMinutesFromDate(end);
+
+        return startM < timeStrToMinutes(eff.start) || endM > timeStrToMinutes(eff.end);
+    }
     function shouldWarnOutOfHours(start, end, userId) {
         if (!(start instanceof Date) || isNaN(start.getTime())) return false;
         var endUse = (end instanceof Date) && !isNaN(end.getTime()) ? end : start;
-        if (isOutsideStoreHoursAtDate(start) || isOutsideStoreHoursAtDate(endUse)) return true;
-        if (userId && (isOutsideMemberWindowAtInstant(start, userId) || isOutsideMemberWindowAtInstant(endUse, userId))) {
-            return true;
+        if (userId && C.memberWeeklySchedules && C.memberWeeklySchedules[String(userId)]) {
+            return intersectsOutsideEffectiveHours(start, endUse, userId);
         }
-        if (intersectsOutsideStoreHours(start, endUse)) return true;
 
-        return intersectsOutsideMemberHours(start, endUse, userId);
+        return intersectsOutsideStoreHours(start, endUse);
     }
     function agendaOcReadDateStr(dateInputId, fpInstance) {
         var dateIn = $id(dateInputId);
@@ -7891,7 +7959,10 @@ document.addEventListener('DOMContentLoaded', function() {
         slotLaneDidMount: function(arg) {
             if (arg.el && arg.date) {
                 arg.el.setAttribute('data-slot-date', arg.date.toISOString());
-                arg.el.classList.toggle('agenda-slot-outside-hours', isOutsideStoreHoursAtDate(arg.date));
+                var uid = resolveSlotUserId(arg);
+                arg.el.classList.toggle('agenda-slot-outside-hours', uid
+                    ? isOutsideEffectiveHoursAtDate(arg.date, uid)
+                    : isOutsideStoreHoursAtDate(arg.date));
             }
         },
         dayCellClassNames: function(arg) {
@@ -7915,7 +7986,10 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         slotLaneClassNames: function(arg) {
             var out = [];
-            if (isOutsideStoreHoursAtDate(arg.date)) out.push('agenda-slot-outside-hours');
+            var uid = resolveSlotUserId(arg);
+            if (uid ? isOutsideEffectiveHoursAtDate(arg.date, uid) : isOutsideStoreHoursAtDate(arg.date)) {
+                out.push('agenda-slot-outside-hours');
+            }
             if (isNationalHolidayPtAtDate(arg.date)) out.push('agenda-slot-holiday');
 
             return out;

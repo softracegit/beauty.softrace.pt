@@ -5,11 +5,11 @@ namespace App\Notifications;
 use App\Models\CalendarEvent;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
+use App\Support\DateTimeDisplay;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Carbon;
 
 class AppointmentNotification extends Notification implements ShouldQueue
 {
@@ -154,23 +154,15 @@ class AppointmentNotification extends Notification implements ShouldQueue
 
     private function formatStartLine(CalendarEvent $event): string
     {
-        $tz = config('app.timezone');
-        if (! $event->start_at) {
-            return 'Início: —';
-        }
-        $start = Carbon::parse($event->start_at)->timezone($tz)->format('d/m/Y H:i');
+        $start = DateTimeDisplay::marcacao($event->start_at, $event->store_id);
 
-        return "Início: {$start}";
+        return 'Início: '.$start;
     }
 
     private function formatEndLine(CalendarEvent $event): string
     {
-        $tz = config('app.timezone');
-        if (! $event->end_at) {
-            return 'Fim: —';
-        }
-        $end = Carbon::parse($event->end_at)->timezone($tz)->format('d/m/Y H:i');
+        $end = DateTimeDisplay::marcacao($event->end_at, $event->store_id);
 
-        return "Fim: {$end}";
+        return 'Fim: '.$end;
     }
 }

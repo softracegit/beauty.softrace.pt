@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CalendarEvent;
+use App\Support\DateTimeDisplay;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -33,23 +34,22 @@ class ClientAppointmentRescheduledNotification extends Notification implements S
             ->with(['client', 'service', 'eventServices', 'store'])
             ->findOrFail($this->calendarEventId);
 
-        $tz = config('app.timezone');
+        $storeId = (int) ($event->store_id ?? 0) ?: null;
         $clientName = $event->client?->name ?? '';
         $greetingName = $clientName !== '' ? explode(' ', trim($clientName), 2)[0] : '';
 
-        $fmt = function (?Carbon $dt) use ($tz): string {
-            if (! $dt) {
-                return '—';
-            }
-
-            return $dt->timezone($tz)->format('d/m/Y \à\s H:i');
+        $fmt = function ($dateTime) use ($storeId): string {
+            return DateTimeDisplay::marcacao(
+                $dateTime instanceof Carbon ? $dateTime : ($dateTime ? Carbon::parse($dateTime) : null),
+                $storeId,
+                'd/m/Y \à\s H:i',
+            );
         };
 
-        $newStart = $event->start_at ? $fmt(Carbon::parse($event->start_at)) : '—';
-        $newEnd = $event->end_at ? $fmt(Carbon::parse($event->end_at)) : '—';
-
-        $prevStart = $this->previousStartIso ? $fmt(Carbon::parse($this->previousStartIso)) : '—';
-        $prevEnd = $this->previousEndIso ? $fmt(Carbon::parse($this->previousEndIso)) : '—';
+        $newStart = $fmt($event->start_at);
+        $newEnd = $fmt($event->end_at);
+        $prevStart = $fmt($this->previousStartIso);
+        $prevEnd = $fmt($this->previousEndIso);
 
         $services = $event->eventServices->isNotEmpty()
             ? $event->eventServices
