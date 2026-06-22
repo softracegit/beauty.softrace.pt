@@ -123,6 +123,19 @@ class CategoryController extends Controller
      */
     public function destroy(Request $request, Category $category)
     {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->canDeleteCatalogServicesAndCategories()) {
+            if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sem permissão para eliminar categorias.',
+                ], 403);
+            }
+
+            return redirect()->route('services.index')
+                ->with('error', 'Sem permissão para eliminar categorias.');
+        }
+
         // Check if category has services
         if ($category->services()->count() > 0) {
             if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {

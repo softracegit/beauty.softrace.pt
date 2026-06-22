@@ -231,6 +231,14 @@ class User extends Authenticatable
         return $this->hasRole(self::ROLE_ADMIN);
     }
 
+    /**
+     * Excepção temporária: só o administrador principal (id 1) pode eliminar serviços/categorias.
+     */
+    public function canDeleteCatalogServicesAndCategories(): bool
+    {
+        return (int) $this->id === 1 && $this->isAdmin();
+    }
+
     public function isRececao(): bool
     {
         return $this->hasRole(self::ROLE_RECECAO);

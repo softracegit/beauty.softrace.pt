@@ -174,6 +174,9 @@
 </style>
 @endsection
 @section('content')
+@php
+    $canDeleteCatalog = auth()->user()?->canDeleteCatalogServicesAndCategories() ?? false;
+@endphp
 
 @if (session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -252,7 +255,7 @@
         </div>
 
         <!-- Services List -->
-        <div class="services-list-container" id="servicesListContainer" data-selected-category-id="{{ $selectedCategory ? $selectedCategory->id : 'all' }}">
+        <div class="services-list-container" id="servicesListContainer" data-selected-category-id="{{ $selectedCategory ? $selectedCategory->id : 'all' }}" data-can-delete-catalog="{{ $canDeleteCatalog ? '1' : '0' }}">
             @if($selectedCategory)
                 <div class="services-category-header mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2" data-category-id="{{ $selectedCategory->id }}">
                     <h5 class="mb-0 services-category-title">{{ $selectedCategory->name }}</h5>
@@ -263,8 +266,10 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item category-header-edit-btn" href="#"><i class="ph ph-pencil-simple me-2"></i>Editar</a></li>
                             <li><a class="dropdown-item category-header-add-service-btn" href="#"><i class="ph ph-plus me-2"></i>Adicionar serviço</a></li>
+                            @if($canDeleteCatalog)
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-trash me-2"></i>Eliminar</a></li>
+                            @endif
                         </ul>
                     </div>
                 </div>
@@ -281,8 +286,10 @@
                                 <ul class="dropdown-menu dropdown-menu-end">
                                     <li><a class="dropdown-item category-header-edit-btn" href="#"><i class="ph ph-pencil-simple me-2"></i>Editar</a></li>
                                     <li><a class="dropdown-item category-header-add-service-btn" href="#"><i class="ph ph-plus me-2"></i>Adicionar serviço</a></li>
+                                    @if($canDeleteCatalog)
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-trash me-2"></i>Eliminar</a></li>
+                                    @endif
                                 </ul>
                             </div>
                         </div>
@@ -653,9 +660,11 @@
                     @endif
                 </div>
                 <div class="modal-footer">
+                    @if($canDeleteCatalog)
                     <button type="button" class="btn btn-outline-danger me-auto" id="editServiceDeleteBtn">
                         <i class="ph ph-trash me-1"></i>Eliminar
                     </button>
+                    @endif
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary">Guardar</button>
                 </div>

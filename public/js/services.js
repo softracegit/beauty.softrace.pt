@@ -6,6 +6,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const container = document.getElementById('servicesListContainer');
+    const canDeleteCatalog = container?.getAttribute('data-can-delete-catalog') === '1';
     let selectedCategoryId = container?.getAttribute('data-selected-category-id') || document.querySelector('.contacts-group-item.active[data-category-id]')?.getAttribute('data-category-id') || 'all';
     if (selectedCategoryId === '') selectedCategoryId = 'all';
     let servicesDrake = null;       // vista de uma categoria (#servicesList)
@@ -20,6 +21,16 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    function categoryDeleteDropdownHtml() {
+        if (!canDeleteCatalog) {
+            return '';
+        }
+
+        return `
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-trash me-2"></i>Eliminar</a></li>`;
     }
 
     function addModalHasOptions() {
@@ -652,6 +663,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (e.target.closest('.category-header-delete-btn')) {
                 e.preventDefault();
+                if (!canDeleteCatalog) {
+                    showToast('Sem permissão para eliminar categorias.', 'error');
+                    return;
+                }
                 if (!confirm('Tem certeza que deseja eliminar esta categoria? Os serviços da categoria também serão afetados.')) return;
                 fetch(`/categories/${categoryId}`, {
                     method: 'DELETE',
@@ -723,8 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <ul class="dropdown-menu dropdown-menu-end">
                                         <li><a class="dropdown-item category-header-edit-btn" href="#"><i class="ph ph-pencil-simple me-2"></i>Editar</a></li>
                                         <li><a class="dropdown-item category-header-add-service-btn" href="#"><i class="ph ph-plus me-2"></i>Adicionar serviço</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-trash me-2"></i>Eliminar</a></li>
+                                        ${categoryDeleteDropdownHtml()}
                                     </ul>
                                 </div>
                             </div>
@@ -766,8 +780,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item category-header-edit-btn" href="#"><i class="ph ph-pencil-simple me-2"></i>Editar</a></li>
                             <li><a class="dropdown-item category-header-add-service-btn" href="#"><i class="ph ph-plus me-2"></i>Adicionar serviço</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-trash me-2"></i>Eliminar</a></li>
+                            ${categoryDeleteDropdownHtml()}
                         </ul>
                     </div>
                 </div>
@@ -1347,6 +1360,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function deleteServiceById(serviceId) {
+        if (!canDeleteCatalog) {
+            showToast('Sem permissão para eliminar serviços.', 'error');
+            return;
+        }
+
         fetch(`/services/${serviceId}`, {
             method: 'DELETE',
             headers: {
@@ -1355,9 +1373,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 Accept: 'application/json',
             },
         })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok && data.success) {
                     showToast(data.message, 'success');
                     bootstrap.Modal.getOrCreateInstance(document.getElementById('editServiceModal')).hide();
                     refreshAfterServiceChange();

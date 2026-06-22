@@ -171,6 +171,14 @@ class ServiceController extends Controller
      */
     public function destroy(Service $service): JsonResponse
     {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->canDeleteCatalogServicesAndCategories()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sem permissão para eliminar serviços.',
+            ], 403);
+        }
+
         $service->delete();
 
         return response()->json([
