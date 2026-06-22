@@ -6,7 +6,7 @@ use App\Models\CalendarEvent;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
 use App\Support\DateTimeDisplay;
-use App\Support\StoreNotificationMail;
+use App\Support\ReceptionNotificationMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -18,16 +18,22 @@ class AppointmentNotification extends Notification implements ShouldQueue
 
     /**
      * @param  bool  $fromPublicBooking  Marcação em /booking: mailer "booking" (sem redirecionamento mail.to em local/staging).
+     * @param  bool  $forReception  Cópia interna para receção: só sininho (email via CC nos envios principais).
      */
     public function __construct(
         public int $calendarEventId,
         public string $type,
         public ?string $previousStatus = null,
         public bool $fromPublicBooking = false,
+        public bool $forReception = false,
     ) {}
 
     public function via(object $notifiable): array
     {
+        if ($this->forReception) {
+            return ['database'];
+        }
+
         if ($this->type === 'status_changed') {
             return ['database'];
         }
@@ -45,6 +51,10 @@ class AppointmentNotification extends Notification implements ShouldQueue
      */
     public function shouldSend(object $notifiable, string $channel): bool
     {
+        if ($this->forReception) {
+            return $channel === 'database';
+        }
+
         if ($this->type === 'status_changed' && $channel === 'mail') {
             return false;
         }
@@ -95,7 +105,11 @@ class AppointmentNotification extends Notification implements ShouldQueue
 
         if (in_array($this->type, ['assigned', 'reassigned', 'rescheduled'], true)) {
             $primaryEmail = $notifiable instanceof User ? (string) ($notifiable->email ?? '') : '';
-            StoreNotificationMail::applyStoreCc($mail, $event, $primaryEmail);
+            ReceptionNotificationMail::applyReceptionCc(
+                $mail,
+                $event,
+                $primaryEmail !== '' ? [$primaryEmail] : [],
+            );
         }
 
         return $mail;
@@ -110,6 +124,16 @@ class AppointmentNotification extends Notification implements ShouldQueue
 
     private function buildTitle(CalendarEvent $event): string
     {
+        if ($this->forReception) {
+            return match ($this->type) {
+                'assigned' => 'Nova marcação na loja',
+                'reassigned' => 'Marcação transferida',
+                'rescheduled' => 'Marcação reagendada',
+                'status_changed' => 'Estado da marcação atualizado',
+                default => 'Atualização na agenda',
+            };
+        }
+
         return match ($this->type) {
             'assigned' => 'Nova marcação atribuída a si',
             'reassigned' => 'Marcação transferida para si',
@@ -131,6 +155,16 @@ class AppointmentNotification extends Notification implements ShouldQueue
                 })
                 ->implode(', ')
             : ($event->service?->name ?? 'Serviço não indicado');
+
+        if ($this->forReception) {
+            return match ($this->type) {
+                'assigned' => "Nova marcação: {$client} ({$services}).",
+                'reassigned' => "Marcação transferida: {$client} ({$services}).",
+                'rescheduled' => "A data ou hora da marcação de {$client} ({$services}) foi alterada.",
+                'status_changed' => $this->buildStatusChangedBody($event, $client),
+                default => "Marcação ({$client}) — {$services}.",
+            };
+        }
 
         return match ($this->type) {
             'assigned' => "Foi-lhe atribuída uma marcação: {$client} ({$services}).",

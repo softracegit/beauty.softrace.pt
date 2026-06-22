@@ -27,6 +27,7 @@ use App\Services\CancellationPolicyService;
 use App\Services\CashRegisterService;
 use App\Services\ClientWalletService;
 use App\Services\MarcacaoServicesActivityLogger;
+use App\Services\ReceptionBookingNotifier;
 use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
 use Carbon\Carbon;
@@ -47,6 +48,7 @@ class CalendarController extends Controller
         private AgendaSameDayPayableService $sameDayPayableService,
         private CashRegisterService $cashRegisterService,
         private MarcacaoServicesActivityLogger $servicesActivityLogger,
+        private ReceptionBookingNotifier $receptionBookingNotifier,
     ) {}
 
     /**
@@ -2035,20 +2037,23 @@ class CalendarController extends Controller
             return;
         }
         $user = User::find($userId);
-        if (! $user || auth()->id() === $user->id) {
-            return;
+        if ($user && auth()->id() !== $user->id) {
+            try {
+                $user->notify(new AppointmentNotification($event->id, $type, $previousStatus));
+            } catch (\Throwable $e) {
+                // Falha de email/notificação não deve bloquear criação/edição da marcação.
+                \Log::warning('Falha ao enviar notificação de marcação.', [
+                    'calendar_event_id' => $event->id,
+                    'recipient_user_id' => $user->id,
+                    'type' => $type,
+                    'previous_status' => $previousStatus,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
-        try {
-            $user->notify(new AppointmentNotification($event->id, $type, $previousStatus));
-        } catch (\Throwable $e) {
-            // Falha de email/notificação não deve bloquear criação/edição da marcação.
-            \Log::warning('Falha ao enviar notificação de marcação.', [
-                'calendar_event_id' => $event->id,
-                'recipient_user_id' => $user->id,
-                'type' => $type,
-                'previous_status' => $previousStatus,
-                'error' => $e->getMessage(),
-            ]);
+
+        if (in_array($type, ['assigned', 'reassigned', 'rescheduled'], true)) {
+            $this->receptionBookingNotifier->notify($event, $type, $previousStatus);
         }
     }
 

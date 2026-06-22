@@ -12,6 +12,7 @@ use App\Models\ServiceOption;
 use App\Models\Store;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
+use App\Services\ReceptionBookingNotifier;
 use App\Support\ApplicableFees;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
@@ -33,6 +34,9 @@ use Illuminate\Validation\ValidationException;
  */
 class OnlineBookingCheckoutService
 {
+    public function __construct(
+        private ReceptionBookingNotifier $receptionBookingNotifier,
+    ) {}
     /**
      * Laravel validation rules shared by the payment-intent and finalize steps.
      *
@@ -774,6 +778,7 @@ class OnlineBookingCheckoutService
             if ($recipient) {
                 $recipient->notify(new AppointmentNotification($event->id, 'assigned', null, fromPublicBooking: true));
             }
+            $this->receptionBookingNotifier->notify($event, 'assigned', null, fromPublicBooking: true);
         } catch (\Throwable $e) {
             \Log::warning('Marcação online: falha ao notificar técnica.', [
                 'calendar_event_id' => $event->id,
