@@ -3,14 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Agent;
+use App\Models\CalendarEvent;
 use App\Models\Category;
 use App\Models\Note;
+use App\Models\Sale;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\VendasReportService;
 use App\Support\CurrentStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -147,7 +151,7 @@ class AgentController extends Controller
     /**
      * Display the specified agent.
      */
-    public function show(Agent $agente)
+    public function show(Agent $agente, VendasReportService $vendasReportService)
     {
         $this->authorize('view', $agente);
 
@@ -200,38 +204,50 @@ class AgentController extends Controller
                 ->limit(100)
                 ->get();
 
-            $today = now()->startOfDay();
-            $vendas = \App\Models\CalendarEvent::forStore(current_store_id())->where('user_id', $agente->user_id)
-                ->where('event_type', \App\Models\CalendarEvent::TYPE_MARCACAO)
-                ->where('status', '!=', \App\Models\CalendarEvent::STATUS_CANCELADO)
-                ->where('start_at', '<', $today)
-                ->with(['client', 'eventServiceItems.service', 'eventServiceItems.extras.extra'])
-                ->orderByDesc('start_at')
-                ->get()
-                ->flatMap(function ($event) {
-                    $lines = [];
-                    foreach ($event->eventServiceItems as $es) {
-                        $lines[] = (object) [
-                            'data' => $event->start_at,
-                            'cliente' => $event->client?->name ?? '—',
-                            'servico' => $es->service?->name ?? '—',
-                            'quantidade' => 1,
-                            'preco' => (float) $es->price,
-                            'tipo' => 'servico',
-                        ];
-                        foreach ($es->extras ?? [] as $extra) {
-                            $lines[] = (object) [
-                                'data' => $event->start_at,
-                                'cliente' => $event->client?->name ?? '—',
-                                'servico' => $extra->extra?->name ?? '—',
-                                'quantidade' => 1,
-                                'preco' => (float) $extra->price,
-                                'tipo' => 'extra',
-                            ];
-                        }
-                    }
+            $sales = Sale::query()
+                ->where('store_id', current_store_id())
+                ->where('status', Sale::STATUS_PAGO)
+                ->whereIn('invoice_status', [Sale::INVOICE_STATUS_FATURADO, Sale::INVOICE_STATUS_RASCUNHO])
+                ->whereHas('calendarEvent', function (Builder $cq): void {
+                    $cq->where('store_id', current_store_id())
+                        ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                        ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
+                })
+                ->where(function (Builder $outer) use ($agente): void {
+                    $userId = (int) $agente->user_id;
+                    $outer->whereHas('calendarEvent', fn (Builder $cq): Builder => $cq
+                        ->where('store_id', current_store_id())
+                        ->where('user_id', $userId))
+                        ->orWhereHas('items.calendarEventService.event', fn (Builder $cq): Builder => $cq
+                            ->where('store_id', current_store_id())
+                            ->where('user_id', $userId));
+                })
+                ->with([
+                    'client',
+                    'calendarEvent.user',
+                    'items.service',
+                    'items.extra',
+                    'items.calendarEventService.event.user',
+                    'settledEvents',
+                ])
+                ->orderByDesc('data_emissao')
+                ->orderByDesc('id')
+                ->limit(300)
+                ->get();
 
-                    return $lines;
+            $vendas = $vendasReportService
+                ->resumoCollection($sales, null, (string) $agente->user_id)
+                ->map(function (object $linha): object {
+                    $servico = trim((string) ($linha->servico_nomes ?? $linha->servico ?? '—'));
+
+                    return (object) [
+                        'data' => $linha->data,
+                        'cliente' => $linha->cliente,
+                        'servico' => $servico !== '' ? $servico : '—',
+                        'quantidade' => (int) $linha->quantidade,
+                        'preco' => (float) $linha->valor,
+                        'tipo' => 'servico',
+                    ];
                 });
         }
 

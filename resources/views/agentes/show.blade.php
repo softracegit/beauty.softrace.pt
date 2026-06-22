@@ -292,7 +292,7 @@
                                     @foreach($vendas as $linha)
                                         @php $totalVendas += $linha->preco * $linha->quantidade; @endphp
                                         <tr>
-                                            <td>{{ $linha->data->format('d/m/Y H:i') }}</td>
+                                            <td>{{ $linha->data ? \Carbon\Carbon::parse($linha->data)->format('d/m/Y') : '—' }}</td>
                                             <td>{{ $linha->cliente }}</td>
                                             <td>
                                                 {{ $linha->servico }}
