@@ -6,6 +6,7 @@ use App\Models\CalendarEvent;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
 use App\Support\DateTimeDisplay;
+use App\Support\StoreNotificationMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -92,13 +93,18 @@ class AppointmentNotification extends Notification implements ShouldQueue
             $mail->mailer('booking');
         }
 
+        if (in_array($this->type, ['assigned', 'reassigned', 'rescheduled'], true)) {
+            $primaryEmail = $notifiable instanceof User ? (string) ($notifiable->email ?? '') : '';
+            StoreNotificationMail::applyStoreCc($mail, $event, $primaryEmail);
+        }
+
         return $mail;
     }
 
     private function loadEvent(): CalendarEvent
     {
         return CalendarEvent::query()
-            ->with(['client', 'service', 'eventServices'])
+            ->with(['client', 'service', 'eventServices', 'store'])
             ->findOrFail($this->calendarEventId);
     }
 

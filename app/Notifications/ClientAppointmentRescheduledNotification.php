@@ -4,6 +4,7 @@ namespace App\Notifications;
 
 use App\Models\CalendarEvent;
 use App\Support\DateTimeDisplay;
+use App\Support\StoreNotificationMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -75,6 +76,8 @@ class ClientAppointmentRescheduledNotification extends Notification implements S
         if (is_string($storeSlug) && $storeSlug !== '') {
             $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
         }
+
+        StoreNotificationMail::applyStoreCc($mail, $event, (string) ($event->client?->email ?? ''));
 
         return $mail->salutation(config('app.name'));
     }
