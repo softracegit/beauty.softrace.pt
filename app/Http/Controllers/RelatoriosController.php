@@ -324,12 +324,12 @@ class RelatoriosController extends Controller
     public function vendas(Request $request): View
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
 
-        $allLines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'));
+        $allLines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'), $request->get('vendas_tecnico'));
 
         $page = max(1, (int) $request->get('page', 1));
         $perPage = 100;
@@ -371,12 +371,12 @@ class RelatoriosController extends Controller
     public function vendasExport(Request $request): StreamedResponse
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
 
-        $lines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'));
+        $lines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'), $request->get('vendas_tecnico'));
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
@@ -463,12 +463,12 @@ class RelatoriosController extends Controller
     public function vendasPdf(Request $request)
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
 
-        $lines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'));
+        $lines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'), $request->get('vendas_tecnico'));
 
         $pdf = Pdf::loadView('relatorios.pdf.vendas', [
             'linhas' => $lines,
@@ -540,9 +540,9 @@ class RelatoriosController extends Controller
     /**
      * @return Collection<int, object>
      */
-    private function vendasResumoCollection(Collection $sales, ?string $vendasServico): Collection
+    private function vendasResumoCollection(Collection $sales, ?string $vendasServico, ?string $vendasTecnico = null): Collection
     {
-        return $this->vendasReportService->resumoCollection($sales, $vendasServico);
+        return $this->vendasReportService->resumoCollection($sales, $vendasServico, $vendasTecnico);
     }
 
     private function vendasClientesOpts(): Collection

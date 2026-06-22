@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\CalendarEvent;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Support\SaleTechnicianAttribution;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -119,7 +120,8 @@ class FinancialDashboardService
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             })
-            ->get(['id', 'total', 'gorjeta', 'desconto', 'calendar_event_id', 'client_id']);
+            ->with(['items.calendarEventService.event', 'calendarEvent'])
+            ->get();
     }
 
     private function taxasForSales(int $storeId, Collection $saleIds): float
@@ -172,27 +174,18 @@ class FinancialDashboardService
      */
     private function topTecnicas(int $storeId, Carbon $start, Carbon $end): Collection
     {
-        return DB::table('sales')
-            ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
-            ->join('users', 'calendar_events.user_id', '=', 'users.id')
-            ->where('sales.store_id', $storeId)
-            ->where('calendar_events.store_id', $storeId)
-            ->where('sales.status', Sale::STATUS_PAGO)
-            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereDate('sales.data_emissao', '>=', $start->toDateString())
-            ->whereDate('sales.data_emissao', '<=', $end->toDateString())
-            ->groupBy('users.id', 'users.name')
-            ->selectRaw('users.id as user_id, users.name as nome, sum(sales.total) as receita, count(*) as num_faturas')
-            ->orderByDesc('receita')
-            ->limit(5)
-            ->get()
-            ->map(fn ($row) => (object) [
-                'user_id' => (int) $row->user_id,
-                'nome' => (string) $row->nome,
-                'receita' => round((float) $row->receita, 2),
-                'num_faturas' => (int) $row->num_faturas,
-            ]);
+        $attributed = $this->receitaAtribuidaPorTecnica($storeId, $start, $end);
+
+        return $attributed
+            ->map(fn (object $row) => (object) [
+                'user_id' => $row->user_id,
+                'nome' => $row->nome,
+                'receita' => $row->receita,
+                'num_faturas' => $row->num_faturas,
+            ])
+            ->sortByDesc('receita')
+            ->take(5)
+            ->values();
     }
 
     /**
@@ -230,41 +223,26 @@ class FinancialDashboardService
      */
     private function comissoesEstimadasPorTecnica(int $storeId, Carbon $start, Carbon $end): Collection
     {
-        $rows = DB::table('sales')
-            ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
-            ->join('users', 'calendar_events.user_id', '=', 'users.id')
-            ->leftJoin('agents', function ($join) use ($storeId) {
-                $join->on('agents.user_id', '=', 'users.id')
-                    ->where('agents.store_id', '=', $storeId);
-            })
-            ->where('sales.store_id', $storeId)
-            ->where('calendar_events.store_id', $storeId)
-            ->where('sales.status', Sale::STATUS_PAGO)
-            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereDate('sales.data_emissao', '>=', $start->toDateString())
-            ->whereDate('sales.data_emissao', '<=', $end->toDateString())
-            ->groupBy('users.id', 'users.name', 'agents.commission_rate', 'agents.commission_unit')
-            ->selectRaw('users.id as user_id, users.name as nome, agents.commission_rate, agents.commission_unit, sum(sales.total) as receita, count(*) as num_faturas')
-            ->orderByDesc('receita')
-            ->get();
+        $attributed = $this->receitaAtribuidaPorTecnica($storeId, $start, $end);
+        $agentRates = Agent::query()
+            ->where('store_id', $storeId)
+            ->whereIn('user_id', $attributed->pluck('user_id')->all())
+            ->get(['user_id', 'commission_rate', 'commission_unit'])
+            ->keyBy('user_id');
 
-        return $rows->map(function ($row) {
+        return $attributed->map(function (object $row) use ($agentRates) {
+            $agent = $agentRates->get($row->user_id);
+            $rate = $agent?->commission_rate;
+            $unit = $agent?->commission_unit;
             $receita = round((float) $row->receita, 2);
-            $comissao = $this->estimateCommission(
-                $receita,
-                (int) $row->num_faturas,
-                $row->commission_rate,
-                $row->commission_unit
-            );
+            $comissao = $this->estimateCommission($receita, (int) $row->num_faturas, $rate, $unit);
 
             $taxa = null;
-            if ($row->commission_rate !== null) {
-                $agent = new Agent([
-                    'commission_rate' => $row->commission_rate,
-                    'commission_unit' => $row->commission_unit,
-                ]);
-                $taxa = $agent->formatCommissionDisplay();
+            if ($rate !== null) {
+                $taxa = (new Agent([
+                    'commission_rate' => $rate,
+                    'commission_unit' => $unit,
+                ]))->formatCommissionDisplay();
             }
 
             return (object) [
@@ -276,6 +254,45 @@ class FinancialDashboardService
                 'num_faturas' => (int) $row->num_faturas,
             ];
         })->sortByDesc('comissao')->values();
+    }
+
+    /**
+     * Receita por técnica com repartição de vendas consolidadas (itens → marcação → user_id).
+     *
+     * @return Collection<int, object{user_id: int, nome: string, receita: float, num_faturas: int}>
+     */
+    private function receitaAtribuidaPorTecnica(int $storeId, Carbon $start, Carbon $end): Collection
+    {
+        $sales = $this->paidSalesBetween($storeId, $start, $end);
+        $byUser = [];
+
+        foreach ($sales as $sale) {
+            foreach (SaleTechnicianAttribution::slicesForSale($sale) as $slice) {
+                $userId = (int) ($slice['user_id'] ?? 0);
+                if ($userId <= 0) {
+                    continue;
+                }
+
+                $byUser[$userId] ??= [
+                    'user_id' => $userId,
+                    'nome' => (string) $slice['user_name'],
+                    'receita' => 0.0,
+                    'sale_ids' => [],
+                ];
+                $byUser[$userId]['receita'] += (float) $slice['valor'] + (float) $slice['taxas'];
+                $byUser[$userId]['sale_ids'][(int) $sale->id] = true;
+            }
+        }
+
+        return collect($byUser)
+            ->map(fn (array $row) => (object) [
+                'user_id' => $row['user_id'],
+                'nome' => $row['nome'],
+                'receita' => round($row['receita'], 2),
+                'num_faturas' => count($row['sale_ids']),
+            ])
+            ->sortByDesc('receita')
+            ->values();
     }
 
     private function estimateCommission(float $receita, int $numFaturas, mixed $rate, mixed $unit): float

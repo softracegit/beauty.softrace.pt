@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Service;
 use App\Support\ApplicableFees;
+use App\Support\SaleTechnicianAttribution;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -63,7 +64,14 @@ class VendasReportService
             });
         }
         if ($tecnico) {
-            $q->whereHas('calendarEvent', fn (Builder $cq) => $cq->where('store_id', current_store_id())->where('user_id', $tecnico));
+            $q->where(function (Builder $outer) use ($tecnico): void {
+                $outer->whereHas('calendarEvent', fn (Builder $cq) => $cq
+                    ->where('store_id', current_store_id())
+                    ->where('user_id', $tecnico))
+                    ->orWhereHas('items.calendarEventService.event', fn (Builder $cq) => $cq
+                        ->where('store_id', current_store_id())
+                        ->where('user_id', $tecnico));
+            });
         }
 
         return $q;
@@ -123,56 +131,65 @@ class VendasReportService
     }
 
     /**
-     * Uma linha por venda, agregando os serviços executados (sem extras).
+     * Uma linha por técnica/marcação na venda (vendas consolidadas geram várias linhas, mesma fatura).
      *
      * @return Collection<int, object>
      */
-    public function resumoCollection(Collection $sales, ?string $vendasServico): Collection
+    public function resumoCollection(Collection $sales, ?string $vendasServico, ?string $vendasTecnico = null): Collection
     {
         $servicoFilter = $vendasServico !== null && $vendasServico !== '' ? (int) $vendasServico : null;
+        $tecnicoFilter = $vendasTecnico !== null && $vendasTecnico !== '' ? (int) $vendasTecnico : null;
 
-        return $sales->map(function (Sale $sale) use ($servicoFilter) {
-            $serviceItems = $sale->items
-                ->where('tipo', SaleItem::TIPO_SERVICO)
-                ->when($servicoFilter, fn ($c) => $c->where('service_id', $servicoFilter))
-                ->values();
-            if ($serviceItems->isEmpty()) {
-                return null;
+        return $sales->flatMap(function (Sale $sale) use ($servicoFilter, $tecnicoFilter) {
+            $slices = SaleTechnicianAttribution::slicesForSale($sale, $servicoFilter, $tecnicoFilter);
+            if ($slices->isEmpty()) {
+                return [];
             }
 
-            $serviceLabels = $serviceItems
-                ->map(fn (SaleItem $item) => $this->serviceLabelForSaleItem($item))
-                ->filter(fn (?string $label) => $label !== null && trim($label) !== '')
-                ->values();
-
-            $event = $sale->calendarEvent;
             $client = $sale->client;
 
-            return (object) [
-                'sale' => $sale,
-                'sale_id' => $sale->id,
-                'sale_status' => $sale->status,
-                'is_anulado' => $sale->isAnulado(),
-                'credit_note_pdf_url' => $sale->hasCreditNote() ? route('sales.credit-note.pdf', $sale) : null,
-                'invoice_status' => $sale->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
-                'data' => $sale->data_emissao,
-                'numero_fatura' => $sale->numero_fatura,
-                'cliente' => $client?->name ?? '—',
-                'nif' => $client?->nif ?? '',
-                'tecnico' => $event?->user?->name ?? '—',
-                ...$this->servicoColunaForSale($sale, $serviceLabels),
-                'quantidade' => (int) $serviceItems->count(),
-                'valor' => $this->valorLinhaForSale($sale, $serviceItems),
-                'taxas' => (float) $sale->items
-                    ->where('tipo', SaleItem::TIPO_TAXA)
-                    ->sum(fn (SaleItem $item) => (float) $item->subtotal),
-                'tipo_item' => 'resumo',
-                'desconto' => (float) ($sale->desconto ?? 0),
-                'gorjeta' => (float) ($sale->gorjeta ?? 0),
-                'pendente' => $this->pendenteForSale($sale),
-                'calendar_event_id' => $sale->calendar_event_id,
-            ];
-        })->filter()->values();
+            return $slices->map(function (array $slice) use ($sale, $client) {
+                /** @var Collection<int, SaleItem> $serviceItems */
+                $serviceItems = $slice['service_items'];
+                $serviceLabels = $serviceItems
+                    ->map(fn (SaleItem $item) => $this->serviceLabelForSaleItem($item))
+                    ->filter(fn (?string $label) => $label !== null && trim($label) !== '')
+                    ->values();
+
+                $subtitulo = $sale->scope === Sale::SCOPE_CAIXA_LIQUIDACAO ? 'Pagamento em loja' : null;
+                if ($slice['is_consolidated']) {
+                    $subtitulo = $subtitulo !== null
+                        ? $subtitulo.' · venda consolidada'
+                        : 'Venda consolidada';
+                }
+
+                return (object) [
+                    'sale' => $sale,
+                    'sale_id' => $sale->id,
+                    'sale_status' => $sale->status,
+                    'is_anulado' => $sale->isAnulado(),
+                    'credit_note_pdf_url' => $sale->hasCreditNote() ? route('sales.credit-note.pdf', $sale) : null,
+                    'invoice_status' => $sale->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
+                    'data' => $sale->data_emissao,
+                    'numero_fatura' => $sale->numero_fatura,
+                    'cliente' => $client?->name ?? '—',
+                    'nif' => $client?->nif ?? '',
+                    'tecnico' => $slice['user_name'],
+                    ...$this->servicoColunaPayload(
+                        $this->servicoNomesFromLabels($serviceLabels),
+                        $subtitulo
+                    ),
+                    'quantidade' => (int) $serviceItems->count(),
+                    'valor' => (float) $slice['valor'],
+                    'taxas' => (float) $slice['taxas'],
+                    'tipo_item' => 'resumo',
+                    'desconto' => (float) $slice['desconto'],
+                    'gorjeta' => (float) $slice['gorjeta'],
+                    'pendente' => $slice['is_anchor'] ? $this->pendenteForSale($sale) : 0.0,
+                    'calendar_event_id' => $slice['calendar_event_id'],
+                ];
+            })->all();
+        })->values();
     }
 
     public function servicosOpts(): Collection

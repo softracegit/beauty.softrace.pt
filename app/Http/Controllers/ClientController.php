@@ -319,12 +319,12 @@ class ClientController extends Controller
             'tecnico' => $vendasTecnico,
             'estado' => $vendasEstado,
         ])
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
             ->orderByDesc('data_emissao')
             ->orderByDesc('id')
             ->get();
 
-        $allVendasLines = $this->vendasReportService->resumoCollection($sales, $vendasServico);
+        $allVendasLines = $this->vendasReportService->resumoCollection($sales, $vendasServico, $vendasTecnico);
         $vendasTotais = $this->vendasReportService->totaisRodape($allVendasLines);
 
         $vendasPage = max(1, (int) $request->get('vendas_page', 1));
