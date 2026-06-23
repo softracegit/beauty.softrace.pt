@@ -117,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
     /** Offcanvas ainda a preencher (API + serviços do prestador). */
     var eventDetailOcHydrating = false;
     var eventDetailOcHydrateGeneration = 0;
+    var eventDetailOcServicesRequestSeq = 0;
 
     function eventDetailOffcanvasIsVisible() {
         var el = $id('eventDetailEditModal');
@@ -135,14 +136,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function eventDetailAbortOcHydrate() {
         eventDetailOcHydrateGeneration += 1;
+        eventDetailOcServicesRequestSeq += 1;
         eventDetailOcHydrating = false;
         eventDetailModalLoading = false;
     }
 
+    function eventDetailCancelPendingEventLoads() {
+        eventDetailAbortOcHydrate();
+    }
+
     function eventDetailFinishOcHydrate(generation) {
         if (generation !== eventDetailOcHydrateGeneration) {
-            eventDetailOcHydrating = false;
-            eventDetailModalLoading = false;
             return false;
         }
         if (!eventDetailOffcanvasIsVisible()) {
@@ -3632,11 +3636,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function openMarcacaoDetailOffcanvas(eventId, options) {
         options = options || {};
-        if (!eventId || eventDetailModalLoading) {
+        if (!eventId) {
             if (typeof options.onDetailOffcanvasFailed === 'function') {
                 options.onDetailOffcanvasFailed();
             }
             return;
+        }
+        if (eventDetailIsStillHydrating()) {
+            eventDetailCancelPendingEventLoads();
         }
         eventDetailModalLoading = true;
         fetch((C.urlEvents || '') + '/' + encodeURIComponent(String(eventId)), {
@@ -3789,6 +3796,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         eventDetailOcBindFormOnce();
         eventDetailOcPopulateMemberSelect(data.user_id || '');
+        eventDetailOcSyncPickersFromHidden();
 
         if (data.client_id && data.client_name) {
             var cObj = {
@@ -3845,6 +3853,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         eventDetailOcShowServicePicker = eventDetailSelectedServices.length === 0;
+        eventDetailOcRenderSelectedServices();
+        EventDetail.updateTotal();
 
         var mid = String(data.user_id || '');
         eventDetailOcReloadServicesForMember(mid, function() {
@@ -3858,7 +3868,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setEventDetailPaymentAndReadOnly(eventDetailExistingSale, 'marcacao', eventDetailSelectedServices.length);
             updateEventDetailOutOfHoursWarning();
             eventDetailOcUpdateBirthdayBanner();
-        });
+        }, { hydrateGen: hydrateGen, eventId: String(id) });
     }
 
     var eventDetailSelectedClient = null;
@@ -4182,10 +4192,30 @@ document.addEventListener('DOMContentLoaded', function() {
             addWrap.classList.remove('d-none');
         }
     }
-    function eventDetailOcReloadServicesForMember(memberId, done) {
+    function eventDetailOcReloadServicesForMember(memberId, done, options) {
+        options = options || {};
+        var requestId = ++eventDetailOcServicesRequestSeq;
+        var hydrateGen = options.hydrateGen;
+        var expectedEventId = options.eventId != null ? String(options.eventId) : null;
+
+        function isStale() {
+            if (requestId !== eventDetailOcServicesRequestSeq) {
+                return true;
+            }
+            if (hydrateGen != null && hydrateGen !== eventDetailOcHydrateGeneration) {
+                return true;
+            }
+            if (expectedEventId != null && String($id('eventDetailEditId').value || '') !== expectedEventId) {
+                return true;
+            }
+            return false;
+        }
+
         var svcSel = $id('eventDetailOcService');
         if (!svcSel) {
-            if (done) done(null);
+            if (done && !isStale()) {
+                done(null);
+            }
             return;
         }
         if (eventDetailOcChoicesInstances.service) {
@@ -4197,7 +4227,9 @@ document.addEventListener('DOMContentLoaded', function() {
             svcSel.innerHTML = '<option value="">Escolha primeiro o prestador(a)</option>';
             svcSel.disabled = true;
             eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
-            if (done) done(null);
+            if (done && !isStale()) {
+                done(null);
+            }
             return;
         }
         svcSel.innerHTML = '<option value="">A carregar…</option>';
@@ -4205,6 +4237,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(agendaMembersServicesUrl + '/' + memberId + '/services', { headers: { 'Accept': 'application/json' } })
             .then(function(r) { return r.json(); })
             .then(function(data) {
+                if (isStale()) {
+                    return;
+                }
                 eventDetailServicesData = data;
                 eventDetailOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
                 agendaOcRebuildServiceSelect(svcSel, data.categories || []);
@@ -4226,29 +4261,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (flatMatch && flatMatch.category_name) item.category_name = flatMatch.category_name;
                     if (flatMatch && flatMatch.fees) item.fees = flatMatch.fees;
                 });
-                if (done) done(data);
+                if (done && !isStale()) {
+                    done(data);
+                }
             })
             .catch(function() {
+                if (isStale()) {
+                    return;
+                }
                 eventDetailOcServicesFlat = [];
                 svcSel.innerHTML = '<option value="">Erro ao carregar</option>';
                 svcSel.disabled = true;
                 eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
-                if (done) done(null);
+                if (done && !isStale()) {
+                    done(null);
+                }
             });
     }
     function eventDetailOcSyncPickersFromHidden() {
         var startStr = $id('eventDetailEditStart') && $id('eventDetailEditStart').value;
         if (!startStr) return;
-        var d = new Date(startStr);
-        if (isNaN(d.getTime())) return;
+        var d = parseAgendaLocalDateTime(startStr);
+        if (!d || isNaN(d.getTime())) return;
         var ymd = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         var timeSel = $id('eventDetailOcTime');
         if (timeSel) {
             timeSel.innerHTML = '';
             timeSel.appendChild(agendaOcBuildTimeOptionElements());
-            var hh = String(d.getHours()).padStart(2, '0');
-            var mm = String(d.getMinutes()).padStart(2, '0');
-            timeSel.value = hh + ':' + mm;
+            timeSel.value = agendaOcSnapTime15(new Date(d.getTime()));
             if (!timeSel.value) timeSel.value = '09:00';
         }
         var dateIn = $id('eventDetailOcDate');
@@ -4521,7 +4561,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetailOcReloadServicesForMember(this.value || '', function() {
                     eventDetailOcRenderSelectedServices();
                     updateEventDetailOutOfHoursWarning();
-                });
+                }, { eventId: String($id('eventDetailEditId').value || '') });
             });
         }
         var timeSel = $id('eventDetailOcTime');
@@ -4533,10 +4573,6 @@ document.addEventListener('DOMContentLoaded', function() {
             timeSel.addEventListener('input', function() {
                 eventDetailOcSyncHiddenFromPickers();
                 updateEventDetailOutOfHoursWarning();
-            });
-            timeSel.addEventListener('focus', function() {
-                var nowRounded = agendaOcCurrentRoundedTime();
-                if (this.value !== nowRounded) this.value = nowRounded;
             });
         }
         var svcEl = $id('eventDetailOcService');
@@ -4899,8 +4935,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var startStr = $id('eventDetailEditStart').value;
         if (!startStr) return;
         var totalDur = eventDetailEffectiveDurationMinutes();
-        var start = new Date(startStr);
-        if (isNaN(start.getTime())) return;
+        var start = parseAgendaLocalDateTime(startStr);
+        if (!start || isNaN(start.getTime())) return;
         var end = new Date(start.getTime() + totalDur * 60 * 1000);
         $id('eventDetailEditStart').value = agendaFormatLocalDateTimeForInput(start);
         $id('eventDetailEditEnd').value = agendaFormatLocalDateTimeForInput(end);
@@ -8733,8 +8769,8 @@ document.addEventListener('DOMContentLoaded', function() {
             hideEventQuickview();
             info.jsEvent.preventDefault();
             const id = info.event.id;
-            if (eventDetailModalLoading) {
-                return;
+            if (eventDetailIsStillHydrating()) {
+                eventDetailCancelPendingEventLoads();
             }
             eventDetailModalLoading = true;
             fetch((C.urlEvents || '') + '/' + id, {
