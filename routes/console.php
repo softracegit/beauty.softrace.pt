@@ -111,6 +111,7 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
         ->where('event_type', CalendarEvent::TYPE_MARCACAO)
         ->where('status', CalendarEvent::STATUS_AGENDADO)
         ->whereNull('booking_sms_reminder_sent_at')
+        ->whereNull('booking_sms_reminder_failed_at')
         ->where('start_at', '>=', $windowStartUtc)
         ->where('start_at', '<', $windowEndUtc)
         ->whereHas('client', function ($q): void {
