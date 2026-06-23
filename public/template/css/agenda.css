@@ -5,9 +5,9 @@
 
 /* Offcanvas «Nova marcação» */
 .agenda-marcacao-test-offcanvas {
-    --bs-offcanvas-width: min(34.5rem, calc(100vw - 1rem)) !important;
-    width: min(34.5rem, calc(100vw - 1rem)) !important;
-    max-width: min(34.5rem, calc(100vw - 1rem));
+    --bs-offcanvas-width: min(42.5rem, calc(100vw - 1rem)) !important;
+    width: min(42.5rem, calc(100vw - 1rem)) !important;
+    max-width: min(42.5rem, calc(100vw - 1rem));
     z-index: 1060;
     transition: transform 0.08s ease-out !important;
     display: flex;
