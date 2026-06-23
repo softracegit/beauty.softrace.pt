@@ -69,6 +69,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Static asset version (optional)
+    |--------------------------------------------------------------------------
+    |
+    | Prefixo opcional para ?v= em CSS/JS (ex.: data do deploy). Combinado com
+    | filemtime do ficheiro em public/ para cache-bust sem hard refresh.
+    |
+    */
+
+    'asset_version' => env('ASSET_VERSION', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

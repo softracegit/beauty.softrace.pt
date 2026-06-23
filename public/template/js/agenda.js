@@ -114,6 +114,46 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentViewMode = 'consultant';
     let selectedConsultantId = '';
     let eventDetailModalLoading = false;
+    /** Offcanvas ainda a preencher (API + serviços do prestador). */
+    var eventDetailOcHydrating = false;
+    var eventDetailOcHydrateGeneration = 0;
+
+    function eventDetailOffcanvasIsVisible() {
+        var el = $id('eventDetailEditModal');
+        return !!(el && el.classList.contains('show'));
+    }
+
+    function eventDetailIsStillHydrating() {
+        return eventDetailOcHydrating || eventDetailModalLoading;
+    }
+
+    function eventDetailBeginOcHydrate() {
+        eventDetailOcHydrating = true;
+        eventDetailOcHydrateGeneration += 1;
+        return eventDetailOcHydrateGeneration;
+    }
+
+    function eventDetailAbortOcHydrate() {
+        eventDetailOcHydrateGeneration += 1;
+        eventDetailOcHydrating = false;
+        eventDetailModalLoading = false;
+    }
+
+    function eventDetailFinishOcHydrate(generation) {
+        if (generation !== eventDetailOcHydrateGeneration) {
+            eventDetailOcHydrating = false;
+            eventDetailModalLoading = false;
+            return false;
+        }
+        if (!eventDetailOffcanvasIsVisible()) {
+            eventDetailOcHydrating = false;
+            eventDetailModalLoading = false;
+            return false;
+        }
+        eventDetailOcHydrating = false;
+        eventDetailModalLoading = false;
+        return true;
+    }
     /** Pendente após revert no arrastar/redimensionar (marcação com cliente → modal de confirmação). */
     let agendaDragPending = null;
     /** true quando o modal de confirmação fechou após Guardar/Atualizar com sucesso — evita revert ao arrastar. */
@@ -1997,6 +2037,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailTrustServicesSumForDuration = false;
     /** Se true, serviços/extras foram alterados desde o carregamento e ainda não foram gravados. */
     var eventDetailServicesMutated = false;
+    /** Callback após gravar automaticamente (ex.: abrir pagamento). */
+    var eventDetailPendingActionAfterSave = null;
+    /** Evita duplo clique em Pagamento / Pré-pagamento enquanto grava ou abre o modal. */
+    var eventDetailPaymentFlowInProgress = false;
     function eventDetailMarkServiceListMutated() {
         if (eventDetailCurrentData) {
             delete eventDetailCurrentData.catalog_fees;
@@ -2580,6 +2624,44 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function openAgendaPaymentModalCaixa() {
+        paymentModalResetToCaixa();
+        paymentMbwayFinalizeSucceeded = false;
+        paymentModalStopMbwayFinalizePoll();
+        var sub = paymentModalSubtotal();
+        $id('paymentSubtotalDisplay').textContent = sub.toFixed(2).replace('.', ',') + ' €';
+        var gEl = $id('paymentGorjeta');
+        if (gEl && String(gEl.getAttribute('type') || '').toLowerCase() === 'number') gEl.value = '0';
+        paymentModalSyncFiscalFromClient();
+        paymentModalPopulateClientHero();
+        paymentModalInitInvoiceDelivery();
+        $$('#paymentMethodToggleGroup .payment-method-card').forEach(function(card) {
+            card.classList.remove('active');
+            card.setAttribute('aria-pressed', 'false');
+        });
+        var pmv = $id('paymentMethodValue');
+        if (pmv) pmv.value = '';
+        paymentModalUpdateTotals();
+        var phoneWrap = $id('paymentMbwayPhoneWrap');
+        var phoneInput = $id('paymentMbwayPhone');
+        if (phoneWrap && phoneInput) {
+            phoneWrap.classList.add('d-none');
+            var rawPhone = '';
+            if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
+                rawPhone = String(eventDetailSelectedClient.phone || '');
+            }
+            phoneInput.value = rawPhone;
+        }
+        paymentModalFetchWalletBalance(function() {
+            paymentModalFetchSavedCards(function() {
+                paymentModalSyncManualPaymentTilesVisibility();
+                bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+                paymentModalSetPayButtonEnabled();
+                eventDetailCompletePaymentFlow();
+            });
+        });
+    }
+
     function openAgendaPaymentModalReserva() {
         paymentModalMode = 'reserva';
         paymentModalReservaPreview = null;
@@ -2629,6 +2711,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     paymentModalSyncManualPaymentTilesVisibility();
                     bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
                     paymentModalSetPayButtonEnabled();
+                    eventDetailCompletePaymentFlow();
                 });
             };
             if (paymentModalStripePaymentsEnabled()) {
@@ -2647,6 +2730,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var rows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
         if (!eventId || rows.length <= 1) {
             showToast('Não existem outras marcações por pagar neste dia.', 'info');
+            eventDetailCompletePaymentFlow();
             return;
         }
         var selectedIds = rows.map(function(row) { return parseInt(row.id, 10); })
@@ -2654,6 +2738,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalConsolidatedEventIds = Array.from(new Set(selectedIds));
         if (paymentModalConsolidatedEventIds.length <= 1) {
             showToast('Não existem outras marcações por pagar neste dia.', 'warning');
+            eventDetailCompletePaymentFlow();
             return;
         }
         var idsQuery = paymentModalConsolidatedEventIds.join(',');
@@ -2665,6 +2750,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(pack) {
                 if (!pack.ok) {
                     showToast(pack.res.error || pack.res.message || 'Erro ao preparar pagamento consolidado.', 'error');
+                    eventDetailCompletePaymentFlow();
                     return;
                 }
                 var consolidatedItems = Array.isArray(pack.res.items) ? pack.res.items : [];
@@ -2687,9 +2773,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 paymentModalSyncManualPaymentTilesVisibility();
                 bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
                 paymentModalSetPayButtonEnabled();
+                eventDetailCompletePaymentFlow();
             })
             .catch(function() {
                 showToast('Erro de ligação ao preparar pagamento consolidado.', 'error');
+                eventDetailCompletePaymentFlow();
             });
     }
 
@@ -3580,10 +3668,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     detailOc.show();
                 }
-                eventDetailModalLoading = false;
+                if (data.event_type === 'tempo_pessoal') {
+                    eventDetailModalLoading = false;
+                }
             })
             .catch(function() {
                 eventDetailModalLoading = false;
+                eventDetailOcHydrating = false;
                 if (typeof options.onDetailOffcanvasFailed === 'function') {
                     options.onDetailOffcanvasFailed();
                 }
@@ -3594,7 +3685,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function populateEventDetailEditModal(data) {
         eventDetailOcTeardownUi();
         toggleOutOfHoursWarning('eventDetailHorarioAviso', false, 'eventDetailHorarioAvisoWrap');
-        window._eventDetailOcPopulating = true;
+        var hydrateGen = eventDetailBeginOcHydrate();
         eventDetailCurrentData = data;
         if (data && typeof data.cash_register_open === 'boolean') {
             cashRegisterOpenGlobal = data.cash_register_open;
@@ -3692,7 +3783,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var svcCountEarly = (data.event_services && data.event_services.length) || 0;
             setEventDetailPaymentAndReadOnly(eventDetailExistingSale, data.event_type || 'marcacao', svcCountEarly);
             updateEventDetailOutOfHoursWarning();
-            window._eventDetailOcPopulating = false;
+            eventDetailFinishOcHydrate(hydrateGen);
             return;
         }
 
@@ -3757,6 +3848,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var mid = String(data.user_id || '');
         eventDetailOcReloadServicesForMember(mid, function() {
+            if (!eventDetailFinishOcHydrate(hydrateGen)) {
+                return;
+            }
             eventDetailOcRenderSelectedServices();
             EventDetail.updateTotal();
             EventDetail.updateEndTime();
@@ -3764,7 +3858,6 @@ document.addEventListener('DOMContentLoaded', function() {
             setEventDetailPaymentAndReadOnly(eventDetailExistingSale, 'marcacao', eventDetailSelectedServices.length);
             updateEventDetailOutOfHoursWarning();
             eventDetailOcUpdateBirthdayBanner();
-            window._eventDetailOcPopulating = false;
         });
     }
 
@@ -4418,7 +4511,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var mem = $id('eventDetailOcMember');
         if (mem) {
             mem.addEventListener('change', function() {
-                if (window._eventDetailOcPopulating) return;
+                if (eventDetailOcHydrating) return;
                 $id('eventDetailEditUserId').value = this.value || '';
                 syncEventDetailCalendarEventToSelectedMember();
                 eventDetailSelectedServices = [];
@@ -6164,6 +6257,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function eventDetailHasUnsavedChanges() {
         if (!eventDetailCurrentData || eventDetailCurrentData.event_type !== 'marcacao') return false;
+        if (eventDetailIsStillHydrating()) return false;
         var desc = ($id('eventDetailOcObs') && $id('eventDetailOcObs').value) || '';
         if (desc !== eventDetailOriginalDescription) return true;
         var member = String(($id('eventDetailOcMember') && $id('eventDetailOcMember').value) || '').trim();
@@ -6175,6 +6269,29 @@ document.addEventListener('DOMContentLoaded', function() {
         if (status !== eventDetailOriginalStatus) return true;
         var built = buildEventDetailSavePayload();
         return !!(built && built.payload && eventDetailScheduleTimesChanged(built.payload));
+    }
+
+    function eventDetailMergeCalendarEventFromSaveResponse(res) {
+        if (!res || !res.event || !eventDetailCurrentData) {
+            return;
+        }
+        var ev = res.event;
+        var ep = ev.extendedProps || {};
+        Object.keys(ep).forEach(function(k) {
+            eventDetailCurrentData[k] = ep[k];
+        });
+        if (ev.title) {
+            eventDetailCurrentData.title = ev.title;
+        }
+        if (ev.start) {
+            eventDetailCurrentData.start_at = ev.start;
+        }
+        if (ev.end) {
+            eventDetailCurrentData.end_at = ev.end;
+        }
+        if (typeof EventDetail !== 'undefined' && typeof EventDetail.updateTotal === 'function') {
+            EventDetail.updateTotal();
+        }
     }
 
     function persistEventDetailChanges(options) {
@@ -6197,14 +6314,19 @@ document.addEventListener('DOMContentLoaded', function() {
         var id = built.id;
         var payload = built.payload;
         if (built.needNotifyConfirm) {
-            agendaDragPending = {
-                kind: 'eventDetail',
-                eventId: id,
-                putPayload: payload,
-                extendedProps: getEventDetailNotifyExtendedProps()
-            };
-            openAgendaDragConfirmModal(agendaDragPending.extendedProps);
-            return;
+            if (options.skipNotifyConfirm) {
+                payload = Object.assign({}, payload, { notify_client: false });
+            } else {
+                agendaDragPending = {
+                    kind: 'eventDetail',
+                    eventId: id,
+                    putPayload: payload,
+                    extendedProps: getEventDetailNotifyExtendedProps(),
+                    resumeAfterSave: !!eventDetailPendingActionAfterSave
+                };
+                openAgendaDragConfirmModal(agendaDragPending.extendedProps);
+                return;
+            }
         }
         var btn = $id('eventDetailSaveBtn');
         eventDetailAutoSaveInProgress = true;
@@ -6235,6 +6357,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (res.success && res.event) {
                 eventDetailWasSaved = true;
                 eventDetailMarkPersistedSnapshot(payload);
+                eventDetailMergeCalendarEventFromSaveResponse(res);
                 var ev = calendar.getEventById(id);
                 if (ev) {
                     ev.setProp('title', res.event.title);
@@ -6266,6 +6389,100 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function eventDetailRestorePaymentTriggerButtons() {
+        ['eventDetailPaymentBtn', 'eventDetailReservaBtn', 'eventDetailPayAllBtn'].forEach(function(id) {
+            var el = $id(id);
+            if (!el || !el.dataset.paymentFlowPrevHtml) {
+                return;
+            }
+            el.innerHTML = el.dataset.paymentFlowPrevHtml;
+            delete el.dataset.paymentFlowPrevHtml;
+        });
+    }
+
+    function eventDetailCompletePaymentFlow() {
+        eventDetailPaymentFlowInProgress = false;
+        eventDetailRestorePaymentTriggerButtons();
+        if (eventDetailCurrentData) {
+            setEventDetailPaymentAndReadOnly(
+                eventDetailExistingSale,
+                eventDetailCurrentData.event_type || 'marcacao',
+                (eventDetailSelectedServices && eventDetailSelectedServices.length) || 0
+            );
+        }
+    }
+
+    function eventDetailBeginPaymentFlow(triggerBtn) {
+        if (eventDetailPaymentFlowInProgress) {
+            return false;
+        }
+        eventDetailPaymentFlowInProgress = true;
+        ['eventDetailPaymentBtn', 'eventDetailPaymentDropupToggle', 'eventDetailPayCurrentBtn', 'eventDetailPayAllBtn', 'eventDetailReservaBtn'].forEach(function(id) {
+            var el = $id(id);
+            if (el) {
+                el.disabled = true;
+            }
+        });
+        if (triggerBtn) {
+            triggerBtn.dataset.paymentFlowPrevHtml = triggerBtn.innerHTML;
+            var label = String(triggerBtn.dataset.paymentFlowLabel || triggerBtn.textContent || '').replace(/\s+/g, ' ').trim() || 'Pagamento';
+            triggerBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>' + label;
+        }
+        return true;
+    }
+
+    function eventDetailRunPendingActionAfterSave(res) {
+        var fn = eventDetailPendingActionAfterSave;
+        eventDetailPendingActionAfterSave = null;
+        if (typeof fn === 'function') {
+            fn(res);
+        }
+    }
+
+    function eventDetailEnsureSavedBeforeAction(actionFn) {
+        if (typeof actionFn !== 'function') {
+            return;
+        }
+        if (!eventDetailCurrentData || eventDetailCurrentData.event_type !== 'marcacao') {
+            actionFn();
+            return;
+        }
+        if (!eventDetailHasUnsavedChanges()) {
+            actionFn();
+            return;
+        }
+        var eventId = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        if (!eventId) {
+            showToast('Guarde a marcação antes de continuar.', 'warning');
+            eventDetailCompletePaymentFlow();
+            return;
+        }
+        eventDetailPendingActionAfterSave = actionFn;
+        persistEventDetailChanges({
+            skipNotifyConfirm: true,
+            onSuccess: function(res) {
+                eventDetailRunPendingActionAfterSave(res);
+            },
+            onError: function() {
+                eventDetailPendingActionAfterSave = null;
+                eventDetailCompletePaymentFlow();
+            }
+        });
+    }
+
+    function eventDetailLaunchPaymentFlow(triggerBtn, actionFn) {
+        if (!triggerBtn || triggerBtn.disabled) {
+            if (triggerBtn && triggerBtn.id === 'eventDetailPaymentBtn') {
+                showToast(agendaCashRegisterClosedMessage(), 'warning');
+            }
+            return;
+        }
+        if (!eventDetailBeginPaymentFlow(triggerBtn)) {
+            return;
+        }
+        eventDetailEnsureSavedBeforeAction(actionFn);
+    }
+
     $id('eventDetailEditForm').addEventListener('submit', function(e) {
         e.preventDefault();
         persistEventDetailChanges({ closeAfterSave: true });
@@ -6290,6 +6507,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (eventDetailAutoSaveInProgress) {
             e.preventDefault();
+            return;
+        }
+        if (eventDetailIsStillHydrating()) {
+            eventDetailDiscardClosing = true;
+            eventDetailAbortOcHydrate();
             return;
         }
         if (eventDetailHasUnsavedChanges()) {
@@ -7063,7 +7285,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 populateEventDetailEditModal(data);
                 setEventDetailPaymentAndReadOnly(data.existing_sale || null, 'marcacao', eventDetailSelectedServices.length);
             })
-            .finally(function() { eventDetailModalLoading = false; });
+            .finally(function() {
+                if (!eventDetailOcHydrating) {
+                    eventDetailModalLoading = false;
+                }
+            });
     }
 
     var eventDetailReservaBtnEl = $id('eventDetailReservaBtn');
@@ -7076,50 +7302,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             if (typeof openAgendaPaymentModalReserva === 'function') {
-                openAgendaPaymentModalReserva();
+                eventDetailLaunchPaymentFlow(eventDetailReservaBtnEl, openAgendaPaymentModalReserva);
             }
         });
     }
 
     $id('eventDetailPaymentBtn').addEventListener('click', function() {
-        if (this.disabled) {
-            showToast(agendaCashRegisterClosedMessage(), 'warning');
-            return;
-        }
-        paymentModalResetToCaixa();
-        paymentMbwayFinalizeSucceeded = false;
-        paymentModalStopMbwayFinalizePoll();
-        var sub = paymentModalSubtotal();
-        $id('paymentSubtotalDisplay').textContent = sub.toFixed(2).replace('.', ',') + ' €';
-        var gEl = $id('paymentGorjeta');
-        if (gEl && String(gEl.getAttribute('type') || '').toLowerCase() === 'number') gEl.value = '0';
-        paymentModalSyncFiscalFromClient();
-        paymentModalPopulateClientHero();
-        paymentModalInitInvoiceDelivery();
-        $$('#paymentMethodToggleGroup .payment-method-card').forEach(function(card) {
-            card.classList.remove('active');
-            card.setAttribute('aria-pressed', 'false');
-        });
-        var pmv = $id('paymentMethodValue');
-        if (pmv) pmv.value = '';
-        paymentModalUpdateTotals();
-        var phoneWrap = $id('paymentMbwayPhoneWrap');
-        var phoneInput = $id('paymentMbwayPhone');
-        if (phoneWrap && phoneInput) {
-            phoneWrap.classList.add('d-none');
-            var rawPhone = '';
-            if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
-                rawPhone = String(eventDetailSelectedClient.phone || '');
-            }
-            phoneInput.value = rawPhone;
-        }
-        paymentModalFetchWalletBalance(function() {
-            paymentModalFetchSavedCards(function() {
-                paymentModalSyncManualPaymentTilesVisibility();
-                bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
-                paymentModalSetPayButtonEnabled();
-            });
-        });
+        eventDetailLaunchPaymentFlow(this, openAgendaPaymentModalCaixa);
     });
 
     var payCurrentBtn = $id('eventDetailPayCurrentBtn');
@@ -7130,7 +7319,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             bootstrap.Dropdown.getOrCreateInstance($id('eventDetailPaymentDropupToggle')).hide();
-            $id('eventDetailPaymentBtn').click();
+            var payBtn = $id('eventDetailPaymentBtn');
+            eventDetailLaunchPaymentFlow(payBtn, openAgendaPaymentModalCaixa);
         });
     }
     var payAllBtn = $id('eventDetailPayAllBtn');
@@ -7141,7 +7331,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             bootstrap.Dropdown.getOrCreateInstance($id('eventDetailPaymentDropupToggle')).hide();
-            openAgendaPaymentModalConsolidated();
+            eventDetailLaunchPaymentFlow(payAllBtn, openAgendaPaymentModalConsolidated);
         });
     }
 
@@ -7370,9 +7560,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(function(r2) { return r2.json(); })
                     .then(function(data) {
                         populateEventDetailEditModal(data);
-                        eventDetailModalLoading = false;
                     })
-                    .catch(function() { eventDetailModalLoading = false; });
+                    .catch(function() {
+                        if (!eventDetailOcHydrating) {
+                            eventDetailModalLoading = false;
+                        }
+                    });
             }
         })
         .catch(function() {
@@ -7806,7 +7999,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(data) {
                 populateEventDetailEditModal(data);
             })
-            .finally(function() { eventDetailModalLoading = false; });
+            .finally(function() {
+                if (!eventDetailOcHydrating) {
+                    eventDetailModalLoading = false;
+                }
+            });
         })
         .catch(function() {
             if (confirmBtn) {
@@ -8548,16 +8745,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.event_type === 'tempo_pessoal') {
                     populateTempoPessoalModal(data);
                     bootstrap.Modal.getOrCreateInstance($id('tempoPessoalModal')).show();
+                    eventDetailModalLoading = false;
                 } else {
                     populateEventDetailEditModal(data);
                     bootstrap.Offcanvas.getOrCreateInstance($id('eventDetailEditModal')).show();
                 }
-                eventDetailModalLoading = false;
             })
             .catch(function(error) {
                 console.error('Erro ao carregar detalhes do evento:', error);
                 showToast('Erro ao carregar detalhes do evento.', 'error');
-                eventDetailModalLoading = false;
+                eventDetailAbortOcHydrate();
             });
         },
         eventDrop: function(info) {
@@ -9835,7 +10032,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .finally(function() {
-                    eventDetailModalLoading = false;
+                    if (!eventDetailOcHydrating) {
+                        eventDetailModalLoading = false;
+                    }
                 });
         } else if (novaMarcacao === '1' && canCreateMarcacao) {
             var now = new Date();
@@ -10762,12 +10961,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (p.putPayload) {
                     eventDetailMarkPersistedSnapshot(p.putPayload);
                 }
-                eventDetailAutoSaveClosing = true;
-                bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
+                eventDetailMergeCalendarEventFromSaveResponse(res);
+                if (p.resumeAfterSave && eventDetailPendingActionAfterSave) {
+                    eventDetailRunPendingActionAfterSave(res);
+                } else {
+                    eventDetailAutoSaveClosing = true;
+                    bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
+                }
                 scheduleStackedEventClassRefresh();
             })
             .catch(function(err) {
                 console.error('agendaDragConfirm eventDetail error', err);
+                eventDetailPendingActionAfterSave = null;
                 btn.disabled = false;
                 btn.textContent = origText;
                 var msg = (err && err.message && err.message.indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação. Verifique os logs do servidor se o problema persistir.';
@@ -10843,6 +11048,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var succeeded = agendaDragConfirmSucceeded;
         agendaDragConfirmSucceeded = false;
         agendaDragPending = null;
+        if (!succeeded) {
+            eventDetailPendingActionAfterSave = null;
+        }
         if (!succeeded && p && p.needsCalendarRevert && p.info && typeof p.info.revert === 'function') {
             p.info.revert();
             scheduleStackedEventClassRefresh();
@@ -10879,7 +11087,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailAutoSaveClosing = false;
         eventDetailAutoSaveInProgress = false;
         eventDetailDiscardClosing = false;
-        eventDetailModalLoading = false;
+        eventDetailAbortOcHydrate();
         eventDetailSelectedClient = null;
         eventDetailSelectedServices = [];
         window._eventDetailPreviousClient = null;

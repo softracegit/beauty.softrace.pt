@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/css/intlTelInput.css">
     <link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('template/css/agenda.css') }}?v={{ file_exists(public_path('template/css/agenda.css')) ? filemtime(public_path('template/css/agenda.css')) : time() }}">
+    <link rel="stylesheet" href="{{ static_asset('template/css/agenda.css') }}">
 @endsection
 @section('content')
 <div class="row g-0">
@@ -596,8 +596,8 @@
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between w-100 event-detail-oc-footer-actions" id="eventDetailFooterActionsRow">
             <div class="d-flex flex-wrap gap-2 align-items-center" id="eventDetailPaymentWrap">
-                <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn">Pré-pagamento</button>
-                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn">Pagamento</button>
+                <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn" data-payment-flow-label="Pré-pagamento">Pré-pagamento</button>
+                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn" data-payment-flow-label="Pagamento">Pagamento</button>
                 <div class="dropup d-none" id="eventDetailPaymentDropup">
                     <button class="btn btn-success btn-sm dropdown-toggle" type="button" id="eventDetailPaymentDropupToggle" data-bs-toggle="dropdown" aria-expanded="false">
                         Pagamento
@@ -612,7 +612,7 @@
                         <li><hr class="dropdown-divider"></li>
                         <li><div class="dropdown-item-text small text-muted fw-semibold" id="eventDetailPayAllHint">+0 marcações por pagar hoje</div></li>
                         <li>
-                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2 fw-semibold" type="button" id="eventDetailPayAllBtn">
+                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2 fw-semibold" type="button" id="eventDetailPayAllBtn" data-payment-flow-label="Pagar todas do dia">
                                 <span>Pagar todas do dia</span>
                                 <span class="small fw-semibold" id="eventDetailPayAllAmount">0,00 €</span>
                             </button>
@@ -705,6 +705,6 @@ window.AGENDA_CONFIG = {
     onlineBookingPaymentRequired: @json($onlineBookingPaymentRequired ?? true),
 };
 </script>
-<script src="{{ asset('template/js/agenda.js') }}?v={{ file_exists(public_path('template/js/agenda.js')) ? filemtime(public_path('template/js/agenda.js')) : time() }}"></script>
+<script src="{{ static_asset('template/js/agenda.js') }}"></script>
 
 @endsection
