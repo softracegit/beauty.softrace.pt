@@ -10678,9 +10678,12 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf }
         })
-        .then(r => r.json())
-        .then(function(res) {
-            if (res.success) {
+        .then(function(r) {
+            return r.json().then(function(res) { return { ok: r.ok, res: res }; });
+        })
+        .then(function(payload) {
+            var res = payload.res;
+            if (payload.ok && res.success) {
                 var ev = calendar.getEventById(id);
                 if (ev) ev.remove();
                 bootstrap.Modal.getInstance($id('tempoPessoalModal')).hide();

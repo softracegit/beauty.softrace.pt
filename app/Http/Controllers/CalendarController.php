@@ -1431,15 +1431,18 @@ class CalendarController extends Controller
 
     /**
      * Delete an event. Only manual/outro events can be deleted from calendar.
-     * Only the responsible user can delete, except for tempo_pessoal: admins can delete any.
+     * Only the responsible user can delete, except for tempo_pessoal: admin/receção can delete any.
      */
     public function destroy(CalendarEvent $calendarEvent)
     {
         $this->assertCanAccessCalendarEvent($calendarEvent);
 
+        $user = auth()->user();
         $isOwner = $calendarEvent->user_id === null || $calendarEvent->user_id === auth()->id();
-        $adminCanDeleteTempoPessoal = $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL && auth()->user()->canManageAgents();
-        if (! $isOwner && ! $adminCanDeleteTempoPessoal) {
+        $staffCanDeleteTempoPessoal = $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL
+            && $user instanceof User
+            && $user->canDeleteAnyPersonalTimeOnAgenda();
+        if (! $isOwner && ! $staffCanDeleteTempoPessoal) {
             abort(403, 'Apenas o consultor responsável pode eliminar este evento.');
         }
         if (! $calendarEvent->isDeletableFromCalendar()) {

@@ -239,6 +239,12 @@ class User extends Authenticatable
         return (int) $this->id === 1 && $this->isAdmin();
     }
 
+    /** Receção e admin podem eliminar tempo pessoal de qualquer prestador na agenda. */
+    public function canDeleteAnyPersonalTimeOnAgenda(): bool
+    {
+        return $this->isAdmin() || $this->isRececao();
+    }
+
     public function isRececao(): bool
     {
         return $this->hasRole(self::ROLE_RECECAO);
