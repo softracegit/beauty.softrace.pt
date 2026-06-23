@@ -1971,8 +1971,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var apptInstant = apptDate ? (apptDate + 'T12:00:00') : null;
         var scope = agendaClientBirthdayScope(birthDate, apptInstant);
         if (!scope && eventDetailCurrentData) {
-            if (eventDetailCurrentData.client_birthday_today) scope = 'day';
-            else if (eventDetailCurrentData.client_birthday_in_month) scope = 'month';
+            if (eventDetailCurrentData.client_birthday_on_appointment_day) scope = 'day';
+            else if (eventDetailCurrentData.client_birthday_on_appointment_month) scope = 'month';
         }
         if (!scope) {
             banner.classList.add('d-none');
@@ -2003,7 +2003,7 @@ document.addEventListener('DOMContentLoaded', function() {
         banner.classList.toggle('agenda-client-birthday-banner--month', scope === 'month');
         if (textEl) {
             if (scope === 'day') {
-                textEl.innerHTML = '<strong>Aniversário hoje!</strong> ' + nameEsc + ' faz' + agePart + ' neste dia.';
+                textEl.innerHTML = nameEsc + ' faz' + agePart + ' neste dia.';
             } else {
                 var whenPart = bdayWhen ? (' a <strong>' + bdayWhen + '</strong>') : ' este mês';
                 textEl.innerHTML = nameEsc + ' ' + verb + agePart + whenPart + '.';

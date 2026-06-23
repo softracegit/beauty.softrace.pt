@@ -1915,7 +1915,9 @@ class CalendarController extends Controller
     }
 
     /**
-     * @return array{client_birthday_today: bool, client_birthday_in_month: bool, client_birthday_age: ?int, client_birthday_tense: ?string}
+     * Ícone na grelha: mês/dia face a hoje. Idade/tense no detalhe: face à data da marcação.
+     *
+     * @return array{client_birthday_today: bool, client_birthday_in_month: bool, client_birthday_age: ?int, client_birthday_tense: ?string, client_birthday_on_appointment_day: bool, client_birthday_on_appointment_month: bool}
      */
     private function clientBirthdayMetaForEvent(?Client $client, ?Carbon $startAt, int $storeId): array
     {
@@ -1925,16 +1927,21 @@ class CalendarController extends Controller
                 'client_birthday_in_month' => false,
                 'client_birthday_age' => null,
                 'client_birthday_tense' => null,
+                'client_birthday_on_appointment_day' => false,
+                'client_birthday_on_appointment_month' => false,
             ];
         }
 
-        $highlight = $client->birthdayHighlight($startAt, $storeId, sameMonthOnly: true);
+        $badgeHighlight = $client->birthdayHighlight(now(), $storeId, sameMonthOnly: true);
+        $appointmentHighlight = $client->birthdayHighlight($startAt, $storeId, sameMonthOnly: true);
 
         return [
-            'client_birthday_today' => ($highlight['scope'] ?? null) === 'day',
-            'client_birthday_in_month' => $highlight !== null,
-            'client_birthday_age' => $highlight['age'] ?? null,
-            'client_birthday_tense' => $highlight['tense'] ?? null,
+            'client_birthday_today' => ($badgeHighlight['scope'] ?? null) === 'day',
+            'client_birthday_in_month' => $badgeHighlight !== null,
+            'client_birthday_age' => $appointmentHighlight['age'] ?? null,
+            'client_birthday_tense' => $appointmentHighlight['tense'] ?? null,
+            'client_birthday_on_appointment_day' => ($appointmentHighlight['scope'] ?? null) === 'day',
+            'client_birthday_on_appointment_month' => $appointmentHighlight !== null,
         ];
     }
 

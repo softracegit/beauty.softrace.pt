@@ -527,7 +527,7 @@
                     </div>
                     <div id="eventDetailOcClientBirthdayBanner" class="agenda-client-birthday-banner d-none mt-2" role="status" aria-live="polite">
                         <span class="agenda-client-birthday-banner__icon" aria-hidden="true"><i class="ri-gift-2-fill"></i></span>
-                        <span id="eventDetailOcClientBirthdayText" class="agenda-client-birthday-banner__text">Hoje é o aniversário do cliente!</span>
+                        <span id="eventDetailOcClientBirthdayText" class="agenda-client-birthday-banner__text"></span>
                     </div>
                 </div>
                 <div class="agenda-oc-field" style="order:2">

@@ -266,9 +266,8 @@ class Client extends Model
         $ageLabel = "{$age} anos";
 
         if ($scope === 'day') {
-            $message = "Aniversário hoje! {$namePrefix}faz {$ageLabel} neste dia.";
-            $messageHtml = '<strong>Aniversário hoje!</strong> '
-                .($name !== '' ? e($name).' ' : '')
+            $message = "{$namePrefix}faz {$ageLabel} neste dia.";
+            $messageHtml = ($name !== '' ? e($name).' ' : '')
                 .'faz <strong>'.e($ageLabel).'</strong> neste dia.';
         } else {
             $message = "{$namePrefix}{$verb} {$ageLabel} a {$dayLabel}.";
