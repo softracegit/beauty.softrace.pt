@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\BookingAuthCode;
 use App\Models\Client;
 use App\Models\Store;
 use App\Models\User;
@@ -54,6 +55,7 @@ class BookingClientAuthRegistrationTest extends TestCase
         $client->refresh();
         $this->assertSame('Nome Actualizado', $client->name);
         $this->assertSame(self::PHONE_E164, $client->phone);
+        $this->assertNotNull($client->phone_verified_at);
         $this->assertNotNull($client->terms_accepted_at);
         $this->assertSame((string) config('legal.privacy_version'), $client->privacy_policy_version);
     }
@@ -206,5 +208,43 @@ class BookingClientAuthRegistrationTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonValidationErrors(['terms_accepted']);
+    }
+
+    public function test_verify_code_phone_channel_marks_phone_verified_on_login(): void
+    {
+        $email = 'login-phone@example.test';
+        $client = Client::query()->create([
+            'store_id' => Store::defaultPublicBookingStoreId(),
+            'name' => 'Cliente Login',
+            'email' => $email,
+            'phone' => self::PHONE_E164,
+            'type' => Client::TYPE_POTENCIAL_CLIENTE,
+        ]);
+        $user = User::query()->create([
+            'name' => 'Cliente Login',
+            'email' => $email,
+            'password' => bcrypt('secret'),
+            'role' => User::ROLE_CLIENTE,
+            'client_id' => $client->id,
+        ]);
+
+        $code = '123456';
+        BookingAuthCode::query()->create([
+            'store_id' => Store::defaultPublicBookingStoreId(),
+            'email' => self::PHONE_E164,
+            'code_hash' => hash('sha256', $code),
+            'expires_at' => now()->addMinutes(10),
+        ]);
+
+        $response = $this->postJson($this->bookingBasePath().'/auth/verify-code', [
+            'phone' => self::PHONE_E164,
+            'code' => $code,
+        ]);
+
+        $response->assertOk()->assertJson(['ok' => true, 'is_new_account' => false]);
+        $this->assertAuthenticatedAs($user);
+
+        $client->refresh();
+        $this->assertNotNull($client->phone_verified_at);
     }
 }

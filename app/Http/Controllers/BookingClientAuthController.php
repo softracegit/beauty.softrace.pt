@@ -202,6 +202,10 @@ class BookingClientAuthController extends Controller
             $this->syncBookingUserPhoneAfterVerifiedCode($user, $target['identifier']);
         }
 
+        $user->refresh();
+        $user->load('client');
+        $this->markContactVerifiedAfterAuthOtp($user, $target['channel'], $target['identifier']);
+
         Auth::login($user, true);
         $request->session()->regenerate();
 
@@ -322,6 +326,10 @@ class BookingClientAuthController extends Controller
             $this->throwFriendlyDuplicateEntryIfApplicable($e);
             throw $e;
         }
+
+        $user->load('client');
+        $this->markContactVerifiedAfterAuthOtp($user, $channel, $identifier);
+
         $this->clearPendingRegistration($request);
 
         Auth::login($user, true);
@@ -814,5 +822,54 @@ class BookingClientAuthController extends Controller
         }
 
         $user->client->forceFill(['phone' => $verifiedPhoneE164])->save();
+    }
+
+    /**
+     * OTP de acesso prova posse do contacto — evita pedir verificação duplicada no perfil.
+     */
+    private function markContactVerifiedAfterAuthOtp(User $user, string $channel, string $identifier): void
+    {
+        if (! $user->isBookingClient()) {
+            return;
+        }
+
+        $user->loadMissing('client');
+        $client = $user->client;
+        if (! $client instanceof Client) {
+            return;
+        }
+
+        if ($channel === 'phone') {
+            $verifiedPhone = trim($identifier);
+            if ($verifiedPhone === '') {
+                return;
+            }
+
+            $clientPhone = PhoneDisplay::toE164((string) ($client->phone ?? ''));
+            if ($clientPhone !== $verifiedPhone || $client->phone_verified_at !== null) {
+                return;
+            }
+
+            $client->forceFill(['phone_verified_at' => now()])->save();
+
+            return;
+        }
+
+        $verifiedEmail = strtolower(trim($identifier));
+        if ($verifiedEmail === '' || ! filter_var($verifiedEmail, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $userEmail = strtolower(trim((string) $user->email));
+        $clientEmail = strtolower(trim((string) ($client->email ?? '')));
+        if ($userEmail !== $verifiedEmail && $clientEmail !== $verifiedEmail) {
+            return;
+        }
+
+        if ($user->email_verified_at !== null) {
+            return;
+        }
+
+        $user->forceFill(['email_verified_at' => now()])->save();
     }
 }
