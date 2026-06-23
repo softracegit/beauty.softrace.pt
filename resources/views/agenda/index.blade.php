@@ -197,6 +197,25 @@
     </div>
 </div>
 
+<!-- Modal: alterações não guardadas (fechar offcanvas de editar marcação) -->
+<div class="modal fade" id="eventDetailUnsavedChangesModal" tabindex="-1" aria-labelledby="eventDetailUnsavedChangesModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header pb-3">
+                <h4 class="modal-title mb-0 fw-semibold" id="eventDetailUnsavedChangesModalLabel">Alterações não guardadas</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Atenção, existem alterações não guardadas. Deseja continuar?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" id="eventDetailUnsavedDiscardBtn">Continuar sem guardar</button>
+                <button type="button" class="btn btn-primary" id="eventDetailUnsavedSaveBtn">Guardar alterações</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Quick menu: editar duração/preço do serviço (offcanvas detalhe da marcação) -->
 <div id="novaMarcacaoEditServiceQuickMenu" role="dialog" aria-label="Alterar opções do serviço"></div>
 <!-- Quick menu: adicionar extra (offcanvas detalhe da marcação) -->
@@ -404,8 +423,9 @@
                 </span>
             </div>
         </div>
-        <button type="submit" class="btn btn-light btn-sm border flex-shrink-0 d-inline-flex align-items-center justify-content-center event-detail-header-save-btn" id="eventDetailSaveBtn" form="eventDetailEditForm" aria-label="Guardar marcação" title="Guardar marcação">
+        <button type="submit" class="btn btn-light btn-sm border flex-shrink-0 d-inline-flex align-items-center gap-2 event-detail-header-save-btn" id="eventDetailSaveBtn" form="eventDetailEditForm" aria-label="Guardar alterações" title="Guardar alterações">
             <i class="ph ph-floppy-disk" aria-hidden="true"></i>
+            <span class="event-detail-header-save-label">Guardar alterações</span>
         </button>
         <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     </div>

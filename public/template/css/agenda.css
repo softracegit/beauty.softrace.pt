@@ -41,6 +41,7 @@
 #paymentModal.modal,
 #cancelMarcacaoModal.modal,
 #agendaDragConfirmModal.modal,
+#eventDetailUnsavedChangesModal.modal,
 #tempoPessoalModal.modal {
     --bs-modal-zindex: 1085;
 }
@@ -118,9 +119,10 @@
     margin-bottom: 0;
 }
 .event-detail-header-save-btn {
-    width: 2.125rem;
+    width: auto;
     height: 2.125rem;
-    padding: 0;
+    padding: 0 0.85rem;
+    margin-right: 0.85rem;
     color: var(--bs-body-color);
     background-color: var(--bs-body-bg);
 }
@@ -137,7 +139,14 @@
 }
 
 .event-detail-header-save-btn .ph {
-    font-size: 1.125rem;
+    font-size: 1.0625rem;
+}
+
+.event-detail-header-save-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .agenda-marcacao-test-offcanvas-footer {
@@ -2892,7 +2901,8 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
 }
 
 /* Confirmação (arrastar / editar): por cima do offcanvas de detalhe — no DOM vem antes do #eventDetailEditModal */
-#agendaDragConfirmModal.modal {
+#agendaDragConfirmModal.modal,
+#eventDetailUnsavedChangesModal.modal {
     z-index: 1080;
 }
 

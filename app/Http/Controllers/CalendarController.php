@@ -1060,6 +1060,7 @@ class CalendarController extends Controller
         }
 
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
+            $this->assertMarcacaoClientRequired($request);
             if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
             } else {
@@ -1197,6 +1198,10 @@ class CalendarController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        if (($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO && $request->has('client_id')) {
+            $this->assertMarcacaoClientRequired($request);
+        }
 
         $servicesPayload = $request->input('services', []);
         if (is_array($servicesPayload) && $servicesPayload !== []) {
@@ -1985,6 +1990,15 @@ class CalendarController extends Controller
                     "services.{$idx}.service_option_id" => ['Este serviço não tem variantes.'],
                 ]);
             }
+        }
+    }
+
+    private function assertMarcacaoClientRequired(Request $request): void
+    {
+        if (! $request->input('client_id')) {
+            throw ValidationException::withMessages([
+                'client_id' => ['A marcação tem de ter um cliente associado.'],
+            ]);
         }
     }
 

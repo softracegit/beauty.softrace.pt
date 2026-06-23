@@ -1992,6 +1992,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailWasSaved = false;
     var eventDetailAutoSaveClosing = false;
     var eventDetailAutoSaveInProgress = false;
+    var eventDetailDiscardClosing = false;
     /** Se true, a duração do evento segue só a soma dos serviços+extras (heurística anti-duplicação desligada). */
     var eventDetailTrustServicesSumForDuration = false;
     /** Se true, serviços/extras foram alterados desde o carregamento e ainda não foram gravados. */
@@ -3223,7 +3224,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function eventDetailSaveBtnDefaultHtml() {
-            return '<i class="ph ph-floppy-disk" aria-hidden="true"></i>';
+            return '<i class="ph ph-floppy-disk" aria-hidden="true"></i><span class="event-detail-header-save-label">Guardar alterações</span>';
         }
 
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
@@ -3609,6 +3610,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOriginalStatus = data.status || 'agendado';
         eventDetailAutoSaveClosing = false;
         eventDetailAutoSaveInProgress = false;
+        eventDetailDiscardClosing = false;
         eventDetailTrustServicesSumForDuration = false;
         eventDetailServicesMutated = false;
         eventDetailSelectedServices = [];
@@ -6084,7 +6086,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function eventDetailSaveBtnDefaultHtml() {
-        return '<i class="ph ph-floppy-disk" aria-hidden="true"></i>';
+        return '<i class="ph ph-floppy-disk" aria-hidden="true"></i><span class="event-detail-header-save-label">Guardar alterações</span>';
+    }
+
+    function openEventDetailUnsavedChangesModal() {
+        var modalEl = $id('eventDetailUnsavedChangesModal');
+        if (!modalEl || typeof bootstrap === 'undefined') {
+            return;
+        }
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
 
     function buildEventDetailSavePayload() {
@@ -6152,18 +6162,6 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailServicesMutated = false;
     }
 
-    function eventDetailCanAutoSave() {
-        if (eventDetailModalLoading || eventDetailWasSaved) return false;
-        var id = $id('eventDetailEditId')?.value;
-        if (!id) return false;
-        var saveBtn = $id('eventDetailSaveBtn');
-        if (!saveBtn || saveBtn.disabled || saveBtn.classList.contains('d-none')) return false;
-        if (!eventDetailCurrentData || eventDetailCurrentData.event_type !== 'marcacao') return false;
-        var marcacaoSection = $id('eventDetailOcMarcacaoSection');
-        if (marcacaoSection && marcacaoSection.classList.contains('d-none')) return false;
-        return true;
-    }
-
     function eventDetailHasUnsavedChanges() {
         if (!eventDetailCurrentData || eventDetailCurrentData.event_type !== 'marcacao') return false;
         var desc = ($id('eventDetailOcObs') && $id('eventDetailOcObs').value) || '';
@@ -6185,6 +6183,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!built.id) {
             if (options.onError) options.onError();
             return;
+        }
+        if (eventDetailCurrentData?.event_type === 'marcacao') {
+            var clientId = eventDetailSelectedClient && eventDetailSelectedClient.id
+                ? String(eventDetailSelectedClient.id).trim()
+                : '';
+            if (!clientId) {
+                showToast('Selecione ou crie um cliente.', 'error');
+                if (options.onError) options.onError();
+                return;
+            }
         }
         var id = built.id;
         var payload = built.payload;
@@ -6263,15 +6271,31 @@ document.addEventListener('DOMContentLoaded', function() {
         persistEventDetailChanges({ closeAfterSave: true });
     });
 
+    $id('eventDetailUnsavedDiscardBtn').addEventListener('click', function() {
+        var modalEl = $id('eventDetailUnsavedChangesModal');
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+        eventDetailDiscardClosing = true;
+        bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
+    });
+
+    $id('eventDetailUnsavedSaveBtn').addEventListener('click', function() {
+        var modalEl = $id('eventDetailUnsavedChangesModal');
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+        persistEventDetailChanges({ closeAfterSave: true });
+    });
+
     $id('eventDetailEditModal').addEventListener('hide.bs.offcanvas', function(e) {
-        if (eventDetailWasSaved || eventDetailAutoSaveClosing) return;
+        if (eventDetailWasSaved || eventDetailDiscardClosing || eventDetailAutoSaveClosing) {
+            return;
+        }
         if (eventDetailAutoSaveInProgress) {
             e.preventDefault();
             return;
         }
-        if (!eventDetailCanAutoSave() || !eventDetailHasUnsavedChanges()) return;
-        e.preventDefault();
-        persistEventDetailChanges({ closeAfterSave: true });
+        if (eventDetailHasUnsavedChanges()) {
+            e.preventDefault();
+            openEventDetailUnsavedChangesModal();
+        }
     });
 
     /** Polling MB WAY: um pedido finalize de cada vez; evita 422 por corrida + toast falso. */
@@ -10854,6 +10878,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailWasSaved = false;
         eventDetailAutoSaveClosing = false;
         eventDetailAutoSaveInProgress = false;
+        eventDetailDiscardClosing = false;
         eventDetailModalLoading = false;
         eventDetailSelectedClient = null;
         eventDetailSelectedServices = [];
