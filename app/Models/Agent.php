@@ -434,4 +434,21 @@ class Agent extends Model
             },
         ]);
     }
+
+    /**
+     * Prestadores activos (ficha de agente + papel de prestador de serviços).
+     *
+     * @param  Builder<Agent>  $query
+     * @return Builder<Agent>
+     */
+    public function scopeActiveServiceProviders(Builder $query, ?int $storeId = null): Builder
+    {
+        if ($storeId !== null) {
+            $query->forStore($storeId);
+        }
+
+        return $query
+            ->where('status', self::STATUS_ACTIVE)
+            ->whereHas('user', fn (Builder $userQuery) => $userQuery->whereIn('role', User::serviceProviderRoles()));
+    }
 }

@@ -147,6 +147,19 @@ class User extends Authenticatable
             });
     }
 
+    /** Prestadores de serviços activos (filtros de técnico em relatórios e catálogo). */
+    public function scopeActiveServiceProviders(Builder $query, ?int $storeId = null): Builder
+    {
+        return $query
+            ->whereIn('role', self::serviceProviderRoles())
+            ->whereHas('agent', function (Builder $agentQuery) use ($storeId) {
+                $agentQuery->where('status', Agent::STATUS_ACTIVE);
+                if ($storeId !== null) {
+                    $agentQuery->where('store_id', $storeId);
+                }
+            });
+    }
+
     /**
      * Get the agent associated with this user (1-1 relationship)
      */

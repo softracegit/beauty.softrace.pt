@@ -32,7 +32,8 @@ class CategoryController extends Controller
             ->with(['services' => fn ($q) => $q->with('agents', 'extras', 'fees', 'options')->withCount(['extras', 'fees'])->orderBy('sort_order')])
             ->withCount('services')
             ->get();
-        $agents = Agent::forStore(current_store_id())->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
+        $agents = Agent::query()
+            ->activeServiceProviders(current_store_id())
             ->orderBy('name')
             ->get();
         $extras = Extra::query()

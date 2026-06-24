@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -89,6 +90,20 @@ class Sale extends Model
     public function isInvoiceDraft(): bool
     {
         return ($this->invoice_status ?? self::INVOICE_STATUS_FATURADO) === self::INVOICE_STATUS_RASCUNHO;
+    }
+
+    /**
+     * Vendas que entram no fecho de caixa (exclui rascunhos).
+     *
+     * @param  Builder<Sale>  $query
+     * @return Builder<Sale>
+     */
+    public function scopeExcludingInvoiceDrafts(Builder $query): Builder
+    {
+        return $query->where(function (Builder $inner): void {
+            $inner->whereNull('invoice_status')
+                ->orWhere('invoice_status', '!=', self::INVOICE_STATUS_RASCUNHO);
+        });
     }
 
     public function isAnulado(): bool

@@ -78,7 +78,7 @@
           @error('counted_cash')
             <div class="invalid-feedback">{{ $message }}</div>
           @enderror
-          <div class="form-text">Fundo + vendas em dinheiro = {{ number_format($summary['expected_cash_in_drawer'], 2, ',', ' ') }} €</div>
+          <div class="form-text text-nowrap">Fundo + vendas em dinheiro = {{ number_format($summary['expected_cash_in_drawer'], 2, ',', ' ') }}&nbsp;€</div>
         </div>
         <div class="col-12">
           <label for="notes" class="form-label">Notas (opcional)</label>

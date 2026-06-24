@@ -374,6 +374,50 @@ class CashRegisterSessionTest extends TestCase
         ]);
     }
 
+    public function test_close_excludes_draft_sales_from_expected_cash(): void
+    {
+        $fx = $this->fixture();
+        $session = $this->openCashRegisterForStore($fx['staff'], $fx['store'], 50);
+
+        Sale::query()->create([
+            'store_id' => $fx['store']->id,
+            'calendar_event_id' => $fx['event']->id,
+            'client_id' => $fx['client']->id,
+            'numero_fatura' => '2026/06-201',
+            'data_emissao' => now()->toDateString(),
+            'total' => 25,
+            'valor_pago' => 25,
+            'payment_method' => Sale::PAYMENT_DINHEIRO,
+            'scope' => Sale::SCOPE_CAIXA_LIQUIDACAO,
+            'status' => Sale::STATUS_PAGO,
+            'invoice_status' => Sale::INVOICE_STATUS_FATURADO,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Sale::query()->create([
+            'store_id' => $fx['store']->id,
+            'calendar_event_id' => $fx['event']->id,
+            'client_id' => $fx['client']->id,
+            'numero_fatura' => '2026/06-202',
+            'data_emissao' => now()->toDateString(),
+            'total' => 25,
+            'valor_pago' => 25,
+            'payment_method' => Sale::PAYMENT_DINHEIRO,
+            'scope' => Sale::SCOPE_CAIXA_LIQUIDACAO,
+            'status' => Sale::STATUS_PAGO,
+            'invoice_status' => Sale::INVOICE_STATUS_RASCUNHO,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $summary = app(CashRegisterService::class)->buildExpectedSummary($session);
+
+        $this->assertEquals(25.0, $summary['cash_sales_total']);
+        $this->assertEquals(75.0, $summary['expected_cash_in_drawer']);
+        $this->assertSame(1, $summary['sales_count']);
+    }
+
     public function test_checkout_blocked_again_after_close(): void
     {
         $fx = $this->fixture();

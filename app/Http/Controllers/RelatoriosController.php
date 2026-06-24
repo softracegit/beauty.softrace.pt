@@ -558,13 +558,13 @@ class RelatoriosController extends Controller
     }
 
     /**
-     * Membros de equipa activos (filtros dos relatórios).
+     * Prestadores de serviços activos (filtro «Técnico» nos relatórios).
      *
      * @return Collection<int, User>
      */
     private function membrosOptsForRelatorios(): Collection
     {
-        return User::activeStaff(current_store_id())
+        return User::activeServiceProviders(current_store_id())
             ->orderBy('name')
             ->get(['id', 'name']);
     }

@@ -4432,7 +4432,10 @@
             els.slotHoldFeedback.textContent = '';
             els.slotHoldFeedback.classList.add('d-none');
         }
-        var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal);
+        var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal, {
+            backdrop: 'static',
+            keyboard: false,
+        });
         modal.show();
     }
 
@@ -4564,7 +4567,18 @@
         if (!els.slotHoldExpiredModal || !window.bootstrap || !window.bootstrap.Modal) {
             return;
         }
-        var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal);
+        var modalOptions = { backdrop: 'static', keyboard: false };
+        var modal = window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal, modalOptions);
+
+        els.slotHoldExpiredModal.addEventListener('hidden.bs.modal', function () {
+            if (!slotHoldShowZeroDuringExpiredModal) {
+                return;
+            }
+            window.requestAnimationFrame(function () {
+                window.bootstrap.Modal.getOrCreateInstance(els.slotHoldExpiredModal, modalOptions).show();
+            });
+        });
+
         if (els.slotHoldRestartBtn) {
             els.slotHoldRestartBtn.addEventListener('click', function () {
                 setSlotHoldModalFeedback('');

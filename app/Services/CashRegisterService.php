@@ -290,6 +290,7 @@ class CashRegisterService
         return Sale::query()
             ->forStore((int) $session->store_id)
             ->where('status', Sale::STATUS_PAGO)
+            ->excludingInvoiceDrafts()
             ->where(function (Builder $query) use ($session, $periodEnd): void {
                 $query->where('cash_register_session_id', $session->id)
                     ->orWhere(function (Builder $inner) use ($session, $periodEnd): void {
@@ -318,6 +319,7 @@ class CashRegisterService
         Sale::query()
             ->forStore((int) $session->store_id)
             ->where('status', Sale::STATUS_PAGO)
+            ->excludingInvoiceDrafts()
             ->whereNull('cash_register_session_id')
             ->where('created_at', '>=', StoreBusinessTime::lowerBoundForQuery($openedAt))
             ->where('created_at', '<=', $endAt)

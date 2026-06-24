@@ -87,7 +87,7 @@
                   required
                 >
                 <div class="invalid-feedback" id="crmCashRegisterCloseCountedError"></div>
-                <div class="form-text small" id="crmCashRegisterCloseCountedHint"></div>
+                <div class="form-text small text-nowrap" id="crmCashRegisterCloseCountedHint"></div>
               </div>
               <div class="col-12">
                 <label for="crmCashRegisterCloseNotes" class="form-label small mb-1">Notas (opcional)</label>

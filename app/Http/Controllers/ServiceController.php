@@ -230,9 +230,7 @@ class ServiceController extends Controller
             ->get();
 
         $agents = Agent::query()
-            ->forStore(current_store_id())
-            ->where('status', Agent::STATUS_ACTIVE)
-            ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
+            ->activeServiceProviders(current_store_id())
             ->orderBy('agenda_order')
             ->orderBy('name')
             ->get(['id', 'name', 'avatar', 'agenda_order']);
@@ -251,9 +249,7 @@ class ServiceController extends Controller
         $assignments = $request->validated('assignments', []);
 
         $allowedAgentIds = Agent::query()
-            ->forStore(current_store_id())
-            ->where('status', Agent::STATUS_ACTIVE)
-            ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
+            ->activeServiceProviders(current_store_id())
             ->pluck('id')
             ->all();
 

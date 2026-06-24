@@ -212,7 +212,7 @@
 
                 var hint = document.getElementById('crmCashRegisterCloseCountedHint');
                 if (hint) {
-                    hint.textContent = 'Fundo + vendas em dinheiro = ' + formatMoney(summary.expected_cash_in_drawer);
+                    hint.textContent = 'Fundo + vendas em dinheiro = ' + formatMoney(summary.expected_cash_in_drawer).replace(/\s€$/, '\u00a0€');
                 }
 
                 if (content) content.classList.remove('d-none');
