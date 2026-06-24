@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\BookingSavedCard;
 use App\Models\Client;
+use App\Models\CrmSetting;
 use App\Models\User;
+use App\Support\CurrentStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +21,10 @@ class BookingSavedCardController extends Controller
 {
     public function createSetupIntent(Request $request): JsonResponse
     {
+        if ($denied = $this->denyUnlessBookingStripeEnabled()) {
+            return $denied;
+        }
+
         $customerId = $this->resolveStripeCustomerIdForBookingActor($request->user());
         if (! is_string($customerId) || $customerId === '') {
             return response()->json(['message' => __('booking.validation.card_prepare_failed')], 422);
@@ -59,6 +65,10 @@ class BookingSavedCardController extends Controller
 
     public function syncAfterSetupIntent(Request $request): JsonResponse
     {
+        if ($denied = $this->denyUnlessBookingStripeEnabled()) {
+            return $denied;
+        }
+
         $request->validate([
             'setup_intent_id' => ['required', 'string', 'max:255'],
         ]);
@@ -148,6 +158,10 @@ class BookingSavedCardController extends Controller
 
     public function makeDefault(Request $request, BookingSavedCard $card): JsonResponse
     {
+        if ($denied = $this->denyUnlessBookingStripeEnabled()) {
+            return $denied;
+        }
+
         $client = $this->resolveClientFromBookingActor($request->user());
         if (! $client) {
             return response()->json(['message' => __('booking.validation.card_session_invalid')], 403);
@@ -171,6 +185,10 @@ class BookingSavedCardController extends Controller
 
     public function destroy(Request $request, BookingSavedCard $card): JsonResponse
     {
+        if ($denied = $this->denyUnlessBookingStripeEnabled()) {
+            return $denied;
+        }
+
         $client = $this->resolveClientFromBookingActor($request->user());
         if (! $client) {
             return response()->json(['message' => __('booking.validation.card_session_invalid')], 403);
@@ -307,6 +325,20 @@ class BookingSavedCardController extends Controller
         $client->save();
 
         return $customer->id;
+    }
+
+    private function denyUnlessBookingStripeEnabled(): ?JsonResponse
+    {
+        if (CrmSetting::onlineBookingStripeEnabled($this->bookingStoreId())) {
+            return null;
+        }
+
+        return response()->json(['message' => __('booking.validation.payment_not_configured')], 503);
+    }
+
+    private function bookingStoreId(): int
+    {
+        return app(CurrentStore::class)->id();
     }
 
     private function configureStripeSdk(): void

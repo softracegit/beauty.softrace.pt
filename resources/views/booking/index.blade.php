@@ -23,8 +23,12 @@
                     <div class="row mt-4">
                         <div class="col-12">
                             <div class="alert alert-light border text-center" role="status">
-                                <p class="fw-semibold mb-1">{{ __('booking.services.empty_title') }}</p>
-                                <p class="text-muted small mb-0">{{ __('booking.services.empty_hint') }}</p>
+                                @if($bookingAgentEmpty ?? false)
+                                    <p class="fw-semibold mb-0">{{ __('booking.services.agent_empty_title') }}</p>
+                                @else
+                                    <p class="fw-semibold mb-1">{{ __('booking.services.empty_title') }}</p>
+                                    <p class="text-muted small mb-0">{{ __('booking.services.empty_hint') }}</p>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -200,7 +204,9 @@
                             @include('booking.partials.summary-panel', [
                                 'summaryTitle' => __('booking.services.summary_title'),
                                 'showNextButton' => true,
-                                'nextUrl' => route('booking.technician', ['store' => $bookingStoreSlug], false),
+                                'nextUrl' => ($bookingSkipStaffStep ?? false)
+                                    ? route('booking.datetime', ['store' => $bookingStoreSlug], false)
+                                    : route('booking.technician', ['store' => $bookingStoreSlug], false),
                             ])
                         </div>
                     </div>

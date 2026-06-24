@@ -39,11 +39,21 @@
     @stack('head')
 </head>
 @php($bookingStoreSlug = $bookingStoreSlug ?? \App\Models\Store::defaultPublicBookingStoreSlug())
+@php($bookingPresetAgent = $bookingPresetAgent ?? null)
+@php($bookingSkipStaffStep = (bool) ($bookingSkipStaffStep ?? false))
 <body
-    class="booking-body @yield('body_class')"
+    class="booking-body @yield('body_class'){{ $bookingSkipStaffStep ? ' booking-flow--preset-agent' : '' }}"
     data-booking-theme="{{ $bookingThemeId }}"
     data-booking-store-slug="{{ $bookingStoreSlug }}"
     data-booking-index-url="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"
+    @if($bookingPresetAgent)
+        data-booking-preset-agent-id="{{ $bookingPresetAgent['id'] }}"
+        data-booking-preset-agent-name="{{ $bookingPresetAgent['name'] }}"
+        data-booking-preset-agent-specialization="{{ $bookingPresetAgent['specialization'] }}"
+        data-booking-preset-agent-avatar="{{ $bookingPresetAgent['avatar'] ?? '' }}"
+        data-booking-preset-agent-url="{{ $bookingPresetAgent['url'] }}"
+        data-booking-skip-staff-step="1"
+    @endif
     data-booking-auth-request-code-url="{{ route('booking.auth.request_code', ['store' => $bookingStoreSlug], false) }}"
     data-booking-auth-verify-code-url="{{ route('booking.auth.verify_code', ['store' => $bookingStoreSlug], false) }}"
     data-booking-auth-complete-registration-url="{{ route('booking.auth.complete_registration', ['store' => $bookingStoreSlug], false) }}"

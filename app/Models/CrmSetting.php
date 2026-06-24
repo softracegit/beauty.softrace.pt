@@ -92,6 +92,21 @@ class CrmSetting extends Model
         return self::getBool(self::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, true, $storeId);
     }
 
+    /**
+     * Pagamentos Stripe activos no booking online (definição da loja + chaves configuradas).
+     */
+    public static function onlineBookingStripeEnabled(?int $storeId = null): bool
+    {
+        if (! self::onlineBookingPaymentRequired($storeId)) {
+            return false;
+        }
+
+        $key = config('stripe.key');
+        $secret = config('stripe.secret');
+
+        return is_string($key) && $key !== '' && is_string($secret) && $secret !== '';
+    }
+
     public static function posGorjetaEnabled(?int $storeId = null): bool
     {
         return self::getBool(self::KEY_POS_GORJETA_ENABLED, true, $storeId);

@@ -97,22 +97,31 @@
                             </div>
                         </section>
 
+                        @php
+                            $bookingStripeEnabled = $bookingStripeEnabled ?? false;
+                            $showCardsSection = $bookingStripeEnabled || $savedCards->isNotEmpty();
+                        @endphp
+                        @if($showCardsSection)
                         <section id="cartoes" class="booking-category-section mb-3">
                             <div
                                 class="card border shadow-sm rounded-3"
+                                @if($bookingStripeEnabled)
                                 id="booking-cards-wallet"
                                 data-setup-intent-url="{{ route('booking.conta.cards.setup_intent', ['store' => $bookingStoreSlug], false) }}"
                                 data-sync-url="{{ route('booking.conta.cards.sync', ['store' => $bookingStoreSlug], false) }}"
                                 data-default-url-template="{{ route('booking.conta.cards.default', ['store' => $bookingStoreSlug, 'card' => '__CARD__'], false) }}"
                                 data-destroy-url-template="{{ route('booking.conta.cards.destroy', ['store' => $bookingStoreSlug, 'card' => '__CARD__'], false) }}"
                                 data-publishable-key="{{ $stripePublishableKey }}"
+                                @endif
                             >
                                 <div class="card-body py-3">
                                     <div class="d-flex align-items-center justify-content-between mb-3">
                                         <p class="small fw-semibold text-uppercase text-muted mb-0">{{ __('booking.account.cards') }}</p>
-                                        <button type="button" class="btn btn-sm btn-outline-dark" id="booking-card-open-add">
-                                            {{ __('booking.account.add_card') }}
-                                        </button>
+                                        @if($bookingStripeEnabled)
+                                            <button type="button" class="btn btn-sm btn-outline-dark" id="booking-card-open-add">
+                                                {{ __('booking.account.add_card') }}
+                                            </button>
+                                        @endif
                                     </div>
 
                                     <div id="booking-cards-list">
@@ -122,20 +131,25 @@
                                                     <div class="fw-semibold text-dark">{{ strtoupper((string) $card->brand) }} •••• {{ $card->last4 }}</div>
                                                     <div class="text-muted">{{ __('booking.account.card_expiry', ['month' => str_pad((string) $card->exp_month, 2, '0', STR_PAD_LEFT), 'year' => $card->exp_year]) }}</div>
                                                 </div>
-                                                <div class="d-flex align-items-center gap-2">
-                                                    @if($card->is_default)
-                                                        <span class="badge text-bg-success">{{ __('booking.account.card_default_badge') }}</span>
-                                                    @else
-                                                        <button type="button" class="btn btn-link btn-sm p-0 js-card-default" data-card-id="{{ $card->id }}">{{ __('booking.account.set_default_card') }}</button>
-                                                    @endif
-                                                    <button type="button" class="btn btn-link btn-sm text-danger p-0 js-card-remove" data-card-id="{{ $card->id }}">{{ __('booking.account.remove_card') }}</button>
-                                                </div>
+                                                @if($bookingStripeEnabled)
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        @if($card->is_default)
+                                                            <span class="badge text-bg-success">{{ __('booking.account.card_default_badge') }}</span>
+                                                        @else
+                                                            <button type="button" class="btn btn-link btn-sm p-0 js-card-default" data-card-id="{{ $card->id }}">{{ __('booking.account.set_default_card') }}</button>
+                                                        @endif
+                                                        <button type="button" class="btn btn-link btn-sm text-danger p-0 js-card-remove" data-card-id="{{ $card->id }}">{{ __('booking.account.remove_card') }}</button>
+                                                    </div>
+                                                @elseif($card->is_default)
+                                                    <span class="badge text-bg-success">{{ __('booking.account.card_default_badge') }}</span>
+                                                @endif
                                             </div>
                                         @empty
                                             <p class="small text-muted mb-0">{{ __('booking.account.no_saved_cards') }}</p>
                                         @endforelse
                                     </div>
 
+                                    @if($bookingStripeEnabled)
                                     <div id="booking-card-add-wrap" class="mt-3 border-top pt-3 d-none">
                                         <p class="small text-muted mb-2">{{ __('booking.account.add_card_hint') }}</p>
                                         <div id="booking-card-add-element" class="mb-2"></div>
@@ -145,9 +159,11 @@
                                             <button type="button" class="btn btn-outline-secondary btn-sm" id="booking-card-add-cancel">{{ __('booking.account.cancel') }}</button>
                                         </div>
                                     </div>
+                                    @endif
                                 </div>
                             </div>
                         </section>
+                        @endif
                     </div>
                 </main>
             </div>
@@ -161,7 +177,9 @@
     <script>
         window.bookingAccountI18n = @json(trans('booking.account'));
     </script>
-    <script src="https://js.stripe.com/v3/"></script>
     <script src="{{ asset('booking-assets/js/account-notifications.js') }}?v={{ file_exists(public_path('booking-assets/js/account-notifications.js')) ? filemtime(public_path('booking-assets/js/account-notifications.js')) : time() }}" defer></script>
+    @if($bookingStripeEnabled ?? false)
+    <script src="https://js.stripe.com/v3/"></script>
     <script src="{{ asset('booking-assets/js/account-cards.js') }}?v={{ file_exists(public_path('booking-assets/js/account-cards.js')) ? filemtime(public_path('booking-assets/js/account-cards.js')) : time() }}" defer></script>
+    @endif
 @endpush

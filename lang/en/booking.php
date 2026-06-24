@@ -53,6 +53,7 @@ return [
         'scroll_categories_next_aria' => 'View more categories',
         'empty_title' => 'No services available.',
         'empty_hint' => 'Create categories and services in the CRM to see them listed here.',
+        'agent_empty_title' => 'No services found.',
         'price_from' => 'From',
         'summary_title' => 'Booking summary',
     ],

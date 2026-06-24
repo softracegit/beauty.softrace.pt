@@ -83,6 +83,65 @@
                 </div>
             </div>
 
+            <!-- Link Booking -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Link Booking</h5>
+                </div>
+                <div class="card-body">
+                    @php
+                        $bookingSlugValue = old('booking_slug', $agente->booking_slug);
+                        $bookingStoreSlug = $bookingStoreSlug ?? current_store()->get()->slug;
+                        $bookingLinkPreview = $bookingSlugValue
+                            ? url('/booking/'.$bookingStoreSlug.'/'.\Illuminate\Support\Str::slug((string) $bookingSlugValue))
+                            : null;
+                    @endphp
+                    <div class="mb-3">
+                        <label for="agentBookingSlug" class="form-label">Slug do link</label>
+                        <div class="input-group">
+                            <span class="input-group-text text-muted small">/booking/{{ $bookingStoreSlug }}/</span>
+                            <input
+                                type="text"
+                                name="booking_slug"
+                                id="agentBookingSlug"
+                                class="form-control @error('booking_slug') is-invalid @enderror"
+                                value="{{ $bookingSlugValue }}"
+                                placeholder="laissaosto"
+                                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                                autocomplete="off"
+                                spellcheck="false"
+                            >
+                        </div>
+                        @error('booking_slug')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                        <div class="form-text">Apenas letras minúsculas, números e hífens. Deixe vazio para desativar o link pessoal.</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Link completo</label>
+                        <div class="input-group">
+                            <input
+                                type="text"
+                                id="agentBookingLinkPreview"
+                                class="form-control form-control-sm"
+                                value="{{ $bookingLinkPreview ?? '' }}"
+                                readonly
+                                placeholder="Defina um slug para gerar o link"
+                            >
+                            <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                id="agentBookingLinkCopy"
+                                @disabled(! $bookingLinkPreview)
+                                title="Copiar link"
+                            >
+                                <i class="ph ph-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Danger Zone -->
             <div class="uedit-danger-zone">
                 <div class="uedit-danger-header">
@@ -446,6 +505,35 @@
         });
     });
     setUnit(hidden.value || '{{ \App\Models\Agent::COMMISSION_UNIT_PERCENT }}');
+})();
+(function() {
+    var slugInput = document.getElementById('agentBookingSlug');
+    var previewInput = document.getElementById('agentBookingLinkPreview');
+    var copyBtn = document.getElementById('agentBookingLinkCopy');
+    if (!slugInput || !previewInput) return;
+    var storeSlug = @json($bookingStoreSlug ?? current_store()->get()->slug);
+    var baseUrl = @json(url('/booking'));
+    function syncBookingLinkPreview() {
+        var raw = (slugInput.value || '').trim().toLowerCase();
+        var slug = raw.replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        var full = slug ? (baseUrl + '/' + storeSlug + '/' + slug) : '';
+        previewInput.value = full;
+        if (copyBtn) copyBtn.disabled = !full;
+    }
+    slugInput.addEventListener('input', syncBookingLinkPreview);
+    syncBookingLinkPreview();
+    if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+            var value = previewInput.value;
+            if (!value) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(value);
+                return;
+            }
+            previewInput.select();
+            document.execCommand('copy');
+        });
+    }
 })();
 </script>
 @endsection

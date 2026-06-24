@@ -53,6 +53,7 @@ return [
         'scroll_categories_next_aria' => 'Ver más categorías',
         'empty_title' => 'No hay servicios disponibles.',
         'empty_hint' => 'Crea categorías y servicios en el CRM para verlos listados aquí.',
+        'agent_empty_title' => 'No se encontraron servicios.',
         'price_from' => 'Desde',
         'summary_title' => 'Resumen de la reserva',
     ],

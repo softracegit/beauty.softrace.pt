@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToStore;
 use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,7 +22,7 @@ class Agent extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'status', 'visible_in_agenda', 'visible_in_booking', 'agenda_order', 'weekly_schedule'])
+            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'status', 'visible_in_agenda', 'visible_in_booking', 'booking_slug', 'agenda_order', 'weekly_schedule'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Membro criado',
@@ -53,6 +54,7 @@ class Agent extends Model
         'status',
         'visible_in_agenda',
         'visible_in_booking',
+        'booking_slug',
         'agenda_order',
         'color',
         'avatar',
@@ -153,6 +155,118 @@ class Agent extends Model
         }
 
         return self::specializations()[$value] ?? $value;
+    }
+
+    /**
+     * Segmentos reservados no prefixo /booking/{loja}/ — não podem ser usados como booking_slug.
+     *
+     * @return list<string>
+     */
+    public static function reservedBookingSlugs(): array
+    {
+        return [
+            'auth',
+            'checkout',
+            'confirmacao',
+            'conta',
+            'disponibilidade',
+            'disponiblidade',
+            'login',
+            'marcacao',
+            'pagamento',
+            'politica-cancelamento',
+            'sair',
+            'servico',
+            'session',
+            'slot-hold',
+            'staff',
+        ];
+    }
+
+    public static function normalizeBookingSlug(?string $raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+
+        $slug = Str::slug(trim($raw));
+        if ($slug === '') {
+            return null;
+        }
+
+        return $slug;
+    }
+
+    public static function bookingSlugExists(int $storeId, string $slug, ?int $ignoreAgentId = null): bool
+    {
+        $query = self::query()
+            ->where('store_id', $storeId)
+            ->where('booking_slug', $slug);
+
+        if ($ignoreAgentId !== null) {
+            $query->whereKeyNot($ignoreAgentId);
+        }
+
+        return $query->exists();
+    }
+
+    public static function generateUniqueBookingSlug(int $storeId, string $name, ?int $ignoreAgentId = null): string
+    {
+        $base = self::normalizeBookingSlug($name) ?? 'membro';
+        if (in_array($base, self::reservedBookingSlugs(), true)) {
+            $base .= '-2';
+        }
+
+        $slug = $base;
+        $suffix = 2;
+        while (self::bookingSlugExists($storeId, $slug, $ignoreAgentId)) {
+            $slug = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    public function publicBookingPath(?Store $store = null): ?string
+    {
+        $slug = self::normalizeBookingSlug($this->booking_slug);
+        if ($slug === null) {
+            return null;
+        }
+
+        $storeSlug = $store instanceof Store
+            ? trim((string) $store->slug)
+            : trim((string) ($this->relationLoaded('store') ? $this->store?->slug : $this->store()->value('slug')));
+
+        if ($storeSlug === '') {
+            return null;
+        }
+
+        return '/booking/'.$storeSlug.'/'.$slug;
+    }
+
+    public function publicBookingUrl(?Store $store = null): ?string
+    {
+        $path = $this->publicBookingPath($store);
+
+        return $path !== null ? url($path) : null;
+    }
+
+    public function isEligibleForPublicBookingPage(): bool
+    {
+        if ($this->status !== self::STATUS_ACTIVE || ! $this->visible_in_booking) {
+            return false;
+        }
+
+        $user = $this->relationLoaded('user') ? $this->user : $this->user()->first();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return User::query()
+            ->whereKey($user->getKey())
+            ->eligibleForPublicBooking()
+            ->exists();
     }
 
     /**

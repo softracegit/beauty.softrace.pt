@@ -33,12 +33,61 @@ class BookingController extends Controller
      */
     public function index(): View
     {
+        return view('booking.index', array_merge(
+            $this->bookingServicesIndexViewData(),
+            [
+                'bookingPresetAgent' => null,
+                'bookingSkipStaffStep' => false,
+                'bookingAgentEmpty' => false,
+            ],
+        ));
+    }
+
+    /**
+     * Marcação online com técnica pré-definida pelo URL (/booking/{loja}/{booking_slug}).
+     */
+    public function indexForAgent(Store $store, Agent $agent): View
+    {
+        if ((int) $agent->store_id !== (int) $store->id) {
+            abort(404);
+        }
+
+        $agent->loadMissing(['user', 'services.category']);
+        $canBook = $agent->isEligibleForPublicBookingPage();
+        $serviceIds = $canBook
+            ? $agent->services
+                ->filter(fn (Service $service): bool => $service->isBookableOnline())
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all()
+            : [];
+
+        $viewData = $this->bookingServicesIndexViewData(
+            $serviceIds !== [] ? $serviceIds : null,
+        );
+
+        return view('booking.index', array_merge($viewData, [
+            'bookingPresetAgent' => $canBook && $serviceIds !== []
+                ? $this->bookingPresetAgentPayload($agent)
+                : null,
+            'bookingSkipStaffStep' => $canBook && $serviceIds !== [],
+            'bookingAgentEmpty' => ! $canBook || $serviceIds === [] || $viewData['categories']->isEmpty(),
+        ]));
+    }
+
+    /**
+     * @param  list<int>|null  $onlyServiceIds
+     * @return array{categories: \Illuminate\Support\Collection, businessName: string}
+     */
+    private function bookingServicesIndexViewData(?array $onlyServiceIds = null): array
+    {
         $storeId = $this->bookingStoreId();
         $categories = Category::query()
             ->where('store_id', $storeId)
             ->visibleInBooking()
             ->with([
-                'services' => function ($q) use ($storeId) {
+                'services' => function ($q) use ($storeId, $onlyServiceIds) {
                     $q->where('store_id', $storeId)
                         ->orderBy('sort_order')
                         ->with([
@@ -52,16 +101,67 @@ class BookingController extends Controller
                                 $fq->orderBy('sort_order')->orderBy('name');
                             },
                         ]);
+                    if ($onlyServiceIds !== null) {
+                        $q->whereIn('id', $onlyServiceIds);
+                    }
                 },
             ])
-            ->whereHas('services', fn ($q) => $q->where('store_id', $storeId))
+            ->whereHas('services', function ($q) use ($storeId, $onlyServiceIds) {
+                $q->where('store_id', $storeId);
+                if ($onlyServiceIds !== null) {
+                    $q->whereIn('id', $onlyServiceIds);
+                }
+            })
             ->orderBy('sort_order')
             ->get();
 
-        return view('booking.index', [
+        if ($onlyServiceIds !== null) {
+            $categories = $categories
+                ->map(function (Category $category) use ($onlyServiceIds) {
+                    $category->setRelation(
+                        'services',
+                        $category->services
+                            ->filter(fn (Service $service): bool => in_array((int) $service->id, $onlyServiceIds, true))
+                            ->values()
+                    );
+
+                    return $category;
+                })
+                ->filter(fn (Category $category): bool => $category->services->isNotEmpty())
+                ->values();
+        }
+
+        return [
             'categories' => $categories,
             'businessName' => $this->bookingBusinessName(),
-        ]);
+        ];
+    }
+
+    /**
+     * @return array{
+     *     id: int,
+     *     name: string,
+     *     slug: string,
+     *     specialization: string,
+     *     avatar: ?string,
+     *     url: string,
+     * }
+     */
+    private function bookingPresetAgentPayload(Agent $agent): array
+    {
+        $store = $this->bookingStore();
+
+        return [
+            'id' => (int) $agent->id,
+            'name' => (string) $agent->name,
+            'slug' => (string) Agent::normalizeBookingSlug($agent->booking_slug),
+            'specialization' => Agent::specializationLabel($agent->specialization) ?? __('booking.flow.default_specialization'),
+            'avatar' => $agent->avatar ? asset('storage/'.$agent->avatar) : null,
+            'url' => (string) ($agent->publicBookingPath($store) ?? route('booking.agent', [
+                'store' => $store->slug,
+                'agent' => Agent::normalizeBookingSlug($agent->booking_slug),
+            ], false)),
+        ];
     }
 
     /**
@@ -414,12 +514,15 @@ class BookingController extends Controller
                 ->get();
         }
 
+        $bookingStripeEnabled = CrmSetting::onlineBookingStripeEnabled($this->bookingStoreId());
+
         return view('booking.conta.settings', [
             'businessName' => $this->bookingBusinessName(),
             'user' => $user,
             'client' => $client,
             'savedCards' => $cards,
-            'stripePublishableKey' => (string) config('stripe.key'),
+            'bookingStripeEnabled' => $bookingStripeEnabled,
+            'stripePublishableKey' => $bookingStripeEnabled ? (string) config('stripe.key') : '',
         ]);
     }
 

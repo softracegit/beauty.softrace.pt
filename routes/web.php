@@ -172,6 +172,9 @@ Route::prefix('booking/{store:slug}')->middleware(['booking', 'booking.locale'])
         Route::post('/cartoes/{card}/default', [BookingSavedCardController::class, 'makeDefault'])->name('cards.default');
         Route::delete('/cartoes/{card}', [BookingSavedCardController::class, 'destroy'])->name('cards.destroy');
     });
+
+    // URL pública do membro (/booking/{loja}/{slug}) — tem de ficar por último entre as GET literais.
+    Route::get('/{agent:booking_slug}', [BookingController::class, 'indexForAgent'])->name('agent');
 });
 
 // Rotas de autenticação (públicas)

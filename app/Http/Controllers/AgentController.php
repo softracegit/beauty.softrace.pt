@@ -89,6 +89,7 @@ class AgentController extends Controller
         $this->authorize('create', Agent::class);
 
         $this->prepareCommissionInput($request);
+        $this->prepareBookingSlugInput($request);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -113,12 +114,14 @@ class AgentController extends Controller
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'booking_slug' => $this->bookingSlugRules($request, null),
             'service_ids' => ['nullable', 'array'],
             'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
         ]);
 
         $validated = $this->applySpecializationByRole($validated);
         $validated = $this->normalizeCommission($validated);
+        $validated = $this->normalizeBookingSlugInput($validated);
 
         $storeId = current_store_id();
         $organizationId = Store::query()->whereKey($storeId)->value('organization_id');
@@ -303,6 +306,7 @@ class AgentController extends Controller
             'agente' => $agente,
             'categories' => $categories,
             'storeHoursLabel' => app(CurrentStore::class)->get()->hoursDisplayLabel(),
+            'bookingStoreSlug' => app(CurrentStore::class)->get()->slug,
         ]);
     }
 
@@ -314,6 +318,7 @@ class AgentController extends Controller
         $this->authorize('update', $agente);
 
         $this->prepareCommissionInput($request);
+        $this->prepareBookingSlugInput($request);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -338,12 +343,14 @@ class AgentController extends Controller
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'booking_slug' => $this->bookingSlugRules($request, $agente->id),
             'service_ids' => ['nullable', 'array'],
             'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
         ]);
 
         $validated = $this->applySpecializationByRole($validated);
         $validated = $this->normalizeCommission($validated);
+        $validated = $this->normalizeBookingSlugInput($validated);
 
         // Handle avatar upload
         if ($request->hasFile('avatar')) {
@@ -478,6 +485,57 @@ class AgentController extends Controller
         if ($request->input('commission_rate') === '') {
             $request->merge(['commission_rate' => null]);
         }
+    }
+
+    private function prepareBookingSlugInput(Request $request): void
+    {
+        if (! $request->has('booking_slug')) {
+            return;
+        }
+
+        $raw = $request->input('booking_slug');
+        if ($raw === null || $raw === '') {
+            $request->merge(['booking_slug' => null]);
+
+            return;
+        }
+
+        $request->merge(['booking_slug' => Agent::normalizeBookingSlug((string) $raw)]);
+    }
+
+    /** @return array<int, \Illuminate\Contracts\Validation\ValidationRule|string> */
+    private function bookingSlugRules(Request $request, ?int $ignoreAgentId): array
+    {
+        $storeId = current_store_id();
+
+        return [
+            'nullable',
+            'string',
+            'max:80',
+            'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+            Rule::notIn(Agent::reservedBookingSlugs()),
+            Rule::unique('agents', 'booking_slug')
+                ->where(fn ($q) => $q->where('store_id', $storeId))
+                ->ignore($ignoreAgentId),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function normalizeBookingSlugInput(array $validated): array
+    {
+        $raw = $validated['booking_slug'] ?? null;
+        if ($raw === null || $raw === '') {
+            $validated['booking_slug'] = null;
+
+            return $validated;
+        }
+
+        $validated['booking_slug'] = Agent::normalizeBookingSlug((string) $raw);
+
+        return $validated;
     }
 
     /**

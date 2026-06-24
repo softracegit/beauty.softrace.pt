@@ -38,23 +38,33 @@
         }
     }
     $bookingRouteName = request()->route()?->getName();
-    $bookingFlowRoutes = ['booking.index', 'booking.technician', 'booking.datetime', 'booking.step3', 'booking.confirm'];
+    $bookingFlowRoutes = ['booking.index', 'booking.agent', 'booking.technician', 'booking.datetime', 'booking.step3', 'booking.confirm'];
     $showBookingSteps = $bookingRouteName && in_array($bookingRouteName, $bookingFlowRoutes, true);
     $bookingDisableAuthModal = (bool) ($bookingDisableAuthModal ?? false);
+    $bookingSkipStaffStep = (bool) ($bookingSkipStaffStep ?? false);
+    $bookingPresetAgentUrl = is_array($bookingPresetAgent ?? null)
+        ? (string) ($bookingPresetAgent['url'] ?? '')
+        : '';
     $bookingStepActive = match ($bookingRouteName) {
-        'booking.index' => 1,
+        'booking.index', 'booking.agent' => 1,
         'booking.technician' => 2,
-        'booking.datetime' => 3,
-        'booking.step3' => 4,
-        'booking.confirm' => 5,
+        'booking.datetime' => $bookingSkipStaffStep ? 2 : 3,
+        'booking.step3' => $bookingSkipStaffStep ? 3 : 4,
+        'booking.confirm' => $bookingSkipStaffStep ? 4 : 5,
         default => null,
     };
-    $bookingSteps = [
-        ['label' => __('booking.nav.step_services'), 'route' => 'booking.index'],
-        ['label' => __('booking.nav.step_staff'), 'route' => 'booking.technician'],
-        ['label' => __('booking.nav.step_datetime'), 'route' => 'booking.datetime'],
-        ['label' => __('booking.nav.step_confirmation'), 'route' => 'booking.step3'],
-    ];
+    $bookingSteps = $bookingSkipStaffStep
+        ? [
+            ['label' => __('booking.nav.step_services'), 'route' => $bookingRouteName === 'booking.agent' ? 'booking.agent' : 'booking.index', 'routeParams' => $bookingRouteName === 'booking.agent' && is_array($bookingPresetAgent ?? null) ? ['agent' => $bookingPresetAgent['slug']] : []],
+            ['label' => __('booking.nav.step_datetime'), 'route' => 'booking.datetime', 'routeParams' => []],
+            ['label' => __('booking.nav.step_confirmation'), 'route' => 'booking.step3', 'routeParams' => []],
+        ]
+        : [
+            ['label' => __('booking.nav.step_services'), 'route' => 'booking.index', 'routeParams' => []],
+            ['label' => __('booking.nav.step_staff'), 'route' => 'booking.technician', 'routeParams' => []],
+            ['label' => __('booking.nav.step_datetime'), 'route' => 'booking.datetime', 'routeParams' => []],
+            ['label' => __('booking.nav.step_confirmation'), 'route' => 'booking.step3', 'routeParams' => []],
+        ];
     $bookingBusinessDisplayName = trim((string) ($businessName ?? $bookingStore?->name ?? config('app.name', __('booking.nav.default_store'))));
     $bookingCurrentLocale = app()->getLocale();
     $bookingLocaleCodes = [
@@ -69,7 +79,9 @@
     $bookingIndexUrl = route('booking.index', ['store' => $bookingStoreSlug], false);
     $bookingNavbarBackUrl = match ($bookingRouteName) {
         'booking.technician' => $bookingIndexUrl,
-        'booking.datetime' => route('booking.technician', ['store' => $bookingStoreSlug], false),
+        'booking.datetime' => $bookingSkipStaffStep && $bookingPresetAgentUrl !== ''
+            ? $bookingPresetAgentUrl
+            : route('booking.technician', ['store' => $bookingStoreSlug], false),
         'booking.step3' => route('booking.datetime', ['store' => $bookingStoreSlug], false),
         default => null,
     };
@@ -102,7 +114,7 @@
                             $isPast = $bookingStepActive !== null && ($isConfirm || $stepNum < $bookingStepActive);
                             $isCurrent = ! $isConfirm && $bookingStepActive !== null && $stepNum === $bookingStepActive;
                             $isFuture = ! $isConfirm && $bookingStepActive !== null && $stepNum > $bookingStepActive;
-                            $stepUrl = route($step['route'], ['store' => $bookingStoreSlug], false);
+                            $stepUrl = route($step['route'], array_merge(['store' => $bookingStoreSlug], $step['routeParams'] ?? []), false);
                         @endphp
                         <li class="booking-navbar-steps__item">
                             @if ($idx > 0)

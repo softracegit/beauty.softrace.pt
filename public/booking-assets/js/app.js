@@ -501,13 +501,28 @@
         }
     }
 
+    function isPresetAgentBookingFlow() {
+        var body = document.body;
+        if (!body) {
+            return false;
+        }
+        if (body.getAttribute('data-booking-skip-staff-step') === '1') {
+            return true;
+        }
+        if (body.classList.contains('booking-flow--preset-agent')) {
+            return true;
+        }
+        var tech = getTechnicianSelection();
+        return !!(tech && tech.agentLandingUrl);
+    }
+
     function renderSummaryExtras() {
         var hasItems = state.items.length > 0;
         var tech = getTechnicianSelection();
         var dt = getDateTimeSelection();
 
         if (els.summaryTech) {
-            var showTech = hasItems && !!tech;
+            var showTech = !!tech && (hasItems || isPresetAgentBookingFlow());
             els.summaryTech.classList.toggle('is-hidden', !showTech);
             if (showTech) {
                 if (els.summaryTechName) {
@@ -560,9 +575,10 @@
     }
 
     function renderSummary() {
+        var holdPromise = Promise.resolve();
         try {
             if (!els.summaryList || !els.summaryEmpty || !els.summaryTotal) {
-                return;
+                return holdPromise;
             }
             renderSlotHoldBanner();
 
@@ -580,9 +596,9 @@
                 }
                 renderSummaryExtras();
                 closeSummaryDrawer();
-                releaseSlotHold('cart_empty');
+                holdPromise = releaseSlotHold('cart_empty', { keepalive: true });
                 scheduleBookingSummaryFooterVisualBottom();
-                return;
+                return holdPromise;
             }
 
             els.summaryEmpty.classList.add('is-hidden');
@@ -709,8 +725,9 @@
             renderSummaryExtras();
             renderSlotHoldBanner();
             updateCheckoutPaymentPreview();
-            ensureSlotHoldForCurrentSelection();
+            holdPromise = ensureSlotHoldForCurrentSelection();
             scheduleBookingSummaryFooterVisualBottom();
+            return holdPromise;
         } finally {
             syncBookingServicesPageHeading();
         }
@@ -721,12 +738,14 @@
             return l.lineId !== lineId;
         });
         persist();
-        renderSummary();
+        var summaryPromise = renderSummary() || Promise.resolve();
         if (state.items.length > 0 && bookingRefreshDateTimeSlotsFn) {
             bookingRefreshDateTimeSlotsFn();
         }
         if (state.items.length === 0) {
-            redirectToStep1IfNeeded();
+            summaryPromise.finally(function () {
+                redirectToStep1IfNeeded();
+            });
         }
     }
 
@@ -782,6 +801,7 @@
                     name: tech.name,
                     specialization: tech.specialization || '',
                     avatar: tech.avatar || '',
+                    agentLandingUrl: tech.agentLandingUrl || '',
                     updatedAt: Date.now(),
                 })
             );
@@ -817,6 +837,41 @@
 
     function hasSelectedTechnician() {
         return !!getTechnicianSelection();
+    }
+
+    function initPresetAgentFromDom() {
+        var body = document.body;
+        if (!body) {
+            return;
+        }
+        var presetId = body.getAttribute('data-booking-preset-agent-id');
+        if (!presetId) {
+            return;
+        }
+        saveTechnicianSelection({
+            id: presetId,
+            name: body.getAttribute('data-booking-preset-agent-name') || '',
+            specialization: body.getAttribute('data-booking-preset-agent-specialization') || '',
+            avatar: body.getAttribute('data-booking-preset-agent-avatar') || '',
+            agentLandingUrl: body.getAttribute('data-booking-preset-agent-url') || '',
+        });
+        body.classList.add('booking-flow--preset-agent');
+        renderSummary();
+    }
+
+    function applyPresetAgentNavLinks() {
+        var tech = getTechnicianSelection();
+        if (!tech || !tech.agentLandingUrl) {
+            return;
+        }
+        document.body.classList.add('booking-flow--preset-agent');
+        if (!document.body.classList.contains('booking-page--datetime')) {
+            return;
+        }
+        var back = document.querySelector('.booking-navbar__back');
+        if (back) {
+            back.setAttribute('href', tech.agentLandingUrl);
+        }
     }
 
     function saveDateTimeSelection(payload) {
@@ -2719,6 +2774,7 @@
                     name: nameEl ? nameEl.textContent.trim() : '',
                     specialization: metaEl ? metaEl.textContent.trim() : '',
                     avatar: row.getAttribute('data-tech-avatar') || '',
+                    agentLandingUrl: '',
                 });
                 releaseSlotHold('technician_changed');
                 renderSummary();
@@ -4178,10 +4234,12 @@
         };
     }
 
-    function bookingFetchJson(url, payload, csrfRetried) {
+    function bookingFetchJson(url, payload, csrfRetried, fetchOptions) {
+        fetchOptions = fetchOptions || {};
         return fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
+            keepalive: !!fetchOptions.keepalive,
             headers: {
                 'Content-Type': 'application/json',
                 Accept: 'application/json',
@@ -4201,7 +4259,7 @@
                         if (isBookingCsrfError(r.status, errMsg) && !csrfRetried) {
                             return refreshBookingCsrfToken().then(function (refreshed) {
                                 if (refreshed) {
-                                    return bookingFetchJson(url, payload, true);
+                                    return bookingFetchJson(url, payload, true, fetchOptions);
                                 }
                                 if (tryBookingAutoReloadOnSessionExpired()) {
                                     return new Promise(function () {});
@@ -4223,8 +4281,8 @@
         });
     }
 
-    function postJsonWithCsrf(url, payload) {
-        return bookingFetchJson(url, payload, false);
+    function postJsonWithCsrf(url, payload, fetchOptions) {
+        return bookingFetchJson(url, payload, false, fetchOptions);
     }
 
     function setStripeInlineError(message) {
@@ -4321,7 +4379,8 @@
         }
     }
 
-    function releaseSlotHold(reason) {
+    function releaseSlotHold(reason, options) {
+        options = options || {};
         var holdId = slotHoldState.holdPublicId;
         var token = ensureSlotHoldSessionToken();
         slotHoldShowZeroDuringExpiredModal = false;
@@ -4329,19 +4388,29 @@
             return Promise.resolve();
         }
         var urls = getSlotHoldUrls();
-        clearSlotHoldState();
         stopSlotHoldTimer();
-        renderSlotHoldBanner();
         if (!urls || !urls.releaseUrl) {
+            clearSlotHoldState();
+            renderSlotHoldBanner();
             return Promise.resolve();
         }
-        return postJsonWithCsrf(urls.releaseUrl, {
-            hold_public_id: holdId,
-            hold_session_token: token,
-            reason: reason || 'manual',
-        }).catch(function () {
-            return null;
-        });
+        return postJsonWithCsrf(
+            urls.releaseUrl,
+            {
+                hold_public_id: holdId,
+                hold_session_token: token,
+                reason: reason || 'manual',
+            },
+            { keepalive: !!options.keepalive }
+        )
+            .then(function () {
+                clearSlotHoldState();
+                renderSlotHoldBanner();
+            })
+            .catch(function () {
+                renderSlotHoldBanner();
+                return null;
+            });
     }
 
     function showSlotHoldExpiredModal() {
@@ -6003,6 +6072,7 @@
         loadSlotHoldState();
         syncSummaryScrollPlacement();
         loadFromStorage();
+        initPresetAgentFromDom();
         loadCheckoutIntentCacheFromStorage();
         renderSummary();
         initTechnicianStep();
@@ -6016,6 +6086,7 @@
         bindSlotHoldExpiredModal();
         startSlotHoldTimer();
         ensureSlotHoldForCurrentSelection();
+        applyPresetAgentNavLinks();
         bindNext();
         bindSummaryDrawerToggle();
         bindSummaryLayoutResize();

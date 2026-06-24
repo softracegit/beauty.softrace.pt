@@ -247,4 +247,21 @@ class BookingClientAuthRegistrationTest extends TestCase
         $client->refresh();
         $this->assertNotNull($client->phone_verified_at);
     }
+
+    public function test_booking_logout_route_is_not_captured_by_member_slug(): void
+    {
+        $this->get($this->bookingBasePath().'/sair')
+            ->assertForbidden();
+
+        $user = User::query()->create([
+            'name' => 'Cliente Booking',
+            'email' => 'logout-route@test.test',
+            'password' => bcrypt('password'),
+            'role' => User::ROLE_CLIENTE,
+        ]);
+
+        $this->actingAs($user)
+            ->get($this->bookingBasePath().'/sair')
+            ->assertRedirect($this->bookingBasePath());
+    }
 }
