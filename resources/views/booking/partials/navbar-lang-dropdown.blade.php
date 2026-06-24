@@ -10,10 +10,7 @@
         aria-controls="booking-navbar-lang-dropdown"
         aria-label="{{ __('booking.nav.language_menu_aria') }}"
     >
-        <span class="booking-navbar-lang__toggle-inner">
-            <i class="bi bi-globe2 booking-navbar-lang__toggle-icon" aria-hidden="true"></i>
-            <span class="booking-navbar-lang__code">{{ $bookingCurrentLocaleCode }}</span>
-        </span>
+        <span class="booking-navbar-lang__code">{{ $bookingCurrentLocaleCode }}</span>
     </button>
     <ul class="dropdown-menu dropdown-menu-end booking-navbar-lang__menu" id="booking-navbar-lang-dropdown" aria-labelledby="booking-navbar-lang-menu">
         @foreach ($bookingLocaleCodes as $localeCode => $localeLabel)

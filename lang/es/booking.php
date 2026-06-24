@@ -79,6 +79,7 @@ return [
         'create_account' => 'Crear cuenta',
         'back_aria' => 'Volver',
         'close_aria' => 'Cerrar',
+        'support_help' => '¿Necesitas ayuda?',
     ],
 
     'slot_hold' => [
@@ -191,6 +192,7 @@ return [
         'summary_fees_aria' => 'Gastos de la reserva',
         'summary_mobile_drawer_aria' => 'Resumen de la reserva',
         'summary_total_toggle_aria' => 'Mostrar u ocultar servicios de la reserva',
+        'support_whatsapp_aria' => 'Hablar con nosotros por WhatsApp',
         'next' => 'Siguiente',
         'payment' => 'Pago',
         'book' => 'Reservar',

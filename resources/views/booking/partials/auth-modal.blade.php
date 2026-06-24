@@ -99,6 +99,7 @@
                     <button type="button" id="booking-auth-register-submit" class="btn btn-dark w-100" disabled>{{ __('booking.auth.create_account') }}</button>
                 </div>
             </div>
+            @include('booking.partials.support-whatsapp-help')
         </div>
     </div>
 </div>

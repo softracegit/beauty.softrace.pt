@@ -79,6 +79,7 @@ return [
         'create_account' => 'Criar conta',
         'back_aria' => 'Voltar',
         'close_aria' => 'Fechar',
+        'support_help' => 'Precisa de ajuda?',
     ],
 
     'slot_hold' => [
@@ -191,6 +192,7 @@ return [
         'summary_fees_aria' => 'Taxas da marcação',
         'summary_mobile_drawer_aria' => 'Resumo da marcação',
         'summary_total_toggle_aria' => 'Mostrar ou ocultar serviços da marcação',
+        'support_whatsapp_aria' => 'Falar connosco no WhatsApp',
         'next' => 'Seguinte',
         'payment' => 'Pagamento',
         'book' => 'Marcar',

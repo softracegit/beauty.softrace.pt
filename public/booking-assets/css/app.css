@@ -1016,11 +1016,6 @@ button.booking-offcanvas-nav__link {
         display: none !important;
     }
 
-    .booking-navbar .booking-navbar-lang__toggle-icon {
-        font-size: 1.35rem;
-        line-height: 1;
-    }
-
     .booking-navbar-lang .booking-navbar-lang__toggle.btn-outline-dark {
         border-color: transparent !important;
         background: transparent !important;
@@ -1906,6 +1901,46 @@ button.booking-offcanvas-nav__link {
     padding: 1.35rem 2rem 2.1rem;
 }
 
+.booking-auth-modal .modal-body:has(+ .booking-auth-modal__support) {
+    padding-bottom: 1rem;
+}
+
+.booking-auth-modal__support {
+    justify-content: center;
+    padding: 0 2rem 1.35rem;
+    margin-top: -0.25rem;
+}
+
+.booking-support-whatsapp-help {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #128c7e;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.booking-support-whatsapp-help:hover,
+.booking-support-whatsapp-help:focus-visible {
+    color: #075e54;
+    text-decoration: underline;
+}
+
+.booking-support-whatsapp-help i {
+    font-size: 1.15rem;
+    line-height: 1;
+    color: #25d366;
+}
+
+body:has(#booking-auth-modal.show) .booking-support-whatsapp {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
 .booking-auth-modal #booking-auth-modal-subtitle {
     margin-bottom: 1.35rem;
 }
@@ -2026,6 +2061,14 @@ button.booking-offcanvas-nav__link {
 
     .booking-auth-modal .modal-body {
         padding: 1.15rem 1.35rem 1.65rem;
+    }
+
+    .booking-auth-modal .modal-body:has(+ .booking-auth-modal__support) {
+        padding-bottom: 0.85rem;
+    }
+
+    .booking-auth-modal__support {
+        padding: 0 1.35rem 1.25rem;
     }
 
     #bookingModal .modal-footer.booking-modal-footer,
@@ -3667,4 +3710,71 @@ button.booking-offcanvas-nav__link {
 .booking-cancel-policy__description strong {
     color: #111;
     font-weight: 600;
+}
+
+/* WhatsApp de suporte — canto inferior esquerdo */
+.booking-support-whatsapp {
+    position: fixed;
+    left: max(1rem, env(safe-area-inset-left, 0px));
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    z-index: 1025;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 50%;
+    background: #25d366;
+    color: #fff;
+    box-shadow: 0 0.25rem 1rem rgba(15, 23, 42, 0.18);
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.booking-support-whatsapp:hover,
+.booking-support-whatsapp:focus-visible {
+    color: #fff;
+    transform: scale(1.04);
+    box-shadow: 0 0.35rem 1.25rem rgba(15, 23, 42, 0.22);
+}
+
+.booking-support-whatsapp:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.booking-support-whatsapp i {
+    font-size: 1.7rem;
+    line-height: 1;
+}
+
+@media (max-width: 991.98px) {
+    .booking-support-whatsapp {
+        width: 2.75rem;
+        height: 2.75rem;
+        left: max(0.88rem, env(safe-area-inset-left, 0px));
+    }
+
+    .booking-support-whatsapp i {
+        font-size: 1.35rem;
+    }
+
+    /* Com barra de resumo fixa: encostado por cima da faixa de totais */
+    body:has(.booking-app #booking-summary-total:not(.is-hidden)) .booking-support-whatsapp {
+        bottom: calc(var(--booking-mobile-summary-bar-height) + env(safe-area-inset-bottom, 0px) + 0.2rem);
+    }
+
+    /* Resumo expandido: ocultar atrás do painel (z-index inferior à barra 1040) */
+    body:has(.booking-summary-footer.is-drawer-open) .booking-support-whatsapp {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+}
+
+@media (min-width: 992px) {
+    .booking-support-whatsapp {
+        left: max(1.25rem, env(safe-area-inset-left, 0px));
+        bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    }
 }

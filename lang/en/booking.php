@@ -79,6 +79,7 @@ return [
         'create_account' => 'Create account',
         'back_aria' => 'Back',
         'close_aria' => 'Close',
+        'support_help' => 'Need help?',
     ],
 
     'slot_hold' => [
@@ -191,6 +192,7 @@ return [
         'summary_fees_aria' => 'Booking fees',
         'summary_mobile_drawer_aria' => 'Booking summary',
         'summary_total_toggle_aria' => 'Show or hide booking services',
+        'support_whatsapp_aria' => 'Chat with us on WhatsApp',
         'next' => 'Next',
         'payment' => 'Payment',
         'book' => 'Book',

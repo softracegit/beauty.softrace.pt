@@ -23,6 +23,20 @@ class BookingFunnelReportService
 
     public const TAB_HOLDS = 'holds';
 
+    private const HOLD_REASON_LABELS = [
+        'manual' => 'Libertado manualmente',
+        'expired_restart' => 'Tempo esgotado',
+        'cart_empty' => 'Carrinho vazio',
+        'technician_changed' => 'Técnica alterada',
+        'time_cleared' => 'Hora limpa',
+        'selection_cleared' => 'Seleção limpa',
+        'no_slots_for_day' => 'Sem horários no dia',
+        'slot_invalidated' => 'Horário inválido',
+        'acquire_failed' => 'Falha ao reservar',
+        'replaced' => 'Substituído',
+        'conflict' => 'Conflito de horário',
+    ];
+
     /**
      * @return list<string>
      */
@@ -39,6 +53,28 @@ class BookingFunnelReportService
     public function resolveTab(string $raw): string
     {
         return in_array($raw, $this->tabKeys(), true) ? $raw : self::TAB_SMS_PENDING;
+    }
+
+    public function holdIsTimeExpired(BookingSlotHold $hold): bool
+    {
+        if ($hold->release_reason === 'expired_restart') {
+            return true;
+        }
+
+        return $hold->released_at === null
+            && $hold->expires_at !== null
+            && $hold->expires_at->isPast();
+    }
+
+    public function holdReasonLabel(BookingSlotHold $hold): string
+    {
+        if ($this->holdIsTimeExpired($hold)) {
+            return 'Tempo esgotado';
+        }
+
+        $reason = (string) ($hold->release_reason ?? '');
+
+        return self::HOLD_REASON_LABELS[$reason] ?? ($reason !== '' ? $reason : '—');
     }
 
     public function resolveLookbackDays(int $raw): int

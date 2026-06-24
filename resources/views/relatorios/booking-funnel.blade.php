@@ -38,19 +38,6 @@
               'count' => (int) ($counts['expired_holds'] ?? 0),
           ],
       ];
-      $holdReasonLabels = [
-          'manual' => 'Libertado manualmente',
-          'expired_restart' => 'Tempo esgotado',
-          'cart_empty' => 'Carrinho vazio',
-          'technician_changed' => 'Técnica alterada',
-          'time_cleared' => 'Hora limpa',
-          'selection_cleared' => 'Seleção limpa',
-          'no_slots_for_day' => 'Sem horários no dia',
-          'slot_invalidated' => 'Horário inválido',
-          'acquire_failed' => 'Falha ao reservar',
-          'replaced' => 'Substituído',
-          'conflict' => 'Conflito de horário',
-      ];
       $queryBase = ['days' => (int) ($lookbackDays ?? 2)];
   @endphp
 
@@ -209,10 +196,10 @@
                 </td>
                 <td class="text-nowrap">{{ $row->expires_at ? DateTimeDisplay::formatInstant($row->expires_at, current_store_id()) : '—' }}</td>
                 <td>
-                  @if($row->released_at === null && $row->expires_at?->isPast())
-                    <span class="badge text-bg-warning">Tempo esgotado</span>
+                  @if($funnelService->holdIsTimeExpired($row))
+                    <span class="badge text-bg-warning">{{ $funnelService->holdReasonLabel($row) }}</span>
                   @else
-                    <span class="badge text-bg-light border">{{ $holdReasonLabels[$row->release_reason] ?? ($row->release_reason ?: '—') }}</span>
+                    <span class="badge text-bg-light border">{{ $funnelService->holdReasonLabel($row) }}</span>
                   @endif
                 </td>
               </tr>

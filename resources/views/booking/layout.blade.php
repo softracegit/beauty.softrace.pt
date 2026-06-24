@@ -66,6 +66,7 @@
     data-booking-authenticated-client="{{ (auth()->user() instanceof \App\Models\User && auth()->user()->isBookingClient()) ? '1' : '0' }}"
 >
     @yield('content')
+    @include('booking.partials.support-whatsapp')
     @include('booking.partials.legal-footer')
     @include('booking.partials.slot-hold-expired-modal')
     @include('booking.partials.auth-modal')
