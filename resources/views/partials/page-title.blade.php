@@ -174,6 +174,7 @@
             'relatorios.comissoes' => 'Comissões',
             'relatorios.caixa' => 'Caixa',
             'relatorios.sms' => 'SMS',
+            'relatorios.booking-funnel' => 'Funil Booking',
         ];
         if (isset($sectionLabels[$currentRoute])) {
             $breadcrumbs[] = [

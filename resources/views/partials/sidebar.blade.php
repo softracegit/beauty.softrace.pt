@@ -309,6 +309,11 @@
             SMS
           </a>
         </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('relatorios.booking-funnel') ? 'active' : '' }}" href="{{ route('relatorios.booking-funnel') }}">
+            Funil Booking
+          </a>
+        </li>
       </ul>
     </div>
     @endif

@@ -9,6 +9,7 @@ use App\Models\SaleItem;
 use App\Models\Service;
 use App\Models\SmsMessage;
 use App\Models\User;
+use App\Services\BookingFunnelReportService;
 use App\Services\SmsReportService;
 use App\Services\VendasReportService;
 use App\Support\DateTimeDisplay;
@@ -30,6 +31,7 @@ class RelatoriosController extends Controller
     public function __construct(
         private readonly VendasReportService $vendasReportService,
         private readonly SmsReportService $smsReportService,
+        private readonly BookingFunnelReportService $bookingFunnelReportService,
     ) {}
 
     public function marcacoes(Request $request): View
@@ -571,6 +573,33 @@ class RelatoriosController extends Controller
     {
         return view('relatorios.comissoes', [
             'pageTitle' => 'Relatórios — Comissões',
+        ]);
+    }
+
+    public function bookingFunnel(Request $request): View
+    {
+        $storeId = current_store_id();
+        $days = $this->bookingFunnelReportService->resolveLookbackDays((int) $request->query('days', 2));
+        $tab = $this->bookingFunnelReportService->resolveTab((string) $request->query('tab', BookingFunnelReportService::TAB_SMS_PENDING));
+        $since = $this->bookingFunnelReportService->lookbackStart($storeId, $days);
+        $rows = $this->bookingFunnelReportService->paginatedTabQuery($tab, $storeId, $since);
+        $authCodeClients = in_array($tab, [
+            BookingFunnelReportService::TAB_SMS_PENDING,
+            BookingFunnelReportService::TAB_OTP_FAILED,
+        ], true)
+            ? $this->bookingFunnelReportService->clientsForAuthCodes($rows->getCollection(), $storeId)
+            : [];
+
+        return view('relatorios.booking-funnel', [
+            'pageTitle' => 'Relatórios — Funil Booking',
+            'activeTab' => $tab,
+            'lookbackDays' => $days,
+            'since' => $since,
+            'summaryCounts' => $this->bookingFunnelReportService->summaryCounts($storeId, $since),
+            'rows' => $rows,
+            'authCodeClients' => $authCodeClients,
+            'storeTimezone' => StoreBusinessTime::timezoneForStore($storeId),
+            'funnelService' => $this->bookingFunnelReportService,
         ]);
     }
 
