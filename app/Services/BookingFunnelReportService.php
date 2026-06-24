@@ -4,12 +4,11 @@ namespace App\Services;
 
 use App\Models\BookingAuthCode;
 use App\Models\BookingSlotHold;
+use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\SmsMessage;
 use App\Models\User;
 use App\Support\PhoneDisplay;
-use App\Support\StoreBusinessTime;
-use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -77,29 +76,16 @@ class BookingFunnelReportService
         return self::HOLD_REASON_LABELS[$reason] ?? ($reason !== '' ? $reason : '—');
     }
 
-    public function resolveLookbackDays(int $raw): int
-    {
-        return max(1, min(90, $raw));
-    }
-
-    public function lookbackStart(int $storeId, int $days): CarbonInterface
-    {
-        return StoreBusinessTime::nowForStore($storeId)
-            ->subDays($days)
-            ->startOfDay()
-            ->utc();
-    }
-
     /**
      * @return array{sms_pending: int, otp_failed: int, accounts_without_booking: int, expired_holds: int}
      */
-    public function summaryCounts(int $storeId, CarbonInterface $since): array
+    public function summaryCounts(int $storeId): array
     {
         return [
-            'sms_pending' => $this->otpSmsWithoutResponseQuery($storeId, $since)->count(),
-            'otp_failed' => $this->otpFailedQuery($storeId, $since)->count(),
-            'accounts_without_booking' => $this->accountsWithoutBookingQuery($storeId, $since)->count(),
-            'expired_holds' => $this->abandonedHoldsQuery($storeId, $since)->count(),
+            'sms_pending' => $this->otpSmsWithoutResponseQuery($storeId)->count(),
+            'otp_failed' => $this->otpFailedQuery($storeId)->count(),
+            'accounts_without_booking' => $this->bookingUsersWithoutMarcacaoQuery($storeId)->count(),
+            'expired_holds' => $this->abandonedHoldsQuery($storeId)->count(),
         ];
     }
 
@@ -108,13 +94,12 @@ class BookingFunnelReportService
      *
      * @return Builder<BookingAuthCode>
      */
-    public function otpSmsWithoutResponseQuery(int $storeId, CarbonInterface $since): Builder
+    public function otpSmsWithoutResponseQuery(int $storeId): Builder
     {
         return BookingAuthCode::query()
             ->where('store_id', $storeId)
             ->where('email', 'like', '+%')
             ->whereNull('consumed_at')
-            ->where('created_at', '>=', $since)
             ->whereExists(function ($query): void {
                 $query->selectRaw('1')
                     ->from('sms_messages')
@@ -132,31 +117,43 @@ class BookingFunnelReportService
      *
      * @return Builder<BookingAuthCode>
      */
-    public function otpFailedQuery(int $storeId, CarbonInterface $since): Builder
+    public function otpFailedQuery(int $storeId): Builder
     {
         return BookingAuthCode::query()
             ->where('store_id', $storeId)
             ->whereNull('consumed_at')
             ->where('attempts', '>', 0)
-            ->where('created_at', '>=', $since)
             ->orderByDesc('updated_at');
     }
 
     /**
-     * Contas de marcação online criadas sem qualquer marcação na loja.
+     * Utilizadores de marcação online (role cliente) sem qualquer marcação na loja — histórico completo.
+     * Inclui clientes CRM já existentes (ex.: import Zappy) que criaram conta online e nunca marcaram.
      *
      * @return Builder<User>
      */
-    public function accountsWithoutBookingQuery(int $storeId, CarbonInterface $since): Builder
+    public function bookingUsersWithoutMarcacaoQuery(int $storeId): Builder
     {
         return User::query()
             ->where('role', User::ROLE_CLIENTE)
             ->whereNotNull('client_id')
-            ->where('created_at', '>=', $since)
-            ->whereHas('client', fn (Builder $q): Builder => $q->where('store_id', $storeId))
-            ->whereDoesntHave('client.calendarEvents', fn (Builder $q): Builder => $q->where('store_id', $storeId))
-            ->with(['client:id,name,email,phone,store_id'])
+            ->whereHas('client', function (Builder $q) use ($storeId): void {
+                $q->where('store_id', $storeId);
+                $this->applyClientWithoutMarcacaoScope($q, $storeId);
+            })
+            ->with(['client:id,name,email,phone,store_id,created_at'])
             ->orderByDesc('created_at');
+    }
+
+    /**
+     * @param  Builder<Client>  $query
+     * @return Builder<Client>
+     */
+    private function applyClientWithoutMarcacaoScope(Builder $query, int $storeId): Builder
+    {
+        return $query->whereDoesntHave('calendarEvents', fn (Builder $events): Builder => $events
+            ->where('store_id', $storeId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO));
     }
 
     /**
@@ -164,11 +161,10 @@ class BookingFunnelReportService
      *
      * @return Builder<BookingSlotHold>
      */
-    public function abandonedHoldsQuery(int $storeId, CarbonInterface $since): Builder
+    public function abandonedHoldsQuery(int $storeId): Builder
     {
         return BookingSlotHold::query()
             ->where('store_id', $storeId)
-            ->where('created_at', '>=', $since)
             ->where(function (Builder $query): void {
                 $query->where(function (Builder $inner): void {
                     $inner->whereNull('released_at')
@@ -189,17 +185,27 @@ class BookingFunnelReportService
     /**
      * @return Collection<int, BookingAuthCode>
      */
-    public function paginatedTabQuery(string $tab, int $storeId, CarbonInterface $since, int $perPage = 25): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function paginatedTabQuery(string $tab, int $storeId, int $perPage = 25): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         $query = match ($tab) {
-            self::TAB_SMS_PENDING => $this->otpSmsWithoutResponseQuery($storeId, $since),
-            self::TAB_OTP_FAILED => $this->otpFailedQuery($storeId, $since),
-            self::TAB_ACCOUNTS => $this->accountsWithoutBookingQuery($storeId, $since),
-            self::TAB_HOLDS => $this->abandonedHoldsQuery($storeId, $since),
-            default => $this->otpSmsWithoutResponseQuery($storeId, $since),
+            self::TAB_SMS_PENDING => $this->otpSmsWithoutResponseQuery($storeId),
+            self::TAB_OTP_FAILED => $this->otpFailedQuery($storeId),
+            self::TAB_ACCOUNTS => $this->bookingUsersWithoutMarcacaoQuery($storeId),
+            self::TAB_HOLDS => $this->abandonedHoldsQuery($storeId),
+            default => $this->otpSmsWithoutResponseQuery($storeId),
         };
 
         return $query->paginate($perPage)->withQueryString();
+    }
+
+    public function bookingUserHadPreExistingCrmClient(User $user): bool
+    {
+        $client = $user->client;
+        if (! $client || ! $user->created_at || ! $client->created_at) {
+            return false;
+        }
+
+        return $client->created_at->lt($user->created_at->copy()->subDay());
     }
 
     public function authCodeChannelLabel(BookingAuthCode $row): string

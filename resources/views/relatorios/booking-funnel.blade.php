@@ -28,8 +28,8 @@
               'count' => (int) ($counts['otp_failed'] ?? 0),
           ],
           BookingFunnelReportService::TAB_ACCOUNTS => [
-              'label' => 'Contas sem marcação',
-              'hint' => 'Conta de marcação online criada sem marcações na loja.',
+              'label' => 'Contas online sem marcação',
+              'hint' => 'Utilizadores com role cliente (marcação online) sem qualquer marcação na loja. Inclui fichas CRM já existentes que criaram conta online.',
               'count' => (int) ($counts['accounts_without_booking'] ?? 0),
           ],
           BookingFunnelReportService::TAB_HOLDS => [
@@ -38,37 +38,35 @@
               'count' => (int) ($counts['expired_holds'] ?? 0),
           ],
       ];
-      $queryBase = ['days' => (int) ($lookbackDays ?? 2)];
   @endphp
 
   <div class="dash-welcome mb-4">
-    <div class="d-flex align-items-center justify-content-between gap-3 w-100 flex-wrap">
-      <div class="dash-welcome-content flex-grow-1 min-w-0">
-        <h2 class="dash-welcome-title mb-0">Funil Booking</h2>
-        <p class="text-muted small mb-0 mt-1">
-          Abandonos e bloqueios no fluxo público de marcação (OTP, contas e horários temporários).
-          Período: últimos {{ (int) ($lookbackDays ?? 2) }} dias.
-        </p>
-      </div>
-      <form method="GET" action="{{ route('relatorios.booking-funnel') }}" class="d-flex align-items-center gap-2 flex-shrink-0">
-        <input type="hidden" name="tab" value="{{ $activeTab ?? BookingFunnelReportService::TAB_SMS_PENDING }}">
-        <select name="days" class="form-select form-select-sm" style="min-width: 9rem;" aria-label="Período">
-          @foreach([1 => '1 dia', 2 => '2 dias', 7 => '7 dias', 14 => '14 dias', 30 => '30 dias'] as $dayValue => $dayLabel)
-            <option value="{{ $dayValue }}" {{ (int) ($lookbackDays ?? 2) === (int) $dayValue ? 'selected' : '' }}>{{ $dayLabel }}</option>
-          @endforeach
-        </select>
-        <button type="submit" class="btn btn-primary btn-sm text-nowrap">
-          <i class="ph ph-funnel me-1"></i> Filtrar
-        </button>
-      </form>
+    <div class="dash-welcome-content">
+      <h2 class="dash-welcome-title mb-0">Funil Booking</h2>
+      <p class="text-muted small mb-0 mt-1">
+        Abandonos e bloqueios no fluxo público de marcação (OTP, contas online e horários temporários). Histórico completo.
+      </p>
     </div>
   </div>
 
   <div class="dash-kpi-strip mb-4">
   @foreach($tabs as $tabKey => $tabMeta)
+    @php
+        $kpiIconClass = match ($tabKey) {
+            BookingFunnelReportService::TAB_SMS_PENDING => 'warning',
+            BookingFunnelReportService::TAB_OTP_FAILED => 'danger',
+            BookingFunnelReportService::TAB_ACCOUNTS => 'info',
+            default => 'primary',
+        };
+        $kpiPhIcon = match ($tabKey) {
+            BookingFunnelReportService::TAB_HOLDS => 'clock-countdown',
+            BookingFunnelReportService::TAB_ACCOUNTS => 'user-circle',
+            default => 'chat-circle-text',
+        };
+    @endphp
     <div class="dash-kpi">
-      <div class="dash-kpi-icon {{ $tabKey === BookingFunnelReportService::TAB_SMS_PENDING ? 'warning' : ($tabKey === BookingFunnelReportService::TAB_OTP_FAILED ? 'danger' : ($tabKey === BookingFunnelReportService::TAB_ACCOUNTS ? 'info' : 'primary')) }}">
-        <i class="ph-duotone ph-{{ $tabKey === BookingFunnelReportService::TAB_HOLDS ? 'clock-countdown' : ($tabKey === BookingFunnelReportService::TAB_ACCOUNTS ? 'user-circle' : 'chat-circle-text') }}"></i>
+      <div class="dash-kpi-icon {{ $kpiIconClass }}">
+        <i class="ph-duotone ph-{{ $kpiPhIcon }}"></i>
       </div>
       <div class="dash-kpi-body">
         <div class="dash-kpi-value">{{ number_format($tabMeta['count'], 0, ',', '.') }}</div>
@@ -84,7 +82,7 @@
         <a
           class="nav-link {{ ($activeTab ?? '') === $tabKey ? 'active' : '' }}"
           id="booking-funnel-tab-{{ $tabKey }}"
-          href="{{ route('relatorios.booking-funnel', array_merge($queryBase, ['tab' => $tabKey])) }}"
+          href="{{ route('relatorios.booking-funnel', ['tab' => $tabKey]) }}"
           role="tab"
           aria-controls="booking-funnel-pane-{{ $tabKey }}"
           aria-selected="{{ ($activeTab ?? '') === $tabKey ? 'true' : 'false' }}"
@@ -118,7 +116,8 @@
             </tr>
           @elseif($activeTab === BookingFunnelReportService::TAB_ACCOUNTS)
             <tr>
-              <th>Conta criada</th>
+              <th>Conta online criada</th>
+              <th>Ficha CRM criada</th>
               <th>Nome</th>
               <th>Email</th>
               <th>Telemóvel</th>
@@ -160,9 +159,22 @@
                 <td><span class="badge text-bg-light border">{{ $funnelService->authCodeStatusLabel($row) }}</span></td>
               </tr>
             @elseif($row instanceof User)
-              @php $client = $row->client; @endphp
+              @php
+                  $client = $row->client;
+                  $preExistingCrm = $funnelService->bookingUserHadPreExistingCrmClient($row);
+              @endphp
               <tr>
                 <td class="text-nowrap">{{ DateTimeDisplay::formatInstant($row->created_at, current_store_id()) }}</td>
+                <td class="text-nowrap">
+                  @if($client?->created_at)
+                    {{ DateTimeDisplay::formatInstant($client->created_at, current_store_id()) }}
+                    @if($preExistingCrm)
+                      <span class="badge text-bg-light border ms-1">CRM pré-existente</span>
+                    @endif
+                  @else
+                    <span class="text-muted">—</span>
+                  @endif
+                </td>
                 <td>{{ $row->name }}</td>
                 <td>{{ $row->email }}</td>
                 <td class="text-nowrap">{{ $client ? (PhoneDisplay::formatInternational((string) $client->phone) ?? $client->phone ?? '—') : '—' }}</td>
@@ -212,8 +224,8 @@
     @include('relatorios.partials.pagination', ['paginator' => $rows])
   @else
     <div class="alert alert-light border text-center mb-0" role="status">
-      <p class="fw-semibold mb-1">Sem registos neste período</p>
-      <p class="text-muted small mb-0">Não há entradas para «{{ $tabs[$activeTab]['label'] ?? '' }}» nos últimos {{ (int) ($lookbackDays ?? 2) }} dias.</p>
+      <p class="fw-semibold mb-1">Sem registos</p>
+      <p class="text-muted small mb-0">Não há entradas para «{{ $tabs[$activeTab]['label'] ?? '' }}».</p>
     </div>
   @endif
     </div>

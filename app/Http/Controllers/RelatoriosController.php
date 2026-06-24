@@ -579,10 +579,8 @@ class RelatoriosController extends Controller
     public function bookingFunnel(Request $request): View
     {
         $storeId = current_store_id();
-        $days = $this->bookingFunnelReportService->resolveLookbackDays((int) $request->query('days', 2));
         $tab = $this->bookingFunnelReportService->resolveTab((string) $request->query('tab', BookingFunnelReportService::TAB_SMS_PENDING));
-        $since = $this->bookingFunnelReportService->lookbackStart($storeId, $days);
-        $rows = $this->bookingFunnelReportService->paginatedTabQuery($tab, $storeId, $since);
+        $rows = $this->bookingFunnelReportService->paginatedTabQuery($tab, $storeId);
         $authCodeClients = in_array($tab, [
             BookingFunnelReportService::TAB_SMS_PENDING,
             BookingFunnelReportService::TAB_OTP_FAILED,
@@ -593,9 +591,7 @@ class RelatoriosController extends Controller
         return view('relatorios.booking-funnel', [
             'pageTitle' => 'Relatórios — Funil Booking',
             'activeTab' => $tab,
-            'lookbackDays' => $days,
-            'since' => $since,
-            'summaryCounts' => $this->bookingFunnelReportService->summaryCounts($storeId, $since),
+            'summaryCounts' => $this->bookingFunnelReportService->summaryCounts($storeId),
             'rows' => $rows,
             'authCodeClients' => $authCodeClients,
             'storeTimezone' => StoreBusinessTime::timezoneForStore($storeId),
