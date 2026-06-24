@@ -222,9 +222,7 @@
       </table>
     </div>
 
-    <div class="mt-3">
-      {{ $rows->links() }}
-    </div>
+    @include('relatorios.partials.pagination', ['paginator' => $rows])
   @else
     <div class="alert alert-light border text-center mb-0" role="status">
       <p class="fw-semibold mb-1">Sem registos neste período</p>

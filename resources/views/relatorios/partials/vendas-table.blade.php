@@ -175,9 +175,7 @@
     </table>
   </div>
   @if(method_exists($vendas, 'links'))
-    <div class="mt-3">
-      {{ $vendas->links('pagination::bootstrap-5') }}
-    </div>
+    @include('relatorios.partials.pagination', ['paginator' => $vendas])
   @endif
 @else
   <p class="text-muted text-center py-3">{{ $emptyMessage ?? 'Nenhuma linha de venda nos filtros selecionados.' }}</p>

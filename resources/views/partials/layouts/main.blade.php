@@ -33,11 +33,6 @@
     </div>
   </main>
 
-  <!-- Back to Top -->
-  <a href="#" class="back-to-top" aria-label="Back to top">
-    <i class="bi bi-arrow-up"></i>
-  </a>
-
   @include('partials.vendor-scripts')
   <script>
     window.CrmNotifications = {

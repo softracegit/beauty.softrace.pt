@@ -95,9 +95,7 @@
         </tbody>
       </table>
     </div>
-    <div class="d-flex justify-content-center mt-3">
-      {{ $messages->links() }}
-    </div>
+    @include('relatorios.partials.pagination', ['paginator' => $messages])
   @else
     <div class="alert alert-light border mb-0" role="status">
       <i class="ph ph-chat-centered-text me-1"></i>

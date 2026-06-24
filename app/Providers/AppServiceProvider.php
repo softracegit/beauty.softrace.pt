@@ -11,6 +11,7 @@ use App\Policies\OrganizationPolicy;
 use App\Policies\StorePolicy;
 use App\Support\CurrentStore;
 use App\View\Composers\BookingStoreComposer;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -42,6 +43,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Paginator::useBootstrapFive();
+
         // Register policies
         $this->registerPolicies();
 

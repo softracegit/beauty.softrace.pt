@@ -168,9 +168,7 @@
         </div>
       </div>
     </div>
-    <div class="mt-3">
-      {{ $marcacoes->links('pagination::bootstrap-5') }}
-    </div>
+    @include('relatorios.partials.pagination', ['paginator' => $marcacoes])
   @else
     <p class="text-muted text-center py-3">Nenhuma marcação nos filtros selecionados.</p>
   @endif
