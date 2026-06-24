@@ -127,8 +127,8 @@ class BookingFunnelReportService
     }
 
     /**
-     * Utilizadores de marcação online (role cliente) sem qualquer marcação na loja — histórico completo.
-     * Inclui clientes CRM já existentes (ex.: import Zappy) que criaram conta online e nunca marcaram.
+     * Utilizadores de marcação online (role cliente) sem marcação na loja desde a criação da conta.
+     * Marcações históricas anteriores à conta (ex.: import Zappy) não contam.
      *
      * @return Builder<User>
      */
@@ -137,23 +137,17 @@ class BookingFunnelReportService
         return User::query()
             ->where('role', User::ROLE_CLIENTE)
             ->whereNotNull('client_id')
-            ->whereHas('client', function (Builder $q) use ($storeId): void {
-                $q->where('store_id', $storeId);
-                $this->applyClientWithoutMarcacaoScope($q, $storeId);
+            ->whereHas('client', fn (Builder $q): Builder => $q->where('store_id', $storeId))
+            ->whereNotExists(function ($query) use ($storeId): void {
+                $query->selectRaw('1')
+                    ->from('calendar_events')
+                    ->whereColumn('calendar_events.client_id', 'users.client_id')
+                    ->where('calendar_events.store_id', $storeId)
+                    ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->whereColumn('calendar_events.created_at', '>=', 'users.created_at');
             })
             ->with(['client:id,name,email,phone,store_id,created_at'])
             ->orderByDesc('created_at');
-    }
-
-    /**
-     * @param  Builder<Client>  $query
-     * @return Builder<Client>
-     */
-    private function applyClientWithoutMarcacaoScope(Builder $query, int $storeId): Builder
-    {
-        return $query->whereDoesntHave('calendarEvents', fn (Builder $events): Builder => $events
-            ->where('store_id', $storeId)
-            ->where('event_type', CalendarEvent::TYPE_MARCACAO));
     }
 
     /**
