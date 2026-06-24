@@ -164,9 +164,8 @@ class DefinicoesController extends Controller
     public function equipa(): View
     {
         $agents = Agent::query()
-            ->where('store_id', current_store_id())
+            ->activeTeamMembers(current_store_id())
             ->with('user:id,name,role')
-            ->whereHas('user')
             ->orderBy('agenda_order')
             ->orderBy('name')
             ->get();
@@ -208,7 +207,7 @@ class DefinicoesController extends Controller
         }
 
         $agents = Agent::query()
-            ->where('store_id', current_store_id())
+            ->activeTeamMembers(current_store_id())
             ->with('user:id,role')
             ->whereIn('id', $agentIds)
             ->get()

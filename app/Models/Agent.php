@@ -451,4 +451,21 @@ class Agent extends Model
             ->where('status', self::STATUS_ACTIVE)
             ->whereHas('user', fn (Builder $userQuery) => $userQuery->whereIn('role', User::serviceProviderRoles()));
     }
+
+    /**
+     * Membros de equipa activos (todos os papéis de staff, excepto cliente).
+     *
+     * @param  Builder<Agent>  $query
+     * @return Builder<Agent>
+     */
+    public function scopeActiveTeamMembers(Builder $query, ?int $storeId = null): Builder
+    {
+        if ($storeId !== null) {
+            $query->forStore($storeId);
+        }
+
+        return $query
+            ->where('status', self::STATUS_ACTIVE)
+            ->whereHas('user', fn (Builder $userQuery) => $userQuery->where('role', '!=', User::ROLE_CLIENTE));
+    }
 }
