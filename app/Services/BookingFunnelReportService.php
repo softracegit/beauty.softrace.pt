@@ -129,6 +129,8 @@ class BookingFunnelReportService
     /**
      * Utilizadores de marcação online (role cliente) sem marcação na loja desde a criação da conta.
      * Marcações históricas anteriores à conta (ex.: import Zappy) não contam.
+     * Usa created_at (quando o registo foi criado) ou start_at (marcação agendada após a conta),
+     * ambos em UTC na BD — a comparação é directa, sem conversão de fuso.
      *
      * @return Builder<User>
      */
@@ -144,7 +146,22 @@ class BookingFunnelReportService
                     ->whereColumn('calendar_events.client_id', 'users.client_id')
                     ->where('calendar_events.store_id', $storeId)
                     ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-                    ->whereColumn('calendar_events.created_at', '>=', 'users.created_at');
+                    ->where(function ($events): void {
+                        $events
+                            ->whereColumn('calendar_events.created_at', '>=', 'users.created_at')
+                            ->orWhere(function ($activeAfterAccount): void {
+                                $activeAfterAccount
+                                    ->whereColumn('calendar_events.start_at', '>=', 'users.created_at')
+                                    ->where(function ($status): void {
+                                        $status->whereNull('calendar_events.status')
+                                            ->orWhereNotIn('calendar_events.status', [
+                                                CalendarEvent::STATUS_CANCELADO,
+                                                CalendarEvent::STATUS_ANULADO,
+                                                CalendarEvent::STATUS_FALTOU,
+                                            ]);
+                                    });
+                            });
+                    });
             })
             ->with(['client:id,name,email,phone,store_id,created_at'])
             ->orderByDesc('created_at');

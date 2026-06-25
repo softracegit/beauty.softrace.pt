@@ -29,7 +29,7 @@
           ],
           BookingFunnelReportService::TAB_ACCOUNTS => [
               'label' => 'Contas online sem marcação',
-              'hint' => 'Utilizadores com role cliente (marcação online) que não fizeram nenhuma marcação na loja desde a criação da conta. Marcações anteriores (ex.: Zappy) não contam.',
+              'hint' => 'Utilizadores com role cliente que não têm marcações criadas nem agendadas (hora de início) após a criação da conta online. Marcações Zappy anteriores à conta não contam.',
               'count' => (int) ($counts['accounts_without_booking'] ?? 0),
           ],
           BookingFunnelReportService::TAB_HOLDS => [
