@@ -2121,6 +2121,7 @@
             techStaleCheck &&
             techStaleCheck.id != null &&
             String(techStaleCheck.id) !== '' &&
+            String(techStaleCheck.id) !== 'any' &&
             Object.keys(validAgentSet).length &&
             !validAgentSet[String(techStaleCheck.id)]
         ) {
