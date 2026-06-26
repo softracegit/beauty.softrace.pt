@@ -54,25 +54,22 @@
           $totalPreco = $ev->eventServiceItems->sum(function ($es) {
             return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
           });
-          $services = $ev->eventServiceItems
-            ->map(function ($es) {
-              $optionName = trim((string) ($es->option_name ?? ''));
-
-              return $optionName !== '' ? $optionName : ($es->service?->name ?? null);
-            })
-            ->filter()
-            ->implode(', ');
-          $categorias = $ev->eventServiceItems
-            ->map(fn ($es) => $es->service?->category?->name)
-            ->map(fn ($n) => $n !== null && $n !== '' ? $n : '—')
-            ->implode(', ');
+          $services = \App\Support\MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
+          if ($ev->event_type === \App\Models\CalendarEvent::TYPE_TEMPO_PESSOAL) {
+            $categorias = '—';
+          } else {
+            $categorias = $ev->eventServiceItems
+              ->map(fn ($es) => $es->service?->category?->name)
+              ->map(fn ($n) => $n !== null && $n !== '' ? $n : '—')
+              ->implode(', ');
+          }
         @endphp
         <tr>
           <td>{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
-          <td>{{ \App\Models\CalendarEvent::statuses()[$ev->status] ?? $ev->status }}</td>
+          <td>{{ \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev) }}</td>
           <td>{{ $ev->client?->name ?? '—' }}</td>
           <td>{{ $ev->user?->name ?? '—' }}</td>
-          <td class="servicos-cell small">{{ $services !== '' ? $services : '—' }}</td>
+          <td class="servicos-cell small">{{ $services }}</td>
           <td class="servicos-cell small">{{ $categorias !== '' ? $categorias : '—' }}</td>
           <td class="text-end text-nowrap">{{ number_format($totalPreco, 2, ',', ' ') }}€</td>
           <td class="small">{{ $ev->description ? \Illuminate\Support\Str::limit($ev->description, 120) : '—' }}</td>

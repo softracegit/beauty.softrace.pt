@@ -22,7 +22,7 @@
       </div>
     </div>
   </div>
-  <form method="GET" action="{{ route('relatorios.marcacoes') }}" class="uview-cliente-tab-filters mb-3">
+  <form method="GET" action="{{ route('relatorios.marcacoes') }}" class="uview-cliente-tab-filters relatorio-tab-filters mb-3">
     <div class="uview-filter-field uview-filter-date">
       <label class="form-label small text-muted mb-0">Desde</label>
       <input type="text" name="marcacoes_desde" class="form-control form-control-sm" value="{{ $marcacoesDesde ?? '' }}">
@@ -61,10 +61,20 @@
     <div class="uview-filter-field uview-filter-estado">
       <label class="form-label small text-muted mb-0">Estado</label>
       <select name="marcacoes_estado" class="form-select form-select-sm">
-        <option value="">Todos</option>
-        @foreach(\App\Models\CalendarEvent::statuses() as $key => $label)
-          <option value="{{ $key }}" {{ ($marcacoesEstado ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
-        @endforeach
+        <option value="{{ \App\Support\MarcacoesReportEstadoFilter::TUDO }}" {{ ($marcacoesEstado ?? '') === \App\Support\MarcacoesReportEstadoFilter::TUDO ? 'selected' : '' }}>Ver tudo</option>
+        <optgroup label="Marcações realizadas / por realizar">
+          <option value="{{ \App\Support\MarcacoesReportEstadoFilter::ATIVAS }}" {{ ($marcacoesEstado ?? \App\Support\MarcacoesReportEstadoFilter::ATIVAS) === \App\Support\MarcacoesReportEstadoFilter::ATIVAS ? 'selected' : '' }}>Todas (realizadas / por realizar)</option>
+          @foreach(\App\Support\MarcacoesReportEstadoFilter::ativasIndividualOptions() as $key => $label)
+            <option value="{{ $key }}" {{ ($marcacoesEstado ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
+          @endforeach
+        </optgroup>
+        <optgroup label="Marcações não realizadas">
+          <option value="{{ \App\Support\MarcacoesReportEstadoFilter::NAO_REALIZADAS }}" {{ ($marcacoesEstado ?? '') === \App\Support\MarcacoesReportEstadoFilter::NAO_REALIZADAS ? 'selected' : '' }}>Todas (não realizadas)</option>
+          @foreach(\App\Support\MarcacoesReportEstadoFilter::naoRealizadasIndividualOptions() as $key => $label)
+            <option value="{{ $key }}" {{ ($marcacoesEstado ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
+          @endforeach
+        </optgroup>
+        <option value="{{ \App\Support\MarcacoesReportEstadoFilter::TEMPO_PESSOAL }}" {{ ($marcacoesEstado ?? '') === \App\Support\MarcacoesReportEstadoFilter::TEMPO_PESSOAL ? 'selected' : '' }}>Tempos pessoais</option>
       </select>
     </div>
     <div class="uview-filter-submit">
@@ -95,13 +105,16 @@
             @php
               $isFutura = $ev->start_at->isFuture();
               $badgeClass = $isFutura ? 'bg-success-light text-success' : 'bg-secondary-light text-secondary';
+              $isTempoPessoal = $ev->event_type === \App\Models\CalendarEvent::TYPE_TEMPO_PESSOAL;
               $totalPreco = $ev->eventServiceItems->sum(function ($es) {
                 return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
               });
+              $statusLabel = \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev);
+              $servicesLabel = \App\Support\MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
             @endphp
             <tr>
               <td>{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
-              <td><span class="badge {{ $badgeClass }}">{{ \App\Models\CalendarEvent::statuses()[$ev->status] ?? $ev->status }}</span></td>
+              <td><span class="badge {{ $badgeClass }}">{{ $statusLabel }}</span></td>
               <td>
                 @if($ev->client)
                   <a href="{{ route('clientes.show', $ev->client) }}">{{ $ev->client->name }}</a>
@@ -111,14 +124,22 @@
               </td>
               <td>{{ $ev->user?->name ?? '—' }}</td>
               <td>
-                @foreach($ev->eventServiceItems as $es)
-                  <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? '—') }}</span>
-                @endforeach
+                @if($isTempoPessoal)
+                  <span class="badge bg-secondary-light text-secondary">{{ $servicesLabel }}</span>
+                @else
+                  @foreach($ev->eventServiceItems as $es)
+                    <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? '—') }}</span>
+                  @endforeach
+                @endif
               </td>
               <td>
-                @foreach($ev->eventServiceItems as $es)
-                  <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ $es->service?->category?->name ?? '—' }}</span>
-                @endforeach
+                @if($isTempoPessoal)
+                  —
+                @else
+                  @foreach($ev->eventServiceItems as $es)
+                    <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ $es->service?->category?->name ?? '—' }}</span>
+                  @endforeach
+                @endif
               </td>
               <td class="text-end text-nowrap">{{ number_format($totalPreco, 2, ',', ' ') }}€</td>
               <td class="small text-muted">

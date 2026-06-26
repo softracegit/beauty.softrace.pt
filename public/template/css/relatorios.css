@@ -10,6 +10,16 @@ body.page-relatorios .main-content {
     }
 }
 
+/* Filtros — largura fixa uniforme */
+body.page-relatorios .relatorio-tab-filters .uview-filter-field.uview-filter-date,
+body.page-relatorios .relatorio-tab-filters .uview-filter-field.uview-filter-select,
+body.page-relatorios .relatorio-tab-filters .uview-filter-field.uview-filter-estado {
+    flex: 0 0 10rem;
+    width: 10rem;
+    max-width: 10rem;
+    min-width: 10rem;
+}
+
 /* Coluna serviços (vendas) */
 .vendas-servico-cell {
     max-width: 14rem;

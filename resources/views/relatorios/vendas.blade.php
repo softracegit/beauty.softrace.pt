@@ -24,7 +24,7 @@
       </div>
     </div>
   </div>
-  <form method="GET" action="{{ route('relatorios.vendas') }}" class="uview-cliente-tab-filters mb-3">
+  <form method="GET" action="{{ route('relatorios.vendas') }}" class="uview-cliente-tab-filters relatorio-tab-filters mb-3">
     <div class="uview-filter-field uview-filter-date">
       <label class="form-label small text-muted mb-0">Desde</label>
       <input type="text" name="vendas_desde" class="form-control form-control-sm" value="{{ $vendasDesde ?? '' }}">

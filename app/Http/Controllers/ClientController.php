@@ -246,8 +246,10 @@ class ClientController extends Controller
             ->limit(100)
             ->get();
 
-        $today = now()->startOfDay();
-        $firstDayOfMonth = now()->copy()->startOfMonth();
+        $marcacoesDefaultDesde = now()->startOfDay()->subMonths(6)->toDateString();
+        $marcacoesDefaultAte = now()->startOfDay()->addMonths(6)->toDateString();
+        $vendasDefaultDesde = now()->copy()->startOfMonth()->toDateString();
+        $vendasDefaultAte = now()->copy()->endOfMonth()->toDateString();
 
         $validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
         $activeTab = $request->get('active_tab', 'tab-details');
@@ -269,18 +271,18 @@ class ClientController extends Controller
         $vendasTecnico = $request->get('vendas_tecnico');
         $vendasEstado = $request->get('vendas_estado');
 
-        // Valores por defeito: mês corrente (1º dia → hoje), por tab
+        // Valores por defeito: marcações ±6 meses; vendas mês corrente (1.º → último dia)
         if (! $marcacoesDesde) {
-            $marcacoesDesde = $firstDayOfMonth->toDateString();
+            $marcacoesDesde = $marcacoesDefaultDesde;
         }
         if (! $marcacoesAte) {
-            $marcacoesAte = $today->toDateString();
+            $marcacoesAte = $marcacoesDefaultAte;
         }
         if (! $vendasDesde) {
-            $vendasDesde = $firstDayOfMonth->toDateString();
+            $vendasDesde = $vendasDefaultDesde;
         }
         if (! $vendasAte) {
-            $vendasAte = $today->toDateString();
+            $vendasAte = $vendasDefaultAte;
         }
 
         // Base query marcações

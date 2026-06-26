@@ -20,9 +20,6 @@ class VendasReportService
      */
     public function reportQuery(array $filters): Builder
     {
-        $today = now()->startOfDay();
-        $firstDayOfMonth = now()->copy()->startOfMonth();
-
         $desde = $filters['desde'] ?? null;
         $ate = $filters['ate'] ?? null;
         $cliente = $filters['cliente'] ?? null;
@@ -31,10 +28,10 @@ class VendasReportService
         $estado = (string) ($filters['estado'] ?? '');
 
         if (! $desde) {
-            $desde = $firstDayOfMonth->toDateString();
+            $desde = now()->copy()->startOfMonth()->toDateString();
         }
         if (! $ate) {
-            $ate = $today->toDateString();
+            $ate = now()->copy()->endOfMonth()->toDateString();
         }
 
         $q = Sale::query()

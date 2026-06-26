@@ -13,6 +13,7 @@ use App\Services\BookingFunnelReportService;
 use App\Services\SmsReportService;
 use App\Services\VendasReportService;
 use App\Support\DateTimeDisplay;
+use App\Support\MarcacoesReportEstadoFilter;
 use App\Support\StoreBusinessTime;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -37,7 +38,7 @@ class RelatoriosController extends Controller
     public function marcacoes(Request $request): View
     {
         $marcacoes = $this->marcacoesReportQuery($request)
-            ->with(['user', 'client', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
+            ->with(['user', 'client', 'personalTimeType', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
             ->orderByDesc('start_at')
             ->paginate(100)
             ->withQueryString();
@@ -65,10 +66,8 @@ class RelatoriosController extends Controller
             ->orderBy('clients.name')
             ->get();
 
-        $today = now()->startOfDay();
-        $firstDayOfMonth = now()->copy()->startOfMonth();
-        $marcacoesDesde = $request->get('marcacoes_desde') ?: $firstDayOfMonth->toDateString();
-        $marcacoesAte = $request->get('marcacoes_ate') ?: $today->toDateString();
+        $marcacoesDesde = $request->get('marcacoes_desde') ?: $this->marcacoesDefaultDesde();
+        $marcacoesAte = $request->get('marcacoes_ate') ?: $this->marcacoesDefaultAte();
 
         return view('relatorios.marcacoes', [
             'pageTitle' => 'Relatórios — Marcações',
@@ -77,7 +76,7 @@ class RelatoriosController extends Controller
             'marcacoesAte' => $marcacoesAte,
             'marcacoesServico' => $request->get('marcacoes_servico'),
             'marcacoesTecnico' => $request->get('marcacoes_tecnico'),
-            'marcacoesEstado' => $request->get('marcacoes_estado'),
+            'marcacoesEstado' => MarcacoesReportEstadoFilter::resolve($request->get('marcacoes_estado')),
             'marcacoesCliente' => $request->get('marcacoes_cliente'),
             'servicosOpts' => $servicosOpts,
             'tecnicosOpts' => $tecnicosOpts,
@@ -89,7 +88,7 @@ class RelatoriosController extends Controller
     public function marcacoesExport(Request $request): StreamedResponse
     {
         $events = $this->marcacoesReportQuery($request)
-            ->with(['user', 'client', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
+            ->with(['user', 'client', 'personalTimeType', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
             ->orderByDesc('start_at')
             ->get();
 
@@ -114,19 +113,16 @@ class RelatoriosController extends Controller
             $totalPreco = $ev->eventServiceItems->sum(function ($es) {
                 return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
             });
-            $services = $ev->eventServiceItems
-                ->map(function ($es) {
-                    $optionName = trim((string) ($es->option_name ?? ''));
-
-                    return $optionName !== '' ? $optionName : ($es->service?->name ?? null);
-                })
-                ->filter()
-                ->implode(', ');
-            $categorias = $ev->eventServiceItems
-                ->map(fn ($es) => $es->service?->category?->name)
-                ->map(fn ($n) => $n !== null && $n !== '' ? $n : '—')
-                ->implode(', ');
-            $statusLabel = CalendarEvent::statuses()[$ev->status] ?? $ev->status;
+            $services = MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
+            if ($ev->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {
+                $categorias = '—';
+            } else {
+                $categorias = $ev->eventServiceItems
+                    ->map(fn ($es) => $es->service?->category?->name)
+                    ->map(fn ($n) => $n !== null && $n !== '' ? $n : '—')
+                    ->implode(', ');
+            }
+            $statusLabel = MarcacoesReportEstadoFilter::eventRowStatusLabel($ev);
 
             $sheet->fromArray([
                 [
@@ -177,7 +173,7 @@ class RelatoriosController extends Controller
     public function marcacoesPdf(Request $request)
     {
         $events = $this->marcacoesReportQuery($request)
-            ->with(['user', 'client', 'eventServiceItems.service.category', 'eventServiceItems.extras'])
+            ->with(['user', 'client', 'personalTimeType', 'eventServiceItems.service.category', 'eventServiceItems.extras'])
             ->orderByDesc('start_at')
             ->get();
 
@@ -201,10 +197,8 @@ class RelatoriosController extends Controller
      */
     private function marcacoesFiltrosResumo(Request $request): array
     {
-        $today = now()->startOfDay();
-        $firstDayOfMonth = now()->copy()->startOfMonth();
-        $desde = $request->get('marcacoes_desde') ?: $firstDayOfMonth->toDateString();
-        $ate = $request->get('marcacoes_ate') ?: $today->toDateString();
+        $desde = $request->get('marcacoes_desde') ?: $this->marcacoesDefaultDesde();
+        $ate = $request->get('marcacoes_ate') ?: $this->marcacoesDefaultAte();
 
         $lines = [
             'Período: '.Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
@@ -219,9 +213,8 @@ class RelatoriosController extends Controller
         if ($tid = $request->get('marcacoes_tecnico')) {
             $lines[] = 'Técnico: '.(User::activeStaff(current_store_id())->find($tid)?->name ?? '—');
         }
-        if ($est = $request->get('marcacoes_estado')) {
-            $lines[] = 'Estado: '.(CalendarEvent::statuses()[$est] ?? $est);
-        }
+        $est = MarcacoesReportEstadoFilter::resolve($request->get('marcacoes_estado'));
+        $lines[] = 'Estado: '.MarcacoesReportEstadoFilter::label($est);
 
         return $lines;
     }
@@ -231,26 +224,17 @@ class RelatoriosController extends Controller
      */
     private function marcacoesReportQuery(Request $request): Builder
     {
-        $today = now()->startOfDay();
-        $firstDayOfMonth = now()->copy()->startOfMonth();
-
-        $marcacoesDesde = $request->get('marcacoes_desde');
-        $marcacoesAte = $request->get('marcacoes_ate');
+        $marcacoesDesde = $request->get('marcacoes_desde') ?: $this->marcacoesDefaultDesde();
+        $marcacoesAte = $request->get('marcacoes_ate') ?: $this->marcacoesDefaultAte();
         $marcacoesServico = $request->get('marcacoes_servico');
         $marcacoesTecnico = $request->get('marcacoes_tecnico');
-        $marcacoesEstado = $request->get('marcacoes_estado');
+        $marcacoesEstado = MarcacoesReportEstadoFilter::resolve($request->get('marcacoes_estado'));
         $marcacoesCliente = $request->get('marcacoes_cliente');
 
-        if (! $marcacoesDesde) {
-            $marcacoesDesde = $firstDayOfMonth->toDateString();
-        }
-        if (! $marcacoesAte) {
-            $marcacoesAte = $today->toDateString();
-        }
-
-        $marcacoesQuery = CalendarEvent::query()
-            ->forStore(current_store_id())
-            ->where('event_type', CalendarEvent::TYPE_MARCACAO);
+        $marcacoesQuery = MarcacoesReportEstadoFilter::apply(
+            CalendarEvent::query()->forStore(current_store_id()),
+            $marcacoesEstado,
+        );
 
         if ($marcacoesDesde) {
             $marcacoesQuery->whereDate('start_at', '>=', $marcacoesDesde);
@@ -263,9 +247,6 @@ class RelatoriosController extends Controller
         }
         if ($marcacoesTecnico) {
             $marcacoesQuery->where('user_id', $marcacoesTecnico);
-        }
-        if ($marcacoesEstado) {
-            $marcacoesQuery->where('status', $marcacoesEstado);
         }
         if ($marcacoesCliente) {
             $marcacoesQuery->where('client_id', $marcacoesCliente);
@@ -349,10 +330,8 @@ class RelatoriosController extends Controller
         );
         $vendas->withQueryString();
 
-        $today = now()->startOfDay();
-        $firstDayOfMonth = now()->copy()->startOfMonth();
-        $vendasDesde = $request->get('vendas_desde') ?: $firstDayOfMonth->toDateString();
-        $vendasAte = $request->get('vendas_ate') ?: $today->toDateString();
+        $vendasDesde = $request->get('vendas_desde') ?: $this->vendasDefaultDesde();
+        $vendasAte = $request->get('vendas_ate') ?: $this->vendasDefaultAte();
 
         return view('relatorios.vendas', [
             'pageTitle' => 'Relatórios — Vendas',
@@ -490,10 +469,8 @@ class RelatoriosController extends Controller
      */
     private function vendasFiltrosResumo(Request $request): array
     {
-        $today = now()->startOfDay();
-        $firstDayOfMonth = now()->copy()->startOfMonth();
-        $desde = $request->get('vendas_desde') ?: $firstDayOfMonth->toDateString();
-        $ate = $request->get('vendas_ate') ?: $today->toDateString();
+        $desde = $request->get('vendas_desde') ?: $this->vendasDefaultDesde();
+        $ate = $request->get('vendas_ate') ?: $this->vendasDefaultAte();
 
         $lines = [
             'Período (emissão): '.Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
@@ -555,6 +532,26 @@ class RelatoriosController extends Controller
     private function vendasServicosOpts(): Collection
     {
         return $this->vendasReportService->servicosOpts();
+    }
+
+    private function marcacoesDefaultDesde(): string
+    {
+        return now()->copy()->startOfMonth()->toDateString();
+    }
+
+    private function marcacoesDefaultAte(): string
+    {
+        return now()->copy()->endOfMonth()->toDateString();
+    }
+
+    private function vendasDefaultDesde(): string
+    {
+        return now()->copy()->startOfMonth()->toDateString();
+    }
+
+    private function vendasDefaultAte(): string
+    {
+        return now()->copy()->endOfMonth()->toDateString();
     }
 
     /**
