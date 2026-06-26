@@ -179,7 +179,7 @@ class AppointmentCancellationService
 
             if ($this->shouldSendCancellationNotifications($locked)) {
                 if ((bool) ($options['notify_client'] ?? false)) {
-                    $this->notifyClient($locked, $fromPublicBooking);
+                    $this->notifyClient($locked);
                 }
                 if ((bool) ($options['notify_team'] ?? false)) {
                     $this->notifyTeamOnCancellation($locked, $previousStatus, $fromPublicBooking);
@@ -252,7 +252,7 @@ class AppointmentCancellationService
             : 'Crédito por cancelamento da marcação';
     }
 
-    private function notifyClient(CalendarEvent $event, bool $fromPublicBooking = false): void
+    private function notifyClient(CalendarEvent $event): void
     {
         if (! $this->shouldSendCancellationNotifications($event)) {
             return;
@@ -273,7 +273,7 @@ class AppointmentCancellationService
         try {
             Notification::route('mail', $email)
                 ->notify(
-                    (new ClientAppointmentCancelledNotification($event->id, $fromPublicBooking))
+                    (new ClientAppointmentCancelledNotification($event->id))
                         ->locale(BookingLocale::emailLocale())
                 );
         } catch (\Throwable $e) {

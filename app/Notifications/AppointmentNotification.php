@@ -20,7 +20,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
 
     /**
      * @param  bool  $fromPublicBooking  Marcação em /booking: mailer "booking" (sem redirecionamento mail.to em local/staging).
-     * @param  bool  $forReception  Cópia interna para receção: sininho (email via CC nos envios principais).
+     * @param  bool  $forReception  Cópia interna para receção: sininho (email via CC nos envios à técnica).
      */
     public function __construct(
         public int $calendarEventId,

@@ -4,7 +4,6 @@ namespace App\Notifications;
 
 use App\Models\CalendarEvent;
 use App\Support\DateTimeDisplay;
-use App\Support\ReceptionNotificationMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -15,19 +14,11 @@ class ClientAppointmentRescheduledNotification extends Notification implements S
 {
     use Queueable;
 
-    public bool $ccReceptionStaff;
-
     public function __construct(
         public int $calendarEventId,
         public ?string $previousStartIso,
         public ?string $previousEndIso,
-        public bool $fromPublicBooking = false,
-    ) {
-        $this->ccReceptionStaff = ReceptionNotificationMail::shouldCcReceptionForActor(
-            $fromPublicBooking,
-            auth()->id(),
-        );
-    }
+    ) {}
 
     /**
      * @return array<int, string>
@@ -83,14 +74,6 @@ class ClientAppointmentRescheduledNotification extends Notification implements S
         $storeSlug = $event->store?->slug;
         if (is_string($storeSlug) && $storeSlug !== '') {
             $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
-        }
-
-        if ($this->ccReceptionStaff) {
-            ReceptionNotificationMail::applyReceptionCc(
-                $mail,
-                $event,
-                array_filter([(string) ($event->client?->email ?? '')]),
-            );
         }
 
         return $mail->salutation(config('app.name'));

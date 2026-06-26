@@ -12,7 +12,7 @@ final class ReceptionBookingNotifier
 {
     /**
      * Sininho na receção para marcações novas ou alteradas (em paralelo com a técnica).
-     * Email à receção via CC nos envios ao cliente/técnica.
+     * Email à receção via CC nos envios à técnica.
      */
     public function notify(
         CalendarEvent $event,
@@ -37,7 +37,11 @@ final class ReceptionBookingNotifier
         $technicianUserId = (int) ($event->user_id ?? 0);
 
         foreach (ReceptionNotificationMail::receptionUsersForStore($storeId) as $user) {
-            if ($actorId !== null && (int) $user->id === (int) $actorId) {
+            if (
+                ! $fromPublicBooking
+                && $actorId !== null
+                && (int) $user->id === (int) $actorId
+            ) {
                 continue;
             }
             if ($technicianUserId > 0 && (int) $user->id === $technicianUserId) {
@@ -65,7 +69,7 @@ final class ReceptionBookingNotifier
 
     /**
      * Sininho na receção quando uma marcação futura é cancelada (ex.: pelo cliente).
-     * Email à receção via CC nos envios ao cliente/técnica.
+     * Email à receção via CC nos envios à técnica.
      */
     public function notifyCancellation(
         CalendarEvent $event,

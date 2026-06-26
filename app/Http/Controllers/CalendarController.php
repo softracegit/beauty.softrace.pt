@@ -1629,7 +1629,7 @@ class CalendarController extends Controller
                 try {
                     Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
                         ->notify(
-                            (new ClientAppointmentCancelledNotification($calendarEvent->id, fromPublicBooking: false))
+                            (new ClientAppointmentCancelledNotification($calendarEvent->id))
                                 ->locale(BookingLocale::emailLocale())
                         );
                 } catch (\Throwable $e) {

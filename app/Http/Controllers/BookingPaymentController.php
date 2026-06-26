@@ -903,7 +903,7 @@ class BookingPaymentController extends Controller
         try {
             Notification::route('mail', $email)
                 ->notify(
-                    (new ClientAppointmentCreatedNotification($eventId, fromPublicBooking: true))
+                    (new ClientAppointmentCreatedNotification($eventId))
                         ->locale(BookingLocale::emailLocale())
                 );
         } catch (\Throwable $e) {
