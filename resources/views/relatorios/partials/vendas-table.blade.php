@@ -9,7 +9,7 @@
     <table class="table table-sm table-hover table-striped vendas-report-table">
       <thead>
         <tr>
-          <th>Data</th>
+          <th>{{ $vendasDataColunaLabel ?? 'Data' }}</th>
           @if($showClienteColumn)
             <th>Cliente / NIF</th>
           @endif

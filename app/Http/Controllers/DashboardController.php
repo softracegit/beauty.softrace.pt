@@ -12,6 +12,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\FinancialDashboardService;
 use App\Services\PrestadorDashboardService;
+use App\Services\VendasReportService;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class DashboardController extends Controller
 {
     public function __construct(
         private readonly FinancialDashboardService $financialDashboard,
+        private readonly VendasReportService $vendasReportService,
     ) {}
 
     /**
@@ -299,16 +301,7 @@ class DashboardController extends Controller
 
     private function resumoVendasEntre(Carbon $start, Carbon $end): float
     {
-        if ($end->lt($start)) {
-            return 0.0;
-        }
-
-        return (float) Sale::query()
-            ->where('store_id', current_store_id())
-            ->where('status', Sale::STATUS_PAGO)
-            ->whereDate('data_emissao', '>=', $start->toDateString())
-            ->whereDate('data_emissao', '<=', $end->toDateString())
-            ->sum('total');
+        return $this->vendasReportService->sumVendasPagasPorEmissao($start, $end);
     }
 
     private function resumoClientesAtendidosEntre(Carbon $start, Carbon $end): int
@@ -396,16 +389,7 @@ class DashboardController extends Controller
      */
     private function receitaMarcacoesEntre(Carbon $start, Carbon $end): float
     {
-        return (float) Sale::query()
-            ->where('store_id', current_store_id())
-            ->where('status', Sale::STATUS_PAGO)
-            ->whereHas('calendarEvent', function ($q) use ($start, $end) {
-                $q->where('store_id', current_store_id())
-                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-                    ->where('status', CalendarEvent::STATUS_COMPLETO)
-                    ->whereBetween('start_at', [$start, $end]);
-            })
-            ->sum('total');
+        return $this->vendasReportService->sumVendasPagasPorMarcacao($start, $end);
     }
 
     /**

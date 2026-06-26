@@ -37,7 +37,7 @@
   <table>
     <thead>
       <tr>
-        <th style="width:9%">Data</th>
+        <th style="width:9%">{{ $vendasDataColunaLabel ?? 'Data' }}</th>
         <th style="width:14%">Cliente</th>
         <th style="width:9%">NIF</th>
         <th style="width:10%">Técnico</th>

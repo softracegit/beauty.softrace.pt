@@ -140,7 +140,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | WhatsApp de suporte (botão flutuante no /booking)
+    | WhatsApp — botão flutuante no /booking (canto inferior esquerdo)
+    |--------------------------------------------------------------------------
+    */
+
+    'booking_whatsapp' => env('BOOKING_WHATSAPP', '+351928116651'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | WhatsApp de apoio técnico (modal de login / autenticação)
     |--------------------------------------------------------------------------
     */
 

@@ -1,5 +1,5 @@
 @php
-    $supportWhatsappDigits = preg_replace('/\D+/', '', (string) config('booking.support_whatsapp', ''));
+    $supportWhatsappDigits = preg_replace('/\D+/', '', (string) config('booking.booking_whatsapp', ''));
 @endphp
 @if ($supportWhatsappDigits !== '')
     <a

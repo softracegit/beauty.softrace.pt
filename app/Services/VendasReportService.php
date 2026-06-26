@@ -9,14 +9,41 @@ use App\Models\SaleItem;
 use App\Models\Service;
 use App\Support\ApplicableFees;
 use App\Support\SaleTechnicianAttribution;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class VendasReportService
 {
+    public const DATE_CRITERION_EMISSAO = 'emissao';
+
+    public const DATE_CRITERION_MARCACAO = 'marcacao';
+
+    public static function defaultDateCriterion(): string
+    {
+        return self::DATE_CRITERION_MARCACAO;
+    }
+
+    public static function resolveDateCriterion(?string $value): string
+    {
+        if ($value === self::DATE_CRITERION_EMISSAO || $value === self::DATE_CRITERION_MARCACAO) {
+            return $value;
+        }
+
+        return self::defaultDateCriterion();
+    }
+
+    public static function dateCriterionLabel(string $criterion): string
+    {
+        return match ($criterion) {
+            self::DATE_CRITERION_MARCACAO => 'Data da marcação',
+            default => 'Data da fatura',
+        };
+    }
+
     /**
-     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string}  $filters
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string, data_criterio?: ?string}  $filters
      */
     public function reportQuery(array $filters): Builder
     {
@@ -26,6 +53,7 @@ class VendasReportService
         $servico = $filters['servico'] ?? null;
         $tecnico = $filters['tecnico'] ?? null;
         $estado = (string) ($filters['estado'] ?? '');
+        $dateCriterion = self::resolveDateCriterion($filters['data_criterio'] ?? null);
 
         if (! $desde) {
             $desde = now()->copy()->startOfMonth()->toDateString();
@@ -36,10 +64,17 @@ class VendasReportService
 
         $q = Sale::query()
             ->where('store_id', current_store_id())
-            ->whereHas('calendarEvent', function (Builder $cq) {
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function (Builder $cq) use ($dateCriterion, $desde, $ate) {
                 $cq->where('store_id', current_store_id())
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
+
+                if ($dateCriterion === self::DATE_CRITERION_MARCACAO) {
+                    $cq->where('status', CalendarEvent::STATUS_COMPLETO)
+                        ->whereDate('start_at', '>=', $desde)
+                        ->whereDate('start_at', '<=', $ate);
+                }
             });
 
         if (in_array($estado, [Sale::INVOICE_STATUS_FATURADO, Sale::INVOICE_STATUS_RASCUNHO], true)) {
@@ -48,8 +83,10 @@ class VendasReportService
             $q->whereIn('invoice_status', [Sale::INVOICE_STATUS_FATURADO, Sale::INVOICE_STATUS_RASCUNHO]);
         }
 
-        $q->whereDate('data_emissao', '>=', $desde);
-        $q->whereDate('data_emissao', '<=', $ate);
+        if ($dateCriterion === self::DATE_CRITERION_EMISSAO) {
+            $q->whereDate('data_emissao', '>=', $desde);
+            $q->whereDate('data_emissao', '<=', $ate);
+        }
 
         if ($cliente) {
             $q->where('client_id', $cliente);
@@ -74,11 +111,79 @@ class VendasReportService
         return $q;
     }
 
+    public function sumVendasPagasPorEmissao(Carbon $start, Carbon $end): float
+    {
+        if ($end->lt($start)) {
+            return 0.0;
+        }
+
+        return round((float) Sale::query()
+            ->where('store_id', current_store_id())
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereDate('data_emissao', '>=', $start->toDateString())
+            ->whereDate('data_emissao', '<=', $end->toDateString())
+            ->whereHas('calendarEvent', function (Builder $cq) {
+                $cq->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
+            })
+            ->sum('total'), 2);
+    }
+
+    public function sumVendasPagasPorMarcacao(Carbon $start, Carbon $end): float
+    {
+        if ($end->lt($start)) {
+            return 0.0;
+        }
+
+        return round((float) Sale::query()
+            ->where('store_id', current_store_id())
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function (Builder $cq) use ($start, $end) {
+                $cq->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', CalendarEvent::STATUS_COMPLETO)
+                    ->whereDate('start_at', '>=', $start->toDateString())
+                    ->whereDate('start_at', '<=', $end->toDateString());
+            })
+            ->sum('total'), 2);
+    }
+
+    /**
+     * @param  Collection<int, Sale>  $sales
+     */
+    public function sumTotaisVendasPagas(Collection $sales): float
+    {
+        return round((float) $sales
+            ->filter(fn (Sale $sale) => ! $sale->isAnulado())
+            ->sum('total'), 2);
+    }
+
+    /**
+     * @param  Collection<int, object>  $lines
+     * @param  Collection<int, Sale>|null  $sales
+     * @return array{total_valor: float, total_valor_com_gorjeta: float, total_gorjeta: float, total_taxas: float, total_absoluto: float, num_vendas: int, total_servicos: int, total_desconto: float, total_divida: float}
+     */
+    public function totaisRodape(Collection $lines, ?string $dateCriterion = null, ?Collection $sales = null): array
+    {
+        $totais = $this->totaisRodapeFromLines($lines);
+
+        if ($sales !== null && $sales->isNotEmpty()) {
+            $totalFaturas = $this->sumTotaisVendasPagas($sales);
+            $totais['total_valor'] = $totalFaturas;
+            $totais['total_valor_com_gorjeta'] = $totalFaturas;
+            $totais['total_absoluto'] = $totalFaturas;
+            $totais['num_vendas'] = $sales->filter(fn (Sale $sale) => ! $sale->isAnulado())->count();
+        }
+
+        return $totais;
+    }
+
     /**
      * @param  Collection<int, object>  $lines
      * @return array{total_valor: float, total_valor_com_gorjeta: float, total_gorjeta: float, total_taxas: float, total_absoluto: float, num_vendas: int, total_servicos: int, total_desconto: float, total_divida: float}
      */
-    public function totaisRodape(Collection $lines): array
+    private function totaisRodapeFromLines(Collection $lines): array
     {
         $totalValor = 0.0;
         $totalDesconto = 0.0;
@@ -132,12 +237,13 @@ class VendasReportService
      *
      * @return Collection<int, object>
      */
-    public function resumoCollection(Collection $sales, ?string $vendasServico, ?string $vendasTecnico = null): Collection
+    public function resumoCollection(Collection $sales, ?string $vendasServico, ?string $vendasTecnico = null, ?string $dateCriterion = null): Collection
     {
         $servicoFilter = $vendasServico !== null && $vendasServico !== '' ? (int) $vendasServico : null;
         $tecnicoFilter = $vendasTecnico !== null && $vendasTecnico !== '' ? (int) $vendasTecnico : null;
+        $dateCriterion = self::resolveDateCriterion($dateCriterion);
 
-        return $sales->flatMap(function (Sale $sale) use ($servicoFilter, $tecnicoFilter) {
+        return $sales->flatMap(function (Sale $sale) use ($servicoFilter, $tecnicoFilter, $dateCriterion) {
             $slices = SaleTechnicianAttribution::slicesForSale($sale, $servicoFilter, $tecnicoFilter);
             if ($slices->isEmpty()) {
                 return [];
@@ -145,7 +251,7 @@ class VendasReportService
 
             $client = $sale->client;
 
-            return $slices->map(function (array $slice) use ($sale, $client) {
+            return $slices->map(function (array $slice) use ($sale, $client, $dateCriterion) {
                 /** @var Collection<int, SaleItem> $serviceItems */
                 $serviceItems = $slice['service_items'];
                 $serviceLabels = $serviceItems
@@ -167,7 +273,10 @@ class VendasReportService
                     'is_anulado' => $sale->isAnulado(),
                     'credit_note_pdf_url' => $sale->hasCreditNote() ? route('sales.credit-note.pdf', $sale) : null,
                     'invoice_status' => $sale->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
-                    'data' => $sale->data_emissao,
+                    'data' => $dateCriterion === self::DATE_CRITERION_MARCACAO
+                        ? ($sale->calendarEvent?->start_at ?? $sale->data_emissao)
+                        : $sale->data_emissao,
+                    'data_emissao' => $sale->data_emissao,
                     'numero_fatura' => $sale->numero_fatura,
                     'cliente' => $client?->name ?? '—',
                     'nif' => $client?->nif ?? '',

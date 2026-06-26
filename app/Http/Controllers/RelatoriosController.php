@@ -306,13 +306,15 @@ class RelatoriosController extends Controller
 
     public function vendas(Request $request): View
     {
-        $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
-            ->orderByDesc('data_emissao')
-            ->orderByDesc('id')
-            ->get();
+        $dateCriterion = $this->vendasDateCriterion($request);
+        $sales = $this->vendasSalesForReport($request);
 
-        $allLines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'), $request->get('vendas_tecnico'));
+        $allLines = $this->vendasResumoCollection(
+            $sales,
+            $request->get('vendas_servico'),
+            $request->get('vendas_tecnico'),
+            $dateCriterion,
+        );
 
         $page = max(1, (int) $request->get('page', 1));
         $perPage = 100;
@@ -342,29 +344,34 @@ class RelatoriosController extends Controller
             'vendasServico' => $request->get('vendas_servico'),
             'vendasTecnico' => $request->get('vendas_tecnico'),
             'vendasEstado' => $request->get('vendas_estado'),
+            'vendasDataCriterio' => $dateCriterion,
+            'vendasDataColunaLabel' => $this->vendasDataColunaLabel($dateCriterion),
             'clientesOpts' => $this->vendasClientesOpts(),
             'servicosOpts' => $this->vendasServicosOpts(),
             'tecnicosOpts' => $this->membrosOptsForRelatorios(),
-            'vendasTotais' => $this->vendasTotaisRodape($allLines),
+            'vendasTotais' => $this->vendasTotaisRodape($allLines, $dateCriterion, $sales),
         ]);
     }
 
     public function vendasExport(Request $request): StreamedResponse
     {
-        $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
-            ->orderByDesc('data_emissao')
-            ->orderByDesc('id')
-            ->get();
+        $dateCriterion = $this->vendasDateCriterion($request);
+        $sales = $this->vendasSalesForReport($request);
+        $lines = $this->vendasResumoCollection(
+            $sales,
+            $request->get('vendas_servico'),
+            $request->get('vendas_tecnico'),
+            $dateCriterion,
+        );
 
-        $lines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'), $request->get('vendas_tecnico'));
+        $dataHeader = $this->vendasDataColunaLabel($dateCriterion);
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Vendas');
 
         $headers = [
-            'Data emissão',
+            $dataHeader,
             'Cliente',
             'NIF',
             'Técnico',
@@ -398,7 +405,7 @@ class RelatoriosController extends Controller
             $rowIndex++;
         }
 
-        $totais = $this->vendasTotaisRodape($lines);
+        $totais = $this->vendasTotaisRodape($lines, $dateCriterion, $sales);
         $sheet->fromArray([
             [
                 '',
@@ -443,20 +450,22 @@ class RelatoriosController extends Controller
 
     public function vendasPdf(Request $request)
     {
-        $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
-            ->orderByDesc('data_emissao')
-            ->orderByDesc('id')
-            ->get();
-
-        $lines = $this->vendasResumoCollection($sales, $request->get('vendas_servico'), $request->get('vendas_tecnico'));
+        $dateCriterion = $this->vendasDateCriterion($request);
+        $sales = $this->vendasSalesForReport($request);
+        $lines = $this->vendasResumoCollection(
+            $sales,
+            $request->get('vendas_servico'),
+            $request->get('vendas_tecnico'),
+            $dateCriterion,
+        );
 
         $pdf = Pdf::loadView('relatorios.pdf.vendas', [
             'linhas' => $lines,
             'filtrosLinhas' => $this->vendasFiltrosResumo($request),
             'appName' => config('app.name'),
             'totalLinhas' => $lines->count(),
-            'vendasTotais' => $this->vendasTotaisRodape($lines),
+            'vendasTotais' => $this->vendasTotaisRodape($lines, $dateCriterion, $sales),
+            'vendasDataColunaLabel' => $this->vendasDataColunaLabel($dateCriterion),
         ])->setPaper('a4', 'landscape');
 
         $filename = 'vendas_'.now()->format('Y-m-d_His').'.pdf';
@@ -472,9 +481,16 @@ class RelatoriosController extends Controller
         $desde = $request->get('vendas_desde') ?: $this->vendasDefaultDesde();
         $ate = $request->get('vendas_ate') ?: $this->vendasDefaultAte();
 
+        $dateCriterion = $this->vendasDateCriterion($request);
+
         $lines = [
-            'Período (emissão): '.Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
+            'Período ('.mb_strtolower(VendasReportService::dateCriterionLabel($dateCriterion)).'): '
+                .Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
         ];
+
+        if ($dateCriterion === VendasReportService::DATE_CRITERION_MARCACAO) {
+            $lines[] = 'Marcações: apenas pagas (completo)';
+        }
 
         if ($cid = $request->get('vendas_cliente')) {
             $lines[] = 'Cliente: '.(Client::query()->forStore(current_store_id())->find($cid)?->name ?? '—');
@@ -504,24 +520,69 @@ class RelatoriosController extends Controller
             'servico' => $request->get('vendas_servico'),
             'tecnico' => $request->get('vendas_tecnico'),
             'estado' => $request->get('vendas_estado'),
+            'data_criterio' => $this->vendasDateCriterion($request),
         ]);
+    }
+
+    /**
+     * @return Collection<int, Sale>
+     */
+    private function vendasSalesForReport(Request $request): Collection
+    {
+        $sales = $this->vendasReportQuery($request)
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
+            ->get();
+
+        if ($this->vendasDateCriterion($request) === VendasReportService::DATE_CRITERION_MARCACAO) {
+            return $sales->sort(function (Sale $a, Sale $b) {
+                $aTs = $a->calendarEvent?->start_at?->getTimestamp() ?? 0;
+                $bTs = $b->calendarEvent?->start_at?->getTimestamp() ?? 0;
+                if ($aTs !== $bTs) {
+                    return $bTs <=> $aTs;
+                }
+
+                return $b->id <=> $a->id;
+            })->values();
+        }
+
+        return $sales->sort(function (Sale $a, Sale $b) {
+            $aDate = $a->data_emissao?->format('Y-m-d') ?? '';
+            $bDate = $b->data_emissao?->format('Y-m-d') ?? '';
+            if ($aDate !== $bDate) {
+                return $bDate <=> $aDate;
+            }
+
+            return $b->id <=> $a->id;
+        })->values();
+    }
+
+    private function vendasDateCriterion(Request $request): string
+    {
+        return VendasReportService::resolveDateCriterion($request->get('vendas_data_criterio'));
+    }
+
+    private function vendasDataColunaLabel(string $dateCriterion): string
+    {
+        return $dateCriterion === VendasReportService::DATE_CRITERION_MARCACAO
+            ? 'Data marcação'
+            : 'Data emissão';
     }
 
     /**
      * @param  Collection<int, object>  $lines
      * @return array{total_valor: float, total_valor_com_gorjeta: float, total_gorjeta: float, total_taxas: float, total_absoluto: float, num_vendas: int, total_servicos: int, total_desconto: float, total_divida: float}
      */
-    private function vendasTotaisRodape(Collection $lines): array
+    private function vendasTotaisRodape(Collection $lines, ?string $dateCriterion = null, ?Collection $sales = null): array
     {
-        return $this->vendasReportService->totaisRodape($lines);
+        return $this->vendasReportService->totaisRodape($lines, $dateCriterion, $sales);
     }
 
     /**
      * @return Collection<int, object>
      */
-    private function vendasResumoCollection(Collection $sales, ?string $vendasServico, ?string $vendasTecnico = null): Collection
+    private function vendasResumoCollection(Collection $sales, ?string $vendasServico, ?string $vendasTecnico = null, ?string $dateCriterion = null): Collection
     {
-        return $this->vendasReportService->resumoCollection($sales, $vendasServico, $vendasTecnico);
+        return $this->vendasReportService->resumoCollection($sales, $vendasServico, $vendasTecnico, $dateCriterion);
     }
 
     private function vendasClientesOpts(): Collection

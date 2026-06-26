@@ -25,6 +25,13 @@
     </div>
   </div>
   <form method="GET" action="{{ route('relatorios.vendas') }}" class="uview-cliente-tab-filters relatorio-tab-filters mb-3">
+    <div class="uview-filter-field uview-filter-select">
+      <label class="form-label small text-muted mb-0">Período por</label>
+      <select name="vendas_data_criterio" class="form-select form-select-sm">
+        <option value="{{ \App\Services\VendasReportService::DATE_CRITERION_MARCACAO }}" {{ ($vendasDataCriterio ?? \App\Services\VendasReportService::DATE_CRITERION_MARCACAO) === \App\Services\VendasReportService::DATE_CRITERION_MARCACAO ? 'selected' : '' }}>Data da marcação (Pagou)</option>
+        <option value="{{ \App\Services\VendasReportService::DATE_CRITERION_EMISSAO }}" {{ ($vendasDataCriterio ?? '') === \App\Services\VendasReportService::DATE_CRITERION_EMISSAO ? 'selected' : '' }}>Data da fatura</option>
+      </select>
+    </div>
     <div class="uview-filter-field uview-filter-date">
       <label class="form-label small text-muted mb-0">Desde</label>
       <input type="text" name="vendas_desde" class="form-control form-control-sm" value="{{ $vendasDesde ?? '' }}">
@@ -79,6 +86,7 @@
     'vendas' => $vendas,
     'vendasTotais' => $vendasTotais,
     'showClienteColumn' => true,
+    'vendasDataColunaLabel' => $vendasDataColunaLabel ?? 'Data',
   ])
 
   @include('partials.payment-modal')
