@@ -1,0 +1,230 @@
+/*
+ * Tema Aurora — rosas profundos e dourado rosé.
+ * Atmosfera: luxo feminino, beleza, bem-estar.
+ * Tipografia: Playfair Display itálico + DM Sans.
+ */
+[data-booking-theme="aurora"] {
+    --booking-bg: #fef6f8;
+    --booking-text: #2a0d18;
+    --booking-muted: #9e667a;
+    --booking-border: #f0cdd8;
+    --booking-accent: #b5174e;
+    --booking-accent-soft: #e05580;
+    --booking-surface: #ffffff;
+    --booking-surface-raised: #fdedf2;
+    --booking-elegant-summary-box-bg: #fbe5ec;
+    --booking-radius: 0.75rem;
+}
+
+[data-booking-theme="aurora"].booking-body,
+[data-booking-theme="aurora"] .booking-body {
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    background: var(--booking-bg);
+    color: var(--booking-text);
+}
+
+/* — Tipografia — */
+[data-booking-theme="aurora"] .booking-navbar__store-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 1.3rem !important;
+    letter-spacing: 0.015em;
+    color: var(--booking-text);
+}
+
+[data-booking-theme="aurora"] .booking-elegant-flow-header__title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--booking-text);
+}
+
+[data-booking-theme="aurora"] #bookingModal .modal-title,
+[data-booking-theme="aurora"] .booking-elegant-account-header__title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+}
+
+[data-booking-theme="aurora"] .booking-marcacao-card__date {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+}
+
+/* — Navbar — */
+[data-booking-theme="aurora"] .booking-navbar__back,
+[data-booking-theme="aurora"] .booking-navbar__auth-open,
+[data-booking-theme="aurora"] .booking-navbar-account__toggle,
+[data-booking-theme="aurora"] .booking-navbar-new-booking {
+    border-color: var(--booking-border);
+    background: transparent;
+    color: var(--booking-accent);
+}
+
+/* — Passos: badge com fundo degradê rosé→fúcsia — */
+[data-booking-theme="aurora"] .booking-elegant-steps__link--current .booking-elegant-steps__badge,
+[data-booking-theme="aurora"] .booking-elegant-steps__link--past .booking-elegant-steps__badge {
+    background: linear-gradient(135deg, var(--booking-accent) 0%, var(--booking-accent-soft) 100%);
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(181, 23, 78, 0.3);
+}
+
+/* — Categoria chips — */
+[data-booking-theme="aurora"] .booking-category-chip {
+    border-radius: 999px;
+    border-color: var(--booking-border);
+    color: var(--booking-accent);
+    font-weight: 500;
+}
+
+[data-booking-theme="aurora"] .booking-category-chip:hover,
+[data-booking-theme="aurora"] .booking-category-chip:focus-visible {
+    background: var(--booking-surface-raised);
+    border-color: var(--booking-accent-soft);
+}
+
+/* — Heading de categoria com underline decorativo — */
+[data-booking-theme="aurora"] .booking-category-heading {
+    color: var(--booking-accent) !important;
+    letter-spacing: 0.12em;
+}
+
+/* — Linhas de serviço — */
+[data-booking-theme="aurora"] .booking-row:hover {
+    background: rgba(181, 23, 78, 0.04);
+}
+
+[data-booking-theme="aurora"] .booking-row__chevron {
+    color: var(--booking-accent-soft);
+}
+
+/* — Botões primários — */
+[data-booking-theme="aurora"] .booking-summary-next-btn,
+[data-booking-theme="aurora"] #bookingModal #booking-modal-confirm,
+[data-booking-theme="aurora"] #bookingModal #booking-modal-apply-edit,
+[data-booking-theme="aurora"] .btn-dark {
+    background: linear-gradient(135deg, var(--booking-accent) 0%, var(--booking-accent-soft) 100%);
+    border-color: transparent;
+    color: #fff;
+    letter-spacing: 0.05em;
+    box-shadow: 0 4px 14px rgba(181, 23, 78, 0.3);
+}
+
+[data-booking-theme="aurora"] .booking-summary-next-btn:hover,
+[data-booking-theme="aurora"] #bookingModal #booking-modal-confirm:hover {
+    box-shadow: 0 6px 18px rgba(181, 23, 78, 0.4);
+}
+
+[data-booking-theme="aurora"] .booking-summary-next-btn:disabled,
+[data-booking-theme="aurora"] .booking-summary-next-btn.disabled {
+    background: #f0d0da;
+    border-color: #f0d0da;
+    color: #c89aaa;
+    box-shadow: none;
+    opacity: 1;
+}
+
+[data-booking-theme="aurora"] .btn-dark {
+    --bs-btn-bg: var(--booking-accent);
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-bg: #9b1342;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-bg: #850f38;
+    --bs-btn-active-border-color: transparent;
+    box-shadow: 0 4px 14px rgba(181, 23, 78, 0.3);
+}
+
+[data-booking-theme="aurora"] .btn-outline-dark {
+    --bs-btn-color: var(--booking-accent);
+    --bs-btn-border-color: var(--booking-border);
+    --bs-btn-hover-bg: var(--booking-surface-raised);
+    --bs-btn-hover-border-color: var(--booking-accent-soft);
+    --bs-btn-hover-color: var(--booking-accent);
+}
+
+/* — Inputs — */
+[data-booking-theme="aurora"] .form-check-input:checked {
+    background-color: var(--booking-accent);
+    border-color: var(--booking-accent);
+}
+
+/* — Modal — */
+[data-booking-theme="aurora"] #bookingModal .modal-content {
+    background: var(--booking-surface);
+    color: var(--booking-text);
+    border: 1px solid var(--booking-border) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 24px 60px rgba(181, 23, 78, 0.12) !important;
+}
+
+[data-booking-theme="aurora"] .booking-modal-options {
+    background: var(--booking-surface-raised);
+    border-color: var(--booking-border);
+}
+
+[data-booking-theme="aurora"] .booking-modal-option:has(input:checked) {
+    background: rgba(181, 23, 78, 0.06);
+    border-left-color: var(--booking-accent);
+}
+
+/* — Selecção — */
+[data-booking-theme="aurora"] .booking-technician-row.is-selected,
+[data-booking-theme="aurora"] .booking-datetime-slot.is-selected,
+[data-booking-theme="aurora"] .booking-datetime-slot:has(input:checked) {
+    background: rgba(181, 23, 78, 0.05);
+    border-color: var(--booking-accent) !important;
+    box-shadow: 0 0 0 1px var(--booking-accent);
+}
+
+/* — Conta — */
+[data-booking-theme="aurora"] .booking-account-nav__link:hover {
+    background: rgba(181, 23, 78, 0.04);
+    color: var(--booking-accent);
+}
+
+[data-booking-theme="aurora"] .booking-account-nav__link.is-active {
+    background: rgba(181, 23, 78, 0.07);
+    border-color: var(--booking-border);
+    color: var(--booking-accent);
+}
+
+/* — Badges — */
+[data-booking-theme="aurora"] .booking-marcacao-card__badge--status {
+    background: linear-gradient(135deg, var(--booking-accent) 0%, var(--booking-accent-soft) 100%) !important;
+    color: #fff !important;
+}
+
+[data-booking-theme="aurora"] .booking-marcacao-card__badge--muted {
+    background: transparent !important;
+    color: var(--booking-muted) !important;
+    border-color: var(--booking-border);
+}
+
+/* — Resumo — */
+[data-booking-theme="aurora"] .booking-summary-datetime__icon {
+    background: var(--booking-surface-raised);
+    border-color: var(--booking-border);
+    color: var(--booking-accent);
+}
+
+[data-booking-theme="aurora"] .booking-summary-tech__avatar {
+    background: var(--booking-surface-raised);
+    color: var(--booking-muted);
+}
+
+/* — Utilitários — */
+[data-booking-theme="aurora"] .text-dark { color: var(--booking-text) !important; }
+[data-booking-theme="aurora"] .text-muted { color: var(--booking-muted) !important; }
+
+[data-booking-theme="aurora"] .booking-category-section.booking-category-section--chips {
+    background: var(--booking-bg);
+}
+
+[data-booking-theme="aurora"] .alert-success,
+[data-booking-theme="aurora"] .alert-danger,
+[data-booking-theme="aurora"] .alert-info {
+    border-color: var(--booking-border);
+}

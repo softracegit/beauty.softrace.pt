@@ -1405,13 +1405,14 @@ class CalendarController extends Controller
                 && filter_var($clientEmail, FILTER_VALIDATE_EMAIL)
             ) {
                 try {
-                    Notification::locale(BookingLocale::emailLocale())
-                        ->route('mail', $this->resolveClientNotificationRecipientEmail($clientEmail))
-                        ->notify(new ClientAppointmentRescheduledNotification(
-                        (int) $freshEvent->id,
-                        $notifyClientPrevStart?->toIso8601String(),
-                        $notifyClientPrevEnd?->toIso8601String()
-                    ));
+                    Notification::route('mail', $this->resolveClientNotificationRecipientEmail($clientEmail))
+                        ->notify(
+                            (new ClientAppointmentRescheduledNotification(
+                                (int) $freshEvent->id,
+                                $notifyClientPrevStart?->toIso8601String(),
+                                $notifyClientPrevEnd?->toIso8601String()
+                            ))->locale(BookingLocale::emailLocale())
+                        );
                 } catch (\Throwable $e) {
                     \Log::warning('Falha ao enviar email de remarcação ao cliente.', [
                         'calendar_event_id' => $freshEvent->id,
@@ -1569,6 +1570,7 @@ class CalendarController extends Controller
                 'cancellation_reason' => $reason !== '' ? $reason : null,
                 'cancellation_type' => $validated['cancellation_type'] ?? CalendarEvent::STATUS_CANCELADO,
                 'notify_client' => $notifyClient,
+                'from_public_booking' => false,
                 'created_by_type' => ClientWalletTransaction::CREATED_BY_STAFF,
                 'created_by_user_id' => $request->user()?->id,
             ]);
@@ -1625,9 +1627,11 @@ class CalendarController extends Controller
                 && filter_var($email, FILTER_VALIDATE_EMAIL)
             ) {
                 try {
-                    Notification::locale(BookingLocale::emailLocale())
-                        ->route('mail', $this->resolveClientNotificationRecipientEmail($email))
-                        ->notify(new ClientAppointmentCancelledNotification($calendarEvent->id));
+                    Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
+                        ->notify(
+                            (new ClientAppointmentCancelledNotification($calendarEvent->id, fromPublicBooking: false))
+                                ->locale(BookingLocale::emailLocale())
+                        );
                 } catch (\Throwable $e) {
                     \Log::warning('Falha ao enviar email de cancelamento ao cliente.', [
                         'calendar_event_id' => $calendarEvent->id,
@@ -2087,7 +2091,10 @@ class CalendarController extends Controller
      */
     private function notifyMarcacaoRecipient(int $userId, CalendarEvent $event, string $type, ?string $previousStatus = null): void
     {
-        if ($event->event_type !== CalendarEvent::TYPE_MARCACAO || ! $event->shouldSendBookingNotifications()) {
+        if (
+            $event->event_type !== CalendarEvent::TYPE_MARCACAO
+            || ! $this->cancellationService->shouldSendCancellationNotifications($event)
+        ) {
             return;
         }
         $user = User::find($userId);
@@ -2128,9 +2135,11 @@ class CalendarController extends Controller
         }
 
         try {
-            Notification::locale(BookingLocale::emailLocale())
-                ->route('mail', $this->resolveClientNotificationRecipientEmail($email))
-                ->notify(new ClientAppointmentCreatedNotification((int) $event->id));
+            Notification::route('mail', $this->resolveClientNotificationRecipientEmail($email))
+                ->notify(
+                    (new ClientAppointmentCreatedNotification((int) $event->id))
+                        ->locale(BookingLocale::emailLocale())
+                );
         } catch (\Throwable $e) {
             \Log::warning('Falha ao enviar email de marcacao criada ao cliente.', [
                 'calendar_event_id' => $event->id,

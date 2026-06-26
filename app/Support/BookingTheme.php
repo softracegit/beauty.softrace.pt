@@ -15,12 +15,29 @@ final class BookingTheme
 
     public const NOIR = 'noir';
 
+    public const AURORA = 'aurora';
+
+    public const BREEZE = 'breeze';
+
+    public const SAGE = 'sage';
+
+    public const HORIZON = 'horizon';
+
     public const KEY = CrmSetting::KEY_BOOKING_THEME;
 
     /** Temas com layout full-width, resumo fixo à direita e passos no conteúdo. */
     public const REFINED_LAYOUT_THEMES = [
         self::ELEGANT,
         self::NOIR,
+        self::AURORA,
+        self::BREEZE,
+        self::SAGE,
+        self::HORIZON,
+    ];
+
+    /** Temas que usam progress bar em vez de badges numerados nos steps. */
+    public const PROGRESS_STEPS_THEMES = [
+        self::HORIZON,
     ];
 
     /**
@@ -112,12 +129,23 @@ final class BookingTheme
         return self::resolved($storeId)['fonts'];
     }
 
+    public static function usesProgressSteps(?string $themeId = null, ?int $storeId = null): bool
+    {
+        $id = self::resolve($themeId, $storeId);
+
+        return in_array($id, self::PROGRESS_STEPS_THEMES, true);
+    }
+
     public static function themeColor(?int $storeId = null): string
     {
         return match (self::resolve(null, $storeId)) {
             self::ELEGANT => '#faf8f5',
-            self::NOIR => '#13111a',
-            default => '#ffffff',
+            self::NOIR    => '#13111a',
+            self::AURORA   => '#fef6f8',
+            self::BREEZE   => '#fdf8f2',
+            self::SAGE     => '#f2f5ef',
+            self::HORIZON  => '#0d1525',
+            default        => '#ffffff',
         };
     }
 }

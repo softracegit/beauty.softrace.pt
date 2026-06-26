@@ -493,6 +493,7 @@ class BookingController extends Controller
             'marcacoes' => $marcacoes,
             'enableClientCancel' => true,
             'bookingStoreSlug' => $this->bookingStoreSlug(),
+            'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired($this->bookingStoreId()),
         ]);
     }
 

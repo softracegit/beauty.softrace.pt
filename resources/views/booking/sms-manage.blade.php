@@ -65,17 +65,23 @@
                             ]),
                         ])
 
-                        @if (! ($canCancelOnline ?? true) && isset($cancellationPolicy) && $cancellationPolicy->hasPaidDeposit)
+                        @if (! ($canCancelOnline ?? true) && isset($cancellationPolicy))
                             <div class="alert alert-warning small py-2 px-3 mt-3 mb-0">
-                                @if ($cancellationPolicy->eligibleDepositCreditCents > 0)
-                                    {{ __('booking.sms_manage.cannot_cancel_warning', [
-                                        'amount' => number_format($cancellationPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ').' €',
-                                        'deadline' => $cancellationPolicy->deadlineFormatted(),
+                                @if ($cancellationPolicy->isPastOnlineCancellationCutoff())
+                                    {{ __('booking.sms_manage.cannot_cancel_too_late_contact_store', [
+                                        'minutes' => (int) config('booking.min_lead_minutes', 30),
                                     ]) }}
-                                @else
-                                    {{ __('booking.sms_manage.cannot_cancel_warning_no_amount', [
-                                        'deadline' => $cancellationPolicy->deadlineFormatted(),
-                                    ]) }}
+                                @elseif ($cancellationPolicy->hasPaidDeposit)
+                                    @if ($cancellationPolicy->eligibleDepositCreditCents > 0)
+                                        {{ __('booking.sms_manage.cannot_cancel_warning', [
+                                            'amount' => number_format($cancellationPolicy->eligibleDepositCreditCents / 100, 2, ',', ' ').' €',
+                                            'deadline' => $cancellationPolicy->deadlineFormatted(),
+                                        ]) }}
+                                    @else
+                                        {{ __('booking.sms_manage.cannot_cancel_warning_no_amount', [
+                                            'deadline' => $cancellationPolicy->deadlineFormatted(),
+                                        ]) }}
+                                    @endif
                                 @endif
                             </div>
                         @endif

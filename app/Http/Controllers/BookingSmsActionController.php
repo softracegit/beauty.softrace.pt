@@ -48,7 +48,7 @@ class BookingSmsActionController extends Controller
             'bookingStoreSlug' => (string) ($store?->slug ?? \App\Models\Store::defaultPublicBookingStoreSlug()),
             'bookingCancellationPolicyNotice' => CrmSetting::bookingCancellationPolicyNoticeText($storeId ?: null),
             'cancellationPolicy' => $policy,
-            'canCancelOnline' => $policy->isWithinNoticePeriod || ! $policy->hasPaidDeposit,
+            'canCancelOnline' => $policy->canCancelOnline(),
         ]);
     }
 
@@ -103,7 +103,10 @@ class BookingSmsActionController extends Controller
                 $cancelResult = $this->cancellationService->cancel($calendarEvent, [
                     'cancellation_reason' => $finalReason,
                     'block_if_outside_notice_period' => true,
-                    'notify_client' => false,
+                    'notify_client' => true,
+                    'notify_team' => true,
+                    'previous_status' => (string) ($calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO),
+                    'from_public_booking' => $calendarEvent->onlineBooking !== null,
                     'created_by_type' => ClientWalletTransaction::CREATED_BY_CLIENT,
                 ]);
                 $calendarEvent = $cancelResult->event;

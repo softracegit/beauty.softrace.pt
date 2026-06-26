@@ -14,9 +14,17 @@ class ClientAppointmentCreatedNotification extends Notification implements Shoul
 {
     use Queueable;
 
+    public bool $ccReceptionStaff;
+
     public function __construct(
         public int $calendarEventId,
-    ) {}
+        public bool $fromPublicBooking = false,
+    ) {
+        $this->ccReceptionStaff = ReceptionNotificationMail::shouldCcReceptionForActor(
+            $fromPublicBooking,
+            auth()->id(),
+        );
+    }
 
     /**
      * @return array<int, string>
@@ -61,11 +69,13 @@ class ClientAppointmentCreatedNotification extends Notification implements Shoul
             $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
         }
 
-        ReceptionNotificationMail::applyReceptionCc(
-            $mail,
-            $event,
-            array_filter([(string) ($event->client?->email ?? '')]),
-        );
+        if ($this->ccReceptionStaff) {
+            ReceptionNotificationMail::applyReceptionCc(
+                $mail,
+                $event,
+                array_filter([(string) ($event->client?->email ?? '')]),
+            );
+        }
 
         return $mail->salutation(config('app.name'));
     }

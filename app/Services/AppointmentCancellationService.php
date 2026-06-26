@@ -7,8 +7,11 @@ use App\Models\Booking;
 use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\ClientWalletTransaction;
+use App\Models\User;
+use App\Notifications\AppointmentNotification;
 use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Support\BookingLocale;
+use App\Support\StoreBusinessTime;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -18,6 +21,7 @@ class AppointmentCancellationService
     public function __construct(
         private CancellationPolicyService $policyService,
         private ClientWalletService $walletService,
+        private ReceptionBookingNotifier $receptionBookingNotifier,
     ) {}
 
     /**
@@ -27,6 +31,9 @@ class AppointmentCancellationService
      *     cancellation_reason?: string|null,
      *     cancellation_type?: string|null,
      *     notify_client?: bool,
+     *     notify_team?: bool,
+     *     previous_status?: string|null,
+     *     from_public_booking?: bool,
      *     block_if_outside_notice_period?: bool,
      *     created_by_type?: string,
      *     created_by_user_id?: int|null,
@@ -64,12 +71,21 @@ class AppointmentCancellationService
 
         $policy = $this->policyService->resolveForEvent($event);
 
-        $blockOutside = (bool) ($options['block_if_outside_notice_period'] ?? false);
-        if ($blockOutside && ! $policy->isWithinNoticePeriod) {
-            throw new AppointmentCancellationException(
-                'Já não é possível cancelar sem perder o pré-pagamento online.',
-                AppointmentCancellationException::OUTSIDE_NOTICE_PERIOD,
-            );
+        $blockClientRules = (bool) ($options['block_if_outside_notice_period'] ?? false);
+        if ($blockClientRules) {
+            if ($policy->isPastOnlineCancellationCutoff()) {
+                throw new AppointmentCancellationException(
+                    (string) __('booking.validation.cancel_too_late_contact_store'),
+                    AppointmentCancellationException::PAST_ONLINE_CUTOFF,
+                );
+            }
+
+            if (! $policy->isWithinNoticePeriod && $policy->hasPaidDeposit) {
+                throw new AppointmentCancellationException(
+                    'Já não é possível cancelar sem perder o pré-pagamento online.',
+                    AppointmentCancellationException::OUTSIDE_NOTICE_PERIOD,
+                );
+            }
         }
 
         $reason = trim((string) ($options['cancellation_reason'] ?? ''));
@@ -158,8 +174,16 @@ class AppointmentCancellationService
                 'wallet_credit_amount_cents' => $walletCreditCents > 0 ? $walletCreditCents : null,
             ])->save();
 
-            if ((bool) ($options['notify_client'] ?? false)) {
-                $this->notifyClient($locked);
+            $previousStatus = (string) ($options['previous_status'] ?? $event->status ?? CalendarEvent::STATUS_AGENDADO);
+            $fromPublicBooking = (bool) ($options['from_public_booking'] ?? ($locked->onlineBooking !== null));
+
+            if ($this->shouldSendCancellationNotifications($locked)) {
+                if ((bool) ($options['notify_client'] ?? false)) {
+                    $this->notifyClient($locked, $fromPublicBooking);
+                }
+                if ((bool) ($options['notify_team'] ?? false)) {
+                    $this->notifyTeamOnCancellation($locked, $previousStatus, $fromPublicBooking);
+                }
             }
 
             return new AppointmentCancellationResult(
@@ -170,6 +194,27 @@ class AppointmentCancellationService
                 walletTransaction: $walletTransaction,
             );
         });
+    }
+
+    public function shouldSendCancellationNotifications(CalendarEvent $event): bool
+    {
+        if (($event->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+            return false;
+        }
+
+        if ($event->start_at === null) {
+            return true;
+        }
+
+        $storeId = (int) ($event->store_id ?? 0);
+        if ($storeId <= 0) {
+            return ! $event->start_at->isPast();
+        }
+
+        $tz = StoreBusinessTime::timezoneForStore($storeId);
+        $startLocal = $event->start_at->copy()->timezone($tz);
+
+        return $startLocal->gt(StoreBusinessTime::nowForStore($storeId));
     }
 
     private function loadCancellationRelations(CalendarEvent $event): CalendarEvent
@@ -207,9 +252,9 @@ class AppointmentCancellationService
             : 'Crédito por cancelamento da marcação';
     }
 
-    private function notifyClient(CalendarEvent $event): void
+    private function notifyClient(CalendarEvent $event, bool $fromPublicBooking = false): void
     {
-        if (! $event->shouldSendBookingNotifications()) {
+        if (! $this->shouldSendCancellationNotifications($event)) {
             return;
         }
 
@@ -226,9 +271,11 @@ class AppointmentCancellationService
         }
 
         try {
-            Notification::locale(BookingLocale::emailLocale())
-                ->route('mail', $email)
-                ->notify(new ClientAppointmentCancelledNotification($event->id));
+            Notification::route('mail', $email)
+                ->notify(
+                    (new ClientAppointmentCancelledNotification($event->id, $fromPublicBooking))
+                        ->locale(BookingLocale::emailLocale())
+                );
         } catch (\Throwable $e) {
             Log::warning('Falha ao enviar email de cancelamento ao cliente.', [
                 'calendar_event_id' => $event->id,
@@ -236,5 +283,42 @@ class AppointmentCancellationService
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function notifyTeamOnCancellation(
+        CalendarEvent $event,
+        string $previousStatus,
+        bool $fromPublicBooking,
+    ): void {
+        if (! $this->shouldSendCancellationNotifications($event)) {
+            return;
+        }
+
+        $technicianUserId = (int) ($event->user_id ?? 0);
+        if ($technicianUserId > 0) {
+            $technician = User::query()->find($technicianUserId);
+            if ($technician instanceof User) {
+                try {
+                    $technician->notify(new AppointmentNotification(
+                        (int) $event->id,
+                        'status_changed',
+                        $previousStatus !== '' ? $previousStatus : null,
+                        $fromPublicBooking,
+                    ));
+                } catch (\Throwable $e) {
+                    Log::warning('Falha ao notificar técnica sobre cancelamento.', [
+                        'calendar_event_id' => $event->id,
+                        'recipient_user_id' => $technician->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        $this->receptionBookingNotifier->notifyCancellation(
+            $event,
+            $previousStatus !== '' ? $previousStatus : null,
+            $fromPublicBooking,
+        );
     }
 }

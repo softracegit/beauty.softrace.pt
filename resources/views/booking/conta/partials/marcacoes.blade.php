@@ -1,5 +1,6 @@
 @php
     use App\Models\CalendarEvent;
+    use App\Models\CrmSetting;
     use App\Models\Sale;
     use App\Services\CancellationPolicyService;
     use App\Support\ApplicableFees;
@@ -144,8 +145,7 @@
                             $cancelPolicy = null;
                             if ($enableClientCancel && $policyService && $start && ! $isLocked && ! $isDone) {
                                 $cancelPolicy = $policyService->resolveForEvent($ev);
-                                $canClientCancel = $start->gt($nowTz)
-                                    && ($cancelPolicy->isWithinNoticePeriod || ! $cancelPolicy->hasPaidDeposit);
+                                $canClientCancel = $cancelPolicy->canCancelOnline();
                             }
                         @endphp
 
@@ -363,6 +363,12 @@
                                             {{ __('booking.account.cancel_appointment') }}
                                         </button>
                                     </div>
+                                @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && ! $isDone && $cancelPolicy && $cancelPolicy->isPastOnlineCancellationCutoff())
+                                    <div class="alert alert-warning small py-2 px-3 mb-0 mt-2">
+                                        {{ __('booking.account.cannot_cancel_too_late_contact_store', [
+                                            'minutes' => (int) config('booking.min_lead_minutes', 30),
+                                        ]) }}
+                                    </div>
                                 @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && ! $isDone && $cancelPolicy && ! $cancelPolicy->isWithinNoticePeriod && $cancelPolicy->hasPaidDeposit)
                                     <div class="alert alert-warning small py-2 px-3 mb-0 mt-2">
                                         @if ($cancelPolicy->eligibleDepositCreditCents > 0)
@@ -381,25 +387,25 @@
                                 @if ($isLocked)
                                     <div class="booking-marcacao-card__alert small">
                                         <div class="fw-semibold text-dark mb-1">{{ __('booking.account.cancellation_section_title') }}</div>
-                                        @if ($ev->cancellation_type)
-                                            <div class="text-muted">{{ __('booking.account.cancellation_type_label') }}
-                                                {{ $ev->cancellation_type === CalendarEvent::STATUS_FALTOU
-                                                    ? __('booking.account.cancellation_type_no_show')
-                                                    : ($ev->cancellation_type === CalendarEvent::STATUS_ANULADO ? __('booking.account.cancellation_type_voided') : __('booking.account.cancellation_type_cancelled')) }}
-                                            </div>
-                                        @endif
                                         @if ($ev->cancellation_reason)
                                             <div class="text-break mt-1">{{ $ev->cancellation_reason }}</div>
                                         @endif
-                                        <div class="text-muted mt-2 small">
-                                            @if ($ev->avisou_dentro_prazo !== null)
-                                                {{ __('booking.account.notice_in_time') }} {{ $ev->avisou_dentro_prazo ? __('booking.account.yes') : __('booking.account.no') }}
-                                            @endif
-                                            @if ($ev->refund_reserva !== null)
-                                                @if ($ev->avisou_dentro_prazo !== null) · @endif
-                                                {{ __('booking.account.deposit_refund') }} {{ $ev->refund_reserva ? __('booking.account.yes') : __('booking.account.no') }}
-                                            @endif
-                                        </div>
+                                        @php
+                                            $showCancellationPaymentMeta = ($onlineBookingPaymentRequired ?? null) !== null
+                                                ? (bool) $onlineBookingPaymentRequired
+                                                : CrmSetting::onlineBookingPaymentRequired((int) ($ev->store_id ?? 0));
+                                        @endphp
+                                        @if ($showCancellationPaymentMeta && ($ev->avisou_dentro_prazo !== null || $ev->refund_reserva !== null))
+                                            <div class="text-muted mt-2 small">
+                                                @if ($ev->avisou_dentro_prazo !== null)
+                                                    {{ __('booking.account.notice_in_time') }} {{ $ev->avisou_dentro_prazo ? __('booking.account.yes') : __('booking.account.no') }}
+                                                @endif
+                                                @if ($ev->refund_reserva !== null)
+                                                    @if ($ev->avisou_dentro_prazo !== null) · @endif
+                                                    {{ __('booking.account.deposit_refund') }} {{ $ev->refund_reserva ? __('booking.account.yes') : __('booking.account.no') }}
+                                                @endif
+                                            </div>
+                                        @endif
                                     </div>
                                 @endif
                             </div>

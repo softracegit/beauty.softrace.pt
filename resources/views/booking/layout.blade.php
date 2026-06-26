@@ -18,6 +18,7 @@
         $bookingThemeMeta = $bookingThemeMeta ?? \App\Support\BookingTheme::resolved();
         $bookingThemeFonts = $bookingThemeMeta['fonts'] ?? null;
         $bookingThemeCssFiles = \App\Support\BookingTheme::cssAssetPaths();
+        $bookingLayoutIsRefined = \App\Support\BookingTheme::usesRefinedLayout($bookingThemeId);
     @endphp
     <meta name="theme-color" content="{{ \App\Support\BookingTheme::themeColor() }}">
     <title>@yield('title', __('booking.layout.default_title')) — {{ trim((string) ($businessName ?? config('app.name'))) }}</title>
@@ -42,7 +43,7 @@
 @php($bookingPresetAgent = $bookingPresetAgent ?? null)
 @php($bookingSkipStaffStep = (bool) ($bookingSkipStaffStep ?? false))
 <body
-    class="booking-body @yield('body_class'){{ $bookingSkipStaffStep ? ' booking-flow--preset-agent' : '' }}"
+    class="booking-body{{ $bookingLayoutIsRefined ? ' booking-theme--refined' : '' }} @yield('body_class'){{ $bookingSkipStaffStep ? ' booking-flow--preset-agent' : '' }}"
     data-booking-theme="{{ $bookingThemeId }}"
     data-booking-store-slug="{{ $bookingStoreSlug }}"
     data-booking-index-url="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"

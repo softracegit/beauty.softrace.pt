@@ -1,0 +1,223 @@
+/*
+ * Tema Breeze — âmbar dourado e terracota quente.
+ * Atmosfera: mediterrânico, artesanal, acolhedor.
+ * Tipografia: Nunito (rounded, amigável) nos títulos.
+ */
+[data-booking-theme="breeze"] {
+    --booking-bg: #fdf8f2;
+    --booking-text: #271a08;
+    --booking-muted: #8a6c46;
+    --booking-border: #e8d5b8;
+    --booking-accent: #c2650a;
+    --booking-accent-soft: #e08840;
+    --booking-surface: #ffffff;
+    --booking-surface-raised: #fdf0e0;
+    --booking-elegant-summary-box-bg: #f8e8cc;
+    --booking-radius: 0.5rem;
+}
+
+[data-booking-theme="breeze"].booking-body,
+[data-booking-theme="breeze"] .booking-body {
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    background: var(--booking-bg);
+    color: var(--booking-text);
+}
+
+/* — Tipografia — */
+[data-booking-theme="breeze"] .booking-navbar__store-title {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-style: normal;
+    font-weight: 800;
+    font-size: 1.2rem !important;
+    letter-spacing: -0.01em;
+    color: var(--booking-text);
+}
+
+[data-booking-theme="breeze"] .booking-elegant-flow-header__title {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--booking-text);
+}
+
+[data-booking-theme="breeze"] #bookingModal .modal-title,
+[data-booking-theme="breeze"] .booking-elegant-account-header__title,
+[data-booking-theme="breeze"] .booking-marcacao-card__date {
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* — Navbar — */
+[data-booking-theme="breeze"] .booking-navbar__back,
+[data-booking-theme="breeze"] .booking-navbar__auth-open,
+[data-booking-theme="breeze"] .booking-navbar-account__toggle,
+[data-booking-theme="breeze"] .booking-navbar-new-booking {
+    border-color: var(--booking-border);
+    background: var(--booking-surface-raised);
+    color: var(--booking-text);
+}
+
+/* — Passos: badge quadrado arredondado com acento âmbar — */
+[data-booking-theme="breeze"] .booking-elegant-steps__badge {
+    border-radius: 0.4rem !important;
+}
+
+[data-booking-theme="breeze"] .booking-elegant-steps__link--current .booking-elegant-steps__badge,
+[data-booking-theme="breeze"] .booking-elegant-steps__link--past .booking-elegant-steps__badge {
+    background: linear-gradient(135deg, var(--booking-accent) 0%, var(--booking-accent-soft) 100%);
+    border-color: transparent;
+    color: #fff;
+}
+
+/* — Categoria chips — */
+[data-booking-theme="breeze"] .booking-category-chip {
+    border-radius: 0.45rem;
+    border-color: var(--booking-border);
+    color: var(--booking-text);
+    background: var(--booking-surface-raised);
+    font-weight: 700;
+    font-family: 'Nunito', system-ui, sans-serif;
+}
+
+[data-booking-theme="breeze"] .booking-category-chip:hover,
+[data-booking-theme="breeze"] .booking-category-chip:focus-visible {
+    background: #f8e4c4;
+    border-color: var(--booking-accent-soft);
+}
+
+/* — Heading de categoria — */
+[data-booking-theme="breeze"] .booking-category-heading {
+    color: var(--booking-accent) !important;
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-weight: 800;
+}
+
+/* — Linhas de serviço — */
+[data-booking-theme="breeze"] .booking-row:hover {
+    background: rgba(194, 101, 10, 0.04);
+}
+
+[data-booking-theme="breeze"] .booking-row__chevron {
+    color: var(--booking-accent-soft);
+}
+
+/* — Botões primários — */
+[data-booking-theme="breeze"] .booking-summary-next-btn,
+[data-booking-theme="breeze"] #bookingModal #booking-modal-confirm,
+[data-booking-theme="breeze"] #bookingModal #booking-modal-apply-edit,
+[data-booking-theme="breeze"] .btn-dark {
+    background: linear-gradient(135deg, var(--booking-accent) 0%, var(--booking-accent-soft) 100%);
+    border-color: transparent;
+    color: #fff;
+    font-family: 'Nunito', system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border-radius: 0.5rem;
+}
+
+[data-booking-theme="breeze"] .booking-summary-next-btn:disabled,
+[data-booking-theme="breeze"] .booking-summary-next-btn.disabled {
+    background: #e8d0b0;
+    border-color: #e8d0b0;
+    color: #b8926a;
+    opacity: 1;
+}
+
+[data-booking-theme="breeze"] .btn-dark {
+    --bs-btn-bg: var(--booking-accent);
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-bg: #a85508;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-bg: #8e4706;
+    --bs-btn-active-border-color: transparent;
+}
+
+[data-booking-theme="breeze"] .btn-outline-dark {
+    --bs-btn-color: var(--booking-text);
+    --bs-btn-border-color: var(--booking-border);
+    --bs-btn-hover-bg: var(--booking-surface-raised);
+    --bs-btn-hover-border-color: var(--booking-accent-soft);
+    --bs-btn-hover-color: var(--booking-accent);
+}
+
+/* — Inputs — */
+[data-booking-theme="breeze"] .form-check-input:checked {
+    background-color: var(--booking-accent);
+    border-color: var(--booking-accent);
+}
+
+/* — Modal — */
+[data-booking-theme="breeze"] #bookingModal .modal-content {
+    background: var(--booking-surface);
+    color: var(--booking-text);
+    border: 1px solid var(--booking-border) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 20px 50px rgba(194, 101, 10, 0.1) !important;
+}
+
+[data-booking-theme="breeze"] .booking-modal-options {
+    background: var(--booking-surface-raised);
+    border-color: var(--booking-border);
+}
+
+[data-booking-theme="breeze"] .booking-modal-option:has(input:checked) {
+    background: rgba(194, 101, 10, 0.07);
+    border-left-color: var(--booking-accent);
+}
+
+/* — Selecção — */
+[data-booking-theme="breeze"] .booking-technician-row.is-selected,
+[data-booking-theme="breeze"] .booking-datetime-slot.is-selected,
+[data-booking-theme="breeze"] .booking-datetime-slot:has(input:checked) {
+    background: rgba(194, 101, 10, 0.06);
+    border-color: var(--booking-accent) !important;
+}
+
+/* — Conta — */
+[data-booking-theme="breeze"] .booking-account-nav__link:hover {
+    background: rgba(194, 101, 10, 0.05);
+}
+
+[data-booking-theme="breeze"] .booking-account-nav__link.is-active {
+    background: rgba(194, 101, 10, 0.08);
+    border-color: var(--booking-border);
+}
+
+/* — Badges — */
+[data-booking-theme="breeze"] .booking-marcacao-card__badge--status {
+    background: linear-gradient(135deg, var(--booking-accent) 0%, var(--booking-accent-soft) 100%) !important;
+    color: #fff !important;
+}
+
+[data-booking-theme="breeze"] .booking-marcacao-card__badge--muted {
+    background: transparent !important;
+    color: var(--booking-muted) !important;
+    border-color: var(--booking-border);
+}
+
+/* — Resumo — */
+[data-booking-theme="breeze"] .booking-summary-datetime__icon {
+    background: var(--booking-surface-raised);
+    border-color: var(--booking-border);
+    color: var(--booking-accent);
+}
+
+[data-booking-theme="breeze"] .booking-summary-tech__avatar {
+    background: var(--booking-surface-raised);
+    color: var(--booking-muted);
+}
+
+/* — Utilitários — */
+[data-booking-theme="breeze"] .text-dark { color: var(--booking-text) !important; }
+[data-booking-theme="breeze"] .text-muted { color: var(--booking-muted) !important; }
+
+[data-booking-theme="breeze"] .booking-category-section.booking-category-section--chips {
+    background: var(--booking-bg);
+}
+
+[data-booking-theme="breeze"] .alert-success,
+[data-booking-theme="breeze"] .alert-danger,
+[data-booking-theme="breeze"] .alert-info {
+    border-color: var(--booking-border);
+}

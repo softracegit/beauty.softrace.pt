@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Cancellation;
 
+use App\Exceptions\AppointmentCancellationException;
 use App\Models\Booking;
 use App\Models\CalendarEvent;
 use App\Models\Client;
@@ -9,11 +10,16 @@ use App\Models\ClientWalletTransaction;
 use App\Models\CrmSetting;
 use App\Models\Organization;
 use App\Models\Store;
+use App\Models\User;
+use App\Notifications\AppointmentNotification;
+use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Services\AppointmentCancellationService;
 use App\Services\CancellationPolicyService;
 use App\Services\ClientWalletService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class AppointmentCancellationServiceTest extends TestCase
@@ -118,6 +124,68 @@ class AppointmentCancellationServiceTest extends TestCase
         $this->assertSame(1, ClientWalletTransaction::query()->where('client_id', $this->client->id)->count());
     }
 
+    public function test_cancel_outside_notice_without_deposit_allowed_for_client_flow(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-15 13:00:00', 'Europe/Lisbon'));
+
+        $event = $this->createMarcacaoAtLocal('2026-06-15 15:00:00');
+
+        $result = app(AppointmentCancellationService::class)->cancel($event, [
+            'block_if_outside_notice_period' => true,
+        ]);
+
+        $event->refresh();
+
+        $this->assertSame(CalendarEvent::STATUS_CANCELADO, $event->status);
+        $this->assertFalse($result->policy->isWithinNoticePeriod);
+        $this->assertFalse($result->policy->hasPaidDeposit);
+    }
+
+    public function test_cancel_within_online_cutoff_blocked_for_client_flow(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-15 14:45:00', 'Europe/Lisbon'));
+
+        $event = $this->createMarcacaoAtLocal('2026-06-15 15:00:00');
+
+        $this->expectException(AppointmentCancellationException::class);
+        $this->expectExceptionMessage(__('booking.validation.cancel_too_late_contact_store'));
+
+        app(AppointmentCancellationService::class)->cancel($event, [
+            'block_if_outside_notice_period' => true,
+        ]);
+    }
+
+    public function test_cancel_outside_notice_with_deposit_blocked_for_client_flow(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-15 13:00:00', 'Europe/Lisbon'));
+
+        $event = $this->createMarcacaoAtLocal('2026-06-15 15:00:00');
+        $this->createPaidBooking($event, 25.0);
+
+        $this->expectException(AppointmentCancellationException::class);
+
+        app(AppointmentCancellationService::class)->cancel($event, [
+            'block_if_outside_notice_period' => true,
+        ]);
+    }
+
+    public function test_policy_can_cancel_online_respects_cutoff_and_deposit(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-15 14:00:00', 'Europe/Lisbon'));
+
+        $event = $this->createMarcacaoAtLocal('2026-06-15 15:00:00');
+        $policy = app(CancellationPolicyService::class)->resolveForEvent($event);
+
+        $this->assertTrue($policy->canCancelOnline());
+        $this->assertFalse($policy->isPastOnlineCancellationCutoff());
+
+        Carbon::setTestNow(Carbon::parse('2026-06-15 14:45:00', 'Europe/Lisbon'));
+        $policyLate = app(CancellationPolicyService::class)->resolveForEvent($event->fresh());
+
+        $this->assertFalse($policyLate->canCancelOnline());
+        $this->assertTrue($policyLate->isPastOnlineCancellationCutoff());
+    }
+
     public function test_policy_uses_store_business_timezone(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-15 11:30:00', 'Europe/Lisbon'));
@@ -130,7 +198,66 @@ class AppointmentCancellationServiceTest extends TestCase
         $this->assertSame('15/06/2026 às 12:00', $policy->deadlineFormatted());
     }
 
-    private function createMarcacaoAtLocal(string $localDateTime): CalendarEvent
+    public function test_cancel_notifies_client_team_and_reception_when_future_start(): void
+    {
+        Notification::fake();
+        Carbon::setTestNow(Carbon::parse('2026-06-15 10:00:00', 'Europe/Lisbon'));
+
+        $technician = User::query()->create([
+            'name' => 'Técnica',
+            'email' => 'tech-cancel@test.test',
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_PRESTADOR,
+        ]);
+        $reception = User::query()->create([
+            'name' => 'Receção',
+            'email' => 'rececao-cancel@test.test',
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_RECECAO,
+            'organization_id' => $this->store->organization_id,
+        ]);
+        $reception->stores()->attach($this->store->id);
+
+        $this->client->update([
+            'email' => 'cliente-cancel@test.test',
+            'notify_email_booking_updates' => true,
+        ]);
+
+        $event = $this->createMarcacaoAtLocal('2026-06-15 15:00:00', $technician->id);
+
+        app(AppointmentCancellationService::class)->cancel($event, [
+            'notify_client' => true,
+            'notify_team' => true,
+            'previous_status' => CalendarEvent::STATUS_AGENDADO,
+            'from_public_booking' => true,
+        ]);
+
+        Notification::assertSentOnDemand(ClientAppointmentCancelledNotification::class);
+        Notification::assertSentTo($technician, AppointmentNotification::class);
+        Notification::assertSentTo($reception, AppointmentNotification::class);
+    }
+
+    public function test_cancel_skips_notifications_when_start_is_in_past_in_store_timezone(): void
+    {
+        Notification::fake();
+        Carbon::setTestNow(Carbon::parse('2026-06-15 16:00:00', 'Europe/Lisbon'));
+
+        $this->client->update([
+            'email' => 'cliente-past@test.test',
+            'notify_email_booking_updates' => true,
+        ]);
+
+        $event = $this->createMarcacaoAtLocal('2026-06-15 15:00:00');
+
+        app(AppointmentCancellationService::class)->cancel($event, [
+            'notify_client' => true,
+            'notify_team' => true,
+        ]);
+
+        Notification::assertNothingSent();
+    }
+
+    private function createMarcacaoAtLocal(string $localDateTime, ?int $technicianUserId = null): CalendarEvent
     {
         $tz = 'Europe/Lisbon';
         $startLocal = Carbon::parse($localDateTime, $tz);
@@ -139,6 +266,7 @@ class AppointmentCancellationServiceTest extends TestCase
         return CalendarEvent::query()->create([
             'store_id' => $this->store->id,
             'client_id' => $this->client->id,
+            'user_id' => $technicianUserId,
             'event_type' => CalendarEvent::TYPE_MARCACAO,
             'status' => CalendarEvent::STATUS_AGENDADO,
             'title' => 'Marcação teste',

@@ -15,11 +15,19 @@ class ClientAppointmentRescheduledNotification extends Notification implements S
 {
     use Queueable;
 
+    public bool $ccReceptionStaff;
+
     public function __construct(
         public int $calendarEventId,
         public ?string $previousStartIso,
         public ?string $previousEndIso,
-    ) {}
+        public bool $fromPublicBooking = false,
+    ) {
+        $this->ccReceptionStaff = ReceptionNotificationMail::shouldCcReceptionForActor(
+            $fromPublicBooking,
+            auth()->id(),
+        );
+    }
 
     /**
      * @return array<int, string>
@@ -77,11 +85,13 @@ class ClientAppointmentRescheduledNotification extends Notification implements S
             $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
         }
 
-        ReceptionNotificationMail::applyReceptionCc(
-            $mail,
-            $event,
-            array_filter([(string) ($event->client?->email ?? '')]),
-        );
+        if ($this->ccReceptionStaff) {
+            ReceptionNotificationMail::applyReceptionCc(
+                $mail,
+                $event,
+                array_filter([(string) ($event->client?->email ?? '')]),
+            );
+        }
 
         return $mail->salutation(config('app.name'));
     }

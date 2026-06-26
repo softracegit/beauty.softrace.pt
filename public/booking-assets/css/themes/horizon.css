@@ -1,0 +1,473 @@
+/*
+ * Tema Horizon — shell navy escuro, painel de conteúdo branco, resumo invertido.
+ * Steps como progress bar horizontal com dots e checkmarks.
+ * Tipografia: Space Grotesk (geométrico, SaaS moderno).
+ * Atmosfera: produto digital, tech, clínica premium.
+ */
+
+/* ─── Variáveis de base (painel de conteúdo e corpo) ─────────────────── */
+[data-booking-theme="horizon"] {
+    --booking-bg: #0d1525;
+    --booking-text: #0d1525;
+    --booking-muted: #6b7a94;
+    --booking-border: #e2e8f0;
+    --booking-accent: #00c9a7;
+    --booking-accent-soft: #00e5bf;
+    --booking-accent-dark: #009e85;
+    --booking-surface: #ffffff;
+    --booking-surface-raised: #f8fafc;
+    --booking-elegant-summary-box-bg: #1a2540;
+    --booking-radius: 0.75rem;
+
+    /* Vars específicas para o painel de resumo (dark) */
+    --horizon-summary-bg: #0d1525;
+    --horizon-summary-text: #e2e8f0;
+    --horizon-summary-muted: #7a8fa6;
+    --horizon-summary-border: rgba(255, 255, 255, 0.08);
+    --horizon-summary-surface: rgba(255, 255, 255, 0.05);
+}
+
+/* ─── Fonte ──────────────────────────────────────────────────────────── */
+[data-booking-theme="horizon"].booking-body,
+[data-booking-theme="horizon"] .booking-body {
+    font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    background: var(--booking-bg);
+    color: var(--booking-text);
+}
+
+/* ─── Navbar: fundo escuro, texto claro ──────────────────────────────── */
+[data-booking-theme="horizon"] .booking-navbar {
+    background: #0d1525 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+    box-shadow: none !important;
+}
+
+[data-booking-theme="horizon"] .booking-navbar__store-title {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem !important;
+    letter-spacing: -0.01em;
+    color: #f0f4ff;
+}
+
+[data-booking-theme="horizon"] .booking-navbar__back,
+[data-booking-theme="horizon"] .booking-navbar__auth-open,
+[data-booking-theme="horizon"] .booking-navbar-account__toggle,
+[data-booking-theme="horizon"] .booking-navbar-new-booking {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: #c8d4e8;
+}
+
+[data-booking-theme="horizon"] .booking-navbar__back:hover,
+[data-booking-theme="horizon"] .booking-navbar__auth-open:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* ─── Painel principal: cartão branco sobre fundo escuro ─────────────── */
+[data-booking-theme="horizon"] .booking-elegant-main {
+    background: var(--booking-surface) !important;
+    border-radius: 1.25rem 0 0 1.25rem;
+}
+
+@media (max-width: 991.98px) {
+    [data-booking-theme="horizon"] .booking-elegant-main {
+        border-radius: 1rem 1rem 0 0;
+        margin: 0 !important;
+    }
+}
+
+/* ─── Painel de resumo: fundo escuro invertido ───────────────────────── */
+[data-booking-theme="horizon"] .booking-elegant-summary .booking-summary-panel,
+[data-booking-theme="horizon"] .booking-elegant-split > .booking-summary-column .booking-summary-panel {
+    background: var(--horizon-summary-bg) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.07) !important;
+}
+
+/* Sobrepõe variáveis de cor para todos os filhos do painel de resumo */
+[data-booking-theme="horizon"] .booking-elegant-summary,
+[data-booking-theme="horizon"] .booking-elegant-split > .booking-summary-column {
+    --booking-text: var(--horizon-summary-text);
+    --booking-muted: var(--horizon-summary-muted);
+    --booking-border: var(--horizon-summary-border);
+    --booking-surface: var(--horizon-summary-surface);
+    --booking-bg: var(--horizon-summary-bg);
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .booking-summary-panel__title--elegant {
+    color: var(--horizon-summary-muted) !important;
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .booking-summary-empty {
+    color: var(--horizon-summary-muted);
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .text-dark {
+    color: var(--horizon-summary-text) !important;
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .text-muted {
+    color: var(--horizon-summary-muted) !important;
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .booking-summary-store__line--name {
+    color: var(--horizon-summary-text);
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .booking-summary-store__line--status {
+    color: var(--horizon-summary-muted);
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .booking-elegant-summary-services-box {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .booking-summary-datetime__icon {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--booking-accent);
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel .booking-summary-tech__avatar {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--horizon-summary-muted);
+}
+
+[data-booking-theme="horizon"] .booking-summary-panel small,
+[data-booking-theme="horizon"] .booking-summary-panel .fw-semibold,
+[data-booking-theme="horizon"] .booking-summary-panel .fw-bold,
+[data-booking-theme="horizon"] .booking-summary-panel p,
+[data-booking-theme="horizon"] .booking-summary-panel span {
+    color: inherit;
+}
+
+/* ─── Botão Seguinte: dentro do painel escuro ────────────────────────── */
+[data-booking-theme="horizon"] .booking-summary-next-btn {
+    background: linear-gradient(135deg, var(--booking-accent) 0%, var(--booking-accent-soft) 100%);
+    border-color: transparent;
+    color: #0d1525;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    border-radius: 0.6rem;
+    box-shadow: 0 4px 20px rgba(0, 201, 167, 0.35);
+}
+
+[data-booking-theme="horizon"] .booking-summary-next-btn:hover {
+    box-shadow: 0 6px 24px rgba(0, 201, 167, 0.45);
+}
+
+[data-booking-theme="horizon"] .booking-summary-next-btn:disabled,
+[data-booking-theme="horizon"] .booking-summary-next-btn.disabled {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: transparent;
+    color: rgba(255, 255, 255, 0.3);
+    box-shadow: none;
+    opacity: 1;
+}
+
+[data-booking-theme="horizon"] .booking-summary-footer {
+    border-top-color: rgba(255, 255, 255, 0.07);
+}
+
+/* ─── Tipografia do conteúdo ─────────────────────────────────────────── */
+[data-booking-theme="horizon"] .booking-elegant-flow-header__title,
+[data-booking-theme="horizon"] #bookingModal .modal-title,
+[data-booking-theme="horizon"] .booking-elegant-account-header__title,
+[data-booking-theme="horizon"] .booking-marcacao-card__date {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--booking-text);
+}
+
+/* ─── Progress bar de steps ──────────────────────────────────────────── */
+[data-booking-theme="horizon"] .booking-horizon-flow-header {
+    margin-bottom: 2rem;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-flow-header__title {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.75rem, 2.4vw, 2.35rem);
+    letter-spacing: -0.025em;
+    color: var(--booking-text);
+    margin: 0 0 1.5rem;
+    line-height: 1.15;
+}
+
+/* Container dos steps: flex horizontal */
+[data-booking-theme="horizon"] .booking-horizon-steps {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+}
+
+/* Cada step ocupa espaço igual */
+[data-booking-theme="horizon"] .booking-horizon-steps__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__item.is-last {
+    flex: 0 0 auto;
+}
+
+/* Rail: dot + linha horizontal */
+[data-booking-theme="horizon"] .booking-horizon-steps__rail {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 0.6rem;
+}
+
+/* Dot circular */
+[data-booking-theme="horizon"] .booking-horizon-steps__dot {
+    width: 1.5rem;
+    height: 1.5rem;
+    min-width: 1.5rem;
+    border-radius: 50%;
+    border: 2px solid var(--booking-border);
+    background: var(--booking-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--booking-surface);
+    font-size: 0.7rem;
+    position: relative;
+    z-index: 1;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__item.is-past .booking-horizon-steps__dot {
+    background: var(--booking-accent);
+    border-color: var(--booking-accent);
+    color: #0d1525;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__item.is-current .booking-horizon-steps__dot {
+    background: var(--booking-surface);
+    border-color: var(--booking-accent);
+    box-shadow: 0 0 0 3px rgba(0, 201, 167, 0.2);
+}
+
+/* Ponto interno para step atual */
+[data-booking-theme="horizon"] .booking-horizon-steps__dot-inner {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--booking-accent);
+    display: block;
+}
+
+/* Linha entre dots */
+[data-booking-theme="horizon"] .booking-horizon-steps__line {
+    flex: 1;
+    height: 2px;
+    background: var(--booking-border);
+    margin: 0 0.25rem;
+    border-radius: 1px;
+    overflow: hidden;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__line-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--booking-accent);
+    border-radius: 1px;
+    transition: width 0.3s ease;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__item.is-past .booking-horizon-steps__line-fill {
+    width: 100%;
+}
+
+/* Label dos steps */
+[data-booking-theme="horizon"] .booking-horizon-steps__label-wrap {
+    padding-left: 0.1rem;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--booking-muted);
+    text-decoration: none;
+    display: block;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__label--current {
+    color: var(--booking-accent);
+    font-weight: 700;
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__label--past {
+    color: var(--booking-muted);
+}
+
+[data-booking-theme="horizon"] .booking-horizon-steps__label--past:hover {
+    color: var(--booking-text);
+    text-decoration: none;
+}
+
+/* ─── Chips de categoria ─────────────────────────────────────────────── */
+[data-booking-theme="horizon"] .booking-category-chip {
+    border-color: var(--booking-border);
+    color: var(--booking-text);
+    background: var(--booking-surface);
+    font-weight: 500;
+    border-radius: 0.5rem;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+
+[data-booking-theme="horizon"] .booking-category-chip:hover,
+[data-booking-theme="horizon"] .booking-category-chip:focus-visible {
+    border-color: var(--booking-accent);
+    color: var(--booking-accent);
+    background: rgba(0, 201, 167, 0.06);
+}
+
+[data-booking-theme="horizon"] .booking-category-section.booking-category-section--chips {
+    background: var(--booking-surface);
+}
+
+/* ─── Serviços ───────────────────────────────────────────────────────── */
+[data-booking-theme="horizon"] .booking-row:hover {
+    background: rgba(0, 201, 167, 0.04);
+}
+
+[data-booking-theme="horizon"] .booking-row__chevron {
+    color: var(--booking-accent);
+}
+
+[data-booking-theme="horizon"] .booking-category-heading {
+    color: var(--booking-accent) !important;
+    letter-spacing: 0.1em;
+}
+
+/* ─── Botões no conteúdo ─────────────────────────────────────────────── */
+[data-booking-theme="horizon"] .btn-dark,
+[data-booking-theme="horizon"] #bookingModal #booking-modal-confirm,
+[data-booking-theme="horizon"] #bookingModal #booking-modal-apply-edit {
+    background: linear-gradient(135deg, var(--booking-accent) 0%, var(--booking-accent-soft) 100%);
+    border-color: transparent;
+    color: #0d1525;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(0, 201, 167, 0.3);
+}
+
+[data-booking-theme="horizon"] .btn-dark {
+    --bs-btn-bg: var(--booking-accent);
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-bg: var(--booking-accent-dark);
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-color: #0d1525;
+    --bs-btn-hover-color: #0d1525;
+    --bs-btn-active-bg: #007a67;
+    --bs-btn-active-border-color: transparent;
+    --bs-btn-active-color: #0d1525;
+}
+
+[data-booking-theme="horizon"] .btn-outline-dark {
+    --bs-btn-color: var(--booking-text);
+    --bs-btn-border-color: var(--booking-border);
+    --bs-btn-hover-bg: rgba(0, 201, 167, 0.06);
+    --bs-btn-hover-border-color: var(--booking-accent);
+    --bs-btn-hover-color: var(--booking-accent);
+}
+
+/* ─── Inputs ─────────────────────────────────────────────────────────── */
+[data-booking-theme="horizon"] .form-check-input:checked {
+    background-color: var(--booking-accent);
+    border-color: var(--booking-accent);
+}
+
+/* ─── Modal ──────────────────────────────────────────────────────────── */
+[data-booking-theme="horizon"] #bookingModal .modal-content {
+    background: var(--booking-surface);
+    color: var(--booking-text);
+    border: 1px solid var(--booking-border) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 24px 60px rgba(13, 21, 37, 0.4) !important;
+}
+
+[data-booking-theme="horizon"] .booking-modal-options {
+    background: var(--booking-surface-raised);
+    border-color: var(--booking-border);
+}
+
+[data-booking-theme="horizon"] .booking-modal-option:has(input:checked) {
+    background: rgba(0, 201, 167, 0.07);
+    border-left-color: var(--booking-accent);
+}
+
+/* ─── Selecção de técnico / slot ─────────────────────────────────────── */
+[data-booking-theme="horizon"] .booking-technician-row.is-selected,
+[data-booking-theme="horizon"] .booking-datetime-slot.is-selected,
+[data-booking-theme="horizon"] .booking-datetime-slot:has(input:checked) {
+    background: rgba(0, 201, 167, 0.06);
+    border-color: var(--booking-accent) !important;
+    box-shadow: 0 0 0 1px var(--booking-accent);
+}
+
+/* ─── Conta ──────────────────────────────────────────────────────────── */
+[data-booking-theme="horizon"] .booking-account-nav__link:hover {
+    background: rgba(0, 201, 167, 0.06);
+    color: var(--booking-accent);
+}
+
+[data-booking-theme="horizon"] .booking-account-nav__link.is-active {
+    background: rgba(0, 201, 167, 0.08);
+    border-color: rgba(0, 201, 167, 0.25);
+    color: var(--booking-accent);
+}
+
+/* ─── Badges de marcação ─────────────────────────────────────────────── */
+[data-booking-theme="horizon"] .booking-marcacao-card__badge--status {
+    background: var(--booking-accent) !important;
+    color: #0d1525 !important;
+}
+
+[data-booking-theme="horizon"] .booking-marcacao-card__badge--muted {
+    background: transparent !important;
+    color: var(--booking-muted) !important;
+    border-color: var(--booking-border);
+}
+
+/* ─── Utilitários ────────────────────────────────────────────────────── */
+[data-booking-theme="horizon"] .text-dark { color: var(--booking-text) !important; }
+[data-booking-theme="horizon"] .text-muted { color: var(--booking-muted) !important; }
+
+[data-booking-theme="horizon"] .alert-success,
+[data-booking-theme="horizon"] .alert-danger,
+[data-booking-theme="horizon"] .alert-info {
+    border-color: var(--booking-border);
+}
+
+/* ─── Footer legal ───────────────────────────────────────────────────── */
+[data-booking-theme="horizon"] .booking-legal-footer {
+    background: #0d1525;
+    border-top-color: rgba(255, 255, 255, 0.07);
+    color: var(--horizon-summary-muted);
+}
+
+/* ─── Mobile: cartão sem cantos arredondados ─────────────────────────── */
+@media (max-width: 991.98px) {
+    [data-booking-theme="horizon"] .booking-horizon-flow-header {
+        display: none !important;
+    }
+
+    [data-booking-theme="horizon"] .booking-elegant-hide-heading {
+        display: block !important;
+        color: var(--booking-text);
+    }
+
+    [data-booking-theme="horizon"] .booking-summary-footer {
+        background: var(--horizon-summary-bg);
+        border-top-color: rgba(255, 255, 255, 0.07);
+    }
+}

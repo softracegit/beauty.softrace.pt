@@ -16,9 +16,11 @@ class AppointmentNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public bool $ccReceptionStaff;
+
     /**
      * @param  bool  $fromPublicBooking  Marcação em /booking: mailer "booking" (sem redirecionamento mail.to em local/staging).
-     * @param  bool  $forReception  Cópia interna para receção: só sininho (email via CC nos envios principais).
+     * @param  bool  $forReception  Cópia interna para receção: sininho (email via CC nos envios principais).
      */
     public function __construct(
         public int $calendarEventId,
@@ -26,15 +28,16 @@ class AppointmentNotification extends Notification implements ShouldQueue
         public ?string $previousStatus = null,
         public bool $fromPublicBooking = false,
         public bool $forReception = false,
-    ) {}
+    ) {
+        $this->ccReceptionStaff = ReceptionNotificationMail::shouldCcReceptionForActor(
+            $fromPublicBooking,
+            auth()->id(),
+        );
+    }
 
     public function via(object $notifiable): array
     {
         if ($this->forReception) {
-            return ['database'];
-        }
-
-        if ($this->type === 'status_changed') {
             return ['database'];
         }
 
@@ -53,10 +56,6 @@ class AppointmentNotification extends Notification implements ShouldQueue
     {
         if ($this->forReception) {
             return $channel === 'database';
-        }
-
-        if ($this->type === 'status_changed' && $channel === 'mail') {
-            return false;
         }
 
         if (! $notifiable instanceof User) {
@@ -103,7 +102,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
             $mail->mailer('booking');
         }
 
-        if (in_array($this->type, ['assigned', 'reassigned', 'rescheduled'], true)) {
+        if ($this->ccReceptionStaff) {
             $primaryEmail = $notifiable instanceof User ? (string) ($notifiable->email ?? '') : '';
             ReceptionNotificationMail::applyReceptionCc(
                 $mail,

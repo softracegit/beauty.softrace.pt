@@ -2102,6 +2102,11 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     align-items: start;
 }
 
+.booking-account-layout__flash {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+
 .booking-account-sidebar {
     position: sticky;
     top: 5rem;

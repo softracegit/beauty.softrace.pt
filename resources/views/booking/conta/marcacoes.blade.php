@@ -11,16 +11,7 @@
         <div class="flex-grow-1 booking-main-body">
             <div @class(['container booking-container-wide px-3 pb-4 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
                 <main @class(['pt-1 booking-account-layout', 'booking-elegant-account-layout' => ($bookingUsesRefinedLayout ?? false)])>
-                    @if ($errors->any())
-                        <div class="alert alert-danger small mb-3">
-                            {{ $errors->first() }}
-                        </div>
-                    @endif
-                    @if (session('success'))
-                        <div class="alert alert-success small mb-3">
-                            {{ session('success') }}
-                        </div>
-                    @endif
+                    @include('booking.conta.partials.flash-messages')
 
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'marcacoes'])
 

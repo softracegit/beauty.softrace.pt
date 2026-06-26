@@ -14,6 +14,8 @@ class AppointmentCancellationException extends RuntimeException
 
     public const OUTSIDE_NOTICE_PERIOD = 'outside_notice_period';
 
+    public const PAST_ONLINE_CUTOFF = 'past_online_cutoff';
+
     public function __construct(
         string $message,
         public readonly string $reasonCode,

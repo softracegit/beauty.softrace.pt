@@ -27,4 +27,39 @@ final class CancellationPolicyResult
     {
         return $this->cancellationDeadlineLocal->format($format);
     }
+
+    /**
+     * Menos de {@see config('booking.min_lead_minutes')} minutos para o início — cancelamento online bloqueado.
+     */
+    public function isPastOnlineCancellationCutoff(): bool
+    {
+        $minLeadMinutes = max(0, (int) config('booking.min_lead_minutes', 30));
+        if ($minLeadMinutes <= 0) {
+            return false;
+        }
+
+        $cutoff = $this->appointmentStartAtLocal->copy()->subMinutes($minLeadMinutes);
+
+        return $this->evaluatedAtLocal->greaterThan($cutoff);
+    }
+
+    /**
+     * O cliente pode cancelar online (conta / SMS), respeitando corte de 30 min e política de pré-pagamento.
+     */
+    public function canCancelOnline(): bool
+    {
+        if (! $this->appointmentStartAtLocal->greaterThan($this->evaluatedAtLocal)) {
+            return false;
+        }
+
+        if ($this->isPastOnlineCancellationCutoff()) {
+            return false;
+        }
+
+        if ($this->hasPaidDeposit && ! $this->isWithinNoticePeriod) {
+            return false;
+        }
+
+        return true;
+    }
 }

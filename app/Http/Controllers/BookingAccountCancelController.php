@@ -39,7 +39,10 @@ class BookingAccountCancelController extends Controller
             $result = $this->cancellationService->cancel($calendarEvent, [
                 'cancellation_reason' => $reason,
                 'block_if_outside_notice_period' => true,
-                'notify_client' => false,
+                'notify_client' => true,
+                'notify_team' => true,
+                'previous_status' => (string) ($calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO),
+                'from_public_booking' => true,
                 'created_by_type' => ClientWalletTransaction::CREATED_BY_CLIENT,
             ]);
         } catch (AppointmentCancellationException $e) {
@@ -105,6 +108,15 @@ class BookingAccountCancelController extends Controller
         if ($startLocal->lte(now($tz))) {
             abort(422, __('booking.validation.cancel_past_only_future'));
         }
+
+        $policy = $this->policyService->resolveForEvent($event);
+        if (! $policy->canCancelOnline()) {
+            if ($policy->isPastOnlineCancellationCutoff()) {
+                abort(422, __('booking.validation.cancel_too_late_contact_store'));
+            }
+
+            abort(422, __('booking.validation.cancel_not_allowed'));
+        }
     }
 
     private function successMessage(\App\Services\AppointmentCancellationResult $result): string
@@ -119,7 +131,7 @@ class BookingAccountCancelController extends Controller
             return __('booking.messages.cancel_success_credit', ['amount' => $amount]);
         }
 
-        if ($result->policy->isWithinNoticePeriod) {
+        if ($result->policy->isWithinNoticePeriod || ! $result->policy->hasPaidDeposit) {
             return __('booking.messages.cancel_success');
         }
 

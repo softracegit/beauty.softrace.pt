@@ -12,6 +12,29 @@ use Illuminate\Support\Collection;
 final class ReceptionNotificationMail
 {
     /**
+     * Recepção em CC nos emails de marcação, excepto quando a acção na agenda é da própria receção.
+     */
+    public static function shouldCcReceptionForActor(bool $fromPublicBooking = false, ?int $actorUserId = null): bool
+    {
+        if ($fromPublicBooking) {
+            return true;
+        }
+
+        if ($actorUserId === null) {
+            $actor = auth()->user();
+            $actorUserId = $actor?->id;
+        }
+
+        if ($actorUserId === null) {
+            return true;
+        }
+
+        $user = User::query()->find($actorUserId);
+
+        return ! ($user instanceof User && $user->role === User::ROLE_RECECAO);
+    }
+
+    /**
      * CC nos emails de marcação para todas as receções com acesso à loja do evento.
      *
      * @param  list<string>  $excludeEmails
@@ -31,6 +54,23 @@ final class ReceptionNotificationMail
         }
 
         return $mail;
+    }
+
+    /**
+     * @param  list<string>  $excludeEmails
+     */
+    public static function applyReceptionCcWhenAllowed(
+        MailMessage $mail,
+        CalendarEvent $event,
+        array $excludeEmails = [],
+        bool $fromPublicBooking = false,
+        ?int $actorUserId = null,
+    ): MailMessage {
+        if (! self::shouldCcReceptionForActor($fromPublicBooking, $actorUserId)) {
+            return $mail;
+        }
+
+        return self::applyReceptionCc($mail, $event, $excludeEmails);
     }
 
     /**

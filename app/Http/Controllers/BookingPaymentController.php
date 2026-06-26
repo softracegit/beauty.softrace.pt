@@ -901,9 +901,11 @@ class BookingPaymentController extends Controller
             return;
         }
         try {
-            Notification::locale(BookingLocale::emailLocale())
-                ->route('mail', $email)
-                ->notify(new ClientAppointmentCreatedNotification($eventId));
+            Notification::route('mail', $email)
+                ->notify(
+                    (new ClientAppointmentCreatedNotification($eventId, fromPublicBooking: true))
+                        ->locale(BookingLocale::emailLocale())
+                );
         } catch (\Throwable $e) {
             Log::warning('Falha ao enviar email de marcacao confirmada ao cliente.', [
                 'calendar_event_id' => $eventId,
