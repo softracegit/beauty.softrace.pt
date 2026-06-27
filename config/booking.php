@@ -109,6 +109,11 @@ return [
     /** Máximo de SMS despachados por execução do comando (o resto fica para o minuto seguinte). */
     'sms_reminder_max_per_run' => max(1, (int) env('BOOKING_SMS_REMINDER_MAX_PER_RUN', 3)),
 
+    /**
+     * Link «Confirmar marcação» no SMS de lembrete (/r/{token}): válido até start_at da marcação
+     * (instante UTC na BD). Ver SendBookingReminderSmsJob e BookingSmsActionController.
+     */
+
     /** Tentativas do job de envio antes de marcar a marcação como falhada (sem reenvio futuro). */
     'sms_reminder_max_attempts' => max(1, (int) env('BOOKING_SMS_REMINDER_MAX_ATTEMPTS', 1)),
 

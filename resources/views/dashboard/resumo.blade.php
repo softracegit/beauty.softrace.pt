@@ -370,7 +370,58 @@ document.addEventListener('DOMContentLoaded', function() {
     var mutedColor = getComputedStyle(document.documentElement).getPropertyValue('--muted-color').trim() || '#6b7280';
     var borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border-color').trim() || '#e5e7eb';
     var yearOlderColor = '#d4d4d8';
+    var yearOlderHoverColor = '#e0e0e4';
     var barChartHeight = 460;
+
+    function olderYearBarPath(ctx, seriesIndex, dataPointIndex) {
+        if (seriesIndex !== 0) {
+            return null;
+        }
+
+        return ctx.w.globals.dom.baseEl.querySelector(
+            '.apexcharts-bar-series .apexcharts-series[rel="1"] path.apexcharts-bar-area[j="' + dataPointIndex + '"]'
+        );
+    }
+
+    function applyOlderYearBarHover(ctx, seriesIndex, dataPointIndex) {
+        var path = olderYearBarPath(ctx, seriesIndex, dataPointIndex);
+        if (!path) {
+            return;
+        }
+        path.removeAttribute('filter');
+        path.style.filter = 'none';
+        path.setAttribute('fill', yearOlderHoverColor);
+    }
+
+    function resetOlderYearBarHover(ctx, seriesIndex, dataPointIndex) {
+        var path = olderYearBarPath(ctx, seriesIndex, dataPointIndex);
+        if (!path) {
+            return;
+        }
+        path.removeAttribute('filter');
+        path.style.filter = '';
+        path.setAttribute('fill', yearOlderColor);
+    }
+
+    function comparativeBarChartEvents() {
+        return {
+            dataPointMouseEnter: function(event, ctx, config) {
+                if (config.seriesIndex !== 0) {
+                    return;
+                }
+                var snapshot = { seriesIndex: config.seriesIndex, dataPointIndex: config.dataPointIndex };
+                requestAnimationFrame(function() {
+                    applyOlderYearBarHover(ctx, snapshot.seriesIndex, snapshot.dataPointIndex);
+                });
+            },
+            dataPointMouseLeave: function(event, ctx, config) {
+                if (config.seriesIndex !== 0) {
+                    return;
+                }
+                resetOlderYearBarHover(ctx, config.seriesIndex, config.dataPointIndex);
+            }
+        };
+    }
 
     var monthLabels = @json($monthLabels ?? []);
     var currentYear = @json($currentYear ?? new Date().getFullYear());
@@ -379,7 +430,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function comparativeBarOptions(series, categories, yFormatter) {
         return {
             series: series,
-            chart: { type: 'bar', height: barChartHeight, fontFamily: 'inherit', toolbar: { show: false } },
+            chart: {
+                type: 'bar',
+                height: barChartHeight,
+                fontFamily: 'inherit',
+                toolbar: { show: false },
+                events: comparativeBarChartEvents()
+            },
             plotOptions: { bar: { borderRadius: 6, columnWidth: '70%' } },
             colors: [yearOlderColor, accentColor],
             dataLabels: { enabled: false },

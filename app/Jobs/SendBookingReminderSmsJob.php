@@ -80,7 +80,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
             $tz = (string) config('booking.business_timezone', config('app.timezone'));
             $startAt = $event->start_at->copy()->timezone($tz);
             $storeName = trim((string) ($event->store?->name ?? config('app.name', 'A sua loja')));
-            $expiresAt = now()->addHours(24);
+            $expiresAt = $event->start_at->copy();
             $actionLink = BookingSmsActionLink::query()
                 ->where('calendar_event_id', $event->id)
                 ->where('expires_at', '>', now())
