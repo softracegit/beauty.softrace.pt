@@ -4126,6 +4126,33 @@
         });
     }
 
+    /** BR: DDD + 8 dígitos (6–9) → inserir 9 após o DDD (ex.: +553597222330 → +5535997222330). */
+    function normalizeBrazilLegacyMobileE164(e164) {
+        if (!e164 || e164.indexOf('+55') !== 0) {
+            return e164;
+        }
+        var digits = e164.replace(/\D/g, '');
+        if (digits.length !== 12) {
+            return e164;
+        }
+        var subscriber = digits.slice(4);
+        if (subscriber.length !== 8 || !/^[6789]/.test(subscriber)) {
+            return e164;
+        }
+        return '+55' + digits.slice(2, 4) + '9' + subscriber;
+    }
+
+    function isBookingIntlMobileValid(e164) {
+        var utils = window.intlTelInputUtils;
+        if (!e164 || !utils || typeof utils.isValidNumber !== 'function') {
+            return true;
+        }
+        var mobileType = utils.numberType && utils.numberType.MOBILE !== undefined
+            ? utils.numberType.MOBILE
+            : undefined;
+        return utils.isValidNumber(e164, mobileType);
+    }
+
     function getBookingIntlE164(phoneInput) {
         if (!phoneInput || typeof window.intlTelInput !== 'function') {
             return '';
@@ -4134,10 +4161,20 @@
         if (!iti || phoneInput.value.trim() === '') {
             return '';
         }
-        if (typeof iti.isValidNumber === 'function' && !iti.isValidNumber()) {
+        var raw = typeof iti.getNumber === 'function' ? iti.getNumber() || '' : '';
+        var candidate = normalizeBrazilLegacyMobileE164(raw);
+        if (!candidate) {
             return '';
         }
-        return typeof iti.getNumber === 'function' ? iti.getNumber() || '' : '';
+        if (!isBookingIntlMobileValid(candidate)) {
+            if (typeof iti.isValidNumber === 'function' && !iti.isValidNumber()) {
+                return '';
+            }
+            if (window.intlTelInputUtils) {
+                return '';
+            }
+        }
+        return candidate;
     }
 
     function setCheckoutNextBtnLoading(isLoading, label) {
