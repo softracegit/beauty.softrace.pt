@@ -35,13 +35,23 @@ final class BookingLocale
     }
 
     /**
-     * SMS locale rule: +351 → pt, otherwise en.
+     * Idioma do SMS conforme indicativo: +351 / +55 → pt; ES/LATAM listados → es; resto → en.
      */
     public static function fromPhone(?string $phone): string
     {
         $e164 = PhoneDisplay::toE164($phone);
-        if ($e164 !== null && str_starts_with($e164, '+351')) {
+        if ($e164 === null) {
+            return 'en';
+        }
+
+        if (str_starts_with($e164, '+351') || str_starts_with($e164, '+55')) {
             return 'pt';
+        }
+
+        foreach (['+591', '+593', '+598', '+34', '+51', '+52', '+54', '+56', '+57', '+58'] as $prefix) {
+            if (str_starts_with($e164, $prefix)) {
+                return 'es';
+            }
         }
 
         return 'en';
