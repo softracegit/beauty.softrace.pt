@@ -24,7 +24,8 @@ class ZappyCommissionHistoricoService
             return null;
         }
 
-        if ($this->loadTotals() === []) {
+        $totals = $this->loadTotals();
+        if ($totals === []) {
             return null;
         }
 
@@ -38,13 +39,9 @@ class ZappyCommissionHistoricoService
             return null;
         }
 
-        $userId = TechnicianFilterUserId::resolve($filters['tecnico'] ?? null);
+        $userId = $this->resolveConfigUserId($filters['tecnico'] ?? null, $totals);
         $historicalEnd = min($ate, self::HISTORICAL_END);
-        $zappy = $this->zappyTotalsForRange($desde, $historicalEnd, $userId);
-
-        if ($zappy['total_comissao_com_iva'] <= 0 && $zappy['total_comissao_sem_iva'] <= 0) {
-            return null;
-        }
+        $zappy = $this->zappyTotalsForRange($desde, $historicalEnd, $userId, $totals);
 
         if ($ate <= self::HISTORICAL_END) {
             return $zappy;
@@ -61,6 +58,26 @@ class ZappyCommissionHistoricoService
             'total_comissao_com_iva' => round($zappy['total_comissao_com_iva'] + (float) $crmLines->sum(fn (object $l) => (float) $l->comissao_com_iva), 2),
             'total_comissao_sem_iva' => round($zappy['total_comissao_sem_iva'] + (float) $crmLines->sum(fn (object $l) => (float) $l->comissao_sem_iva), 2),
         ];
+    }
+
+    /**
+     * @param  array<int, array<string, array{com_iva: float, sem_iva: float}>>  $totals
+     */
+    private function resolveConfigUserId(mixed $tecnicoFilter, array $totals): ?int
+    {
+        $resolved = TechnicianFilterUserId::resolve($tecnicoFilter);
+        if ($resolved !== null && isset($totals[$resolved])) {
+            return $resolved;
+        }
+
+        if ($tecnicoFilter !== null && $tecnicoFilter !== '') {
+            $rawId = (int) $tecnicoFilter;
+            if ($rawId > 0 && isset($totals[$rawId])) {
+                return $rawId;
+            }
+        }
+
+        return $resolved;
     }
 
     private function normalizeFilterDate(string $date): string
@@ -101,11 +118,11 @@ class ZappyCommissionHistoricoService
     }
 
     /**
+     * @param  array<int, array<string, array{com_iva: float, sem_iva: float}>>  $totals
      * @return array{total_comissao_com_iva: float, total_comissao_sem_iva: float}
      */
-    private function zappyTotalsForRange(string $desde, string $ate, ?int $userId): array
+    private function zappyTotalsForRange(string $desde, string $ate, ?int $userId, array $totals): array
     {
-        $totals = $this->loadTotals();
         $userIds = $userId !== null ? [$userId] : array_keys($totals);
 
         $comIva = 0.0;
@@ -178,10 +195,17 @@ class ZappyCommissionHistoricoService
         }
 
         $path = config_path('zappy_commission_totals.php');
-        $totals = is_readable($path)
-            ? require $path
-            : config('zappy_commission_totals', []);
+        if (! is_readable($path)) {
+            $this->totals = [];
 
+            return $this->totals;
+        }
+
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($path, true);
+        }
+
+        $totals = require $path;
         if (! is_array($totals)) {
             $this->totals = [];
 

@@ -381,14 +381,150 @@ class ComissoesReportService
      */
     public function totaisRodape(Collection $lines, array $filters = []): array
     {
-        $crm = [
+        $historical = $this->zappyCommissionHistorico->footerTotals($filters, $lines)
+            ?? $this->historicalFooterFromConfigFile($filters, $lines);
+
+        if ($historical !== null) {
+            return $historical;
+        }
+
+        return [
             'total_comissao_com_iva' => round((float) $lines->sum(fn (object $line) => (float) $line->comissao_com_iva), 2),
             'total_comissao_sem_iva' => round((float) $lines->sum(fn (object $line) => (float) $line->comissao_sem_iva), 2),
         ];
+    }
 
-        $override = $this->zappyCommissionHistorico->footerTotals($filters, $lines);
+    /**
+     * Fallback: lê zappy_commission_totals.php directamente (ignora config:cache e opcache).
+     *
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed}  $filters
+     * @param  Collection<int, object>  $lines
+     * @return array{total_comissao_com_iva: float, total_comissao_sem_iva: float}|null
+     */
+    private function historicalFooterFromConfigFile(array $filters, Collection $lines): ?array
+    {
+        foreach (['cliente', 'servico'] as $key) {
+            $value = $filters[$key] ?? null;
+            if ($value !== null && $value !== '') {
+                return null;
+            }
+        }
 
-        return $override ?? $crm;
+        $path = config_path('zappy_commission_totals.php');
+        if (! is_readable($path)) {
+            return null;
+        }
+
+        if (function_exists('opcache_invalidate')) {
+            opcache_invalidate($path, true);
+        }
+
+        $raw = require $path;
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        $desde = $this->normalizeRelatorioDate($filters['desde'] ?? '') ?? '';
+        $ate = $this->normalizeRelatorioDate($filters['ate'] ?? '') ?? '';
+        if ($desde === '' || $ate === '' || $desde > '2026-05-31') {
+            return null;
+        }
+
+        $totals = [];
+        foreach ($raw as $key => $months) {
+            if (! is_array($months) || ! is_numeric((string) $key)) {
+                continue;
+            }
+            $totals[(int) $key] = $months;
+        }
+
+        $userId = TechnicianFilterUserId::resolve($filters['tecnico'] ?? null);
+        if ($userId === null && ! empty($filters['tecnico'])) {
+            $rawId = (int) $filters['tecnico'];
+            $userId = isset($totals[$rawId]) ? $rawId : null;
+        }
+
+        $userIds = $userId !== null ? [$userId] : array_keys($totals);
+        $historicalEnd = min($ate, '2026-05-31');
+
+        $comIva = 0.0;
+        $semIva = 0.0;
+        $cursor = \Carbon\Carbon::parse($desde)->startOfMonth();
+        $end = \Carbon\Carbon::parse($historicalEnd)->endOfMonth();
+
+        while ($cursor->lte($end)) {
+            $ym = $cursor->format('Y-m');
+            $monthStart = $cursor->copy()->startOfMonth()->toDateString();
+            $monthEnd = $cursor->copy()->endOfMonth()->toDateString();
+
+            if ($monthEnd < $desde || $monthStart > $historicalEnd || $monthEnd > '2026-05-31') {
+                $cursor->addMonth();
+
+                continue;
+            }
+
+            foreach ($userIds as $id) {
+                $month = $totals[$id][$ym] ?? null;
+                if ($month === null) {
+                    continue;
+                }
+                $comIva += (float) ($month['com_iva'] ?? 0);
+                $semIva += (float) ($month['sem_iva'] ?? 0);
+            }
+
+            $cursor->addMonth();
+        }
+
+        if ($ate <= '2026-05-31') {
+            return [
+                'total_comissao_com_iva' => round($comIva, 2),
+                'total_comissao_sem_iva' => round($semIva, 2),
+            ];
+        }
+
+        $crmFrom = \Carbon\Carbon::parse('2026-05-31')->addDay()->toDateString();
+        $crmCom = (float) $lines->filter(function (object $line) use ($crmFrom, $ate): bool {
+            $date = $line->data_emissao?->format('Y-m-d');
+
+            return $date !== null && $date >= $crmFrom && $date <= $ate;
+        })->sum(fn (object $l) => (float) $l->comissao_com_iva);
+
+        $crmSem = (float) $lines->filter(function (object $line) use ($crmFrom, $ate): bool {
+            $date = $line->data_emissao?->format('Y-m-d');
+
+            return $date !== null && $date >= $crmFrom && $date <= $ate;
+        })->sum(fn (object $l) => (float) $l->comissao_sem_iva);
+
+        return [
+            'total_comissao_com_iva' => round($comIva + $crmCom, 2),
+            'total_comissao_sem_iva' => round($semIva + $crmSem, 2),
+        ];
+    }
+
+    private function normalizeRelatorioDate(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('#^(\d{4})-(\d{2})-(\d{2})$#', $value)) {
+            return $value;
+        }
+
+        if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})#', $value, $m)) {
+            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+        }
+
+        try {
+            return \Carbon\Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function servicosOpts(): Collection

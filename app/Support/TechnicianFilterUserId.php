@@ -8,7 +8,7 @@ use App\Models\User;
 class TechnicianFilterUserId
 {
     /**
-     * Converte o valor do filtro de técnico (users.id ou agents.id) para users.id.
+     * Converte o valor do filtro de técnico (agents.id ou users.id) para users.id.
      */
     public static function resolve(mixed $tecnicoFilter): ?int
     {
@@ -21,12 +21,15 @@ class TechnicianFilterUserId
             return null;
         }
 
+        $agentUserId = Agent::query()->whereKey($id)->value('user_id');
+        if ($agentUserId !== null) {
+            return (int) $agentUserId;
+        }
+
         if (User::query()->whereKey($id)->exists()) {
             return $id;
         }
 
-        $userId = Agent::query()->whereKey($id)->value('user_id');
-
-        return $userId ? (int) $userId : null;
+        return null;
     }
 }
