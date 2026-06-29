@@ -638,11 +638,11 @@ return [
     ],
 
     'sms' => [
-        'auth_code' => 'Tu código de acceso es :code. Caduca en :minutes minutos.',
-        'verification_code' => 'Código de verificación de la cuenta: :code. Caduca en :minutes minutos.',
+        'auth_code' => 'Tu codigo de acceso es :code. Caduca en :minutes minutos.',
+        'verification_code' => 'Codigo de verificacion de la cuenta: :code. Caduca en :minutes minutos.',
         'reminder_body' => ":store te recuerda tu cita :when\n\nConfirmar cita:\n:url\n\nGracias\n+351300505149 / +351928116651",
         'reminder_when_today' => 'hoy a las :time',
-        'reminder_when_tomorrow' => 'mañana a las :time',
+        'reminder_when_tomorrow' => 'manana a las :time',
         'reminder_when_date' => 'el :date a las :time',
     ],
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\PhoneDisplay;
+use App\Support\SmsText;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -41,6 +42,7 @@ final class TwilioSmsService
         $sid = config('services.twilio.account_sid');
         $token = config('services.twilio.auth_token');
         $from = config('services.twilio.sms_from');
+        $body = SmsText::normalize($body);
 
         $url = sprintf(
             'https://api.twilio.com/2010-04-01/Accounts/%s/Messages.json',
