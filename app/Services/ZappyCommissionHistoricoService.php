@@ -9,7 +9,7 @@ class ZappyCommissionHistoricoService
 {
     private const HISTORICAL_END = '2026-05-31';
 
-    /** @var array<string, array<string, array{com_iva: float, sem_iva: float}>>|null */
+    /** @var array<int, array<string, array{com_iva: float, sem_iva: float}>>|null */
     private ?array $totals = null;
 
     /**
@@ -23,6 +23,10 @@ class ZappyCommissionHistoricoService
             return null;
         }
 
+        if ($this->loadTotals() === []) {
+            return null;
+        }
+
         $desde = (string) ($filters['desde'] ?? '');
         $ate = (string) ($filters['ate'] ?? '');
         if ($desde === '' || $ate === '') {
@@ -33,8 +37,17 @@ class ZappyCommissionHistoricoService
             return null;
         }
 
+        $tecnicoFilter = $filters['tecnico'] ?? null;
+        if ($tecnicoFilter !== null && $tecnicoFilter !== '' && ! $this->hasTotalsForUserId((int) $tecnicoFilter)) {
+            return null;
+        }
+
         $historicalEnd = min($ate, self::HISTORICAL_END);
-        $zappy = $this->zappyTotalsForRange($desde, $historicalEnd, $filters['tecnico'] ?? null);
+        $zappy = $this->zappyTotalsForRange($desde, $historicalEnd, $tecnicoFilter);
+
+        if ($zappy['total_comissao_com_iva'] <= 0 && $zappy['total_comissao_sem_iva'] <= 0) {
+            return null;
+        }
 
         if ($ate <= self::HISTORICAL_END) {
             return $zappy;
@@ -74,7 +87,7 @@ class ZappyCommissionHistoricoService
     private function zappyTotalsForRange(string $desde, string $ate, mixed $tecnicoFilter): array
     {
         $totals = $this->loadTotals();
-        $techNames = $this->techNamesForFilter($tecnicoFilter);
+        $userIds = $this->userIdsForFilter($tecnicoFilter);
 
         $comIva = 0.0;
         $semIva = 0.0;
@@ -99,8 +112,8 @@ class ZappyCommissionHistoricoService
                 continue;
             }
 
-            foreach ($techNames as $name) {
-                $month = $totals[$name][$ym] ?? null;
+            foreach ($userIds as $userId) {
+                $month = $totals[$userId][$ym] ?? null;
                 if ($month === null) {
                     continue;
                 }
@@ -118,40 +131,68 @@ class ZappyCommissionHistoricoService
     }
 
     /**
-     * @return list<string>
+     * @return list<int>
      */
-    private function techNamesForFilter(mixed $tecnicoFilter): array
+    private function userIdsForFilter(mixed $tecnicoFilter): array
     {
         if ($tecnicoFilter !== null && $tecnicoFilter !== '') {
-            $userId = (int) $tecnicoFilter;
-            $name = $this->zappyNameForUserId($userId);
-
-            return $name !== null ? [$name] : [];
+            return [(int) $tecnicoFilter];
         }
 
-        return array_keys($this->loadTotals());
+        return array_map('intval', array_keys($this->loadTotals()));
     }
 
-    private function zappyNameForUserId(int $userId): ?string
+    private function hasTotalsForUserId(int $userId): bool
     {
-        foreach (config('zappy_import.agent_user_map', []) as $name => $id) {
-            if ((int) $id === $userId) {
-                return (string) $name;
-            }
-        }
-
-        return null;
+        return isset($this->loadTotals()[$userId]);
     }
 
     /**
-     * @return array<string, array<string, array{com_iva: float, sem_iva: float}>>
+     * @return array<int, array<string, array{com_iva: float, sem_iva: float}>>
      */
     private function loadTotals(): array
     {
-        if ($this->totals === null) {
-            $this->totals = config('zappy_commission_totals', []);
+        if ($this->totals !== null) {
+            return $this->totals;
         }
 
+        $totals = config('zappy_commission_totals', []);
+        if (! is_array($totals)) {
+            $this->totals = [];
+
+            return $this->totals;
+        }
+
+        $normalized = [];
+        foreach ($totals as $key => $months) {
+            if (! is_array($months)) {
+                continue;
+            }
+
+            $userId = is_numeric((string) $key)
+                ? (int) $key
+                : $this->userIdForLegacyName((string) $key);
+
+            if ($userId <= 0) {
+                continue;
+            }
+
+            $normalized[$userId] = $months;
+        }
+
+        $this->totals = $normalized;
+
         return $this->totals;
+    }
+
+    private function userIdForLegacyName(string $name): int
+    {
+        foreach (config('zappy_import.agent_user_map', []) as $mapName => $id) {
+            if (strcasecmp(trim($mapName), trim($name)) === 0) {
+                return (int) $id;
+            }
+        }
+
+        return 0;
     }
 }
