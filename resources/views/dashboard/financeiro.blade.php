@@ -136,7 +136,7 @@
         <div class="dash-kpi-icon primary"><i class="ph-duotone ph-percent"></i></div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ ($k['comissoes_estimadas'] ?? 0) > 0 ? $fmt($k['comissoes_estimadas']) : '—' }}</div>
-            <div class="dash-kpi-label">Comissões estimadas</div>
+            <div class="dash-kpi-label">Comissões (c/ IVA)</div>
         </div>
     </div>
     <div class="dash-kpi">
@@ -291,7 +291,7 @@
                 @empty
                 <p class="text-muted small mb-0">Configure comissões na ficha de cada membro.</p>
                 @endforelse
-                <div class="mt-3 p-2 rounded bg-light small">Total estimado: <strong>{{ $fmt($k['comissoes_estimadas'] ?? 0) }}</strong></div>
+                <div class="mt-3 p-2 rounded bg-light small">Total do mês: <strong>{{ $fmt($k['comissoes_estimadas'] ?? 0) }}</strong></div>
             </div>
             <div class="card-footer bg-transparent border-0 pt-0">
                 <p class="dash-fin-future-note mb-0">UI prevista: lista por técnica, detalhe por fatura, botão «Gerar pagamento» e exportação.</p>

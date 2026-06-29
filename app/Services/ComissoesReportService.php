@@ -10,6 +10,7 @@ use App\Models\SaleItem;
 use App\Models\Service;
 use App\Support\SaleTechnicianAttribution;
 use App\Support\TechnicianFilterUserId;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -115,6 +116,7 @@ class ComissoesReportService
      * @return Collection<int, object{
      *     sale_id: int,
      *     sale_item_id: int,
+     *     user_id: int,
      *     data_emissao: \Carbon\CarbonInterface|null,
      *     numero_fatura: ?string,
      *     tecnico: string,
@@ -258,6 +260,7 @@ class ComissoesReportService
             $out->push((object) [
                 'sale_id' => (int) $sale->id,
                 'sale_item_id' => (int) $item->id,
+                'user_id' => $userId,
                 'data_emissao' => $sale->data_emissao,
                 'numero_fatura' => $sale->numero_fatura,
                 'tecnico' => (string) ($event?->user?->name ?? '—'),
@@ -539,6 +542,81 @@ class ComissoesReportService
             ->distinct()
             ->orderBy('services.name')
             ->get();
+    }
+
+    /**
+     * Comissão c/ IVA por técnica (users.id), alinhada ao rodapé do relatório.
+     *
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string}  $filters
+     * @return array<int, float>
+     */
+    public function comissaoPorUserId(array $filters): array
+    {
+        $desde = $this->normalizeRelatorioDate($filters['desde'] ?? '') ?? '';
+        $ate = $this->normalizeRelatorioDate($filters['ate'] ?? '') ?? '';
+        if ($desde === '' || $ate === '') {
+            return [];
+        }
+
+        $sales = $this->salesForReport($filters);
+        $lines = $this->linesCollection($sales, null, null);
+
+        $crmByUser = [];
+        foreach ($lines as $line) {
+            $userId = (int) ($line->user_id ?? 0);
+            if ($userId <= 0) {
+                continue;
+            }
+            $crmByUser[$userId] = ($crmByUser[$userId] ?? 0.0) + (float) $line->comissao_com_iva;
+        }
+
+        if ($desde > ZappyCommissionHistoricoService::historicalEndDate()) {
+            return $this->roundCommissionMap($crmByUser);
+        }
+
+        $historicalEnd = min($ate, ZappyCommissionHistoricoService::historicalEndDate());
+        $zappyByUser = $this->zappyCommissionHistorico->technicianTotalsForRange($desde, $historicalEnd);
+
+        if ($ate <= ZappyCommissionHistoricoService::historicalEndDate()) {
+            return $this->roundCommissionMap(array_map(
+                fn (array $amounts): float => (float) $amounts['com_iva'],
+                $zappyByUser,
+            ));
+        }
+
+        $crmFrom = Carbon::parse(ZappyCommissionHistoricoService::historicalEndDate())->addDay()->toDateString();
+        $crmFromDate = [];
+        foreach ($lines as $line) {
+            $userId = (int) ($line->user_id ?? 0);
+            $date = $line->data_emissao?->format('Y-m-d');
+            if ($userId <= 0 || $date === null || $date < $crmFrom || $date > $ate) {
+                continue;
+            }
+            $crmFromDate[$userId] = ($crmFromDate[$userId] ?? 0.0) + (float) $line->comissao_com_iva;
+        }
+
+        $userIds = array_unique(array_merge(array_keys($zappyByUser), array_keys($crmFromDate)));
+        $blended = [];
+        foreach ($userIds as $userId) {
+            $blended[(int) $userId] = (float) ($zappyByUser[$userId]['com_iva'] ?? 0.0)
+                + (float) ($crmFromDate[$userId] ?? 0.0);
+        }
+
+        return $this->roundCommissionMap($blended);
+    }
+
+    /**
+     * @param  array<int, float>  $map
+     * @return array<int, float>
+     */
+    private function roundCommissionMap(array $map): array
+    {
+        $out = [];
+        foreach ($map as $userId => $amount) {
+            $out[(int) $userId] = round((float) $amount, 2);
+        }
+
+        return $out;
     }
 
     public function clientesOpts(): Collection

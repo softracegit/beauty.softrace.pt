@@ -10,6 +10,11 @@ class ZappyCommissionHistoricoService
 {
     private const HISTORICAL_END = '2026-05-31';
 
+    public static function historicalEndDate(): string
+    {
+        return self::HISTORICAL_END;
+    }
+
     /** @var array<int, array<string, array{com_iva: float, sem_iva: float}>>|null */
     private ?array $totals = null;
 
@@ -115,6 +120,64 @@ class ZappyCommissionHistoricoService
         }
 
         return false;
+    }
+
+    /**
+     * Totais Zappy por técnica (users.id) no intervalo histórico.
+     *
+     * @return array<int, array{com_iva: float, sem_iva: float}>
+     */
+    public function technicianTotalsForRange(string $desde, string $ate): array
+    {
+        if ($desde > self::HISTORICAL_END) {
+            return [];
+        }
+
+        $totals = $this->loadTotals();
+        if ($totals === []) {
+            return [];
+        }
+
+        $historicalEnd = min($ate, self::HISTORICAL_END);
+        $byUser = [];
+
+        $cursor = Carbon::parse($desde)->startOfMonth();
+        $end = Carbon::parse($historicalEnd)->endOfMonth();
+
+        while ($cursor->lte($end)) {
+            $ym = $cursor->format('Y-m');
+            $monthStart = $cursor->copy()->startOfMonth()->toDateString();
+            $monthEnd = $cursor->copy()->endOfMonth()->toDateString();
+
+            if ($monthEnd < $desde || $monthStart > $historicalEnd || $monthEnd > self::HISTORICAL_END) {
+                $cursor->addMonth();
+
+                continue;
+            }
+
+            foreach (array_keys($totals) as $id) {
+                $month = $this->monthsForUser($totals, (int) $id)[$ym] ?? null;
+                if ($month === null) {
+                    continue;
+                }
+
+                $userId = (int) $id;
+                $byUser[$userId] ??= ['com_iva' => 0.0, 'sem_iva' => 0.0];
+                $byUser[$userId]['com_iva'] += (float) $month['com_iva'];
+                $byUser[$userId]['sem_iva'] += (float) $month['sem_iva'];
+            }
+
+            $cursor->addMonth();
+        }
+
+        foreach ($byUser as $userId => $amounts) {
+            $byUser[$userId] = [
+                'com_iva' => round($amounts['com_iva'], 2),
+                'sem_iva' => round($amounts['sem_iva'], 2),
+            ];
+        }
+
+        return $byUser;
     }
 
     /**

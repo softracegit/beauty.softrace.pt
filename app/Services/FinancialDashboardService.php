@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\CalendarEvent;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\User;
 use App\Support\SaleTechnicianAttribution;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
@@ -14,6 +15,10 @@ use Illuminate\Support\Facades\DB;
 
 class FinancialDashboardService
 {
+    public function __construct(
+        private readonly ComissoesReportService $comissoesReportService,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -50,8 +55,18 @@ class FinancialDashboardService
         $topServicos = $this->topServicos($storeId, $start, $end);
         $topTecnicas = $this->topTecnicas($storeId, $start, $end);
         $topClientes = $this->topClientes($storeId, $start, $end);
-        $comissoesPorTecnica = $this->comissoesEstimadasPorTecnica($storeId, $start, $end);
-        $comissoesEstimadas = round((float) $comissoesPorTecnica->sum('comissao'), 2);
+
+        $comissaoFilters = [
+            'desde' => $start->toDateString(),
+            'ate' => $end->toDateString(),
+        ];
+        $comissaoPorUserId = $this->comissoesReportService->comissaoPorUserId($comissaoFilters);
+        $comissoesPorTecnica = $this->comissoesPorTecnica($storeId, $start, $end, $comissaoPorUserId);
+
+        $salesForComissoes = $this->comissoesReportService->salesForReport($comissaoFilters);
+        $comissaoLines = $this->comissoesReportService->linesCollection($salesForComissoes, null, null);
+        $comissaoTotais = $this->comissoesReportService->totaisRodape($comissaoLines, $comissaoFilters);
+        $comissoesEstimadas = (float) $comissaoTotais['total_comissao_com_iva'];
         $margemEstimada = round($receita - $comissoesEstimadas, 2);
 
         $receitaDiaria = $this->receitaDiaria($storeId, $start, $end);
@@ -217,43 +232,60 @@ class FinancialDashboardService
     }
 
     /**
-     * Estimativa com base na comissão configurada na ficha do membro (vendas pagas do período).
+     * Comissões por técnica alinhadas ao relatório (Zappy no histórico, CRM a partir de jun/2026).
      *
+     * @param  array<int, float>  $comissaoPorUserId
      * @return Collection<int, object{user_id: int, nome: string, receita: float, comissao: float, taxa: ?string, num_faturas: int}>
      */
-    private function comissoesEstimadasPorTecnica(int $storeId, Carbon $start, Carbon $end): Collection
+    private function comissoesPorTecnica(int $storeId, Carbon $start, Carbon $end, array $comissaoPorUserId): Collection
     {
-        $attributed = $this->receitaAtribuidaPorTecnica($storeId, $start, $end);
+        $attributed = $this->receitaAtribuidaPorTecnica($storeId, $start, $end)->keyBy('user_id');
         $agentRates = Agent::query()
             ->where('store_id', $storeId)
-            ->whereIn('user_id', $attributed->pluck('user_id')->all())
+            ->whereIn('user_id', array_unique(array_merge(
+                $attributed->keys()->all(),
+                array_keys($comissaoPorUserId),
+            )))
             ->get(['user_id', 'commission_rate', 'commission_unit'])
             ->keyBy('user_id');
 
-        return $attributed->map(function (object $row) use ($agentRates) {
-            $agent = $agentRates->get($row->user_id);
-            $rate = $agent?->commission_rate;
-            $unit = $agent?->commission_unit;
-            $receita = round((float) $row->receita, 2);
-            $comissao = $this->estimateCommission($receita, (int) $row->num_faturas, $rate, $unit);
+        $userIds = array_unique(array_merge($attributed->keys()->all(), array_keys($comissaoPorUserId)));
+        $userNames = User::query()
+            ->whereIn('id', $userIds)
+            ->pluck('name', 'id');
 
-            $taxa = null;
-            if ($rate !== null) {
-                $taxa = (new Agent([
-                    'commission_rate' => $rate,
-                    'commission_unit' => $unit,
-                ]))->formatCommissionDisplay();
-            }
+        return collect($userIds)
+            ->map(function ($userId) use ($attributed, $comissaoPorUserId, $agentRates, $userNames): ?object {
+                $userId = (int) $userId;
+                $row = $attributed->get($userId);
+                $comissao = round((float) ($comissaoPorUserId[$userId] ?? 0.0), 2);
+                if ($comissao <= 0 && $row === null) {
+                    return null;
+                }
 
-            return (object) [
-                'user_id' => (int) $row->user_id,
-                'nome' => (string) $row->nome,
-                'receita' => $receita,
-                'comissao' => $comissao,
-                'taxa' => $taxa,
-                'num_faturas' => (int) $row->num_faturas,
-            ];
-        })->sortByDesc('comissao')->values();
+                $agent = $agentRates->get($userId);
+                $rate = $agent?->commission_rate;
+                $unit = $agent?->commission_unit;
+                $taxa = null;
+                if ($rate !== null) {
+                    $taxa = (new Agent([
+                        'commission_rate' => $rate,
+                        'commission_unit' => $unit,
+                    ]))->formatCommissionDisplay();
+                }
+
+                return (object) [
+                    'user_id' => $userId,
+                    'nome' => (string) ($row->nome ?? $userNames[$userId] ?? '—'),
+                    'receita' => round((float) ($row->receita ?? 0.0), 2),
+                    'comissao' => $comissao,
+                    'taxa' => $taxa,
+                    'num_faturas' => (int) ($row->num_faturas ?? 0),
+                ];
+            })
+            ->filter()
+            ->sortByDesc('comissao')
+            ->values();
     }
 
     /**
@@ -293,22 +325,6 @@ class FinancialDashboardService
             ])
             ->sortByDesc('receita')
             ->values();
-    }
-
-    private function estimateCommission(float $receita, int $numFaturas, mixed $rate, mixed $unit): float
-    {
-        if ($rate === null || $rate === '') {
-            return 0.0;
-        }
-
-        $rate = (float) $rate;
-        $unit = (string) ($unit ?: Agent::COMMISSION_UNIT_PERCENT);
-
-        if ($unit === Agent::COMMISSION_UNIT_EURO) {
-            return round($rate * $numFaturas, 2);
-        }
-
-        return round($receita * ($rate / 100), 2);
     }
 
     /**
