@@ -14,6 +14,10 @@ use Illuminate\Support\Collection;
 
 class ComissoesReportService
 {
+    public function __construct(
+        private readonly ZappyCommissionHistoricoService $zappyCommissionHistorico,
+    ) {}
+
     /**
      * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string}  $filters
      */
@@ -371,14 +375,19 @@ class ComissoesReportService
 
     /**
      * @param  Collection<int, object>  $lines
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string}  $filters
      * @return array{total_comissao_com_iva: float, total_comissao_sem_iva: float}
      */
-    public function totaisRodape(Collection $lines): array
+    public function totaisRodape(Collection $lines, array $filters = []): array
     {
-        return [
+        $crm = [
             'total_comissao_com_iva' => round((float) $lines->sum(fn (object $line) => (float) $line->comissao_com_iva), 2),
             'total_comissao_sem_iva' => round((float) $lines->sum(fn (object $line) => (float) $line->comissao_sem_iva), 2),
         ];
+
+        $override = $this->zappyCommissionHistorico->footerTotals($filters, $lines);
+
+        return $override ?? $crm;
     }
 
     public function servicosOpts(): Collection

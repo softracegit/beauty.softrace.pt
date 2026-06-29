@@ -669,7 +669,7 @@ class RelatoriosController extends Controller
             'servicosOpts' => $this->comissoesReportService->servicosOpts(),
             'tecnicosOpts' => $this->membrosOptsForRelatorios(),
             'clientesOpts' => $this->comissoesReportService->clientesOpts(),
-            'comissoesTotais' => $this->comissoesReportService->totaisRodape($allLines),
+            'comissoesTotais' => $this->comissoesReportService->totaisRodape($allLines, $filters),
         ]);
     }
 
