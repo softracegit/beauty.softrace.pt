@@ -1,37 +1,38 @@
 <?php
 
 /**
- * Totais mensais de comissão Zappy indexados por users.id.
+ * Totais mensais de comissão Zappy indexados por users.id (produção).
  * Gerado a partir de SmartAdmin-pro/assets/files/2026.csv
+ * Mapeamento: config/zappy_commission_user_map.php
  * Não editar manualmente — correr: php scripts/build_zappy_commission_totals.php
  *
- * 2 => Laissa Osto
- * 3 => Sandy Hurtado
- * 4 => Vanessa Pereira
- * 5 => Andrea Velasquez
- * 17 => Agatha Vitoria
- * 18 => Aline Castro
- * 19 => Andreia Pais
- * 20 => Carolina Barboza
- * 21 => Carol Santana
- * 22 => Cátia Gomes
- * 23 => Fabiana Dinis
- * 24 => Hellen Coura
- * 25 => Joice Moura
- * 26 => Lua Chaves
- * 27 => Mariann Marquez
- * 28 => Melissa Kellen
- * 29 => Miriam Batista
- * 30 => Renata Gouveia
- * 31 => Tassia Gonçalves
- * 32 => Tatiana Pereira
- * 33 => Val Martins
- * 34 => Alejandra Silva
+ * 6 => Laissa Osto
+ * 7 => Vanessa Pereira
+ * 8 => Sandy Hurtado
+ * 9 => Andrea Velasquez
+ * 20 => Agatha Vitoria
+ * 21 => Alejandra Silva
+ * 22 => Aline Castro
+ * 23 => Andreia Pais
+ * 24 => Carolina Barboza
+ * 25 => Carol Santana
+ * 26 => Cátia Gomes
+ * 27 => Fabiana Dinis
+ * 28 => Hellen Coura
+ * 29 => Joice Moura
+ * 30 => Lua Chaves
+ * 31 => Mariann Marquez
+ * 32 => Melissa Kellen
+ * 33 => Miriam Batista
+ * 34 => Renata Gouveia
+ * 35 => Tassia Gonçalves
+ * 36 => Tatiana Pereira
+ * 37 => Val Martins
  */
 
 return [
-    // user_id 2 — Laissa Osto
-    2 => array (
+    // user_id 6 — Laissa Osto
+    6 => array (
       '2025-03' => 
       array (
         'sem_iva' => 191.21,
@@ -114,42 +115,8 @@ return [
       ),
     ),
 
-    // user_id 3 — Sandy Hurtado
-    3 => array (
-      '2026-01' => 
-      array (
-        'sem_iva' => 505.43,
-        'com_iva' => 621.6,
-      ),
-      '2026-02' => 
-      array (
-        'sem_iva' => 690.95,
-        'com_iva' => 849.76,
-      ),
-      '2026-03' => 
-      array (
-        'sem_iva' => 786.42,
-        'com_iva' => 967.2,
-      ),
-      '2026-04' => 
-      array (
-        'sem_iva' => 912.68,
-        'com_iva' => 1121.09,
-      ),
-      '2026-05' => 
-      array (
-        'sem_iva' => 1354.68,
-        'com_iva' => 1665.49,
-      ),
-      '2026-06' => 
-      array (
-        'sem_iva' => 1139.2,
-        'com_iva' => 1401.0,
-      ),
-    ),
-
-    // user_id 4 — Vanessa Pereira
-    4 => array (
+    // user_id 7 — Vanessa Pereira
+    7 => array (
       '2025-10' => 
       array (
         'sem_iva' => 679.73,
@@ -197,8 +164,42 @@ return [
       ),
     ),
 
-    // user_id 5 — Andrea Velasquez
-    5 => array (
+    // user_id 8 — Sandy Hurtado
+    8 => array (
+      '2026-01' => 
+      array (
+        'sem_iva' => 505.43,
+        'com_iva' => 621.6,
+      ),
+      '2026-02' => 
+      array (
+        'sem_iva' => 690.95,
+        'com_iva' => 849.76,
+      ),
+      '2026-03' => 
+      array (
+        'sem_iva' => 786.42,
+        'com_iva' => 967.2,
+      ),
+      '2026-04' => 
+      array (
+        'sem_iva' => 912.68,
+        'com_iva' => 1121.09,
+      ),
+      '2026-05' => 
+      array (
+        'sem_iva' => 1354.68,
+        'com_iva' => 1665.49,
+      ),
+      '2026-06' => 
+      array (
+        'sem_iva' => 1139.2,
+        'com_iva' => 1401.0,
+      ),
+    ),
+
+    // user_id 9 — Andrea Velasquez
+    9 => array (
       '2025-11' => 
       array (
         'sem_iva' => 122.08,
@@ -241,8 +242,8 @@ return [
       ),
     ),
 
-    // user_id 17 — Agatha Vitoria
-    17 => array (
+    // user_id 20 — Agatha Vitoria
+    20 => array (
       '2024-10' => 
       array (
         'sem_iva' => 41.96,
@@ -255,8 +256,32 @@ return [
       ),
     ),
 
-    // user_id 18 — Aline Castro
-    18 => array (
+    // user_id 21 — Alejandra Silva
+    21 => array (
+      '2025-08' => 
+      array (
+        'sem_iva' => 652.67,
+        'com_iva' => 802.8,
+      ),
+      '2025-09' => 
+      array (
+        'sem_iva' => 912.23,
+        'com_iva' => 1122.0,
+      ),
+      '2025-10' => 
+      array (
+        'sem_iva' => 679.07,
+        'com_iva' => 835.2,
+      ),
+      '2025-11' => 
+      array (
+        'sem_iva' => 531.48,
+        'com_iva' => 653.65,
+      ),
+    ),
+
+    // user_id 22 — Aline Castro
+    22 => array (
       '2025-07' => 
       array (
         'sem_iva' => 70.0,
@@ -279,8 +304,8 @@ return [
       ),
     ),
 
-    // user_id 19 — Andreia Pais
-    19 => array (
+    // user_id 23 — Andreia Pais
+    23 => array (
       '2024-07' => 
       array (
         'sem_iva' => 10.16,
@@ -288,8 +313,8 @@ return [
       ),
     ),
 
-    // user_id 20 — Carolina Barboza
-    20 => array (
+    // user_id 24 — Carolina Barboza
+    24 => array (
       '2024-03' => 
       array (
         'sem_iva' => 56.34,
@@ -317,8 +342,8 @@ return [
       ),
     ),
 
-    // user_id 21 — Carol Santana
-    21 => array (
+    // user_id 25 — Carol Santana
+    25 => array (
       '2024-09' => 
       array (
         'sem_iva' => 5.53,
@@ -326,8 +351,8 @@ return [
       ),
     ),
 
-    // user_id 22 — Cátia Gomes
-    22 => array (
+    // user_id 26 — Cátia Gomes
+    26 => array (
       '2024-07' => 
       array (
         'sem_iva' => 20.16,
@@ -335,8 +360,8 @@ return [
       ),
     ),
 
-    // user_id 23 — Fabiana Dinis
-    23 => array (
+    // user_id 27 — Fabiana Dinis
+    27 => array (
       '2025-08' => 
       array (
         'sem_iva' => 38.04,
@@ -349,8 +374,8 @@ return [
       ),
     ),
 
-    // user_id 24 — Hellen Coura
-    24 => array (
+    // user_id 28 — Hellen Coura
+    28 => array (
       '2024-01' => 
       array (
         'sem_iva' => 19.52,
@@ -368,8 +393,8 @@ return [
       ),
     ),
 
-    // user_id 25 — Joice Moura
-    25 => array (
+    // user_id 29 — Joice Moura
+    29 => array (
       '2025-04' => 
       array (
         'sem_iva' => 27.31,
@@ -402,8 +427,8 @@ return [
       ),
     ),
 
-    // user_id 26 — Lua Chaves
-    26 => array (
+    // user_id 30 — Lua Chaves
+    30 => array (
       '2024-12' => 
       array (
         'sem_iva' => 46.67,
@@ -411,8 +436,8 @@ return [
       ),
     ),
 
-    // user_id 27 — Mariann Marquez
-    27 => array (
+    // user_id 31 — Mariann Marquez
+    31 => array (
       '2024-07' => 
       array (
         'sem_iva' => 290.65,
@@ -425,8 +450,8 @@ return [
       ),
     ),
 
-    // user_id 28 — Melissa Kellen
-    28 => array (
+    // user_id 32 — Melissa Kellen
+    32 => array (
       '2024-10' => 
       array (
         'sem_iva' => 99.59,
@@ -494,8 +519,8 @@ return [
       ),
     ),
 
-    // user_id 29 — Miriam Batista
-    29 => array (
+    // user_id 33 — Miriam Batista
+    33 => array (
       '2024-07' => 
       array (
         'sem_iva' => 22.94,
@@ -548,8 +573,8 @@ return [
       ),
     ),
 
-    // user_id 30 — Renata Gouveia
-    30 => array (
+    // user_id 34 — Renata Gouveia
+    34 => array (
       '2024-04' => 
       array (
         'sem_iva' => 110.59,
@@ -602,8 +627,8 @@ return [
       ),
     ),
 
-    // user_id 31 — Tassia Gonçalves
-    31 => array (
+    // user_id 35 — Tassia Gonçalves
+    35 => array (
       '2024-11' => 
       array (
         'sem_iva' => 118.31,
@@ -621,8 +646,8 @@ return [
       ),
     ),
 
-    // user_id 32 — Tatiana Pereira
-    32 => array (
+    // user_id 36 — Tatiana Pereira
+    36 => array (
       '2024-12' => 
       array (
         'sem_iva' => 105.69,
@@ -655,36 +680,12 @@ return [
       ),
     ),
 
-    // user_id 33 — Val Martins
-    33 => array (
+    // user_id 37 — Val Martins
+    37 => array (
       '2024-06' => 
       array (
         'sem_iva' => 13.0,
         'com_iva' => 16.0,
-      ),
-    ),
-
-    // user_id 34 — Alejandra Silva
-    34 => array (
-      '2025-08' => 
-      array (
-        'sem_iva' => 652.67,
-        'com_iva' => 802.8,
-      ),
-      '2025-09' => 
-      array (
-        'sem_iva' => 912.23,
-        'com_iva' => 1122.0,
-      ),
-      '2025-10' => 
-      array (
-        'sem_iva' => 679.07,
-        'com_iva' => 835.2,
-      ),
-      '2025-11' => 
-      array (
-        'sem_iva' => 531.48,
-        'com_iva' => 653.65,
       ),
     ),
 

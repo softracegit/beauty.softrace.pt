@@ -5,15 +5,9 @@
  * Uso: php scripts/build_zappy_commission_totals.php
  */
 
-require __DIR__.'/../vendor/autoload.php';
-$app = require __DIR__.'/../bootstrap/app.php';
-$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-
-use App\Models\User;
-
 $path = __DIR__.'/../SmartAdmin-pro/assets/files/2026.csv';
 $lines = file($path, FILE_IGNORE_NEW_LINES);
-$agentMap = config('zappy_import.agent_user_map', []);
+$userMap = require __DIR__.'/../config/zappy_commission_user_map.php';
 
 function parseEuro(string $v): float
 {
@@ -66,17 +60,14 @@ function nameVariants(string $s): array
 
 /** @var array<string, int> */
 $nameToUserId = [];
+/** @var array<int, string> */
+$userIdToLabel = [];
 
-foreach (User::query()->get(['id', 'name']) as $user) {
-    foreach (nameVariants((string) $user->name) as $variant) {
-        $nameToUserId[normName($variant)] = (int) $user->id;
-    }
-}
-
-foreach ($agentMap as $name => $userId) {
+foreach ($userMap as $name => $userId) {
+    $userId = (int) $userId;
+    $userIdToLabel[$userId] = (string) $name;
     foreach (nameVariants((string) $name) as $variant) {
-        $key = normName($variant);
-        $nameToUserId[$key] ??= (int) $userId;
+        $nameToUserId[normName($variant)] = $userId;
     }
 }
 
@@ -93,10 +84,6 @@ function userIdForZappyName(string $tech, array $nameToUserId): ?int
 }
 
 /**
- * O export Zappy desloca colunas quando item_total (c/IVA) cai em comission_after_discounts.
- * com_iva = performer_comission_p_no_tax (col 23 deslocada) ou performer_comission (col 24 normal)
- * sem_iva = performer_comission (col 24 deslocada) ou performer_comission_no_tax (col 25 normal)
- *
  * @return array{com_iva: float, sem_iva: float}
  */
 function parseCommissionFromRow(array $c): array
@@ -157,16 +144,14 @@ foreach ($byUserMonth as &$months) {
 }
 unset($months, $m);
 
-$vanessaId = 4;
-$laissaId = 2;
-echo "=== user_id {$vanessaId} (Vanessa Pereira) ===\n";
-foreach ($byUserMonth[$vanessaId] ?? [] as $ym => $v) {
+echo "=== user_id 7 (Vanessa Pereira) ===\n";
+foreach ($byUserMonth[7] ?? [] as $ym => $v) {
     if (str_starts_with($ym, '2026-0')) {
         echo "  $ym com_iva={$v['com_iva']} sem_iva={$v['sem_iva']}\n";
     }
 }
-echo "=== user_id {$laissaId} (Laissa Osto) May 2026 ===\n";
-$may = $byUserMonth[$laissaId]['2026-05'] ?? null;
+echo "=== user_id 6 (Laissa Osto) May 2026 ===\n";
+$may = $byUserMonth[6]['2026-05'] ?? null;
 echo $may ? "  com_iva={$may['com_iva']} sem_iva={$may['sem_iva']}\n" : "  (missing)\n";
 
 if ($unmapped !== []) {
@@ -176,25 +161,22 @@ if ($unmapped !== []) {
     }
 }
 
-$userLabels = User::query()
-    ->whereIn('id', array_keys($byUserMonth))
-    ->pluck('name', 'id');
-
 $exportPath = __DIR__.'/../config/zappy_commission_totals.php';
 $php = "<?php\n\n";
 $php .= "/**\n";
-$php .= " * Totais mensais de comissão Zappy indexados por users.id.\n";
+$php .= " * Totais mensais de comissão Zappy indexados por users.id (produção).\n";
 $php .= " * Gerado a partir de SmartAdmin-pro/assets/files/2026.csv\n";
+$php .= " * Mapeamento: config/zappy_commission_user_map.php\n";
 $php .= " * Não editar manualmente — correr: php scripts/build_zappy_commission_totals.php\n";
 $php .= " *\n";
 foreach ($byUserMonth as $userId => $_) {
-    $label = (string) ($userLabels[$userId] ?? '?');
+    $label = $userIdToLabel[$userId] ?? '?';
     $php .= " * {$userId} => {$label}\n";
 }
 $php .= " */\n\nreturn [\n";
 
 foreach ($byUserMonth as $userId => $months) {
-    $label = (string) ($userLabels[$userId] ?? '?');
+    $label = $userIdToLabel[$userId] ?? '?';
     $php .= "    // user_id {$userId} — {$label}\n";
     $php .= '    '.$userId.' => '.str_replace("\n", "\n    ", trim(var_export($months, true), "\n")).",\n\n";
 }

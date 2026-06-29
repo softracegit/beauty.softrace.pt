@@ -236,6 +236,12 @@ class ZappyCommissionHistoricoService
 
     private function userIdForLegacyName(string $name): int
     {
+        foreach (config('zappy_commission_user_map', []) as $mapName => $id) {
+            if (strcasecmp(trim($mapName), trim($name)) === 0) {
+                return (int) $id;
+            }
+        }
+
         foreach (config('zappy_import.agent_user_map', []) as $mapName => $id) {
             if (strcasecmp(trim($mapName), trim($name)) === 0) {
                 return (int) $id;
