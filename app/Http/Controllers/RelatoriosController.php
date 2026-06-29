@@ -14,6 +14,7 @@ use App\Services\ComissoesReportService;
 use App\Services\SmsReportService;
 use App\Services\VendasReportService;
 use App\Support\DateTimeDisplay;
+use App\Support\TechnicianFilterUserId;
 use App\Support\MarcacoesReportEstadoFilter;
 use App\Support\StoreBusinessTime;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -625,20 +626,21 @@ class RelatoriosController extends Controller
     private function membrosOptsForRelatorios(): Collection
     {
         return User::activeServiceProviders(current_store_id())
-            ->orderBy('name')
-            ->get(['id', 'name']);
+            ->select('users.id', 'users.name')
+            ->orderBy('users.name')
+            ->get();
     }
 
     public function comissoes(Request $request): View
     {
         $filters = $this->comissoesFiltersFromRequest($request);
+        $filters['tecnico'] = TechnicianFilterUserId::resolve($filters['tecnico']);
+
         $sales = $this->comissoesReportService->salesForReport($filters);
         $servicoFilter = $filters['servico'] !== null && $filters['servico'] !== ''
             ? (int) $filters['servico']
             : null;
-        $tecnicoFilter = $filters['tecnico'] !== null && $filters['tecnico'] !== ''
-            ? (int) $filters['tecnico']
-            : null;
+        $tecnicoFilter = $filters['tecnico'];
         $allLines = $this->comissoesReportService->linesCollection($sales, $servicoFilter, $tecnicoFilter);
 
         $page = max(1, (int) $request->get('page', 1));
@@ -663,7 +665,7 @@ class RelatoriosController extends Controller
             'comissoesDesde' => $filters['desde'],
             'comissoesAte' => $filters['ate'],
             'comissoesServico' => $request->get('comissoes_servico'),
-            'comissoesTecnico' => $request->get('comissoes_tecnico'),
+            'comissoesTecnico' => $filters['tecnico'],
             'comissoesEstado' => $request->get('comissoes_estado'),
             'comissoesCliente' => $request->get('comissoes_cliente'),
             'servicosOpts' => $this->comissoesReportService->servicosOpts(),

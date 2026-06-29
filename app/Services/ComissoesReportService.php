@@ -9,6 +9,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Service;
 use App\Support\SaleTechnicianAttribution;
+use App\Support\TechnicianFilterUserId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -58,7 +59,7 @@ class ComissoesReportService
         }
 
         $servico = $filters['servico'] ?? null;
-        $tecnico = $filters['tecnico'] ?? null;
+        $tecnico = TechnicianFilterUserId::resolve($filters['tecnico'] ?? null);
         $cliente = $filters['cliente'] ?? null;
 
         $query = CalendarEvent::query()

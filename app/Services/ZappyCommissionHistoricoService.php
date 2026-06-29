@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\TechnicianFilterUserId;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -37,13 +38,9 @@ class ZappyCommissionHistoricoService
             return null;
         }
 
-        $tecnicoFilter = $filters['tecnico'] ?? null;
-        if ($tecnicoFilter !== null && $tecnicoFilter !== '' && ! $this->hasTotalsForUserId((int) $tecnicoFilter)) {
-            return null;
-        }
-
+        $userId = TechnicianFilterUserId::resolve($filters['tecnico'] ?? null);
         $historicalEnd = min($ate, self::HISTORICAL_END);
-        $zappy = $this->zappyTotalsForRange($desde, $historicalEnd, $tecnicoFilter);
+        $zappy = $this->zappyTotalsForRange($desde, $historicalEnd, $userId);
 
         if ($zappy['total_comissao_com_iva'] <= 0 && $zappy['total_comissao_sem_iva'] <= 0) {
             return null;
@@ -84,10 +81,10 @@ class ZappyCommissionHistoricoService
     /**
      * @return array{total_comissao_com_iva: float, total_comissao_sem_iva: float}
      */
-    private function zappyTotalsForRange(string $desde, string $ate, mixed $tecnicoFilter): array
+    private function zappyTotalsForRange(string $desde, string $ate, ?int $userId): array
     {
         $totals = $this->loadTotals();
-        $userIds = $this->userIdsForFilter($tecnicoFilter);
+        $userIds = $userId !== null ? [$userId] : array_keys($totals);
 
         $comIva = 0.0;
         $semIva = 0.0;
@@ -112,8 +109,8 @@ class ZappyCommissionHistoricoService
                 continue;
             }
 
-            foreach ($userIds as $userId) {
-                $month = $totals[$userId][$ym] ?? null;
+            foreach ($userIds as $id) {
+                $month = $this->monthsForUser($totals, (int) $id)[$ym] ?? null;
                 if ($month === null) {
                     continue;
                 }
@@ -131,20 +128,22 @@ class ZappyCommissionHistoricoService
     }
 
     /**
-     * @return list<int>
+     * @param  array<int|string, array<string, array{com_iva: float, sem_iva: float}>>  $totals
+     * @return array<string, array{com_iva: float, sem_iva: float}>
      */
-    private function userIdsForFilter(mixed $tecnicoFilter): array
+    private function monthsForUser(array $totals, int $userId): array
     {
-        if ($tecnicoFilter !== null && $tecnicoFilter !== '') {
-            return [(int) $tecnicoFilter];
+        if (isset($totals[$userId]) && is_array($totals[$userId])) {
+            return $totals[$userId];
         }
 
-        return array_map('intval', array_keys($this->loadTotals()));
-    }
+        foreach ($totals as $key => $months) {
+            if ((int) $key === $userId && is_array($months)) {
+                return $months;
+            }
+        }
 
-    private function hasTotalsForUserId(int $userId): bool
-    {
-        return isset($this->loadTotals()[$userId]);
+        return [];
     }
 
     /**
