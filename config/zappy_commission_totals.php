@@ -35,82 +35,82 @@ return [
       '2025-03' => 
       array (
         'sem_iva' => 191.21,
-        'com_iva' => 235.17,
+        'com_iva' => 235.2,
       ),
       '2025-04' => 
       array (
         'sem_iva' => 1077.82,
-        'com_iva' => 1325.49,
+        'com_iva' => 1325.8,
       ),
       '2025-05' => 
       array (
         'sem_iva' => 1462.58,
-        'com_iva' => 1798.7,
+        'com_iva' => 1799.08,
       ),
       '2025-06' => 
       array (
-        'sem_iva' => 1532.55,
-        'com_iva' => 1884.77,
+        'sem_iva' => 1533.24,
+        'com_iva' => 1884.73,
       ),
       '2025-07' => 
       array (
         'sem_iva' => 1664.1,
-        'com_iva' => 2046.88,
+        'com_iva' => 2046.8,
       ),
       '2025-08' => 
       array (
-        'sem_iva' => 1839.38,
-        'com_iva' => 2262.45,
+        'sem_iva' => 1815.48,
+        'com_iva' => 2275.12,
       ),
       '2025-09' => 
       array (
         'sem_iva' => 1356.3,
-        'com_iva' => 1668.28,
+        'com_iva' => 1668.1,
       ),
       '2025-10' => 
       array (
         'sem_iva' => 1406.42,
-        'com_iva' => 1730.01,
+        'com_iva' => 1729.7,
       ),
       '2025-11' => 
       array (
         'sem_iva' => 1370.16,
-        'com_iva' => 1685.34,
+        'com_iva' => 1685.1,
       ),
       '2025-12' => 
       array (
         'sem_iva' => 1987.6,
-        'com_iva' => 2444.83,
+        'com_iva' => 2444.4,
       ),
       '2026-01' => 
       array (
         'sem_iva' => 1268.74,
-        'com_iva' => 1560.64,
+        'com_iva' => 1560.3,
       ),
       '2026-02' => 
       array (
         'sem_iva' => 1329.4,
-        'com_iva' => 1635.28,
+        'com_iva' => 1635.01,
       ),
       '2026-03' => 
       array (
         'sem_iva' => 1631.8,
-        'com_iva' => 2007.22,
+        'com_iva' => 2006.9,
       ),
       '2026-04' => 
       array (
         'sem_iva' => 1624.44,
-        'com_iva' => 1998.11,
+        'com_iva' => 1997.8,
       ),
       '2026-05' => 
       array (
         'sem_iva' => 1610.21,
-        'com_iva' => 1980.6,
+        'com_iva' => 1980.3,
       ),
       '2026-06' => 
       array (
         'sem_iva' => 1377.42,
-        'com_iva' => 1694.27,
+        'com_iva' => 1694.0,
       ),
     ),
 
@@ -119,32 +119,32 @@ return [
       '2026-01' => 
       array (
         'sem_iva' => 505.43,
-        'com_iva' => 621.58,
+        'com_iva' => 621.6,
       ),
       '2026-02' => 
       array (
         'sem_iva' => 690.95,
-        'com_iva' => 849.73,
+        'com_iva' => 849.76,
       ),
       '2026-03' => 
       array (
         'sem_iva' => 786.42,
-        'com_iva' => 967.14,
+        'com_iva' => 967.2,
       ),
       '2026-04' => 
       array (
-        'sem_iva' => 911.77,
-        'com_iva' => 1121.32,
+        'sem_iva' => 912.68,
+        'com_iva' => 1121.09,
       ),
       '2026-05' => 
       array (
-        'sem_iva' => 1354.36,
-        'com_iva' => 1665.72,
+        'sem_iva' => 1354.68,
+        'com_iva' => 1665.49,
       ),
       '2026-06' => 
       array (
         'sem_iva' => 1139.2,
-        'com_iva' => 1401.07,
+        'com_iva' => 1401.0,
       ),
     ),
 
@@ -153,47 +153,47 @@ return [
       '2025-10' => 
       array (
         'sem_iva' => 679.73,
-        'com_iva' => 836.09,
+        'com_iva' => 836.1,
       ),
       '2025-11' => 
       array (
         'sem_iva' => 769.37,
-        'com_iva' => 946.29,
+        'com_iva' => 946.3,
       ),
       '2025-12' => 
       array (
         'sem_iva' => 1591.77,
-        'com_iva' => 1957.7,
+        'com_iva' => 1957.8,
       ),
       '2026-01' => 
       array (
         'sem_iva' => 803.9,
-        'com_iva' => 988.75,
+        'com_iva' => 988.8,
       ),
       '2026-02' => 
       array (
         'sem_iva' => 985.88,
-        'com_iva' => 1212.56,
+        'com_iva' => 1212.6,
       ),
       '2026-03' => 
       array (
         'sem_iva' => 1142.51,
-        'com_iva' => 1405.19,
+        'com_iva' => 1405.2,
       ),
       '2026-04' => 
       array (
         'sem_iva' => 1281.02,
-        'com_iva' => 1575.58,
+        'com_iva' => 1575.6,
       ),
       '2026-05' => 
       array (
         'sem_iva' => 1638.66,
-        'com_iva' => 2015.54,
+        'com_iva' => 2015.4,
       ),
       '2026-06' => 
       array (
         'sem_iva' => 1155.28,
-        'com_iva' => 1420.96,
+        'com_iva' => 1420.8,
       ),
     ),
 
@@ -222,22 +222,22 @@ return [
       '2026-03' => 
       array (
         'sem_iva' => 162.92,
-        'com_iva' => 200.41,
+        'com_iva' => 200.4,
       ),
       '2026-04' => 
       array (
         'sem_iva' => 70.25,
-        'com_iva' => 86.42,
+        'com_iva' => 86.4,
       ),
       '2026-05' => 
       array (
         'sem_iva' => 124.88,
-        'com_iva' => 153.61,
+        'com_iva' => 153.6,
       ),
       '2026-06' => 
       array (
         'sem_iva' => 80.97,
-        'com_iva' => 99.59,
+        'com_iva' => 99.6,
       ),
     ),
 
@@ -246,7 +246,7 @@ return [
       '2024-10' => 
       array (
         'sem_iva' => 41.96,
-        'com_iva' => 51.61,
+        'com_iva' => 51.6,
       ),
       '2024-11' => 
       array (
@@ -260,22 +260,22 @@ return [
       '2025-07' => 
       array (
         'sem_iva' => 70.0,
-        'com_iva' => 86.09,
+        'com_iva' => 86.1,
       ),
       '2025-08' => 
       array (
         'sem_iva' => 124.92,
-        'com_iva' => 153.63,
+        'com_iva' => 153.66,
       ),
       '2025-09' => 
       array (
         'sem_iva' => 97.32,
-        'com_iva' => 119.69,
+        'com_iva' => 119.7,
       ),
       '2025-10' => 
       array (
         'sem_iva' => 44.97,
-        'com_iva' => 55.31,
+        'com_iva' => 55.3,
       ),
     ),
 
@@ -293,27 +293,27 @@ return [
       '2024-03' => 
       array (
         'sem_iva' => 56.34,
-        'com_iva' => 69.28,
+        'com_iva' => 69.3,
       ),
       '2024-04' => 
       array (
         'sem_iva' => 114.36,
-        'com_iva' => 140.66,
+        'com_iva' => 140.68,
       ),
       '2024-05' => 
       array (
         'sem_iva' => 395.98,
-        'com_iva' => 487.04,
+        'com_iva' => 487.2,
       ),
       '2024-06' => 
       array (
         'sem_iva' => 484.8,
-        'com_iva' => 596.29,
+        'com_iva' => 596.4,
       ),
       '2024-07' => 
       array (
         'sem_iva' => 187.79,
-        'com_iva' => 230.96,
+        'com_iva' => 231.0,
       ),
     ),
 
@@ -359,7 +359,7 @@ return [
       '2024-03' => 
       array (
         'sem_iva' => 54.72,
-        'com_iva' => 67.33,
+        'com_iva' => 67.32,
       ),
       '2024-04' => 
       array (
@@ -383,17 +383,17 @@ return [
       '2025-06' => 
       array (
         'sem_iva' => 526.32,
-        'com_iva' => 647.47,
+        'com_iva' => 647.4,
       ),
       '2025-07' => 
       array (
         'sem_iva' => 976.17,
-        'com_iva' => 1200.66,
+        'com_iva' => 1200.6,
       ),
       '2025-08' => 
       array (
-        'sem_iva' => 889.33,
-        'com_iva' => 1093.82,
+        'sem_iva' => 882.17,
+        'com_iva' => 1096.27,
       ),
       '2025-09' => 
       array (
@@ -430,67 +430,67 @@ return [
       '2024-10' => 
       array (
         'sem_iva' => 99.59,
-        'com_iva' => 122.49,
+        'com_iva' => 122.5,
       ),
       '2024-11' => 
       array (
         'sem_iva' => 86.48,
-        'com_iva' => 106.35,
+        'com_iva' => 106.4,
       ),
       '2024-12' => 
       array (
         'sem_iva' => 267.2,
-        'com_iva' => 328.61,
+        'com_iva' => 328.65,
       ),
       '2025-01' => 
       array (
-        'sem_iva' => 118.94,
-        'com_iva' => 146.29,
+        'sem_iva' => 110.16,
+        'com_iva' => 151.01,
       ),
       '2025-02' => 
       array (
         'sem_iva' => 277.71,
-        'com_iva' => 341.56,
+        'com_iva' => 341.6,
       ),
       '2025-03' => 
       array (
         'sem_iva' => 427.37,
-        'com_iva' => 525.66,
+        'com_iva' => 525.7,
       ),
       '2025-04' => 
       array (
         'sem_iva' => 355.09,
-        'com_iva' => 436.75,
+        'com_iva' => 436.8,
       ),
       '2025-05' => 
       array (
         'sem_iva' => 566.79,
-        'com_iva' => 697.15,
+        'com_iva' => 697.19,
       ),
       '2025-06' => 
       array (
         'sem_iva' => 701.1,
-        'com_iva' => 862.33,
+        'com_iva' => 862.4,
       ),
       '2025-07' => 
       array (
         'sem_iva' => 822.31,
-        'com_iva' => 1011.38,
+        'com_iva' => 1011.5,
       ),
       '2025-08' => 
       array (
         'sem_iva' => 593.14,
-        'com_iva' => 729.53,
+        'com_iva' => 729.6,
       ),
       '2025-09' => 
       array (
         'sem_iva' => 745.9,
-        'com_iva' => 917.41,
+        'com_iva' => 917.5,
       ),
       '2025-10' => 
       array (
         'sem_iva' => 307.88,
-        'com_iva' => 378.68,
+        'com_iva' => 378.7,
       ),
     ),
 
@@ -498,8 +498,8 @@ return [
     29 => array (
       '2024-07' => 
       array (
-        'sem_iva' => 37.57,
-        'com_iva' => 46.2,
+        'sem_iva' => 22.94,
+        'com_iva' => 51.24,
       ),
       '2024-08' => 
       array (
@@ -509,42 +509,42 @@ return [
       '2024-09' => 
       array (
         'sem_iva' => 433.65,
-        'com_iva' => 533.47,
+        'com_iva' => 533.4,
       ),
       '2024-10' => 
       array (
         'sem_iva' => 454.15,
-        'com_iva' => 558.7,
+        'com_iva' => 558.6,
       ),
       '2024-11' => 
       array (
         'sem_iva' => 315.59,
-        'com_iva' => 388.24,
+        'com_iva' => 388.2,
       ),
       '2024-12' => 
       array (
         'sem_iva' => 445.85,
-        'com_iva' => 548.51,
+        'com_iva' => 548.4,
       ),
       '2025-01' => 
       array (
         'sem_iva' => 291.23,
-        'com_iva' => 358.3,
+        'com_iva' => 358.2,
       ),
       '2025-02' => 
       array (
         'sem_iva' => 511.71,
-        'com_iva' => 629.54,
+        'com_iva' => 629.4,
       ),
       '2025-03' => 
       array (
         'sem_iva' => 478.43,
-        'com_iva' => 588.56,
+        'com_iva' => 588.45,
       ),
       '2025-04' => 
       array (
-        'sem_iva' => 60.98,
-        'com_iva' => 75.03,
+        'sem_iva' => 37.52,
+        'com_iva' => 83.1,
       ),
     ),
 
@@ -553,17 +553,17 @@ return [
       '2024-04' => 
       array (
         'sem_iva' => 110.59,
-        'com_iva' => 136.03,
+        'com_iva' => 136.01,
       ),
       '2024-05' => 
       array (
         'sem_iva' => 81.3,
-        'com_iva' => 100.02,
+        'com_iva' => 100.0,
       ),
       '2024-06' => 
       array (
         'sem_iva' => 247.82,
-        'com_iva' => 304.85,
+        'com_iva' => 304.8,
       ),
       '2024-07' => 
       array (
@@ -573,32 +573,32 @@ return [
       '2024-08' => 
       array (
         'sem_iva' => 307.93,
-        'com_iva' => 378.81,
+        'com_iva' => 378.72,
       ),
       '2024-09' => 
       array (
         'sem_iva' => 171.07,
-        'com_iva' => 210.43,
+        'com_iva' => 210.4,
       ),
       '2024-10' => 
       array (
         'sem_iva' => 186.05,
-        'com_iva' => 228.86,
+        'com_iva' => 228.8,
       ),
       '2024-11' => 
       array (
         'sem_iva' => 89.14,
-        'com_iva' => 109.67,
+        'com_iva' => 109.6,
       ),
       '2024-12' => 
       array (
         'sem_iva' => 280.35,
-        'com_iva' => 344.83,
+        'com_iva' => 344.8,
       ),
       '2025-01' => 
       array (
         'sem_iva' => 142.46,
-        'com_iva' => 175.25,
+        'com_iva' => 175.2,
       ),
     ),
 
@@ -607,17 +607,17 @@ return [
       '2024-11' => 
       array (
         'sem_iva' => 118.31,
-        'com_iva' => 145.52,
+        'com_iva' => 145.5,
       ),
       '2024-12' => 
       array (
         'sem_iva' => 376.77,
-        'com_iva' => 463.38,
+        'com_iva' => 463.4,
       ),
       '2025-01' => 
       array (
         'sem_iva' => 104.86,
-        'com_iva' => 128.99,
+        'com_iva' => 129.0,
       ),
     ),
 
@@ -626,22 +626,22 @@ return [
       '2024-12' => 
       array (
         'sem_iva' => 105.69,
-        'com_iva' => 130.01,
+        'com_iva' => 130.0,
       ),
       '2025-01' => 
       array (
         'sem_iva' => 80.9,
-        'com_iva' => 99.51,
+        'com_iva' => 99.5,
       ),
       '2025-02' => 
       array (
         'sem_iva' => 74.79,
-        'com_iva' => 91.99,
+        'com_iva' => 92.0,
       ),
       '2025-03' => 
       array (
         'sem_iva' => 133.01,
-        'com_iva' => 163.61,
+        'com_iva' => 163.63,
       ),
       '2025-04' => 
       array (
@@ -650,8 +650,8 @@ return [
       ),
       '2025-08' => 
       array (
-        'sem_iva' => 0.0,
-        'com_iva' => 0.0,
+        'sem_iva' => -16.27,
+        'com_iva' => 3.74,
       ),
     ),
 
@@ -674,7 +674,7 @@ return [
       '2025-09' => 
       array (
         'sem_iva' => 912.23,
-        'com_iva' => 1122.03,
+        'com_iva' => 1122.0,
       ),
       '2025-10' => 
       array (

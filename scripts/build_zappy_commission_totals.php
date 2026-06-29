@@ -92,6 +92,32 @@ function userIdForZappyName(string $tech, array $nameToUserId): ?int
     return null;
 }
 
+/**
+ * O export Zappy desloca colunas quando item_total (c/IVA) cai em comission_after_discounts.
+ * com_iva = performer_comission_p_no_tax (col 23 deslocada) ou performer_comission (col 24 normal)
+ * sem_iva = performer_comission (col 24 deslocada) ou performer_comission_no_tax (col 25 normal)
+ *
+ * @return array{com_iva: float, sem_iva: float}
+ */
+function parseCommissionFromRow(array $c): array
+{
+    $col19 = parseEuro($c[19] ?? '0');
+    $col20 = parseEuro($c[20] ?? '0');
+    $shifted = $col19 >= 3 && $col20 <= 1.5;
+
+    if ($shifted) {
+        return [
+            'com_iva' => parseEuro($c[23] ?? '0'),
+            'sem_iva' => parseEuro($c[24] ?? '0'),
+        ];
+    }
+
+    return [
+        'com_iva' => parseEuro($c[24] ?? '0'),
+        'sem_iva' => parseEuro($c[25] ?? '0'),
+    ];
+}
+
 /** @var array<int, array<string, array{com_iva: float, sem_iva: float}>> */
 $byUserMonth = [];
 /** @var array<string, int> */
@@ -115,11 +141,10 @@ for ($i = 1; $i < count($lines); $i++) {
         continue;
     }
 
-    $semIva = parseEuro($c[24] ?? '0');
-    $comIva = round($semIva * (123 / 100), 2);
+    $commission = parseCommissionFromRow($c);
 
-    $byUserMonth[$userId][$ym]['sem_iva'] = ($byUserMonth[$userId][$ym]['sem_iva'] ?? 0) + $semIva;
-    $byUserMonth[$userId][$ym]['com_iva'] = ($byUserMonth[$userId][$ym]['com_iva'] ?? 0) + $comIva;
+    $byUserMonth[$userId][$ym]['sem_iva'] = ($byUserMonth[$userId][$ym]['sem_iva'] ?? 0) + $commission['sem_iva'];
+    $byUserMonth[$userId][$ym]['com_iva'] = ($byUserMonth[$userId][$ym]['com_iva'] ?? 0) + $commission['com_iva'];
 }
 
 ksort($byUserMonth);
@@ -133,12 +158,16 @@ foreach ($byUserMonth as &$months) {
 unset($months, $m);
 
 $vanessaId = 4;
+$laissaId = 2;
 echo "=== user_id {$vanessaId} (Vanessa Pereira) ===\n";
 foreach ($byUserMonth[$vanessaId] ?? [] as $ym => $v) {
     if (str_starts_with($ym, '2026-0')) {
         echo "  $ym com_iva={$v['com_iva']} sem_iva={$v['sem_iva']}\n";
     }
 }
+echo "=== user_id {$laissaId} (Laissa Osto) May 2026 ===\n";
+$may = $byUserMonth[$laissaId]['2026-05'] ?? null;
+echo $may ? "  com_iva={$may['com_iva']} sem_iva={$may['sem_iva']}\n" : "  (missing)\n";
 
 if ($unmapped !== []) {
     echo "\nUnmapped Zappy names:\n";
