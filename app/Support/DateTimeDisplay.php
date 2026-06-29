@@ -59,6 +59,18 @@ class DateTimeDisplay
         return self::formatInstant($dateTime, null, $format, $fallback);
     }
 
+    /**
+     * Coluna DATE (ex.: data_emissao) — dia calendário sem conversão de fuso para hora.
+     */
+    public static function businessDate(?DateTimeInterface $dateTime, string $format = 'd/m/Y', string $fallback = '—'): string
+    {
+        if (! $dateTime) {
+            return $fallback;
+        }
+
+        return Carbon::instance($dateTime)->format($format);
+    }
+
     public static function inBusiness(?DateTimeInterface $dateTime, ?int $storeId = null): ?CarbonInterface
     {
         return self::instantInBusinessTimezone($dateTime, $storeId);

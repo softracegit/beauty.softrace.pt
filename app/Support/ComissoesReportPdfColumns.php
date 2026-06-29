@@ -10,11 +10,11 @@ class ComissoesReportPdfColumns
     public const LABELS = [
         'data_venda' => 'Data venda',
         'numero_fatura' => 'N.º fatura',
-        'colaborador' => 'Colaborador',
+        'colaborador' => 'Colaborador(a)',
         'cliente' => 'Cliente',
         'servico' => 'Serviço',
         'valor_servico' => 'Valor serviço',
-        'comissao_taxa' => 'Comissão',
+        'comissao_taxa' => 'Comissão (%)',
         'valor_comissao' => 'Valor comissão',
     ];
 

@@ -75,7 +75,7 @@
       </select>
     </div>
     <div class="uview-filter-field uview-filter-select">
-      <label class="form-label small text-muted mb-0">Técnico</label>
+      <label class="form-label small text-muted mb-0">Colaborador(a)</label>
       <select name="comissoes_tecnico" class="form-select form-select-sm">
         <option value="">Todos</option>
         @foreach($tecnicosOpts ?? [] as $tec)
@@ -117,11 +117,11 @@
           <tr>
             <th>Data venda</th>
             <th>N.º fatura</th>
-            <th>Colaborador</th>
+            <th>Colaborador(a)</th>
             <th>Cliente</th>
             <th>Serviço</th>
             <th class="text-end text-nowrap">Valor serviço</th>
-            <th class="text-end text-nowrap">Comissão</th>
+            <th class="text-end text-nowrap">Comissão (%)</th>
             <th class="text-end text-nowrap">Valor comissão</th>
           </tr>
         </thead>
@@ -132,7 +132,7 @@
               data-valor-sem-iva="{{ $linha->valor_sem_iva }}"
               data-comissao-com-iva="{{ $linha->comissao_com_iva }}"
               data-comissao-sem-iva="{{ $linha->comissao_sem_iva }}">
-              <td class="text-nowrap">{{ $linha->data_emissao ? \App\Support\DateTimeDisplay::business($linha->data_emissao) : '—' }}</td>
+              <td class="text-nowrap">{{ $linha->data_emissao ? \App\Support\DateTimeDisplay::businessDate($linha->data_emissao) : '—' }}</td>
               <td class="text-nowrap">{{ $linha->numero_fatura ?: '—' }}</td>
               <td>{{ $linha->tecnico }}</td>
               <td>{{ $linha->cliente }}</td>

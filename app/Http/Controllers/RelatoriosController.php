@@ -681,12 +681,12 @@ class RelatoriosController extends Controller
         $headers = [
             'Data venda',
             'N.º fatura',
-            'Colaborador',
+            'Colaborador(a)',
             'Cliente',
             'Serviço',
             'Valor serviço c/ IVA (€)',
             'Valor serviço s/ IVA (€)',
-            'Comissão',
+            'Comissão (%)',
             'Valor comissão c/ IVA (€)',
             'Valor comissão s/ IVA (€)',
         ];
@@ -696,7 +696,7 @@ class RelatoriosController extends Controller
         foreach ($report['lines'] as $linha) {
             $sheet->fromArray([
                 [
-                    $linha->data_emissao ? DateTimeDisplay::business($linha->data_emissao) : '',
+                    $linha->data_emissao ? DateTimeDisplay::businessDate($linha->data_emissao) : '',
                     $linha->numero_fatura ?? '',
                     $linha->tecnico,
                     $linha->cliente,
@@ -820,7 +820,7 @@ class RelatoriosController extends Controller
             $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $request->get('comissoes_tecnico')) {
-            $lines[] = 'Técnico: '.(User::activeServiceProviders(current_store_id())->find($tid)?->name ?? '—');
+            $lines[] = 'Colaborador(a): '.(User::activeServiceProviders(current_store_id())->find($tid)?->name ?? '—');
         }
 
         return $lines;

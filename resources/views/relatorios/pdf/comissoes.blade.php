@@ -65,7 +65,7 @@
           @foreach($columns as $colKey)
             @switch($colKey)
               @case('data_venda')
-                <td class="text-nowrap">{{ $linha->data_emissao ? \App\Support\DateTimeDisplay::business($linha->data_emissao) : '—' }}</td>
+                <td class="text-nowrap">{{ $linha->data_emissao ? \App\Support\DateTimeDisplay::businessDate($linha->data_emissao) : '—' }}</td>
                 @break
               @case('numero_fatura')
                 <td class="text-nowrap">{{ $linha->numero_fatura ?: '—' }}</td>
