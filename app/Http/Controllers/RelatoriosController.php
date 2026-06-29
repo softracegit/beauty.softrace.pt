@@ -680,14 +680,43 @@ class RelatoriosController extends Controller
      */
     private function comissoesFiltersFromRequest(Request $request): array
     {
+        $desde = $this->normalizeRelatorioDate($request->get('comissoes_desde')) ?: $this->marcacoesDefaultDesde();
+        $ate = $this->normalizeRelatorioDate($request->get('comissoes_ate')) ?: $this->marcacoesDefaultAte();
+
         return [
-            'desde' => $request->get('comissoes_desde') ?: $this->marcacoesDefaultDesde(),
-            'ate' => $request->get('comissoes_ate') ?: $this->marcacoesDefaultAte(),
+            'desde' => $desde,
+            'ate' => $ate,
             'cliente' => $request->get('comissoes_cliente'),
             'servico' => $request->get('comissoes_servico'),
             'tecnico' => $request->get('comissoes_tecnico'),
             'estado' => $request->get('comissoes_estado'),
         ];
+    }
+
+    private function normalizeRelatorioDate(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('#^(\d{4})-(\d{2})-(\d{2})$#', $value)) {
+            return $value;
+        }
+
+        if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})#', $value, $m)) {
+            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+        }
+
+        try {
+            return \Carbon\Carbon::parse($value)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function bookingFunnel(Request $request): View

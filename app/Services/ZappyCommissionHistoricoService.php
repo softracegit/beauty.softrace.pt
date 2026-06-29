@@ -28,8 +28,8 @@ class ZappyCommissionHistoricoService
             return null;
         }
 
-        $desde = (string) ($filters['desde'] ?? '');
-        $ate = (string) ($filters['ate'] ?? '');
+        $desde = $this->normalizeFilterDate((string) ($filters['desde'] ?? ''));
+        $ate = $this->normalizeFilterDate((string) ($filters['ate'] ?? ''));
         if ($desde === '' || $ate === '') {
             return null;
         }
@@ -61,6 +61,28 @@ class ZappyCommissionHistoricoService
             'total_comissao_com_iva' => round($zappy['total_comissao_com_iva'] + (float) $crmLines->sum(fn (object $l) => (float) $l->comissao_com_iva), 2),
             'total_comissao_sem_iva' => round($zappy['total_comissao_sem_iva'] + (float) $crmLines->sum(fn (object $l) => (float) $l->comissao_sem_iva), 2),
         ];
+    }
+
+    private function normalizeFilterDate(string $date): string
+    {
+        $date = trim($date);
+        if ($date === '') {
+            return '';
+        }
+
+        if (preg_match('#^(\d{4})-(\d{2})-(\d{2})$#', $date)) {
+            return $date;
+        }
+
+        if (preg_match('#^(\d{1,2})/(\d{1,2})/(\d{4})#', $date, $m)) {
+            return sprintf('%04d-%02d-%02d', (int) $m[3], (int) $m[2], (int) $m[1]);
+        }
+
+        try {
+            return Carbon::parse($date)->toDateString();
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     /**
@@ -155,7 +177,11 @@ class ZappyCommissionHistoricoService
             return $this->totals;
         }
 
-        $totals = config('zappy_commission_totals', []);
+        $path = config_path('zappy_commission_totals.php');
+        $totals = is_readable($path)
+            ? require $path
+            : config('zappy_commission_totals', []);
+
         if (! is_array($totals)) {
             $this->totals = [];
 
