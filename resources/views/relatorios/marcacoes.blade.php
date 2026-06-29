@@ -4,6 +4,7 @@
 
 @section('css')
   @include('relatorios._styles')
+  @include('relatorios.partials.pdf-print-dropdown-styles')
 @endsection
 
 @section('content')
@@ -16,9 +17,13 @@
         <a href="{{ route('relatorios.marcacoes.export', request()->query()) }}" class="btn btn-outline-primary btn-sm">
           <i class="ph ph-download-simple me-1"></i> Exportar
         </a>
-        <a href="{{ route('relatorios.marcacoes.pdf', request()->query()) }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
-          <i class="ph ph-printer me-1"></i> Imprimir
-        </a>
+        @include('relatorios.partials.pdf-print-dropdown', [
+          'pdfPrintUrl' => route('relatorios.marcacoes.pdf', request()->query()),
+          'pdfColumnOptions' => $marcacoesPdfColumnOptions ?? [],
+          'pdfPrintScope' => 'marcacoes',
+          'pdfColsParam' => 'marcacoes_pdf_cols',
+          'pdfOrientationParam' => 'marcacoes_pdf_orientation',
+        ])
       </div>
     </div>
   </div>
@@ -218,4 +223,5 @@
       });
     })();
   </script>
+  @include('relatorios.partials.pdf-print-dropdown-script')
 @endsection

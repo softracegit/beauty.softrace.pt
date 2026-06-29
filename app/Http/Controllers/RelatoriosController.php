@@ -15,9 +15,11 @@ use App\Services\SmsReportService;
 use App\Services\VendasReportService;
 use App\Support\ComissoesReportPdfColumns;
 use App\Support\DateTimeDisplay;
+use App\Support\MarcacoesReportPdfColumns;
 use App\Support\TechnicianFilterUserId;
 use App\Support\MarcacoesReportEstadoFilter;
 use App\Support\StoreBusinessTime;
+use App\Support\VendasReportPdfColumns;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -86,6 +88,7 @@ class RelatoriosController extends Controller
             'tecnicosOpts' => $tecnicosOpts,
             'clientesOpts' => $clientesOpts,
             'marcacoesTotais' => $this->marcacoesReportTotals($request),
+            'marcacoesPdfColumnOptions' => MarcacoesReportPdfColumns::labels(),
         ]);
     }
 
@@ -181,13 +184,17 @@ class RelatoriosController extends Controller
             ->orderByDesc('start_at')
             ->get();
 
+        $pdfColumns = MarcacoesReportPdfColumns::resolveFromRequest($request);
+
         $pdf = Pdf::loadView('relatorios.pdf.marcacoes', [
             'marcacoes' => $events,
             'filtrosLinhas' => $this->marcacoesFiltrosResumo($request),
             'appName' => config('app.name'),
             'totalRegistos' => $events->count(),
             'marcacoesTotais' => $this->marcacoesTotaisFromEvents($events),
-        ])->setPaper('a4', 'landscape');
+            'pdfColumns' => $pdfColumns,
+            'pdfColumnLabels' => MarcacoesReportPdfColumns::labels(),
+        ])->setPaper('a4', MarcacoesReportPdfColumns::resolveOrientationFromRequest($request));
 
         $filename = 'marcacoes_'.now()->format('Y-m-d_His').'.pdf';
 
@@ -354,6 +361,7 @@ class RelatoriosController extends Controller
             'servicosOpts' => $this->vendasServicosOpts(),
             'tecnicosOpts' => $this->membrosOptsForRelatorios(),
             'vendasTotais' => $this->vendasTotaisRodape($allLines, $dateCriterion, $sales),
+            'vendasPdfColumnOptions' => $this->vendasPdfColumnOptions($dateCriterion),
         ]);
     }
 
@@ -463,6 +471,9 @@ class RelatoriosController extends Controller
             $dateCriterion,
         );
 
+        $pdfColumns = VendasReportPdfColumns::resolveFromRequest($request);
+        $pdfColumnLabels = $this->vendasPdfColumnOptions($dateCriterion);
+
         $pdf = Pdf::loadView('relatorios.pdf.vendas', [
             'linhas' => $lines,
             'filtrosLinhas' => $this->vendasFiltrosResumo($request),
@@ -470,11 +481,24 @@ class RelatoriosController extends Controller
             'totalLinhas' => $lines->count(),
             'vendasTotais' => $this->vendasTotaisRodape($lines, $dateCriterion, $sales),
             'vendasDataColunaLabel' => $this->vendasDataColunaLabel($dateCriterion),
-        ])->setPaper('a4', 'landscape');
+            'pdfColumns' => $pdfColumns,
+            'pdfColumnLabels' => $pdfColumnLabels,
+        ])->setPaper('a4', VendasReportPdfColumns::resolveOrientationFromRequest($request));
 
         $filename = 'vendas_'.now()->format('Y-m-d_His').'.pdf';
 
         return $pdf->stream($filename);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function vendasPdfColumnOptions(string $dateCriterion): array
+    {
+        $labels = VendasReportPdfColumns::labels();
+        $labels['data'] = $this->vendasDataColunaLabel($dateCriterion);
+
+        return $labels;
     }
 
     /**
@@ -766,7 +790,7 @@ class RelatoriosController extends Controller
             'comissoesComIva' => $this->comissoesComIvaPreference($request),
             'pdfColumns' => $pdfColumns,
             'pdfColumnLabels' => ComissoesReportPdfColumns::labels(),
-        ])->setPaper('a4', 'landscape');
+        ])->setPaper('a4', ComissoesReportPdfColumns::resolveOrientationFromRequest($request));
 
         $filename = 'comissoes_'.now()->format('Y-m-d_His').'.pdf';
 

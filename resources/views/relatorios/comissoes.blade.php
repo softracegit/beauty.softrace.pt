@@ -5,8 +5,54 @@
 @section('css')
   @include('relatorios._styles')
   <style>
-    .comissoes-print-dropdown { min-width: 14rem; }
+    .comissoes-print-dropdown { min-width: 15rem; }
     .comissoes-print-dropdown .form-check-label { cursor: pointer; }
+    .comissoes-pdf-orientation-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.85rem;
+    }
+    .comissoes-pdf-orientation-option {
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 3.25rem;
+      margin: 0;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md, 0.375rem);
+      padding: 0.35rem 0.25rem;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .comissoes-pdf-orientation-option:hover {
+      border-color: color-mix(in srgb, var(--border-color), var(--accent-color) 35%);
+    }
+    .comissoes-pdf-orientation-option:has(.js-comissoes-pdf-orientation:checked) {
+      border-color: var(--accent-color, #0d6efd);
+      background: color-mix(in srgb, var(--accent-color, #0d6efd) 8%, transparent);
+    }
+    .comissoes-pdf-orientation-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      line-height: 1;
+      color: var(--heading-color, #333);
+    }
+    .comissoes-pdf-orientation-icon--landscape {
+      transform: rotate(90deg);
+    }
+    .comissoes-pdf-orientation-label {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.625rem;
+      line-height: 1.2;
+      color: var(--muted-color, #666);
+    }
   </style>
 @endsection
 
@@ -32,9 +78,20 @@
                 <label class="form-check-label small" for="comissoesPdfCol_{{ $colKey }}">{{ $colLabel }}</label>
               </div>
             @endforeach
-            <div class="dropdown-divider my-2"></div>
+            <div class="comissoes-pdf-orientation-group" role="radiogroup" aria-label="Orientação do PDF">
+              <label class="comissoes-pdf-orientation-option">
+                <input type="radio" name="comissoes_pdf_orientation_ui" value="portrait" class="visually-hidden js-comissoes-pdf-orientation">
+                <span class="comissoes-pdf-orientation-icon" aria-hidden="true"><i class="ph ph-file"></i></span>
+                <span class="comissoes-pdf-orientation-label">Vertical</span>
+              </label>
+              <label class="comissoes-pdf-orientation-option">
+                <input type="radio" name="comissoes_pdf_orientation_ui" value="landscape" class="visually-hidden js-comissoes-pdf-orientation" checked>
+                <span class="comissoes-pdf-orientation-icon comissoes-pdf-orientation-icon--landscape" aria-hidden="true"><i class="ph ph-file"></i></span>
+                <span class="comissoes-pdf-orientation-label">Horizontal</span>
+              </label>
+            </div>
             <a href="{{ route('relatorios.comissoes.pdf', request()->query()) }}"
-              class="btn btn-primary btn-sm w-100 js-comissoes-print-link"
+              class="btn btn-primary btn-sm w-100 mt-3 js-comissoes-print-link"
               data-base-href="{{ route('relatorios.comissoes.pdf', request()->query()) }}"
               target="_blank"
               rel="noopener">
@@ -165,12 +222,14 @@
     (function () {
       var STORAGE_KEY_IVA = 'comissoes_com_iva';
       var STORAGE_KEY_COLS = 'comissoes_pdf_cols';
+      var STORAGE_KEY_ORIENTATION = 'comissoes_pdf_orientation';
       var COLUMN_ORDER = @json(array_keys($comissoesPdfColumnOptions ?? []));
       var cb = document.getElementById('comissoesComIva');
       var totalEl = document.getElementById('comissoesTotalComissao');
       var printLink = document.querySelector('.js-comissoes-print-link');
       var colsWarning = document.querySelector('.js-comissoes-pdf-cols-warning');
       var colCheckboxes = document.querySelectorAll('.js-comissoes-pdf-col');
+      var orientationInputs = document.querySelectorAll('.js-comissoes-pdf-orientation');
 
       function readComIvaPreference() {
         try {
@@ -202,6 +261,35 @@
         try {
           localStorage.setItem(STORAGE_KEY_COLS, cols.join(','));
         } catch (e) {}
+      }
+
+      function readPdfOrientationPreference() {
+        try {
+          var stored = localStorage.getItem(STORAGE_KEY_ORIENTATION);
+          if (stored === 'portrait' || stored === 'landscape') return stored;
+        } catch (e) {}
+        return 'landscape';
+      }
+
+      function savePdfOrientationPreference(orientation) {
+        try {
+          localStorage.setItem(STORAGE_KEY_ORIENTATION, orientation);
+        } catch (e) {}
+      }
+
+      function getSelectedPdfOrientation() {
+        var selected = 'landscape';
+        orientationInputs.forEach(function (input) {
+          if (input.checked) selected = input.value;
+        });
+        return selected === 'portrait' ? 'portrait' : 'landscape';
+      }
+
+      function applyPdfOrientationPreference() {
+        var preferred = readPdfOrientationPreference();
+        orientationInputs.forEach(function (input) {
+          input.checked = input.value === preferred;
+        });
       }
 
       function getSelectedPdfCols() {
@@ -245,6 +333,7 @@
           } else {
             url.searchParams.delete('comissoes_pdf_cols');
           }
+          url.searchParams.set('comissoes_pdf_orientation', getSelectedPdfOrientation());
           printLink.setAttribute('href', url.pathname + url.search);
           printLink.classList.toggle('disabled', cols.length === 0);
           printLink.setAttribute('aria-disabled', cols.length === 0 ? 'true' : 'false');
@@ -284,6 +373,7 @@
       }
 
       applyPdfColsPreference();
+      applyPdfOrientationPreference();
       if (cb) {
         cb.checked = readComIvaPreference();
         syncExportPrintLinks(cb.checked);
@@ -300,6 +390,13 @@
         input.addEventListener('change', function () {
           var cols = getSelectedPdfCols();
           savePdfColsPreference(cols);
+          syncPrintLink(cb ? cb.checked : readComIvaPreference());
+        });
+      });
+
+      orientationInputs.forEach(function (input) {
+        input.addEventListener('change', function () {
+          savePdfOrientationPreference(getSelectedPdfOrientation());
           syncPrintLink(cb ? cb.checked : readComIvaPreference());
         });
       });

@@ -21,6 +21,13 @@
   </style>
 </head>
 <body>
+  @php
+    $columns = $pdfColumns ?? array_keys($pdfColumnLabels ?? []);
+    $labels = $pdfColumnLabels ?? [];
+    $colCount = count($columns);
+    $precoIdx = array_search('preco', $columns, true);
+    $showFooter = !empty($marcacoesTotais) && $colCount > 0 && ($precoIdx !== false || in_array('notas', $columns, true));
+  @endphp
   <div class="header">
     <h1>Relatório de marcações</h1>
     <div class="meta">{{ $appName ?? config('app.name') }} · Gerado em {{ now()->format('d/m/Y H:i') }} · {{ $totalRegistos }} registo(s)</div>
@@ -38,14 +45,11 @@
   <table>
     <thead>
       <tr>
-        <th style="width:11%">Data/Hora</th>
-        <th style="width:9%">Estado</th>
-        <th style="width:14%">Cliente</th>
-        <th style="width:12%">Técnico</th>
-        <th style="width:18%">Serviços</th>
-        <th style="width:12%">Categoria</th>
-        <th class="text-end text-nowrap" style="width:8%">Preço</th>
-        <th style="width:18%">Notas</th>
+        @foreach($columns as $colKey)
+          <th @class([
+            'text-end text-nowrap' => $colKey === 'preco',
+          ])>{{ $labels[$colKey] ?? $colKey }}</th>
+        @endforeach
       </tr>
     </thead>
     <tbody>
@@ -65,24 +69,65 @@
           }
         @endphp
         <tr>
-          <td>{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
-          <td>{{ \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev) }}</td>
-          <td>{{ $ev->client?->name ?? '—' }}</td>
-          <td>{{ $ev->user?->name ?? '—' }}</td>
-          <td class="servicos-cell small">{{ $services }}</td>
-          <td class="servicos-cell small">{{ $categorias !== '' ? $categorias : '—' }}</td>
-          <td class="text-end text-nowrap">{{ number_format($totalPreco, 2, ',', ' ') }}€</td>
-          <td class="small">{{ $ev->description ? \Illuminate\Support\Str::limit($ev->description, 120) : '—' }}</td>
+          @foreach($columns as $colKey)
+            @switch($colKey)
+              @case('data_hora')
+                <td class="text-nowrap">{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
+                @break
+              @case('estado')
+                <td>{{ \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev) }}</td>
+                @break
+              @case('cliente')
+                <td>{{ $ev->client?->name ?? '—' }}</td>
+                @break
+              @case('tecnico')
+                <td>{{ $ev->user?->name ?? '—' }}</td>
+                @break
+              @case('servicos')
+                <td class="servicos-cell small">{{ $services }}</td>
+                @break
+              @case('categoria')
+                <td class="servicos-cell small">{{ $categorias !== '' ? $categorias : '—' }}</td>
+                @break
+              @case('preco')
+                <td class="text-end text-nowrap">{{ number_format($totalPreco, 2, ',', ' ') }}€</td>
+                @break
+              @case('notas')
+                <td class="small">{{ $ev->description ? \Illuminate\Support\Str::limit($ev->description, 120) : '—' }}</td>
+                @break
+            @endswitch
+          @endforeach
         </tr>
       @endforeach
     </tbody>
-    @if(!empty($marcacoesTotais))
+    @if($showFooter)
       <tfoot>
         <tr>
-          <td colspan="5" class="text-end" style="font-weight:bold;">Total</td>
-          <td>—</td>
-          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($marcacoesTotais['preco_total'] ?? 0, 2, ',', ' ') }}€</td>
-          <td class="small" style="font-weight:bold;">{{ ($marcacoesTotais['servicos_count'] ?? 0) }} serviço(s)</td>
+          @if($precoIdx !== false && $precoIdx > 0)
+            <td colspan="{{ $precoIdx }}" class="text-end" style="font-weight:bold;">Total</td>
+          @endif
+          @foreach($columns as $idx => $colKey)
+            @if($precoIdx !== false && $idx < $precoIdx)
+              @continue
+            @endif
+            @switch($colKey)
+              @case('preco')
+                <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($marcacoesTotais['preco_total'] ?? 0, 2, ',', ' ') }}€</td>
+                @break
+              @case('categoria')
+                <td>—</td>
+                @break
+              @case('notas')
+                <td class="small" style="font-weight:bold;">{{ ($marcacoesTotais['servicos_count'] ?? 0) }} serviço(s)</td>
+                @break
+              @default
+                @if($precoIdx === false && $idx === 0)
+                  <td class="text-end" style="font-weight:bold;">Total</td>
+                @else
+                  <td></td>
+                @endif
+            @endswitch
+          @endforeach
         </tr>
       </tfoot>
     @endif

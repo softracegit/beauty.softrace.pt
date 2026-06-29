@@ -14,12 +14,20 @@
     th, td { padding: 4px 5px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
     th { background: #f5f5f5; font-size: 6px; text-transform: uppercase; }
     .text-end { text-align: right; }
-    .text-center { text-align: center; }
     .text-nowrap { white-space: nowrap; }
     .footer { margin-top: 14px; font-size: 7px; color: #888; }
   </style>
 </head>
 <body>
+  @php
+    $columns = $pdfColumns ?? array_keys($pdfColumnLabels ?? []);
+    $labels = $pdfColumnLabels ?? [];
+    $colCount = count($columns);
+    $dataLabel = $vendasDataColunaLabel ?? ($labels['data'] ?? 'Data');
+    $moneyCols = ['total', 'taxas', 'gorjeta'];
+    $showSubtotalRow = !empty($vendasTotais) && array_intersect($columns, $moneyCols) !== [];
+    $showTotalRow = !empty($vendasTotais) && in_array('total', $columns, true);
+  @endphp
   <div class="header">
     <h1>Relatório de vendas</h1>
     <div class="meta">{{ $appName ?? config('app.name') }} · Gerado em {{ now()->format('d/m/Y H:i') }} · {{ $totalLinhas }} linha(s)</div>
@@ -37,61 +45,97 @@
   <table>
     <thead>
       <tr>
-        <th style="width:9%">{{ $vendasDataColunaLabel ?? 'Data' }}</th>
-        <th style="width:14%">Cliente</th>
-        <th style="width:9%">NIF</th>
-        <th style="width:10%">Técnico</th>
-        <th style="width:18%">Serviço</th>
-        <th class="text-end text-nowrap" style="width:9%">Total</th>
-        <th class="text-end text-nowrap" style="width:8%">Taxas</th>
-        <th class="text-end text-nowrap" style="width:8%">Gorjeta</th>
-        <th style="width:8%">Estado fatura</th>
+        @foreach($columns as $colKey)
+          <th @class([
+            'text-end text-nowrap' => in_array($colKey, $moneyCols, true),
+          ])>{{ $colKey === 'data' ? $dataLabel : ($labels[$colKey] ?? $colKey) }}</th>
+        @endforeach
       </tr>
     </thead>
     <tbody>
       @foreach($linhas as $linha)
         <tr>
-          <td>{{ $linha->data->format('d/m/Y') }}</td>
-          <td>{{ $linha->cliente }}</td>
-          <td>{{ $linha->nif !== '' && $linha->nif !== null ? $linha->nif : '—' }}</td>
-          <td>{{ $linha->tecnico }}</td>
-          <td style="font-size:7px;">
-            {{ $linha->servico_nomes ?? $linha->servico }}
-            @if(!empty($linha->servico_subtitulo))
-              <br><span style="color:#666;font-size:6px;">{{ $linha->servico_subtitulo }}</span>
-            @endif
-          </td>
-          <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>
-          <td class="text-end text-nowrap">@if((float) ($linha->taxas ?? 0) > 0){{ number_format((float) $linha->taxas, 2, ',', ' ') }}€@else—@endif</td>
-          <td class="text-end text-nowrap">@if((float)($linha->gorjeta ?? 0) > 0){{ number_format((float) $linha->gorjeta, 2, ',', ' ') }}€@else—@endif</td>
-          <td>
-            @if(!empty($linha->is_anulado))
-              Anulada
-            @elseif(($linha->invoice_status ?? \App\Models\Sale::INVOICE_STATUS_FATURADO) === \App\Models\Sale::INVOICE_STATUS_RASCUNHO)
-              Rascunho
-            @else
-              Faturado
-            @endif
-          </td>
+          @foreach($columns as $colKey)
+            @switch($colKey)
+              @case('data')
+                <td class="text-nowrap">{{ $linha->data->format('d/m/Y') }}</td>
+                @break
+              @case('cliente')
+                <td>{{ $linha->cliente }}</td>
+                @break
+              @case('nif')
+                <td>{{ $linha->nif !== '' && $linha->nif !== null ? $linha->nif : '—' }}</td>
+                @break
+              @case('tecnico')
+                <td>{{ $linha->tecnico }}</td>
+                @break
+              @case('servico')
+                <td style="font-size:7px;">
+                  {{ $linha->servico_nomes ?? $linha->servico }}
+                  @if(!empty($linha->servico_subtitulo))
+                    <br><span style="color:#666;font-size:6px;">{{ $linha->servico_subtitulo }}</span>
+                  @endif
+                </td>
+                @break
+              @case('total')
+                <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>
+                @break
+              @case('taxas')
+                <td class="text-end text-nowrap">@if((float) ($linha->taxas ?? 0) > 0){{ number_format((float) $linha->taxas, 2, ',', ' ') }}€@else—@endif</td>
+                @break
+              @case('gorjeta')
+                <td class="text-end text-nowrap">@if((float)($linha->gorjeta ?? 0) > 0){{ number_format((float) $linha->gorjeta, 2, ',', ' ') }}€@else—@endif</td>
+                @break
+              @case('estado_fatura')
+                <td>
+                  @if(!empty($linha->is_anulado))
+                    Anulada
+                  @elseif(($linha->invoice_status ?? \App\Models\Sale::INVOICE_STATUS_FATURADO) === \App\Models\Sale::INVOICE_STATUS_RASCUNHO)
+                    Rascunho
+                  @else
+                    Faturado
+                  @endif
+                </td>
+                @break
+            @endswitch
+          @endforeach
         </tr>
       @endforeach
     </tbody>
-    @if(!empty($vendasTotais))
+    @if($showSubtotalRow)
       <tfoot>
         <tr>
-          <td colspan="5" class="text-end" style="font-weight:bold;"></td>
-          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_valor_com_gorjeta'] ?? (($vendasTotais['total_valor'] ?? 0) + ($vendasTotais['total_gorjeta'] ?? 0)), 2, ',', ' ') }}€</td>
-          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format((float) ($vendasTotais['total_taxas'] ?? 0), 2, ',', ' ') }}€</td>
-          <td class="text-end text-nowrap" style="font-weight:bold;">@if((float)($vendasTotais['total_gorjeta'] ?? 0) > 0){{ number_format((float) ($vendasTotais['total_gorjeta'] ?? 0), 2, ',', ' ') }}€@else—@endif</td>
-          <td></td>
+          @foreach($columns as $colKey)
+            @switch($colKey)
+              @case('total')
+                <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($vendasTotais['total_valor_com_gorjeta'] ?? (($vendasTotais['total_valor'] ?? 0) + ($vendasTotais['total_gorjeta'] ?? 0)), 2, ',', ' ') }}€</td>
+                @break
+              @case('taxas')
+                <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format((float) ($vendasTotais['total_taxas'] ?? 0), 2, ',', ' ') }}€</td>
+                @break
+              @case('gorjeta')
+                <td class="text-end text-nowrap" style="font-weight:bold;">@if((float)($vendasTotais['total_gorjeta'] ?? 0) > 0){{ number_format((float) ($vendasTotais['total_gorjeta'] ?? 0), 2, ',', ' ') }}€@else—@endif</td>
+                @break
+              @default
+                <td></td>
+            @endswitch
+          @endforeach
         </tr>
-        <tr>
-          <td colspan="5" class="text-end" style="font-weight:bold;">Total</td>
-          <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format((float) ($vendasTotais['total_absoluto'] ?? 0), 2, ',', ' ') }}€</td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
+        @if($showTotalRow)
+          <tr>
+            @php $totalIdx = array_search('total', $columns, true); @endphp
+            @if($totalIdx > 0)
+              <td colspan="{{ $totalIdx }}" class="text-end" style="font-weight:bold;">Total</td>
+            @endif
+            @foreach(array_slice($columns, $totalIdx !== false ? $totalIdx : 0) as $colKey)
+              @if($colKey === 'total')
+                <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format((float) ($vendasTotais['total_absoluto'] ?? 0), 2, ',', ' ') }}€</td>
+              @else
+                <td></td>
+              @endif
+            @endforeach
+          </tr>
+        @endif
       </tfoot>
     @endif
   </table>

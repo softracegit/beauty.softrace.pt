@@ -4,6 +4,7 @@
 
 @section('css')
   @include('relatorios._styles')
+  @include('relatorios.partials.pdf-print-dropdown-styles')
   <link rel="stylesheet" href="{{ asset('template/css/payment-pos-modal.css') }}?v={{ file_exists(public_path('template/css/payment-pos-modal.css')) ? filemtime(public_path('template/css/payment-pos-modal.css')) : time() }}">
   @include('relatorios.partials.vendas-table-styles', ['showClienteColumn' => true])
 @endsection
@@ -18,9 +19,13 @@
         <a href="{{ route('relatorios.vendas.export', request()->query()) }}" class="btn btn-outline-primary btn-sm">
           <i class="ph ph-download-simple me-1"></i> Exportar
         </a>
-        <a href="{{ route('relatorios.vendas.pdf', request()->query()) }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
-          <i class="ph ph-printer me-1"></i> Imprimir
-        </a>
+        @include('relatorios.partials.pdf-print-dropdown', [
+          'pdfPrintUrl' => route('relatorios.vendas.pdf', request()->query()),
+          'pdfColumnOptions' => $vendasPdfColumnOptions ?? [],
+          'pdfPrintScope' => 'vendas',
+          'pdfColsParam' => 'vendas_pdf_cols',
+          'pdfOrientationParam' => 'vendas_pdf_orientation',
+        ])
       </div>
     </div>
   </div>
@@ -94,4 +99,5 @@
 
 @section('js')
   @include('relatorios.partials.vendas-table-scripts')
+  @include('relatorios.partials.pdf-print-dropdown-script')
 @endsection

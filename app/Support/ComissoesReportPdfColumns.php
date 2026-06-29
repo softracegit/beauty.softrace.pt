@@ -31,27 +31,7 @@ class ComissoesReportPdfColumns
      */
     public static function resolveFromRequest(Request $request): array
     {
-        $param = $request->query('comissoes_pdf_cols');
-        if ($param === null || trim((string) $param) === '') {
-            return self::defaultKeys();
-        }
-
-        $requested = array_values(array_unique(array_filter(array_map(
-            'trim',
-            explode(',', (string) $param),
-        ))));
-
-        $valid = self::defaultKeys();
-        $selected = array_values(array_intersect($valid, $requested));
-
-        if ($selected === []) {
-            return $valid;
-        }
-
-        return array_values(array_filter(
-            $valid,
-            static fn (string $key): bool => in_array($key, $selected, true),
-        ));
+        return ReportPdfPrintOptions::resolveColumns($request, self::LABELS, 'comissoes_pdf_cols');
     }
 
     /**
@@ -60,5 +40,10 @@ class ComissoesReportPdfColumns
     public static function labels(): array
     {
         return self::LABELS;
+    }
+
+    public static function resolveOrientationFromRequest(Request $request): string
+    {
+        return ReportPdfPrintOptions::resolveOrientation($request, 'comissoes_pdf_orientation');
     }
 }
