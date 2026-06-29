@@ -10,6 +10,7 @@ use App\Models\Service;
 use App\Models\SmsMessage;
 use App\Models\User;
 use App\Services\BookingFunnelReportService;
+use App\Services\ComissoesReportService;
 use App\Services\SmsReportService;
 use App\Services\VendasReportService;
 use App\Support\DateTimeDisplay;
@@ -31,6 +32,7 @@ class RelatoriosController extends Controller
 {
     public function __construct(
         private readonly VendasReportService $vendasReportService,
+        private readonly ComissoesReportService $comissoesReportService,
         private readonly SmsReportService $smsReportService,
         private readonly BookingFunnelReportService $bookingFunnelReportService,
     ) {}
@@ -627,11 +629,63 @@ class RelatoriosController extends Controller
             ->get(['id', 'name']);
     }
 
-    public function comissoes(): View
+    public function comissoes(Request $request): View
     {
+        $filters = $this->comissoesFiltersFromRequest($request);
+        $sales = $this->comissoesReportService->salesForReport($filters);
+        $servicoFilter = $filters['servico'] !== null && $filters['servico'] !== ''
+            ? (int) $filters['servico']
+            : null;
+        $tecnicoFilter = $filters['tecnico'] !== null && $filters['tecnico'] !== ''
+            ? (int) $filters['tecnico']
+            : null;
+        $allLines = $this->comissoesReportService->linesCollection($sales, $servicoFilter, $tecnicoFilter);
+
+        $page = max(1, (int) $request->get('page', 1));
+        $perPage = 100;
+        $slice = $allLines->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $linhas = new LengthAwarePaginator(
+            $slice,
+            $allLines->count(),
+            $perPage,
+            $page,
+            [
+                'path' => $request->url(),
+                'pageName' => 'page',
+            ]
+        );
+        $linhas->withQueryString();
+
         return view('relatorios.comissoes', [
             'pageTitle' => 'Relatórios — Comissões',
+            'linhas' => $linhas,
+            'comissoesDesde' => $filters['desde'],
+            'comissoesAte' => $filters['ate'],
+            'comissoesServico' => $request->get('comissoes_servico'),
+            'comissoesTecnico' => $request->get('comissoes_tecnico'),
+            'comissoesEstado' => $request->get('comissoes_estado'),
+            'comissoesCliente' => $request->get('comissoes_cliente'),
+            'servicosOpts' => $this->comissoesReportService->servicosOpts(),
+            'tecnicosOpts' => $this->membrosOptsForRelatorios(),
+            'clientesOpts' => $this->comissoesReportService->clientesOpts(),
+            'comissoesTotais' => $this->comissoesReportService->totaisRodape($allLines),
         ]);
+    }
+
+    /**
+     * @return array{desde: string, ate: string, cliente: mixed, servico: mixed, tecnico: mixed, estado: ?string}
+     */
+    private function comissoesFiltersFromRequest(Request $request): array
+    {
+        return [
+            'desde' => $request->get('comissoes_desde') ?: $this->marcacoesDefaultDesde(),
+            'ate' => $request->get('comissoes_ate') ?: $this->marcacoesDefaultAte(),
+            'cliente' => $request->get('comissoes_cliente'),
+            'servico' => $request->get('comissoes_servico'),
+            'tecnico' => $request->get('comissoes_tecnico'),
+            'estado' => $request->get('comissoes_estado'),
+        ];
     }
 
     public function bookingFunnel(Request $request): View

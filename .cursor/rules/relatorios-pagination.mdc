@@ -1,0 +1,41 @@
+---
+description: Paginação em relatórios (listagens com LengthAwarePaginator manual)
+globs: app/Http/Controllers/RelatoriosController.php,resources/views/relatorios/**
+alwaysApply: false
+---
+
+# Relatórios — paginação
+
+Relatórios com coleção em memória (ex.: vendas, comissões) paginam no controller e renderizam com o partial partilhado.
+
+## Controller
+
+```php
+$page = max(1, (int) $request->get('page', 1));
+$perPage = 100;
+$slice = $allLines->slice(($page - 1) * $perPage, $perPage)->values();
+
+$paginator = new LengthAwarePaginator(
+    $slice,
+    $allLines->count(),
+    $perPage,
+    $page,
+    [
+        'path' => $request->url(),
+        'pageName' => 'page',
+    ]
+);
+$paginator->withQueryString();
+```
+
+Não passar `'query' => $request->query()` no construtor — usar sempre `withQueryString()` depois.
+
+## View
+
+Incluir o partial (não chamar `->links()` diretamente):
+
+```blade
+@include('relatorios.partials.pagination', ['paginator' => $paginator])
+```
+
+O partial só mostra links quando `hasPages()` é verdadeiro.

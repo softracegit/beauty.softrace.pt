@@ -67,7 +67,7 @@
 
     /* Ficha cliente: apenas inputs visíveis (hiddens com o mesmo name existem doutra tab) */
     root.querySelectorAll(
-      'input[type="text"][name="marcacoes_desde"], input[type="text"][name="marcacoes_ate"], input[type="text"][name="vendas_desde"], input[type="text"][name="vendas_ate"]'
+      'input[type="text"][name="marcacoes_desde"], input[type="text"][name="marcacoes_ate"], input[type="text"][name="vendas_desde"], input[type="text"][name="vendas_ate"], input[type="text"][name="comissoes_desde"], input[type="text"][name="comissoes_ate"]'
     ).forEach(function (el) {
       if (el._flatpickr) return;
       if (el.type === 'hidden') return;
