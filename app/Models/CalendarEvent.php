@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -195,6 +196,23 @@ class CalendarEvent extends Model
             self::STATUS_CANCELADO,
             self::STATUS_ANULADO,
         ];
+    }
+
+    /**
+     * Marcações cujo horário já passou (fim ≤ agora, ou início < agora se não há fim).
+     *
+     * @param  Builder<CalendarEvent>  $query
+     * @return Builder<CalendarEvent>
+     */
+    public function scopeAlreadyPassed(Builder $query, CarbonInterface $nowUtc): Builder
+    {
+        return $query->where(function (Builder $q) use ($nowUtc) {
+            $q->where(function (Builder $q2) use ($nowUtc) {
+                $q2->whereNotNull('end_at')->where('end_at', '<=', $nowUtc);
+            })->orWhere(function (Builder $q2) use ($nowUtc) {
+                $q2->whereNull('end_at')->where('start_at', '<', $nowUtc);
+            });
+        });
     }
 
     protected $fillable = [

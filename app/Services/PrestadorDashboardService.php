@@ -217,13 +217,7 @@ class PrestadorDashboardService
      */
     private function applyAlreadyPassedToday(Builder $query, Carbon $now): Builder
     {
-        return $query->where(function (Builder $q) use ($now) {
-            $q->where(function (Builder $q2) use ($now) {
-                $q2->whereNotNull('end_at')->where('end_at', '<=', $now);
-            })->orWhere(function (Builder $q2) use ($now) {
-                $q2->whereNull('end_at')->where('start_at', '<', $now);
-            });
-        });
+        return $query->alreadyPassed($now->utc());
     }
 
     private function horasAgendadasEntre(int $storeId, ?int $userId, Carbon $startLocal, Carbon $endLocal): float

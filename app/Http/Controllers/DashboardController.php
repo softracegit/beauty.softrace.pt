@@ -310,13 +310,16 @@ class DashboardController extends Controller
             return 0;
         }
 
+        $storeId = current_store_id();
+        $nowUtc = StoreBusinessTime::nowUtcForStore($storeId);
         [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($start, $end);
 
-        return (int) CalendarEvent::forStore(current_store_id())
+        return (int) CalendarEvent::forStore($storeId)
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
             ->whereBetween('start_at', [$startUtc, $endUtc])
+            ->alreadyPassed($nowUtc)
             ->count();
     }
 
