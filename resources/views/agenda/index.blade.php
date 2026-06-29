@@ -425,7 +425,8 @@
         </div>
         <button type="submit" class="btn btn-light btn-sm border flex-shrink-0 d-inline-flex align-items-center gap-2 event-detail-header-save-btn" id="eventDetailSaveBtn" form="eventDetailEditForm" aria-label="Guardar alterações" title="Guardar alterações">
             <i class="ph ph-floppy-disk" aria-hidden="true"></i>
-            <span class="event-detail-header-save-label">Guardar alterações</span>
+            <span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span>
+            <span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>
         </button>
         <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     </div>

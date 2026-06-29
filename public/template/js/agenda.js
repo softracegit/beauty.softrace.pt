@@ -3316,7 +3316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function eventDetailSaveBtnDefaultHtml() {
-            return '<i class="ph ph-floppy-disk" aria-hidden="true"></i><span class="event-detail-header-save-label">Guardar alterações</span>';
+            return '<i class="ph ph-floppy-disk" aria-hidden="true"></i><span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span><span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>';
         }
 
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
@@ -6215,7 +6215,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function eventDetailSaveBtnDefaultHtml() {
-        return '<i class="ph ph-floppy-disk" aria-hidden="true"></i><span class="event-detail-header-save-label">Guardar alterações</span>';
+        return '<i class="ph ph-floppy-disk" aria-hidden="true"></i><span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span><span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>';
     }
 
     function openEventDetailUnsavedChangesModal() {
