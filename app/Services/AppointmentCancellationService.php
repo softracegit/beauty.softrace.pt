@@ -72,20 +72,13 @@ class AppointmentCancellationService
         $policy = $this->policyService->resolveForEvent($event);
 
         $blockClientRules = (bool) ($options['block_if_outside_notice_period'] ?? false);
-        if ($blockClientRules) {
-            if ($policy->isPastOnlineCancellationCutoff()) {
-                throw new AppointmentCancellationException(
-                    (string) __('booking.validation.cancel_too_late_contact_store'),
-                    AppointmentCancellationException::PAST_ONLINE_CUTOFF,
-                );
-            }
-
-            if (! $policy->isWithinNoticePeriod && $policy->hasPaidDeposit) {
-                throw new AppointmentCancellationException(
-                    'Já não é possível cancelar sem perder o pré-pagamento online.',
-                    AppointmentCancellationException::OUTSIDE_NOTICE_PERIOD,
-                );
-            }
+        if ($blockClientRules && ! $policy->canCancelOnline()) {
+            throw new AppointmentCancellationException(
+                (string) __('booking.validation.cancel_too_late_contact_store', [
+                    'deadline' => $policy->deadlineFormatted(),
+                ]),
+                AppointmentCancellationException::PAST_ONLINE_CUTOFF,
+            );
         }
 
         $reason = trim((string) ($options['cancellation_reason'] ?? ''));

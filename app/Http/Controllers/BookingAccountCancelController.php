@@ -111,11 +111,9 @@ class BookingAccountCancelController extends Controller
 
         $policy = $this->policyService->resolveForEvent($event);
         if (! $policy->canCancelOnline()) {
-            if ($policy->isPastOnlineCancellationCutoff()) {
-                abort(422, __('booking.validation.cancel_too_late_contact_store'));
-            }
-
-            abort(422, __('booking.validation.cancel_not_allowed'));
+            abort(422, __('booking.validation.cancel_too_late_contact_store', [
+                'deadline' => $policy->deadlineFormatted(),
+            ]));
         }
     }
 

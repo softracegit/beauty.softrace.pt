@@ -363,24 +363,11 @@
                                             {{ __('booking.account.cancel_appointment') }}
                                         </button>
                                     </div>
-                                @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && ! $isDone && $cancelPolicy && $cancelPolicy->isPastOnlineCancellationCutoff())
+                                @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && ! $isDone && $cancelPolicy && ! $cancelPolicy->canCancelOnline())
                                     <div class="alert alert-warning small py-2 px-3 mb-0 mt-2">
                                         {{ __('booking.account.cannot_cancel_too_late_contact_store', [
-                                            'minutes' => (int) config('booking.min_lead_minutes', 30),
+                                            'deadline' => $cancelPolicy->deadlineFormatted(),
                                         ]) }}
-                                    </div>
-                                @elseif ($enableClientCancel && $start && $start->gt($nowTz) && ! $isLocked && ! $isDone && $cancelPolicy && ! $cancelPolicy->isWithinNoticePeriod && $cancelPolicy->hasPaidDeposit)
-                                    <div class="alert alert-warning small py-2 px-3 mb-0 mt-2">
-                                        @if ($cancelPolicy->eligibleDepositCreditCents > 0)
-                                            {{ __('booking.account.cannot_cancel_online', [
-                                                'amount' => number_format($cancelPolicy->eligibleDepositCreditCents / 100, 2, ',', ' '),
-                                                'deadline' => $cancelPolicy->deadlineFormatted(),
-                                            ]) }}
-                                        @else
-                                            {{ __('booking.account.cannot_cancel_online_no_amount', [
-                                                'deadline' => $cancelPolicy->deadlineFormatted(),
-                                            ]) }}
-                                        @endif
                                     </div>
                                 @endif
 

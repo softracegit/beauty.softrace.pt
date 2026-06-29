@@ -29,37 +29,23 @@ final class CancellationPolicyResult
     }
 
     /**
-     * Menos de {@see config('booking.min_lead_minutes')} minutos para o início — cancelamento online bloqueado.
+     * Fora do prazo de aviso mínimo (definições CRM) — cancelamento online bloqueado.
      */
     public function isPastOnlineCancellationCutoff(): bool
     {
-        $minLeadMinutes = max(0, (int) config('booking.min_lead_minutes', 30));
-        if ($minLeadMinutes <= 0) {
-            return false;
+        if (! $this->appointmentStartAtLocal->greaterThan($this->evaluatedAtLocal)) {
+            return true;
         }
 
-        $cutoff = $this->appointmentStartAtLocal->copy()->subMinutes($minLeadMinutes);
-
-        return $this->evaluatedAtLocal->greaterThan($cutoff);
+        return ! $this->isWithinNoticePeriod;
     }
 
     /**
-     * O cliente pode cancelar online (conta / SMS), respeitando corte de 30 min e política de pré-pagamento.
+     * O cliente pode cancelar online (conta / SMS), dentro do aviso mínimo da loja.
      */
     public function canCancelOnline(): bool
     {
-        if (! $this->appointmentStartAtLocal->greaterThan($this->evaluatedAtLocal)) {
-            return false;
-        }
-
-        if ($this->isPastOnlineCancellationCutoff()) {
-            return false;
-        }
-
-        if ($this->hasPaidDeposit && ! $this->isWithinNoticePeriod) {
-            return false;
-        }
-
-        return true;
+        return $this->appointmentStartAtLocal->greaterThan($this->evaluatedAtLocal)
+            && $this->isWithinNoticePeriod;
     }
 }
