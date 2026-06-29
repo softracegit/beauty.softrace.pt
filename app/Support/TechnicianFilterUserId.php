@@ -21,13 +21,13 @@ class TechnicianFilterUserId
             return null;
         }
 
+        if (User::query()->whereKey($id)->exists()) {
+            return $id;
+        }
+
         $agentUserId = Agent::query()->whereKey($id)->value('user_id');
         if ($agentUserId !== null) {
             return (int) $agentUserId;
-        }
-
-        if (User::query()->whereKey($id)->exists()) {
-            return $id;
         }
 
         return null;

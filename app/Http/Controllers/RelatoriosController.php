@@ -665,7 +665,7 @@ class RelatoriosController extends Controller
             'comissoesDesde' => $filters['desde'],
             'comissoesAte' => $filters['ate'],
             'comissoesServico' => $request->get('comissoes_servico'),
-            'comissoesTecnico' => $filters['tecnico'],
+            'comissoesTecnico' => $request->get('comissoes_tecnico'),
             'comissoesEstado' => $request->get('comissoes_estado'),
             'comissoesCliente' => $request->get('comissoes_cliente'),
             'servicosOpts' => $this->comissoesReportService->servicosOpts(),
