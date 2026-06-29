@@ -398,6 +398,25 @@ class ComissoesReportService
     }
 
     /**
+     * O rodapé usa totais Zappy (hardcoded) para meses até 31/05/2026, sem filtros por cliente/serviço.
+     *
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string}  $filters
+     */
+    public function footerUsesHistoricalOverride(array $filters): bool
+    {
+        foreach (['cliente', 'servico'] as $key) {
+            $value = $filters[$key] ?? null;
+            if ($value !== null && $value !== '') {
+                return false;
+            }
+        }
+
+        $desde = $this->normalizeRelatorioDate($filters['desde'] ?? '') ?? '';
+
+        return $desde !== '' && $desde <= ZappyCommissionHistoricoService::historicalEndDate();
+    }
+
+    /**
      * Fallback: lê zappy_commission_totals.php directamente (ignora config:cache e opcache).
      *
      * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed}  $filters

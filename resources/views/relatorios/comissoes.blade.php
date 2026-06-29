@@ -4,12 +4,46 @@
 
 @section('css')
   @include('relatorios._styles')
+  <style>
+    .comissoes-print-dropdown { min-width: 14rem; }
+    .comissoes-print-dropdown .form-check-label { cursor: pointer; }
+  </style>
 @endsection
 
 @section('content')
   <div class="dash-welcome mb-4">
-    <div class="dash-welcome-content mb-0">
-      <h2 class="dash-welcome-title mb-0">Comissões</h2>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 w-100">
+      <div class="dash-welcome-content mb-0 flex-grow-1 min-w-0">
+        <h2 class="dash-welcome-title mb-0">Comissões</h2>
+      </div>
+      <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+        <a href="{{ route('relatorios.comissoes.export', request()->query()) }}" class="btn btn-outline-primary btn-sm js-comissoes-export-link">
+          <i class="ph ph-download-simple me-1"></i> Exportar
+        </a>
+        <div class="dropdown">
+          <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            <i class="ph ph-printer me-1"></i> Imprimir
+          </button>
+          <div class="dropdown-menu dropdown-menu-end p-3 shadow-sm comissoes-print-dropdown">
+            <div class="small fw-semibold mb-2">Colunas do PDF</div>
+            @foreach($comissoesPdfColumnOptions ?? [] as $colKey => $colLabel)
+              <div class="form-check mb-1">
+                <input class="form-check-input js-comissoes-pdf-col" type="checkbox" value="{{ $colKey }}" id="comissoesPdfCol_{{ $colKey }}" checked>
+                <label class="form-check-label small" for="comissoesPdfCol_{{ $colKey }}">{{ $colLabel }}</label>
+              </div>
+            @endforeach
+            <div class="dropdown-divider my-2"></div>
+            <a href="{{ route('relatorios.comissoes.pdf', request()->query()) }}"
+              class="btn btn-primary btn-sm w-100 js-comissoes-print-link"
+              data-base-href="{{ route('relatorios.comissoes.pdf', request()->query()) }}"
+              target="_blank"
+              rel="noopener">
+              Gerar PDF
+            </a>
+            <p class="small text-muted mb-0 mt-2 js-comissoes-pdf-cols-warning d-none">Seleccione pelo menos uma coluna.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -72,6 +106,11 @@
   </form>
 
   @if($linhas->count() > 0)
+    @if(!empty($comissoesTotalHistorico))
+      <p class="small text-muted mb-2">
+        O total de comissões inclui valores históricos do Zappy (até 31/05/2026). A partir de junho/2026, linhas e total coincidem.
+      </p>
+    @endif
     <div class="table-responsive">
       <table class="table table-sm table-hover" id="comissoesTable">
         <thead>
@@ -124,9 +163,94 @@
 @section('js')
   <script>
     (function () {
+      var STORAGE_KEY_IVA = 'comissoes_com_iva';
+      var STORAGE_KEY_COLS = 'comissoes_pdf_cols';
+      var COLUMN_ORDER = @json(array_keys($comissoesPdfColumnOptions ?? []));
       var cb = document.getElementById('comissoesComIva');
       var totalEl = document.getElementById('comissoesTotalComissao');
-      if (!cb) return;
+      var printLink = document.querySelector('.js-comissoes-print-link');
+      var colsWarning = document.querySelector('.js-comissoes-pdf-cols-warning');
+      var colCheckboxes = document.querySelectorAll('.js-comissoes-pdf-col');
+
+      function readComIvaPreference() {
+        try {
+          var stored = localStorage.getItem(STORAGE_KEY_IVA);
+          if (stored === '0') return false;
+          if (stored === '1') return true;
+        } catch (e) {}
+        return true;
+      }
+
+      function readPdfColsPreference() {
+        try {
+          var stored = localStorage.getItem(STORAGE_KEY_COLS);
+          if (!stored) return null;
+          var parsed = stored.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+          return parsed.length ? parsed : null;
+        } catch (e) {}
+        return null;
+      }
+
+      function saveComIvaPreference(comIva) {
+        try {
+          localStorage.setItem(STORAGE_KEY_IVA, comIva ? '1' : '0');
+        } catch (e) {}
+        syncExportPrintLinks(comIva);
+      }
+
+      function savePdfColsPreference(cols) {
+        try {
+          localStorage.setItem(STORAGE_KEY_COLS, cols.join(','));
+        } catch (e) {}
+      }
+
+      function getSelectedPdfCols() {
+        var selected = [];
+        colCheckboxes.forEach(function (input) {
+          if (input.checked) selected.push(input.value);
+        });
+        return COLUMN_ORDER.filter(function (key) {
+          return selected.indexOf(key) !== -1;
+        });
+      }
+
+      function applyPdfColsPreference() {
+        var preferred = readPdfColsPreference();
+        if (!preferred) return;
+        colCheckboxes.forEach(function (input) {
+          input.checked = preferred.indexOf(input.value) !== -1;
+        });
+      }
+
+      function syncExportPrintLinks(comIva) {
+        document.querySelectorAll('.js-comissoes-export-link').forEach(function (link) {
+          try {
+            var url = new URL(link.getAttribute('href'), window.location.origin);
+            url.searchParams.set('comissoes_com_iva', comIva ? '1' : '0');
+            link.setAttribute('href', url.pathname + url.search);
+          } catch (e) {}
+        });
+        syncPrintLink(comIva);
+      }
+
+      function syncPrintLink(comIva) {
+        if (!printLink) return;
+        var baseHref = printLink.getAttribute('data-base-href') || printLink.getAttribute('href');
+        try {
+          var url = new URL(baseHref, window.location.origin);
+          url.searchParams.set('comissoes_com_iva', comIva ? '1' : '0');
+          var cols = getSelectedPdfCols();
+          if (cols.length) {
+            url.searchParams.set('comissoes_pdf_cols', cols.join(','));
+          } else {
+            url.searchParams.delete('comissoes_pdf_cols');
+          }
+          printLink.setAttribute('href', url.pathname + url.search);
+          printLink.classList.toggle('disabled', cols.length === 0);
+          printLink.setAttribute('aria-disabled', cols.length === 0 ? 'true' : 'false');
+          if (colsWarning) colsWarning.classList.toggle('d-none', cols.length > 0);
+        } catch (e) {}
+      }
 
       function formatEuro(value) {
         var n = Number(value);
@@ -135,6 +259,7 @@
       }
 
       function refresh() {
+        if (!cb) return;
         var comIva = cb.checked;
         document.querySelectorAll('.js-comissao-row').forEach(function (row) {
           var valor = comIva
@@ -158,8 +283,34 @@
         }
       }
 
-      cb.addEventListener('change', refresh);
-      refresh();
+      applyPdfColsPreference();
+      if (cb) {
+        cb.checked = readComIvaPreference();
+        syncExportPrintLinks(cb.checked);
+        refresh();
+        cb.addEventListener('change', function () {
+          saveComIvaPreference(cb.checked);
+          refresh();
+        });
+      } else {
+        syncPrintLink(true);
+      }
+
+      colCheckboxes.forEach(function (input) {
+        input.addEventListener('change', function () {
+          var cols = getSelectedPdfCols();
+          savePdfColsPreference(cols);
+          syncPrintLink(cb ? cb.checked : readComIvaPreference());
+        });
+      });
+
+      if (printLink) {
+        printLink.addEventListener('click', function (event) {
+          if (getSelectedPdfCols().length === 0) {
+            event.preventDefault();
+          }
+        });
+      }
     })();
   </script>
 @endsection

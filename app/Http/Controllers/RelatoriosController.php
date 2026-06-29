@@ -13,6 +13,7 @@ use App\Services\BookingFunnelReportService;
 use App\Services\ComissoesReportService;
 use App\Services\SmsReportService;
 use App\Services\VendasReportService;
+use App\Support\ComissoesReportPdfColumns;
 use App\Support\DateTimeDisplay;
 use App\Support\TechnicianFilterUserId;
 use App\Support\MarcacoesReportEstadoFilter;
@@ -633,23 +634,15 @@ class RelatoriosController extends Controller
 
     public function comissoes(Request $request): View
     {
-        $filters = $this->comissoesFiltersFromRequest($request);
-        $filters['tecnico'] = TechnicianFilterUserId::resolve($filters['tecnico']);
-
-        $sales = $this->comissoesReportService->salesForReport($filters);
-        $servicoFilter = $filters['servico'] !== null && $filters['servico'] !== ''
-            ? (int) $filters['servico']
-            : null;
-        $tecnicoFilter = $filters['tecnico'];
-        $allLines = $this->comissoesReportService->linesCollection($sales, $servicoFilter, $tecnicoFilter);
+        $report = $this->comissoesReportData($request);
 
         $page = max(1, (int) $request->get('page', 1));
         $perPage = 100;
-        $slice = $allLines->slice(($page - 1) * $perPage, $perPage)->values();
+        $slice = $report['lines']->slice(($page - 1) * $perPage, $perPage)->values();
 
         $linhas = new LengthAwarePaginator(
             $slice,
-            $allLines->count(),
+            $report['lines']->count(),
             $perPage,
             $page,
             [
@@ -662,8 +655,8 @@ class RelatoriosController extends Controller
         return view('relatorios.comissoes', [
             'pageTitle' => 'Relatórios — Comissões',
             'linhas' => $linhas,
-            'comissoesDesde' => $filters['desde'],
-            'comissoesAte' => $filters['ate'],
+            'comissoesDesde' => $report['filters']['desde'],
+            'comissoesAte' => $report['filters']['ate'],
             'comissoesServico' => $request->get('comissoes_servico'),
             'comissoesTecnico' => $request->get('comissoes_tecnico'),
             'comissoesEstado' => $request->get('comissoes_estado'),
@@ -671,8 +664,179 @@ class RelatoriosController extends Controller
             'servicosOpts' => $this->comissoesReportService->servicosOpts(),
             'tecnicosOpts' => $this->membrosOptsForRelatorios(),
             'clientesOpts' => $this->comissoesReportService->clientesOpts(),
-            'comissoesTotais' => $this->comissoesReportService->totaisRodape($allLines, $filters),
+            'comissoesTotais' => $report['totais'],
+            'comissoesTotalHistorico' => $report['usesHistoricalFooter'],
+            'comissoesPdfColumnOptions' => ComissoesReportPdfColumns::labels(),
         ]);
+    }
+
+    public function comissoesExport(Request $request): StreamedResponse
+    {
+        $report = $this->comissoesReportData($request);
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Comissões');
+
+        $headers = [
+            'Data venda',
+            'N.º fatura',
+            'Colaborador',
+            'Cliente',
+            'Serviço',
+            'Valor serviço c/ IVA (€)',
+            'Valor serviço s/ IVA (€)',
+            'Comissão',
+            'Valor comissão c/ IVA (€)',
+            'Valor comissão s/ IVA (€)',
+        ];
+        $sheet->fromArray($headers, null, 'A1');
+
+        $rowIndex = 2;
+        foreach ($report['lines'] as $linha) {
+            $sheet->fromArray([
+                [
+                    $linha->data_emissao ? DateTimeDisplay::business($linha->data_emissao) : '',
+                    $linha->numero_fatura ?? '',
+                    $linha->tecnico,
+                    $linha->cliente,
+                    $linha->servico,
+                    round((float) $linha->valor_com_iva, 2),
+                    round((float) $linha->valor_sem_iva, 2),
+                    $linha->comissao_taxa ?? '',
+                    round((float) $linha->comissao_com_iva, 2),
+                    round((float) $linha->comissao_sem_iva, 2),
+                ],
+            ], null, 'A'.$rowIndex);
+            $rowIndex++;
+        }
+
+        $totais = $report['totais'];
+        if ($report['usesHistoricalFooter']) {
+            $sheet->fromArray([
+                [
+                    'Nota: total c/ IVA alinhado ao Zappy (até 31/05/2026). Linhas = cálculo CRM.',
+                ],
+            ], null, 'A'.$rowIndex);
+            $rowIndex++;
+        }
+
+        $sheet->fromArray([
+            [
+                '',
+                '',
+                '',
+                '',
+                'Total comissões a pagar (c/ IVA)',
+                '',
+                '',
+                '',
+                round((float) ($totais['total_comissao_com_iva'] ?? 0), 2),
+                round((float) ($totais['total_comissao_sem_iva'] ?? 0), 2),
+            ],
+        ], null, 'A'.$rowIndex);
+
+        foreach (range('A', 'J') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'comissoes_'.now()->format('Y-m-d_His').'.xlsx';
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function comissoesPdf(Request $request)
+    {
+        $report = $this->comissoesReportData($request);
+
+        $pdfColumns = ComissoesReportPdfColumns::resolveFromRequest($request);
+
+        $pdf = Pdf::loadView('relatorios.pdf.comissoes', [
+            'linhas' => $report['lines'],
+            'filtrosLinhas' => $this->comissoesFiltrosResumo($request),
+            'appName' => config('app.name'),
+            'totalLinhas' => $report['lines']->count(),
+            'comissoesTotais' => $report['totais'],
+            'usesHistoricalFooter' => $report['usesHistoricalFooter'],
+            'comissoesComIva' => $this->comissoesComIvaPreference($request),
+            'pdfColumns' => $pdfColumns,
+            'pdfColumnLabels' => ComissoesReportPdfColumns::labels(),
+        ])->setPaper('a4', 'landscape');
+
+        $filename = 'comissoes_'.now()->format('Y-m-d_His').'.pdf';
+
+        return $pdf->stream($filename);
+    }
+
+    /**
+     * @return array{
+     *   filters: array{desde: string, ate: string, cliente: mixed, servico: mixed, tecnico: mixed|null, estado: ?string},
+     *   lines: Collection<int, object>,
+     *   totais: array{total_comissao_com_iva: float, total_comissao_sem_iva: float},
+     *   usesHistoricalFooter: bool
+     * }
+     */
+    private function comissoesReportData(Request $request): array
+    {
+        $filters = $this->comissoesFiltersFromRequest($request);
+        $filters['tecnico'] = TechnicianFilterUserId::resolve($filters['tecnico']);
+
+        $sales = $this->comissoesReportService->salesForReport($filters);
+        $servicoFilter = $filters['servico'] !== null && $filters['servico'] !== ''
+            ? (int) $filters['servico']
+            : null;
+        $tecnicoFilter = $filters['tecnico'];
+        $lines = $this->comissoesReportService->linesCollection($sales, $servicoFilter, $tecnicoFilter);
+
+        return [
+            'filters' => $filters,
+            'lines' => $lines,
+            'totais' => $this->comissoesReportService->totaisRodape($lines, $filters),
+            'usesHistoricalFooter' => $this->comissoesReportService->footerUsesHistoricalOverride($filters),
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function comissoesFiltrosResumo(Request $request): array
+    {
+        $desde = $this->normalizeRelatorioDate($request->get('comissoes_desde')) ?: $this->marcacoesDefaultDesde();
+        $ate = $this->normalizeRelatorioDate($request->get('comissoes_ate')) ?: $this->marcacoesDefaultAte();
+
+        $lines = [
+            'Período: '.Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
+        ];
+
+        if ($cid = $request->get('comissoes_cliente')) {
+            $lines[] = 'Cliente: '.(Client::query()->forStore(current_store_id())->find($cid)?->name ?? '—');
+        }
+        if ($sid = $request->get('comissoes_servico')) {
+            $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
+        }
+        if ($tid = $request->get('comissoes_tecnico')) {
+            $lines[] = 'Técnico: '.(User::activeServiceProviders(current_store_id())->find($tid)?->name ?? '—');
+        }
+
+        return $lines;
+    }
+
+    private function comissoesComIvaPreference(Request $request): bool
+    {
+        $param = $request->query('comissoes_com_iva');
+        if ($param === '0') {
+            return false;
+        }
+        if ($param === '1') {
+            return true;
+        }
+
+        return true;
     }
 
     /**

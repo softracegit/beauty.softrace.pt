@@ -374,6 +374,8 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
         Route::get('vendas/export', [RelatoriosController::class, 'vendasExport'])->name('vendas.export');
         Route::get('vendas/pdf', [RelatoriosController::class, 'vendasPdf'])->name('vendas.pdf');
         Route::get('vendas', [RelatoriosController::class, 'vendas'])->name('vendas');
+        Route::get('comissoes/export', [RelatoriosController::class, 'comissoesExport'])->name('comissoes.export');
+        Route::get('comissoes/pdf', [RelatoriosController::class, 'comissoesPdf'])->name('comissoes.pdf');
         Route::get('comissoes', [RelatoriosController::class, 'comissoes'])->name('comissoes');
         Route::get('sms', [RelatoriosController::class, 'sms'])->name('sms');
         Route::get('booking-funil', [RelatoriosController::class, 'bookingFunnel'])->name('booking-funnel');
