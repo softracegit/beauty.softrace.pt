@@ -1,5 +1,5 @@
 <!-- Favicons -->
-<link href="{{ asset('template/img/favicon.png') }}" rel="icon">
+<link href="{{ asset('template/img/logo-color-icon.png') }}" rel="icon" type="image/png">
 <link href="{{ asset('template/img/apple-touch-icon.png') }}" rel="apple-touch-icon">
 
 <!-- Google Fonts - Plus Jakarta Sans -->

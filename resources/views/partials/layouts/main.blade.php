@@ -8,8 +8,6 @@
   <meta name="description" content="@yield('meta-description', config('app.name') . ' - Admin')">
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
-  <!-- Favicons -->
-  <link href="{{ asset('template/img/favicon.png') }}" rel="icon">
   <link href="{{ asset('template/img/apple-touch-icon.png') }}" rel="apple-touch-icon">
 
   @yield('css')
