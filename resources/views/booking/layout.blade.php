@@ -21,6 +21,10 @@
         $bookingLayoutIsRefined = \App\Support\BookingTheme::usesRefinedLayout($bookingThemeId);
     @endphp
     <meta name="theme-color" content="{{ \App\Support\BookingTheme::themeColor() }}">
+    @php
+        $bookingFaviconUrl = (string) (($bookingStoreProfile ?? [])['favicon'] ?? ($bookingStore?->logoFaviconUrl() ?? asset('booking-assets/img/icone.png')));
+    @endphp
+    <link rel="icon" href="{{ $bookingFaviconUrl }}">
     <title>@yield('title', __('booking.layout.default_title')) — {{ trim((string) ($businessName ?? config('app.name'))) }}</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">

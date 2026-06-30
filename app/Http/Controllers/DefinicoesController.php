@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Agent;
 use App\Models\CrmSetting;
+use App\Models\Store;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
 use App\Support\BookingTheme;
@@ -30,6 +31,7 @@ class DefinicoesController extends Controller
             'pageTitle' => 'Negócio',
             'store' => $store,
             'weeklySchedule' => old('weekly_schedule', $store->normalizedWeeklySchedule()),
+            'emailUseBusinessBranding' => CrmSetting::emailUseBusinessBranding((int) $store->id),
         ]);
     }
 
@@ -48,26 +50,21 @@ class DefinicoesController extends Controller
             'website_url' => ['nullable', 'url', 'max:512'],
             'instagram_url' => ['nullable', 'url', 'max:512'],
             'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'logo_email' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'logo_favicon' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'remove_logo' => ['nullable', 'boolean'],
+            'remove_logo_email' => ['nullable', 'boolean'],
+            'remove_logo_favicon' => ['nullable', 'boolean'],
+            'email_use_business_branding' => ['nullable', 'boolean'],
         ], [
             'maps_url.url' => 'O link do mapa deve ser um URL válido.',
             'website_url.url' => 'O site deve ser um URL válido.',
             'instagram_url.url' => 'O Instagram deve ser um URL válido.',
         ]);
 
-        $logoPath = $store->logo;
-        if ($request->boolean('remove_logo') && $logoPath) {
-            Storage::disk('public')->delete($logoPath);
-            $logoPath = null;
-        }
-        if ($request->hasFile('logo')) {
-            if ($logoPath) {
-                Storage::disk('public')->delete($logoPath);
-            }
-            $logoDir = $store->logoStorageDirectory();
-            Storage::disk('public')->makeDirectory($logoDir);
-            $logoPath = $request->file('logo')->store($logoDir, 'public');
-        }
+        $logoPath = $this->handleStoreLogoField($request, $store, 'logo', 'remove_logo', $store->logo);
+        $logoEmailPath = $this->handleStoreLogoField($request, $store, 'logo_email', 'remove_logo_email', $store->logo_email);
+        $logoFaviconPath = $this->handleStoreLogoField($request, $store, 'logo_favicon', 'remove_logo_favicon', $store->logo_favicon);
 
         $store->update([
             'name' => $validated['name'],
@@ -80,12 +77,43 @@ class DefinicoesController extends Controller
             'website_url' => $validated['website_url'] ?? null,
             'instagram_url' => $validated['instagram_url'] ?? null,
             'logo' => $logoPath,
+            'logo_email' => $logoEmailPath,
+            'logo_favicon' => $logoFaviconPath,
             'weekly_schedule' => $this->validatedWeeklySchedule($request),
         ]);
+
+        CrmSetting::setEmailUseBusinessBranding(
+            $request->boolean('email_use_business_branding'),
+            (int) $store->id,
+        );
 
         return redirect()
             ->route('definicoes.negocio')
             ->with('status', 'Dados do negócio guardados.');
+    }
+
+    private function handleStoreLogoField(
+        Request $request,
+        Store $store,
+        string $uploadField,
+        string $removeField,
+        ?string $currentPath,
+    ): ?string {
+        $path = $currentPath;
+        if ($request->boolean($removeField) && $path) {
+            Storage::disk('public')->delete($path);
+            $path = null;
+        }
+        if ($request->hasFile($uploadField)) {
+            if ($path) {
+                Storage::disk('public')->delete($path);
+            }
+            $logoDir = $store->logoStorageDirectory();
+            Storage::disk('public')->makeDirectory($logoDir);
+            $path = $request->file($uploadField)->store($logoDir, 'public');
+        }
+
+        return $path;
     }
 
     public function marcacoes(): View

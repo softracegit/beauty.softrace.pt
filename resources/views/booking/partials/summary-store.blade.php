@@ -15,7 +15,7 @@
     >
         <span class="booking-summary-store__inner">
             <span class="booking-summary-store__photo">
-                <img src="{{ $storePhotoUrl }}" alt="{{ $storeName }}" width="40" height="40" loading="lazy" decoding="async">
+                <img src="{{ $storePhotoUrl }}" alt="{{ $storeName }}" loading="lazy" decoding="async">
             </span>
             <span class="booking-summary-store__lines">
                 <span class="booking-summary-store__line booking-summary-store__line--name">{{ $storeName }}</span>

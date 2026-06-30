@@ -2799,19 +2799,20 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
 }
 
 .booking-summary-store__photo {
-    width: 3rem;
-    height: 2.6rem;
+    max-height: 2.6rem;
     border-radius: 0.4rem;
-    overflow: hidden;
     flex-shrink: 0;
-    background: #f0f2f5;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .booking-summary-store__photo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    width: auto;
+    height: auto;
+    max-height: 2.6rem;
+    max-width: 6.5rem;
+    object-fit: contain;
     object-position: left center;
     display: block;
 }

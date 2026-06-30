@@ -70,7 +70,7 @@ class BookingClientAuthController extends Controller
                 try {
                     Mail::mailer('booking')
                         ->to($target['identifier'])
-                        ->send(new BookingAuthCodeMail($code, $ttlMinutes, $continueUrl));
+                        ->send(new BookingAuthCodeMail($code, $ttlMinutes, $continueUrl, app(CurrentStore::class)->get()));
                 } finally {
                     BookingLocale::apply($previousLocale);
                 }

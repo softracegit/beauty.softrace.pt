@@ -20,8 +20,6 @@
         ];
     };
 @endphp
-<div class="uedit-section">
-  <div class="uedit-section-title">Horário da loja</div>
   <p class="text-muted small mb-3">
     Define em que dias e horas a loja está aberta. Domingo costuma ficar desativado; pode ajustar por dia.
   </p>
@@ -66,7 +64,6 @@
       </tbody>
     </table>
   </div>
-</div>
 <script>
 (function() {
     function sync() {

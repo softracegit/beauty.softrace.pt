@@ -2,6 +2,8 @@
 
 namespace App\Mail;
 
+use App\Models\Store;
+use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -16,13 +18,14 @@ class BookingAuthCodeMail extends Mailable
         public string $code,
         public int $ttlMinutes,
         public ?string $continueUrl = null,
+        public ?Store $store = null,
     ) {}
 
     public function envelope(): Envelope
     {
-        // Separador: hífen ASCII (-), nunca travessão (—), para cabeçalhos Subject.
-        return new Envelope(
-            subject: __('booking.mail.auth_code_subject', ['app' => (string) config('app.name')]),
+        return StoreMailBranding::envelopeForStore(
+            $this->store,
+            __('booking.mail.auth_code_subject', ['app' => StoreMailBranding::resolve($this->store)['name']]),
         );
     }
 

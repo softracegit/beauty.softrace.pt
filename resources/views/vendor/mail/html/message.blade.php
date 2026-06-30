@@ -2,7 +2,7 @@
 {{-- Header --}}
 <x-slot:header>
 <x-mail::header :url="config('app.url')">
-{{ config('app.name') }}
+{{ \App\Support\StoreMailBranding::current()['name'] }}
 </x-mail::header>
 </x-slot:header>
 
@@ -21,7 +21,7 @@
 {{-- Footer --}}
 <x-slot:footer>
 <x-mail::footer>
-© {{ date('Y') }} Race Beauty.
+© {{ date('Y') }} {{ \App\Support\StoreMailBranding::current()['footer_name'] }}.
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

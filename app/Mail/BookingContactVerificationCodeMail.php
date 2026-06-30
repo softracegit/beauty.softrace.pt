@@ -2,6 +2,8 @@
 
 namespace App\Mail;
 
+use App\Models\Store;
+use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -16,12 +18,14 @@ class BookingContactVerificationCodeMail extends Mailable
         public readonly string $code,
         public readonly int $ttlMinutes,
         public readonly ?string $continueUrl = null,
+        public readonly ?Store $store = null,
     ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: __('booking.mail.verification_subject'),
+        return StoreMailBranding::envelopeForStore(
+            $this->store,
+            __('booking.mail.verification_subject'),
         );
     }
 

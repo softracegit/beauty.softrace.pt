@@ -21,6 +21,8 @@ class CrmSetting extends Model
 
     public const KEY_BOOKING_THEME = 'booking.theme';
 
+    public const KEY_EMAIL_USE_BUSINESS_BRANDING = 'email.use_business_branding';
+
     public const BOOKING_CANCELLATION_NOTICE_HOURS_MIN = 0;
 
     public const BOOKING_CANCELLATION_NOTICE_HOURS_MAX = 168;
@@ -286,5 +288,15 @@ class CrmSetting extends Model
     {
         $resolved = \App\Support\BookingTheme::resolve($themeId, $storeId);
         self::setString(self::KEY_BOOKING_THEME, $resolved, $storeId);
+    }
+
+    public static function emailUseBusinessBranding(?int $storeId = null): bool
+    {
+        return self::getBool(self::KEY_EMAIL_USE_BUSINESS_BRANDING, false, $storeId);
+    }
+
+    public static function setEmailUseBusinessBranding(bool $enabled, ?int $storeId = null): void
+    {
+        self::setBool(self::KEY_EMAIL_USE_BUSINESS_BRANDING, $enabled, $storeId);
     }
 }

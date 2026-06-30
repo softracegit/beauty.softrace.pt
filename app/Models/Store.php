@@ -23,6 +23,8 @@ class Store extends Model
         'city',
         'postal_code',
         'logo',
+        'logo_email',
+        'logo_favicon',
         'maps_url',
         'website_url',
         'instagram_url',
@@ -340,14 +342,49 @@ class Store extends Model
         return 'store-logos/'.(int) $this->getKey();
     }
 
-    /** URL absoluta do logotipo (upload ou ícone por defeito). */
+    /** URL absoluta do logotipo genérico (upload ou ícone por defeito). */
     public function logoUrl(): string
+    {
+        return $this->logoGenericUrl();
+    }
+
+    public function logoGenericUrl(): string
     {
         $path = trim((string) ($this->logo ?? ''));
         if ($path !== '') {
             return asset('storage/'.ltrim($path, '/'));
         }
 
+        return $this->defaultLogoFallbackUrl();
+    }
+
+    public function logoFaviconUrl(): string
+    {
+        $path = trim((string) ($this->logo_favicon ?? ''));
+        if ($path !== '') {
+            return asset('storage/'.ltrim($path, '/'));
+        }
+
+        $generic = trim((string) ($this->logo ?? ''));
+        if ($generic !== '') {
+            return asset('storage/'.ltrim($generic, '/'));
+        }
+
+        return $this->defaultLogoFallbackUrl();
+    }
+
+    public function logoEmailUrl(): string
+    {
+        $path = trim((string) ($this->logo_email ?? ''));
+        if ($path !== '') {
+            return asset('storage/'.ltrim($path, '/'));
+        }
+
+        return asset('template/img/logo-color-black.png');
+    }
+
+    private function defaultLogoFallbackUrl(): string
+    {
         $fallback = (string) config('booking.public_store.photo_fallback', 'booking-assets/img/icone.png');
 
         return asset(ltrim($fallback, '/'));
@@ -363,6 +400,7 @@ class Store extends Model
      *     phone_tel_href: string,
      *     email: string,
      *     photo: string,
+     *     favicon: string,
      *     maps_url: string,
      *     website_url: string,
      *     instagram_url: string
@@ -379,7 +417,8 @@ class Store extends Model
             'phone' => trim((string) ($this->phone ?? '')),
             'phone_tel_href' => PhoneDisplay::telHref($this->phone),
             'email' => trim((string) ($this->email ?? '')),
-            'photo' => $this->logoUrl(),
+            'photo' => $this->logoGenericUrl(),
+            'favicon' => $this->logoFaviconUrl(),
             'maps_url' => $this->mapsUrl(),
             'website_url' => $website !== '' ? $website : '#',
             'instagram_url' => $instagram !== '' ? $instagram : '#',

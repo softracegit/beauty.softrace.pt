@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserNotificationPreference;
 use App\Support\DateTimeDisplay;
 use App\Support\ReceptionNotificationMail;
+use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -111,7 +112,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
             );
         }
 
-        return $mail;
+        return StoreMailBranding::applyToMailMessage($mail, $event->store);
     }
 
     private function loadEvent(): CalendarEvent

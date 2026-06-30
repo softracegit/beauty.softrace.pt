@@ -89,7 +89,7 @@ class BookingContactVerificationController extends Controller
                 try {
                     Mail::mailer('booking')
                         ->to($target)
-                        ->send(new BookingContactVerificationCodeMail($code, $ttlMinutes, $continueUrl));
+                        ->send(new BookingContactVerificationCodeMail($code, $ttlMinutes, $continueUrl, app(CurrentStore::class)->get()));
                 } finally {
                     BookingLocale::apply($previousLocale);
                 }

@@ -19,5 +19,5 @@
 </x-mail::button>
 @endif
 
-{{ config('app.name') }}
+{{ \App\Support\StoreMailBranding::current()['footer_name'] }}
 </x-mail::message>

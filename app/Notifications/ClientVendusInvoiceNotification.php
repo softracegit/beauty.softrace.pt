@@ -2,6 +2,8 @@
 
 namespace App\Notifications;
 
+use App\Models\Store;
+use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -18,6 +20,7 @@ class ClientVendusInvoiceNotification extends Notification
         public string $invoiceLabel,
         public string $pdfFilename,
         public string $pdfBinary,
+        public ?int $storeId = null,
     ) {}
 
     /**
@@ -43,6 +46,8 @@ class ClientVendusInvoiceNotification extends Notification
             'mime' => 'application/pdf',
         ]);
 
-        return $mail->salutation(config('app.name'));
+        $store = $this->storeId ? Store::query()->find($this->storeId) : null;
+
+        return StoreMailBranding::applyToMailMessage($mail, $store);
     }
 }

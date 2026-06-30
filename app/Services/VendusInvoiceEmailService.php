@@ -56,6 +56,7 @@ final class VendusInvoiceEmailService
                     (string) $sale->numero_fatura,
                     $filename,
                     $pdf,
+                    (int) ($sale->store_id ?? 0) ?: null,
                 ));
 
             return ['sent' => true, 'message' => null];
