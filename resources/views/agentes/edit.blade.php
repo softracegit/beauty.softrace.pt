@@ -83,77 +83,6 @@
                 </div>
             </div>
 
-            <!-- Link Booking -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Link Booking</h5>
-                </div>
-                <div class="card-body">
-                    @php
-                        $bookingSlugValue = old('booking_slug', $agente->booking_slug);
-                        $bookingStoreSlug = $bookingStoreSlug ?? current_store()->get()->slug;
-                        $bookingLinkPreview = $bookingSlugValue
-                            ? url('/booking/'.$bookingStoreSlug.'/'.\Illuminate\Support\Str::slug((string) $bookingSlugValue))
-                            : null;
-                    @endphp
-                    <div class="mb-3">
-                        <label for="agentBookingSlug" class="form-label">Slug do link</label>
-                        <div class="input-group">
-                            <span class="input-group-text text-muted small">/booking/{{ $bookingStoreSlug }}/</span>
-                            <input
-                                type="text"
-                                name="booking_slug"
-                                id="agentBookingSlug"
-                                class="form-control @error('booking_slug') is-invalid @enderror"
-                                value="{{ $bookingSlugValue }}"
-                                placeholder="laissaosto"
-                                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                                autocomplete="off"
-                                spellcheck="false"
-                            >
-                        </div>
-                        @error('booking_slug')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                        <div class="form-text">Apenas letras minúsculas, números e hífens. Deixe vazio para desativar o link pessoal.</div>
-                    </div>
-                    <div class="mb-0">
-                        <label class="form-label">Link completo</label>
-                        <div class="input-group">
-                            <input
-                                type="text"
-                                id="agentBookingLinkPreview"
-                                class="form-control form-control-sm"
-                                value="{{ $bookingLinkPreview ?? '' }}"
-                                readonly
-                                placeholder="Defina um slug para gerar o link"
-                            >
-                            <button
-                                type="button"
-                                class="btn btn-outline-secondary btn-sm"
-                                id="agentBookingLinkCopy"
-                                @disabled(! $bookingLinkPreview)
-                                title="Copiar link"
-                            >
-                                <i class="ph ph-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Danger Zone -->
-            <div class="uedit-danger-zone">
-                <div class="uedit-danger-header">
-                    <i class="ph ph-warning me-1"></i> Zona de Perigo
-                </div>
-                <div class="uedit-danger-body">
-                    <p class="text-muted small mb-3">Uma vez eliminado um membro, não há volta atrás. Por favor, tenha a certeza.</p>
-                    <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteAgentModal">
-                        <i class="ph ph-trash me-1"></i> Eliminar Membro
-                    </button>
-                </div>
-            </div>
         </div>
 
         <!-- Right Main Area -->
@@ -265,6 +194,67 @@
                 </div>
             </div>
 
+            <!-- Link Booking -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Link Booking</h5>
+                </div>
+                <div class="card-body">
+                    @php
+                        $bookingSlugValue = old('booking_slug', $agente->booking_slug);
+                        $bookingStoreSlug = $bookingStoreSlug ?? current_store()->get()->slug;
+                        $bookingLinkPreview = $bookingSlugValue
+                            ? url('/booking/'.$bookingStoreSlug.'/'.\Illuminate\Support\Str::slug((string) $bookingSlugValue))
+                            : null;
+                    @endphp
+                    <div class="mb-3">
+                        <label for="agentBookingSlug" class="form-label">Slug do link</label>
+                        <div class="input-group">
+                            <span class="input-group-text text-muted small">/booking/{{ $bookingStoreSlug }}/</span>
+                            <input
+                                type="text"
+                                name="booking_slug"
+                                id="agentBookingSlug"
+                                class="form-control @error('booking_slug') is-invalid @enderror"
+                                value="{{ $bookingSlugValue }}"
+                                placeholder="laissaosto"
+                                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                                autocomplete="off"
+                                spellcheck="false"
+                            >
+                        </div>
+                        @error('booking_slug')
+                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                        @enderror
+                        <div class="form-text">Apenas letras minúsculas, números e hífens. Deixe vazio para desativar o link pessoal.</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Link completo</label>
+                        <div class="input-group">
+                            <input
+                                type="text"
+                                id="agentBookingLinkPreview"
+                                class="form-control form-control-sm"
+                                value="{{ $bookingLinkPreview ?? '' }}"
+                                readonly
+                                placeholder="Defina um slug para gerar o link"
+                            >
+                            <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                id="agentBookingLinkCopy"
+                                @disabled(! $bookingLinkPreview)
+                                title="Copiar link"
+                            >
+                                <i class="ph ph-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @include('agentes.partials.weekly-schedule', ['weeklySchedule' => old('weekly_schedule', $agente->weekly_schedule)])
+
             <!-- Morada -->
             <div class="card">
                 <div class="card-body">
@@ -318,8 +308,6 @@
                 </div>
             </div>
 
-            @include('agentes.partials.weekly-schedule', ['weeklySchedule' => old('weekly_schedule', $agente->weekly_schedule)])
-
             <!-- Serviços associados -->
             <div class="card">
                 <div class="card-body">
@@ -339,17 +327,37 @@
                             <i class="ph ph-info me-2"></i>
                             <div>Deixe em branco para manter a password atual.</div>
                         </div>
-                        <div class="row">
+                        <div class="row" autocomplete="off">
+                            <div class="visually-hidden" aria-hidden="true">
+                                <input type="text" name="prevent_autofill_username" tabindex="-1" autocomplete="username">
+                                <input type="password" name="prevent_autofill_password" tabindex="-1" autocomplete="current-password">
+                            </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Nova Password</label>
-                                <input type="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Introduza a nova password">
+                                <input
+                                    type="password"
+                                    name="password"
+                                    class="form-control @error('password') is-invalid @enderror"
+                                    placeholder="Introduza a nova password"
+                                    autocomplete="new-password"
+                                    readonly
+                                    onfocus="this.removeAttribute('readonly');"
+                                >
                                 @error('password')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Confirmar Password</label>
-                                <input type="password" name="password_confirmation" class="form-control" placeholder="Confirme a nova password">
+                                <input
+                                    type="password"
+                                    name="password_confirmation"
+                                    class="form-control"
+                                    placeholder="Confirme a nova password"
+                                    autocomplete="new-password"
+                                    readonly
+                                    onfocus="this.removeAttribute('readonly');"
+                                >
                             </div>
                         </div>
                     </div>
@@ -366,30 +374,6 @@
         </div>
     </div>
 </form>
-
-<!-- Delete Agent Modal -->
-<div class="modal fade" id="deleteAgentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title text-danger"><i class="ph ph-warning me-2"></i>Eliminar Membro</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Tem a certeza que deseja eliminar <strong>{{ $agente->name }}</strong>?</p>
-                <p class="text-muted mb-0">Esta ação não pode ser desfeita. Todos os dados do membro serão permanentemente removidos do sistema.</p>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form action="{{ route('equipa.destroy', $agente) }}" method="POST" class="d-inline">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Eliminar Membro</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 
 @endsection
 
