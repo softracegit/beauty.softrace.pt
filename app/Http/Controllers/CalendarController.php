@@ -28,6 +28,7 @@ use App\Services\CashRegisterService;
 use App\Services\ClientWalletService;
 use App\Services\MarcacaoServicesActivityLogger;
 use App\Services\ReceptionBookingNotifier;
+use App\Support\ActivityLogQuery;
 use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
 use Carbon\Carbon;
@@ -980,6 +981,37 @@ class CalendarController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function activityLog(CalendarEvent $calendarEvent): JsonResponse
+    {
+        $this->assertCanAccessCalendarEvent($calendarEvent);
+
+        if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+            return response()->json([
+                'success' => true,
+                'count' => 0,
+                'html' => view('activity.partials.activity-log-list', [
+                    'activities' => collect(),
+                    'hideSubjectLinks' => true,
+                ])->render(),
+            ]);
+        }
+
+        $calendarEvent->loadMissing(['client', 'eventServices', 'service', 'onlineBooking']);
+
+        $activities = ActivityLogQuery::forSubject($calendarEvent);
+
+        $html = view('activity.partials.activity-log-list', [
+            'activities' => $activities,
+            'hideSubjectLinks' => true,
+        ])->render();
+
+        return response()->json([
+            'success' => true,
+            'count' => $activities->count(),
+            'html' => $html,
+        ]);
     }
 
     public function sameDayPayable(CalendarEvent $calendarEvent): JsonResponse

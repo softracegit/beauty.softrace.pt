@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Models\Activity;
+use App\Models\User;
 use App\Support\ActivityLogDisplay;
 use Carbon\Carbon;
 use Tests\TestCase;
@@ -48,5 +50,28 @@ class ActivityLogDisplayTest extends TestCase
     {
         $this->assertSame('Fim', ActivityLogDisplay::attributeLabel('end_at'));
         $this->assertSame('Início', ActivityLogDisplay::attributeLabel('start_at'));
+    }
+
+    public function test_hides_cosmetic_title_changes_in_display(): void
+    {
+        $this->assertFalse(ActivityLogDisplay::shouldShowChangeAttribute('title'));
+        $this->assertTrue(ActivityLogDisplay::shouldShowChangeAttribute('end_at'));
+    }
+
+    public function test_reads_context_line_from_properties(): void
+    {
+        $line = ActivityLogDisplay::contextLine(['contexto' => 'Sofia · 01/07/2026 10:00']);
+
+        $this->assertSame('Sofia · 01/07/2026 10:00', $line);
+    }
+
+    public function test_causer_label_for_booking_client_user(): void
+    {
+        $user = new User(['name' => 'Beatriz Online', 'role' => User::ROLE_CLIENTE, 'client_id' => 1]);
+
+        $activity = new Activity(['event' => 'updated']);
+        $activity->setRelation('causer', $user);
+
+        $this->assertSame('Beatriz Online (cliente)', ActivityLogDisplay::causerLabel($activity));
     }
 }

@@ -53,7 +53,7 @@
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-servicos">Serviços</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-marcacoes">Marcações</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-vendas">Vendas</button>
-                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-log">Atividade</button>
+                <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-log">Logs</button>
                 <button class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-activity">Notas</button>
             </div>
             <div class="card-body tab-content">
@@ -318,82 +318,16 @@
                     @endif
                 </div>
 
-                <!-- Atividade (logs) Tab -->
+                <!-- Logs Tab -->
                 <div class="tab-pane fade" id="tab-log">
-                    <h6 class="mb-3">Histórico de alterações</h6>
-                    @if(isset($activities) && $activities->count() > 0)
-                        <div class="activity-log">
-                            @foreach($activities as $activity)
-                                @php
-                                    $activityStoreId = (int) ($activity->store_id ?? 0) ?: null;
-                                    $eventIcon = match($activity->event ?? '') {
-                                        'created' => 'ph ph-plus-circle',
-                                        'updated' => 'ph ph-pencil-simple',
-                                        'deleted' => 'ph ph-trash',
-                                        default => 'ph ph-info',
-                                    };
-                                    $eventClass = match($activity->event ?? '') {
-                                        'created' => 'bg-success-light text-success',
-                                        'updated' => 'bg-primary-light text-primary',
-                                        'deleted' => 'bg-danger-light text-danger',
-                                        default => 'bg-secondary-light text-secondary',
-                                    };
-                                @endphp
-                                <div class="activity-item">
-                                    <div class="activity-icon {{ $eventClass }}">
-                                        <i class="{{ $eventIcon }}"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title">{{ $activity->description ?? 'Alteração' }}</div>
-                                        @if($activity->event === 'updated' && $activity->properties)
-                                            @php
-                                                $props = $activity->properties;
-                                                $attrs = is_object($props) ? $props->get('attributes', []) : ($props['attributes'] ?? []);
-                                                $old = is_object($props) ? $props->get('old', []) : ($props['old'] ?? []);
-                                                $attrs = is_array($attrs) ? $attrs : (method_exists($attrs, 'toArray') ? $attrs->toArray() : []);
-                                                $old = is_array($old) ? $old : (method_exists($old, 'toArray') ? $old->toArray() : []);
-                                            @endphp
-                                            @if(!empty($attrs) || !empty($old))
-                                                <div class="activity-description small text-muted">
-                                                    @foreach(array_keys($attrs + $old) as $attr)
-                                                        @if(in_array($attr, ['password'], true)) @continue @endif
-                                                        @php
-                                                            $newVal = $attrs[$attr] ?? null;
-                                                            $oldVal = $old[$attr] ?? null;
-                                                        @endphp
-                                                        @if($oldVal != $newVal)
-                                                            <span class="d-block">{{ \App\Support\ActivityLogDisplay::attributeLabel($attr) }}: {{ \App\Support\ActivityLogDisplay::formatChange($attr, $oldVal, $newVal, $activityStoreId) }}</span>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                            @endif
-                                        @elseif($activity->properties)
-                                            @php
-                                                $propsArr = is_object($activity->properties) && method_exists($activity->properties, 'toArray')
-                                                    ? $activity->properties->toArray()
-                                                    : (array) $activity->properties;
-                                                $alteracoes = $propsArr['alteracoes'] ?? null;
-                                            @endphp
-                                            @if(is_array($alteracoes) && $alteracoes !== [])
-                                                <div class="activity-description small text-muted">
-                                                    @foreach($alteracoes as $line)
-                                                        <span class="d-block">{{ $line }}</span>
-                                                    @endforeach
-                                                </div>
-                                            @endif
-                                        @endif
-                                        <div class="activity-time">
-                                            <i class="ph ph-clock"></i> {{ \App\Support\ActivityLogDisplay::formatLogTimestamp($activity->created_at, $activityStoreId) }}
-                                            @if($activity->causer)
-                                                por {{ $activity->causer->name }}
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
+                    @if($activities->isEmpty() && ! $agente->user_id)
+                        <p class="text-muted text-center py-3">Este membro não tem conta de utilizador associada.</p>
                     @else
-                        <p class="text-muted text-center py-3">Nenhuma atividade registada.</p>
+                        @include('activity.partials.activity-log-list', [
+                            'activities' => $activities,
+                            'hideSubjectLinks' => false,
+                        ])
+                        @include('activity.partials.activity-log-pagination', ['activities' => $activities])
                     @endif
                 </div>
 
@@ -530,7 +464,9 @@
 (function() {
     const hash = window.location.hash;
     const validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-log', 'tab-activity'];
-    const tabId = hash && validTabs.includes(hash.slice(1)) ? hash.slice(1) : null;
+    const params = new URLSearchParams(window.location.search);
+    const tabFromHash = hash && validTabs.includes(hash.slice(1)) ? hash.slice(1) : null;
+    const tabId = tabFromHash ?? (params.has('page') ? 'tab-log' : null);
 
     document.addEventListener('DOMContentLoaded', function() {
         const tabList = document.querySelector('.uview-tabs');
@@ -546,7 +482,8 @@
         tabList.addEventListener('shown.bs.tab', function(e) {
             const target = e.target.getAttribute('data-bs-target');
             if (target && target.startsWith('#')) {
-                history.replaceState(null, '', window.location.pathname + target);
+                const query = window.location.search || '';
+                history.replaceState(null, '', window.location.pathname + query + target);
             }
         });
     });

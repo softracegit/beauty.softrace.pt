@@ -11,6 +11,7 @@ use App\Models\Note;
 use App\Models\Sale;
 use App\Models\User;
 use App\Services\VendasReportService;
+use App\Support\ActivityLogQuery;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -239,12 +240,7 @@ class ClientController extends Controller
     {
         $cliente->load('notes.user');
 
-        $activities = $cliente->activities()
-            ->with('causer')
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->limit(100)
-            ->get();
+        $activities = ActivityLogQuery::forSubject($cliente);
 
         $marcacoesDefaultDesde = now()->startOfDay()->subMonths(6)->toDateString();
         $marcacoesDefaultAte = now()->startOfDay()->addMonths(6)->toDateString();

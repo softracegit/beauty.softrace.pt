@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use App\Support\ActivityLogContext;
 use App\Support\PhoneDisplay;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -24,12 +26,25 @@ class Agent extends Model
         return LogOptions::defaults()
             ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'status', 'visible_in_agenda', 'visible_in_booking', 'booking_slug', 'agenda_order', 'weekly_schedule'])
             ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Membro criado',
                 'updated' => 'Membro atualizado',
                 'deleted' => 'Membro eliminado',
                 default => 'Membro alterado',
             });
+    }
+
+    public function tapActivity(Activity $activity, string $eventName): void
+    {
+        $name = trim((string) $this->name);
+        if ($name !== '') {
+            ActivityLogContext::attachSubjectLabel($activity, $name);
+            $base = (string) ($activity->description ?? 'Membro alterado');
+            if (! str_contains($base, $name)) {
+                $activity->description = $base.': '.$name;
+            }
+        }
     }
 
     protected $fillable = [

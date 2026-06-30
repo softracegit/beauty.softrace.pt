@@ -3714,6 +3714,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailSelectedServices = [];
         var id = data.id;
         $id('eventDetailEditId').value = id;
+        eventDetailSyncActivityLogLinkVisibility(data);
         renderSameDayPayableBanner(eventDetailSameDayPayable);
         fetchSameDayPayableSummary(id);
         $id('eventDetailEditUserId').value = data.user_id || '';
@@ -3790,6 +3791,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var svcCountEarly = (data.event_services && data.event_services.length) || 0;
             setEventDetailPaymentAndReadOnly(eventDetailExistingSale, data.event_type || 'marcacao', svcCountEarly);
             updateEventDetailOutOfHoursWarning();
+            eventDetailSyncActivityLogLinkVisibility(data);
             eventDetailFinishOcHydrate(hydrateGen);
             return;
         }
@@ -4545,6 +4547,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         eventDetailOcApplyServiceFieldVisibility();
     }
+    function eventDetailActivityLogUrl(eventId) {
+        var tpl = C.agendaEventActivityLogUrl || '';
+        return tpl.replace('__EVENT_ID__', encodeURIComponent(String(eventId)));
+    }
+
+    function eventDetailSyncActivityLogLinkVisibility(data) {
+        var wrap = $id('eventDetailActivityLogWrap');
+        if (!wrap) return;
+        var show = !!(data && data.id && data.event_type === 'marcacao' && !(data.visit || data.lead));
+        wrap.classList.toggle('d-none', !show);
+    }
+
+    function openEventDetailActivityLogModal() {
+        var eventId = ($id('eventDetailEditId') && $id('eventDetailEditId').value) || '';
+        eventId = String(eventId || '').trim();
+        if (!eventId) return;
+
+        var modalEl = $id('eventDetailActivityLogModal');
+        var bodyEl = $id('eventDetailActivityLogBody');
+        if (!modalEl || !bodyEl || typeof bootstrap === 'undefined') return;
+
+        bodyEl.innerHTML = '<p class="text-muted text-center py-3 mb-0"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>A carregar…</p>';
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+        fetch(eventDetailActivityLogUrl(eventId), {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function(r) {
+                return r.json().then(function(res) {
+                    if (!r.ok) {
+                        throw new Error(res.message || res.error || 'Erro ao carregar logs.');
+                    }
+                    return res;
+                });
+            })
+            .then(function(res) {
+                bodyEl.innerHTML = (res && res.html) ? res.html : '<p class="text-muted text-center py-3 mb-0">Nenhuma atividade registada.</p>';
+            })
+            .catch(function(err) {
+                var msg = (err && err.message) ? String(err.message).replace(/</g, '&lt;') : 'Erro ao carregar logs.';
+                bodyEl.innerHTML = '<p class="text-danger text-center py-3 mb-0">' + msg + '</p>';
+            });
+    }
+
     function eventDetailOcBindFormOnce() {
         if (eventDetailOcFormBound) return;
         eventDetailOcFormBound = true;
@@ -4746,6 +4792,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 }).catch(function() {
                     showToast('Não foi possível validar o número. Verifique a ligação e tente de novo.', 'error');
                 });
+            });
+        }
+        var viewLogsBtn = $id('eventDetailViewLogsBtn');
+        if (viewLogsBtn && !viewLogsBtn.dataset.bound) {
+            viewLogsBtn.dataset.bound = '1';
+            viewLogsBtn.addEventListener('click', function() {
+                openEventDetailActivityLogModal();
             });
         }
     }

@@ -577,6 +577,12 @@
                         </div>
                     </div>
                 </div>
+                <div class="agenda-oc-field d-none mt-2 pt-2 border-top" id="eventDetailActivityLogWrap" style="order:99">
+                    <button type="button" class="btn btn-link btn-sm px-0 text-decoration-none d-inline-flex align-items-center gap-1" id="eventDetailViewLogsBtn">
+                        <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
+                        Ver logs
+                    </button>
+                </div>
             </div>
         </form>
     </div>
@@ -627,6 +633,20 @@
                 </span>
             </div>
             <div class="d-none d-flex flex-wrap gap-1 align-items-center ms-auto" id="eventDetailFaturasWrap"></div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="eventDetailActivityLogModal" tabindex="-1" aria-labelledby="eventDetailActivityLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="eventDetailActivityLogModalLabel">Histórico da marcação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body py-3" id="eventDetailActivityLogBody">
+                <p class="text-muted text-center py-3 mb-0">A carregar…</p>
+            </div>
         </div>
     </div>
 </div>
@@ -692,6 +712,7 @@ window.AGENDA_CONFIG = {
     agendaDepositMbwayFinalizeUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/mbway/finalize'),
     agendaDepositCardUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/card'),
     agendaClientSavedCardsUrl: @json($agendaClientsBase . '/__CLIENT_ID__/saved-cards'),
+    agendaEventActivityLogUrl: @json($agendaEventsBase . '/__EVENT_ID__/activity-log'),
     salesRevertUrl: @json(url('sales')),
     salesFinalizeInvoiceUrl: @json(url('sales')),
     urlOpportunities: @json(url('opportunities')),

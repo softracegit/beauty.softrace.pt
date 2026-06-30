@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use App\Support\ActivityLogContext;
 use App\Support\DateTimeDisplay;
 use App\Support\PhoneDisplay;
+use Spatie\Activitylog\Contracts\Activity;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,12 +25,24 @@ class Client extends Model
         return LogOptions::defaults()
             ->logOnly(['name', 'email', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'door', 'floor', 'side', 'postal_code', 'locality', 'type', 'preferred_schedule', 'preferences_notes'])
             ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Cliente criado',
                 'updated' => 'Cliente atualizado',
                 'deleted' => 'Cliente eliminado',
                 default => 'Cliente alterado',
             });
+    }
+
+    public function tapActivity(Activity $activity, string $eventName): void
+    {
+        ActivityLogContext::attachClient($activity, $this);
+
+        $name = ActivityLogContext::clientName($this);
+        $base = (string) ($activity->description ?? 'Cliente alterado');
+        if (! str_contains($base, $name)) {
+            $activity->description = $base.': '.$name;
+        }
     }
 
     protected $fillable = [

@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use App\Support\ActivityLogContext;
+use App\Support\ActivityLogMarcacaoOrigin;
 use Carbon\CarbonInterface;
+use Spatie\Activitylog\Contracts\Activity;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,7 +25,6 @@ class CalendarEvent extends Model
     {
         return LogOptions::defaults()
             ->logOnly([
-                'title',
                 'start_at',
                 'end_at',
                 'description',
@@ -54,15 +56,25 @@ class CalendarEvent extends Model
 
     public function tapActivity(Activity $activity, string $eventName): void
     {
+        ActivityLogContext::attachMarcacao($activity, $this);
+
         if ($eventName === 'created') {
-            $activity->description = match ($this->event_type) {
-                self::TYPE_MARCACAO => 'Marcação criada',
-                self::TYPE_TEMPO_PESSOAL => 'Tempo pessoal criado',
-                self::TYPE_MANUAL, self::TYPE_OUTRO => 'Evento manual criado',
-                self::TYPE_VISITA => 'Visita agendada',
-                self::TYPE_LEAD => 'Evento de lead criado',
-                default => 'Evento criado na agenda',
-            };
+            if (($this->event_type ?? '') === self::TYPE_MARCACAO) {
+                $origem = ActivityLogMarcacaoOrigin::resolveForCreation($this);
+                ActivityLogMarcacaoOrigin::attach($activity, $origem);
+                $origemLabel = ActivityLogMarcacaoOrigin::label($origem);
+                $activity->description = $origemLabel !== null
+                    ? 'Marcação criada ('.$origemLabel.')'
+                    : 'Marcação criada';
+            } else {
+                $activity->description = match ($this->event_type) {
+                    self::TYPE_TEMPO_PESSOAL => 'Tempo pessoal criado',
+                    self::TYPE_MANUAL, self::TYPE_OUTRO => 'Evento manual criado',
+                    self::TYPE_VISITA => 'Visita agendada',
+                    self::TYPE_LEAD => 'Evento de lead criado',
+                    default => 'Evento criado na agenda',
+                };
+            }
         } elseif ($eventName === 'updated') {
             // Logs manuais (pagamentos, serviços, etc.) não têm attributes/old — não sobrescrever a descrição.
             $props = $activity->properties;
@@ -112,7 +124,6 @@ class CalendarEvent extends Model
                 'user_id' => 'Marcação transferida para outro técnico',
                 'status' => 'Estado da marcação alterado',
                 'client_id' => 'Cliente da marcação alterado',
-                'title' => 'Título do evento alterado',
                 'description' => 'Observações alteradas',
                 'event_type' => 'Tipo de evento alterado',
                 'service_id' => 'Serviço principal alterado',

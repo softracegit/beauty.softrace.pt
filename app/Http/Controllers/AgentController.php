@@ -10,6 +10,7 @@ use App\Models\Sale;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\VendasReportService;
+use App\Support\ActivityLogUserTimeline;
 use App\Support\CurrentStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -189,12 +190,7 @@ class AgentController extends Controller
             })
             ->groupBy(fn (\App\Models\Service $s) => (string) ($s->category_id ?? '0'));
 
-        $activities = $agente->activities()
-            ->with('causer')
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
-            ->limit(100)
-            ->get();
+        $activities = ActivityLogUserTimeline::paginateForAgent($agente);
 
         $marcacoes = collect();
         $vendas = collect();

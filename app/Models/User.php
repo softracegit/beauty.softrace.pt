@@ -10,11 +10,40 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Support\ActivityLogContext;
+use Spatie\Activitylog\Contracts\Activity;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, LogsActivity, Notifiable;
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logOnly(['name', 'email', 'role'])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+            ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
+                'updated' => 'Conta de utilizador atualizada',
+                'created' => 'Conta de utilizador criada',
+                default => 'Conta de utilizador alterada',
+            });
+    }
+
+    public function tapActivity(Activity $activity, string $eventName): void
+    {
+        $name = trim((string) $this->name);
+        if ($name !== '') {
+            ActivityLogContext::attachSubjectLabel($activity, $name);
+            $base = (string) ($activity->description ?? 'Conta de utilizador alterada');
+            if (! str_contains($base, $name)) {
+                $activity->description = $base.': '.$name;
+            }
+        }
+    }
 
     /**
      * The attributes that are mass assignable.

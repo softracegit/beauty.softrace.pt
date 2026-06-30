@@ -653,9 +653,9 @@ class OnlineBookingCheckoutService
             if (trim((string) ($client->nif ?? '')) === '' && strlen($nifDigits) === 9) {
                 $client->nif = $nifDigits;
             }
+            $this->mergeOnlineBookingNotes($client, $validated['notes'] ?? null);
             $client->save();
             $actor->save();
-            $this->appendOnlineBookingNotes($client, $validated['notes'] ?? null);
 
             return ['client' => $client, 'created_booking_user' => false];
         }
@@ -1231,7 +1231,7 @@ class OnlineBookingCheckoutService
         }
     }
 
-    private function appendOnlineBookingNotes(Client $client, ?string $notes): void
+    private function mergeOnlineBookingNotes(Client $client, ?string $notes): void
     {
         $notesTrim = isset($notes) ? trim((string) $notes) : '';
         if ($notesTrim === '') {
@@ -1241,7 +1241,6 @@ class OnlineBookingCheckoutService
         $notesBlock = '[Marcação online] '.$notesTrim;
         $prev = (string) ($client->preferences_notes ?? '');
         $client->preferences_notes = trim($prev !== '' ? $prev."\n\n".$notesBlock : $notesBlock);
-        $client->save();
     }
 
     private function phonesMatchClient(Client $client, string $phoneE164): bool

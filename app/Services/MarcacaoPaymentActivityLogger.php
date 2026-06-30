@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\CalendarEvent;
 use App\Models\Sale;
+use App\Models\Store;
 use App\Models\User;
+use App\Support\ActivityLogContext;
 use Illuminate\Support\Collection;
 
 class MarcacaoPaymentActivityLogger
@@ -33,6 +35,43 @@ class MarcacaoPaymentActivityLogger
             'total' => (float) $sale->total,
             'scope' => $sale->scope,
             'invoice_status' => $sale->invoice_status,
+        ], $causer);
+    }
+
+    /**
+     * @param  iterable<int, Sale>  $sales
+     */
+    public function logVendaAnulada(
+        CalendarEvent $event,
+        iterable $sales,
+        string $reason,
+        bool $finalInvoiceOnly,
+        ?User $causer = null,
+    ): void {
+        $salesCollection = $sales instanceof Collection ? $sales : collect($sales);
+        $activeSales = $salesCollection
+            ->filter(fn (Sale $sale) => $sale->scope !== Sale::SCOPE_BOOKING_RESERVA)
+            ->values();
+
+        if ($activeSales->isEmpty()) {
+            return;
+        }
+
+        $invoiceLabels = $activeSales
+            ->map(fn (Sale $sale) => $sale->invoiceListLabel())
+            ->filter()
+            ->values()
+            ->all();
+
+        $description = $finalInvoiceOnly ? 'Fatura final anulada' : 'Venda anulada';
+
+        $this->write($event, 'venda_anulada', $description, [
+            'sale_ids' => $activeSales->pluck('id')->map(fn ($id) => (int) $id)->all(),
+            'numero_fatura' => implode(', ', $invoiceLabels),
+            'motivo' => trim($reason) !== '' ? trim($reason) : null,
+            'final_invoice_only' => $finalInvoiceOnly,
+            'nota_credito' => $activeSales->contains(fn (Sale $sale) => $sale->vendus_credit_note_id !== null),
+            'vendas_anuladas' => $activeSales->count(),
         ], $causer);
     }
 
@@ -124,6 +163,11 @@ class MarcacaoPaymentActivityLogger
 
     private function write(CalendarEvent $event, string $eventName, string $description, array $properties, ?User $causer = null): void
     {
+        $line = ActivityLogContext::marcacaoLine($event);
+        if ($line !== null) {
+            $properties['contexto'] = $line;
+        }
+
         $logger = activity()
             ->performedOn($event)
             ->event($eventName)

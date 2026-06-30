@@ -1,6 +1,7 @@
 @php
     use App\Support\ActivityLogDisplay;
 
+    $hideSubjectLinks = $hideSubjectLinks ?? false;
     $calendarEventMorphClass = (new \App\Models\CalendarEvent())->getMorphClass();
     $clientMorphClass = (new \App\Models\Client())->getMorphClass();
     $agentMorphClass = (new \App\Models\Agent())->getMorphClass();
@@ -19,21 +20,24 @@
                     'deleted' => 'ph ph-trash',
                     'pre_pagamento', 'marcacao_paga' => 'ph ph-money',
                     'fatura_gerada' => 'ph ph-receipt',
+                    'venda_anulada' => 'ph ph-x-circle',
                     'servicos_alterados' => 'ph ph-scissors',
                     'caixa_aberta' => 'ph ph-lock-open',
                     'caixa_fechada' => 'ph ph-lock-key',
+                    'settings_updated' => 'ph ph-gear',
                     default => 'ph ph-info',
                 };
                 $eventClass = match($activity->event ?? '') {
                     'created' => 'bg-success-light text-success',
                     'updated' => 'bg-primary-light text-primary',
-                    'deleted' => 'bg-danger-light text-danger',
+                    'deleted', 'venda_anulada' => 'bg-danger-light text-danger',
                     'pre_pagamento', 'marcacao_paga', 'fatura_gerada', 'servicos_alterados', 'caixa_aberta', 'caixa_fechada' => 'bg-success-light text-success',
+                    'settings_updated' => 'bg-warning-light text-warning',
                     default => 'bg-secondary-light text-secondary',
                 };
 
                 $subjectLink = null;
-                if (!empty($activity->subject_id)) {
+                if (! $hideSubjectLinks && ! empty($activity->subject_id)) {
                     $subjectId = (int) $activity->subject_id;
                     $subjectType = $activity->subject_type ?? null;
 
@@ -49,6 +53,9 @@
                         $subjectLink = route('extras.show', $subjectId);
                     }
                 }
+
+                $causerLabel = ActivityLogDisplay::causerLabel($activity);
+                $activityTitle = ActivityLogDisplay::activityTitle($activity);
             @endphp
             <div class="activity-item">
                 <div class="activity-icon {{ $eventClass }}">
@@ -57,7 +64,7 @@
                 <div class="activity-content">
                     <div class="d-flex align-items-start justify-content-between gap-2">
                         <div class="activity-title">
-                            {{ $activity->description ?? 'Alteração' }}
+                            {{ $activityTitle }}
                         </div>
                         @if($subjectLink)
                             <a href="{{ $subjectLink }}" class="btn btn-sm btn-light" title="Ver">
@@ -65,6 +72,12 @@
                             </a>
                         @endif
                     </div>
+                    @php
+                        $contextLine = ActivityLogDisplay::contextLineForActivity($activity);
+                    @endphp
+                    @if($contextLine)
+                        <div class="activity-context small text-muted">{{ $contextLine }}</div>
+                    @endif
                     @if($activity->event === 'updated' && $activity->properties)
                         @php
                             $props = $activity->properties;
@@ -76,7 +89,7 @@
                         @if(!empty($attrs) || !empty($old))
                             <div class="activity-description small text-muted">
                                 @foreach(array_keys($attrs + $old) as $attr)
-                                    @if(in_array($attr, ['password'], true)) @continue @endif
+                                    @if(!ActivityLogDisplay::shouldShowChangeAttribute($attr)) @continue @endif
                                     @php
                                         $newVal = $attrs[$attr] ?? null;
                                         $oldVal = $old[$attr] ?? null;
@@ -93,9 +106,9 @@
                             $propsArr = is_object($props) && method_exists($props, 'toArray')
                                 ? $props->toArray()
                                 : (is_array($props) ? $props : []);
-                            $customProps = array_diff_key($propsArr, array_flip(['attributes', 'old']));
+                            $customProps = array_diff_key($propsArr, array_flip(['attributes', 'old', 'contexto']));
                             $alteracoes = $customProps['alteracoes'] ?? null;
-                            unset($customProps['alteracoes']);
+                            unset($customProps['alteracoes'], $customProps['secao']);
                         @endphp
                         @if(is_array($alteracoes) && $alteracoes !== [])
                             <div class="activity-description small text-muted">
@@ -107,7 +120,7 @@
                         @if(!empty($customProps))
                             <div class="activity-description small text-muted">
                                 @foreach($customProps as $propKey => $propVal)
-                                    @if(in_array($propKey, ['password'], true)) @continue @endif
+                                    @if(!ActivityLogDisplay::shouldShowChangeAttribute($propKey)) @continue @endif
                                     <span class="d-block">{{ ActivityLogDisplay::paymentPropertyLabel($propKey) }}: {{ ActivityLogDisplay::formatValue($propKey, $propVal, $activityStoreId) }}</span>
                                 @endforeach
                             </div>
@@ -115,8 +128,8 @@
                     @endif
                     <div class="activity-time">
                         <i class="ph ph-clock"></i> {{ ActivityLogDisplay::formatLogTimestamp($activity->created_at, $activityStoreId) }}
-                        @if($activity->causer)
-                            por {{ $activity->causer->name }}
+                        @if($causerLabel)
+                            por {{ $causerLabel }}
                         @endif
                     </div>
                 </div>
@@ -126,4 +139,3 @@
 @else
     <p class="text-muted text-center py-3">Nenhuma atividade registada.</p>
 @endif
-

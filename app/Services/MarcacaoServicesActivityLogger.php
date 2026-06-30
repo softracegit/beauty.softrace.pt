@@ -6,6 +6,7 @@ use App\Models\CalendarEvent;
 use App\Models\Extra;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\ActivityLogContext;
 use Illuminate\Support\Collection;
 
 class MarcacaoServicesActivityLogger
@@ -194,6 +195,11 @@ class MarcacaoServicesActivityLogger
 
     private function write(CalendarEvent $event, string $eventName, string $description, array $properties, ?User $causer): void
     {
+        $line = ActivityLogContext::marcacaoLine($event);
+        if ($line !== null) {
+            $properties['contexto'] = $line;
+        }
+
         $logger = activity()
             ->performedOn($event)
             ->event($eventName)

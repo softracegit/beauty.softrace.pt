@@ -954,6 +954,15 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Erro ao reverter a venda.', 'message' => $e->getMessage()], 500);
         }
 
+        $calendarEvent->loadMissing(['client', 'eventServices', 'service']);
+        $this->paymentActivityLogger->logVendaAnulada(
+            $calendarEvent,
+            $salesToRevert,
+            $reason,
+            $finalInvoiceOnly,
+            auth()->user(),
+        );
+
         Log::info('sale_reverted', [
             'sale_id' => $sale->id,
             'calendar_event_id' => $calendarEvent->id,

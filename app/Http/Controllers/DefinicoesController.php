@@ -7,6 +7,7 @@ use App\Models\CrmSetting;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
+use App\Services\StoreSettingsActivityLogger;
 use App\Support\BookingTheme;
 use App\Support\CurrentStore;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +19,10 @@ use Illuminate\View\View;
 
 class DefinicoesController extends Controller
 {
+    public function __construct(
+        private readonly StoreSettingsActivityLogger $settingsActivityLogger,
+    ) {}
+
     public function index(): RedirectResponse
     {
         return redirect()->route('definicoes.negocio');
@@ -38,6 +43,24 @@ class DefinicoesController extends Controller
     public function updateNegocio(Request $request): RedirectResponse
     {
         $store = app(CurrentStore::class)->get();
+        $storeId = (int) $store->id;
+
+        $before = [
+            'name' => $store->name,
+            'email' => $store->email,
+            'phone' => $store->phone,
+            'address_line' => $store->address_line,
+            'city' => $store->city,
+            'postal_code' => $store->postal_code,
+            'maps_url' => $store->maps_url,
+            'website_url' => $store->website_url,
+            'instagram_url' => $store->instagram_url,
+            'logo' => $store->logo,
+            'logo_email' => $store->logo_email,
+            'logo_favicon' => $store->logo_favicon,
+            'weekly_schedule' => $store->normalizedWeeklySchedule(),
+        ];
+        $beforeBranding = CrmSetting::emailUseBusinessBranding($storeId);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -84,7 +107,45 @@ class DefinicoesController extends Controller
 
         CrmSetting::setEmailUseBusinessBranding(
             $request->boolean('email_use_business_branding'),
-            (int) $store->id,
+            $storeId,
+        );
+
+        $store->refresh();
+        $changes = array_filter([
+            $this->settingsActivityLogger->logScalarChange('Nome', $before['name'], $store->name),
+            $this->settingsActivityLogger->logScalarChange('Email', $before['email'], $store->email),
+            $this->settingsActivityLogger->logScalarChange('Telefone', $before['phone'], $store->phone),
+            $this->settingsActivityLogger->logScalarChange('Morada', $before['address_line'], $store->address_line),
+            $this->settingsActivityLogger->logScalarChange('Cidade', $before['city'], $store->city),
+            $this->settingsActivityLogger->logScalarChange('Código postal', $before['postal_code'], $store->postal_code),
+            $this->settingsActivityLogger->logScalarChange('Link do mapa', $before['maps_url'], $store->maps_url),
+            $this->settingsActivityLogger->logScalarChange('Site', $before['website_url'], $store->website_url),
+            $this->settingsActivityLogger->logScalarChange('Instagram', $before['instagram_url'], $store->instagram_url),
+            $this->settingsActivityLogger->logBoolChange(
+                'Branding nos emails',
+                $beforeBranding,
+                CrmSetting::emailUseBusinessBranding($storeId),
+            ),
+        ]);
+
+        if ($before['logo'] !== $logoPath) {
+            $changes[] = $logoPath ? 'Logo principal atualizado' : 'Logo principal removido';
+        }
+        if ($before['logo_email'] !== $logoEmailPath) {
+            $changes[] = $logoEmailPath ? 'Logo de email atualizado' : 'Logo de email removido';
+        }
+        if ($before['logo_favicon'] !== $logoFaviconPath) {
+            $changes[] = $logoFaviconPath ? 'Favicon atualizado' : 'Favicon removido';
+        }
+        if (json_encode($before['weekly_schedule']) !== json_encode($store->normalizedWeeklySchedule())) {
+            $changes[] = 'Horário da loja alterado';
+        }
+
+        $this->settingsActivityLogger->logSection(
+            $store,
+            'negocio',
+            'Definições do negócio atualizadas',
+            array_values($changes),
         );
 
         return redirect()
@@ -133,6 +194,19 @@ class DefinicoesController extends Controller
 
     public function updateMarcacoes(Request $request): RedirectResponse
     {
+        $storeId = current_store_id();
+        $store = app(CurrentStore::class)->get();
+        $before = [
+            'slot_hold' => CrmSetting::bookingSlotHoldMinutes($storeId),
+            'cancellation_hours' => CrmSetting::bookingCancellationNoticeHours($storeId),
+            'any_staff_rule' => CrmSetting::bookingAnyStaffRule($storeId),
+            'theme' => CrmSetting::bookingTheme($storeId),
+        ];
+        $ruleLabels = CrmSetting::bookingAnyStaffRulesUi();
+        $themeLabels = collect(BookingTheme::registry())->mapWithKeys(fn (array $meta, string $key) => [
+            $key => (string) ($meta['label'] ?? $key),
+        ])->all();
+
         $validated = $request->validate([
             'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
             'booking_cancellation_notice_hours' => [
@@ -183,6 +257,38 @@ class DefinicoesController extends Controller
         if (array_key_exists('booking_theme', $validated)) {
             CrmSetting::setBookingTheme((string) $validated['booking_theme'], $storeId);
         }
+
+        $changes = array_filter([
+            $this->settingsActivityLogger->logScalarChange(
+                'Tempo de reserva (min)',
+                $before['slot_hold'],
+                CrmSetting::bookingSlotHoldMinutes($storeId),
+            ),
+            $this->settingsActivityLogger->logScalarChange(
+                'Aviso mínimo de cancelamento (h)',
+                $before['cancellation_hours'],
+                CrmSetting::bookingCancellationNoticeHours($storeId),
+            ),
+            $this->settingsActivityLogger->logScalarChange(
+                'Regra «qualquer técnico»',
+                $before['any_staff_rule'],
+                CrmSetting::bookingAnyStaffRule($storeId),
+                fn (mixed $value) => $ruleLabels[(string) $value] ?? (string) $value,
+            ),
+            $this->settingsActivityLogger->logScalarChange(
+                'Tema da marcação online',
+                $before['theme'],
+                CrmSetting::bookingTheme($storeId),
+                fn (mixed $value) => $themeLabels[(string) $value] ?? (string) $value,
+            ),
+        ]);
+
+        $this->settingsActivityLogger->logSection(
+            $store,
+            'marcacoes',
+            'Definições de marcações atualizadas',
+            array_values($changes),
+        );
 
         return redirect()
             ->route('definicoes.marcacoes')
@@ -241,7 +347,10 @@ class DefinicoesController extends Controller
             ->get()
             ->keyBy('id');
 
-        DB::transaction(function () use ($rows, $agents): void {
+        $store = app(CurrentStore::class)->get();
+
+        DB::transaction(function () use ($rows, $agents, $store): void {
+            $changes = [];
             foreach ($rows as $agentId => $row) {
                 $agentIdInt = (int) $agentId;
                 $agent = $agents->get($agentIdInt);
@@ -249,19 +358,52 @@ class DefinicoesController extends Controller
                     continue;
                 }
 
+                $memberChanges = [];
                 $role = (string) ($row['role'] ?? $agent->user->role);
                 if ($agent->user->role !== $role) {
+                    $roleLabels = User::roles();
+                    $memberChanges[] = 'Tipo: '.($roleLabels[$agent->user->role] ?? $agent->user->role)
+                        .' → '.($roleLabels[$role] ?? $role);
                     $agent->user->role = $role;
                     $agent->user->save();
                 }
 
+                $visibleAgenda = (bool) ($row['visible_in_agenda'] ?? false);
+                $visibleBooking = (bool) ($row['visible_in_booking'] ?? false);
+                $agendaOrder = (bool) ($row['visible_in_agenda'] ?? false)
+                    ? (int) ($row['agenda_order'] ?? 0)
+                    : 0;
+
+                if ((bool) $agent->visible_in_agenda !== $visibleAgenda) {
+                    $memberChanges[] = 'Visível na agenda: '.($agent->visible_in_agenda ? 'Sim' : 'Não')
+                        .' → '.($visibleAgenda ? 'Sim' : 'Não');
+                }
+                if ((bool) $agent->visible_in_booking !== $visibleBooking) {
+                    $memberChanges[] = 'Visível na marcação online: '.($agent->visible_in_booking ? 'Sim' : 'Não')
+                        .' → '.($visibleBooking ? 'Sim' : 'Não');
+                }
+                if ((int) $agent->agenda_order !== $agendaOrder) {
+                    $memberChanges[] = 'Ordem na agenda: '.$agent->agenda_order.' → '.$agendaOrder;
+                }
+
+                if ($memberChanges !== []) {
+                    $changes[] = $agent->name.': '.implode('; ', $memberChanges);
+                }
+
                 $agent->update([
-                    'visible_in_agenda' => (bool) ($row['visible_in_agenda'] ?? false),
-                    'visible_in_booking' => (bool) ($row['visible_in_booking'] ?? false),
-                    'agenda_order' => (bool) ($row['visible_in_agenda'] ?? false)
-                        ? (int) ($row['agenda_order'] ?? 0)
-                        : 0,
+                    'visible_in_agenda' => $visibleAgenda,
+                    'visible_in_booking' => $visibleBooking,
+                    'agenda_order' => $agendaOrder,
                 ]);
+            }
+
+            if ($changes !== []) {
+                $this->settingsActivityLogger->logSection(
+                    $store,
+                    'equipa',
+                    'Configuração da equipa atualizada',
+                    $changes,
+                );
             }
         });
 
@@ -283,15 +425,40 @@ class DefinicoesController extends Controller
 
     public function updatePagamentos(Request $request): RedirectResponse
     {
+        $storeId = current_store_id();
+        $store = app(CurrentStore::class)->get();
+        $beforeGorjeta = CrmSetting::posGorjetaEnabled($storeId);
+        $beforeOnlinePayment = CrmSetting::onlineBookingPaymentRequired($storeId);
+
         CrmSetting::setBool(
             CrmSetting::KEY_POS_GORJETA_ENABLED,
             $request->boolean('pos_gorjeta_enabled'),
-            current_store_id(),
+            $storeId,
         );
         CrmSetting::setBool(
             CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED,
             $request->boolean('online_booking_payment_required'),
-            current_store_id(),
+            $storeId,
+        );
+
+        $changes = array_filter([
+            $this->settingsActivityLogger->logBoolChange(
+                'Gorjeta no POS',
+                $beforeGorjeta,
+                CrmSetting::posGorjetaEnabled($storeId),
+            ),
+            $this->settingsActivityLogger->logBoolChange(
+                'Pagamento online obrigatório',
+                $beforeOnlinePayment,
+                CrmSetting::onlineBookingPaymentRequired($storeId),
+            ),
+        ]);
+
+        $this->settingsActivityLogger->logSection(
+            $store,
+            'pagamentos',
+            'Definições de pagamento atualizadas',
+            array_values($changes),
         );
 
         return redirect()

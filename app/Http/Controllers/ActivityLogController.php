@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Models\CalendarEvent;
 use App\Models\User;
 use App\Models\UserPageViewLog;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
@@ -54,7 +56,12 @@ class ActivityLogController extends Controller
         }
 
         $activities = (clone $baseQuery)
-            ->with('causer')
+            ->with([
+                'causer',
+                'subject' => fn (MorphTo $morphTo) => $morphTo->morphWith([
+                    CalendarEvent::class => ['client', 'eventServices', 'service'],
+                ]),
+            ])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(12)

@@ -297,6 +297,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('agenda/clients/{client}/saved-cards', [CalendarController::class, 'clientSavedCards'])->name('agenda.clients.saved_cards');
     Route::get('agenda/events', [CalendarController::class, 'events'])->name('agenda.events');
     Route::get('agenda/events/{calendarEvent}', [CalendarController::class, 'show'])->name('agenda.events.show');
+    Route::get('agenda/events/{calendarEvent}/activity-log', [CalendarController::class, 'activityLog'])->name('agenda.events.activity_log');
     Route::get('agenda/events/{calendarEvent}/same-day-payable', [CalendarController::class, 'sameDayPayable'])->name('agenda.events.same_day_payable');
     Route::post('agenda/events', [CalendarController::class, 'store'])->name('agenda.events.store');
     Route::put('agenda/events/{calendarEvent}', [CalendarController::class, 'update'])->name('agenda.events.update');
