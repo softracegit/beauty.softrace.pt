@@ -29,6 +29,7 @@ use App\Services\ClientWalletService;
 use App\Services\MarcacaoServicesActivityLogger;
 use App\Services\ReceptionBookingNotifier;
 use App\Support\ActivityLogQuery;
+use App\Support\ActivityLogSyntheticMarcacao;
 use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
 use Carbon\Carbon;
@@ -1000,7 +1001,10 @@ class CalendarController extends Controller
 
         $calendarEvent->loadMissing(['client', 'eventServices', 'service', 'onlineBooking']);
 
-        $activities = ActivityLogQuery::forSubject($calendarEvent);
+        $activities = ActivityLogSyntheticMarcacao::injectMissingZappyCreation(
+            ActivityLogQuery::forSubject($calendarEvent),
+            $calendarEvent,
+        );
 
         $html = view('activity.partials.activity-log-list', [
             'activities' => $activities,

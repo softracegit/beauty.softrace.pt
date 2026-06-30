@@ -15,7 +15,7 @@ use DateTimeInterface;
 class ActivityLogDisplay
 {
     /** Atributos omitidos na listagem (ex.: título auto-gerado, já não registado). */
-    private const HIDDEN_CHANGE_ATTRIBUTES = ['title', 'password'];
+    private const HIDDEN_CHANGE_ATTRIBUTES = ['title', 'password', 'synthetic', 'synthetic_causer_label', 'origem'];
 
     /** @var array<string, string> */
     private const ATTRIBUTE_LABELS = [
@@ -144,6 +144,19 @@ class ActivityLogDisplay
 
     public static function causerLabel(Activity $activity): ?string
     {
+        $props = $activity->properties;
+        if (is_object($props) && method_exists($props, 'get')) {
+            $syntheticCauser = $props->get('synthetic_causer_label');
+        } elseif (is_array($props)) {
+            $syntheticCauser = $props['synthetic_causer_label'] ?? null;
+        } else {
+            $syntheticCauser = null;
+        }
+
+        if (is_string($syntheticCauser) && trim($syntheticCauser) !== '') {
+            return trim($syntheticCauser);
+        }
+
         $causer = $activity->causer;
         if ($causer instanceof User) {
             if ($causer->isBookingClient()) {
