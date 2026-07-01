@@ -359,15 +359,15 @@
     </div>
     @endif
 
-    <div class="sidebar-panel-section" data-section="ajuda">
+    <div class="sidebar-panel-section {{ request()->routeIs('ajuda.*') ? 'active' : '' }}" data-section="ajuda">
       <div class="sidebar-panel-header">
         <h6>Ajuda</h6>
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link" href="#!">
-            Manual do utilizador
+          <a class="panel-link {{ request()->routeIs('ajuda.agenda') ? 'active' : '' }}" href="{{ route('ajuda.agenda') }}">
+            Agenda
           </a>
         </li>
       </ul>

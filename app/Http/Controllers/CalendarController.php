@@ -986,6 +986,11 @@ class CalendarController extends Controller
 
     public function activityLog(CalendarEvent $calendarEvent): JsonResponse
     {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->isAdmin()) {
+            abort(403);
+        }
+
         $this->assertCanAccessCalendarEvent($calendarEvent);
 
         if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {

@@ -4555,7 +4555,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function eventDetailSyncActivityLogLinkVisibility(data) {
         var wrap = $id('eventDetailActivityLogWrap');
         if (!wrap) return;
-        var show = !!(data && data.id && data.event_type === 'marcacao' && !(data.visit || data.lead));
+        var show = !!(C.currentUserIsAdmin && data && data.id && data.event_type === 'marcacao' && !(data.visit || data.lead));
         wrap.classList.toggle('d-none', !show);
     }
 

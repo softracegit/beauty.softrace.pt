@@ -577,12 +577,14 @@
                         </div>
                     </div>
                 </div>
+                @if(auth()->user()->isAdmin())
                 <div class="agenda-oc-field d-none mt-2 pt-2 border-top" id="eventDetailActivityLogWrap" style="order:99">
                     <button type="button" class="btn btn-link btn-sm px-0 text-decoration-none d-inline-flex align-items-center gap-1" id="eventDetailViewLogsBtn">
                         <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
                         Ver logs
                     </button>
                 </div>
+                @endif
             </div>
         </form>
     </div>

@@ -125,4 +125,28 @@ class MarcacaoActivityLogEndpointTest extends TestCase
             ->getJson(route('agenda.events.activity_log', $fx['event']))
             ->assertNotFound();
     }
+
+    public function test_activity_log_endpoint_denies_non_admin(): void
+    {
+        $fx = $this->fixture();
+        $rececao = User::query()->create([
+            'name' => 'Receção',
+            'email' => 'rececao-marcacao-log@test.test',
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_RECECAO,
+            'organization_id' => $fx['store']->organization_id,
+        ]);
+        Agent::query()->create([
+            'user_id' => $rececao->id,
+            'store_id' => $fx['store']->id,
+            'name' => 'Receção',
+            'status' => Agent::STATUS_ACTIVE,
+        ]);
+        $rececao->stores()->sync([$fx['store']->id]);
+
+        $this->actingAs($rececao)
+            ->withSession([SetCurrentStore::SESSION_KEY => $fx['store']->id])
+            ->getJson(route('agenda.events.activity_log', $fx['event']))
+            ->assertForbidden();
+    }
 }

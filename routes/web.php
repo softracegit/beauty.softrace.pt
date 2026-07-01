@@ -24,6 +24,7 @@ use App\Http\Controllers\DealController;
 use App\Http\Controllers\DefinicoesController;
 use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\FeeController;
+use App\Http\Controllers\HelpController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\LegalController;
 use App\Http\Controllers\MarketingSmsController;
@@ -217,6 +218,11 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
 
     Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
     Route::get('/activity/navegacao', [ActivityLogController::class, 'navigation'])->name('activity.navigation');
+
+    Route::prefix('ajuda')->name('ajuda.')->group(function () {
+        Route::get('/', [HelpController::class, 'index'])->name('index');
+        Route::get('/agenda', [HelpController::class, 'agenda'])->name('agenda');
+    });
 
     Route::get('notificacoes', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notificacoes/api', [NotificationController::class, 'apiList'])->name('notifications.api');

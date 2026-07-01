@@ -162,6 +162,22 @@
                 'active' => true,
             ];
         }
+    } elseif (str_starts_with($currentRoute, 'ajuda.')) {
+        $breadcrumbs[] = [
+            'label' => 'Ajuda',
+            'url' => route('ajuda.agenda'),
+            'active' => false,
+        ];
+        $sectionLabels = [
+            'ajuda.agenda' => 'Agenda',
+        ];
+        if (isset($sectionLabels[$currentRoute])) {
+            $breadcrumbs[] = [
+                'label' => $sectionLabels[$currentRoute],
+                'url' => null,
+                'active' => true,
+            ];
+        }
     } elseif (str_starts_with($currentRoute, 'relatorios.')) {
         $breadcrumbs[] = [
             'label' => 'Relatórios',
