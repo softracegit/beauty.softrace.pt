@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CashRegisterSession;
+use App\Services\AgendaSameDayPayableService;
 use App\Services\CashRegisterService;
 use App\Support\DateTimeDisplay;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ class CashRegisterController extends Controller
 {
     public function __construct(
         private readonly CashRegisterService $cashRegisterService,
+        private readonly AgendaSameDayPayableService $agendaSameDayPayableService,
     ) {}
 
     public function index(Request $request): View
@@ -61,6 +63,8 @@ class CashRegisterController extends Controller
 
         $summary = $this->cashRegisterService->buildExpectedSummary($session);
 
+        $storeId = (int) current_store_id();
+
         return response()->json([
             'session' => [
                 'id' => $session->id,
@@ -68,6 +72,7 @@ class CashRegisterController extends Controller
                 'opening_float' => $session->openingFloatEur(),
             ],
             'summary' => $summary,
+            'unpaid_marcacoes' => $this->agendaSameDayPayableService->unpaidMarcacoesTodayForStore($storeId),
         ]);
     }
 
@@ -127,6 +132,21 @@ class CashRegisterController extends Controller
             return redirect()
                 ->route('relatorios.caixa')
                 ->withErrors(['counted_cash' => 'Não há sessão de caixa aberta.']);
+        }
+
+        $storeId = (int) current_store_id();
+        $unpaidMarcacoes = $this->agendaSameDayPayableService->unpaidMarcacoesTodayForStore($storeId);
+        if (($unpaidMarcacoes['count'] ?? 0) > 0) {
+            $count = (int) $unpaidMarcacoes['count'];
+            $message = $count === 1
+                ? 'Não é possível fechar a caixa: existe 1 marcação de hoje por liquidar ou faturar.'
+                : 'Não é possível fechar a caixa: existem '.$count.' marcações de hoje por liquidar ou faturar.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $message], 422);
+            }
+
+            return back()->withErrors(['counted_cash' => $message])->withInput();
         }
 
         try {

@@ -326,7 +326,54 @@ class CashRegisterSessionTest extends TestCase
             ->getJson(route('caixa.close.summary'))
             ->assertOk()
             ->assertJsonPath('session.opening_float', 25)
-            ->assertJsonStructure(['summary' => ['methods', 'expected_cash_in_drawer']]);
+            ->assertJsonStructure([
+                'summary' => ['methods', 'expected_cash_in_drawer'],
+                'unpaid_marcacoes' => ['count', 'total_due', 'rows'],
+            ]);
+    }
+
+    public function test_close_summary_lists_unpaid_marcacoes_for_today(): void
+    {
+        $fx = $this->fixture();
+        $fx['event']->update([
+            'start_at' => now()->setHour(10),
+            'end_at' => now()->setHour(10)->addMinutes(30),
+            'status' => CalendarEvent::STATUS_TERMINADO,
+        ]);
+        $this->openCashRegisterForStore($fx['staff'], $fx['store'], 25);
+
+        $this->actingAs($fx['staff'])
+            ->withSession([SetCurrentStore::SESSION_KEY => $fx['store']->id])
+            ->getJson(route('caixa.close.summary'))
+            ->assertOk()
+            ->assertJsonPath('unpaid_marcacoes.count', 1)
+            ->assertJsonPath('unpaid_marcacoes.total_due', 40)
+            ->assertJsonPath('unpaid_marcacoes.rows.0.client_name', 'Cliente Caixa')
+            ->assertJsonPath('unpaid_marcacoes.rows.0.pending_invoice', false);
+    }
+
+    public function test_close_blocked_when_unpaid_marcacoes_today(): void
+    {
+        $fx = $this->fixture();
+        $fx['event']->update([
+            'start_at' => now()->setHour(10),
+            'end_at' => now()->setHour(10)->addMinutes(30),
+            'status' => CalendarEvent::STATUS_TERMINADO,
+        ]);
+        $this->openCashRegisterForStore($fx['staff'], $fx['store'], 25);
+
+        $this->actingAs($fx['staff'])
+            ->withSession([SetCurrentStore::SESSION_KEY => $fx['store']->id])
+            ->postJson(route('caixa.close.store'), [
+                'counted_cash' => '25.00',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('error', 'Não é possível fechar a caixa: existe 1 marcação de hoje por liquidar ou faturar.');
+
+        $this->assertDatabaseHas('cash_register_sessions', [
+            'store_id' => $fx['store']->id,
+            'status' => CashRegisterSession::STATUS_OPEN,
+        ]);
     }
 
     public function test_close_calculates_cash_difference(): void

@@ -19,6 +19,14 @@
         return n.toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
     }
 
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
     function setCashRegisterOpenState(isOpen) {
         cfg.isOpen = !!isOpen;
         document.querySelectorAll('[data-crm-cash-register-trigger]').forEach(function (el) {
@@ -131,6 +139,80 @@
         }
     }
 
+    function resetCloseUnpaidPreview() {
+        var wrap = document.getElementById('crmCashRegisterCloseUnpaidWrap');
+        var alert = document.getElementById('crmCashRegisterCloseUnpaidAlert');
+        var list = document.getElementById('crmCashRegisterCloseUnpaidList');
+        if (wrap) wrap.classList.add('d-none');
+        if (alert) alert.textContent = '';
+        if (list) list.innerHTML = '';
+        setCloseSubmitBlocked(false);
+    }
+
+    function renderCloseUnpaidPreview(unpaid) {
+        resetCloseUnpaidPreview();
+        if (!unpaid) {
+            return 0;
+        }
+        var count = Number(unpaid.count) || 0;
+        if (count <= 0) {
+            return 0;
+        }
+        var wrap = document.getElementById('crmCashRegisterCloseUnpaidWrap');
+        var alert = document.getElementById('crmCashRegisterCloseUnpaidAlert');
+        var list = document.getElementById('crmCashRegisterCloseUnpaidList');
+        if (!wrap || !alert || !list) {
+            return count;
+        }
+
+        var totalDue = Number(unpaid.total_due) || 0;
+        var alertText = count === 1
+            ? 'Existe 1 marcação de hoje por liquidar ou faturar. Liquide ou fature todas antes de fechar a caixa.'
+            : 'Existem ' + count + ' marcações de hoje por liquidar ou faturar. Liquide ou fature todas antes de fechar a caixa.';
+        if (totalDue > 0.00001) {
+            alertText += ' Total em falta: ' + formatMoney(totalDue) + '.';
+        }
+        alert.textContent = alertText;
+
+        var rows = Array.isArray(unpaid.rows) ? unpaid.rows : [];
+        list.innerHTML = rows.map(function (row) {
+            var statusLabel = row.pending_invoice ? 'Por faturar' : 'Por pagar';
+            var servicesLabel = row.services_label || 'Marcação';
+            var amountHtml = row.pending_invoice
+                ? '<span class="crm-cash-register-close-unpaid-item__amount text-muted">—</span>'
+                : '<span class="crm-cash-register-close-unpaid-item__amount">' + escapeHtml(formatMoney(row.amount_due)) + '</span>';
+            return '<li class="crm-cash-register-close-unpaid-item">'
+                + '<div class="crm-cash-register-close-unpaid-item__line">'
+                + '<span class="crm-cash-register-close-unpaid-item__time fw-semibold">' + escapeHtml(row.start_time || '—') + '</span>'
+                + '<span class="crm-cash-register-close-unpaid-item__dot" aria-hidden="true">·</span>'
+                + '<span class="crm-cash-register-close-unpaid-item__client">' + escapeHtml(row.client_name || '—') + '</span>'
+                + '<span class="crm-cash-register-close-unpaid-item__dot" aria-hidden="true">·</span>'
+                + '<span class="crm-cash-register-close-unpaid-item__services" title="' + escapeHtml(servicesLabel) + '">' + escapeHtml(servicesLabel) + '</span>'
+                + '<span class="crm-cash-register-close-unpaid-item__dot" aria-hidden="true">·</span>'
+                + '<span class="crm-cash-register-close-unpaid-item__status text-muted">' + escapeHtml(statusLabel) + '</span>'
+                + '</div>'
+                + amountHtml
+                + '</li>';
+        }).join('');
+
+        wrap.classList.remove('d-none');
+
+        return count;
+    }
+
+    function setCloseSubmitBlocked(blocked) {
+        var submit = document.getElementById('crmCashRegisterCloseSubmit');
+        if (!submit) {
+            return;
+        }
+        submit.disabled = !!blocked;
+        if (blocked) {
+            submit.setAttribute('title', 'Liquide ou fature todas as marcações de hoje antes de fechar a caixa.');
+        } else {
+            submit.removeAttribute('title');
+        }
+    }
+
     function resetCloseModal() {
         var loading = document.getElementById('crmCashRegisterCloseLoading');
         var content = document.getElementById('crmCashRegisterCloseContent');
@@ -152,6 +234,7 @@
         }
         var notes = document.getElementById('crmCashRegisterCloseNotes');
         if (notes) notes.value = '';
+        resetCloseUnpaidPreview();
     }
 
     function loadCloseSummary() {
@@ -215,8 +298,13 @@
                     hint.textContent = 'Fundo + vendas em dinheiro = ' + formatMoney(summary.expected_cash_in_drawer).replace(/\s€$/, '\u00a0€');
                 }
 
+                var unpaidCount = renderCloseUnpaidPreview(payload.unpaid_marcacoes);
+
                 if (content) content.classList.remove('d-none');
-                if (submit) submit.classList.remove('d-none');
+                if (submit) {
+                    submit.classList.remove('d-none');
+                    setCloseSubmitBlocked(unpaidCount > 0);
+                }
                 var counted = document.getElementById('crmCashRegisterCountedCash');
                 if (counted) counted.focus();
             })
@@ -324,6 +412,9 @@
         closeForm.addEventListener('submit', function (ev) {
             ev.preventDefault();
             var submitBtn = document.getElementById('crmCashRegisterCloseSubmit');
+            if (submitBtn && submitBtn.disabled) {
+                return;
+            }
             var counted = document.getElementById('crmCashRegisterCountedCash');
             var err = document.getElementById('crmCashRegisterCloseCountedError');
             if (submitBtn) submitBtn.disabled = true;

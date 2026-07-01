@@ -242,7 +242,24 @@
                 <input type="text" class="form-control" placeholder="Pesquisar serviços..." id="serviceSearch">
             </div>
             
-            <!-- Botão Criar à direita -->
+            <!-- Exportar PDF + Criar -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle text-nowrap" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="ph ph-file-pdf me-1"></i>Exportar PDF
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="{{ route('services.export_pdf', ['scope' => 'all']) }}" target="_blank" rel="noopener">
+                            Todos
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('services.export_pdf', ['scope' => 'visible']) }}" target="_blank" rel="noopener">
+                            Só visíveis
+                        </a>
+                    </li>
+                </ul>
+            </div>
             <div class="dropdown">
                 <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="ph ph-plus me-2"></i>Criar

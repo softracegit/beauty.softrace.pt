@@ -10,9 +10,13 @@ use App\Models\Agent;
 use App\Models\Category;
 use App\Models\Service;
 use App\Models\User;
+use App\Support\CurrentStore;
+use App\Support\DateTimeDisplay;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -76,6 +80,55 @@ class ServiceController extends Controller
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ]),
         ]);
+    }
+
+    /**
+     * PDF do catálogo de serviços (categoria, nome, preço online, duração).
+     */
+    public function exportPdf(Request $request): Response
+    {
+        $validated = $request->validate([
+            'scope' => ['nullable', 'string', 'in:all,visible'],
+        ]);
+
+        $scope = (string) ($validated['scope'] ?? 'all');
+        $onlyVisible = $scope === 'visible';
+
+        $storeId = current_store_id();
+        $store = app(CurrentStore::class)->get();
+
+        $categoriesQuery = Category::forStore($storeId)->orderBy('sort_order');
+        if ($onlyVisible) {
+            $categoriesQuery->visibleInBooking();
+        }
+
+        $categories = $categoriesQuery
+            ->with(['services' => fn ($q) => $q->with([
+                'options' => fn ($oq) => $oq->orderBy('sort_order'),
+            ])->orderBy('sort_order')])
+            ->get()
+            ->filter(fn (Category $category) => $category->services->isNotEmpty())
+            ->values();
+
+        $totalRows = $categories->sum(function (Category $category): int {
+            return $category->services->sum(function (Service $service): int {
+                return $service->options->isNotEmpty() ? $service->options->count() : 1;
+            });
+        });
+
+        $pdf = Pdf::loadView('services.pdf.catalog', [
+            'categories' => $categories,
+            'storeName' => $store->name,
+            'appName' => config('app.name'),
+            'generatedAt' => DateTimeDisplay::formatInstant(now(), $storeId, 'd/m/Y H:i'),
+            'totalRows' => $totalRows,
+            'scopeLabel' => $onlyVisible ? 'Só visíveis no booking' : 'Todos os serviços',
+        ])->setPaper('a4', 'portrait');
+
+        $suffix = $onlyVisible ? 'visiveis' : 'todos';
+        $filename = 'servicos_'.$suffix.'_'.now()->format('Y-m-d_His').'.pdf';
+
+        return $pdf->stream($filename);
     }
 
     /**

@@ -56,6 +56,15 @@
             A calcular movimentos…
           </div>
           <div id="crmCashRegisterCloseError" class="alert alert-danger d-none" role="alert"></div>
+          <div id="crmCashRegisterCloseUnpaidWrap" class="d-none mb-3">
+            <div class="crm-cash-register-close-unpaid-card">
+              <div class="crm-cash-register-close-unpaid-card__alert small mb-2" role="status">
+                <i class="bi bi-exclamation-triangle-fill crm-cash-register-close-unpaid-card__alert-icon" aria-hidden="true"></i>
+                <span id="crmCashRegisterCloseUnpaidAlert"></span>
+              </div>
+              <ul class="list-unstyled small mb-0 crm-cash-register-close-unpaid-list" id="crmCashRegisterCloseUnpaidList"></ul>
+            </div>
+          </div>
           <div id="crmCashRegisterCloseContent" class="d-none">
             <div class="table-responsive mb-4">
               <table class="table table-sm mb-0">
