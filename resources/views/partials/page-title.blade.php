@@ -121,6 +121,8 @@
             'definicoes.negocio' => 'Negócio',
             'definicoes.marcacoes' => 'Marcações',
             'definicoes.equipa' => 'Equipa',
+            'definicoes.emails' => 'Emails',
+            'definicoes.etiquetas' => 'Etiquetas',
             'definicoes.notificacoes' => 'Notificações',
             'definicoes.pagamentos' => 'Pagamentos',
         ];

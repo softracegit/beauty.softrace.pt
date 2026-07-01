@@ -1,7 +1,13 @@
 @extends('partials.layouts.main')
 @section('title', 'Clientes | Beauty CRM')
+
+@section('css')
+<link rel="stylesheet" href="{{ asset('template/css/client-tags.css') }}?v={{ file_exists(public_path('template/css/client-tags.css')) ? filemtime(public_path('template/css/client-tags.css')) : time() }}">
+@endsection
+
 @section('content')
 @php
+    $tagsReadonly = auth()->user()?->isPrestador() ?? false;
     $currentSortBy = request('sort_by', 'created_at');
     $currentSortDir = strtolower((string) request('sort_dir', $currentSortBy === 'created_at' ? 'desc' : 'asc'));
     $currentSortDir = in_array($currentSortDir, ['asc', 'desc'], true)
@@ -78,6 +84,14 @@
                         <i class="ph ph-magnifying-glass"></i>
                         <input type="text" name="search" placeholder="Pesquisar clientes..." value="{{ request('search') }}">
                     </div>
+                    @if(($clientTags ?? collect())->isNotEmpty())
+                    <select name="tag" class="form-select form-select-sm" style="width: auto; min-width: 10rem;" onchange="this.form.submit()">
+                        <option value="">Todas as etiquetas</option>
+                        @foreach($clientTags as $tag)
+                            <option value="{{ $tag->id }}" @selected((string) request('tag') === (string) $tag->id)>{{ $tag->name }}</option>
+                        @endforeach
+                    </select>
+                    @endif
                     <button type="submit" class="btn btn-outline-secondary btn-sm">
                         <i class="ph ph-magnifying-glass me-1"></i> Pesquisar
                     </button>
@@ -106,9 +120,9 @@
                                 <i class="{{ $sortIcon('name') }}"></i>
                             </a>
                         </th>
+                        <th>Etiquetas</th>
                         <th>Contacto</th>
                         <th>NIF</th>
-                        <th>Localidade</th>
                         <th>
                             <a href="{{ $sortableUrl('created_at') }}" class="text-decoration-none text-reset d-inline-flex align-items-center gap-1">
                                 <span>Data de registo</span>
@@ -151,6 +165,14 @@
                                     </div>
                                 </div>
                             </td>
+                            <td class="users-td-tags">
+                                @include('clientes.partials.tags-inline', [
+                                    'client' => $client,
+                                    'tags' => $client->tags,
+                                    'readonly' => $tagsReadonly,
+                                    'variant' => 'table',
+                                ])
+                            </td>
                             <td>
                                 @if($client->phone)
                                     <span class="users-cell-meta">{{ $client->formatted_phone }}</span>
@@ -166,24 +188,12 @@
                                 @endif
                             </td>
                             <td>
-                                @if($client->locality)
-                                    <span class="users-cell-meta">{{ $client->locality }}</span>
-                                @else
-                                    <span class="users-cell-meta text-muted">—</span>
-                                @endif
-                            </td>
-                            <td>
                                 <span class="users-cell-meta">{{ \App\Support\DateTimeDisplay::business($client->created_at) }}</span>
                             </td>
                             <td>
                                 <div class="users-actions">
                                     <a href="{{ route('clientes.show', $client) }}" class="users-action-btn" title="Ver"><i class="ph ph-eye"></i></a>
                                     <a href="{{ route('clientes.edit', $client) }}" class="users-action-btn" title="Editar"><i class="ph ph-pencil-simple"></i></a>
-                                    <form action="{{ route('clientes.destroy', $client) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem a certeza que deseja remover este cliente?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="users-action-btn danger" title="Eliminar"><i class="ph ph-trash"></i></button>
-                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -209,6 +219,9 @@
                 <form method="GET" action="{{ route('clientes.index') }}" class="d-inline-flex align-items-center gap-2">
                     @if(request('search'))
                     <input type="hidden" name="search" value="{{ request('search') }}">
+                    @endif
+                    @if(request('tag'))
+                    <input type="hidden" name="tag" value="{{ request('tag') }}">
                     @endif
                     <input type="hidden" name="sort_by" value="{{ $currentSortBy }}">
                     <input type="hidden" name="sort_dir" value="{{ $currentSortDir }}">
@@ -254,4 +267,9 @@
         @endif
     </div>
 
+@endsection
+
+@section('js')
+<script>window.CLIENT_TAGS_CONFIG = { catalogUrl: @json(route('client-tags.index')), maxPerClient: {{ \App\Services\ClientTagService::MAX_TAGS_PER_CLIENT }} };</script>
+<script src="{{ asset('template/js/client-tags.js') }}?v={{ file_exists(public_path('template/js/client-tags.js')) ? filemtime(public_path('template/js/client-tags.js')) : time() }}"></script>
 @endsection

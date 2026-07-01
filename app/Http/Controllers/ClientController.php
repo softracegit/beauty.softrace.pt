@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Client;
+use App\Models\ClientTag;
 use App\Models\Local;
 use App\Models\Note;
 use App\Models\Sale;
@@ -44,7 +45,13 @@ class ClientController extends Controller
             cookie()->queue(cookie('clientes_per_page', $perPage, 60 * 24 * 365)); // 1 ano
         }
 
-        $clients = $query->paginate($perPage)->withQueryString();
+        $clients = $query->with('tags')->paginate($perPage)->withQueryString();
+
+        $clientTags = ClientTag::query()
+            ->forStore(current_store_id())
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
         // Estatísticas iguais ao Dashboard de Clientes
         $marcacoesBase = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
@@ -69,6 +76,7 @@ class ClientController extends Controller
 
         return view('clientes.index', compact(
             'clients',
+            'clientTags',
             'totalClientes',
             'totalClientesComMarcacao',
             'clientesEsteMes',
@@ -176,6 +184,13 @@ class ClientController extends Controller
             });
         }
 
+        if ($request->filled('tag')) {
+            $tagId = (int) $request->tag;
+            if ($tagId > 0) {
+                $query->whereHas('tags', fn ($q) => $q->where('client_tags.id', $tagId));
+            }
+        }
+
         return $query;
     }
 
@@ -238,7 +253,7 @@ class ClientController extends Controller
      */
     public function show(Request $request, Client $cliente)
     {
-        $cliente->load('notes.user');
+        $cliente->load(['notes.user', 'tags']);
 
         $activities = ActivityLogQuery::forSubject($cliente);
 

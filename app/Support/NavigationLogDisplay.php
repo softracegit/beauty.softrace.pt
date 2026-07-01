@@ -20,6 +20,8 @@ class NavigationLogDisplay
         'definicoes.negocio' => 'Definições → Negócio',
         'definicoes.marcacoes' => 'Definições → Marcações',
         'definicoes.equipa' => 'Definições → Equipa',
+        'definicoes.emails' => 'Definições → Emails',
+        'definicoes.etiquetas' => 'Definições → Etiquetas',
         'definicoes.notificacoes' => 'Definições → Notificações',
         'definicoes.pagamentos' => 'Definições → Pagamentos',
         'notifications.index' => 'Notificações',

@@ -341,6 +341,16 @@
           </a>
         </li>
         <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.emails') ? 'active' : '' }}" href="{{ route('definicoes.emails') }}">
+            Emails
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.etiquetas') ? 'active' : '' }}" href="{{ route('definicoes.etiquetas') }}">
+            Etiquetas
+          </a>
+        </li>
+        <li>
           <a class="panel-link {{ request()->routeIs('definicoes.notificacoes') ? 'active' : '' }}" href="{{ route('definicoes.notificacoes') }}">
             Notificações
           </a>

@@ -7,6 +7,7 @@ use App\Models\CrmSetting;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
+use App\Services\ClientTagService;
 use App\Services\StoreSettingsActivityLogger;
 use App\Support\BookingTheme;
 use App\Support\CurrentStore;
@@ -21,6 +22,7 @@ class DefinicoesController extends Controller
 {
     public function __construct(
         private readonly StoreSettingsActivityLogger $settingsActivityLogger,
+        private readonly ClientTagService $clientTagService,
     ) {}
 
     public function index(): RedirectResponse
@@ -36,7 +38,6 @@ class DefinicoesController extends Controller
             'pageTitle' => 'Negócio',
             'store' => $store,
             'weeklySchedule' => old('weekly_schedule', $store->normalizedWeeklySchedule()),
-            'emailUseBusinessBranding' => CrmSetting::emailUseBusinessBranding((int) $store->id),
         ]);
     }
 
@@ -60,7 +61,6 @@ class DefinicoesController extends Controller
             'logo_favicon' => $store->logo_favicon,
             'weekly_schedule' => $store->normalizedWeeklySchedule(),
         ];
-        $beforeBranding = CrmSetting::emailUseBusinessBranding($storeId);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -78,7 +78,6 @@ class DefinicoesController extends Controller
             'remove_logo' => ['nullable', 'boolean'],
             'remove_logo_email' => ['nullable', 'boolean'],
             'remove_logo_favicon' => ['nullable', 'boolean'],
-            'email_use_business_branding' => ['nullable', 'boolean'],
         ], [
             'maps_url.url' => 'O link do mapa deve ser um URL válido.',
             'website_url.url' => 'O site deve ser um URL válido.',
@@ -105,11 +104,6 @@ class DefinicoesController extends Controller
             'weekly_schedule' => $this->validatedWeeklySchedule($request),
         ]);
 
-        CrmSetting::setEmailUseBusinessBranding(
-            $request->boolean('email_use_business_branding'),
-            $storeId,
-        );
-
         $store->refresh();
         $changes = array_filter([
             $this->settingsActivityLogger->logScalarChange('Nome', $before['name'], $store->name),
@@ -121,11 +115,6 @@ class DefinicoesController extends Controller
             $this->settingsActivityLogger->logScalarChange('Link do mapa', $before['maps_url'], $store->maps_url),
             $this->settingsActivityLogger->logScalarChange('Site', $before['website_url'], $store->website_url),
             $this->settingsActivityLogger->logScalarChange('Instagram', $before['instagram_url'], $store->instagram_url),
-            $this->settingsActivityLogger->logBoolChange(
-                'Branding nos emails',
-                $beforeBranding,
-                CrmSetting::emailUseBusinessBranding($storeId),
-            ),
         ]);
 
         if ($before['logo'] !== $logoPath) {
@@ -151,6 +140,49 @@ class DefinicoesController extends Controller
         return redirect()
             ->route('definicoes.negocio')
             ->with('status', 'Dados do negócio guardados.');
+    }
+
+    public function emails(): View
+    {
+        $storeId = current_store_id();
+
+        return view('definicoes.emails', [
+            'pageTitle' => 'Emails',
+            'emailUseBusinessBranding' => CrmSetting::emailUseBusinessBranding($storeId),
+        ]);
+    }
+
+    public function updateEmails(Request $request): RedirectResponse
+    {
+        $storeId = current_store_id();
+        $store = app(CurrentStore::class)->get();
+        $beforeBranding = CrmSetting::emailUseBusinessBranding($storeId);
+
+        $request->validate([
+            'email_use_business_branding' => ['nullable', 'boolean'],
+        ]);
+
+        CrmSetting::setEmailUseBusinessBranding(
+            $request->boolean('email_use_business_branding'),
+            $storeId,
+        );
+
+        $change = $this->settingsActivityLogger->logBoolChange(
+            'Branding nos emails',
+            $beforeBranding,
+            CrmSetting::emailUseBusinessBranding($storeId),
+        );
+
+        $this->settingsActivityLogger->logSection(
+            $store,
+            'emails',
+            'Definições de emails atualizadas',
+            array_values(array_filter([$change])),
+        );
+
+        return redirect()
+            ->route('definicoes.emails')
+            ->with('status', 'Definições de emails guardadas.');
     }
 
     private function handleStoreLogoField(
@@ -578,5 +610,18 @@ class DefinicoesController extends Controller
         }
 
         return $out;
+    }
+
+    public function etiquetas(): View
+    {
+        return view('definicoes.etiquetas', [
+            'pageTitle' => 'Etiquetas',
+            'clientTags' => $this->clientTagService->tagsForStore(current_store_id()),
+        ]);
+    }
+
+    public function etiquetasClientes(): RedirectResponse
+    {
+        return redirect()->route('definicoes.etiquetas');
     }
 }

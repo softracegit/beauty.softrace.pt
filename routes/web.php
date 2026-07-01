@@ -18,6 +18,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\AgendaDepositController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\ClientTagController;
 use App\Http\Controllers\CurrentStoreController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealController;
@@ -239,11 +240,21 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
         Route::post('marcacoes', [DefinicoesController::class, 'updateMarcacoes'])->name('marcacoes.update');
         Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');
         Route::post('equipa', [DefinicoesController::class, 'updateEquipa'])->name('equipa.update');
+        Route::get('emails', [DefinicoesController::class, 'emails'])->name('emails');
+        Route::post('emails', [DefinicoesController::class, 'updateEmails'])->name('emails.update');
+        Route::get('etiquetas', [DefinicoesController::class, 'etiquetas'])->name('etiquetas');
+        Route::get('etiquetas-clientes', [DefinicoesController::class, 'etiquetasClientes'])->name('etiquetas-clientes');
         Route::get('notificacoes', [DefinicoesController::class, 'notificacoes'])->name('notificacoes');
         Route::post('notificacoes', [DefinicoesController::class, 'updateNotificacoes'])->name('notificacoes.update');
         Route::get('pagamentos', [DefinicoesController::class, 'pagamentos'])->name('pagamentos');
         Route::post('pagamentos', [DefinicoesController::class, 'updatePagamentos'])->name('pagamentos.update');
     });
+
+    Route::get('client-tags', [ClientTagController::class, 'index'])->name('client-tags.index');
+    Route::post('client-tags', [ClientTagController::class, 'store'])->name('client-tags.store');
+    Route::put('client-tags/{clientTag}', [ClientTagController::class, 'update'])->name('client-tags.update');
+    Route::delete('client-tags/{clientTag}', [ClientTagController::class, 'destroy'])->name('client-tags.destroy');
+    Route::put('clientes/{client}/tags', [ClientTagController::class, 'syncForClient'])->name('clientes.tags.sync');
 
     Route::get('clientes/export', [ClientController::class, 'indexExport'])->name('clientes.export');
     Route::get('clientes/pdf', [ClientController::class, 'indexPdf'])->name('clientes.pdf');
@@ -299,6 +310,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('agenda/clients', [CalendarController::class, 'clients'])->name('agenda.clients');
     Route::post('agenda/clients', [CalendarController::class, 'storeClient'])->name('agenda.clients.store');
     Route::put('agenda/clients/{client}/nif', [CalendarController::class, 'updateClientNif'])->name('agenda.clients.nif');
+    Route::put('agenda/clients/{client}/tags', [ClientTagController::class, 'syncForClient'])->name('agenda.clients.tags');
     Route::get('agenda/clients/{client}/wallet', [CalendarController::class, 'clientWallet'])->name('agenda.clients.wallet');
     Route::get('agenda/clients/{client}/saved-cards', [CalendarController::class, 'clientSavedCards'])->name('agenda.clients.saved_cards');
     Route::get('agenda/events', [CalendarController::class, 'events'])->name('agenda.events');

@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/css/intlTelInput.css">
     <link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ static_asset('template/css/agenda.css') }}">
+    <link rel="stylesheet" href="{{ asset('template/css/client-tags.css') }}?v={{ file_exists(public_path('template/css/client-tags.css')) ? filemtime(public_path('template/css/client-tags.css')) : time() }}">
 @endsection
 @section('content')
 <div class="row g-0">
@@ -21,11 +22,11 @@
 
 <!-- Nova marcação: offcanvas lateral -->
 <div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="agendaMarcacaoTestOffcanvas" aria-labelledby="agendaMarcacaoTestOffcanvasLabel" data-bs-scroll="true">
-    <div class="offcanvas-header border-bottom align-items-start">
-        <div>
+    <div class="offcanvas-header border-bottom d-flex align-items-center gap-2">
+        <div class="flex-grow-1 min-w-0">
             <h5 class="offcanvas-title fw-semibold mb-0" id="agendaMarcacaoTestOffcanvasLabel">Nova marcação</h5>
         </div>
-        <button type="button" class="btn-close mt-0" data-bs-dismiss="offcanvas" data-agenda-oc-close aria-label="Fechar"></button>
+        <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" data-agenda-oc-close aria-label="Fechar"></button>
     </div>
     <div class="offcanvas-body">
         <form id="agendaMarcacaoTestForm" class="agenda-oc-test-form" autocomplete="off">
@@ -74,43 +75,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="agendaOcClientSelectedCard" class="agenda-oc-client-selected-card d-none mt-1">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="flex-shrink-0 agenda-oc-client-col-avatar">
-                            <img id="agendaOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none">
-                            <div id="agendaOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none">…</div>
-                        </div>
-                        <div class="flex-grow-1 min-w-0 agenda-oc-client-col-text">
-                            <strong id="agendaOcClientSelectedName" class="d-block text-truncate">…</strong>
-                            <span id="agendaOcClientSelectedPhone" class="d-block small text-muted">…</span>
-                            <div class="agenda-oc-client-nif-row position-relative">
-                                <span id="agendaOcClientNifDisplayWrap" class="d-inline-flex align-items-center gap-1 small text-muted agenda-oc-client-nif-display">
-                                    <span id="agendaOcClientSelectedNif">Sem NIF</span>
-                                    <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-nif-edit-btn" id="agendaOcClientNifEditBtn" title="Editar NIF" aria-label="Editar NIF">
-                                        <i class="ph ph-pencil-simple" aria-hidden="true"></i>
-                                    </button>
-                                </span>
-                                <span id="agendaOcClientNifInputWrap" class="d-none agenda-oc-client-nif-input-wrap">
-                                    <div class="d-flex align-items-center gap-1">
-                                        <input type="text" id="agendaOcClientNifInput" class="form-control form-control-sm agenda-oc-client-nif-input" maxlength="9" inputmode="numeric" pattern="[0-9]*" placeholder="NIF (9 dígitos)">
-                                        <button type="button" class="btn btn-sm btn-primary px-2 py-1" id="agendaOcClientNifSaveBtn">OK</button>
-                                        <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary text-decoration-none" id="agendaOcClientNifCancelBtn" title="Cancelar edição de NIF" aria-label="Cancelar edição de NIF">
-                                            <i class="ph ph-x" aria-hidden="true"></i>
-                                        </button>
-                                    </div>
-                                </span>
-                            </div>
-                        </div>
-                        <div class="flex-shrink-0 d-inline-flex agenda-oc-client-col-actions">
-                            <a id="agendaOcClientProfileLink" href="#" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-profile-btn d-none text-decoration-none" title="Ver perfil" aria-label="Ver perfil">
-                                <i class="ph ph-eye" aria-hidden="true"></i>
-                            </a>
-                            <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-edit-btn" id="agendaOcClientEditBtn" title="Trocar cliente" aria-label="Trocar cliente">
-                                <i class="ph ph-pencil-simple" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                @include('agenda.partials.oc-client-selected-card', ['prefix' => 'agendaOc', 'class' => 'mt-1'])
             </div>
             <div class="agenda-oc-field" style="order:2">
                 <label class="form-label fw-semibold text-dark mb-1" for="agendaOcMember">Prestador(a) do serviço <span class="text-danger">*</span></label>
@@ -399,7 +364,7 @@
 
 <!-- Offcanvas: Ver/Editar marcação (estrutura igual à nova marcação: cliente, serviços, profissional, data, notas) -->
 <div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="eventDetailEditModal" aria-labelledby="eventDetailEditOffcanvasLabel" data-bs-scroll="true">
-    <div class="offcanvas-header border-bottom d-flex align-items-center gap-2 py-3">
+    <div class="offcanvas-header border-bottom d-flex align-items-center gap-2">
         <div class="d-flex align-items-center flex-grow-1 min-w-0 gap-3">
             <h5 class="offcanvas-title fw-semibold mb-0 flex-shrink-0" id="eventDetailEditOffcanvasLabel">Marcação</h5>
             <div class="d-flex align-items-center min-w-0 flex-shrink-0">
@@ -489,43 +454,7 @@
                             </div>
                         </div>
                     </div>
-                    <div id="eventDetailOcClientSelectedCard" class="agenda-oc-client-selected-card d-none mt-1">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="flex-shrink-0 agenda-oc-client-col-avatar">
-                                <img id="eventDetailOcClientAvatar" src="" alt="" class="rounded-circle agenda-avatar-img d-none">
-                                <div id="eventDetailOcClientAvatarFallback" class="agenda-avatar-fallback rounded-circle d-flex align-items-center justify-content-center fw-semibold d-none">…</div>
-                            </div>
-                            <div class="flex-grow-1 min-w-0 agenda-oc-client-col-text">
-                                <strong id="eventDetailOcClientSelectedName" class="d-block text-truncate">…</strong>
-                                <span id="eventDetailOcClientSelectedPhone" class="d-block small text-muted">…</span>
-                                <div class="agenda-oc-client-nif-row position-relative">
-                                    <span id="eventDetailOcClientNifDisplayWrap" class="d-inline-flex align-items-center gap-1 small text-muted agenda-oc-client-nif-display">
-                                        <span id="eventDetailOcClientSelectedNif">Sem NIF</span>
-                                        <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-nif-edit-btn" id="eventDetailOcClientNifEditBtn" title="Editar NIF" aria-label="Editar NIF">
-                                            <i class="ph ph-pencil-simple" aria-hidden="true"></i>
-                                        </button>
-                                    </span>
-                                    <span id="eventDetailOcClientNifInputWrap" class="d-none agenda-oc-client-nif-input-wrap">
-                                        <div class="d-flex align-items-center gap-1">
-                                            <input type="text" id="eventDetailOcClientNifInput" class="form-control form-control-sm agenda-oc-client-nif-input" maxlength="9" inputmode="numeric" pattern="[0-9]*" placeholder="NIF (9 dígitos)">
-                                            <button type="button" class="btn btn-sm btn-primary px-2 py-1" id="eventDetailOcClientNifSaveBtn">OK</button>
-                                            <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary text-decoration-none" id="eventDetailOcClientNifCancelBtn" title="Cancelar edição de NIF" aria-label="Cancelar edição de NIF">
-                                                <i class="ph ph-x" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="flex-shrink-0 d-inline-flex agenda-oc-client-col-actions">
-                                <a id="eventDetailOcClientProfileLink" href="#" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-profile-btn d-none text-decoration-none" title="Ver perfil" aria-label="Ver perfil">
-                                    <i class="ph ph-eye" aria-hidden="true"></i>
-                                </a>
-                                <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary agenda-oc-client-edit-btn" id="eventDetailOcClientEditBtn" title="Trocar cliente" aria-label="Trocar cliente">
-                                    <i class="ph ph-pencil-simple" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    @include('agenda.partials.oc-client-selected-card', ['prefix' => 'eventDetailOc', 'class' => 'mt-1'])
                     <div id="eventDetailOcClientBirthdayBanner" class="agenda-client-birthday-banner d-none mt-2" role="status" aria-live="polite">
                         <span class="agenda-client-birthday-banner__icon" aria-hidden="true"><i class="ri-gift-2-fill"></i></span>
                         <span id="eventDetailOcClientBirthdayText" class="agenda-client-birthday-banner__text"></span>
@@ -729,6 +658,8 @@ window.AGENDA_CONFIG = {
     onlineBookingPaymentRequired: @json($onlineBookingPaymentRequired ?? true),
 };
 </script>
+<script>window.CLIENT_TAGS_CONFIG = { catalogUrl: @json(route('client-tags.index')), maxPerClient: {{ \App\Services\ClientTagService::MAX_TAGS_PER_CLIENT }} };</script>
+<script src="{{ asset('template/js/client-tags.js') }}?v={{ file_exists(public_path('template/js/client-tags.js')) ? filemtime(public_path('template/js/client-tags.js')) : time() }}"></script>
 <script src="{{ static_asset('template/js/agenda.js') }}"></script>
 
 @endsection

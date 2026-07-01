@@ -38,9 +38,11 @@ class StoreDataSqlExporter
         }
 
         foreach ($order as $table) {
-            $chunk = $table === 'agents'
-                ? $this->dumpAgentsTable()
-                : $this->dumpTable($table);
+            $chunk = match ($table) {
+                'agents' => $this->dumpAgentsTable(),
+                'client_client_tag' => $this->dumpClientClientTagTable(),
+                default => $this->dumpTable($table),
+            };
             if ($chunk !== '') {
                 $lines[] = $chunk;
                 $lines[] = '';
@@ -82,6 +84,7 @@ class StoreDataSqlExporter
 
         $data = [
             'clients',
+            'client_client_tag',
             'calendar_events',
             'calendar_event_services',
             'calendar_event_service_extras',
@@ -100,6 +103,7 @@ class StoreDataSqlExporter
             'agents',
             'agent_service',
             'personal_time_types',
+            'client_tags',
             'crm_settings',
         ];
 
@@ -124,6 +128,7 @@ class StoreDataSqlExporter
         $this->idSets['fees'] = $this->pluckIds('fees', 'store_id', $storeId);
         $this->idSets['agents'] = $this->pluckIds('agents', 'store_id', $storeId);
         $this->idSets['personal_time_types'] = $this->pluckIds('personal_time_types', 'store_id', $storeId);
+        $this->idSets['client_tags'] = $this->pluckIds('client_tags', 'store_id', $storeId);
         $this->idSets['clients'] = $this->pluckIds('clients', 'store_id', $storeId);
         $this->idSets['calendar_events'] = $this->pluckIds('calendar_events', 'store_id', $storeId);
         $this->idSets['sales'] = $this->pluckIds('sales', 'store_id', $storeId);
@@ -179,6 +184,16 @@ class StoreDataSqlExporter
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
+
+        if (Schema::hasTable('client_client_tag') && $this->idSets['clients'] !== []) {
+            $this->idSets['client_client_tag'] = DB::table('client_client_tag')
+                ->whereIn('client_id', $this->idSets['clients'])
+                ->get()
+                ->map(fn ($row) => (int) $row->client_id.'-'.(int) $row->client_tag_id)
+                ->all();
+        } else {
+            $this->idSets['client_client_tag'] = [];
+        }
     }
 
     /**
@@ -253,6 +268,37 @@ class StoreDataSqlExporter
 
             $colList = implode(', ', array_map(fn (string $c) => '`'.$c.'`', $columns));
             $lines[] = "INSERT INTO `{$table}` ({$colList}) VALUES\n".implode(",\n", $values).';';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function dumpClientClientTagTable(): string
+    {
+        if (! Schema::hasTable('client_client_tag')) {
+            return '';
+        }
+
+        $clientIds = $this->idSets['clients'] ?? [];
+        if ($clientIds === []) {
+            return '';
+        }
+
+        $rows = DB::table('client_client_tag')->whereIn('client_id', $clientIds)->orderBy('client_id')->get();
+        if ($rows->isEmpty()) {
+            return '';
+        }
+
+        $lines = [];
+        $lines[] = '-- client_client_tag ('.$rows->count().' linhas)';
+        $lines[] = 'DELETE cct FROM `client_client_tag` cct INNER JOIN `clients` c ON c.id = cct.client_id WHERE c.store_id = '.$this->storeId.';';
+
+        foreach ($rows->chunk(100) as $chunk) {
+            $values = [];
+            foreach ($chunk as $row) {
+                $values[] = '('.(int) $row->client_id.', '.(int) $row->client_tag_id.')';
+            }
+            $lines[] = "INSERT INTO `client_client_tag` (`client_id`, `client_tag_id`) VALUES\n".implode(",\n", $values).';';
         }
 
         return implode("\n", $lines);

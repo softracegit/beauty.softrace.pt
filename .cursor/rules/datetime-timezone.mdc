@@ -15,6 +15,27 @@ A app grava **instantes reais em UTC** na BD (`app.timezone` = UTC). A exibiçã
 4. **Activity log — propriedades `start_at` / `end_at`**: são relógio de parede (hora literal na coluna). Usar `DateTimeDisplay::marcacaoWallClock(...)` ou `ActivityLogDisplay` (já trata isto).
 5. Passar **`$event->store_id`** quando disponível; senão cai em `booking.business_timezone`.
 6. Comparações e queries: `StoreBusinessTime::nowForStore()`, `nowUtcForStore()`, `timezoneForStore()`.
+7. **Proibido** `config('app.timezone')` para apresentar horas — é UTC de servidor, não o fuso da loja.
+8. **«Hoje» / mesmo dia** em `CalendarEvent`: `whereBetween('start_at', [$day->copy()->startOfDay(), $day->copy()->endOfDay()])` com `$day = StoreBusinessTime::nowForStore($storeId)` ou `DateTimeDisplay::inBusiness($event->start_at, $storeId)`. **Não** usar `whereDate('start_at', ...)`.
+9. APIs JSON com horas de marcação: devolver `start_time` já formatado com `DateTimeDisplay::marcacao(...)` no PHP — não formatar no JS com `Date`/`timestamp` do browser.
+
+## Anti-padrões (causam horas erradas)
+
+```php
+// ERRADO — fuso do servidor, não da loja
+Carbon::parse($raw)->setTimezone(config('app.timezone'))->format('H:i');
+$event->start_at->format('H:i');
+
+// ERRADO — «hoje» depende do TZ da sessão SQL
+->whereDate('start_at', $today);
+
+// CERTO
+DateTimeDisplay::marcacao($event->start_at, $event->store_id, 'H:i');
+->whereBetween('start_at', [
+    StoreBusinessTime::nowForStore($storeId)->copy()->startOfDay(),
+    StoreBusinessTime::nowForStore($storeId)->copy()->endOfDay(),
+]);
+```
 
 ## Exemplos
 

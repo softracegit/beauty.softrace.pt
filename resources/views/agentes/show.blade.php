@@ -36,9 +36,6 @@
         <a href="{{ route('equipa.edit', $agente) }}" class="btn btn-primary btn-sm">
             <i class="ph ph-pencil-simple me-1"></i> Editar
         </a>
-        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteAgentModal">
-            <i class="ph ph-trash me-1"></i> Eliminar
-        </button>
     </div>
 </div>
 
@@ -426,30 +423,6 @@
                         <span class="uview-status-value">{{ $agentNotes->count() }}</span>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Agent Modal -->
-<div class="modal fade" id="deleteAgentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title text-danger"><i class="ph ph-warning me-2"></i>Eliminar Membro</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Tem a certeza que deseja eliminar <strong>{{ $agente->name }}</strong>?</p>
-                <p class="text-muted mb-0">Esta ação não pode ser desfeita. Todos os dados do membro serão permanentemente removidos do sistema.</p>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form action="{{ route('equipa.destroy', $agente) }}" method="POST" class="d-inline">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Eliminar Membro</button>
-                </form>
             </div>
         </div>
     </div>

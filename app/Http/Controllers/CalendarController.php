@@ -234,7 +234,7 @@ class CalendarController extends Controller
             ->with([
                 'user.agent',
                 'service',
-                'client',
+                'client.tags',
                 'eventServiceItems.service.fees',
                 'eventServiceItems.serviceOption',
                 'eventServiceItems.extras.extra',
@@ -430,6 +430,7 @@ class CalendarController extends Controller
                     'same_day_payable_count' => (int) ($sameDayPayableCounts[(int) ($event->client_id ?? 0).'|'.optional($event->start_at)->format('Y-m-d')] ?? 0),
                     'payment_lines' => $paymentLines,
                     'client_id' => $event->client_id,
+                    'client_tags' => $this->clientTagsPayload($event->client),
                     'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
                     ...$this->clientBirthdayMetaForEvent($event->client, $event->start_at, (int) $event->store_id),
                 ],
@@ -585,12 +586,13 @@ class CalendarController extends Controller
         $clientId = $request->get('client_id');
 
         if ($clientId) {
-            $client = \App\Models\Client::forStore(current_store_id())->whereKey($clientId)->first();
+            $client = \App\Models\Client::forStore(current_store_id())->with('tags')->whereKey($clientId)->first();
             if ($client) {
                 $arr = $client->only(['id', 'name', 'email', 'phone', 'nif']);
                 $arr['formatted_phone'] = $client->formatted_phone;
                 $arr['avatar_url'] = $client->avatar ? asset('storage/'.$client->avatar) : null;
                 $arr['birth_date'] = $client->birth_date?->format('Y-m-d');
+                $arr['tags'] = $this->clientTagsPayload($client);
 
                 return response()->json([$this->sanitizeClientPayloadForUser($arr)]);
             }
@@ -610,11 +612,12 @@ class CalendarController extends Controller
             });
         }
 
-        $clients = $query->get(['id', 'name', 'email', 'phone', 'nif', 'avatar']);
+        $clients = $query->with('tags')->get(['id', 'name', 'email', 'phone', 'nif', 'avatar']);
         $result = $clients->map(function ($c) {
             $arr = $c->only(['id', 'name', 'email', 'phone', 'nif']);
             $arr['formatted_phone'] = $c->formatted_phone;
             $arr['avatar_url'] = $c->avatar ? asset('storage/'.$c->avatar) : null;
+            $arr['tags'] = $this->clientTagsPayload($c);
 
             return $this->sanitizeClientPayloadForUser($arr);
         });
@@ -665,6 +668,7 @@ class CalendarController extends Controller
             'nif' => $client->nif,
             'formatted_phone' => $client->formatted_phone,
             'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
+            'tags' => [],
         ];
 
         return response()->json($this->sanitizeClientPayloadForUser($result));
@@ -684,6 +688,7 @@ class CalendarController extends Controller
 
         $client->nif = $validated['nif'];
         $client->save();
+        $client->load('tags');
 
         return response()->json([
             'id' => (string) $client->id,
@@ -693,6 +698,7 @@ class CalendarController extends Controller
             'nif' => $client->nif,
             'formatted_phone' => $client->formatted_phone,
             'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
+            'tags' => $this->clientTagsPayload($client),
         ]);
     }
 
@@ -705,7 +711,7 @@ class CalendarController extends Controller
         $this->assertCanAccessCalendarEvent($calendarEvent);
 
         try {
-            $calendarEvent->load(['user', 'service', 'client', 'eventServices.category', 'eventServices.fees', 'eventable', 'personalTimeType', 'sales', 'sale']);
+            $calendarEvent->load(['user', 'service', 'client.tags', 'eventServices.category', 'eventServices.fees', 'eventable', 'personalTimeType', 'sales', 'sale']);
             $calendarEvent->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
 
             $userAvatarUrl = null;
@@ -754,6 +760,7 @@ class CalendarController extends Controller
                 'client_formatted_phone' => $calendarEvent->client?->formatted_phone,
                 'client_avatar_url' => $calendarEvent->client?->avatar ? asset('storage/'.$calendarEvent->client->avatar) : null,
                 'client_birth_date' => $calendarEvent->client?->birth_date?->format('Y-m-d'),
+                'client_tags' => $this->clientTagsPayload($calendarEvent->client),
                 ...$this->clientBirthdayMetaForEvent($calendarEvent->client, $calendarEvent->start_at, (int) $calendarEvent->store_id),
                 'event_services' => $calendarEvent->eventServices->map(function ($s) {
                     $cat = $s->category;
@@ -2488,6 +2495,23 @@ class CalendarController extends Controller
         $payload['same_day_payable'] = ['count' => 0, 'total_due' => 0.0, 'rows' => []];
 
         return $payload;
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     */
+    private function clientTagsPayload(?Client $client): array
+    {
+        if ($client === null) {
+            return [];
+        }
+
+        $client->loadMissing('tags');
+
+        return $client->tags
+            ->map(fn (\App\Models\ClientTag $tag) => $tag->toPickerArray())
+            ->values()
+            ->all();
     }
 
     /**

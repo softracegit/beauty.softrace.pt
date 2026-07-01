@@ -9,6 +9,7 @@ use App\Support\PhoneDisplay;
 use Spatie\Activitylog\Contracts\Activity;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -300,6 +301,14 @@ class Client extends Model
             'message' => $message,
             'message_html' => $messageHtml,
         ];
+    }
+
+    /**
+     * @return BelongsToMany<ClientTag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(ClientTag::class, 'client_client_tag');
     }
 
     /**

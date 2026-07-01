@@ -21,30 +21,6 @@
     ])
 </form>
 
-<!-- Delete Client Modal -->
-<div class="modal fade" id="deleteClientModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title text-danger"><i class="ph ph-warning me-2"></i>Eliminar Cliente</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Tem a certeza que deseja eliminar <strong>{{ $cliente->name }}</strong>?</p>
-                <p class="text-muted mb-0">Esta ação não pode ser desfeita. Todos os dados do cliente serão permanentemente removidos do sistema.</p>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" class="d-inline">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Eliminar Cliente</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 @endsection
 
 @section('js')

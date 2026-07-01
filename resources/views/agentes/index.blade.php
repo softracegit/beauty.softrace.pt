@@ -82,7 +82,6 @@
                     <th>Contacto</th>
                     <th>Especialização</th>
                     <th>Comissão</th>
-                    <th>Localidade</th>
                     <th>Estado</th>
                     <th class="users-th-actions">Ações</th>
                 </tr>
@@ -139,30 +138,18 @@
                             @endif
                         </td>
                         <td>
-                            @if($agent->locality)
-                                <span class="users-cell-meta">{{ $agent->locality }}</span>
-                            @else
-                                <span class="users-cell-meta text-muted">—</span>
-                            @endif
-                        </td>
-                        <td>
                             <span class="users-status {{ $statusClass }}"><span class="users-status-dot"></span> {{ $statusLabel }}</span>
                         </td>
                         <td>
                             <div class="users-actions">
                                 <a href="{{ route('equipa.show', $agent) }}" class="users-action-btn" title="Ver"><i class="ph ph-eye"></i></a>
                                 <a href="{{ route('equipa.edit', $agent) }}" class="users-action-btn" title="Editar"><i class="ph ph-pencil-simple"></i></a>
-                                <form action="{{ route('equipa.destroy', $agent) }}" method="POST" class="d-inline" onsubmit="return confirm('Tem a certeza que deseja remover este membro?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="users-action-btn danger" title="Eliminar"><i class="ph ph-trash"></i></button>
-                                </form>
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center py-5">
+                        <td colspan="6" class="text-center py-5">
                             <i class="ph ph-user-circle display-4 text-muted"></i>
                             <h6 class="mt-3">Nenhum membro encontrado</h6>
                             <p class="text-muted mb-3">Comece por adicionar o primeiro membro.</p>

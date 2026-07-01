@@ -83,6 +83,52 @@ document.addEventListener('DOMContentLoaded', function() {
         if (profile) {
             profile.classList.toggle('d-none', !canViewClientProfile);
         }
+        agendaSetClientProfileLinks(prefix, agendaCurrentClientIdForPrefix(prefix));
+    }
+
+    function agendaCurrentClientIdForPrefix(prefix) {
+        if (prefix === 'agendaOc' && agendaOcSelectedClient) {
+            return String(agendaOcSelectedClient.id || '');
+        }
+        if (prefix === 'eventDetailOc' && eventDetailSelectedClient) {
+            return String(eventDetailSelectedClient.id || '');
+        }
+        return '';
+    }
+
+    function agendaSetClientProfileLinks(prefix, clientId) {
+        var id = String(clientId || '').trim();
+        var url = id ? (clientesBaseUrl.replace(/\/$/, '') + '/' + encodeURIComponent(id)) : '#';
+        var canLink = canViewClientProfile && !!id;
+
+        [
+            prefix + 'ClientProfileLink',
+            prefix + 'ClientProfileAvatarLink',
+            prefix + 'ClientProfileNameLink'
+        ].forEach(function(elementId) {
+            var el = $id(elementId);
+            if (!el) return;
+
+            if (elementId === prefix + 'ClientProfileLink') {
+                if (canLink) {
+                    el.href = url;
+                }
+                el.classList.toggle('d-none', !canViewClientProfile);
+                return;
+            }
+
+            if (canLink) {
+                el.href = url;
+                el.classList.remove('agenda-oc-client-card__profile-link--static');
+                el.removeAttribute('aria-disabled');
+                el.setAttribute('title', 'Ver ficha do cliente');
+            } else {
+                el.removeAttribute('href');
+                el.classList.add('agenda-oc-client-card__profile-link--static');
+                el.setAttribute('aria-disabled', 'true');
+                el.removeAttribute('title');
+            }
+        });
     }
 
     function eventDetailHasPersistedId() {
@@ -1454,6 +1500,25 @@ document.addEventListener('DOMContentLoaded', function() {
             phoneSpan.textContent = clientPhone;
             clientTextWrap.appendChild(phoneSpan);
         }
+        var clientTags = Array.isArray(ext.client_tags) ? ext.client_tags : [];
+        if (clientTags.length > 0) {
+            var tagsWrap = document.createElement('div');
+            tagsWrap.className = 'agenda-quickview-client-tags';
+            clientTags.forEach(function(tag) {
+                if (!tag || !tag.name) return;
+                var chip = document.createElement('span');
+                chip.className = 'client-tag-chip agenda-quickview-tag-chip';
+                chip.title = String(tag.name);
+                var label = document.createElement('span');
+                label.className = 'client-tag-chip__label';
+                label.textContent = String(tag.name);
+                chip.appendChild(label);
+                tagsWrap.appendChild(chip);
+            });
+            if (tagsWrap.childNodes.length > 0) {
+                clientTextWrap.appendChild(tagsWrap);
+            }
+        }
         clientRow.appendChild(clientTextWrap);
         body.appendChild(clientRow);
         }
@@ -1899,6 +1964,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var agendaMembersServicesUrl = (C.agendaMembersServicesUrl || '');
     var agendaClientsUrl = (C.agendaClientsUrl || '');
+
+    function agendaClientTagsSyncUrl(clientId) {
+        var base = String(agendaClientsUrl || '').replace(/\/$/, '');
+        if (!base || !clientId) return '';
+        return base + '/' + encodeURIComponent(clientId) + '/tags';
+    }
+
+    function agendaRenderClientTags(mountId, client) {
+        var mount = $id(mountId);
+        if (!mount || typeof window.ClientTags === 'undefined') return;
+        window.ClientTags.mount(mount, client, {
+            readonly: isPrestadorStaff,
+            syncUrl: client && client.id ? agendaClientTagsSyncUrl(client.id) : '',
+            variant: 'profile'
+        });
+    }
 
     function agendaEscAttr(s) {
         return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
@@ -3809,7 +3890,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 nif: data.client_nif || '',
                 formatted_phone: data.client_formatted_phone || '',
                 avatar_url: data.client_avatar_url || '',
-                birth_date: data.client_birth_date || ''
+                birth_date: data.client_birth_date || '',
+                tags: data.client_tags || []
             };
             eventDetailOcInitClientChoicesSelect();
             eventDetailOcApplyClientFromApi(cObj);
@@ -3982,6 +4064,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (card) card.classList.add('d-none');
         eventDetailOcSetNifInlineMode(false);
         eventDetailSelectedClient = null;
+        agendaSetClientProfileLinks('eventDetailOc', '');
         eventDetailOcClearNewClientForm();
         var birthdayBanner = $id('eventDetailOcClientBirthdayBanner');
         if (birthdayBanner) birthdayBanner.classList.add('d-none');
@@ -4000,7 +4083,8 @@ document.addEventListener('DOMContentLoaded', function() {
             formatted_phone: c.formatted_phone || '',
             email: c.email || '',
             avatar_url: c.avatar_url || '',
-            birth_date: c.birth_date || ''
+            birth_date: c.birth_date || '',
+            tags: c.tags || []
         };
         var av = $id('eventDetailOcClientAvatar');
         var fb = $id('eventDetailOcClientAvatarFallback');
@@ -4015,6 +4099,7 @@ document.addEventListener('DOMContentLoaded', function() {
             pl.href = clientesBaseUrl + '/' + c.id;
             pl.classList.toggle('d-none', !canViewClientProfile);
         }
+        agendaSetClientProfileLinks('eventDetailOc', c.id);
         applyAgendaClientPrivacyUi('eventDetailOc');
         if (c.avatar_url && av) {
             av.src = c.avatar_url;
@@ -4022,8 +4107,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (fb) fb.classList.add('d-none');
         } else if (av && fb) {
             av.classList.add('d-none');
-            var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-            fb.textContent = initials;
             fb.classList.remove('d-none');
         }
         var notSel = $id('eventDetailOcClientNotSelectedWrap');
@@ -4035,6 +4118,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (cedit) cedit.classList.toggle('d-none', eventDetailMarcacaoClientLocked());
         if (ceditCancel) ceditCancel.classList.add('d-none');
         eventDetailOcSetNifInlineMode(false);
+        agendaRenderClientTags('eventDetailOcClientTagsMount', eventDetailSelectedClient);
         eventDetailOcClientBeforeEdit = null;
         eventDetailOcUpdateBirthdayBanner();
         if (eventDetailCurrentData) {
@@ -4061,6 +4145,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         eventDetailOcClientBeforeEdit = eventDetailSelectedClient ? Object.assign({}, eventDetailSelectedClient) : null;
         eventDetailSelectedClient = null;
+        agendaRenderClientTags('eventDetailOcClientTagsMount', null);
         eventDetailOcClearNewClientForm();
         var notSel = $id('eventDetailOcClientNotSelectedWrap');
         var card = $id('eventDetailOcClientSelectedCard');
@@ -5375,6 +5460,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (notSel) notSel.classList.remove('d-none');
         if (card) card.classList.add('d-none');
         agendaOcSelectedClient = null;
+        agendaSetClientProfileLinks('agendaOc', '');
+        agendaRenderClientTags('agendaOcClientTagsMount', null);
         agendaOcClearNewClientForm();
         var tabBtn = $id('agendaOcTabExistingBtn');
         if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
@@ -5393,7 +5480,8 @@ document.addEventListener('DOMContentLoaded', function() {
             nif: c.nif || '',
             formatted_phone: c.formatted_phone || '',
             email: c.email || '',
-            avatar_url: c.avatar_url || ''
+            avatar_url: c.avatar_url || '',
+            tags: c.tags || []
         };
         var av = $id('agendaOcClientAvatar');
         var fb = $id('agendaOcClientAvatarFallback');
@@ -5408,6 +5496,7 @@ document.addEventListener('DOMContentLoaded', function() {
             pl.href = clientesBaseUrl + '/' + c.id;
             pl.classList.toggle('d-none', !canViewClientProfile);
         }
+        agendaSetClientProfileLinks('agendaOc', c.id);
         applyAgendaClientPrivacyUi('agendaOc');
         if (c.avatar_url && av) {
             av.src = c.avatar_url;
@@ -5415,8 +5504,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (fb) fb.classList.add('d-none');
         } else if (av && fb) {
             av.classList.add('d-none');
-            var initials = (c.name || '?').split(' ').map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
-            fb.textContent = initials;
             fb.classList.remove('d-none');
         }
         var notSel = $id('agendaOcClientNotSelectedWrap');
@@ -5424,6 +5511,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (notSel) notSel.classList.add('d-none');
         if (sc) sc.classList.remove('d-none');
         agendaOcSetNifInlineMode(false);
+        agendaRenderClientTags('agendaOcClientTagsMount', agendaOcSelectedClient);
     }
 
     function agendaOcInitClientChoicesSelect() {
@@ -5442,6 +5530,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function agendaOcEnterClientSearchMode() {
         agendaOcSetNifInlineMode(false);
         agendaOcSelectedClient = null;
+        agendaRenderClientTags('agendaOcClientTagsMount', null);
         agendaOcClearNewClientForm();
         var notSel = $id('agendaOcClientNotSelectedWrap');
         var card = $id('agendaOcClientSelectedCard');

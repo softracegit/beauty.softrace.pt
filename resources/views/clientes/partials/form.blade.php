@@ -46,20 +46,6 @@
             </div>
         </div>
 
-        @if($isEdit)
-        <!-- Danger Zone -->
-        <div class="uedit-danger-zone">
-            <div class="uedit-danger-header">
-                <i class="ph ph-warning me-1"></i> Zona de Perigo
-            </div>
-            <div class="uedit-danger-body">
-                <p class="text-muted small mb-3">Uma vez eliminado um cliente, não há volta atrás. Por favor, tenha a certeza.</p>
-                <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteClientModal">
-                    <i class="ph ph-trash me-1"></i> Eliminar Cliente
-                </button>
-            </div>
-        </div>
-        @endif
     </div>
 
     <!-- Right Main Area -->

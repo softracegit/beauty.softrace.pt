@@ -47,6 +47,8 @@
 }
 .agenda-marcacao-test-offcanvas .offcanvas-header {
     padding: 1rem 1.875rem;
+    align-items: center;
+    min-height: 3.25rem;
 }
 .agenda-marcacao-test-offcanvas .offcanvas-body {
     padding: 1.25rem 1.875rem;
@@ -534,88 +536,191 @@
 .agenda-marcacao-test-offcanvas .agenda-oc-services-head {
     min-height: 1.375rem;
 }
-/* Cliente escolhido: col1 avatar | col2 nome+telefone | col3 editar */
-.agenda-marcacao-test-offcanvas .agenda-oc-client-selected-card .agenda-avatar-fallback {
-    background: var(--bs-secondary-bg, #e9ecef);
-    color: var(--bs-secondary-color, #6c757d);
+/* Cliente escolhido: mesmo aspeto da ficha (uview-header) */
+.agenda-marcacao-test-offcanvas .agenda-oc-client-selected-card {
+    margin-top: 0.35rem;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0 0.75rem;
+    padding: 0.75rem 0.85rem;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent-color, #4f46e5), transparent 92%), color-mix(in srgb, var(--accent-color, #4f46e5), transparent 96%));
+    border: 1px solid color-mix(in srgb, var(--accent-color, #4f46e5), transparent 85%);
+    border-radius: var(--radius-lg, 0.5rem);
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__avatar-link {
+    grid-column: 1;
+    grid-row: 1;
+    flex-shrink: 0;
+    color: inherit;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__avatar {
+    flex-shrink: 0;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__profile-link:not(.agenda-oc-client-card__profile-link--static) {
+    cursor: pointer;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__profile-link--static {
+    pointer-events: none;
+    cursor: default;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__profile-link:hover .agenda-oc-client-name,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__profile-link:focus-visible .agenda-oc-client-name {
+    color: var(--accent-color, #4f46e5);
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__avatar-link:not(.agenda-oc-client-card__profile-link--static):hover .uview-avatar,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__avatar-link:not(.agenda-oc-client-card__profile-link--static):focus-visible .uview-avatar {
+    box-shadow: var(--shadow-md), 0 0 0 2px color-mix(in srgb, var(--accent-color, #4f46e5), transparent 70%);
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card .uview-avatar.agenda-oc-client-card__avatar-media {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card .uview-avatar-initials.agenda-oc-client-card__avatar-media {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    text-align: center;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__avatar-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+    color: var(--accent-color, #4f46e5);
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__body {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__actions {
+    grid-column: 3;
+    grid-row: 1;
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    gap: 0.35rem;
+    padding-left: 0.15rem;
+    flex-shrink: 0;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__tags {
+    min-width: 0;
+    margin-top: 0.45rem;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__tags .agenda-oc-client-tags-mount:empty {
+    display: none;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__tags:has(.agenda-oc-client-tags-mount:empty) {
+    display: none;
+    margin-top: 0;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-col-edit {
     align-self: flex-start;
     padding-top: 0.125rem;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-edit-btn {
-    font-size: 1.5rem;
+    font-size: 0.85rem;
     line-height: 1;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-edit-btn:hover {
     color: var(--bs-primary) !important;
 }
-/* Olho + lápis (editar marcação): mesmo tamanho de ícone e pequeno espaço entre eles */
-.agenda-marcacao-test-offcanvas .agenda-oc-client-col-actions {
-    align-items: center;
-    align-self: center;
-    padding-top: 0;
-    gap: 0.375rem;
-}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-change-btn,
 .agenda-marcacao-test-offcanvas .agenda-oc-client-profile-btn {
-    font-size: 1.5rem;
+    font-size: 1.125rem;
     line-height: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.375rem;
 }
+.agenda-marcacao-test-offcanvas .agenda-oc-client-change-btn .ph,
 .agenda-marcacao-test-offcanvas .agenda-oc-client-profile-btn .ph {
     display: block;
     font-size: 1em;
     line-height: 1;
 }
-.agenda-marcacao-test-offcanvas .agenda-oc-client-profile-btn:hover {
+.agenda-marcacao-test-offcanvas .agenda-oc-client-change-btn:hover,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-change-btn:focus,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-profile-btn:hover,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-profile-btn:focus {
     color: var(--bs-primary) !important;
+    background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.08);
 }
-.agenda-marcacao-test-offcanvas .agenda-oc-client-selected-card .agenda-avatar-img,
-.agenda-marcacao-test-offcanvas .agenda-oc-client-selected-card .agenda-avatar-fallback {
-    width: 55px;
-    height: 55px;
+.agenda-marcacao-test-offcanvas .agenda-oc-client-name {
+    display: block;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--heading-color, var(--bs-body-color, #212529));
+    margin: 0;
+    padding-right: 0.25rem;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-contact-row {
+    gap: 0.3rem 0.45rem;
+    margin-top: 0.15rem;
     font-size: 0.8125rem;
+    line-height: 1.3;
+    color: var(--muted-color, var(--bs-secondary-color, #6c757d));
 }
-.agenda-marcacao-test-offcanvas .agenda-oc-client-col-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-    line-height: 1.2;
+.agenda-marcacao-test-offcanvas .agenda-oc-client-meta {
+    font-size: 0.8125rem;
+    line-height: 1.3;
 }
-.agenda-marcacao-test-offcanvas .agenda-oc-client-col-text strong {
-    line-height: 1.15;
-    font-size: 0.9375rem;
-}
-.agenda-marcacao-test-offcanvas .agenda-oc-client-col-text .small {
-    line-height: 1.2;
+.agenda-marcacao-test-offcanvas .agenda-oc-client-contact-sep {
+    opacity: 0.4;
+    user-select: none;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-row {
-    min-height: 22px;
+    min-height: 0;
     max-width: 100%;
-    overflow: hidden;
 }
-.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-display,
-.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input-wrap {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+.agenda-marcacao-test-offcanvas .agenda-oc-client-contact-row .agenda-oc-client-nif-display,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-contact-row .agenda-oc-client-nif-input-wrap {
+    position: static;
     max-width: 100%;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input-wrap .d-flex {
     max-width: 100%;
     min-width: 0;
+    align-items: center;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-edit-btn {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input {
-    width: min(120px, 100%);
-    max-width: 100%;
+    width: 4.75rem;
+    max-width: 4.75rem;
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
+    font-size: 0.6875rem;
+    padding: 0.15rem 0.35rem;
+    height: auto;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-client-nif-input-wrap .btn-sm {
+    font-size: 0.6875rem;
+    padding: 0.15rem 0.4rem;
+    line-height: 1.2;
+}
+@media (max-width: 380px) {
+    .agenda-marcacao-test-offcanvas .agenda-oc-client-card {
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+    }
+    .agenda-marcacao-test-offcanvas .agenda-oc-client-card__actions {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        margin-top: -0.15rem;
+    }
 }
 /* Cartões de serviço no offcanvas: preço + ícones não alargam o painel */
 .agenda-marcacao-test-offcanvas .agenda-oc-service-card > .d-flex {
@@ -1916,6 +2021,18 @@ body.page-agenda .app-wrapper .container-fluid {
     line-height: 1.15;
     color: var(--default-color, #64748b);
 }
+#agendaEventQuickview .agenda-quickview-client-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    margin-top: 0.3rem;
+}
+#agendaEventQuickview .agenda-quickview-tag-chip {
+    max-width: 5.5rem;
+    padding: 0.08rem 0.35rem;
+    font-size: 0.6rem;
+    pointer-events: none;
+}
 #agendaEventQuickview .agenda-quickview-service-row {
     display: flex;
     align-items: flex-start;
@@ -2725,8 +2842,8 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
 }
 
 /* Ícones ver perfil / editar cliente — sem sublinhado (nova marcação + editar offcanvas) */
-.agenda-marcacao-test-offcanvas .agenda-oc-client-col-actions .btn-link:hover,
-.agenda-marcacao-test-offcanvas .agenda-oc-client-col-actions .btn-link:focus {
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__actions .btn-link:hover,
+.agenda-marcacao-test-offcanvas .agenda-oc-client-card__actions .btn-link:focus {
     text-decoration: none;
 }
 

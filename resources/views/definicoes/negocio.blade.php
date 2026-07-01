@@ -231,27 +231,6 @@
       </div>
     </div>
 
-    <div class="card negocio-settings-card">
-      <div class="card-header">
-        <h5 class="card-title mb-0">Usar dados do negócio nos emails</h5>
-      </div>
-      <div class="card-body">
-        <input type="hidden" name="email_use_business_branding" value="0">
-        <div class="form-check mb-0">
-          <input
-            type="checkbox"
-            class="form-check-input"
-            name="email_use_business_branding"
-            value="1"
-            id="email_use_business_branding"
-            @checked(old('email_use_business_branding', $emailUseBusinessBranding ?? false))
-          >
-          <label class="form-check-label" for="email_use_business_branding">Activar personalização dos emails com o logotipo e nome do negócio</label>
-        </div>
-        <div class="form-text mt-2 mb-0">Quando desactivado, os emails usam o logotipo e o nome da aplicação.</div>
-      </div>
-    </div>
-
     <div class="mb-4">
       <button type="submit" class="btn btn-primary">Guardar</button>
     </div>

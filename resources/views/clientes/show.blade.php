@@ -3,6 +3,7 @@
 
 @section('css')
 <link rel="stylesheet" href="{{ asset('template/css/payment-pos-modal.css') }}?v={{ file_exists(public_path('template/css/payment-pos-modal.css')) ? filemtime(public_path('template/css/payment-pos-modal.css')) : time() }}">
+<link rel="stylesheet" href="{{ asset('template/css/client-tags.css') }}?v={{ file_exists(public_path('template/css/client-tags.css')) ? filemtime(public_path('template/css/client-tags.css')) : time() }}">
 @include('relatorios.partials.vendas-table-styles', ['showClienteColumn' => false])
 @endsection
 
@@ -37,7 +38,15 @@
     @endif
     <div class="uview-info">
         <h2 class="uview-name">{{ $cliente->name }}</h2>
-        <p class="uview-email">{{ $cliente->email }}</p>
+        <p class="uview-email uview-email--profile mb-0">{{ $cliente->email }}</p>
+        <div class="uview-header-tags">
+            @include('clientes.partials.tags-inline', [
+                'client' => $cliente,
+                'tags' => $cliente->tags,
+                'readonly' => auth()->user()?->isPrestador() ?? false,
+                'variant' => 'profile',
+            ])
+        </div>
     </div>
     <div class="uview-header-actions">
         <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-primary btn-sm">
@@ -578,6 +587,8 @@
 @endsection
 @section('js')
 @include('relatorios.partials.vendas-table-scripts')
+<script>window.CLIENT_TAGS_CONFIG = { catalogUrl: @json(route('client-tags.index')), maxPerClient: {{ \App\Services\ClientTagService::MAX_TAGS_PER_CLIENT }} };</script>
+<script src="{{ asset('template/js/client-tags.js') }}?v={{ file_exists(public_path('template/js/client-tags.js')) ? filemtime(public_path('template/js/client-tags.js')) : time() }}"></script>
 <script>
 (function() {
     const hash = window.location.hash;

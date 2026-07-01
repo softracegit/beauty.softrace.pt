@@ -10373,8 +10373,7 @@ textarea.form-control {
   display: flex;
   align-items: center;
   gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
+  opacity: 1;
 }
 
 .users-table tbody tr:hover .users-actions {

@@ -144,6 +144,11 @@ INNER JOIN clients c ON c.id = u.client_id
 SET u.client_id = NULL
 WHERE c.store_id = @store_id
 SQL,
+            'Etiquetas de clientes (pivot)' => <<<'SQL'
+DELETE cct FROM client_client_tag cct
+INNER JOIN clients c ON c.id = cct.client_id
+WHERE c.store_id = @store_id
+SQL,
             'Clientes' => <<<'SQL'
 DELETE FROM clients WHERE store_id = @store_id
 SQL,
@@ -194,6 +199,9 @@ DELETE FROM services WHERE store_id = @store_id
 SQL,
             'Categorias de serviços' => <<<'SQL'
 DELETE FROM categories WHERE store_id = @store_id
+SQL,
+            'Etiquetas de clientes' => <<<'SQL'
+DELETE FROM client_tags WHERE store_id = @store_id
 SQL,
             'Taxas (fees)' => <<<'SQL'
 DELETE FROM fees WHERE store_id = @store_id

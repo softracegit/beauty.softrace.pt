@@ -133,6 +133,14 @@ class Store extends Model
     }
 
     /**
+     * @return HasMany<ClientTag, $this>
+     */
+    public function clientTags(): HasMany
+    {
+        return $this->hasMany(ClientTag::class);
+    }
+
+    /**
      * @return HasMany<BookingSlotHold, $this>
      */
     public function bookingSlotHolds(): HasMany

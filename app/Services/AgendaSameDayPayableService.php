@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Models\CalendarEvent;
 use App\Models\Sale;
 use App\Support\ApplicableFees;
+use App\Support\DateTimeDisplay;
 use App\Support\StoreBusinessTime;
-use Carbon\CarbonImmutable;
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class AgendaSameDayPayableService
@@ -30,12 +32,7 @@ class AgendaSameDayPayableService
      */
     public function unpaidMarcacoesTodayForStore(int $storeId): array
     {
-        $today = StoreBusinessTime::nowForStore($storeId)->toDateString();
-
-        $events = CalendarEvent::query()
-            ->where('store_id', $storeId)
-            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->whereDate('start_at', $today)
+        $events = $this->marcacoesForStoreDay($storeId)
             ->with([
                 'client:id,name',
                 'user:id,name',
@@ -54,23 +51,7 @@ class AgendaSameDayPayableService
 
                 return $this->isUnpaidOrPendingInvoice($event);
             })
-            ->map(function (CalendarEvent $event): array {
-                $checkoutSubtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $event->eventServiceItems);
-                $amountDue = ApplicableFees::amountDueCashFromEventId((int) $event->id, $checkoutSubtotal);
-                $startUnix = $this->startAtUnixForEvent($event);
-
-                return [
-                    'id' => (int) $event->id,
-                    'start_time' => $startUnix !== null
-                        ? CarbonImmutable::createFromTimestamp($startUnix)->setTimezone(config('app.timezone'))->format('H:i')
-                        : $this->localStartTimeForEvent($event),
-                    'client_name' => trim((string) ($event->client?->name ?? '')) ?: '—',
-                    'agent_name' => trim((string) ($event->user?->name ?? '')) ?: '—',
-                    'services_label' => $this->servicesLabelForEvent($event),
-                    'amount_due' => round(max(0.0, $amountDue), 2),
-                    'pending_invoice' => $this->hasPendingFinalInvoice($event, $amountDue),
-                ];
-            })
+            ->map(fn (CalendarEvent $event): array => $this->mapUnpaidRow($event))
             ->values();
 
         return [
@@ -88,14 +69,11 @@ class AgendaSameDayPayableService
         $rows = $this->siblingsForEvent($anchor)->map(function (CalendarEvent $event): array {
             $checkoutSubtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $event->eventServiceItems);
             $amountDue = ApplicableFees::amountDueCashFromEventId((int) $event->id, $checkoutSubtotal);
-            $startUnix = $this->startAtUnixForEvent($event);
 
             return [
                 'id' => (int) $event->id,
-                'start_time' => $startUnix !== null
-                    ? CarbonImmutable::createFromTimestamp($startUnix)->setTimezone(config('app.timezone'))->format('H:i')
-                    : $this->localStartTimeForEvent($event),
-                'start_at_unix' => $startUnix,
+                'start_time' => DateTimeDisplay::marcacao($event->start_at, (int) $event->store_id, 'H:i'),
+                'start_at_unix' => $event->start_at?->timestamp,
                 'services_label' => $this->servicesLabelForEvent($event),
                 'amount_due' => round(max(0.0, $amountDue), 2),
                 'booking_paid_amount' => round(max(0.0, ApplicableFees::marcacaoBookingPaidAmountForEvent((int) $event->id)), 2),
@@ -118,13 +96,13 @@ class AgendaSameDayPayableService
             return collect();
         }
 
-        $day = CarbonImmutable::parse((string) $anchor->start_at, config('app.timezone'))->toDateString();
+        $anchorDay = DateTimeDisplay::inBusiness($anchor->start_at, (int) $anchor->store_id);
+        if ($anchorDay === null) {
+            return collect();
+        }
 
-        $events = CalendarEvent::query()
-            ->where('store_id', (int) $anchor->store_id)
+        $events = $this->marcacoesForStoreDay((int) $anchor->store_id, $anchorDay)
             ->where('client_id', (int) $anchor->client_id)
-            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->whereDate('start_at', $day)
             ->with(['eventServiceItems' => fn ($q) => $q->with(['service', 'extras.extra'])])
             ->orderBy('start_at')
             ->orderBy('id')
@@ -142,6 +120,58 @@ class AgendaSameDayPayableService
                 return $amountDue > 0.00001;
             })
             ->values();
+    }
+
+    /**
+     * @return Builder<CalendarEvent>
+     */
+    private function marcacoesForStoreDay(int $storeId, ?CarbonInterface $dayInStoreTimezone = null): Builder
+    {
+        $day = $dayInStoreTimezone ?? StoreBusinessTime::nowForStore($storeId);
+        [$startOfDay, $endOfDay] = $this->dayRangeForStore($day);
+
+        return CalendarEvent::query()
+            ->where('store_id', $storeId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->whereBetween('start_at', [$startOfDay, $endOfDay]);
+    }
+
+    /**
+     * @return array{0: CarbonInterface, 1: CarbonInterface}
+     */
+    private function dayRangeForStore(CarbonInterface $dayInStoreTimezone): array
+    {
+        return [
+            $dayInStoreTimezone->copy()->startOfDay(),
+            $dayInStoreTimezone->copy()->endOfDay(),
+        ];
+    }
+
+    /**
+     * @return array{
+     *   id: int,
+     *   start_time: string,
+     *   client_name: string,
+     *   agent_name: string,
+     *   services_label: string,
+     *   amount_due: float,
+     *   pending_invoice: bool
+     * }
+     */
+    private function mapUnpaidRow(CalendarEvent $event): array
+    {
+        $checkoutSubtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $event->eventServiceItems);
+        $amountDue = ApplicableFees::amountDueCashFromEventId((int) $event->id, $checkoutSubtotal);
+
+        return [
+            'id' => (int) $event->id,
+            'start_time' => DateTimeDisplay::marcacao($event->start_at, (int) $event->store_id, 'H:i'),
+            'client_name' => trim((string) ($event->client?->name ?? '')) ?: '—',
+            'agent_name' => trim((string) ($event->user?->name ?? '')) ?: '—',
+            'services_label' => $this->servicesLabelForEvent($event),
+            'amount_due' => round(max(0.0, $amountDue), 2),
+            'pending_invoice' => $this->hasPendingFinalInvoice($event, $amountDue),
+        ];
     }
 
     private function isUnpaidOrPendingInvoice(CalendarEvent $event): bool
@@ -188,35 +218,5 @@ class AgendaSameDayPayableService
         }
 
         return $labels->join(', ');
-    }
-
-    private function localStartTimeForEvent(CalendarEvent $event): string
-    {
-        $raw = trim((string) $event->getRawOriginal('start_at'));
-        if ($raw !== '') {
-            try {
-                // start_at é persistido em UTC; converter para timezone da agenda ao apresentar.
-                return CarbonImmutable::parse($raw, 'UTC')
-                    ->setTimezone(config('app.timezone'))
-                    ->format('H:i');
-            } catch (\Throwable) {
-                // fallback abaixo
-            }
-        }
-
-        return $event->start_at ? $event->start_at->format('H:i') : '';
-    }
-
-    private function startAtUnixForEvent(CalendarEvent $event): ?int
-    {
-        $raw = trim((string) $event->getRawOriginal('start_at'));
-        if ($raw === '') {
-            return null;
-        }
-        try {
-            return CarbonImmutable::parse($raw, 'UTC')->timestamp;
-        } catch (\Throwable) {
-            return null;
-        }
     }
 }
