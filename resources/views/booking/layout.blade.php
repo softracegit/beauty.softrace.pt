@@ -73,6 +73,7 @@
     @yield('content')
     @include('booking.partials.support-whatsapp')
     @include('booking.partials.legal-footer')
+    @include('booking.partials.cookie-consent')
     @include('booking.partials.slot-hold-expired-modal')
     @include('booking.partials.auth-modal')
     @include('booking.partials.service-modal')

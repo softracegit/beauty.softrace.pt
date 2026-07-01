@@ -23,7 +23,13 @@
         <li><strong>Preferências essenciais</strong> — dados técnicos necessários ao fluxo de checkout.</li>
     </ul>
 
-    <h2>2.2. Cookies de terceiros</h2>
+    <h2>2.2. Cookies de análise</h2>
+    <p>Com o seu consentimento (aviso no site), utilizamos:</p>
+    <ul>
+        <li><strong>Google Analytics</strong> — estatísticas de utilização da marcação online (páginas visitadas, origem do tráfego). Pode revogar o consentimento apagando os dados do site no seu browser ou bloqueando cookies de análise nas definições do browser.</li>
+    </ul>
+
+    <h2>2.3. Cookies de terceiros (funcionais)</h2>
     <p>Alguns serviços integrados podem definir cookies ou tecnologias semelhantes:</p>
     <ul>
         <li><strong>Stripe</strong> — processamento seguro de pagamentos online;</li>

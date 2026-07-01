@@ -98,6 +98,11 @@ return [
         'cookies' => 'Cookie Policy',
     ],
 
+    'cookie_consent' => [
+        'accept' => 'Accept',
+        'message' => 'We use cookies and similar technologies to run the booking flow and for analytics. By continuing, you accept our',
+    ],
+
     'cancellation_policy' => [
         'preview_select_datetime' => 'Select a date and time to see the cancellation deadline.',
         'preview_invalid_datetime' => 'Invalid date or time.',

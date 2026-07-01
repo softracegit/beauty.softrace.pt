@@ -3784,3 +3784,59 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
         bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
     }
 }
+
+.booking-cookie-consent {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1080;
+    padding: 0.85rem 0;
+    padding-bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+    background: rgba(17, 24, 39, 0.96);
+    color: #f9fafb;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.18);
+}
+
+.booking-cookie-consent__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}
+
+.booking-cookie-consent__text {
+    flex: 1 1 16rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: #e5e7eb;
+}
+
+.booking-cookie-consent__link {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.booking-cookie-consent__link:hover {
+    color: #f3f4f6;
+}
+
+.booking-cookie-consent__accept {
+    min-width: 6.5rem;
+}
+
+body.booking-body:has(.booking-cookie-consent:not(.d-none)) .booking-support-whatsapp {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 992px) {
+    body.booking-body:has(.booking-cookie-consent:not(.d-none)) .booking-support-whatsapp {
+        bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+    }
+}

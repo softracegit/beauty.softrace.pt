@@ -98,6 +98,11 @@ return [
         'cookies' => 'Política de Cookies',
     ],
 
+    'cookie_consent' => [
+        'accept' => 'Aceptar',
+        'message' => 'Utilizamos cookies y tecnologías similares para el funcionamiento de la reserva y para análisis estadístico. Al continuar, acepta nuestra',
+    ],
+
     'cancellation_policy' => [
         'preview_select_datetime' => 'Selecciona fecha y hora para ver el plazo de cancelación.',
         'preview_invalid_datetime' => 'Fecha u hora no válidas.',

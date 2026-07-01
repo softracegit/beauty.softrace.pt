@@ -98,6 +98,11 @@ return [
         'cookies' => 'Política de Cookies',
     ],
 
+    'cookie_consent' => [
+        'accept' => 'Aceitar',
+        'message' => 'Utilizamos cookies e tecnologias semelhantes para o funcionamento da marcação e para análise estatística. Ao continuar, aceita a nossa',
+    ],
+
     'cancellation_policy' => [
         'preview_select_datetime' => 'Seleciona data e hora para ver o prazo de cancelamento.',
         'preview_invalid_datetime' => 'Data ou hora inválidas.',
