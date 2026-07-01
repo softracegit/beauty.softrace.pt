@@ -4228,7 +4228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetailOcServicesFlat = [];
             svcSel.innerHTML = '<option value="">Escolha primeiro o prestador(a)</option>';
             svcSel.disabled = true;
-            eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+            eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
             if (done && !isStale()) {
                 done(null);
             }
@@ -4245,7 +4245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetailServicesData = data;
                 eventDetailOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
                 agendaOcRebuildServiceSelect(svcSel, data.categories || []);
-                eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
                 eventDetailSelectedServices.forEach(function(item) {
                     var availableExtras = [];
                     (data.categories || []).forEach(function(cat) {
@@ -4274,7 +4274,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetailOcServicesFlat = [];
                 svcSel.innerHTML = '<option value="">Erro ao carregar</option>';
                 svcSel.disabled = true;
-                eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
                 if (done && !isStale()) {
                     done(null);
                 }
@@ -5096,6 +5096,150 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    function agendaOcEscapeHtml(text) {
+        return String(text == null ? '' : text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function agendaOcFormatServicePrice(priceNum, formattedFromApi) {
+        var formatted = String(formattedFromApi == null ? '' : formattedFromApi).trim();
+        if (formatted !== '') {
+            return formatted;
+        }
+        var n = parseFloat(priceNum);
+        if (!isFinite(n)) {
+            n = 0;
+        }
+        return n.toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function agendaOcServiceOptionCustomPropertiesAttr(name, durPart, priceNum, formattedFromApi) {
+        try {
+            return JSON.stringify({
+                name: String(name == null ? '' : name).trim(),
+                duration: String(durPart == null ? '' : durPart).trim(),
+                price: agendaOcFormatServicePrice(priceNum, formattedFromApi),
+            });
+        } catch (e) {
+            return '{}';
+        }
+    }
+
+    function agendaOcServiceChoiceMetaFromData(data) {
+        var cp = (data && data.customProperties) ? data.customProperties : {};
+        return {
+            name: String(cp.name || (data && data.label) || '').trim(),
+            duration: String(cp.duration || '').trim(),
+            price: String(cp.price || '').trim(),
+        };
+    }
+
+    function agendaOcServiceChoiceRowHtml(meta) {
+        var name = String((meta && meta.name) || '').trim();
+        var duration = String((meta && meta.duration) || '').trim();
+        var price = String((meta && meta.price) || '').trim();
+        var metaHtml = '';
+        if (duration || price) {
+            metaHtml = '<span class="agenda-oc-service-choice__meta text-nowrap flex-shrink-0 ms-2 d-inline-flex align-items-baseline gap-2">' +
+                (duration
+                    ? '<span class="agenda-oc-service-choice__duration">' + agendaOcEscapeHtml(duration) + '</span>'
+                    : ''
+                ) +
+                (price
+                    ? '<span class="agenda-oc-service-choice__price">' + agendaOcEscapeHtml(price) + '</span>'
+                    : ''
+                ) +
+            '</span>';
+        }
+        return '<span class="agenda-oc-service-choice d-flex justify-content-between align-items-baseline gap-2 w-100">' +
+            '<span class="agenda-oc-service-choice__label min-w-0 text-truncate">' + agendaOcEscapeHtml(name) + '</span>' +
+            metaHtml +
+        '</span>';
+    }
+
+    function agendaOcAddChoicesClasses(el, classes) {
+        var arr = Array.isArray(classes) ? classes : [classes];
+        arr.forEach(function(c) {
+            if (c) {
+                el.classList.add(c);
+            }
+        });
+    }
+
+    function agendaOcServiceChoiceTemplate(templateOptions, data, itemSelectText) {
+        var cn = templateOptions.classNames;
+        var rawValue = typeof data.value === 'string' ? data.value : String(data.value || '');
+        var div = document.createElement('div');
+        div.id = data.elementId || '';
+        agendaOcAddChoicesClasses(div, cn.item);
+        agendaOcAddChoicesClasses(div, cn.itemChoice);
+        div.innerHTML = agendaOcServiceChoiceRowHtml(agendaOcServiceChoiceMetaFromData(data));
+        if (data.selected) {
+            agendaOcAddChoicesClasses(div, cn.selectedState);
+        }
+        if (data.placeholder) {
+            agendaOcAddChoicesClasses(div, cn.placeholder);
+        }
+        div.setAttribute('role', data.group ? 'treeitem' : 'option');
+        div.dataset.choice = '';
+        div.dataset.id = String(data.id != null ? data.id : '');
+        div.dataset.value = rawValue;
+        if (itemSelectText) {
+            div.dataset.selectText = itemSelectText;
+        }
+        if (data.group) {
+            div.dataset.groupId = String(data.group.id != null ? data.group.id : '');
+        }
+        if (data.disabled) {
+            agendaOcAddChoicesClasses(div, cn.itemDisabled);
+            div.dataset.choiceDisabled = '';
+            div.setAttribute('aria-disabled', 'true');
+        } else {
+            agendaOcAddChoicesClasses(div, cn.itemSelectable);
+            div.dataset.choiceSelectable = '';
+            div.setAttribute('aria-selected', data.selected ? 'true' : 'false');
+        }
+        return div;
+    }
+
+    function agendaOcServiceItemTemplate(templateOptions, data) {
+        var cn = templateOptions.classNames;
+        var rawValue = typeof data.value === 'string' ? data.value : String(data.value || '');
+        var div = document.createElement('div');
+        agendaOcAddChoicesClasses(div, cn.item);
+        div.innerHTML = data.placeholder
+            ? agendaOcEscapeHtml(templateOptions.placeholderValue || 'Selecionar serviço')
+            : agendaOcServiceChoiceRowHtml(agendaOcServiceChoiceMetaFromData(data));
+        div.dataset.item = '';
+        div.dataset.id = String(data.id != null ? data.id : '');
+        div.dataset.value = rawValue;
+        if (this._isSelectElement) {
+            div.setAttribute('aria-selected', 'true');
+            div.setAttribute('role', 'option');
+        }
+        if (data.placeholder) {
+            div.classList.add(cn.placeholder);
+            div.dataset.placeholder = '';
+        }
+        agendaOcAddChoicesClasses(div, data.highlighted ? cn.highlightedState : cn.itemSelectable);
+        return div;
+    }
+
+    function agendaOcServiceChoicesOpts() {
+        var o = agendaOcCommonChoicesOpts();
+        o.allowHTML = true;
+        o.callbackOnCreateTemplates = function(templateOptions) {
+            return {
+                choice: agendaOcServiceChoiceTemplate,
+                item: agendaOcServiceItemTemplate,
+            };
+        };
+        return o;
+    }
+
     /** Cliente no offcanvas: resultados via API (?q=), não lista completa no DOM. */
     function agendaOcClientChoicesOpts() {
         var o = agendaOcCommonChoicesOpts();
@@ -5690,11 +5834,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     opt.value = String(s.id);
                     var dur = parseInt(s.duration, 10) || 60;
                     var durPart = s.formatted_duration || (dur + ' min');
-                    opt.textContent = (s.name || '') + ' (' + durPart + ')';
-                    opt.dataset.duration = String(dur);
                     var priceNum = s.price != null && s.price !== '' ? parseFloat(s.price) : 0;
+                    var serviceName = s.name || '';
+                    var priceLabel = agendaOcFormatServicePrice(priceNum, s.formatted_price);
+                    opt.textContent = [serviceName, durPart, priceLabel].filter(Boolean).join(' ');
+                    opt.dataset.duration = String(dur);
                     opt.dataset.price = String(priceNum);
-                    opt.dataset.name = s.name || '';
+                    opt.dataset.name = serviceName;
+                    opt.setAttribute('data-custom-properties', agendaOcServiceOptionCustomPropertiesAttr(serviceName, durPart, priceNum, s.formatted_price));
                     ogSimple.appendChild(opt);
                 });
                 svcSel.appendChild(ogSimple);
@@ -5706,12 +5853,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 (s.options || []).forEach(function(opt) {
                     var optEl = document.createElement('option');
                     optEl.value = String(s.id) + '|' + String(opt.id);
-                    optEl.textContent = String(opt.name || '').trim() || ('Opção #' + opt.id);
                     var dur = parseInt(opt.duration, 10) || 60;
+                    var durPart = opt.formatted_duration || (dur + ' min');
+                    var optName = String(opt.name || '').trim() || ('Opção #' + opt.id);
                     var priceNum = opt.price != null && opt.price !== '' ? parseFloat(opt.price) : 0;
+                    var priceLabel = agendaOcFormatServicePrice(priceNum, opt.formatted_price);
+                    optEl.textContent = [optName, durPart, priceLabel].filter(Boolean).join(' ');
                     optEl.dataset.duration = String(dur);
                     optEl.dataset.price = String(priceNum);
-                    optEl.dataset.name = String(opt.name || '').trim() || ('Opção #' + opt.id);
+                    optEl.dataset.name = optName;
+                    optEl.setAttribute('data-custom-properties', agendaOcServiceOptionCustomPropertiesAttr(optName, durPart, priceNum, opt.formatted_price));
                     og.appendChild(optEl);
                 });
                 svcSel.appendChild(og);
@@ -5736,7 +5887,7 @@ document.addEventListener('DOMContentLoaded', function() {
             agendaOcServicesFlat = [];
             svcSel.innerHTML = '<option value="">Escolha primeiro o prestador(a)</option>';
             svcSel.disabled = true;
-            agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+            agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
             if (done) done();
             return;
         }
@@ -5747,14 +5898,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(data) {
                 agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
                 agendaOcRebuildServiceSelect(svcSel, data.categories || []);
-                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
                 if (done) done();
             })
             .catch(function() {
                 agendaOcServicesFlat = [];
                 svcSel.innerHTML = '<option value="">Erro ao carregar</option>';
                 svcSel.disabled = true;
-                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
                 if (done) done();
             });
     }
@@ -5898,7 +6049,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(svcData.categories);
                 agendaOcRebuildServiceSelect(svcSel, svcData.categories || []);
-                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcCommonChoicesOpts());
+                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
 
             })
             .catch(function() {

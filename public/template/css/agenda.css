@@ -505,6 +505,24 @@
 .agenda-marcacao-test-offcanvas .choices__list--dropdown {
     z-index: 1070;
 }
+.agenda-marcacao-test-offcanvas .choices__list--dropdown .choices__item--choice {
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-service-choice {
+    width: 100%;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-service-choice__duration {
+    color: var(--bs-secondary-color, #6c757d);
+    font-size: 0.8125rem;
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-service-choice__price {
+    color: var(--bs-body-color, #212529);
+    font-weight: 600;
+}
+.agenda-marcacao-test-offcanvas .choices__inner .agenda-oc-service-choice__meta {
+    display: none;
+}
 .agenda-marcacao-test-offcanvas .agenda-oc-add-services-btn {
     padding: 0.15rem 0.65rem;
     font-size: 0.75rem;
