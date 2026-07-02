@@ -8,12 +8,14 @@
 .dash-welcome--ocupacao .dash-welcome-text {
     margin: 0;
 }
-.dash-welcome--ocupacao .dash-welcome-filters .form-select {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
-    font-size: 0.8125rem !important;
-    line-height: 1.5;
-    min-height: 0;
+@media (min-width: 768px) {
+    .dash-welcome--ocupacao .dash-welcome-filters .form-select {
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        font-size: 0.8125rem !important;
+        line-height: 1.5;
+        min-height: 0;
+    }
 }
 </style>
 @endsection
@@ -28,27 +30,27 @@
 
 <!-- Welcome Banner -->
 <div class="dash-welcome mb-4 dash-welcome--ocupacao">
-    <div class="d-flex align-items-center justify-content-between gap-3 w-100">
+    <div class="dash-welcome-header-row">
         <div class="dash-welcome-content flex-grow-1 min-w-0">
             <h2 class="dash-welcome-title">Ocupação</h2>
             <p class="dash-welcome-text mt-2 d-none d-md-block">Taxa de ocupação dos prestadores de serviços, horários de pico, dias mais ocupados e duração média. Slots de 90 min conforme o horário da loja ({{ $storeHoursLabel ?? '—' }}).</p>
         </div>
-        <form method="GET" action="{{ route('dashboard.ocupacao') }}" class="dash-welcome-filters d-flex align-items-center gap-2 flex-shrink-0">
+        <form method="GET" action="{{ route('dashboard.ocupacao') }}" class="dash-welcome-filters">
             @if(request()->filled('glue_period'))
                 <input type="hidden" name="glue_period" value="{{ request('glue_period') }}">
             @endif
-            <select id="ocupacaoFilterMonth" name="month" class="form-select form-select-sm" style="min-width: 10rem;" aria-label="Mês">
+            <select id="ocupacaoFilterMonth" name="month" class="form-select form-select-sm dash-welcome-filter-month" aria-label="Mês">
                 @foreach($monthOptions ?? [] as $monthValue => $monthLabel)
                     <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>
                 @endforeach
             </select>
-            <select id="ocupacaoFilterYear" name="year" class="form-select form-select-sm" style="min-width: 6rem;" aria-label="Ano">
+            <select id="ocupacaoFilterYear" name="year" class="form-select form-select-sm dash-welcome-filter-year" aria-label="Ano">
                 @foreach($availableYears ?? [now()->year] as $yearValue)
                     <option value="{{ $yearValue }}" {{ (int) ($year ?? now()->year) === (int) $yearValue ? 'selected' : '' }}>{{ $yearValue }}</option>
                 @endforeach
             </select>
-            <button type="submit" class="btn btn-primary btn-sm text-nowrap">
-                <i class="ph ph-funnel me-1"></i> Filtrar
+            <button type="submit" class="btn btn-primary btn-sm dash-welcome-filter-btn text-nowrap">
+                <i class="ph ph-funnel"></i><span class="dash-welcome-filter-btn-label">Filtrar</span>
             </button>
         </form>
     </div>

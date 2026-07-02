@@ -196,6 +196,26 @@
     .agenda-marcacao-test-offcanvas-footer {
         padding: 0.85rem 1rem 1rem;
     }
+
+    #eventDetailPaymentWrap {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    #eventDetailPaymentWrap .btn-sm,
+    #eventDetailPaymentWrap .dropdown-toggle {
+        flex: 0 0 auto;
+        min-width: 0;
+    }
+
+    #eventDetailPaymentWrap:has(#eventDetailOpenCashRegisterBtn:not(.d-none)) .event-detail-pay-btn-label--short {
+        display: inline;
+    }
+
+    #eventDetailPaymentWrap:has(#eventDetailOpenCashRegisterBtn:not(.d-none)) .event-detail-pay-btn-label--long {
+        display: none;
+    }
 }
 
 .agenda-marcacao-test-offcanvas-footer {
@@ -233,6 +253,14 @@
 }
 #eventDetailFaturasWrap {
     flex: 0 0 auto;
+}
+
+.event-detail-pay-btn-label--short {
+    display: none;
+}
+
+.event-detail-pay-btn-label--long {
+    display: inline;
 }
 
 /* Rodapé offcanvas: total + pré-pagamento / falta pagar (quebra em ecrã estreito) */

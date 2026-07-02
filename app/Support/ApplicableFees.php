@@ -197,6 +197,20 @@ class ApplicableFees
         return max(0.0, round($netSubtotal - $moneyToward, 2));
     }
 
+    public static function hasActiveCaixaLiquidacaoSaleForEvent(int $calendarEventId): bool
+    {
+        $saleIds = self::saleIdsLinkedToEvent($calendarEventId);
+        if ($saleIds === []) {
+            return false;
+        }
+
+        return Sale::query()
+            ->whereIn('id', $saleIds)
+            ->where('status', '!=', Sale::STATUS_ANULADO)
+            ->where('scope', Sale::SCOPE_CAIXA_LIQUIDACAO)
+            ->exists();
+    }
+
     /**
      * @return list<array{tipo: string, fee_id: int, descricao: string, quantidade: int, preco_unitario: float, subtotal: float, sort_order: int}>
      */

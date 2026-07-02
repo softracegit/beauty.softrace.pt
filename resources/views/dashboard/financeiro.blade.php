@@ -5,11 +5,13 @@
 <style>
 .dash-welcome--financeiro .dash-welcome-title { margin: 0; }
 .dash-welcome--financeiro .dash-welcome-text { margin: 0; }
-.dash-welcome--financeiro .dash-welcome-filters .form-select {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
-    font-size: 0.8125rem !important;
-    min-height: 0;
+@media (min-width: 768px) {
+    .dash-welcome--financeiro .dash-welcome-filters .form-select {
+        padding-top: 6px !important;
+        padding-bottom: 6px !important;
+        font-size: 0.8125rem !important;
+        min-height: 0;
+    }
 }
 .dash-fin-destaque {
     border: 1px solid var(--border-color);
@@ -75,24 +77,24 @@
 @endphp
 
 <div class="dash-welcome mb-4 dash-welcome--financeiro">
-    <div class="d-flex align-items-center justify-content-between gap-3 w-100 flex-wrap">
+    <div class="dash-welcome-header-row">
         <div class="dash-welcome-content flex-grow-1 min-w-0">
             <h2 class="dash-welcome-title">Financeiro</h2>
             <p class="dash-welcome-text mt-2 d-none d-md-block">Receitas, rentabilidade por serviço, técnica e cliente. Baseado em vendas pagas de {{ $periodLabel ?? '—' }}.</p>
         </div>
-        <form method="GET" action="{{ route('dashboard.financeiro') }}" class="dash-welcome-filters d-flex align-items-center gap-2 flex-shrink-0">
-            <select name="month" class="form-select form-select-sm" style="min-width: 10rem;" aria-label="Mês">
+        <form method="GET" action="{{ route('dashboard.financeiro') }}" class="dash-welcome-filters">
+            <select name="month" class="form-select form-select-sm dash-welcome-filter-month" aria-label="Mês">
                 @foreach($monthOptions ?? [] as $monthValue => $monthLabel)
                     <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>
                 @endforeach
             </select>
-            <select name="year" class="form-select form-select-sm" style="min-width: 6rem;" aria-label="Ano">
+            <select name="year" class="form-select form-select-sm dash-welcome-filter-year" aria-label="Ano">
                 @foreach($availableYears ?? [now()->year] as $yearValue)
                     <option value="{{ $yearValue }}" {{ (int) ($year ?? now()->year) === (int) $yearValue ? 'selected' : '' }}>{{ $yearValue }}</option>
                 @endforeach
             </select>
-            <button type="submit" class="btn btn-primary btn-sm text-nowrap">
-                <i class="ph ph-funnel me-1"></i> Filtrar
+            <button type="submit" class="btn btn-primary btn-sm dash-welcome-filter-btn text-nowrap">
+                <i class="ph ph-funnel"></i><span class="dash-welcome-filter-btn-label">Filtrar</span>
             </button>
         </form>
     </div>

@@ -8446,6 +8446,86 @@ textarea.form-control {
   flex-shrink: 0;
 }
 
+.dash-welcome-header-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .dash-welcome-header-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+  }
+}
+
+.dash-welcome-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.dash-welcome-filter-month {
+  min-width: 10rem;
+}
+
+.dash-welcome-filter-year {
+  min-width: 6rem;
+}
+
+.dash-welcome-filter-btn .ph {
+  margin-right: 0.25rem;
+}
+
+@media (max-width: 767.98px) {
+  .dash-welcome-filters {
+    width: 100%;
+    max-width: 100%;
+    align-items: stretch;
+  }
+
+  .dash-welcome-filters .form-select {
+    min-width: 0 !important;
+    flex: 1 1 auto;
+    font-size: 0.75rem !important;
+    padding: 0.25rem 1.75rem 0.25rem 0.5rem !important;
+    line-height: 1.4;
+    min-height: 0;
+  }
+
+  .dash-welcome-filter-year {
+    flex: 0 0 4.5rem;
+    max-width: 4.5rem;
+  }
+
+  .dash-welcome-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    align-self: stretch;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .dash-welcome-filter-btn-label {
+    display: none;
+  }
+
+  .dash-welcome-filter-btn .ph {
+    margin-right: 0;
+  }
+}
+
 .dash-date {
   display: flex;
   align-items: center;

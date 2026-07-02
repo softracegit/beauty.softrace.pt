@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\CalendarEvent;
-use App\Models\Sale;
 use App\Support\ApplicableFees;
 use App\Support\DateTimeDisplay;
 use App\Support\StoreBusinessTime;
@@ -37,7 +36,6 @@ class AgendaSameDayPayableService
                 'client:id,name',
                 'user:id,name',
                 'eventServiceItems' => fn ($q) => $q->with(['service', 'extras.extra']),
-                'sales' => fn ($q) => $q->where('status', '!=', Sale::STATUS_ANULADO),
             ])
             ->orderBy('start_at')
             ->orderBy('id')
@@ -201,9 +199,7 @@ class AgendaSameDayPayableService
             return false;
         }
 
-        $sales = $event->relationLoaded('sales') ? $event->sales : $event->sales()->where('status', '!=', Sale::STATUS_ANULADO)->get();
-
-        return ! $sales->contains(fn (Sale $sale): bool => $sale->scope === Sale::SCOPE_CAIXA_LIQUIDACAO);
+        return ! ApplicableFees::hasActiveCaixaLiquidacaoSaleForEvent((int) $event->id);
     }
 
     private function servicesLabelForEvent(CalendarEvent $event): string

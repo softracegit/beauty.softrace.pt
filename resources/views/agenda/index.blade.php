@@ -534,7 +534,10 @@
         </div>
         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between w-100 event-detail-oc-footer-actions" id="eventDetailFooterActionsRow">
             <div class="d-flex flex-wrap gap-2 align-items-center" id="eventDetailPaymentWrap">
-                <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn" data-payment-flow-label="Pré-pagamento">Pré-pagamento</button>
+                <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn" data-payment-flow-label="Pré-pagamento">
+                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--long">Pré-pagamento</span>
+                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--short">Pré-pag.</span>
+                </button>
                 <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn" data-payment-flow-label="Pagamento">Pagamento</button>
                 <div class="dropup d-none" id="eventDetailPaymentDropup">
                     <button class="btn btn-success btn-sm dropdown-toggle" type="button" id="eventDetailPaymentDropupToggle" data-bs-toggle="dropdown" aria-expanded="false">
@@ -557,7 +560,10 @@
                         </li>
                     </ul>
                 </div>
-                <button type="button" class="btn btn-outline-success btn-sm d-none" id="eventDetailOpenCashRegisterBtn" data-crm-cash-register-trigger="open" data-crm-cash-register-fixed="open">Abrir caixa</button>
+                <button type="button" class="btn btn-outline-success btn-sm d-none" id="eventDetailOpenCashRegisterBtn" data-crm-cash-register-trigger="open" data-crm-cash-register-fixed="open">
+                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--long">Abrir caixa</span>
+                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--short">Caixa</span>
+                </button>
                 <span class="event-detail-paid-badge d-none" id="eventDetailPagoBadge" role="status" aria-label="Pago">
                     <i class="ph ph-check" aria-hidden="true"></i>
                     <span>Pago</span>
