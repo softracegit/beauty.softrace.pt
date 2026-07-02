@@ -360,6 +360,14 @@
   .sidebar-open .sidebar {
     transform: translateX(0);
   }
+
+  .sidebar-iconbar-logo {
+    display: none;
+  }
+
+  .sidebar-open .sidebar-iconbar-logo {
+    display: flex;
+  }
 }
 
 /* Between 768px and 1279px, icon bar is always visible */

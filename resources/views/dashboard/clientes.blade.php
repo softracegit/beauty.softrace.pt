@@ -13,7 +13,7 @@
 <div class="dash-welcome mb-4">
     <div class="dash-welcome-content">
         <h2 class="dash-welcome-title">Dashboard de Clientes</h2>
-        <p class="dash-welcome-text">Métricas baseadas em marcações e retenção.</p>
+        <p class="dash-welcome-text d-none d-md-block">Métricas baseadas em marcações e retenção.</p>
     </div>
     <div class="dash-welcome-actions">
         <a href="{{ route('clientes.create') }}" class="btn btn-primary">

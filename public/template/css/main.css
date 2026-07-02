@@ -1538,7 +1538,7 @@ button {
 }
 
 .header-logo {
-  display: flex;
+  display: none;
   align-items: center;
   gap: var(--spacing-sm);
   font-weight: 600;
@@ -1556,28 +1556,16 @@ button {
   object-fit: contain;
 }
 
-.header-logo span {
-  display: none;
-}
-
-@media (min-width: 576px) {
-  .header-logo span {
-    display: inline;
-  }
-}
-
 .header-logo:hover {
   color: var(--accent-color);
 }
 
-/* Hide logo on tablet+ (shown in sidebar icon bar) */
-@media (min-width: 768px) {
-  .header-logo {
-    display: none;
-  }
+/* Store switcher — oculto temporariamente */
+.store-selector-dropdown,
+.store-selector-mobile {
+  display: none !important;
 }
 
-/* Sidebar Toggle Button */
 .sidebar-toggle {
   display: flex;
   align-items: center;
@@ -1867,6 +1855,12 @@ a.header-action:hover {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+
+@media (max-width: 767.98px) {
+  .notification-dropdown .dropdown-menu {
+    width: min(360px, calc(100vw - 1.5rem));
+  }
 }
 
 .notification-header {
@@ -2278,10 +2272,14 @@ a.header-action:hover {
 }
 
 .mobile-header-menu-content {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   padding: var(--spacing-sm);
   gap: var(--spacing-xs);
+}
+
+.mobile-header-menu-content form.mobile-menu-logout-form {
+  display: contents;
 }
 
 .mobile-menu-item {
@@ -2290,9 +2288,8 @@ a.header-action:hover {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  flex: 1;
-  min-width: calc(33.333% - var(--spacing-xs));
-  max-width: calc(33.333% - var(--spacing-xs));
+  width: 100%;
+  min-width: 0;
   padding: var(--spacing-md) var(--spacing-sm);
   border-radius: var(--radius-md);
   background: transparent;
@@ -2339,6 +2336,12 @@ a.header-action:hover {
 
 .mobile-menu-item:hover .mobile-menu-label {
   color: var(--accent-color);
+}
+
+.mobile-menu-item-danger,
+.mobile-menu-item-danger .mobile-menu-label,
+.mobile-menu-item-danger i {
+  color: var(--danger-color);
 }
 
 .mobile-menu-item-danger:hover {
@@ -2720,6 +2723,14 @@ a.header-action:hover {
 
   .sidebar-open .sidebar {
     transform: translateX(0);
+  }
+
+  .sidebar-iconbar-logo {
+    display: none;
+  }
+
+  .sidebar-open .sidebar-iconbar-logo {
+    display: flex;
   }
 }
 

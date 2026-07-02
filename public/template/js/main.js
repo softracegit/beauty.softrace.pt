@@ -289,6 +289,14 @@
       });
     }
 
+    var notificationToggle = document.querySelector('.notification-dropdown .dropdown-toggle');
+    if (notificationToggle && mobileHeaderMenu) {
+      notificationToggle.addEventListener('click', function() {
+        mobileHeaderMenu.classList.remove('active');
+        if (mobileSearch) mobileSearch.classList.remove('active');
+      });
+    }
+
     document.addEventListener('click', function(e) {
       if (mobileSearch && searchToggle && !mobileSearch.contains(e.target) && !searchToggle.contains(e.target)) {
         mobileSearch.classList.remove('active');

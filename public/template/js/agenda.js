@@ -593,6 +593,15 @@ document.addEventListener('DOMContentLoaded', function() {
         var mins = getMinutesFromDate(d);
         return mins < timeStrToMinutes(win.start) || mins >= timeStrToMinutes(win.end);
     }
+    /** Parse YYYY-MM-DD como dia local (meio-dia evita ambiguidades de DST). */
+    function parseAgendaLocalDate(str) {
+        if (!str || typeof str !== 'string') return null;
+        var m = str.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) return null;
+        var d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10), 12, 0, 0, 0);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
     /** Parse YYYY-MM-DDTHH:mm (sem timezone) como hora local — evita bugs de new Date() em alguns browsers. */
     function parseAgendaLocalDateTime(str) {
         if (!str || typeof str !== 'string') return null;
@@ -10319,13 +10328,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }, true);
     })();
 
-    // Fazer scroll para a hora atual após render inicial (ou para a marcação se ?event=ID)
+    // Scroll inicial: ?event=ID (abre marcação), ?date=YYYY-MM-DD (só navega), ?novaMarcacao=1
     (function initScrollAndOpenEvent() {
         const params = new URLSearchParams(window.location.search);
         const eventId = params.get('event');
+        const dateParam = params.get('date');
+        const scrollTimeParam = params.get('time');
         const novaMarcacao = params.get('novaMarcacao');
         const clientId = params.get('client_id');
         const userId = params.get('user_id');
+        function scrollAgendaToTime(timeStr) {
+            if (!calendar.view.type.includes('timeGrid') && !calendar.view.type.includes('resourceTimeGrid')) {
+                return;
+            }
+            var t = String(timeStr || '').trim();
+            if (!/^\d{1,2}:\d{2}$/.test(t)) {
+                return;
+            }
+            var parts = t.split(':');
+            var h = String(parseInt(parts[0], 10)).padStart(2, '0');
+            var m = String(parseInt(parts[1], 10)).padStart(2, '0');
+            calendar.scrollToTime(h + ':' + m + ':00');
+        }
+        function clearAgendaDeepLinkParams() {
+            if (history.replaceState) {
+                history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
         if (eventId) {
             eventDetailModalLoading = true;
             fetch((C.urlEvents || '') + '/' + eventId, { headers: { 'Accept': 'application/json' } })
@@ -10365,6 +10394,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         eventDetailModalLoading = false;
                     }
                 });
+        } else if (dateParam) {
+            var targetDate = parseAgendaLocalDate(dateParam) || parseAgendaLocalDateTime(dateParam);
+            if (targetDate) {
+                calendar.gotoDate(targetDate);
+                setTimeout(function() {
+                    if (scrollTimeParam) {
+                        scrollAgendaToTime(scrollTimeParam);
+                    } else {
+                        var slotMin = (C.agendaSlotMin || '09:00').slice(0, 5);
+                        scrollAgendaToTime(slotMin);
+                    }
+                }, 200);
+            }
+            clearAgendaDeepLinkParams();
         } else if (novaMarcacao === '1' && canCreateMarcacao) {
             var now = new Date();
             var min = now.getMinutes();

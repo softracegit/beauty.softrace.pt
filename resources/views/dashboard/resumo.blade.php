@@ -98,6 +98,12 @@
     gap: 0.75rem;
     margin-bottom: 1rem;
 }
+@media (max-width: 767.98px) {
+    #resumoChartTabContent .chart-container-lg {
+        margin-left: -0.75rem;
+        margin-right: -0.75rem;
+    }
+}
 </style>
 @endsection
 @section('content')
@@ -438,6 +444,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 events: comparativeBarChartEvents()
             },
             plotOptions: { bar: { borderRadius: 6, columnWidth: '70%' } },
+            responsive: [{
+                breakpoint: 768,
+                options: {
+                    plotOptions: { bar: { columnWidth: '92%' } },
+                    grid: { padding: { top: 4, right: 0, left: 0 } },
+                    xaxis: {
+                        labels: { style: { fontSize: '10px' } }
+                    }
+                }
+            }],
             colors: [yearOlderColor, accentColor],
             dataLabels: { enabled: false },
             stroke: { show: true, width: 2, colors: ['transparent'] },

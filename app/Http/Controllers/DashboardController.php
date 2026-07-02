@@ -11,6 +11,7 @@ use App\Models\Sale;
 use App\Models\Store;
 use App\Models\User;
 use App\Services\FinancialDashboardService;
+use App\Services\MarcacaoGlueSuggestionsService;
 use App\Services\PrestadorDashboardService;
 use App\Services\VendasReportService;
 use App\Support\StoreBusinessTime;
@@ -613,11 +614,15 @@ class DashboardController extends Controller
     /**
      * Dashboard de Ocupação (taxa de ocupação, picos, dias, duração média).
      */
-    public function ocupacao(Request $request)
+    public function ocupacao(Request $request, MarcacaoGlueSuggestionsService $glueSuggestions)
     {
         if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
             return $redirect;
         }
+        $storeId = current_store_id();
+        $gluePeriod = (string) $request->get('glue_period', 'hoje');
+        $glueSuggestionsData = $glueSuggestions->build($storeId, $gluePeriod);
+
         $store = current_store()->get();
         $tz = $store->bookingTimezone();
         $today = StoreBusinessTime::nowForStore(current_store_id())->startOfDay();
@@ -762,6 +767,8 @@ class DashboardController extends Controller
             'storeOpenDaysLabel',
             'avgSlotsPerOpenDayPerTech',
             'ocupacaoTimezoneLabel',
+            'glueSuggestionsData',
+            'gluePeriod',
         ));
     }
 

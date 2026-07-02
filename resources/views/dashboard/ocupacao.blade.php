@@ -31,9 +31,12 @@
     <div class="d-flex align-items-center justify-content-between gap-3 w-100">
         <div class="dash-welcome-content flex-grow-1 min-w-0">
             <h2 class="dash-welcome-title">Ocupação</h2>
-            <p class="dash-welcome-text mt-2">Taxa de ocupação dos prestadores de serviços, horários de pico, dias mais ocupados e duração média. Slots de 90 min conforme o horário da loja ({{ $storeHoursLabel ?? '—' }}).</p>
+            <p class="dash-welcome-text mt-2 d-none d-md-block">Taxa de ocupação dos prestadores de serviços, horários de pico, dias mais ocupados e duração média. Slots de 90 min conforme o horário da loja ({{ $storeHoursLabel ?? '—' }}).</p>
         </div>
         <form method="GET" action="{{ route('dashboard.ocupacao') }}" class="dash-welcome-filters d-flex align-items-center gap-2 flex-shrink-0">
+            @if(request()->filled('glue_period'))
+                <input type="hidden" name="glue_period" value="{{ request('glue_period') }}">
+            @endif
             <select id="ocupacaoFilterMonth" name="month" class="form-select form-select-sm" style="min-width: 10rem;" aria-label="Mês">
                 @foreach($monthOptions ?? [] as $monthValue => $monthLabel)
                     <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>
@@ -93,6 +96,11 @@
         </div>
     </div>
 </div>
+
+@include('dashboard.partials.glue-suggestions', [
+    'glueRouteName' => 'dashboard.ocupacao',
+    'glueRouteParams' => ['year' => $year ?? now()->year, 'month' => $month ?? now()->month],
+])
 
 <!-- Horários de pico + Dias mais ocupados -->
 <div class="dash-grid dash-grid-charts mb-4">
