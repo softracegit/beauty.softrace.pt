@@ -368,7 +368,7 @@ class Client extends Model
     /**
      * Verifica se já existe cliente com o mesmo número (E.164 quando analisável; senão comparação literal).
      */
-    public static function existsWithSamePhoneAs(string $phone, ?int $storeId = null): bool
+    public static function existsWithSamePhoneAs(string $phone, ?int $storeId = null, ?int $exceptClientId = null): bool
     {
         $phone = trim($phone);
         if ($phone === '') {
@@ -381,6 +381,7 @@ class Client extends Model
 
         return static::query()
             ->forStore($storeId)
+            ->when($exceptClientId !== null, fn ($q) => $q->where('id', '!=', $exceptClientId))
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->pluck('phone')

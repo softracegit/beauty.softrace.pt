@@ -180,6 +180,19 @@
                 'active' => true,
             ];
         }
+    } elseif (str_starts_with($currentRoute, 'ai.')) {
+        $breadcrumbs[] = [
+            'label' => 'Assistente AI',
+            'url' => route('ai.index'),
+            'active' => false,
+        ];
+        if ($currentRoute === 'ai.index') {
+            $breadcrumbs[] = [
+                'label' => 'Chat',
+                'url' => null,
+                'active' => true,
+            ];
+        }
     } elseif (str_starts_with($currentRoute, 'relatorios.')) {
         $breadcrumbs[] = [
             'label' => 'Relatórios',

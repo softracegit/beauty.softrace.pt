@@ -34,6 +34,7 @@ return [
         'sales.pdf',
         'sales.vendus.pdf',
         'sales.credit-note.pdf',
+        'ai.chat',
     ],
 
     /**

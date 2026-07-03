@@ -11,10 +11,12 @@ use App\Models\Local;
 use App\Models\Note;
 use App\Models\Sale;
 use App\Models\User;
+use App\Rules\UniqueClientPhone;
 use App\Services\VendasReportService;
 use App\Support\ActivityLogQuery;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Storage;
@@ -218,7 +220,7 @@ class ClientController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->where(fn ($q) => $q->where('store_id', current_store_id()))],
-            'phone' => ['required', 'string', 'max:50'],
+            'phone' => ['required', 'string', 'max:50', new UniqueClientPhone],
             'nif' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::in(array_keys(Client::genders()))],
@@ -236,13 +238,22 @@ class ClientController extends Controller
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'preferred_schedule' => ['nullable', Rule::in(array_keys(Client::preferredSchedules()))],
             'preferences_notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        ], $this->clientContactValidationMessages());
 
         $data = collect($validated)->except('avatar')->all();
         if ($request->hasFile('avatar')) {
             $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
         }
-        $cliente = Client::create(array_merge($data, ['store_id' => current_store_id()]));
+
+        try {
+            $cliente = Client::create(array_merge($data, ['store_id' => current_store_id()]));
+        } catch (QueryException $e) {
+            if ($response = $this->clientContactDuplicateResponse($e)) {
+                return $response;
+            }
+
+            throw $e;
+        }
 
         return redirect()->route('clientes.index')
             ->with('success', 'Cliente criado com sucesso.');
@@ -514,7 +525,7 @@ class ClientController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($cliente->id)->where(fn ($q) => $q->where('store_id', current_store_id()))],
-            'phone' => ['required', 'string', 'max:50'],
+            'phone' => ['required', 'string', 'max:50', new UniqueClientPhone($cliente->id)],
             'nif' => ['nullable', 'string', 'max:20'],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::in(array_keys(Client::genders()))],
@@ -532,7 +543,7 @@ class ClientController extends Controller
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'preferred_schedule' => ['nullable', Rule::in(array_keys(Client::preferredSchedules()))],
             'preferences_notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        ], $this->clientContactValidationMessages());
 
         if ($request->hasFile('avatar')) {
             if ($cliente->avatar && Storage::disk('public')->exists($cliente->avatar)) {
@@ -569,7 +580,15 @@ class ClientController extends Controller
             }
         }
 
-        $cliente->update($validated);
+        try {
+            $cliente->update($validated);
+        } catch (QueryException $e) {
+            if ($response = $this->clientContactDuplicateResponse($e)) {
+                return $response;
+            }
+
+            throw $e;
+        }
 
         if ($clientEmailChanged && $linkedBookingUser instanceof User) {
             $linkedBookingUser->forceFill([
@@ -699,5 +718,40 @@ class ClientController extends Controller
             'ultimaVisita' => $ultimaVisita?->start_at,
             'marcacoesFuturas' => $marcacoesFuturas,
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function clientContactValidationMessages(): array
+    {
+        return [
+            'email.unique' => 'Este email já está registado noutro cliente.',
+        ];
+    }
+
+    private function clientContactDuplicateResponse(QueryException $e): ?\Illuminate\Http\RedirectResponse
+    {
+        $sqlState = (string) ($e->errorInfo[0] ?? '');
+        $driverCode = (int) ($e->errorInfo[1] ?? 0);
+        if ($sqlState !== '23000' || $driverCode !== 1062) {
+            return null;
+        }
+
+        $message = $e->getMessage();
+        if (str_contains($message, 'clients_store_phone_unique')) {
+            return back()
+                ->withErrors(['phone' => 'Este telemóvel já está registado noutro cliente.'])
+                ->withInput();
+        }
+        if (str_contains($message, 'clients_store_email_unique')) {
+            return back()
+                ->withErrors(['email' => 'Este email já está registado noutro cliente.'])
+                ->withInput();
+        }
+
+        return back()
+            ->withErrors(['phone' => 'Este contacto já está registado noutro cliente.'])
+            ->withInput();
     }
 }

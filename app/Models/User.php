@@ -411,6 +411,11 @@ class User extends Authenticatable
         return $this->isAdmin();
     }
 
+    public function canAccessAi(): bool
+    {
+        return (int) $this->id === 1;
+    }
+
     public function canAccessDefinicoes(): bool
     {
         return $this->isAdmin();
@@ -440,6 +445,7 @@ class User extends Authenticatable
             $deniedPrefixes = [
                 'definicoes.',
                 'relatorios.',
+                'ai.',
                 'activity.',
                 'equipa.',
                 'services.',

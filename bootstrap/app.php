@@ -1,12 +1,18 @@
 <?php
 
 use App\Models\User;
+use App\Services\ExceptionReportService;
 use App\Support\FriendlyErrorMessages;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -61,6 +67,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->reportable(function (Throwable $e): void {
+            app(ExceptionReportService::class)->report($e);
+        });
+
         $exceptions->render(function (TokenMismatchException $e, Request $request) {
             $message = FriendlyErrorMessages::CSRF_SESSION_EXPIRED;
 
@@ -72,5 +82,31 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->back()
                 ->withInput($request->except('_token'))
                 ->withErrors(['_token' => $message]);
+        });
+
+        $exceptions->render(function (Throwable $e, Request $request) {
+            if (config('app.debug')) {
+                return null;
+            }
+
+            if ($e instanceof ValidationException
+                || $e instanceof AuthenticationException
+                || $e instanceof AuthorizationException
+                || $e instanceof ModelNotFoundException) {
+                return null;
+            }
+
+            if ($e instanceof HttpExceptionInterface && $e->getStatusCode() < 500) {
+                return null;
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => config('errors.user_message'),
+                    'reference' => ExceptionReportService::currentReference(),
+                ], $e instanceof HttpExceptionInterface ? $e->getStatusCode() : 500);
+            }
+
+            return null;
         });
     })->create();

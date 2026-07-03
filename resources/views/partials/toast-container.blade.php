@@ -23,3 +23,12 @@
     };
 })();
 </script>
+@if ($errors->any())
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof window.showToast === 'function') {
+        window.showToast(@json($errors->first()), 'error');
+    }
+});
+</script>
+@endif

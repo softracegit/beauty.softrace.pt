@@ -1,5 +1,40 @@
 @extends('partials.layouts.main')
 @section('title', 'Dashboard - Marcações e Serviços | Beauty CRM')
+
+@section('css')
+<style>
+    .dash-marcacoes-tables .card-header {
+        padding: 0.75rem 1rem;
+    }
+    .dash-marcacoes-tables .card-title {
+        font-size: 0.9375rem;
+        margin-bottom: 0;
+    }
+    .dash-marcacoes-tables .dash-compact-table {
+        font-size: 0.8125rem;
+        margin-bottom: 0;
+    }
+    .dash-marcacoes-tables .dash-compact-table th {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--muted-color);
+        white-space: nowrap;
+        padding: 0.5rem 0.75rem;
+        border-bottom-width: 1px;
+    }
+    .dash-marcacoes-tables .dash-compact-table td {
+        padding: 0.5rem 0.75rem;
+        vertical-align: middle;
+    }
+    .dash-marcacoes-tables .dash-compact-table .text-num {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+</style>
+@endsection
+
 @section('content')
 
 @if (session('success'))
@@ -25,28 +60,22 @@
 <!-- KPI Strip -->
 <div class="dash-kpi-strip mb-4">
     <div class="dash-kpi">
-        <div class="dash-kpi-icon primary">
-            <i class="ph-duotone ph-currency-eur"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ number_format($receitaEsteMes ?? 0, 0, ',', '.') }} €</div>
-            <div class="dash-kpi-label">Receita este mês</div>
-        </div>
-        @if(isset($variacaoReceita) && $variacaoReceita != 0)
-        <div class="dash-kpi-trend {{ $variacaoReceita > 0 ? 'positive' : 'negative' }}">
-            <i class="bi bi-trending-{{ $variacaoReceita > 0 ? 'up' : 'down' }}"></i>
-            <span>{{ $variacaoReceita > 0 ? '+' : '' }}{{ $variacaoReceita }}%</span>
-        </div>
-        @endif
-    </div>
-
-    <div class="dash-kpi">
         <div class="dash-kpi-icon success">
             <i class="ph-duotone ph-calendar-check"></i>
         </div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ $marcacoesHoje ?? 0 }}</div>
             <div class="dash-kpi-label">Marcações hoje</div>
+        </div>
+    </div>
+
+    <div class="dash-kpi">
+        <div class="dash-kpi-icon primary">
+            <i class="ph-duotone ph-currency-eur"></i>
+        </div>
+        <div class="dash-kpi-body">
+            <div class="dash-kpi-value">{{ number_format($receitaHoje ?? 0, 0, ',', '.') }} €</div>
+            <div class="dash-kpi-label">Receita hoje</div>
         </div>
     </div>
 
@@ -68,12 +97,18 @@
 
     <div class="dash-kpi">
         <div class="dash-kpi-icon info">
-            <i class="ph-duotone ph-users-three"></i>
+            <i class="ph-duotone ph-currency-eur"></i>
         </div>
         <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $totalClientes ?? 0 }}</div>
-            <div class="dash-kpi-label">Clientes ativos</div>
+            <div class="dash-kpi-value">{{ number_format($receitaEsteMes ?? 0, 0, ',', '.') }} €</div>
+            <div class="dash-kpi-label">Receita este mês</div>
         </div>
+        @if(isset($variacaoReceita) && $variacaoReceita != 0)
+        <div class="dash-kpi-trend {{ $variacaoReceita > 0 ? 'positive' : 'negative' }}">
+            <i class="bi bi-trending-{{ $variacaoReceita > 0 ? 'up' : 'down' }}"></i>
+            <span>{{ $variacaoReceita > 0 ? '+' : '' }}{{ $variacaoReceita }}%</span>
+        </div>
+        @endif
     </div>
 </div>
 
@@ -125,142 +160,152 @@
     </div>
 </div>
 
-<!-- Grid: Próximas marcações + Top serviços -->
-<div class="dash-grid dash-grid-content mb-4">
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title">Próximas marcações</h5>
-            <div class="card-actions">
-                <a href="{{ route('agenda.index') }}" class="btn btn-sm btn-outline-primary">Ver Agenda</a>
+<!-- Tabelas: 2×2 -->
+<div class="row g-3 mb-4 dash-marcacoes-tables">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title">Próximas marcações</h5>
             </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table dash-table">
-                    <thead>
-                        <tr>
-                            <th>Data / Hora</th>
-                            <th>Cliente</th>
-                            <th>Serviço</th>
-                            <th>Técnico</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($proximasMarcacoes ?? [] as $ev)
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table dash-compact-table">
+                        <thead>
                             <tr>
-                                <td>
-                                    <span class="fw-medium">{{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id, 'd/m') }}</span>
-                                    <span class="text-muted small">{{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id, 'H:i') }}</span>
-                                </td>
-                                <td>{{ $ev->client?->name ?? '—' }}</td>
-                                <td>{{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</td>
-                                <td>{{ $ev->user?->name ?? '—' }}</td>
+                                <th>Quando</th>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Téc.</th>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-3">Nenhuma marcação próxima.</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse($proximasMarcacoes ?? [] as $ev)
+                                <tr>
+                                    <td class="text-nowrap">
+                                        {{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id, 'd/m H:i') }}
+                                    </td>
+                                    <td>{{ $ev->client?->name ?? '—' }}</td>
+                                    <td class="text-truncate" style="max-width: 10rem;">{{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</td>
+                                    <td class="text-truncate" style="max-width: 7rem;">{{ $ev->user?->name ?? '—' }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-3">Nenhuma marcação próxima.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title">Marcações por serviço</h5>
-            <div class="card-actions">
-                <a href="{{ route('agenda.index') }}" class="btn-icon" title="Ver agenda"><i class="bi bi-arrow-up-right"></i></a>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title">Marcações recentes</h5>
             </div>
-        </div>
-        <div class="card-body">
-            <div class="region-list">
-                @php
-                    $porServico = $porServico ?? collect();
-                    $maxServico = $porServico->max('total') ?: 1;
-                @endphp
-                @forelse($porServico as $row)
-                    @php $pct = $maxServico > 0 ? round(($row->total / $maxServico) * 100) : 0; @endphp
-                    <div class="region-item">
-                        <div class="region-info">
-                            <span class="region-name">{{ $row->service_name }}</span>
-                        </div>
-                        <div class="region-stats">
-                            <div class="progress region-progress">
-                                <div class="progress-bar" style="width: {{ $pct }}%"></div>
-                            </div>
-                            <span class="region-value">{{ $row->total }} marcações · {{ number_format((float)$row->receita, 0, ',', '.') }} €</span>
-                        </div>
-                    </div>
-                @empty
-                    <div class="text-center text-muted py-3">Nenhum dado ainda.</div>
-                @endforelse
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table dash-compact-table">
+                        <thead>
+                            <tr>
+                                <th>Quando</th>
+                                <th>Cliente</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($marcacoesRecentes ?? [] as $ev)
+                                <tr>
+                                    <td class="text-nowrap">{{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id, 'd/m H:i') }}</td>
+                                    <td>{{ $ev->client?->name ?? '—' }}</td>
+                                    <td>{{ \App\Models\CalendarEvent::statuses()[$ev->status ?? 'agendado'] ?? $ev->status }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">Nenhuma marcação recente.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Grid: Por técnico + Marcações recentes -->
-<div class="dash-grid dash-grid-bottom mb-4">
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title">Marcações por técnico</h5>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title">Por serviço</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table dash-compact-table">
+                        <thead>
+                            <tr>
+                                <th>Serviço</th>
+                                <th class="text-end">Marc.</th>
+                                <th class="text-end">Receita</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($porServico ?? [] as $row)
+                                <tr>
+                                    <td class="text-truncate" style="max-width: 12rem;">{{ $row->service_name }}</td>
+                                    <td class="text-end text-num">{{ $row->total }}</td>
+                                    <td class="text-end text-num">{{ number_format((float) $row->receita, 0, ',', '.') }} €</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">Sem dados.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="region-list">
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title">Por técnico</h5>
+            </div>
+            <div class="card-body p-0">
                 @php
                     $porTecnico = $porTecnico ?? collect();
                     $receitaPorTecnico = $receitaPorTecnico ?? collect();
-                    $maxTec = $porTecnico->max('total') ?: 1;
                 @endphp
-                @forelse($porTecnico as $row)
-                    @php
-                        $pct = $maxTec > 0 ? round(($row->total / $maxTec) * 100) : 0;
-                        $rec = $receitaPorTecnico->get($row->user_id);
-                        $recVal = $rec ? (float)$rec->receita : 0;
-                    @endphp
-                    <div class="region-item">
-                        <div class="region-info">
-                            <span class="region-name">{{ $row->user?->name ?? 'N/A' }}</span>
-                        </div>
-                        <div class="region-stats">
-                            <div class="progress region-progress">
-                                <div class="progress-bar bg-success" style="width: {{ $pct }}%"></div>
-                            </div>
-                            <span class="region-value">{{ $row->total }} marcações · {{ number_format($recVal, 0, ',', '.') }} €</span>
-                        </div>
-                    </div>
-                @empty
-                    <div class="text-center text-muted py-3">Nenhum dado ainda.</div>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h5 class="card-title">Marcações recentes</h5>
-            <div class="card-actions">
-                <a href="{{ route('agenda.index') }}" class="btn-icon" title="Ver agenda"><i class="bi bi-arrow-up-right"></i></a>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="transaction-list" style="padding: var(--spacing-md) var(--spacing-lg);">
-                @forelse($marcacoesRecentes ?? [] as $ev)
-                    <div class="transaction-item">
-                        <div class="transaction-icon info">
-                            <i class="ph-duotone ph-calendar-check"></i>
-                        </div>
-                        <div class="transaction-details">
-                            <div class="transaction-title">{{ $ev->client?->name ?? '—' }}</div>
-                            <div class="transaction-meta">{{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id) }} · {{ $ev->eventServices->map(fn ($s) => trim((string) ($s->pivot->option_name ?? '')) !== '' ? $s->pivot->option_name : $s->name)->filter()->join(', ') ?: '—' }}</div>
-                        </div>
-                        <div class="transaction-amount">{{ \App\Models\CalendarEvent::statuses()[$ev->status ?? 'agendado'] ?? $ev->status }}</div>
-                    </div>
-                @empty
-                    <div class="text-center text-muted py-3">Nenhuma marcação recente.</div>
-                @endforelse
+                <div class="table-responsive">
+                    <table class="table dash-compact-table">
+                        <thead>
+                            <tr>
+                                <th>Técnico</th>
+                                <th class="text-end">Marc.</th>
+                                <th class="text-end">Receita</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($porTecnico as $row)
+                                @php
+                                    $rec = $receitaPorTecnico->get($row->user_id);
+                                    $recVal = $rec ? (float) $rec->receita : 0;
+                                @endphp
+                                <tr>
+                                    <td class="text-truncate" style="max-width: 12rem;">{{ $row->user?->name ?? '—' }}</td>
+                                    <td class="text-end text-num">{{ $row->total }}</td>
+                                    <td class="text-end text-num">{{ number_format($recVal, 0, ',', '.') }} €</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">Sem dados.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -271,23 +316,9 @@
     <div class="card">
         <div class="card-header">
             <h5 class="card-title">Ações rápidas</h5>
-            <div class="card-actions">
-                <a href="{{ route('agenda.index') }}" class="btn btn-sm btn-outline-primary">
-                    <i class="ph ph-calendar-blank me-1"></i> Agenda
-                </a>
-            </div>
         </div>
         <div class="card-body p-0">
             <div class="task-list">
-                <div class="task-item">
-                    <div class="task-info">
-                        <div class="task-title">
-                            <a href="{{ route('agenda.index') }}" class="text-body">
-                                <i class="ph ph-calendar-blank me-2"></i> Ver Agenda
-                            </a>
-                        </div>
-                    </div>
-                </div>
                 <div class="task-item">
                     <div class="task-info">
                         <div class="task-title">

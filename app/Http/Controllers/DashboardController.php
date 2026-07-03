@@ -131,11 +131,12 @@ class DashboardController extends Controller
             return $redirect;
         }
 
-        $today = Carbon::today();
+        $storeId = current_store_id();
+        $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $startOfWeek = $today->copy()->startOfWeek();
-        $endOfWeek = $today->copy()->endOfWeek();
+        $endOfWeek = $today->copy()->endOfWeek()->endOfDay();
         $startOfMonth = $today->copy()->startOfMonth();
-        $endOfMonth = $today->copy()->endOfMonth();
+        $endOfMonth = $today->copy()->endOfMonth()->endOfDay();
 
         $marcacoesBase = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
@@ -157,8 +158,8 @@ class DashboardController extends Controller
         $receitaEstaSemana = $this->receitaMarcacoesEntre($startOfWeek, $endOfWeek);
         $receitaEsteMes = $this->receitaMarcacoesEntre($startOfMonth, $endOfMonth);
         $receitaMesAnterior = $this->receitaMarcacoesEntre(
-            $startOfMonth->copy()->subMonth(),
-            $endOfMonth->copy()->subMonth()
+            $startOfMonth->copy()->subMonth()->startOfMonth(),
+            $startOfMonth->copy()->subMonth()->endOfMonth()->endOfDay()
         );
         $variacaoReceita = $receitaMesAnterior > 0
             ? round((($receitaEsteMes - $receitaMesAnterior) / $receitaMesAnterior) * 100, 1)
@@ -227,15 +228,18 @@ class DashboardController extends Controller
         $mensalMarcacoes = [];
         $mensalReceita = [];
         for ($i = 11; $i >= 0; $i--) {
-            $date = Carbon::now()->subMonths($i);
-            $start = $date->copy()->startOfMonth();
-            $end = $date->copy()->endOfMonth();
+            $date = $today->copy()->subMonths($i);
+            $start = $date->copy()->startOfMonth()->startOfDay();
+            $end = $date->copy()->endOfMonth()->endOfDay();
             $mensalMarcacoes[] = [
-                'month' => $date->locale('pt_PT')->translatedFormat('M'),
-                'count' => (clone $marcacoesBase)->whereBetween('start_at', [$start, $end])->count(),
+                'month' => $date->locale('pt_PT')->translatedFormat('M y'),
+                'count' => (clone $marcacoesBase)->whereBetween('start_at', [
+                    StoreBusinessTime::toUtcInstant($start),
+                    StoreBusinessTime::toUtcInstant($end),
+                ])->count(),
             ];
             $mensalReceita[] = [
-                'month' => $date->locale('pt_PT')->translatedFormat('M'),
+                'month' => $date->locale('pt_PT')->translatedFormat('M y'),
                 'revenue' => round($this->receitaMarcacoesEntre($start, $end), 2),
             ];
         }
@@ -302,7 +306,7 @@ class DashboardController extends Controller
 
     private function resumoVendasEntre(Carbon $start, Carbon $end): float
     {
-        return $this->vendasReportService->sumVendasPagasPorEmissao($start, $end);
+        return $this->vendasReportService->sumVendasPagasPorMarcacao($start, $end);
     }
 
     private function resumoClientesAtendidosEntre(Carbon $start, Carbon $end): int

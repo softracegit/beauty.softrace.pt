@@ -9,6 +9,7 @@ use App\Models\SaleItem;
 use App\Models\Service;
 use App\Support\ApplicableFees;
 use App\Support\SaleTechnicianAttribution;
+use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -136,15 +137,17 @@ class VendasReportService
             return 0.0;
         }
 
+        $startUtc = StoreBusinessTime::toUtcInstant($start->copy()->startOfDay());
+        $endUtc = StoreBusinessTime::toUtcInstant($end->copy()->endOfDay());
+
         return round((float) Sale::query()
             ->where('store_id', current_store_id())
             ->where('status', Sale::STATUS_PAGO)
-            ->whereHas('calendarEvent', function (Builder $cq) use ($start, $end) {
+            ->whereHas('calendarEvent', function (Builder $cq) use ($startUtc, $endUtc) {
                 $cq->where('store_id', current_store_id())
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', CalendarEvent::STATUS_COMPLETO)
-                    ->whereDate('start_at', '>=', $start->toDateString())
-                    ->whereDate('start_at', '<=', $end->toDateString());
+                    ->whereBetween('start_at', [$startUtc, $endUtc]);
             })
             ->sum('total'), 2);
     }

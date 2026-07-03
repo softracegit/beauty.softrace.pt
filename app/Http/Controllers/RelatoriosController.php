@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\BookingFunnelReportService;
 use App\Services\ComissoesReportService;
 use App\Services\SmsReportService;
+use App\Services\VendasReportRunService;
 use App\Services\VendasReportService;
 use App\Support\ComissoesReportPdfColumns;
 use App\Support\DateTimeDisplay;
@@ -36,6 +37,7 @@ class RelatoriosController extends Controller
 {
     public function __construct(
         private readonly VendasReportService $vendasReportService,
+        private readonly VendasReportRunService $vendasReportRunService,
         private readonly ComissoesReportService $comissoesReportService,
         private readonly SmsReportService $smsReportService,
         private readonly BookingFunnelReportService $bookingFunnelReportService,
@@ -462,32 +464,10 @@ class RelatoriosController extends Controller
 
     public function vendasPdf(Request $request)
     {
-        $dateCriterion = $this->vendasDateCriterion($request);
-        $sales = $this->vendasSalesForReport($request);
-        $lines = $this->vendasResumoCollection(
-            $sales,
-            $request->get('vendas_servico'),
-            $request->get('vendas_tecnico'),
-            $dateCriterion,
+        return $this->vendasReportRunService->streamPdf(
+            $this->vendasReportRunService->filtersFromRequest($request),
+            $request,
         );
-
-        $pdfColumns = VendasReportPdfColumns::resolveFromRequest($request);
-        $pdfColumnLabels = $this->vendasPdfColumnOptions($dateCriterion);
-
-        $pdf = Pdf::loadView('relatorios.pdf.vendas', [
-            'linhas' => $lines,
-            'filtrosLinhas' => $this->vendasFiltrosResumo($request),
-            'appName' => config('app.name'),
-            'totalLinhas' => $lines->count(),
-            'vendasTotais' => $this->vendasTotaisRodape($lines, $dateCriterion, $sales),
-            'vendasDataColunaLabel' => $this->vendasDataColunaLabel($dateCriterion),
-            'pdfColumns' => $pdfColumns,
-            'pdfColumnLabels' => $pdfColumnLabels,
-        ])->setPaper('a4', VendasReportPdfColumns::resolveOrientationFromRequest($request));
-
-        $filename = 'vendas_'.now()->format('Y-m-d_His').'.pdf';
-
-        return $pdf->stream($filename);
     }
 
     /**

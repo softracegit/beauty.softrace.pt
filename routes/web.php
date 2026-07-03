@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AgentController;
+use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingClientAuthController;
 use App\Http\Controllers\BookingContactVerificationController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\ClientTagController;
 use App\Http\Controllers\CurrentStoreController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealController;
+use App\Http\Controllers\DevErrorTestController;
 use App\Http\Controllers\DefinicoesController;
 use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\FeeController;
@@ -50,6 +52,18 @@ use Illuminate\Support\Facades\Route;
 | Assets estáticos: public/booking-assets/{css,js,img} (não usar public/booking — conflita com a rota /booking)
 */
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
+
+if (! app()->isProduction()) {
+    Route::prefix('dev/error-test')
+        ->middleware(['auth', 'backoffice.access'])
+        ->name('dev.error-test.')
+        ->group(function () {
+            Route::get('/', [DevErrorTestController::class, 'index'])->name('index');
+            Route::get('/email', [DevErrorTestController::class, 'triggerEmail'])->name('email');
+            Route::get('/page', [DevErrorTestController::class, 'previewPage'])->name('page');
+            Route::get('/throw', [DevErrorTestController::class, 'triggerException'])->name('throw');
+        });
+}
 
 Route::prefix('legal')->name('legal.')->group(function () {
     Route::get('/termos', [LegalController::class, 'terms'])->name('terms');
@@ -385,6 +399,13 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
         Route::post('campanhas-sms/enviar', [MarketingSmsController::class, 'send'])
             ->middleware('throttle:20,1')
             ->name('campanhas-sms.send');
+    });
+
+    Route::prefix('ai')->name('ai.')->group(function () {
+        Route::get('/', [AiAssistantController::class, 'index'])->name('index');
+        Route::post('chat', [AiAssistantController::class, 'chat'])
+            ->middleware('throttle:30,1')
+            ->name('chat');
     });
 
     Route::prefix('relatorios')->name('relatorios.')->group(function () {

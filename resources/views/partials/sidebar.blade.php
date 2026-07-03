@@ -66,6 +66,13 @@
           </a>
         </li>
         @endif
+        @if($navUser->canAccessAi())
+        <li>
+          <a href="{{ route('ai.index') }}" class="iconbar-item {{ request()->routeIs('ai.*') ? 'active' : '' }}" data-panel="ai" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Assistente AI" aria-label="Assistente AI">
+            <i class="ph ph-sparkle"></i>
+          </a>
+        </li>
+        @endif
       </ul>
     </nav>
 
@@ -312,6 +319,22 @@
         <li>
           <a class="panel-link {{ request()->routeIs('relatorios.booking-funnel') ? 'active' : '' }}" href="{{ route('relatorios.booking-funnel') }}">
             Funil Booking
+          </a>
+        </li>
+      </ul>
+    </div>
+    @endif
+
+    @if($navUser->canAccessAi())
+    <div class="sidebar-panel-section {{ request()->routeIs('ai.*') ? 'active' : '' }}" data-section="ai">
+      <div class="sidebar-panel-header">
+        <h6>Assistente AI</h6>
+        <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+      </div>
+      <ul class="panel-nav">
+        <li>
+          <a class="panel-link {{ request()->routeIs('ai.index') ? 'active' : '' }}" href="{{ route('ai.index') }}">
+            Chat
           </a>
         </li>
       </ul>
