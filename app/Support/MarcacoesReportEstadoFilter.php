@@ -170,7 +170,12 @@ class MarcacoesReportEstadoFilter
 
     public static function eventRowDataExportCell(CalendarEvent $event): string
     {
-        return $event->start_at->format('d/m/Y')."\n".$event->start_at->format('H:i');
+        $local = DateTimeDisplay::inBusiness($event->start_at, $event->store_id);
+        if ($local === null) {
+            return '—';
+        }
+
+        return $local->format('d/m/Y')."\n".$local->format('H:i');
     }
 
     /**

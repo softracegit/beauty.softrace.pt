@@ -56,6 +56,7 @@
           $totalPreco = $ev->eventServiceItems->sum(function ($es) {
             return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
           });
+          $startLocal = \App\Support\DateTimeDisplay::inBusiness($ev->start_at, $ev->store_id);
           $categoria = \App\Support\MarcacoesReportEstadoFilter::eventRowCategoriasLabel($ev);
           $servicoNomes = \App\Support\MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
         @endphp
@@ -65,8 +66,8 @@
               @case('data')
               @case('data_hora')
                 <td class="text-nowrap">
-                  {{ $ev->start_at->locale('pt')->translatedFormat('j F') }}<br>
-                  <span style="color:#666;font-size:6px;">{{ $ev->start_at->format('Y') }} · {{ $ev->start_at->format('H:i') }}</span>
+                  {{ $startLocal?->locale('pt')->translatedFormat('j F') ?? '—' }}<br>
+                  <span style="color:#666;font-size:6px;">{{ $startLocal?->format('Y') ?? '—' }} · {{ $startLocal?->format('H:i') ?? '—' }}</span>
                 </td>
                 @break
               @case('estado')

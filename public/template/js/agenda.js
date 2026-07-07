@@ -738,13 +738,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (arg && arg.resource && arg.resource.id != null) {
             uid = String(arg.resource.id);
         }
-        if (!uid && arg && arg.el && typeof arg.el.closest === 'function') {
-            var col = arg.el.closest('[data-resource-id]');
+        var rootEl = arg && arg.el;
+        if (!rootEl && arg && arg.jsEvent && arg.jsEvent.target && arg.jsEvent.target.closest) {
+            rootEl = arg.jsEvent.target;
+        }
+        if (!uid && rootEl && typeof rootEl.closest === 'function') {
+            var col = rootEl.closest('[data-resource-id]');
             if (col && col.getAttribute) {
                 uid = String(col.getAttribute('data-resource-id') || '');
             }
         }
-        if (!uid) uid = selectedConsultantId || '';
+        if (!uid && calendar && viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) {
+            uid = String(selectedConsultantId);
+        }
 
         return uid;
     }
@@ -8946,7 +8952,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
             }
-            var resourceId = info.resource ? info.resource.id : null;
+            var resourceId = resolveSlotUserId(info) || null;
             var startStr = toLocalDateTimeStr(startDate);
             var endStr = toLocalDateTimeStr(endDate);
 
@@ -10278,9 +10284,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         document.getElementById('agendaMobileAddBookingBtn')?.addEventListener('click', function() {
-            var slot = getClosestSlotToNow();
-            var resourceId = (viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null;
-            openNovaMarcacaoModal(slot.startStr, slot.endStr, resourceId);
+            openNovaMarcacaoFromToolbar();
             bootstrap.Modal.getOrCreateInstance(document.getElementById('agendaMobileAddModal')).hide();
         });
 
@@ -10521,19 +10525,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             clearAgendaDeepLinkParams();
         } else if (novaMarcacao === '1' && canCreateMarcacao) {
-            var now = new Date();
-            var min = now.getMinutes();
-            var roundedMin = Math.ceil(min / 15) * 15;
-            if (roundedMin >= 60) { now.setHours(now.getHours() + 1); roundedMin = 0; }
-            now.setMinutes(roundedMin);
-            now.setSeconds(0, 0);
-            var end = new Date(now.getTime() + 60 * 60 * 1000);
-            var startStr = now.toISOString().slice(0, 19).replace('T', ' ');
-            var endStr = end.toISOString().slice(0, 19).replace('T', ' ');
-            openNovaMarcacaoModal(startStr, endStr, userId || '', clientId || null);
-            if (history.replaceState) {
-                history.replaceState({}, document.title, window.location.pathname);
-            }
+            openNovaMarcacaoFromToolbar(clientId, userId);
+            clearAgendaDeepLinkParams();
         } else {
             setTimeout(function() {
                 var now = new Date();
@@ -10544,6 +10537,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 200);
         }
     })();
+
+    bindAgendaNovaMarcacaoNavLinks();
 
     // Função para atualizar o texto do botão de seleção de vista
     function updateViewSelectorButton(viewType) {
@@ -10680,6 +10675,46 @@ document.addEventListener('DOMContentLoaded', function() {
         return { startStr: startStr, endStr: endStr };
     }
 
+    /** Mesmo fluxo que Adicionar → Nova marcação (slot ≈ agora + técnica filtrada). */
+    function openNovaMarcacaoFromToolbar(preSelectedClientId, resourceIdOverride) {
+        if (!canCreateMarcacao) {
+            showToast('Sem permissão para criar marcações.', 'error');
+            return;
+        }
+        var slot = getClosestSlotToNow();
+        var resourceId = resourceIdOverride != null && String(resourceIdOverride) !== ''
+            ? String(resourceIdOverride)
+            : ((calendar && viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null);
+        openNovaMarcacaoModal(slot.startStr, slot.endStr, resourceId, preSelectedClientId || null);
+    }
+
+    function bindAgendaNovaMarcacaoNavLinks() {
+        document.querySelectorAll('a[href*="novaMarcacao=1"]').forEach(function(link) {
+            if (link.dataset.agendaNovaMarcacaoBound === '1') {
+                return;
+            }
+            link.dataset.agendaNovaMarcacaoBound = '1';
+            link.addEventListener('click', function(e) {
+                if (!calendarEl) {
+                    return;
+                }
+                e.preventDefault();
+                var url;
+                try {
+                    url = new URL(link.href, window.location.origin);
+                } catch (err) {
+                    openNovaMarcacaoFromToolbar();
+                    return;
+                }
+                openNovaMarcacaoFromToolbar(
+                    url.searchParams.get('client_id'),
+                    url.searchParams.get('user_id')
+                );
+                document.body.classList.remove('sidebar-panel-open');
+            });
+        });
+    }
+
     function initAdicionarDropdown() {
         const addBtn = calendarEl.querySelector('.fc-adicionarDropdown-button');
         if (!addBtn) return;
@@ -10723,9 +10758,7 @@ document.addEventListener('DOMContentLoaded', function() {
             optMarcacao.innerHTML = '<i class="bi bi-calendar-check me-2"></i> Nova marcação';
             optMarcacao.addEventListener('click', function(e) {
                 e.preventDefault();
-                var slot = getClosestSlotToNow();
-                var resourceId = (viewSupportsConsultantFilter(calendar.view.type) && selectedConsultantId) ? selectedConsultantId : null;
-                openNovaMarcacaoModal(slot.startStr, slot.endStr, resourceId);
+                openNovaMarcacaoFromToolbar();
                 bootstrap.Dropdown.getInstance(addBtn)?.hide();
             });
             menu.appendChild(optMarcacao);

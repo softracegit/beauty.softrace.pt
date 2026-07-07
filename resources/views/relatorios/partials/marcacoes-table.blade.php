@@ -33,7 +33,8 @@
       <tbody>
         @foreach($marcacoes as $ev)
           @php
-            $isFutura = $ev->start_at->isFuture();
+            $startLocal = \App\Support\DateTimeDisplay::inBusiness($ev->start_at, $ev->store_id);
+            $isFutura = $startLocal?->isFuture() ?? false;
             $badgeClass = $isFutura ? 'bg-success-light text-success' : 'bg-secondary-light text-secondary';
             $totalPreco = $ev->eventServiceItems->sum(function ($es) {
                 return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
@@ -48,8 +49,8 @@
           @endphp
           <tr>
             <td class="vendas-two-line text-nowrap">
-              <div>{{ $ev->start_at->locale('pt')->translatedFormat('j F') }}</div>
-              <small>{{ $ev->start_at->format('Y') }} · {{ $ev->start_at->format('H:i') }}</small>
+              <div>{{ $startLocal?->locale('pt')->translatedFormat('j F') ?? '—' }}</div>
+              <small>{{ $startLocal?->format('Y') ?? '—' }} · {{ $startLocal?->format('H:i') ?? '—' }}</small>
             </td>
             <td><span class="badge {{ $badgeClass }}">{{ $statusLabel }}</span></td>
             @if($showClienteColumn)
