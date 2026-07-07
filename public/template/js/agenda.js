@@ -3855,15 +3855,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var sourceBadge = $id('eventDetailMarcacaoSourceBadge');
         if (sourceBadge) {
-            if ((data.event_type || '') === 'marcacao' && data.marcacao_source_label) {
-                sourceBadge.textContent = data.marcacao_source_label;
+            if ((data.event_type || '') === 'marcacao' && data.marcacao_source === 'online') {
+                sourceBadge.innerHTML = '<span class="agenda-online-at-mark" aria-hidden="true">@</span> Booking';
                 sourceBadge.classList.remove('d-none');
-                sourceBadge.classList.toggle('event-detail-marcacao-source-badge--online', data.marcacao_source === 'online');
-                sourceBadge.classList.toggle('event-detail-marcacao-source-badge--agenda', data.marcacao_source === 'agenda');
             } else {
                 sourceBadge.textContent = '';
                 sourceBadge.classList.add('d-none');
-                sourceBadge.classList.remove('event-detail-marcacao-source-badge--online', 'event-detail-marcacao-source-badge--agenda');
             }
         }
 
@@ -8831,13 +8828,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 var bdayTitle = extProps.client_birthday_today ? 'Aniversário hoje' : 'Aniversário este mês';
                 birthdayHtml = agendaBirthdayBadgeHtml(bdayTitle);
             }
-            var onlineBadgeHtml = '';
+            var clientNameText = clientName || fallbackTitle || '…';
             if ((extProps.event_type || '') === 'marcacao' && extProps.marcacao_source === 'online') {
-                onlineBadgeHtml = '<span class="agenda-fc-event-online-badge" title="Marcação online (Booking)" aria-label="Marcação online"><span class="agenda-fc-event-online-at" aria-hidden="true">@</span></span>';
+                clientNameText += ' <span class="agenda-online-at-mark" aria-hidden="true">@</span>';
             }
-            var badgesHtml = onlineBadgeHtml + birthdayHtml;
-            var badgesWrapHtml = badgesHtml ? '<span class="fc-event-client-badges">' + badgesHtml + '</span>' : '';
-            const line1 = iconHtml + '<span class="fc-event-client-row"><strong class="fc-event-client">' + (clientName || fallbackTitle || '…') + '</strong>' + badgesWrapHtml + '</span>';
+            var badgesWrapHtml = birthdayHtml ? '<span class="fc-event-client-badges">' + birthdayHtml + '</span>' : '';
+            const line1 = iconHtml + '<span class="fc-event-client-row"><strong class="fc-event-client">' + clientNameText + '</strong>' + badgesWrapHtml + '</span>';
 
             // Linha 2: serviço + extras
             let line2 = serviceName || '';

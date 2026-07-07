@@ -1130,24 +1130,27 @@ body.page-agenda .app-wrapper .container-fluid {
     vertical-align: -0.08em;
 }
 .event-detail-marcacao-source-badge {
-    font-size: 0.6875rem;
+    --bs-badge-color: #000;
+    font-size: 0.75rem;
     font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    padding: 0.2rem 0.45rem;
+    letter-spacing: 0;
+    text-transform: none;
+    padding: 0.2rem 0.4rem;
     border: 1px solid var(--border-color);
     background: color-mix(in srgb, var(--surface-color), var(--background-color) 35%);
-    color: var(--muted-color);
+    color: #000 !important;
 }
-.event-detail-marcacao-source-badge--online {
-    color: #fff;
-    border-color: var(--accent-color);
-    background: var(--accent-color);
+#eventDetailEditModal #eventDetailMarcacaoSourceBadge {
+    --bs-badge-color: #000;
+    color: #000 !important;
 }
-.event-detail-marcacao-source-badge--agenda {
-    color: var(--default-color);
-    border-color: var(--border-color);
-    background: color-mix(in srgb, var(--surface-color), var(--background-color) 20%);
+.agenda-online-at-mark {
+    display: inline-block;
+    line-height: 1;
+    position: relative;
+    top: -0.12em;
+    font-weight: inherit;
+    color: inherit;
 }
 .fc-event .fc-event-status-icon-completo {
     color: #198754;
@@ -1157,30 +1160,6 @@ body.page-agenda .app-wrapper .container-fluid {
 }
 .fc-event .fc-event-status-icon.agenda-status-icon-por-pagar {
     color: #eab308;
-}
-.agenda-fc-event-online-badge {
-    position: relative;
-    flex: 0 0 auto;
-    width: 1.15rem;
-    height: 1.15rem;
-    min-width: 1.15rem;
-    min-height: 1.15rem;
-    border-radius: 50%;
-    background: #fff;
-    color: color-mix(in srgb, var(--accent-color, #6366f1) 88%, #fff 12%);
-    padding: 0;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
-    contain: layout style paint;
-}
-.agenda-fc-event-online-badge .agenda-fc-event-online-at {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, calc(-50% - 1.5px));
-    font-size: 0.78rem;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
 }
 .fc-event .agenda-event-status-icon-btn.fc-event-status-locked {
     cursor: default;
