@@ -365,9 +365,9 @@
 <!-- Offcanvas: Ver/Editar marcação (estrutura igual à nova marcação: cliente, serviços, profissional, data, notas) -->
 <div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="eventDetailEditModal" aria-labelledby="eventDetailEditOffcanvasLabel" data-bs-scroll="true">
     <div class="offcanvas-header border-bottom d-flex align-items-center gap-2">
-        <div class="d-flex align-items-center flex-grow-1 min-w-0 gap-3">
-            <h5 class="offcanvas-title fw-semibold mb-0 flex-shrink-0" id="eventDetailEditOffcanvasLabel">Marcação</h5>
-            <div class="d-flex align-items-center min-w-0 flex-shrink-0">
+        <div class="d-flex align-items-center flex-grow-1 min-w-0 gap-2">
+            <span class="visually-hidden" id="eventDetailEditOffcanvasLabel">Detalhe da marcação</span>
+            <div class="d-flex align-items-center min-w-0 flex-shrink-0 gap-2">
                 <span class="dropdown" id="eventDetailStatusDropdownWrap">
                     <span class="event-detail-time-toggle dropdown-toggle event-detail-status-toggle d-inline-flex align-items-center text-muted small text-decoration-none" id="eventDetailStatusDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" role="button">
                         <span id="eventDetailStatusIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ri-time-fill agenda-status-icon-agendado"></i></span>
@@ -386,6 +386,7 @@
                     <span id="eventDetailStatusStaticIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ri-checkbox-circle-fill"></i></span>
                     <span id="eventDetailStatusStaticLabel">Concluído</span>
                 </span>
+                <span class="badge event-detail-marcacao-source-badge ms-1 d-none" id="eventDetailMarcacaoSourceBadge"></span>
             </div>
         </div>
         <button type="submit" class="btn btn-light btn-sm border flex-shrink-0 d-inline-flex align-items-center gap-2 event-detail-header-save-btn" id="eventDetailSaveBtn" form="eventDetailEditForm" aria-label="Guardar alterações" title="Guardar alterações">

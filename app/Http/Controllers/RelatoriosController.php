@@ -106,12 +106,12 @@ class RelatoriosController extends Controller
         $sheet->setTitle('Marcações');
 
         $headers = [
-            'Data/Hora início',
+            'Data',
             'Estado',
             'Cliente',
             'Técnico',
-            'Serviços',
-            'Categoria',
+            'Serviço',
+            'Origem',
             'Preço total (€)',
             'Notas',
         ];
@@ -122,25 +122,15 @@ class RelatoriosController extends Controller
             $totalPreco = $ev->eventServiceItems->sum(function ($es) {
                 return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
             });
-            $services = MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
-            if ($ev->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {
-                $categorias = '—';
-            } else {
-                $categorias = $ev->eventServiceItems
-                    ->map(fn ($es) => $es->service?->category?->name)
-                    ->map(fn ($n) => $n !== null && $n !== '' ? $n : '—')
-                    ->implode(', ');
-            }
-            $statusLabel = MarcacoesReportEstadoFilter::eventRowStatusLabel($ev);
 
             $sheet->fromArray([
                 [
-                    DateTimeDisplay::business($ev->start_at),
-                    $statusLabel,
+                    MarcacoesReportEstadoFilter::eventRowDataExportCell($ev),
+                    MarcacoesReportEstadoFilter::eventRowStatusLabel($ev),
                     $ev->client?->name ?? '',
                     $ev->user?->name ?? '',
-                    $services,
-                    $categorias,
+                    MarcacoesReportEstadoFilter::eventRowServicoExportCell($ev),
+                    MarcacoesReportEstadoFilter::eventRowOrigemLabel($ev),
                     round($totalPreco, 2),
                     $ev->description ?? '',
                 ],
@@ -148,17 +138,17 @@ class RelatoriosController extends Controller
             $rowIndex++;
         }
 
-        $totais = $this->marcacoesTotaisFromEvents($events);
+        $totais = MarcacoesReportEstadoFilter::totaisFromEvents($events);
         $sheet->fromArray([
             [
                 '',
                 '',
                 '',
                 '',
-                'Total',
-                $totais['servicos_count'].' serviço(s)',
-                round($totais['preco_total'], 2),
                 '',
+                'Total',
+                round($totais['preco_total'], 2),
+                $totais['servicos_count'].' serviço(s)',
             ],
         ], null, 'A'.$rowIndex);
 
@@ -193,7 +183,7 @@ class RelatoriosController extends Controller
             'filtrosLinhas' => $this->marcacoesFiltrosResumo($request),
             'appName' => config('app.name'),
             'totalRegistos' => $events->count(),
-            'marcacoesTotais' => $this->marcacoesTotaisFromEvents($events),
+            'marcacoesTotais' => MarcacoesReportEstadoFilter::totaisFromEvents($events),
             'pdfColumns' => $pdfColumns,
             'pdfColumnLabels' => MarcacoesReportPdfColumns::labels(),
         ])->setPaper('a4', MarcacoesReportPdfColumns::resolveOrientationFromRequest($request));
@@ -296,27 +286,6 @@ class RelatoriosController extends Controller
         ];
     }
 
-    /**
-     * @param  \Illuminate\Support\Collection<int, CalendarEvent>  $events
-     * @return array{preco_total: float, servicos_count: int}
-     */
-    private function marcacoesTotaisFromEvents(Collection $events): array
-    {
-        $preco = 0.0;
-        $count = 0;
-        foreach ($events as $ev) {
-            foreach ($ev->eventServiceItems as $es) {
-                $count++;
-                $preco += (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
-            }
-        }
-
-        return [
-            'preco_total' => $preco,
-            'servicos_count' => $count,
-        ];
-    }
-
     public function vendas(Request $request): View
     {
         $dateCriterion = $this->vendasDateCriterion($request);
@@ -386,10 +355,12 @@ class RelatoriosController extends Controller
 
         $headers = [
             $dataHeader,
+            'Nº fatura',
             'Cliente',
             'NIF',
             'Técnico',
             'Serviço',
+            'Origem',
             'Total (€)',
             'Taxas (€)',
             'Gorjeta (€)',
@@ -399,13 +370,24 @@ class RelatoriosController extends Controller
 
         $rowIndex = 2;
         foreach ($lines as $linha) {
+            $categoria = trim((string) ($linha->categoria ?? ''));
+            $categoria = $categoria !== '' && $categoria !== '—' ? $categoria : '';
+            $servicoNomes = (string) ($linha->servico_nomes ?? $linha->servico ?? '—');
+            $servicoCell = $categoria !== '' ? $categoria."\n".$servicoNomes : $servicoNomes;
+            $faturaCell = $linha->numero_fatura ?: '—';
+            if (! empty($linha->fatura_subtitulo)) {
+                $faturaCell .= "\n".$linha->fatura_subtitulo;
+            }
+
             $sheet->fromArray([
                 [
                     $linha->data->format('d/m/Y'),
+                    $faturaCell,
                     $linha->cliente,
                     $linha->nif,
                     $linha->tecnico,
-                    $linha->servico,
+                    $servicoCell,
+                    $linha->origem_marcacao ?? '—',
                     round((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2),
                     round((float) ($linha->taxas ?? 0), 2),
                     round((float) ($linha->gorjeta ?? 0), 2),
@@ -426,6 +408,8 @@ class RelatoriosController extends Controller
                 '',
                 '',
                 '',
+                '',
+                '',
                 'Subtotal',
                 round($totais['total_valor_com_gorjeta'], 2),
                 round($totais['total_taxas'] ?? 0, 2),
@@ -440,6 +424,8 @@ class RelatoriosController extends Controller
                 '',
                 '',
                 '',
+                '',
+                '',
                 'Total',
                 round($totais['total_absoluto'], 2),
                 '',
@@ -448,7 +434,7 @@ class RelatoriosController extends Controller
             ],
         ], null, 'A'.$rowIndex);
 
-        foreach (range('A', 'I') as $col) {
+        foreach (range('A', 'K') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -538,7 +524,7 @@ class RelatoriosController extends Controller
     private function vendasSalesForReport(Request $request): Collection
     {
         $sales = $this->vendasReportQuery($request)
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'settledEvents', 'items.service.category', 'items.extra', 'items.calendarEventService.service.category', 'items.calendarEventService.event.user'])
             ->get();
 
         if ($this->vendasDateCriterion($request) === VendasReportService::DATE_CRITERION_MARCACAO) {

@@ -270,44 +270,13 @@
                             </button>
                         </div>
                     </form>
-                    @if($marcacoes->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Data/Hora</th>
-                                        <th>Serviços</th>
-                                        <th>Técnico</th>
-                                        <th>Estado</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($marcacoes as $ev)
-                                        @php
-                                            $isFutura = $ev->start_at->isFuture();
-                                            $badgeClass = $isFutura ? 'bg-success-light text-success' : 'bg-secondary-light text-secondary';
-                                        @endphp
-                                        <tr>
-                                            <td>{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
-                                            <td>
-                                                @foreach($ev->eventServiceItems as $es)
-                                                    <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? '—') }}</span>
-                                                @endforeach
-                                            </td>
-                                            <td>{{ $ev->user?->name ?? '—' }}</td>
-                                            <td><span class="badge {{ $badgeClass }}">{{ \App\Models\CalendarEvent::statuses()[$ev->status] ?? $ev->status }}</span></td>
-                                            <td>
-                                                <a href="{{ route('agenda.index') }}?event={{ $ev->id }}" class="btn btn-sm btn-light" title="Ver na agenda"><i class="ph ph-calendar"></i></a>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                    <p class="text-muted text-center py-3">Nenhuma marcação registada.</p>
-                    @endif
+                    @include('relatorios.partials.marcacoes-table', [
+                        'marcacoes' => $marcacoes,
+                        'marcacoesTotais' => $marcacoesTotais ?? [],
+                        'showClienteColumn' => false,
+                        'actionMode' => 'agenda',
+                        'emptyMessage' => 'Nenhuma marcação registada.',
+                    ])
                 </div>
 
                 <!-- Vendas Tab -->

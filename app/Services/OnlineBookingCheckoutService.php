@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Agent;
 use App\Models\CalendarEvent;
+use App\Support\ActivityLogMarcacaoOrigin;
 use App\Models\CalendarEventServiceExtra;
 use App\Models\Client;
 use App\Models\CrmSetting;
@@ -736,6 +737,7 @@ class OnlineBookingCheckoutService
                 'client_id' => $client->id,
                 'service_id' => $firstService->id,
                 'status' => CalendarEvent::STATUS_AGENDADO,
+                'marcacao_source' => ActivityLogMarcacaoOrigin::ONLINE,
             ]);
 
             foreach ($servicesPayload as $i => $item) {

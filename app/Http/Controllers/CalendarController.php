@@ -374,6 +374,8 @@ class CalendarController extends Controller
                     'client_phone' => $event->client?->phone,
                     'client_formatted_phone' => $event->client?->formatted_phone,
                     'event_type' => $event->event_type,
+                    'marcacao_source' => $event->resolvedMarcacaoSource(),
+                    'marcacao_source_label' => $event->marcacaoSourceLabel(),
                     'status' => $event->status ?? CalendarEvent::STATUS_AGENDADO,
                     'status_icon' => $statusIcon,
                     'user_id' => $event->user_id,
@@ -740,6 +742,8 @@ class CalendarController extends Controller
                 'description' => $calendarEvent->description,
                 'event_type' => $calendarEvent->event_type ?? 'manual',
                 'event_type_label' => CalendarEvent::eventTypes()[$calendarEvent->event_type] ?? ($calendarEvent->event_type ?? 'Manual'),
+                'marcacao_source' => $calendarEvent->resolvedMarcacaoSource(),
+                'marcacao_source_label' => $calendarEvent->marcacaoSourceLabel(),
                 'status' => $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO,
                 'status_label' => $isTempoPessoal ? 'Tempo pessoal' : (CalendarEvent::statuses()[$calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado'),
                 'status_icon' => $isTempoPessoal ? null : $calendarEvent->status_icon,
@@ -1132,6 +1136,9 @@ class CalendarController extends Controller
         }
         $validated['status'] = $validated['status'] ?? CalendarEvent::STATUS_AGENDADO;
         $validated['store_id'] = current_store_id();
+        if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
+            $validated['marcacao_source'] = \App\Support\ActivityLogMarcacaoOrigin::AGENDA;
+        }
 
         $event = CalendarEvent::create($validated);
 
@@ -1923,6 +1930,8 @@ class CalendarController extends Controller
                 'description' => $event->description,
                 'event_type' => $event->event_type,
                 'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
+                'marcacao_source' => $event->resolvedMarcacaoSource(),
+                'marcacao_source_label' => $event->marcacaoSourceLabel(),
                 'status' => $event->status ?? CalendarEvent::STATUS_AGENDADO,
                 'status_label' => $statusLabel,
                 'status_icon' => $statusIcon,

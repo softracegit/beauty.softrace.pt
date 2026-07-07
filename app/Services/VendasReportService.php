@@ -262,12 +262,9 @@ class VendasReportService
                     ->filter(fn (?string $label) => $label !== null && trim($label) !== '')
                     ->values();
 
-                $subtitulo = $sale->scope === Sale::SCOPE_CAIXA_LIQUIDACAO ? 'Pagamento em loja' : null;
-                if ($slice['is_consolidated']) {
-                    $subtitulo = $subtitulo !== null
-                        ? $subtitulo.' · venda consolidada'
-                        : 'Venda consolidada';
-                }
+                $faturaSubtitulo = $this->faturaSubtituloForSale($sale, (bool) $slice['is_consolidated']);
+
+                $event = $this->calendarEventForSlice($sale, (int) $slice['calendar_event_id']);
 
                 return (object) [
                     'sale' => $sale,
@@ -277,17 +274,17 @@ class VendasReportService
                     'credit_note_pdf_url' => $sale->hasCreditNote() ? route('sales.credit-note.pdf', $sale) : null,
                     'invoice_status' => $sale->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
                     'data' => $dateCriterion === self::DATE_CRITERION_MARCACAO
-                        ? ($sale->calendarEvent?->start_at ?? $sale->data_emissao)
+                        ? ($event?->start_at ?? $sale->calendarEvent?->start_at ?? $sale->data_emissao)
                         : $sale->data_emissao,
                     'data_emissao' => $sale->data_emissao,
                     'numero_fatura' => $sale->numero_fatura,
+                    'fatura_subtitulo' => $faturaSubtitulo,
                     'cliente' => $client?->name ?? '—',
                     'nif' => $client?->nif ?? '',
                     'tecnico' => $slice['user_name'],
-                    ...$this->servicoColunaPayload(
-                        $this->servicoNomesFromLabels($serviceLabels),
-                        $subtitulo
-                    ),
+                    ...$this->servicoColunaPayload($this->servicoNomesFromLabels($serviceLabels)),
+                    'categoria' => $this->categoriasColunaFromItems($serviceItems),
+                    'origem_marcacao' => $event?->marcacaoSourceLabel() ?? '—',
                     'quantidade' => (int) $serviceItems->count(),
                     'valor' => (float) $slice['valor'],
                     'taxas' => (float) $slice['taxas'],
@@ -383,6 +380,45 @@ class VendasReportService
         return $sale->amountDue();
     }
 
+    private function calendarEventForSlice(Sale $sale, int $eventId): ?CalendarEvent
+    {
+        if ($eventId <= 0) {
+            return null;
+        }
+
+        if ((int) ($sale->calendar_event_id ?? 0) === $eventId) {
+            return $sale->calendarEvent;
+        }
+
+        if ($sale->relationLoaded('settledEvents')) {
+            $match = $sale->settledEvents->firstWhere('id', $eventId);
+            if ($match instanceof CalendarEvent) {
+                return $match;
+            }
+        }
+
+        return $sale->settledEvents()->find($eventId) ?? CalendarEvent::query()->find($eventId);
+    }
+
+    /**
+     * @param  Collection<int, SaleItem>  $serviceItems
+     */
+    private function categoriasColunaFromItems(Collection $serviceItems): string
+    {
+        $names = $serviceItems
+            ->map(function (SaleItem $item): string {
+                $category = $item->service?->category?->name
+                    ?? $item->calendarEventService?->service?->category?->name;
+
+                return trim((string) ($category ?? ''));
+            })
+            ->filter(fn (string $name): bool => $name !== '')
+            ->unique()
+            ->values();
+
+        return $names->isNotEmpty() ? $names->implode(', ') : '—';
+    }
+
     private function marcacaoHasActiveCaixaSale(int $calendarEventId): bool
     {
         if ($calendarEventId <= 0) {
@@ -433,46 +469,33 @@ class VendasReportService
         return (string) ($item->calendarEventService?->service?->name ?? '—');
     }
 
-    /**
-     * @param  Collection<int, string>  $serviceLabels
-     * @return array{servico: string, servico_nomes: string, servico_subtitulo: ?string}
-     */
-    private function servicoColunaForSale(Sale $sale, Collection $serviceLabels): array
+    private function faturaSubtituloForSale(Sale $sale, bool $isConsolidated): ?string
     {
-        $nomesFromEvent = $this->servicoNomesFromEvent($sale);
+        $subtitulo = match ($sale->scope) {
+            Sale::SCOPE_CAIXA_LIQUIDACAO => 'Pagamento em loja',
+            Sale::SCOPE_BOOKING_RESERVA => 'Pré-pagamento',
+            default => null,
+        };
 
-        if ($sale->scope === Sale::SCOPE_BOOKING_RESERVA) {
-            $nomes = $nomesFromEvent ?? $this->prepagamentoNomesFromDescricao($serviceLabels->first() ?? '');
-
-            return $this->servicoColunaPayload($nomes, 'Pré-pagamento');
+        if (! $isConsolidated) {
+            return $subtitulo;
         }
 
-        if ($sale->scope === Sale::SCOPE_CAIXA_LIQUIDACAO) {
-            $nomes = $nomesFromEvent ?? $this->servicoNomesFromLabels($serviceLabels);
-
-            return $this->servicoColunaPayload($nomes, 'Pagamento em loja');
-        }
-
-        $nomes = $this->servicoNomesFromLabels($serviceLabels);
-
-        return $this->servicoColunaPayload($nomes, null);
+        return $subtitulo !== null
+            ? $subtitulo.' · venda consolidada'
+            : 'Venda consolidada';
     }
 
     /**
-     * @return array{servico: string, servico_nomes: string, servico_subtitulo: ?string}
+     * @return array{servico: string, servico_nomes: string}
      */
-    private function servicoColunaPayload(string $nomes, ?string $subtitulo): array
+    private function servicoColunaPayload(string $nomes): array
     {
         $nomes = trim($nomes);
-        $subtitulo = $subtitulo !== null && trim($subtitulo) !== '' ? trim($subtitulo) : null;
-        $servico = $subtitulo !== null && $nomes !== ''
-            ? $nomes."\n".$subtitulo
-            : ($nomes !== '' ? $nomes : ($subtitulo ?? '—'));
 
         return [
-            'servico' => $servico,
+            'servico' => $nomes !== '' ? $nomes : '—',
             'servico_nomes' => $nomes !== '' ? $nomes : '—',
-            'servico_subtitulo' => $subtitulo,
         ];
     }
 

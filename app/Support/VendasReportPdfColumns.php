@@ -9,10 +9,12 @@ class VendasReportPdfColumns
     /** @var array<string, string> */
     public const LABELS = [
         'data' => 'Data',
+        'numero_fatura' => 'Nº fatura',
         'cliente' => 'Cliente',
         'nif' => 'NIF',
         'tecnico' => 'Técnico',
         'servico' => 'Serviço',
+        'origem_marcacao' => 'Origem',
         'total' => 'Total',
         'taxas' => 'Taxas',
         'gorjeta' => 'Gorjeta',

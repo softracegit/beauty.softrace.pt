@@ -238,6 +238,7 @@ class CalendarEvent extends Model
         'event_type',
         'personal_time_type_id',
         'status',
+        'marcacao_source',
         'booking_sms_reminder_sent_at',
         'booking_sms_reminder_failed_at',
         'cancellation_reason',
@@ -279,6 +280,92 @@ class CalendarEvent extends Model
             self::TYPE_LEAD => 'Lead',
             self::TYPE_OUTRO => 'Outro',
         ];
+    }
+
+    public static function marcacaoSourceLabels(): array
+    {
+        return [
+            ActivityLogMarcacaoOrigin::ONLINE => 'Booking',
+            ActivityLogMarcacaoOrigin::AGENDA => 'Agenda',
+            ActivityLogMarcacaoOrigin::SISTEMA => 'Sistema',
+        ];
+    }
+
+    public static function normalizeMarcacaoSource(?string $source): ?string
+    {
+        if ($source === null || $source === '') {
+            return null;
+        }
+
+        if ($source === ActivityLogMarcacaoOrigin::IMPORT) {
+            return ActivityLogMarcacaoOrigin::AGENDA;
+        }
+
+        return array_key_exists($source, self::marcacaoSourceLabels()) ? $source : null;
+    }
+
+    public function resolvedMarcacaoSource(): ?string
+    {
+        if (($this->event_type ?? '') !== self::TYPE_MARCACAO) {
+            return null;
+        }
+
+        $stored = self::normalizeMarcacaoSource($this->marcacao_source);
+        if ($stored !== null) {
+            return $stored;
+        }
+
+        if ($this->relationLoaded('onlineBooking')) {
+            if ($this->onlineBooking) {
+                return ActivityLogMarcacaoOrigin::ONLINE;
+            }
+        } elseif ($this->exists) {
+            $this->loadMissing('onlineBooking');
+            if ($this->onlineBooking) {
+                return ActivityLogMarcacaoOrigin::ONLINE;
+            }
+        }
+
+        return ActivityLogMarcacaoOrigin::AGENDA;
+    }
+
+    public function marcacaoSourceLabel(): ?string
+    {
+        $source = $this->resolvedMarcacaoSource();
+
+        return $source !== null ? (self::marcacaoSourceLabels()[$source] ?? null) : null;
+    }
+
+    public function isOnlineMarcacao(): bool
+    {
+        return $this->resolvedMarcacaoSource() === ActivityLogMarcacaoOrigin::ONLINE;
+    }
+
+    public function isAgendaMarcacao(): bool
+    {
+        return $this->resolvedMarcacaoSource() === ActivityLogMarcacaoOrigin::AGENDA;
+    }
+
+    /**
+     * @param  Builder<CalendarEvent>  $query
+     * @return Builder<CalendarEvent>
+     */
+    public function scopeMarcacaoFromBooking(Builder $query): Builder
+    {
+        return $query
+            ->where('event_type', self::TYPE_MARCACAO)
+            ->where('marcacao_source', ActivityLogMarcacaoOrigin::ONLINE);
+    }
+
+    /**
+     * @param  Builder<CalendarEvent>  $query
+     * @return Builder<CalendarEvent>
+     */
+    public function scopeMarcacaoFromAgenda(Builder $query): Builder
+    {
+        return $query
+            ->where('event_type', self::TYPE_MARCACAO)
+            ->where('marcacao_source', ActivityLogMarcacaoOrigin::AGENDA);
     }
 
     public static function typeClassMap(): array

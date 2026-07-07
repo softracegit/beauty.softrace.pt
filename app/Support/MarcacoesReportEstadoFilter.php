@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\CalendarEvent;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class MarcacoesReportEstadoFilter
 {
@@ -129,6 +130,68 @@ class MarcacoesReportEstadoFilter
             })
             ->filter()
             ->implode(', ') ?: '—';
+    }
+
+    public static function eventRowCategoriasLabel(CalendarEvent $event): string
+    {
+        if ($event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {
+            return '';
+        }
+
+        $names = $event->eventServiceItems
+            ->map(fn ($es) => trim((string) ($es->service?->category?->name ?? '')))
+            ->filter(fn (string $name): bool => $name !== '')
+            ->unique()
+            ->values();
+
+        return $names->isNotEmpty() ? $names->implode(', ') : '';
+    }
+
+    public static function eventRowOrigemLabel(CalendarEvent $event): string
+    {
+        if ($event->event_type !== CalendarEvent::TYPE_MARCACAO) {
+            return '—';
+        }
+
+        return $event->marcacaoSourceLabel() ?? '—';
+    }
+
+    public static function eventRowServicoExportCell(CalendarEvent $event): string
+    {
+        $nomes = self::eventRowServicesLabel($event);
+        $categoria = self::eventRowCategoriasLabel($event);
+
+        if ($categoria !== '') {
+            return $categoria."\n".$nomes;
+        }
+
+        return $nomes;
+    }
+
+    public static function eventRowDataExportCell(CalendarEvent $event): string
+    {
+        return $event->start_at->format('d/m/Y')."\n".$event->start_at->format('H:i');
+    }
+
+    /**
+     * @param  Collection<int, CalendarEvent>  $events
+     * @return array{preco_total: float, servicos_count: int}
+     */
+    public static function totaisFromEvents(Collection $events): array
+    {
+        $preco = 0.0;
+        $count = 0;
+        foreach ($events as $ev) {
+            foreach ($ev->eventServiceItems as $es) {
+                $count++;
+                $preco += (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
+            }
+        }
+
+        return [
+            'preco_total' => $preco,
+            'servicos_count' => $count,
+        ];
     }
 
     /**

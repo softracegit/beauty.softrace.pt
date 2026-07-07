@@ -19,6 +19,18 @@
     font-size: 0.75rem;
     line-height: 1.2;
   }
+  .vendas-servico-categoria {
+    font-size: 0.6875rem;
+    line-height: 1.15;
+    margin-bottom: 0.1rem;
+  }
+  .vendas-fatura-cell {
+    line-height: 1.15;
+  }
+  .vendas-fatura-sub {
+    font-size: 0.6875rem;
+    display: block;
+  }
   .vendas-servico-cell .vendas-servico-sub {
     font-size: 0.6875rem;
   }

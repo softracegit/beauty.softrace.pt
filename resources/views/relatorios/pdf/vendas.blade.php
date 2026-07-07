@@ -71,11 +71,26 @@
                 @break
               @case('servico')
                 <td style="font-size:7px;">
+                  @php
+                    $categoria = trim((string) ($linha->categoria ?? ''));
+                    $categoria = $categoria !== '' && $categoria !== '—' ? $categoria : '';
+                  @endphp
+                  @if($categoria !== '')
+                    <span style="color:#666;font-size:6px;display:block;">{{ $categoria }}</span>
+                  @endif
                   {{ $linha->servico_nomes ?? $linha->servico }}
-                  @if(!empty($linha->servico_subtitulo))
-                    <br><span style="color:#666;font-size:6px;">{{ $linha->servico_subtitulo }}</span>
+                </td>
+                @break
+              @case('numero_fatura')
+                <td>
+                  <span class="text-nowrap">{{ $linha->numero_fatura ?: '—' }}</span>
+                  @if(!empty($linha->fatura_subtitulo))
+                    <br><span style="color:#666;font-size:6px;">{{ $linha->fatura_subtitulo }}</span>
                   @endif
                 </td>
+                @break
+              @case('origem_marcacao')
+                <td>{{ $linha->origem_marcacao ?? '—' }}</td>
                 @break
               @case('total')
                 <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>

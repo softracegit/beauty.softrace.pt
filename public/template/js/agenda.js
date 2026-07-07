@@ -3853,6 +3853,20 @@ document.addEventListener('DOMContentLoaded', function() {
         var cancelOpt = $id('eventDetailStatusMenu')?.querySelector('[data-status="cancelar"]');
         if (cancelOpt) cancelOpt.style.display = (statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado') ? 'none' : '';
 
+        var sourceBadge = $id('eventDetailMarcacaoSourceBadge');
+        if (sourceBadge) {
+            if ((data.event_type || '') === 'marcacao' && data.marcacao_source_label) {
+                sourceBadge.textContent = data.marcacao_source_label;
+                sourceBadge.classList.remove('d-none');
+                sourceBadge.classList.toggle('event-detail-marcacao-source-badge--online', data.marcacao_source === 'online');
+                sourceBadge.classList.toggle('event-detail-marcacao-source-badge--agenda', data.marcacao_source === 'agenda');
+            } else {
+                sourceBadge.textContent = '';
+                sourceBadge.classList.add('d-none');
+                sourceBadge.classList.remove('event-detail-marcacao-source-badge--online', 'event-detail-marcacao-source-badge--agenda');
+            }
+        }
+
         var obsEl = $id('eventDetailOcObs');
         if (obsEl) obsEl.value = data.description || '';
 
@@ -8412,11 +8426,111 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     let stackedClassRefreshTimer = null;
+
+    function agendaEventResourceId(ev) {
+        if (!ev) return '';
+        if (typeof ev.getResources === 'function') {
+            var resources = ev.getResources();
+            if (resources && resources.length) return String(resources[0].id || '');
+        }
+        if (ev.resourceId != null && ev.resourceId !== '') return String(ev.resourceId);
+        var ext = ev.extendedProps || {};
+        if (ext.user_id != null && ext.user_id !== '') return String(ext.user_id);
+
+        return '';
+    }
+
+    function agendaIsCountableMarcacaoEvent(ev) {
+        if (!ev || ev.display === 'background') return false;
+        var ext = ev.extendedProps || {};
+        if ((ext.event_type || '') !== 'marcacao') return false;
+        var status = String(ext.status || '').toLowerCase();
+
+        return status !== 'cancelado' && status !== 'anulado' && status !== 'faltou';
+    }
+
+    function agendaMarcacaoCountMapForView() {
+        var counts = {};
+        if (!calendar || !isResourceTimeGridDayView(calendar.view.type)) return counts;
+        var viewStart = calendar.view.activeStart;
+        var viewEnd = calendar.view.activeEnd;
+        if (!viewStart || !viewEnd) return counts;
+        var events = calendar.getEvents();
+        for (var i = 0; i < events.length; i++) {
+            var ev = events[i];
+            if (!agendaIsCountableMarcacaoEvent(ev)) continue;
+            var start = ev.start;
+            if (!start) continue;
+            var end = ev.end || start;
+            if (start >= viewEnd || end <= viewStart) continue;
+            var rid = agendaEventResourceId(ev);
+            if (!rid) continue;
+            counts[rid] = (counts[rid] || 0) + 1;
+        }
+
+        return counts;
+    }
+
+    function agendaResourceMarcacaoCountBadgeHtml(count) {
+        count = parseInt(count, 10) || 0;
+        if (count <= 0) return '';
+        var title = count + ' marcação' + (count === 1 ? '' : 'ões');
+
+        return '<span class="agenda-resource-marcacao-count" title="' + title.replace(/"/g, '&quot;') + '" aria-label="' + title.replace(/"/g, '&quot;') + '">' + count + '</span>';
+    }
+
+    function agendaBuildResourceLabelHtml(title, avatarUrl, count) {
+        var badge = agendaResourceMarcacaoCountBadgeHtml(count);
+        var safeTitle = String(title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        if (avatarUrl) {
+            return '<span class="fc-resource-consultant-label">' +
+                '<img class="fc-resource-consultant-avatar" src="' + String(avatarUrl).replace(/"/g, '&quot;') + '" alt="" />' +
+                '<span class="fc-resource-consultant-name">' + safeTitle + '</span>' +
+                badge + '</span>';
+        }
+
+        return '<span class="fc-resource-consultant-label fc-resource-consultant-label--text-only">' +
+            '<span class="fc-resource-consultant-name">' + safeTitle + '</span>' +
+            badge + '</span>';
+    }
+
+    function agendaUpdateResourceMarcacaoCountBadges() {
+        if (!calendarEl || !calendar || isPrestadorStaff) return;
+        if (!isResourceTimeGridDayView(calendar.view.type)) {
+            calendarEl.querySelectorAll('.agenda-resource-marcacao-count').forEach(function(el) { el.remove(); });
+
+            return;
+        }
+        var counts = agendaMarcacaoCountMapForView();
+        calendarEl.querySelectorAll('.fc-col-header-cell[data-resource-id]').forEach(function(cell) {
+            var rid = String(cell.getAttribute('data-resource-id') || '');
+            var count = counts[rid] || 0;
+            var label = cell.querySelector('.fc-resource-consultant-label') || cell.querySelector('.fc-col-header-cell-cushion');
+            if (!label) return;
+            var badge = label.querySelector('.agenda-resource-marcacao-count');
+            if (count <= 0) {
+                if (badge) badge.remove();
+
+                return;
+            }
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'agenda-resource-marcacao-count';
+                label.appendChild(badge);
+            }
+            badge.textContent = String(count);
+            var title = count + ' marcação' + (count === 1 ? '' : 'ões');
+            badge.title = title;
+            badge.setAttribute('aria-label', title);
+        });
+    }
+
     function scheduleStackedEventClassRefresh() {
         if (stackedClassRefreshTimer) clearTimeout(stackedClassRefreshTimer);
         stackedClassRefreshTimer = setTimeout(function() {
             stackedClassRefreshTimer = null;
             applyStackedEventClasses();
+            agendaUpdateResourceMarcacaoCountBadges();
         }, 0);
     }
 
@@ -8717,7 +8831,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 var bdayTitle = extProps.client_birthday_today ? 'Aniversário hoje' : 'Aniversário este mês';
                 birthdayHtml = agendaBirthdayBadgeHtml(bdayTitle);
             }
-            const line1 = iconHtml + '<span class="fc-event-client-row"><strong class="fc-event-client">' + (clientName || fallbackTitle || '…') + '</strong>' + birthdayHtml + '</span>';
+            var onlineBadgeHtml = '';
+            if ((extProps.event_type || '') === 'marcacao' && extProps.marcacao_source === 'online') {
+                onlineBadgeHtml = '<span class="agenda-fc-event-online-badge" title="Marcação online (Booking)" aria-label="Marcação online"><span class="agenda-fc-event-online-at" aria-hidden="true">@</span></span>';
+            }
+            var badgesHtml = onlineBadgeHtml + birthdayHtml;
+            var badgesWrapHtml = badgesHtml ? '<span class="fc-event-client-badges">' + badgesHtml + '</span>' : '';
+            const line1 = iconHtml + '<span class="fc-event-client-row"><strong class="fc-event-client">' + (clientName || fallbackTitle || '…') + '</strong>' + badgesWrapHtml + '</span>';
 
             // Linha 2: serviço + extras
             let line2 = serviceName || '';
@@ -8949,6 +9069,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(function() {
                         initConsultantDropdown();
                         updateConsultantFilterButton();
+                        agendaUpdateResourceMarcacaoCountBadges();
                     }, 50);
                 }
             })
@@ -8962,14 +9083,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const title = agendaTechnicianFirstName(res.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             const ext = res.extendedProps || {};
             const avatarUrl = ext.avatarUrl || '';
-            if (!avatarUrl) {
-                return { html: '<span class="fc-resource-consultant-name">' + title + '</span>' };
-            }
-            return {
-                html: '<span class="fc-resource-consultant-label">' +
-                    '<img class="fc-resource-consultant-avatar" src="' + String(avatarUrl).replace(/"/g, '&quot;') + '" alt="" />' +
-                    '<span class="fc-resource-consultant-name">' + title + '</span></span>'
-            };
+            const counts = agendaMarcacaoCountMapForView();
+
+            return { html: agendaBuildResourceLabelHtml(title, avatarUrl, counts[String(res.id)] || 0) };
         },
         events: function(info, successCallback, failureCallback) {
             const params = new URLSearchParams({

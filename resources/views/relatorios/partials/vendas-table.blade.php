@@ -1,6 +1,6 @@
 @php
     $showClienteColumn = $showClienteColumn ?? true;
-    $metaColspan = $showClienteColumn ? 4 : 3;
+    $metaColspan = $showClienteColumn ? 6 : 5;
     $rowIdPrefix = $rowIdPrefix ?? 'vendas-acoes';
 @endphp
 
@@ -10,11 +10,13 @@
       <thead>
         <tr>
           <th>{{ $vendasDataColunaLabel ?? 'Data' }}</th>
+          <th class="text-nowrap">Nº fatura</th>
           @if($showClienteColumn)
             <th>Cliente / NIF</th>
           @endif
           <th>Técnico</th>
           <th>Serviço</th>
+          <th class="text-nowrap">Origem</th>
           <th class="text-end text-nowrap">Total</th>
           <th class="text-end text-nowrap">Taxas</th>
           <th class="text-end text-nowrap">Gorjeta</th>
@@ -29,6 +31,12 @@
               <div>{{ \Carbon\Carbon::parse($linha->data)->locale('pt')->translatedFormat('j F') }}</div>
               <small>{{ \Carbon\Carbon::parse($linha->data)->format('Y') }}</small>
             </td>
+            <td class="vendas-fatura-cell">
+              <div class="text-nowrap">{{ $linha->numero_fatura ?: '—' }}</div>
+              @if(!empty($linha->fatura_subtitulo))
+                <small class="vendas-fatura-sub text-muted">{{ $linha->fatura_subtitulo }}</small>
+              @endif
+            </td>
             @if($showClienteColumn)
               <td class="vendas-two-line">
                 <div>{{ $linha->cliente }}</div>
@@ -41,15 +49,18 @@
                 $servicoNomes = (string) ($linha->servico_nomes ?? $linha->servico ?? '');
                 $servicoNomes = $servicoNomes !== '' && $servicoNomes !== '—' ? $servicoNomes : '';
                 $servicoNomesTrunc = $servicoNomes !== '' ? \Illuminate\Support\Str::limit($servicoNomes, 40) : '—';
+                $categoria = trim((string) ($linha->categoria ?? ''));
+                $categoria = $categoria !== '' && $categoria !== '—' ? $categoria : '';
               @endphp
-              <span class="vendas-servico-nomes" @if($servicoNomes !== '' && $servicoNomes !== $servicoNomesTrunc) title="{{ $servicoNomes }}" @endif>{{ $servicoNomesTrunc }}</span>
-              @if(!empty($linha->servico_subtitulo))
-                <small class="vendas-servico-sub text-muted">{{ $linha->servico_subtitulo }}</small>
+              @if($categoria !== '')
+                <small class="vendas-servico-categoria text-muted d-block">{{ $categoria }}</small>
               @endif
+              <span class="vendas-servico-nomes" @if($servicoNomes !== '' && $servicoNomes !== $servicoNomesTrunc) title="{{ $servicoNomes }}" @endif>{{ $servicoNomesTrunc }}</span>
               @if(($linha->tipo_item ?? '') === \App\Models\SaleItem::TIPO_EXTRA)
                 <span class="badge bg-info-light text-info ms-1">Extra</span>
               @endif
             </td>
+            <td class="text-nowrap">{{ $linha->origem_marcacao ?? '—' }}</td>
             <td class="text-end text-nowrap">{{ number_format((float) $linha->valor + (float) ($linha->gorjeta ?? 0), 2, ',', ' ') }}€</td>
             <td class="text-end text-nowrap">
               @if((float) ($linha->taxas ?? 0) > 0)

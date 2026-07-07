@@ -907,6 +907,9 @@ class ZappyImportService
                     'service_id' => $serviceId,
                     'event_type' => $eventType,
                     'status' => $status,
+                    'marcacao_source' => $eventType === CalendarEvent::TYPE_MARCACAO
+                        ? \App\Support\ActivityLogMarcacaoOrigin::AGENDA
+                        : null,
                     'cancellation_reason' => $statusLabel === 'Cancelada'
                         ? ($cancelReason !== '' ? $cancelReason : 'Importado Zappy')
                         : null,
@@ -2111,6 +2114,7 @@ class ZappyImportService
                 'service_id' => null,
                 'event_type' => $template->event_type,
                 'status' => $template->status,
+                'marcacao_source' => $template->marcacao_source,
                 'cancellation_reason' => $template->cancellation_reason,
                 'created_at' => $template->created_at,
                 'updated_at' => $template->updated_at,

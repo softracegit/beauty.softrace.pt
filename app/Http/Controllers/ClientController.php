@@ -329,10 +329,12 @@ class ClientController extends Controller
         }
 
         $marcacoes = $marcacoesQuery
-            ->with(['user', 'eventServiceItems.service', 'eventServiceItems.extras.extra'])
+            ->with(['user', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
             ->orderByDesc('start_at')
             ->limit(200)
             ->get();
+
+        $marcacoesTotais = \App\Support\MarcacoesReportEstadoFilter::totaisFromEvents($marcacoes);
 
         // Vendas (mesma lógica do relatório de vendas, filtrado por cliente)
         $sales = $this->vendasReportService->reportQuery([
@@ -428,6 +430,7 @@ class ClientController extends Controller
             'cliente',
             'activities',
             'marcacoes',
+            'marcacoesTotais',
             'vendas',
             'vendasTotais',
             'stats',

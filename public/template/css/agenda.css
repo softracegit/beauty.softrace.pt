@@ -163,9 +163,6 @@
     #eventDetailEditModal .offcanvas-header > .d-flex.flex-grow-1 {
         min-width: 0;
     }
-    #eventDetailEditModal .offcanvas-title {
-        display: none;
-    }
     #eventDetailEditModal .event-detail-header-save-label--long {
         display: none;
     }
@@ -968,35 +965,43 @@ body.page-agenda .app-wrapper .container-fluid {
     flex: 0 1 auto;
 }
 .fc-event-client-row {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 0.3rem;
     min-width: 0;
     overflow: hidden;
     flex: 1 1 0;
 }
-.agenda-event-birthday-badge {
+.fc-event-client-badges {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.25rem;
+    flex: 0 0 auto;
+}
+.agenda-event-birthday-badge {
+    position: relative;
     flex: 0 0 auto;
     width: 1.15rem;
     height: 1.15rem;
+    min-width: 1.15rem;
+    min-height: 1.15rem;
     border-radius: 50%;
     background: #fff;
     color: #f97316;
     padding: 0;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+    contain: layout style paint;
 }
 .agenda-event-birthday-badge i {
-    font-size: 0.88rem;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.82rem;
     line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1em;
-    height: 1em;
-    transform: translateX(-0.5px);
+    width: auto;
+    height: auto;
+    display: block;
 }
 .agenda-event-birthday-badge i::before {
     display: block;
@@ -1124,6 +1129,26 @@ body.page-agenda .app-wrapper .container-fluid {
     line-height: 1;
     vertical-align: -0.08em;
 }
+.event-detail-marcacao-source-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--surface-color), var(--background-color) 35%);
+    color: var(--muted-color);
+}
+.event-detail-marcacao-source-badge--online {
+    color: #fff;
+    border-color: var(--accent-color);
+    background: var(--accent-color);
+}
+.event-detail-marcacao-source-badge--agenda {
+    color: var(--default-color);
+    border-color: var(--border-color);
+    background: color-mix(in srgb, var(--surface-color), var(--background-color) 20%);
+}
 .fc-event .fc-event-status-icon-completo {
     color: #198754;
 }
@@ -1132,6 +1157,30 @@ body.page-agenda .app-wrapper .container-fluid {
 }
 .fc-event .fc-event-status-icon.agenda-status-icon-por-pagar {
     color: #eab308;
+}
+.agenda-fc-event-online-badge {
+    position: relative;
+    flex: 0 0 auto;
+    width: 1.15rem;
+    height: 1.15rem;
+    min-width: 1.15rem;
+    min-height: 1.15rem;
+    border-radius: 50%;
+    background: #fff;
+    color: color-mix(in srgb, var(--accent-color, #6366f1) 88%, #fff 12%);
+    padding: 0;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+    contain: layout style paint;
+}
+.agenda-fc-event-online-badge .agenda-fc-event-online-at {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, calc(-50% - 1.5px));
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
 }
 .fc-event .agenda-event-status-icon-btn.fc-event-status-locked {
     cursor: default;
@@ -1681,6 +1730,25 @@ body.page-agenda .app-wrapper .container-fluid {
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+}
+.fc-resource-consultant-label--text-only {
+    gap: 0.35rem !important;
+}
+.agenda-resource-marcacao-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    padding: 0 0.28rem;
+    border-radius: 999px;
+    font-size: 0.625rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--muted-color, #6c757d);
+    background: color-mix(in srgb, var(--border-color, #dee2e6) 50%, var(--surface-color, #fff) 50%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--border-color, #dee2e6) 70%, transparent 30%);
+    flex-shrink: 0;
 }
 .fc-resourceTimeGridDay-view .fc-col-header-cell {
     padding-bottom: 0 !important;

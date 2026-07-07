@@ -30,6 +30,13 @@ class ActivityLogMarcacaoOrigin
 
     public static function resolveForCreation(CalendarEvent $event): string
     {
+        if (($event->event_type ?? '') === CalendarEvent::TYPE_MARCACAO) {
+            $stored = CalendarEvent::normalizeMarcacaoSource($event->marcacao_source);
+            if ($stored !== null) {
+                return $stored;
+            }
+        }
+
         $user = auth()->user();
         if ($user instanceof User && $user->isBookingClient()) {
             return self::ONLINE;
@@ -65,6 +72,11 @@ class ActivityLogMarcacaoOrigin
 
         $subject = $activity->subject;
         if ($subject instanceof CalendarEvent) {
+            $stored = CalendarEvent::normalizeMarcacaoSource($subject->marcacao_source);
+            if ($stored !== null) {
+                return $stored;
+            }
+
             $subject->loadMissing('onlineBooking');
             if ($subject->onlineBooking) {
                 return self::ONLINE;

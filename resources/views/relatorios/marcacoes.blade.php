@@ -5,6 +5,7 @@
 @section('css')
   @include('relatorios._styles')
   @include('relatorios.partials.pdf-print-dropdown-styles')
+  @include('relatorios.partials.vendas-table-styles', ['showClienteColumn' => false])
 @endsection
 
 @section('content')
@@ -89,94 +90,12 @@
     </div>
   </form>
 
+  @include('relatorios.partials.marcacoes-table', [
+    'marcacoes' => $marcacoes,
+    'marcacoesTotais' => $marcacoesTotais ?? [],
+  ])
+
   @if($marcacoes->count() > 0)
-    <div class="table-responsive">
-      <table class="table table-sm table-hover">
-        <thead>
-          <tr>
-            <th>Data/Hora</th>
-            <th>Estado</th>
-            <th>Cliente</th>
-            <th>Técnico</th>
-            <th>Serviços</th>
-            <th>Categoria</th>
-            <th class="text-end text-nowrap">Preço</th>
-            <th>Notas</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach($marcacoes as $ev)
-            @php
-              $isFutura = $ev->start_at->isFuture();
-              $badgeClass = $isFutura ? 'bg-success-light text-success' : 'bg-secondary-light text-secondary';
-              $isTempoPessoal = $ev->event_type === \App\Models\CalendarEvent::TYPE_TEMPO_PESSOAL;
-              $totalPreco = $ev->eventServiceItems->sum(function ($es) {
-                return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
-              });
-              $statusLabel = \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev);
-              $servicesLabel = \App\Support\MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
-            @endphp
-            <tr>
-              <td>{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
-              <td><span class="badge {{ $badgeClass }}">{{ $statusLabel }}</span></td>
-              <td>
-                @if($ev->client)
-                  <a href="{{ route('clientes.show', $ev->client) }}">{{ $ev->client->name }}</a>
-                @else
-                  —
-                @endif
-              </td>
-              <td>{{ $ev->user?->name ?? '—' }}</td>
-              <td>
-                @if($isTempoPessoal)
-                  <span class="badge bg-secondary-light text-secondary">{{ $servicesLabel }}</span>
-                @else
-                  @foreach($ev->eventServiceItems as $es)
-                    <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? '—') }}</span>
-                  @endforeach
-                @endif
-              </td>
-              <td>
-                @if($isTempoPessoal)
-                  —
-                @else
-                  @foreach($ev->eventServiceItems as $es)
-                    <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ $es->service?->category?->name ?? '—' }}</span>
-                  @endforeach
-                @endif
-              </td>
-              <td class="text-end text-nowrap">{{ number_format($totalPreco, 2, ',', ' ') }}€</td>
-              <td class="small text-muted">
-                @if($ev->description)
-                  <span title="{{ $ev->description }}">{{ \Illuminate\Support\Str::limit($ev->description, 60) }}</span>
-                @else
-                  —
-                @endif
-              </td>
-              <td>
-                <button type="button"
-                  class="btn btn-sm btn-light js-marcacao-modal-trigger"
-                  data-bs-toggle="modal"
-                  data-bs-target="#marcacaoDetalheModal"
-                  data-template-id="marcacao-detail-{{ $ev->id }}"
-                  title="Detalhes">
-                  <i class="ph ph-list-dashes"></i>
-                </button>
-              </td>
-            </tr>
-          @endforeach
-        </tbody>
-        <tfoot class="table-light">
-          <tr class="fw-semibold">
-            <td colspan="5" class="text-end">Total</td>
-            <td>—</td>
-            <td class="text-end text-nowrap">{{ number_format($marcacoesTotais['preco_total'] ?? 0, 2, ',', ' ') }}€</td>
-            <td colspan="2" class="small text-muted">{{ ($marcacoesTotais['servicos_count'] ?? 0) }} serviço(s)</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
     @foreach($marcacoes as $ev)
       <template id="marcacao-detail-{{ $ev->id }}">
         @include('relatorios._marcacao_modal_fragment', ['ev' => $ev])
@@ -195,8 +114,6 @@
       </div>
     </div>
     @include('relatorios.partials.pagination', ['paginator' => $marcacoes])
-  @else
-    <p class="text-muted text-center py-3">Nenhuma marcação nos filtros selecionados.</p>
   @endif
 @endsection
 

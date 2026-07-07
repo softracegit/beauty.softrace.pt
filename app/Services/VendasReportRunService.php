@@ -125,7 +125,7 @@ class VendasReportRunService
     private function salesForReport(array $filters, string $dateCriterion): Collection
     {
         $sales = $this->vendasReportService->reportQuery($filters)
-            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'items.service', 'items.extra', 'items.calendarEventService.service', 'items.calendarEventService.event.user'])
+            ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'settledEvents', 'items.service.category', 'items.extra', 'items.calendarEventService.service.category', 'items.calendarEventService.event.user'])
             ->get();
 
         if ($dateCriterion === VendasReportService::DATE_CRITERION_MARCACAO) {

@@ -8,12 +8,12 @@ class MarcacoesReportPdfColumns
 {
     /** @var array<string, string> */
     public const LABELS = [
-        'data_hora' => 'Data/Hora',
+        'data' => 'Data',
         'estado' => 'Estado',
         'cliente' => 'Cliente',
         'tecnico' => 'Técnico',
-        'servicos' => 'Serviços',
-        'categoria' => 'Categoria',
+        'servico' => 'Serviço',
+        'origem_marcacao' => 'Origem',
         'preco' => 'Preço',
         'notas' => 'Notas',
     ];

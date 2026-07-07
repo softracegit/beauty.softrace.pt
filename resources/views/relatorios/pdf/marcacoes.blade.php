@@ -4,20 +4,18 @@
   <meta charset="utf-8">
   <title>Marcações — {{ config('app.name') }}</title>
   <style>
-    body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #333; }
-    .header { margin-bottom: 14px; }
-    .header h1 { font-size: 16px; margin: 0 0 6px 0; }
-    .header .meta { font-size: 8px; color: #666; margin-bottom: 8px; }
-    .filtros { font-size: 8px; color: #555; margin-bottom: 12px; line-height: 1.5; }
+    body { font-family: DejaVu Sans, sans-serif; font-size: 8px; color: #333; }
+    .header { margin-bottom: 12px; }
+    .header h1 { font-size: 15px; margin: 0 0 6px 0; }
+    .header .meta { font-size: 7px; color: #666; margin-bottom: 8px; }
+    .filtros { font-size: 7px; color: #555; margin-bottom: 10px; line-height: 1.45; }
     .filtros strong { color: #333; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 5px 6px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
-    th { background: #f5f5f5; font-size: 7px; text-transform: uppercase; letter-spacing: 0.02em; }
+    th, td { padding: 4px 5px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: top; }
+    th { background: #f5f5f5; font-size: 6px; text-transform: uppercase; }
     .text-end { text-align: right; }
     .text-nowrap { white-space: nowrap; }
-    .small { font-size: 8px; color: #555; }
-    .footer { margin-top: 16px; font-size: 8px; color: #888; }
-    .servicos-cell { max-width: 140px; word-wrap: break-word; }
+    .footer { margin-top: 14px; font-size: 7px; color: #888; }
   </style>
 </head>
 <body>
@@ -58,21 +56,18 @@
           $totalPreco = $ev->eventServiceItems->sum(function ($es) {
             return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
           });
-          $services = \App\Support\MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
-          if ($ev->event_type === \App\Models\CalendarEvent::TYPE_TEMPO_PESSOAL) {
-            $categorias = '—';
-          } else {
-            $categorias = $ev->eventServiceItems
-              ->map(fn ($es) => $es->service?->category?->name)
-              ->map(fn ($n) => $n !== null && $n !== '' ? $n : '—')
-              ->implode(', ');
-          }
+          $categoria = \App\Support\MarcacoesReportEstadoFilter::eventRowCategoriasLabel($ev);
+          $servicoNomes = \App\Support\MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
         @endphp
         <tr>
           @foreach($columns as $colKey)
             @switch($colKey)
+              @case('data')
               @case('data_hora')
-                <td class="text-nowrap">{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
+                <td class="text-nowrap">
+                  {{ $ev->start_at->locale('pt')->translatedFormat('j F') }}<br>
+                  <span style="color:#666;font-size:6px;">{{ $ev->start_at->format('Y') }} · {{ $ev->start_at->format('H:i') }}</span>
+                </td>
                 @break
               @case('estado')
                 <td>{{ \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev) }}</td>
@@ -83,17 +78,31 @@
               @case('tecnico')
                 <td>{{ $ev->user?->name ?? '—' }}</td>
                 @break
+              @case('servico')
               @case('servicos')
-                <td class="servicos-cell small">{{ $services }}</td>
+                <td style="font-size:7px;">
+                  @if($categoria !== '')
+                    <span style="color:#666;font-size:6px;display:block;">{{ $categoria }}</span>
+                  @endif
+                  {{ $servicoNomes }}
+                </td>
                 @break
               @case('categoria')
-                <td class="servicos-cell small">{{ $categorias !== '' ? $categorias : '—' }}</td>
+                <td style="font-size:7px;">
+                  @if($categoria !== '')
+                    <span style="color:#666;font-size:6px;display:block;">{{ $categoria }}</span>
+                  @endif
+                  {{ $servicoNomes }}
+                </td>
+                @break
+              @case('origem_marcacao')
+                <td>{{ \App\Support\MarcacoesReportEstadoFilter::eventRowOrigemLabel($ev) }}</td>
                 @break
               @case('preco')
                 <td class="text-end text-nowrap">{{ number_format($totalPreco, 2, ',', ' ') }}€</td>
                 @break
               @case('notas')
-                <td class="small">{{ $ev->description ? \Illuminate\Support\Str::limit($ev->description, 120) : '—' }}</td>
+                <td style="font-size:7px;">{{ $ev->description ? \Illuminate\Support\Str::limit($ev->description, 120) : '—' }}</td>
                 @break
             @endswitch
           @endforeach
@@ -114,11 +123,8 @@
               @case('preco')
                 <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($marcacoesTotais['preco_total'] ?? 0, 2, ',', ' ') }}€</td>
                 @break
-              @case('categoria')
-                <td>—</td>
-                @break
               @case('notas')
-                <td class="small" style="font-weight:bold;">{{ ($marcacoesTotais['servicos_count'] ?? 0) }} serviço(s)</td>
+                <td style="font-weight:bold;font-size:7px;">{{ ($marcacoesTotais['servicos_count'] ?? 0) }} serviço(s)</td>
                 @break
               @default
                 @if($precoIdx === false && $idx === 0)
@@ -134,7 +140,7 @@
   </table>
 
   @if($marcacoes->isEmpty())
-    <p style="margin-top:12px; font-size:9px; color:#666;">Nenhum registo para os filtros selecionados.</p>
+    <p style="margin-top:10px; font-size:8px; color:#666;">Nenhum registo para os filtros selecionados.</p>
   @endif
 
   <div class="footer">
