@@ -60,11 +60,11 @@ class DashboardController extends Controller
         $kpiPorPeriodo = [];
         foreach (['hoje', 'ontem', 'semana', 'mes'] as $period) {
             [$start, $end] = $this->resumoPeriodBounds($period, $today);
+            $pipeline = $this->resumoVendasPipelineEntre($start, $end);
             $kpiPorPeriodo[$period] = [
-                'vendas_previstas' => $period === 'hoje'
-                    ? $this->resumoVendasPrevistasEntre($start, $end)
-                    : null,
-                'vendas' => round($this->resumoVendasEntre($start, $end), 2),
+                'vendas_previsto' => $pipeline['previsto'],
+                'vendas_feitas' => round($this->resumoVendasEntre($start, $end), 2),
+                'vendas_por_fazer' => $pipeline['por_fazer'],
                 'clientes_atendidos' => $this->resumoClientesAtendidosEntre($start, $end),
                 'taxa_ocupacao' => $this->resumoTaxaOcupacaoEntre($start, $end, $slotsByWeekdayKey, $prestadorUserIds),
             ];
@@ -323,13 +323,14 @@ class DashboardController extends Controller
     }
 
     /**
-     * Saldo por liquidar nas marcações do período (serviços + extras/taxas aplicáveis).
-     * No dia de hoje desce à medida que as vendas são registadas; «Valor em vendas» sobe em paralelo.
+     * Pipeline de vendas do período (marcações activas, data da marcação).
+     *
+     * @return array{previsto: float, por_fazer: float}
      */
-    private function resumoVendasPrevistasEntre(Carbon $start, Carbon $end): float
+    private function resumoVendasPipelineEntre(Carbon $start, Carbon $end): array
     {
         if ($end->lt($start)) {
-            return 0.0;
+            return ['previsto' => 0.0, 'por_fazer' => 0.0];
         }
 
         $storeId = current_store_id();
@@ -349,14 +350,19 @@ class DashboardController extends Controller
             ])
             ->get();
 
-        $previstas = 0.0;
+        $previsto = 0.0;
+        $porFazer = 0.0;
         foreach ($events as $event) {
             $subtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $event->eventServiceItems);
             $due = ApplicableFees::amountDueCashFromEventId((int) $event->id, $subtotal);
-            $previstas += max(0.0, $due);
+            $previsto += max(0.0, $subtotal);
+            $porFazer += max(0.0, $due);
         }
 
-        return round($previstas, 2);
+        return [
+            'previsto' => round($previsto, 2),
+            'por_fazer' => round($porFazer, 2),
+        ];
     }
 
     /**

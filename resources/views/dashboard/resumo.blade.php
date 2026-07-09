@@ -104,6 +104,67 @@
         margin-right: -0.75rem;
     }
 }
+.dash-resumo-kpi-row {
+    margin-bottom: var(--spacing-xl);
+}
+.dash-resumo-kpi-row > [class*="col-"] {
+    display: flex;
+}
+.dash-resumo-kpi-row .dash-kpi {
+    width: 100%;
+}
+.dash-resumo-vendas-card .dash-kpi-body {
+    flex: 1;
+    min-width: 0;
+}
+.dash-kpi-euro {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1;
+}
+.dash-resumo-vendas-agregado {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+}
+.dash-resumo-vendas-metric {
+    min-width: 0;
+    padding: 0 0.5rem;
+}
+.dash-resumo-vendas-metric:not(:first-child) {
+    border-left: 1px solid var(--border-color);
+    padding-left: 1rem;
+}
+.dash-resumo-vendas-metric-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    line-height: 1.2;
+    white-space: nowrap;
+}
+.dash-resumo-vendas-metric-label {
+    font-size: 0.6875rem;
+    color: var(--muted-color, var(--default-color));
+    margin-top: 0.2rem;
+    line-height: 1.3;
+}
+.dash-kpi-icon.muted {
+    background: color-mix(in srgb, var(--default-color), transparent 92%);
+    color: var(--default-color);
+}
+@media (max-width: 575.98px) {
+    .dash-resumo-vendas-agregado {
+        grid-template-columns: 1fr;
+        gap: 0.65rem;
+    }
+    .dash-resumo-vendas-metric:not(:first-child) {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding-left: 0.5rem;
+        padding-top: 0.65rem;
+    }
+}
 </style>
 @endsection
 @section('content')
@@ -160,57 +221,59 @@
 
 <div class="tab-content mb-4" id="resumoPeriodTabContent">
     @foreach($periodTabs as $periodKey => $periodLabel)
-        @php $kpi = $kpiPorPeriodo[$periodKey] ?? ['vendas_previstas' => null, 'vendas' => 0, 'clientes_atendidos' => 0, 'taxa_ocupacao' => 0]; @endphp
+        @php $kpi = $kpiPorPeriodo[$periodKey] ?? ['vendas_previsto' => 0, 'vendas_feitas' => 0, 'vendas_por_fazer' => 0, 'clientes_atendidos' => 0, 'taxa_ocupacao' => 0]; @endphp
         <div
             class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
             id="resumo-pane-{{ $periodKey }}"
             role="tabpanel"
             aria-labelledby="resumo-tab-{{ $periodKey }}"
         >
-            <div class="dash-kpi-strip">
-                <div class="dash-kpi">
-                    <div class="dash-kpi-icon info">
-                        <i class="ph-duotone ph-calendar-check"></i>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-value">
-                            @if($kpi['vendas_previstas'] !== null)
-                                {{ number_format($kpi['vendas_previstas'], 0, ',', '.') }} €
-                            @else
-                                —
-                            @endif
+            <div class="row g-3 dash-resumo-kpi-row">
+                <div class="col-lg-6">
+                    <div class="dash-kpi dash-resumo-vendas-card h-100">
+                        <div class="dash-kpi-icon primary">
+                            <span class="dash-kpi-euro" aria-hidden="true">€</span>
                         </div>
-                        <div class="dash-kpi-label">Vendas previstas</div>
+                        <div class="dash-kpi-body">
+                            <div class="dash-resumo-vendas-agregado">
+                                <div class="dash-resumo-vendas-metric">
+                                    <div class="dash-resumo-vendas-metric-value">{{ number_format($kpi['vendas_previsto'], 0, ',', '.') }} €</div>
+                                    <div class="dash-resumo-vendas-metric-label">Total previsto</div>
+                                </div>
+                                <div class="dash-resumo-vendas-metric">
+                                    <div class="dash-resumo-vendas-metric-value">{{ number_format($kpi['vendas_feitas'], 0, ',', '.') }} €</div>
+                                    <div class="dash-resumo-vendas-metric-label">Vendas feitas</div>
+                                </div>
+                                <div class="dash-resumo-vendas-metric">
+                                    <div class="dash-resumo-vendas-metric-value">{{ number_format($kpi['vendas_por_fazer'], 0, ',', '.') }} €</div>
+                                    <div class="dash-resumo-vendas-metric-label">Por fazer</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="dash-kpi">
-                    <div class="dash-kpi-icon primary">
-                        <i class="ph-duotone ph-currency-eur"></i>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-value">{{ number_format($kpi['vendas'], 0, ',', '.') }} €</div>
-                        <div class="dash-kpi-label">Valor em vendas</div>
-                    </div>
-                </div>
-
-                <div class="dash-kpi">
-                    <div class="dash-kpi-icon success">
-                        <i class="ph-duotone ph-user-check"></i>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-value">{{ $kpi['clientes_atendidos'] }}</div>
-                        <div class="dash-kpi-label">Clientes atendidos</div>
+                <div class="col-lg-3 col-sm-6">
+                    <div class="dash-kpi h-100">
+                        <div class="dash-kpi-icon success">
+                            <i class="ph-duotone ph-user-check"></i>
+                        </div>
+                        <div class="dash-kpi-body">
+                            <div class="dash-kpi-value">{{ $kpi['clientes_atendidos'] }}</div>
+                            <div class="dash-kpi-label">Clientes atendidos</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="dash-kpi">
-                    <div class="dash-kpi-icon warning">
-                        <i class="ph-duotone ph-chart-pie-slice"></i>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-value">{{ number_format($kpi['taxa_ocupacao'], 1, ',', '.') }}%</div>
-                        <div class="dash-kpi-label">Taxa de ocupação</div>
+                <div class="col-lg-3 col-sm-6">
+                    <div class="dash-kpi h-100">
+                        <div class="dash-kpi-icon muted">
+                            <i class="ph-duotone ph-chart-pie-slice"></i>
+                        </div>
+                        <div class="dash-kpi-body">
+                            <div class="dash-kpi-value">{{ number_format($kpi['taxa_ocupacao'], 1, ',', '.') }}%</div>
+                            <div class="dash-kpi-label">Taxa de ocupação</div>
+                        </div>
                     </div>
                 </div>
             </div>
