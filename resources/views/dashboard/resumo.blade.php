@@ -197,8 +197,9 @@
     $periodTabs = [
         'hoje' => 'Hoje',
         'ontem' => 'Ontem',
-        'semana' => 'Semana',
-        'mes' => 'Mês',
+        'amanha' => 'Amanhã',
+        'semana' => 'Esta semana',
+        'mes' => 'Este mês',
     ];
 @endphp
 

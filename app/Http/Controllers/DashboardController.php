@@ -58,7 +58,7 @@ class DashboardController extends Controller
         $prestadorUserIds = $this->ocupacaoPrestadorUserIds();
 
         $kpiPorPeriodo = [];
-        foreach (['hoje', 'ontem', 'semana', 'mes'] as $period) {
+        foreach (['hoje', 'ontem', 'amanha', 'semana', 'mes'] as $period) {
             [$start, $end] = $this->resumoPeriodBounds($period, $today);
             $pipeline = $this->resumoVendasPipelineEntre($start, $end);
             $kpiPorPeriodo[$period] = [
@@ -290,6 +290,10 @@ class DashboardController extends Controller
             'ontem' => [
                 $today->copy()->subDay()->startOfDay(),
                 $today->copy()->subDay()->endOfDay(),
+            ],
+            'amanha' => [
+                $today->copy()->addDay()->startOfDay(),
+                $today->copy()->addDay()->endOfDay(),
             ],
             'semana' => [
                 $today->copy()->startOfWeek(),
