@@ -160,7 +160,7 @@
 
 <div class="tab-content mb-4" id="resumoPeriodTabContent">
     @foreach($periodTabs as $periodKey => $periodLabel)
-        @php $kpi = $kpiPorPeriodo[$periodKey] ?? ['vendas' => 0, 'clientes_atendidos' => 0, 'clientes_novos' => 0, 'taxa_ocupacao' => 0]; @endphp
+        @php $kpi = $kpiPorPeriodo[$periodKey] ?? ['vendas_previstas' => null, 'vendas' => 0, 'clientes_atendidos' => 0, 'taxa_ocupacao' => 0]; @endphp
         <div
             class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
             id="resumo-pane-{{ $periodKey }}"
@@ -168,6 +168,22 @@
             aria-labelledby="resumo-tab-{{ $periodKey }}"
         >
             <div class="dash-kpi-strip">
+                <div class="dash-kpi">
+                    <div class="dash-kpi-icon info">
+                        <i class="ph-duotone ph-calendar-check"></i>
+                    </div>
+                    <div class="dash-kpi-body">
+                        <div class="dash-kpi-value">
+                            @if($kpi['vendas_previstas'] !== null)
+                                {{ number_format($kpi['vendas_previstas'], 0, ',', '.') }} €
+                            @else
+                                —
+                            @endif
+                        </div>
+                        <div class="dash-kpi-label">Vendas previstas</div>
+                    </div>
+                </div>
+
                 <div class="dash-kpi">
                     <div class="dash-kpi-icon primary">
                         <i class="ph-duotone ph-currency-eur"></i>
@@ -185,16 +201,6 @@
                     <div class="dash-kpi-body">
                         <div class="dash-kpi-value">{{ $kpi['clientes_atendidos'] }}</div>
                         <div class="dash-kpi-label">Clientes atendidos</div>
-                    </div>
-                </div>
-
-                <div class="dash-kpi">
-                    <div class="dash-kpi-icon info">
-                        <i class="ph-duotone ph-user-plus"></i>
-                    </div>
-                    <div class="dash-kpi-body">
-                        <div class="dash-kpi-value">{{ $kpi['clientes_novos'] }}</div>
-                        <div class="dash-kpi-label">Clientes novos</div>
                     </div>
                 </div>
 

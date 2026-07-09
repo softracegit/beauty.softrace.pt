@@ -14,6 +14,7 @@ use App\Services\FinancialDashboardService;
 use App\Services\MarcacaoGlueSuggestionsService;
 use App\Services\PrestadorDashboardService;
 use App\Services\VendasReportService;
+use App\Support\ApplicableFees;
 use App\Support\CrmPrivacyLock;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
@@ -60,9 +61,11 @@ class DashboardController extends Controller
         foreach (['hoje', 'ontem', 'semana', 'mes'] as $period) {
             [$start, $end] = $this->resumoPeriodBounds($period, $today);
             $kpiPorPeriodo[$period] = [
+                'vendas_previstas' => $period === 'hoje'
+                    ? $this->resumoVendasPrevistasEntre($start, $end)
+                    : null,
                 'vendas' => round($this->resumoVendasEntre($start, $end), 2),
                 'clientes_atendidos' => $this->resumoClientesAtendidosEntre($start, $end),
-                'clientes_novos' => $this->resumoClientesNovosEntre($start, $end),
                 'taxa_ocupacao' => $this->resumoTaxaOcupacaoEntre($start, $end, $slotsByWeekdayKey, $prestadorUserIds),
             ];
         }
@@ -317,6 +320,43 @@ class DashboardController extends Controller
     private function resumoVendasEntre(Carbon $start, Carbon $end): float
     {
         return $this->vendasReportService->sumVendasPagasPorMarcacao($start, $end);
+    }
+
+    /**
+     * Saldo por liquidar nas marcações do período (serviços + extras/taxas aplicáveis).
+     * No dia de hoje desce à medida que as vendas são registadas; «Valor em vendas» sobe em paralelo.
+     */
+    private function resumoVendasPrevistasEntre(Carbon $start, Carbon $end): float
+    {
+        if ($end->lt($start)) {
+            return 0.0;
+        }
+
+        $storeId = current_store_id();
+        [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($start, $end);
+
+        $events = CalendarEvent::forStore($storeId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->whereNotIn('status', [
+                CalendarEvent::STATUS_CANCELADO,
+                CalendarEvent::STATUS_ANULADO,
+                CalendarEvent::STATUS_FALTOU,
+            ])
+            ->whereBetween('start_at', [$startUtc, $endUtc])
+            ->with([
+                'eventServiceItems.service.fees',
+                'eventServiceItems.extras.extra',
+            ])
+            ->get();
+
+        $previstas = 0.0;
+        foreach ($events as $event) {
+            $subtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $event->eventServiceItems);
+            $due = ApplicableFees::amountDueCashFromEventId((int) $event->id, $subtotal);
+            $previstas += max(0.0, $due);
+        }
+
+        return round($previstas, 2);
     }
 
     /**
