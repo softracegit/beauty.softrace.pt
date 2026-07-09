@@ -5,6 +5,8 @@
   $crmPrivacyLockConfigured = $crmPrivacyLock->isConfigured();
   $crmPrivacyLocked = $crmPrivacyLock->isActive();
   $crmPrivacyIdleMinutes = \App\Models\CrmSetting::privacyLockIdleMinutes((int) current_store_id());
+  $crmPrivacyLockShowButton = $crmPrivacyLockConfigured && ! $navUser->isPrestador();
+  $crmPrivacyLockIdleEnabled = $crmPrivacyLockConfigured && $navUser->isRececao();
 @endphp
 <header class="header">
   <!-- Header Left -->
@@ -161,7 +163,7 @@
 
   <!-- Header Right -->
   <div class="header-right">
-    @if($crmPrivacyLockConfigured)
+    @if($crmPrivacyLockShowButton)
     <button
       type="button"
       class="header-action{{ $crmPrivacyLocked ? ' header-crm-privacy-lock-btn--locked' : '' }}"
@@ -327,7 +329,7 @@
   </div>
 </div>
 
-@if($crmPrivacyLockConfigured)
+@if($crmPrivacyLockShowButton)
 <div class="modal fade" id="crmPrivacyUnlockModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -437,12 +439,13 @@
   document.addEventListener('MSFullscreenChange', updateFullscreenIcon);
 })();
 </script>
-@if($crmPrivacyLockConfigured)
+@if($crmPrivacyLockShowButton)
 <script>
 (function () {
   var lockState = {
     locked: @json($crmPrivacyLocked),
     idleMinutes: @json($crmPrivacyIdleMinutes),
+    idleLockEnabled: @json($crmPrivacyLockIdleEnabled),
     statusUrl: @json(route('crm-privacy-lock.status')),
     lockUrl: @json(route('crm-privacy-lock.lock')),
     unlockUrl: @json(route('crm-privacy-lock.unlock'))
@@ -601,6 +604,7 @@
   }
 
   function scheduleIdleLock() {
+    if (!lockState.idleLockEnabled) return;
     if (!lockState.idleMinutes || lockState.idleMinutes <= 0) return;
     if (lockState.locked) return;
     if (idleTimer) window.clearTimeout(idleTimer);
@@ -617,13 +621,15 @@
     openPinForgotModal();
   });
   setupPinInputs();
-  idleEvents.forEach(function (eventName) {
-    document.addEventListener(eventName, scheduleIdleLock, { passive: true });
-  });
+  if (lockState.idleLockEnabled) {
+    idleEvents.forEach(function (eventName) {
+      document.addEventListener(eventName, scheduleIdleLock, { passive: true });
+    });
+  }
 
   refreshStatus().finally(function () {
     updateLockUi();
-    scheduleIdleLock();
+    if (lockState.idleLockEnabled) scheduleIdleLock();
   });
 })();
 </script>
