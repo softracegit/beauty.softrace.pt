@@ -11,7 +11,7 @@ return new class extends Migration
             ['name' => 'Refeição', 'icon' => 'ph-cooking-pot', 'duration' => 30, 'sort_order' => 1],
             ['name' => 'Reunião', 'icon' => 'ph-users-three', 'duration' => 60, 'sort_order' => 2],
             ['name' => 'Consulta', 'icon' => 'ph-calendar-check', 'duration' => 60, 'sort_order' => 3],
-            ['name' => 'Treino', 'icon' => 'ph-barbell', 'duration' => 60, 'sort_order' => 4],
+            ['name' => 'Pessoal', 'icon' => 'ph-user', 'duration' => 60, 'sort_order' => 4],
         ];
 
         foreach ($types as $t) {
