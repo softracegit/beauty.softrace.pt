@@ -92,6 +92,7 @@ class DashboardController extends Controller
         }
 
         $clientesContacto = $this->resumoClientesContactoStats();
+        $vendasMesCorrente = $this->resumoVendasDiariasDoMes($today);
 
         return view('dashboard.resumo', compact(
             'kpiPorPeriodo',
@@ -105,6 +106,7 @@ class DashboardController extends Controller
             'currentYear',
             'previousYear',
             'clientesContacto',
+            'vendasMesCorrente',
         ));
     }
 
@@ -312,6 +314,51 @@ class DashboardController extends Controller
     private function resumoVendasEntre(Carbon $start, Carbon $end): float
     {
         return $this->vendasReportService->sumVendasPagasPorMarcacao($start, $end);
+    }
+
+    /**
+     * Vendas pagas por dia no mês corrente (data da marcação).
+     *
+     * @return array{labels: array<int, string>, data: array<int, float>, month_label: string}
+     */
+    private function resumoVendasDiariasDoMes(Carbon $today): array
+    {
+        $start = $today->copy()->startOfMonth();
+        $end = $today->copy()->endOfMonth()->endOfDay();
+        $tz = $start->timezoneName;
+
+        $sales = $this->vendasReportService->reportQuery([
+            'desde' => $start->toDateString(),
+            'ate' => $end->toDateString(),
+            'data_criterio' => VendasReportService::DATE_CRITERION_MARCACAO,
+        ])
+            ->with('calendarEvent')
+            ->get();
+
+        $byDay = [];
+        foreach ($sales as $sale) {
+            $startAt = $sale->calendarEvent?->start_at;
+            if ($startAt === null) {
+                continue;
+            }
+
+            $day = (int) $startAt->timezone($tz)->day;
+            $byDay[$day] = ($byDay[$day] ?? 0.0) + (float) $sale->total;
+        }
+
+        $daysInMonth = (int) $start->daysInMonth;
+        $labels = [];
+        $data = [];
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $labels[] = (string) $day;
+            $data[] = round($byDay[$day] ?? 0.0, 2);
+        }
+
+        return [
+            'labels' => $labels,
+            'data' => $data,
+            'month_label' => $start->copy()->locale('pt_PT')->translatedFormat('F Y'),
+        ];
     }
 
     private function resumoClientesAtendidosEntre(Carbon $start, Carbon $end): int

@@ -214,10 +214,14 @@
 
 @php
     $chartTabs = [
-        'vendas' => 'Vendas',
+        'vendas-ano' => 'Vendas este ano',
+        'vendas-mes' => 'Vendas este mês',
         'atendidos' => 'Clientes atendidos',
         'novos' => 'Clientes novos',
     ];
+    $vendasMesLabels = $vendasMesCorrente['labels'] ?? [];
+    $vendasMesData = $vendasMesCorrente['data'] ?? [];
+    $vendasMesLabel = $vendasMesCorrente['month_label'] ?? '';
 @endphp
 
 <div class="card mb-4">
@@ -242,12 +246,12 @@
         <div class="tab-content pt-4" id="resumoChartTabContent">
             <div
                 class="tab-pane fade show active"
-                id="resumo-chart-pane-vendas"
+                id="resumo-chart-pane-vendas-ano"
                 role="tabpanel"
-                aria-labelledby="resumo-chart-tab-vendas"
+                aria-labelledby="resumo-chart-tab-vendas-ano"
             >
                 <div class="resumo-chart-tab-toolbar">
-                    <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de vendas" data-chart-target="resumoVendasChart">
+                    <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de vendas anuais" data-chart-target="resumoVendasAnoChart">
                         <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
                             <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
                         </button>
@@ -256,7 +260,19 @@
                         </button>
                     </div>
                 </div>
-                <div class="chart-container chart-container-lg" id="resumoVendasChart"></div>
+                <div class="chart-container chart-container-lg" id="resumoVendasAnoChart"></div>
+            </div>
+
+            <div
+                class="tab-pane fade"
+                id="resumo-chart-pane-vendas-mes"
+                role="tabpanel"
+                aria-labelledby="resumo-chart-tab-vendas-mes"
+            >
+                <div class="resumo-chart-tab-toolbar">
+                    <span class="text-muted small">{{ $vendasMesLabel }}</span>
+                </div>
+                <div class="chart-container chart-container-lg" id="resumoVendasMesChart"></div>
             </div>
 
             <div
@@ -479,6 +495,51 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    function singleBarOptions(seriesName, data, categories, yFormatter) {
+        return {
+            series: [{ name: seriesName, data: data }],
+            chart: {
+                type: 'bar',
+                height: barChartHeight,
+                fontFamily: 'inherit',
+                toolbar: { show: false }
+            },
+            plotOptions: { bar: { borderRadius: 6, columnWidth: '75%' } },
+            responsive: [{
+                breakpoint: 768,
+                options: {
+                    plotOptions: { bar: { columnWidth: '88%' } },
+                    grid: { padding: { top: 4, right: 0, left: 0 } },
+                    xaxis: {
+                        labels: {
+                            style: { fontSize: '10px' },
+                            rotate: -45,
+                            rotateAlways: categories.length > 20
+                        }
+                    }
+                }
+            }],
+            colors: [accentColor],
+            dataLabels: { enabled: false },
+            stroke: { show: true, width: 2, colors: ['transparent'] },
+            xaxis: {
+                categories: categories,
+                axisBorder: { show: false },
+                axisTicks: { show: false },
+                labels: { style: { colors: mutedColor, fontSize: '11px' } }
+            },
+            yaxis: {
+                labels: {
+                    style: { colors: mutedColor, fontSize: '12px' },
+                    formatter: yFormatter || function(v) { return v.toLocaleString('pt-PT'); }
+                }
+            },
+            grid: { borderColor: borderColor, strokeDashArray: 4, xaxis: { lines: { show: false } }, padding: { top: 4, right: 8 } },
+            legend: { show: false },
+            tooltip: { y: { formatter: yFormatter || function(v) { return v.toLocaleString('pt-PT'); } } }
+        };
+    }
+
     function bindYearToggles(chart, chartElementId) {
         var toggleGroup = document.querySelector('[data-chart-target="' + chartElementId + '"]');
         if (!toggleGroup) {
@@ -494,7 +555,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    var vendasChart = new ApexCharts(document.querySelector('#resumoVendasChart'), comparativeBarOptions(
+    var vendasAnoChart = new ApexCharts(document.querySelector('#resumoVendasAnoChart'), comparativeBarOptions(
         [
             { name: String(previousYear), data: @json($vendasAnoAnterior ?? []) },
             { name: String(currentYear), data: @json($vendasAnoAtual ?? []) }
@@ -502,8 +563,16 @@ document.addEventListener('DOMContentLoaded', function() {
         monthLabels,
         function(v) { return v.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €'; }
     ));
-    vendasChart.render();
-    bindYearToggles(vendasChart, 'resumoVendasChart');
+    vendasAnoChart.render();
+    bindYearToggles(vendasAnoChart, 'resumoVendasAnoChart');
+
+    var vendasMesChart = new ApexCharts(document.querySelector('#resumoVendasMesChart'), singleBarOptions(
+        'Vendas',
+        @json($vendasMesData ?? []),
+        @json($vendasMesLabels ?? []),
+        function(v) { return v.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €'; }
+    ));
+    vendasMesChart.render();
 
     var atendidosChart = new ApexCharts(document.querySelector('#resumoAtendidosChart'), comparativeBarOptions(
         [
@@ -526,7 +595,8 @@ document.addEventListener('DOMContentLoaded', function() {
     bindYearToggles(novosChart, 'resumoNovosChart');
 
     var resumoBarCharts = {
-        'resumo-chart-pane-vendas': vendasChart,
+        'resumo-chart-pane-vendas-ano': vendasAnoChart,
+        'resumo-chart-pane-vendas-mes': vendasMesChart,
         'resumo-chart-pane-atendidos': atendidosChart,
         'resumo-chart-pane-novos': novosChart
     };

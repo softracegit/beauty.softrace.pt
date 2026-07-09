@@ -17,6 +17,7 @@ class FinancialDashboardService
 {
     public function __construct(
         private readonly ComissoesReportService $comissoesReportService,
+        private readonly VendasReportService $vendasReportService,
     ) {}
 
     /**
@@ -37,20 +38,17 @@ class FinancialDashboardService
         $prevStart = $start->copy()->subMonth()->startOfMonth();
         $prevEnd = $prevStart->copy()->endOfMonth()->endOfDay();
 
-        $sales = $this->paidSalesBetween($storeId, $start, $end);
-        $prevSales = $this->paidSalesBetween($storeId, $prevStart, $prevEnd);
+        $sales = $this->salesForPeriod($storeId, $start, $end);
 
-        $receita = round((float) $sales->sum('total'), 2);
-        $receitaAnterior = round((float) $prevSales->sum('total'), 2);
+        $receita = $this->receitaForPeriod($start, $end);
+        $receitaAnterior = $this->receitaForPeriod($prevStart, $prevEnd);
         $numFaturas = $sales->count();
-        $gorjetas = round((float) $sales->sum('gorjeta'), 2);
         $descontos = round((float) $sales->sum('desconto'), 2);
         $taxas = round($this->taxasForSales($storeId, $sales->pluck('id')), 2);
         $ticketMedio = $numFaturas > 0 ? round($receita / $numFaturas, 2) : null;
         $variacaoReceita = $receitaAnterior > 0
             ? round((($receita - $receitaAnterior) / $receitaAnterior) * 100, 1)
             : ($receita > 0 ? 100.0 : 0.0);
-        $taxaGorjeta = $receita > 0 ? round(($gorjetas / $receita) * 100, 1) : 0.0;
 
         $topServicos = $this->topServicos($storeId, $start, $end);
         $topTecnicas = $this->topTecnicas($storeId, $start, $end);
@@ -69,7 +67,21 @@ class FinancialDashboardService
         $comissoesEstimadas = (float) $comissaoTotais['total_comissao_com_iva'];
         $margemEstimada = round($receita - $comissoesEstimadas, 2);
 
-        $receitaDiaria = $this->receitaDiaria($storeId, $start, $end);
+        $receitaDiaria = $this->receitaDiaria($sales, $start);
+
+        $weekBounds = $this->currentWeekBounds($today);
+        $prevWeekBounds = $this->previousWeekBounds($today);
+        $receitaSemana = $this->receitaForPeriod($weekBounds['start'], $weekBounds['end']);
+        $receitaSemanaAnterior = $this->receitaForPeriod($prevWeekBounds['start'], $prevWeekBounds['end']);
+        $variacaoReceitaSemana = $receitaSemanaAnterior > 0
+            ? round((($receitaSemana - $receitaSemanaAnterior) / $receitaSemanaAnterior) * 100, 1)
+            : ($receitaSemana > 0 ? 100.0 : 0.0);
+
+        $clientesUnicos = $this->countUniqueClients($sales);
+        $diasComVendas = $this->countDaysWithSales($sales, $start);
+        $receitaMediaDia = $diasComVendas > 0 ? round($receita / $diasComVendas, 2) : null;
+
+        $usesHistoricalComissoes = $this->comissoesReportService->footerUsesHistoricalOverride($comissaoFilters);
 
         $monthOptions = [
             1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril',
@@ -87,10 +99,14 @@ class FinancialDashboardService
                 'receita' => $receita,
                 'receita_anterior' => $receitaAnterior,
                 'variacao_receita' => $variacaoReceita,
+                'receita_semana' => $receitaSemana,
+                'receita_semana_anterior' => $receitaSemanaAnterior,
+                'variacao_receita_semana' => $variacaoReceitaSemana,
                 'num_faturas' => $numFaturas,
                 'ticket_medio' => $ticketMedio,
-                'gorjetas' => $gorjetas,
-                'taxa_gorjeta' => $taxaGorjeta,
+                'clientes_unicos' => $clientesUnicos,
+                'dias_com_vendas' => $diasComVendas,
+                'receita_media_dia' => $receitaMediaDia,
                 'taxas' => $taxas,
                 'descontos' => $descontos,
                 'comissoes_estimadas' => $comissoesEstimadas,
@@ -106,7 +122,30 @@ class FinancialDashboardService
                 'tecnica' => $topTecnicas->first(),
                 'cliente' => $topClientes->first(),
             ],
+            'uses_historical_comissoes' => $usesHistoricalComissoes,
         ];
+    }
+
+    private function receitaForPeriod(Carbon $start, Carbon $end): float
+    {
+        return $this->vendasReportService->sumVendasPagasPorMarcacao($start, $end);
+    }
+
+    /**
+     * Vendas pagas no período — critério data da marcação (alinhado ao Resumo e relatório de vendas).
+     *
+     * @return Collection<int, Sale>
+     */
+    private function salesForPeriod(int $storeId, Carbon $start, Carbon $end): Collection
+    {
+        return $this->vendasReportService->reportQuery([
+            'desde' => $start->toDateString(),
+            'ate' => $end->toDateString(),
+            'data_criterio' => VendasReportService::DATE_CRITERION_MARCACAO,
+        ])
+            ->where('store_id', $storeId)
+            ->with(['items.calendarEventService.event', 'items.service', 'calendarEvent', 'client', 'settledEvents'])
+            ->get();
     }
 
     private function minYear(int $storeId): int
@@ -121,22 +160,6 @@ class FinancialDashboardService
         }
 
         return (int) Carbon::parse($firstSale)->year;
-    }
-
-    private function paidSalesBetween(int $storeId, Carbon $start, Carbon $end): Collection
-    {
-        return Sale::query()
-            ->where('store_id', $storeId)
-            ->where('status', Sale::STATUS_PAGO)
-            ->whereDate('data_emissao', '>=', $start->toDateString())
-            ->whereDate('data_emissao', '<=', $end->toDateString())
-            ->whereHas('calendarEvent', function ($q) use ($storeId) {
-                $q->where('store_id', $storeId)
-                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-                    ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
-            })
-            ->with(['items.calendarEventService.event', 'calendarEvent'])
-            ->get();
     }
 
     private function taxasForSales(int $storeId, Collection $saleIds): float
@@ -168,9 +191,9 @@ class FinancialDashboardService
             ->where('sales.status', Sale::STATUS_PAGO)
             ->where('sale_items.tipo', SaleItem::TIPO_SERVICO)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereDate('sales.data_emissao', '>=', $start->toDateString())
-            ->whereDate('sales.data_emissao', '<=', $end->toDateString())
+            ->where('calendar_events.status', CalendarEvent::STATUS_COMPLETO)
+            ->whereDate('calendar_events.start_at', '>=', $start->toDateString())
+            ->whereDate('calendar_events.start_at', '<=', $end->toDateString())
             ->groupBy('services.id', 'services.name')
             ->selectRaw('services.id as service_id, services.name as nome, sum(sale_items.subtotal) as receita, count(*) as qtd')
             ->orderByDesc('receita')
@@ -215,9 +238,9 @@ class FinancialDashboardService
             ->where('clients.store_id', $storeId)
             ->where('sales.status', Sale::STATUS_PAGO)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereDate('sales.data_emissao', '>=', $start->toDateString())
-            ->whereDate('sales.data_emissao', '<=', $end->toDateString())
+            ->where('calendar_events.status', CalendarEvent::STATUS_COMPLETO)
+            ->whereDate('calendar_events.start_at', '>=', $start->toDateString())
+            ->whereDate('calendar_events.start_at', '<=', $end->toDateString())
             ->groupBy('clients.id', 'clients.name')
             ->selectRaw('clients.id as client_id, clients.name as nome, sum(sales.total) as receita, count(*) as num_faturas')
             ->orderByDesc('receita')
@@ -295,7 +318,7 @@ class FinancialDashboardService
      */
     private function receitaAtribuidaPorTecnica(int $storeId, Carbon $start, Carbon $end): Collection
     {
-        $sales = $this->paidSalesBetween($storeId, $start, $end);
+        $sales = $this->salesForPeriod($storeId, $start, $end);
         $byUser = [];
 
         foreach ($sales as $sale) {
@@ -328,21 +351,23 @@ class FinancialDashboardService
     }
 
     /**
+     * @param  Collection<int, Sale>  $sales
      * @return array<int, array{day: int, label: string, receita: float}>
      */
-    private function receitaDiaria(int $storeId, Carbon $start, Carbon $end): array
+    private function receitaDiaria(Collection $sales, Carbon $start): array
     {
-        $byDay = DB::table('sales')
-            ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
-            ->where('sales.store_id', $storeId)
-            ->where('sales.status', Sale::STATUS_PAGO)
-            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereDate('sales.data_emissao', '>=', $start->toDateString())
-            ->whereDate('sales.data_emissao', '<=', $end->toDateString())
-            ->selectRaw('DAY(sales.data_emissao) as dia, sum(sales.total) as receita')
-            ->groupBy('dia')
-            ->pluck('receita', 'dia');
+        $tz = $start->timezoneName;
+        $byDay = [];
+
+        foreach ($sales as $sale) {
+            $startAt = $sale->calendarEvent?->start_at;
+            if ($startAt === null) {
+                continue;
+            }
+
+            $day = (int) $startAt->timezone($tz)->day;
+            $byDay[$day] = ($byDay[$day] ?? 0.0) + (float) $sale->total;
+        }
 
         $daysInMonth = (int) $start->daysInMonth;
         $result = [];
@@ -355,5 +380,55 @@ class FinancialDashboardService
         }
 
         return $result;
+    }
+
+    /**
+     * @return array{start: Carbon, end: Carbon}
+     */
+    private function currentWeekBounds(Carbon $today): array
+    {
+        return [
+            'start' => $today->copy()->startOfWeek()->startOfDay(),
+            'end' => $today->copy()->endOfWeek()->endOfDay(),
+        ];
+    }
+
+    /**
+     * @return array{start: Carbon, end: Carbon}
+     */
+    private function previousWeekBounds(Carbon $today): array
+    {
+        $start = $today->copy()->startOfWeek()->subWeek()->startOfDay();
+
+        return [
+            'start' => $start,
+            'end' => $start->copy()->endOfWeek()->endOfDay(),
+        ];
+    }
+
+    /**
+     * @param  Collection<int, Sale>  $sales
+     */
+    private function countUniqueClients(Collection $sales): int
+    {
+        return $sales
+            ->pluck('client_id')
+            ->filter(fn ($id) => $id !== null && (int) $id > 0)
+            ->unique()
+            ->count();
+    }
+
+    /**
+     * @param  Collection<int, Sale>  $sales
+     */
+    private function countDaysWithSales(Collection $sales, Carbon $start): int
+    {
+        $tz = $start->timezoneName;
+
+        return $sales
+            ->map(fn (Sale $sale) => $sale->calendarEvent?->start_at?->timezone($tz)->toDateString())
+            ->filter()
+            ->unique()
+            ->count();
     }
 }

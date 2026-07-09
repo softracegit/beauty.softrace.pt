@@ -105,10 +105,22 @@
         <div class="dash-kpi-icon primary"><i class="ph-duotone ph-currency-eur"></i></div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ $fmt($k['receita'] ?? 0) }}</div>
-            <div class="dash-kpi-label">Receita total</div>
+            <div class="dash-kpi-label">Este mês</div>
             @if(($k['variacao_receita'] ?? 0) != 0)
                 <div class="{{ ($k['variacao_receita'] ?? 0) >= 0 ? 'dash-kpi-trend-up' : 'dash-kpi-trend-down' }}">
                     {{ ($k['variacao_receita'] ?? 0) >= 0 ? '+' : '' }}{{ number_format((float) ($k['variacao_receita'] ?? 0), 1, ',', ' ') }}% vs mês anterior
+                </div>
+            @endif
+        </div>
+    </div>
+    <div class="dash-kpi">
+        <div class="dash-kpi-icon primary"><i class="ph-duotone ph-calendar-dots"></i></div>
+        <div class="dash-kpi-body">
+            <div class="dash-kpi-value">{{ $fmt($k['receita_semana'] ?? 0) }}</div>
+            <div class="dash-kpi-label">Esta semana</div>
+            @if(($k['variacao_receita_semana'] ?? 0) != 0)
+                <div class="{{ ($k['variacao_receita_semana'] ?? 0) >= 0 ? 'dash-kpi-trend-up' : 'dash-kpi-trend-down' }}">
+                    {{ ($k['variacao_receita_semana'] ?? 0) >= 0 ? '+' : '' }}{{ number_format((float) ($k['variacao_receita_semana'] ?? 0), 1, ',', ' ') }}% vs semana anterior
                 </div>
             @endif
         </div>
@@ -128,10 +140,19 @@
         </div>
     </div>
     <div class="dash-kpi">
-        <div class="dash-kpi-icon warning"><i class="ph-duotone ph-hand-coins"></i></div>
+        <div class="dash-kpi-icon warning"><i class="ph-duotone ph-users-three"></i></div>
         <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ ($k['gorjetas'] ?? 0) > 0 ? $fmt($k['gorjetas']) : '—' }}</div>
-            <div class="dash-kpi-label">Gorjetas @if(($k['taxa_gorjeta'] ?? 0) > 0)<span class="text-muted">({{ number_format((float) ($k['taxa_gorjeta'] ?? 0), 1, ',', ' ') }}%)</span>@endif</div>
+            <div class="dash-kpi-value">{{ number_format((int) ($k['clientes_unicos'] ?? 0), 0, ',', '.') }}</div>
+            <div class="dash-kpi-label">Clientes únicos</div>
+            <div class="text-muted" style="font-size: 0.75rem; margin-top: 2px;">Compraram no período</div>
+        </div>
+    </div>
+    <div class="dash-kpi">
+        <div class="dash-kpi-icon info"><i class="ph-duotone ph-calendar-dots"></i></div>
+        <div class="dash-kpi-body">
+            <div class="dash-kpi-value">{{ ($k['receita_media_dia'] ?? null) !== null ? $fmt($k['receita_media_dia']) : '—' }}</div>
+            <div class="dash-kpi-label">Média por dia</div>
+            <div class="text-muted" style="font-size: 0.75rem; margin-top: 2px;">{{ (int) ($k['dias_com_vendas'] ?? 0) }} dias com vendas</div>
         </div>
     </div>
     <div class="dash-kpi">
@@ -149,6 +170,13 @@
         </div>
     </div>
 </div>
+
+@if($uses_historical_comissoes ?? false)
+    <p class="small text-muted mb-4">
+        Comissões do período incluem totais históricos do Zappy (até 31/05/2026), alinhados ao relatório de comissões.
+        Receita segue vendas por data da marcação, como no Resumo e no relatório de vendas.
+    </p>
+@endif
 
 <div class="row g-3 mb-4">
     @foreach([
