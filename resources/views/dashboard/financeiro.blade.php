@@ -74,6 +74,11 @@
 @php
     $k = $kpis ?? [];
     $fmt = fn ($v) => number_format((float) $v, 2, ',', ' ') . ' €';
+    $isWholeYear = (bool) ($is_whole_year ?? false);
+    $receitaKpiLabel = $isWholeYear ? 'Este ano' : 'Este mês';
+    $receitaTrendLabel = $isWholeYear ? 'ano anterior' : 'mês anterior';
+    $receitaChartTitle = ($receita_chart_mode ?? 'daily') === 'monthly' ? 'Receita por mês' : 'Receita por dia';
+    $periodoAnteriorLabel = $isWholeYear ? 'Receita ano anterior' : 'Receita mês anterior';
 @endphp
 
 <div class="dash-welcome mb-4 dash-welcome--financeiro">
@@ -84,8 +89,8 @@
         </div>
         <form method="GET" action="{{ route('dashboard.financeiro') }}" class="dash-welcome-filters">
             <select name="month" class="form-select form-select-sm dash-welcome-filter-month" aria-label="Mês">
-                @foreach($monthOptions ?? [] as $monthValue => $monthLabel)
-                    <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>
+                @foreach($monthOptions ?? [] as $monthValue => $monthOptionLabel)
+                    <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthOptionLabel }}</option>
                 @endforeach
             </select>
             <select name="year" class="form-select form-select-sm dash-welcome-filter-year" aria-label="Ano">
@@ -105,10 +110,10 @@
         <div class="dash-kpi-icon primary"><i class="ph-duotone ph-currency-eur"></i></div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ $fmt($k['receita'] ?? 0) }}</div>
-            <div class="dash-kpi-label">Este mês</div>
+            <div class="dash-kpi-label">{{ $receitaKpiLabel }}</div>
             @if(($k['variacao_receita'] ?? 0) != 0)
                 <div class="{{ ($k['variacao_receita'] ?? 0) >= 0 ? 'dash-kpi-trend-up' : 'dash-kpi-trend-down' }}">
-                    {{ ($k['variacao_receita'] ?? 0) >= 0 ? '+' : '' }}{{ number_format((float) ($k['variacao_receita'] ?? 0), 1, ',', ' ') }}% vs mês anterior
+                    {{ ($k['variacao_receita'] ?? 0) >= 0 ? '+' : '' }}{{ number_format((float) ($k['variacao_receita'] ?? 0), 1, ',', ' ') }}% vs {{ $receitaTrendLabel }}
                 </div>
             @endif
         </div>
@@ -208,7 +213,7 @@
 <div class="dash-grid dash-grid-charts mb-4">
     <div class="card dash-chart-main">
         <div class="card-header">
-            <h5 class="card-title mb-0">Receita por dia</h5>
+            <h5 class="card-title mb-0">{{ $receitaChartTitle }}</h5>
         </div>
         <div class="card-body">
             <div id="finReceitaDiariaChart" style="min-height: 280px;"></div>
@@ -220,7 +225,7 @@
             <ul class="list-unstyled mb-0 small">
                 <li class="d-flex justify-content-between py-2 border-bottom"><span>Taxas cobradas</span><strong>{{ ($k['taxas'] ?? 0) > 0 ? $fmt($k['taxas']) : '—' }}</strong></li>
                 <li class="d-flex justify-content-between py-2 border-bottom"><span>Descontos aplicados</span><strong>{{ ($k['descontos'] ?? 0) > 0 ? $fmt($k['descontos']) : '—' }}</strong></li>
-                <li class="d-flex justify-content-between py-2 border-bottom"><span>Receita mês anterior</span><strong>{{ $fmt($k['receita_anterior'] ?? 0) }}</strong></li>
+                <li class="d-flex justify-content-between py-2 border-bottom"><span>{{ $periodoAnteriorLabel }}</span><strong>{{ $fmt($k['receita_anterior'] ?? 0) }}</strong></li>
                 <li class="d-flex justify-content-between py-2"><span class="text-muted">Sugestões futuras</span><span class="text-muted text-end">IVA estimado · receita/dia útil · extras vs serviços · cancelamentos</span></li>
             </ul>
         </div>
@@ -321,7 +326,7 @@
                 @empty
                 <p class="text-muted small mb-0">Configure comissões na ficha de cada membro.</p>
                 @endforelse
-                <div class="mt-3 p-2 rounded bg-light small">Total do mês: <strong>{{ $fmt($k['comissoes_estimadas'] ?? 0) }}</strong></div>
+                <div class="mt-3 p-2 rounded bg-light small">Total do período: <strong>{{ $fmt($k['comissoes_estimadas'] ?? 0) }}</strong></div>
             </div>
             <div class="card-footer bg-transparent border-0 pt-0">
                 <p class="dash-fin-future-note mb-0">UI prevista: lista por técnica, detalhe por fatura, botão «Gerar pagamento» e exportação.</p>

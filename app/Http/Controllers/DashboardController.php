@@ -122,7 +122,10 @@ class DashboardController extends Controller
         $storeId = current_store_id();
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $year = (int) $request->input('year', $today->year);
-        $month = (int) $request->input('month', $today->month);
+        $monthRaw = $request->input('month', (string) $today->month);
+        $month = ($monthRaw === '0' || $monthRaw === 0 || $monthRaw === 'all')
+            ? FinancialDashboardService::MONTH_WHOLE_YEAR
+            : max(1, min(12, (int) $monthRaw));
 
         $data = $this->financialDashboard->build($storeId, $year, $month);
 

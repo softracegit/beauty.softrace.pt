@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class FinancialDashboardService
 {
+    public const MONTH_WHOLE_YEAR = 0;
+
     public function __construct(
         private readonly ComissoesReportService $comissoesReportService,
         private readonly VendasReportService $vendasReportService,
@@ -27,16 +29,21 @@ class FinancialDashboardService
     {
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $year = max($this->minYear($storeId), min($today->year, $year));
-        $month = max(1, min(12, $month));
-        if ($year === $today->year && $month > $today->month) {
-            $month = $today->month;
+
+        $isWholeYear = $month === self::MONTH_WHOLE_YEAR;
+        if (! $isWholeYear) {
+            $month = max(1, min(12, $month));
+            if ($year === $today->year && $month > $today->month) {
+                $month = $today->month;
+            }
         }
 
-        $start = Carbon::create($year, $month, 1, 0, 0, 0, $today->timezoneName)->startOfMonth();
-        $end = $start->copy()->endOfMonth()->endOfDay();
-
-        $prevStart = $start->copy()->subMonth()->startOfMonth();
-        $prevEnd = $prevStart->copy()->endOfMonth()->endOfDay();
+        [$start, $end, $prevStart, $prevEnd, $periodLabel] = $this->resolvePeriodBounds(
+            $year,
+            $month,
+            $today,
+            $isWholeYear,
+        );
 
         $sales = $this->salesForPeriod($storeId, $start, $end);
 
@@ -67,7 +74,9 @@ class FinancialDashboardService
         $comissoesEstimadas = (float) $comissaoTotais['total_comissao_com_iva'];
         $margemEstimada = round($receita - $comissoesEstimadas, 2);
 
-        $receitaDiaria = $this->receitaDiaria($sales, $start);
+        $receitaDiaria = $isWholeYear
+            ? $this->receitaMensal($sales, $year, $today)
+            : $this->receitaDiaria($sales, $start);
 
         $weekBounds = $this->currentWeekBounds($today);
         $prevWeekBounds = $this->previousWeekBounds($today);
@@ -84,6 +93,7 @@ class FinancialDashboardService
         $usesHistoricalComissoes = $this->comissoesReportService->footerUsesHistoricalOverride($comissaoFilters);
 
         $monthOptions = [
+            self::MONTH_WHOLE_YEAR => 'Ano todo',
             1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril',
             5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto',
             9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro',
@@ -91,10 +101,12 @@ class FinancialDashboardService
 
         return [
             'year' => $year,
-            'month' => $month,
+            'month' => $isWholeYear ? self::MONTH_WHOLE_YEAR : $month,
+            'is_whole_year' => $isWholeYear,
             'availableYears' => range($this->minYear($storeId), $today->year),
             'monthOptions' => $monthOptions,
-            'periodLabel' => $start->copy()->locale('pt')->translatedFormat('F Y'),
+            'periodLabel' => $periodLabel,
+            'receita_chart_mode' => $isWholeYear ? 'monthly' : 'daily',
             'kpis' => [
                 'receita' => $receita,
                 'receita_anterior' => $receitaAnterior,
@@ -129,6 +141,39 @@ class FinancialDashboardService
     private function receitaForPeriod(Carbon $start, Carbon $end): float
     {
         return $this->vendasReportService->sumVendasPagasPorMarcacao($start, $end);
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon, 2: Carbon, 3: Carbon, 4: string}
+     */
+    private function resolvePeriodBounds(int $year, int $month, Carbon $today, bool $isWholeYear): array
+    {
+        $tz = $today->timezoneName;
+
+        if ($isWholeYear) {
+            $start = Carbon::create($year, 1, 1, 0, 0, 0, $tz)->startOfDay();
+            if ($year === $today->year) {
+                $end = $today->copy()->endOfDay();
+                $prevStart = Carbon::create($year - 1, 1, 1, 0, 0, 0, $tz)->startOfDay();
+                $prevEnd = $today->copy()->subYear()->endOfDay();
+                $periodLabel = $start->copy()->locale('pt')->translatedFormat('Y')
+                    .' (até '.$today->copy()->locale('pt')->translatedFormat('j \d\e F').')';
+            } else {
+                $end = Carbon::create($year, 12, 31, 23, 59, 59, $tz)->endOfDay();
+                $prevStart = Carbon::create($year - 1, 1, 1, 0, 0, 0, $tz)->startOfDay();
+                $prevEnd = Carbon::create($year - 1, 12, 31, 23, 59, 59, $tz)->endOfDay();
+                $periodLabel = (string) $year;
+            }
+
+            return [$start, $end, $prevStart, $prevEnd, $periodLabel];
+        }
+
+        $start = Carbon::create($year, $month, 1, 0, 0, 0, $tz)->startOfMonth();
+        $end = $start->copy()->endOfMonth()->endOfDay();
+        $prevStart = $start->copy()->subMonth()->startOfMonth();
+        $prevEnd = $prevStart->copy()->endOfMonth()->endOfDay();
+
+        return [$start, $end, $prevStart, $prevEnd, $start->copy()->locale('pt')->translatedFormat('F Y')];
     }
 
     /**
@@ -376,6 +421,44 @@ class FinancialDashboardService
                 'day' => $day,
                 'label' => (string) $day,
                 'receita' => round((float) ($byDay[$day] ?? 0), 2),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  Collection<int, Sale>  $sales
+     * @return array<int, array{label: string, receita: float}>
+     */
+    private function receitaMensal(Collection $sales, int $year, Carbon $today): array
+    {
+        $tz = $today->timezoneName;
+        $byMonth = [];
+
+        foreach ($sales as $sale) {
+            $startAt = $sale->calendarEvent?->start_at;
+            if ($startAt === null) {
+                continue;
+            }
+
+            $local = $startAt->timezone($tz);
+            if ((int) $local->year !== $year) {
+                continue;
+            }
+
+            $month = (int) $local->month;
+            $byMonth[$month] = ($byMonth[$month] ?? 0.0) + (float) $sale->total;
+        }
+
+        $maxMonth = $year === $today->year ? $today->month : 12;
+        $result = [];
+        for ($month = 1; $month <= $maxMonth; $month++) {
+            $result[] = [
+                'label' => Carbon::create($year, $month, 1, 0, 0, 0, $tz)
+                    ->locale('pt_PT')
+                    ->translatedFormat('M'),
+                'receita' => round((float) ($byMonth[$month] ?? 0.0), 2),
             ];
         }
 
