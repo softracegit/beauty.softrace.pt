@@ -32,6 +32,8 @@ use App\Support\ActivityLogQuery;
 use App\Support\ActivityLogSyntheticMarcacao;
 use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
+use App\Support\ClientContactMask;
+use App\Support\CrmPrivacyLock;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -437,6 +439,7 @@ class CalendarController extends Controller
                     ...$this->clientBirthdayMetaForEvent($event->client, $event->start_at, (int) $event->store_id),
                 ],
             ];
+            $item['extendedProps'] = $this->sanitizeEventExtendedPropsForUser($item['extendedProps']);
             if ($forResources && $event->user_id) {
                 $uid = (string) $event->user_id;
                 if (isset($validUserIds[$uid])) {
@@ -1968,6 +1971,7 @@ class CalendarController extends Controller
                 'payment_lines' => $paymentLines,
             ],
         ];
+        $arr['extendedProps'] = $this->sanitizeEventExtendedPropsForUser($arr['extendedProps']);
         if ($withResourceId) {
             $arr['resourceId'] = $event->user_id ? (string) $event->user_id : 'unassigned';
         }
@@ -2474,17 +2478,21 @@ class CalendarController extends Controller
     private function sanitizeEventPayloadForUser(array $payload): array
     {
         $user = auth()->user();
-        if (! $user instanceof User || ! $user->isPrestador()) {
+        if (! $user instanceof User) {
             return $payload;
         }
 
-        unset(
-            $payload['client_email'],
-            $payload['client_phone'],
-            $payload['client_nif'],
-            $payload['client_formatted_phone'],
-            $payload['client_has_email'],
-        );
+        if ($this->shouldMaskClientContactData($user)) {
+            $payload['client_email'] = ClientContactMask::email((string) ($payload['client_email'] ?? ''));
+            $payload['client_phone'] = ClientContactMask::phone((string) ($payload['client_phone'] ?? ''));
+            $payload['client_nif'] = ClientContactMask::nif((string) ($payload['client_nif'] ?? ''));
+            $payload['client_formatted_phone'] = $payload['client_phone'];
+            $payload['client_has_email'] = $payload['client_email'] !== '';
+        }
+
+        if (! $user->isPrestador()) {
+            return $payload;
+        }
 
         $payload['existing_sale'] = null;
         $payload['sales_invoices'] = [];
@@ -2530,10 +2538,46 @@ class CalendarController extends Controller
     private function sanitizeClientPayloadForUser(array $payload): array
     {
         $user = auth()->user();
-        if (! $user instanceof User || ! $user->canViewClientContactDetails()) {
+        if (! $user instanceof User) {
+            return $payload;
+        }
+
+        if ($this->shouldMaskClientContactData($user)) {
+            $payload['email'] = ClientContactMask::email((string) ($payload['email'] ?? ''));
+            $payload['phone'] = ClientContactMask::phone((string) ($payload['phone'] ?? ''));
+            $payload['formatted_phone'] = $payload['phone'];
+            $payload['nif'] = ClientContactMask::nif((string) ($payload['nif'] ?? ''));
+        } elseif (! $user->canViewClientContactDetails()) {
             unset($payload['email'], $payload['phone'], $payload['formatted_phone'], $payload['nif']);
         }
 
         return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $props
+     * @return array<string, mixed>
+     */
+    private function sanitizeEventExtendedPropsForUser(array $props): array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $this->shouldMaskClientContactData($user)) {
+            return $props;
+        }
+
+        $props['client_phone'] = ClientContactMask::phone((string) ($props['client_phone'] ?? ''));
+        $props['client_formatted_phone'] = $props['client_phone'];
+        $props['client_has_email'] = false;
+
+        return $props;
+    }
+
+    private function shouldMaskClientContactData(User $user): bool
+    {
+        if (app(CrmPrivacyLock::class)->isActive()) {
+            return true;
+        }
+
+        return ! $user->canViewClientContactDetails();
     }
 }

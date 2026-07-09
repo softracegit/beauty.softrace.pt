@@ -1,5 +1,6 @@
 @php
     $pfx = $prefix ?? 'agendaOc';
+    $crmPrivacyLocked = app(\App\Support\CrmPrivacyLock::class)->isActive();
 @endphp
 <div id="{{ $pfx }}ClientSelectedCard" class="agenda-oc-client-selected-card d-none{{ !empty($class) ? ' ' . $class : '' }}">
     <div class="agenda-oc-client-card">
@@ -41,7 +42,7 @@
             </div>
         </div>
         <div class="agenda-oc-client-card__actions" role="group" aria-label="Ações do cliente">
-            <a id="{{ $pfx }}ClientProfileLink" href="#" class="btn btn-link p-0 lh-1 text-body-secondary agenda-oc-client-profile-btn d-none text-decoration-none" title="Ver perfil" aria-label="Ver perfil">
+            <a id="{{ $pfx }}ClientProfileLink" href="#" class="btn btn-link p-0 lh-1 text-body-secondary agenda-oc-client-profile-btn d-none text-decoration-none{{ $crmPrivacyLocked ? ' d-none' : '' }}" title="Ver perfil" aria-label="Ver perfil">
                 <i class="ph ph-eye" aria-hidden="true"></i>
             </a>
             <button type="button" class="btn btn-link p-0 lh-1 text-body-secondary agenda-oc-client-change-btn" id="{{ $pfx }}ClientEditBtn" title="Trocar cliente" aria-label="Trocar cliente">

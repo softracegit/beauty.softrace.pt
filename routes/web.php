@@ -21,6 +21,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientTagController;
 use App\Http\Controllers\CurrentStoreController;
+use App\Http\Controllers\CrmPrivacyLockController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\DevErrorTestController;
@@ -216,7 +217,7 @@ Route::middleware(['auth', 'super.admin'])->prefix('super-admin')->name('super-a
 });
 
 // Rotas protegidas (requerem autenticação e agent associado)
-Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access', 'log.page.view'])->group(function () {
+Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access', 'crm.unlocked', 'log.page.view'])->group(function () {
     Route::post('loja-activa', [CurrentStoreController::class, 'update'])->name('current-store.update');
 
     Route::get('/', function () {
@@ -245,6 +246,13 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::post('notificacoes/{id}/read', [NotificationController::class, 'markRead'])
         ->whereUuid('id')
         ->name('notifications.read');
+
+    Route::prefix('crm-privacy-lock')->name('crm-privacy-lock.')->group(function () {
+        Route::get('status', [CrmPrivacyLockController::class, 'status'])->name('status');
+        Route::post('lock', [CrmPrivacyLockController::class, 'lock'])->name('lock');
+        Route::post('unlock', [CrmPrivacyLockController::class, 'unlock'])->name('unlock')
+            ->middleware('throttle:10,1');
+    });
 
     Route::prefix('definicoes')->name('definicoes.')->group(function () {
         Route::get('/', [DefinicoesController::class, 'index'])->name('index');

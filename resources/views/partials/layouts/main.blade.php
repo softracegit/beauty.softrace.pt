@@ -18,7 +18,8 @@
   $sidebarPanelCollapsedByDefault = request()->routeIs('agenda.*')
     || (request()->routeIs('dashboard*') && (auth()->user()?->isPrestador() || auth()->user()?->isRececao()));
 @endphp
-<body class="{{ $sidebarPanelCollapsedByDefault ? 'sidebar-panel-collapsed' : '' }} {{ request()->routeIs('agenda.index') ? 'page-agenda' : '' }} {{ request()->routeIs('relatorios.*') ? 'page-relatorios' : '' }} {{ request()->routeIs('ai.*') ? 'page-ai-assistant' : '' }} {{ request()->routeIs('definicoes.*') ? 'definicoes-sidebar-open' : '' }}">
+@php($crmPrivacyLocked = app(\App\Support\CrmPrivacyLock::class)->isActive())
+<body class="{{ $sidebarPanelCollapsedByDefault ? 'sidebar-panel-collapsed' : '' }} {{ request()->routeIs('agenda.index') ? 'page-agenda' : '' }} {{ request()->routeIs('relatorios.*') ? 'page-relatorios' : '' }} {{ request()->routeIs('ai.*') ? 'page-ai-assistant' : '' }} {{ request()->routeIs('definicoes.*') ? 'definicoes-sidebar-open' : '' }} {{ $crmPrivacyLocked ? 'crm-privacy-locked' : '' }}">
   @include('partials.header')
   @include('partials.sidebar')
 

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Support\ActivityLogContext;
+use App\Support\CrmPrivacyLock;
 use Spatie\Activitylog\Contracts\Activity;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -325,16 +326,28 @@ class User extends Authenticatable
 
     public function canManageCashRegister(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return $this->isAdmin() || $this->isRececao();
     }
 
     public function canSwitchStore(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return ! $this->isPrestador() && ! $this->isRececao();
     }
 
     public function canProcessPayments(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return true;
+        }
+
         return ! $this->isPrestador();
     }
 
@@ -345,27 +358,47 @@ class User extends Authenticatable
 
     public function canViewClientContactDetails(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return ! $this->isPrestador();
     }
 
     public function canViewClientProfile(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return ! $this->isPrestador();
     }
 
     public function canViewInvoices(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return ! $this->isPrestador();
     }
 
     public function canReassignMarcacao(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return ! $this->isPrestador();
     }
 
     /** Prestador não pode trocar o cliente numa marcação já existente. */
     public function canChangeMarcacaoClient(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return ! $this->isPrestador();
     }
 
@@ -383,41 +416,73 @@ class User extends Authenticatable
 
     public function canAccessDashboard(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return true;
+        }
+
         return $this->isAdmin() || $this->isRececao() || $this->isPrestador();
     }
 
     public function canAccessClientes(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return ! $this->isPrestador();
     }
 
     public function canAccessCatalog(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return $this->isAdmin();
     }
 
     public function canAccessMarketing(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return ! $this->isPrestador();
     }
 
     public function canAccessEquipa(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return $this->canManageAgents();
     }
 
     public function canAccessRelatorios(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return $this->isAdmin();
     }
 
     public function canAccessAi(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return (int) $this->id === 1;
     }
 
     public function canAccessDefinicoes(): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
         return $this->isAdmin();
     }
 
@@ -431,6 +496,13 @@ class User extends Authenticatable
      */
     public function canAccessRoute(string $routeName): bool
     {
+        if ($this->isCrmPrivacyLocked()) {
+            return str_starts_with($routeName, 'agenda.')
+                || str_starts_with($routeName, 'notifications.')
+                || str_starts_with($routeName, 'crm-privacy-lock.')
+                || $routeName === 'logout';
+        }
+
         if ($this->isAdmin()) {
             return true;
         }
@@ -468,6 +540,15 @@ class User extends Authenticatable
         }
 
         return true;
+    }
+
+    private function isCrmPrivacyLocked(): bool
+    {
+        if (! app()->bound(CrmPrivacyLock::class)) {
+            return false;
+        }
+
+        return app(CrmPrivacyLock::class)->isActive();
     }
 
     /**

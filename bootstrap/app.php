@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'set.current.store' => \App\Http\Middleware\SetCurrentStore::class,
             'cash.register.open' => \App\Http\Middleware\EnsureCashRegisterOpen::class,
             'backoffice.access' => \App\Http\Middleware\EnsureBackofficeAccess::class,
+            'crm.unlocked' => \App\Http\Middleware\EnsureCrmUnlocked::class,
             'log.page.view' => \App\Http\Middleware\LogUserPageView::class,
             'super.admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
             'booking' => \App\Http\Middleware\BookingContext::class,

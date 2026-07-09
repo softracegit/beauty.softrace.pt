@@ -6,6 +6,14 @@
     <link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ static_asset('template/css/agenda.css') }}">
     <link rel="stylesheet" href="{{ asset('template/css/client-tags.css') }}?v={{ file_exists(public_path('template/css/client-tags.css')) ? filemtime(public_path('template/css/client-tags.css')) : time() }}">
+    <style>
+        body.crm-privacy-locked .agenda-oc-client-profile-btn,
+        body.crm-privacy-locked #agendaOcClientProfileLink,
+        body.crm-privacy-locked #eventDetailOcClientProfileLink,
+        body.crm-privacy-locked #eventDetailActivityLogWrap {
+            display: none !important;
+        }
+    </style>
 @endsection
 @section('content')
 <div class="row g-0">
@@ -600,10 +608,12 @@
 
 @php
     $me = auth()->user();
+    $crmPrivacyLocked = app(\App\Support\CrmPrivacyLock::class)->isActive();
     $agendaPermissions = [
         'isPrestador' => $me->isPrestador(),
         'canCreateMarcacao' => $me->canCreateMarcacao(),
         'canProcessPayments' => $me->canProcessPayments(),
+        'canUsePaymentDraft' => ! $crmPrivacyLocked,
         'canViewClientContacts' => $me->canViewClientContactDetails(),
         'canViewClientProfile' => $me->canViewClientProfile(),
         'canViewInvoices' => $me->canViewInvoices(),

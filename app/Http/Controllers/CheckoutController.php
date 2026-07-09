@@ -19,6 +19,8 @@ use App\Services\MarcacaoPaymentActivityLogger;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
 use App\Support\ApplicableFees;
+use App\Support\ClientContactMask;
+use App\Support\CrmPrivacyLock;
 use App\Support\PhoneDisplay;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -81,7 +83,7 @@ class CheckoutController extends Controller
                 'client' => $calendarEvent->client ? [
                     'id' => $calendarEvent->client->id,
                     'name' => $calendarEvent->client->name,
-                    'email' => $calendarEvent->client->email,
+                    'email' => $this->maskedClientEmail($calendarEvent->client->email),
                 ] : null,
                 'existing_sale' => [
                     'id' => $existingSale->id,
@@ -108,7 +110,7 @@ class CheckoutController extends Controller
             'client' => $calendarEvent->client ? [
                 'id' => $calendarEvent->client->id,
                 'name' => $calendarEvent->client->name,
-                'email' => $calendarEvent->client->email,
+                'email' => $this->maskedClientEmail($calendarEvent->client->email),
             ] : null,
             'apply_catalog_fees' => ! $events->contains(fn (CalendarEvent $event): bool => ApplicableFees::includeCatalogFeesForCalendarEvent($event) === false),
             'existing_sale' => ($existingSale && $existingSale->status !== Sale::STATUS_ANULADO) ? [
@@ -266,6 +268,9 @@ class CheckoutController extends Controller
         }
 
         $invoiceStatus = $this->resolveInvoiceStatusFromCheckoutMode($validated['checkout_mode'] ?? 'faturar');
+        if ($this->isCrmPrivacyLocked() && $invoiceStatus === Sale::INVOICE_STATUS_RASCUNHO) {
+            return response()->json(['error' => 'Sem permissão para guardar rascunho enquanto o CRM está bloqueado.'], 403);
+        }
 
         if (! $invoiceOnly && $paymentMethod === Sale::PAYMENT_CREDITOS_CARTEIRA) {
             if (! $client instanceof Client) {
@@ -1118,5 +1123,19 @@ class CheckoutController extends Controller
         }
 
         return $this->walletService->getBalanceCents($client);
+    }
+
+    private function isCrmPrivacyLocked(): bool
+    {
+        return app(CrmPrivacyLock::class)->isActive();
+    }
+
+    private function maskedClientEmail(?string $email): string
+    {
+        if (! $this->isCrmPrivacyLocked()) {
+            return (string) $email;
+        }
+
+        return ClientContactMask::email($email);
     }
 }

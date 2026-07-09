@@ -57,9 +57,11 @@ document.addEventListener('DOMContentLoaded', function() {
         calendarEl.classList.add('agenda-calendar--prestador');
     }
     const canProcessPayments = agendaPerms.canProcessPayments !== false;
+    const canUsePaymentDraft = agendaPerms.canUsePaymentDraft !== false;
     const canCreateMarcacao = agendaPerms.canCreateMarcacao !== false;
     const canViewClientContacts = agendaPerms.canViewClientContacts !== false;
     const canViewClientProfile = agendaPerms.canViewClientProfile !== false;
+    const crmPrivacyLockedUi = !!(document.body && document.body.classList.contains('crm-privacy-locked'));
     const canViewInvoices = agendaPerms.canViewInvoices !== false;
     const canReassignMarcacao = agendaPerms.canReassignMarcacao !== false;
     const canChangeMarcacaoClient = agendaPerms.canChangeMarcacaoClient !== false;
@@ -99,7 +101,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function agendaSetClientProfileLinks(prefix, clientId) {
         var id = String(clientId || '').trim();
         var url = id ? (clientesBaseUrl.replace(/\/$/, '') + '/' + encodeURIComponent(id)) : '#';
-        var canLink = canViewClientProfile && !!id;
+        var canLink = !crmPrivacyLockedUi && canViewClientProfile && !!id;
+        var hideProfileButton = crmPrivacyLockedUi || !canViewClientProfile;
 
         [
             prefix + 'ClientProfileLink',
@@ -113,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (canLink) {
                     el.href = url;
                 }
-                el.classList.toggle('d-none', !canViewClientProfile);
+                el.classList.toggle('d-none', hideProfileButton);
                 return;
             }
 
@@ -2285,7 +2288,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function paymentModalSyncFooterButtons() {
         var draftBtn = $id('paymentDraftBtn');
         if (!draftBtn) return;
-        var showDraft = !paymentModalIsInvoiceOnly() && !paymentModalIsFinalizeDraft();
+        var showDraft = canUsePaymentDraft && !paymentModalIsInvoiceOnly() && !paymentModalIsFinalizeDraft();
         draftBtn.classList.toggle('d-none', !showDraft);
         if (!showDraft) return;
         if (draftBtn.querySelector('.spinner-border')) return;
@@ -4122,8 +4125,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (nifInput) nifInput.value = String(eventDetailSelectedClient.nif || '').trim();
         var pl = $id('eventDetailOcClientProfileLink');
         if (pl) {
-            pl.href = clientesBaseUrl + '/' + c.id;
-            pl.classList.toggle('d-none', !canViewClientProfile);
+            if (crmPrivacyLockedUi || !canViewClientProfile) {
+                pl.removeAttribute('href');
+            } else {
+                pl.href = clientesBaseUrl + '/' + c.id;
+            }
+            pl.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientProfile);
         }
         agendaSetClientProfileLinks('eventDetailOc', c.id);
         applyAgendaClientPrivacyUi('eventDetailOc');
@@ -4666,7 +4673,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function eventDetailSyncActivityLogLinkVisibility(data) {
         var wrap = $id('eventDetailActivityLogWrap');
         if (!wrap) return;
-        var show = !!(C.currentUserIsAdmin && data && data.id && data.event_type === 'marcacao' && !(data.visit || data.lead));
+        var show = !!(C.currentUserIsAdmin && data && data.id && data.event_type === 'marcacao' && !(data.visit || data.lead) && !crmPrivacyLockedUi);
         wrap.classList.toggle('d-none', !show);
     }
 
@@ -5519,8 +5526,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (nifInput) nifInput.value = String(agendaOcSelectedClient.nif || '').trim();
         var pl = $id('agendaOcClientProfileLink');
         if (pl) {
-            pl.href = clientesBaseUrl + '/' + c.id;
-            pl.classList.toggle('d-none', !canViewClientProfile);
+            if (crmPrivacyLockedUi || !canViewClientProfile) {
+                pl.removeAttribute('href');
+            } else {
+                pl.href = clientesBaseUrl + '/' + c.id;
+            }
+            pl.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientProfile);
         }
         agendaSetClientProfileLinks('agendaOc', c.id);
         applyAgendaClientPrivacyUi('agendaOc');

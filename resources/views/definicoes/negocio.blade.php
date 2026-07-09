@@ -231,6 +231,65 @@
       </div>
     </div>
 
+    <div class="card negocio-settings-card" id="privacy-lock-pin">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Privacidade no posto</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <label for="privacy_lock_idle_minutes" class="form-label">Bloqueio automático (minutos)</label>
+            <input
+              type="number"
+              id="privacy_lock_idle_minutes"
+              name="privacy_lock_idle_minutes"
+              class="form-control @error('privacy_lock_idle_minutes') is-invalid @enderror"
+              min="0"
+              max="240"
+              step="1"
+              value="{{ old('privacy_lock_idle_minutes', $privacyLockIdleMinutes ?? 5) }}"
+            >
+            <div class="form-text">0 desativa o bloqueio por inatividade.</div>
+            @error('privacy_lock_idle_minutes')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+          <div class="col-12 col-md-4">
+            <label for="privacy_lock_pin" class="form-label">PIN de desbloqueio (4 dígitos)</label>
+            <input
+              type="password"
+              id="privacy_lock_pin"
+              name="privacy_lock_pin"
+              inputmode="numeric"
+              pattern="[0-9]{4}"
+              maxlength="4"
+              class="form-control @error('privacy_lock_pin') is-invalid @enderror"
+              placeholder="{{ !empty($privacyLockEnabled) ? '••••' : '0000' }}"
+            >
+            <div class="form-text">Deixe vazio para manter o PIN atual.</div>
+            @error('privacy_lock_pin')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+          <div class="col-12 col-md-4">
+            <label for="privacy_lock_pin_confirmation" class="form-label">Confirmar PIN</label>
+            <input
+              type="password"
+              id="privacy_lock_pin_confirmation"
+              name="privacy_lock_pin_confirmation"
+              inputmode="numeric"
+              pattern="[0-9]{4}"
+              maxlength="4"
+              class="form-control @error('privacy_lock_pin_confirmation') is-invalid @enderror"
+            >
+            @error('privacy_lock_pin_confirmation')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="mb-4">
       <button type="submit" class="btn btn-primary">Guardar</button>
     </div>

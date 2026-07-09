@@ -1,5 +1,6 @@
 @php
   $navUser = auth()->user();
+  $crmPrivacyLocked = app(\App\Support\CrmPrivacyLock::class)->isActive();
 @endphp
 <!-- Sidebar -->
 <aside class="sidebar">
@@ -15,7 +16,7 @@
       <ul class="iconbar-menu">
         @if($navUser->canAccessDashboard())
         <li>
-          @if($navUser->isPrestador() || $navUser->isRececao())
+          @if($navUser->isPrestador() || $navUser->isRececao() || $crmPrivacyLocked)
           <a href="{{ route('dashboard') }}" class="iconbar-item {{ request()->routeIs('dashboard*') ? 'active' : '' }}" data-panel="dashboard" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Dashboard" aria-label="Dashboard">
             <i class="ph ph-house"></i>
           </a>
@@ -31,42 +32,42 @@
             <i class="ph ph-calendar-blank"></i>
           </a>
         </li>
-        @if($navUser->canAccessClientes())
+        @if(!$crmPrivacyLocked && $navUser->canAccessClientes())
         <li>
           <a href="#!" class="iconbar-item {{ request()->routeIs('clientes.*') ? 'active' : '' }}" data-panel="clientes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Clientes" aria-label="Clientes">
             <i class="ph ph-smiley"></i>
           </a>
         </li>
         @endif
-        @if($navUser->canAccessCatalog())
+        @if(!$crmPrivacyLocked && $navUser->canAccessCatalog())
         <li>
           <a href="#!" class="iconbar-item {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') || request()->routeIs('fees.*') ? 'active' : '' }}" data-panel="catalogue" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Catálogo" aria-label="Catálogo">
             <i class="ph ph-book-open"></i>
           </a>
         </li>
         @endif
-        @if($navUser->canAccessMarketing())
+        @if(!$crmPrivacyLocked && $navUser->canAccessMarketing())
         <li>
           <a href="#!" class="iconbar-item {{ request()->routeIs('marketing.*') ? 'active' : '' }}" data-panel="marketing" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Marketing" aria-label="Marketing">
             <i class="ph ph-megaphone"></i>
           </a>
         </li>
         @endif
-        @if($navUser->canAccessEquipa())
+        @if(!$crmPrivacyLocked && $navUser->canAccessEquipa())
         <li>
           <a href="#!" class="iconbar-item {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-panel="agentes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
             <i class="ph ph-users"></i>
           </a>
         </li>
         @endif
-        @if($navUser->canAccessRelatorios())
+        @if(!$crmPrivacyLocked && $navUser->canAccessRelatorios())
         <li>
           <a href="#!" class="iconbar-item {{ request()->routeIs('relatorios.*') ? 'active' : '' }}" data-panel="reports" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Relatórios" aria-label="Relatórios">
             <i class="ph ph-chart-line-up"></i>
           </a>
         </li>
         @endif
-        @if($navUser->canAccessAi())
+        @if(!$crmPrivacyLocked && $navUser->canAccessAi())
         <li>
           <a href="{{ route('ai.index') }}" class="iconbar-item {{ request()->routeIs('ai.*') ? 'active' : '' }}" data-panel="ai" data-navigate-on-click data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Assistente AI" aria-label="Assistente AI">
             <i class="ph ph-sparkle"></i>
@@ -77,7 +78,7 @@
     </nav>
 
     <div class="sidebar-iconbar-bottom">
-      @if($navUser->canAccessDefinicoes())
+      @if(!$crmPrivacyLocked && $navUser->canAccessDefinicoes())
       <a href="#!" class="iconbar-item iconbar-bottom-item {{ request()->routeIs('definicoes.*') || request()->routeIs('activity.*') ? 'active' : '' }}" data-panel="definicoes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Definições" aria-label="Definições">
         <i class="ph ph-gear"></i>
       </a>
@@ -98,7 +99,7 @@
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
-        @if($navUser->isPrestador() || $navUser->isRececao())
+        @if($navUser->isPrestador() || $navUser->isRececao() || $crmPrivacyLocked)
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
             Resumo
@@ -156,7 +157,7 @@
       </ul>
     </div>
 
-    @if($navUser->canAccessCatalog())
+    @if(!$crmPrivacyLocked && $navUser->canAccessCatalog())
     <div class="sidebar-panel-section {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') || request()->routeIs('fees.*') ? 'active' : '' }}" data-section="catalogue">
       <div class="sidebar-panel-header">
         <h6>Catálogo</h6>
@@ -202,7 +203,7 @@
     </div>
     @endif
 
-    @if($navUser->canAccessClientes())
+    @if(!$crmPrivacyLocked && $navUser->canAccessClientes())
     <div class="sidebar-panel-section {{ request()->routeIs('clientes.*') ? 'active' : '' }}" data-section="clientes">
       <div class="sidebar-panel-header">
         <h6>Clientes</h6>
@@ -230,7 +231,7 @@
     </div>
     @endif
 
-    @if($navUser->canAccessMarketing())
+    @if(!$crmPrivacyLocked && $navUser->canAccessMarketing())
     <div class="sidebar-panel-section {{ request()->routeIs('marketing.*') ? 'active' : '' }}" data-section="marketing">
       <div class="sidebar-panel-header">
         <h6>Marketing</h6>
@@ -251,7 +252,7 @@
     </div>
     @endif
 
-    @if($navUser->canAccessEquipa())
+    @if(!$crmPrivacyLocked && $navUser->canAccessEquipa())
     <div class="sidebar-panel-section {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-section="agentes">
       <div class="sidebar-panel-header">
         <h6>Equipa</h6>
@@ -282,7 +283,7 @@
     </div>
     @endif
 
-    @if($navUser->canAccessRelatorios())
+    @if(!$crmPrivacyLocked && $navUser->canAccessRelatorios())
     <div class="sidebar-panel-section {{ request()->routeIs('relatorios.*') ? 'active' : '' }}" data-section="reports">
       <div class="sidebar-panel-header">
         <h6>Relatórios</h6>
@@ -325,7 +326,7 @@
     </div>
     @endif
 
-    @if($navUser->canAccessAi())
+    @if(!$crmPrivacyLocked && $navUser->canAccessAi())
     <div class="sidebar-panel-section {{ request()->routeIs('ai.*') ? 'active' : '' }}" data-section="ai">
       <div class="sidebar-panel-header">
         <h6>Assistente AI</h6>
@@ -341,7 +342,7 @@
     </div>
     @endif
 
-    @if($navUser->canAccessDefinicoes())
+    @if(!$crmPrivacyLocked && $navUser->canAccessDefinicoes())
     <div class="sidebar-panel-section {{ request()->routeIs('definicoes.*') || request()->routeIs('activity.*') ? 'active' : '' }}" data-section="definicoes">
       <div class="sidebar-panel-header">
         <h6>Definições</h6>

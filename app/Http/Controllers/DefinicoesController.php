@@ -13,6 +13,7 @@ use App\Support\BookingTheme;
 use App\Support\CurrentStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -38,6 +39,8 @@ class DefinicoesController extends Controller
             'pageTitle' => 'Negócio',
             'store' => $store,
             'weeklySchedule' => old('weekly_schedule', $store->normalizedWeeklySchedule()),
+            'privacyLockIdleMinutes' => old('privacy_lock_idle_minutes', CrmSetting::privacyLockIdleMinutes((int) $store->id)),
+            'privacyLockEnabled' => CrmSetting::privacyLockEnabled((int) $store->id),
         ]);
     }
 
@@ -60,6 +63,8 @@ class DefinicoesController extends Controller
             'logo_email' => $store->logo_email,
             'logo_favicon' => $store->logo_favicon,
             'weekly_schedule' => $store->normalizedWeeklySchedule(),
+            'privacy_lock_enabled' => CrmSetting::privacyLockEnabled($storeId),
+            'privacy_lock_idle_minutes' => CrmSetting::privacyLockIdleMinutes($storeId),
         ];
 
         $validated = $request->validate([
@@ -78,10 +83,15 @@ class DefinicoesController extends Controller
             'remove_logo' => ['nullable', 'boolean'],
             'remove_logo_email' => ['nullable', 'boolean'],
             'remove_logo_favicon' => ['nullable', 'boolean'],
+            'privacy_lock_idle_minutes' => ['nullable', 'integer', 'min:0', 'max:240'],
+            'privacy_lock_pin' => ['nullable', 'regex:/^\d{4}$/'],
+            'privacy_lock_pin_confirmation' => ['nullable', 'same:privacy_lock_pin'],
         ], [
             'maps_url.url' => 'O link do mapa deve ser um URL válido.',
             'website_url.url' => 'O site deve ser um URL válido.',
             'instagram_url.url' => 'O Instagram deve ser um URL válido.',
+            'privacy_lock_pin.regex' => 'O PIN deve ter exatamente 4 dígitos.',
+            'privacy_lock_pin_confirmation.same' => 'A confirmação do PIN não coincide.',
         ]);
 
         $logoPath = $this->handleStoreLogoField($request, $store, 'logo', 'remove_logo', $store->logo);
@@ -103,6 +113,18 @@ class DefinicoesController extends Controller
             'logo_favicon' => $logoFaviconPath,
             'weekly_schedule' => $this->validatedWeeklySchedule($request),
         ]);
+
+        CrmSetting::setPrivacyLockIdleMinutes(
+            (int) ($validated['privacy_lock_idle_minutes'] ?? 5),
+            $storeId,
+        );
+
+        if ($request->filled('privacy_lock_pin')) {
+            CrmSetting::setPrivacyLockPinHash(
+                Hash::make((string) $request->input('privacy_lock_pin')),
+                $storeId,
+            );
+        }
 
         $store->refresh();
         $changes = array_filter([
@@ -128,6 +150,15 @@ class DefinicoesController extends Controller
         }
         if (json_encode($before['weekly_schedule']) !== json_encode($store->normalizedWeeklySchedule())) {
             $changes[] = 'Horário da loja alterado';
+        }
+        if ($before['privacy_lock_idle_minutes'] !== CrmSetting::privacyLockIdleMinutes($storeId)) {
+            $changes[] = 'Inatividade para bloqueio CRM alterada';
+        }
+        if (! $before['privacy_lock_enabled'] && CrmSetting::privacyLockEnabled($storeId)) {
+            $changes[] = 'PIN do bloqueio CRM configurado';
+        }
+        if ($before['privacy_lock_enabled'] && $request->filled('privacy_lock_pin')) {
+            $changes[] = 'PIN do bloqueio CRM atualizado';
         }
 
         $this->settingsActivityLogger->logSection(

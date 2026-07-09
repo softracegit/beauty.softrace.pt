@@ -22,6 +22,8 @@ class CrmSetting extends Model
     public const KEY_BOOKING_THEME = 'booking.theme';
 
     public const KEY_EMAIL_USE_BUSINESS_BRANDING = 'email.use_business_branding';
+    public const KEY_PRIVACY_LOCK_PIN_HASH = 'privacy_lock.pin_hash';
+    public const KEY_PRIVACY_LOCK_IDLE_MINUTES = 'privacy_lock.idle_minutes';
 
     public const BOOKING_CANCELLATION_NOTICE_HOURS_MIN = 0;
 
@@ -298,5 +300,31 @@ class CrmSetting extends Model
     public static function setEmailUseBusinessBranding(bool $enabled, ?int $storeId = null): void
     {
         self::setBool(self::KEY_EMAIL_USE_BUSINESS_BRANDING, $enabled, $storeId);
+    }
+
+    public static function privacyLockPinHash(?int $storeId = null): string
+    {
+        return self::getString(self::KEY_PRIVACY_LOCK_PIN_HASH, '', $storeId);
+    }
+
+    public static function setPrivacyLockPinHash(string $hash, ?int $storeId = null): void
+    {
+        self::setString(self::KEY_PRIVACY_LOCK_PIN_HASH, $hash, $storeId);
+    }
+
+    public static function privacyLockEnabled(?int $storeId = null): bool
+    {
+        return self::privacyLockPinHash($storeId) !== '';
+    }
+
+    public static function privacyLockIdleMinutes(?int $storeId = null): int
+    {
+        return max(0, min(240, self::getInt(self::KEY_PRIVACY_LOCK_IDLE_MINUTES, 5, $storeId)));
+    }
+
+    public static function setPrivacyLockIdleMinutes(int $minutes, ?int $storeId = null): void
+    {
+        $clamped = max(0, min(240, $minutes));
+        self::setInt(self::KEY_PRIVACY_LOCK_IDLE_MINUTES, $clamped, $storeId);
     }
 }

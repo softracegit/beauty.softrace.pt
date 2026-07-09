@@ -14,6 +14,7 @@ use App\Services\FinancialDashboardService;
 use App\Services\MarcacaoGlueSuggestionsService;
 use App\Services\PrestadorDashboardService;
 use App\Services\VendasReportService;
+use App\Support\CrmPrivacyLock;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -40,6 +41,10 @@ class DashboardController extends Controller
         }
 
         if ($user instanceof User && $user->isRececao()) {
+            return view('dashboard.prestador', $prestadorDashboard->buildForStore($storeId, $user));
+        }
+
+        if (app(CrmPrivacyLock::class)->isActive()) {
             return view('dashboard.prestador', $prestadorDashboard->buildForStore($storeId, $user));
         }
 
