@@ -40,23 +40,23 @@ a.header-action.header-cash-register-btn--closed i {
 button.header-action.header-cash-register-btn--open,
 a.header-action.header-cash-register-btn--open {
     background-color: var(--bs-warning-bg-subtle, #fff3cd) !important;
-    color: var(--bs-warning, #ffc107) !important;
+    color: var(--bs-warning-text-emphasis, #997404) !important;
 }
 
 button.header-action.header-cash-register-btn--open i,
 a.header-action.header-cash-register-btn--open i {
-    color: var(--bs-warning, #ffc107) !important;
+    color: var(--bs-warning-text-emphasis, #997404) !important;
 }
 
 button.header-action.header-cash-register-btn--open:hover,
 a.header-action.header-cash-register-btn--open:hover {
     background-color: color-mix(in srgb, var(--bs-warning, #ffc107) 35%, transparent) !important;
-    color: var(--bs-warning, #e6ac00) !important;
+    color: var(--bs-warning-text-emphasis, #997404) !important;
 }
 
 button.header-action.header-cash-register-btn--open:hover i,
 a.header-action.header-cash-register-btn--open:hover i {
-    color: var(--bs-warning, #e6ac00) !important;
+    color: var(--bs-warning-text-emphasis, #997404) !important;
 }
 
 .mobile-cash-register-item.header-cash-register-btn--closed,
@@ -76,11 +76,11 @@ a.header-action.header-cash-register-btn--open:hover i {
 
 .mobile-cash-register-item.header-cash-register-btn--open {
     background-color: var(--bs-warning-bg-subtle, #fff3cd) !important;
-    color: var(--bs-warning, #ffc107) !important;
+    color: var(--bs-warning-text-emphasis, #997404) !important;
 }
 
 .mobile-cash-register-item.header-cash-register-btn--open i {
-    color: var(--bs-warning, #ffc107) !important;
+    color: var(--bs-warning-text-emphasis, #997404) !important;
 }
 
 #crmCashRegisterCloseModal .crm-cash-register-close-notes {
