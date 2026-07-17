@@ -69,7 +69,7 @@
                         <div class="tab-pane fade" id="agendaOcTabNew" role="tabpanel" aria-labelledby="agendaOcTabNewBtn" tabindex="0">
                             <div class="mb-2">
                                 <label class="form-label small mb-1" for="agendaOcNewClientName">Nome <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" id="agendaOcNewClientName" name="agenda_oc_new_client_name" autocomplete="name" placeholder="Nome completo">
+                                <input type="text" class="form-control form-control-sm" id="agendaOcNewClientName" name="agenda_oc_new_client_name" autocomplete="name" placeholder="Nome e apelido">
                             </div>
                             <div class="mb-2">
                                 <label class="form-label small mb-1" for="agendaOcNewClientPhone">Telemóvel <span class="text-danger">*</span></label>
@@ -449,7 +449,7 @@
                             <div class="tab-pane fade" id="eventDetailOcTabNew" role="tabpanel" aria-labelledby="eventDetailOcTabNewBtn" tabindex="0">
                                 <div class="mb-2">
                                     <label class="form-label small mb-1" for="eventDetailOcNewClientName">Nome <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm" id="eventDetailOcNewClientName" name="event_detail_oc_new_client_name" autocomplete="name" placeholder="Nome completo">
+                                    <input type="text" class="form-control form-control-sm" id="eventDetailOcNewClientName" name="event_detail_oc_new_client_name" autocomplete="name" placeholder="Nome e apelido">
                                 </div>
                                 <div class="mb-2">
                                     <label class="form-label small mb-1" for="eventDetailOcNewClientPhone">Telemóvel <span class="text-danger">*</span></label>
@@ -619,6 +619,7 @@
         'canViewInvoices' => $me->canViewInvoices(),
         'canReassignMarcacao' => $me->canReassignMarcacao(),
         'canChangeMarcacaoClient' => $me->canChangeMarcacaoClient(),
+        'canCancelOrMarkMarcacaoFalta' => $me->canCancelOrMarkMarcacaoFalta(),
         'prestadorAllowedStatuses' => $me->prestadorAllowedMarcacaoStatuses(),
         'prestadorEditableStatuses' => $me->prestadorEditableMarcacaoStatuses(),
     ];

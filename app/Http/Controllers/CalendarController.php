@@ -34,6 +34,7 @@ use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
 use App\Support\ClientContactMask;
 use App\Support\CrmPrivacyLock;
+use App\Rules\ClientFullName;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -642,7 +643,7 @@ class CalendarController extends Controller
 
         // Ordem: telemóvel (obrigatório) primeiro; só depois email (opcional).
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new ClientFullName],
             'phone' => ['required', 'string', 'max:50'],
         ]);
 

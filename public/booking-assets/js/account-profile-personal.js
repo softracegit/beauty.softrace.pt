@@ -36,6 +36,33 @@
                 birth_date: (fd.get('birth_date') || '').toString(),
             };
 
+            function isClientFullNameValid(name) {
+                var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+                if (parts.length < 2) {
+                    return false;
+                }
+                for (var i = 0; i < parts.length; i++) {
+                    var letters = parts[i].match(/\p{L}/gu);
+                    if (!letters || letters.length < 2) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            if (!isClientFullNameValid(body.name)) {
+                var fullNameMsg = (window.bookingI18n && window.bookingI18n.name_full_required)
+                    || 'Por favor preencha Nome e Apelido';
+                if (errorBox) {
+                    errorBox.textContent = fullNameMsg;
+                    errorBox.classList.remove('d-none');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                }
+                return;
+            }
+
             fetch(url, {
                 method: 'POST',
                 credentials: 'same-origin',

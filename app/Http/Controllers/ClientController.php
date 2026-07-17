@@ -12,6 +12,7 @@ use App\Models\Note;
 use App\Models\Sale;
 use App\Models\User;
 use App\Rules\UniqueClientPhone;
+use App\Rules\ClientFullName;
 use App\Services\VendasReportService;
 use App\Support\ActivityLogQuery;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -218,7 +219,7 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new ClientFullName],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'phone' => ['required', 'string', 'max:50', new UniqueClientPhone],
             'nif' => ['nullable', 'string', 'max:20'],
@@ -526,7 +527,7 @@ class ClientController extends Controller
     {
         $currentClientEmail = strtolower(trim((string) ($cliente->email ?? '')));
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new ClientFullName],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->ignore($cliente->id)->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'phone' => ['required', 'string', 'max:50', new UniqueClientPhone($cliente->id)],
             'nif' => ['nullable', 'string', 'max:20'],

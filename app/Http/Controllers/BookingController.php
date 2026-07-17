@@ -16,6 +16,7 @@ use App\Services\CancellationPolicyService;
 use App\Services\ClientWalletService;
 use App\Support\CurrentStore;
 use App\Support\WeeklyScheduleWindow;
+use App\Rules\ClientFullName;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -570,7 +571,7 @@ class BookingController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new ClientFullName(__('booking.validation.name_full_required'))],
             'gender' => ['required', 'string', 'in:M,F,O'],
             'birth_date' => ['required', 'date', 'after_or_equal:1900-01-01', 'before_or_equal:today'],
         ]);

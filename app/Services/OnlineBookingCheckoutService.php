@@ -18,6 +18,7 @@ use App\Support\ApplicableFees;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
 use App\Support\WeeklyScheduleWindow;
+use App\Rules\ClientFullName;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -46,7 +47,7 @@ class OnlineBookingCheckoutService
     public function bookingRequestRules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', new ClientFullName(__('booking.validation.name_full_required'))],
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:40'],
             'notes' => ['nullable', 'string', 'max:2000'],

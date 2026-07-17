@@ -58,10 +58,11 @@
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label class="form-label">Nome completo <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ $v('name') }}" placeholder="Ex: Maria Silva" required>
+                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ $v('name') }}" placeholder="Ex: Maria Sousa" required>
                             @error('name')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <div class="form-text">Indique nome e apelido (ex.: Maria Sousa).</div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="{{ $isEdit ? 'clientPhone' : 'clientCreatePhone' }}">Telemóvel <span class="text-danger">*</span></label>

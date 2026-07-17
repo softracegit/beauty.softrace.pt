@@ -65,9 +65,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const canViewInvoices = agendaPerms.canViewInvoices !== false;
     const canReassignMarcacao = agendaPerms.canReassignMarcacao !== false;
     const canChangeMarcacaoClient = agendaPerms.canChangeMarcacaoClient !== false;
+    const canCancelOrMarkMarcacaoFalta = agendaPerms.canCancelOrMarkMarcacaoFalta !== false;
     const prestadorAllowedStatuses = Array.isArray(agendaPerms.prestadorAllowedStatuses)
         ? agendaPerms.prestadorAllowedStatuses
-        : ['chegou', 'iniciado'];
+        : ['chegou', 'iniciado', 'faltou', 'cancelado'];
     const prestadorEditableStatuses = Array.isArray(agendaPerms.prestadorEditableStatuses)
         ? agendaPerms.prestadorEditableStatuses
         : ['agendado', 'notificado', 'confirmado', 'chegou', 'iniciado'];
@@ -1287,9 +1288,13 @@ document.addEventListener('DOMContentLoaded', function() {
         list.className = 'agenda-status-dropdown-list';
         statusOpts.forEach(function(o) {
             if (o.isCancelAction && (currentStatus === 'faltou' || currentStatus === 'cancelado' || currentStatus === 'anulado')) return;
+            if (o.isCancelAction && !canCancelOrMarkMarcacaoFalta) return;
             if (isPrestadorStaff) {
-                if (o.isCancelAction) return;
-                if (prestadorAllowedStatuses.indexOf(o.status) === -1) return;
+                if (o.isCancelAction) {
+                    // Cancelar abre o modal (Faltou / Cliente cancelou).
+                } else if (prestadorAllowedStatuses.indexOf(o.status) === -1) {
+                    return;
+                }
             }
             if (!o.isCancelAction && o.status === currentStatus) return;
             var a = document.createElement('a');
@@ -2136,12 +2141,33 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!data) return msg;
         if (data.errors) {
             var e = data.errors;
+            if (e.name && e.name[0]) return e.name[0];
             if (e.phone && e.phone[0]) return e.phone[0];
             if (e.email && e.email[0]) return e.email[0];
-            if (e.name && e.name[0]) return e.name[0];
         }
         if (data.message) return data.message;
         return msg;
+    }
+    /** Nome + apelido: ≥2 palavras, cada uma com ≥2 letras (rejeita «Maria», «Maria S.»). */
+    function agendaClientFullNameIsValid(name) {
+        var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length < 2) return false;
+        for (var i = 0; i < parts.length; i++) {
+            var letters = parts[i].match(/\p{L}/gu);
+            if (!letters || letters.length < 2) return false;
+        }
+        return true;
+    }
+    function agendaAssertClientFullName(name) {
+        if (!String(name || '').trim()) {
+            showToast('Preencha o nome.', 'error');
+            return false;
+        }
+        if (!agendaClientFullNameIsValid(name)) {
+            showToast('Por favor preencha Nome e Apelido do cliente', 'error');
+            return false;
+        }
+        return true;
     }
     var eventDetailSelectedServices = [];
     var eventDetailCurrentData = null;
@@ -4878,8 +4904,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var email = ($id('eventDetailOcNewClientEmail') && $id('eventDetailOcNewClientEmail').value || '').trim();
                 var tabNew = $id('eventDetailOcTabNew');
                 var iti = tabNew && tabNew._agendaPhoneIti;
-                if (!name) {
-                    showToast('Preencha o nome.', 'error');
+                if (!agendaAssertClientFullName(name)) {
                     return;
                 }
                 if (!iti) {
@@ -6466,8 +6491,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         var email = ($id('agendaOcNewClientEmail') && $id('agendaOcNewClientEmail').value || '').trim();
                         var tabNew = $id('agendaOcTabNew');
                         var iti = tabNew && tabNew._agendaPhoneIti;
-                        if (!name) {
-                            showToast('Preencha o nome.', 'error');
+                        if (!agendaAssertClientFullName(name)) {
                             return;
                         }
                         if (!iti) {
@@ -8473,7 +8497,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!ev) return '';
         if (typeof ev.getResources === 'function') {
             var resources = ev.getResources();
-            if (resources && resources.length) return String(resources[0].id || '');
+            var first = resources && resources.length ? resources[0] : null;
+            if (first && first.id != null && first.id !== '') {
+                return String(first.id);
+            }
         }
         if (ev.resourceId != null && ev.resourceId !== '') return String(ev.resourceId);
         var ext = ev.extendedProps || {};
@@ -11257,7 +11284,15 @@ document.addEventListener('DOMContentLoaded', function() {
     $id('eventDetailStatusMenu').querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
         if (isPrestadorStaff) {
             var optStatus = opt.dataset.status || '';
-            if (optStatus === 'cancelar' || (optStatus && prestadorAllowedStatuses.indexOf(optStatus) === -1)) {
+            if (optStatus === 'cancelar') {
+                if (!canCancelOrMarkMarcacaoFalta) {
+                    opt.classList.add('d-none');
+                }
+            } else if (optStatus && prestadorAllowedStatuses.indexOf(optStatus) === -1) {
+                opt.classList.add('d-none');
+            }
+        } else if (!canCancelOrMarkMarcacaoFalta) {
+            if ((opt.dataset.status || '') === 'cancelar') {
                 opt.classList.add('d-none');
             }
         }
@@ -11270,6 +11305,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var previousStatus = $id('eventDetailStatus').value;
             bootstrap.Dropdown.getInstance($id('eventDetailStatusDropdownBtn'))?.hide();
             if (status === 'cancelar') {
+                if (!canCancelOrMarkMarcacaoFalta) return;
                 if (previousStatus === 'faltou' || previousStatus === 'cancelado' || previousStatus === 'anulado') return;
                 window._cancelMarcacaoConfirmed = false;
                 window._cancelMarcacaoPreviousStatus = previousStatus;

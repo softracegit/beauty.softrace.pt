@@ -12,6 +12,7 @@ use App\Services\TwilioSmsService;
 use App\Support\BookingLocale;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
+use App\Rules\ClientFullName;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -226,7 +227,7 @@ class BookingClientAuthController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:120'],
+            'name' => ['required', 'string', 'max:120', new ClientFullName(__('booking.validation.name_full_required'))],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:32'],
             'terms_accepted' => ['accepted'],

@@ -1991,6 +1991,21 @@
         return !!(c.name && c.phone && c.email);
     }
 
+    /** Nome + apelido: ≥2 palavras, cada uma com ≥2 letras (rejeita «Maria», «Maria S.»). */
+    function isClientFullNameValid(name) {
+        var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (parts.length < 2) {
+            return false;
+        }
+        for (var i = 0; i < parts.length; i++) {
+            var letters = parts[i].match(/\p{L}/gu);
+            if (!letters || letters.length < 2) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     function pad2(n) {
         return String(n).padStart(2, '0');
     }
@@ -5037,6 +5052,11 @@
             setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
             return;
         }
+        if (!isClientFullNameValid(built.payload.name)) {
+            setCheckoutError(t('name_full_required'));
+            setCheckoutNextBtnLoading(false, checkoutDefaultNextLabel());
+            return;
+        }
         var payload = built.payload;
 
         if (!isCheckoutPaymentRequired()) {
@@ -5844,6 +5864,10 @@
                 name: String(registerNameInput.value || '').trim(),
                 terms_accepted: true,
             };
+            if (!isClientFullNameValid(payload.name)) {
+                showError(t('name_full_required'));
+                return;
+            }
             if (currentAuthChannel === 'phone') {
                 payload.email = String(registerEmailInput.value || '').trim().toLowerCase();
             } else {
