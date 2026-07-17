@@ -81,11 +81,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (nifRow) {
             nifRow.classList.toggle('d-none', !canViewClientContacts);
         }
+        var nifEdit = $id(prefix + 'ClientNifEditBtn');
+        if (nifEdit) {
+            nifEdit.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientContacts);
+        }
+        var nifInput = $id(prefix + 'ClientNifInput');
+        if (nifInput) {
+            // Valores mascarados (***123) quebram pattern=[0-9]* em campos hidden → "invalid form control is not focusable"
+            if (crmPrivacyLockedUi || !canViewClientContacts) {
+                nifInput.value = '';
+                nifInput.disabled = true;
+            } else {
+                nifInput.disabled = false;
+            }
+        }
         var profile = $id(prefix + 'ClientProfileLink');
         if (profile) {
             profile.classList.toggle('d-none', !canViewClientProfile);
         }
         agendaSetClientProfileLinks(prefix, agendaCurrentClientIdForPrefix(prefix));
+    }
+
+    function agendaNifInputValue(raw) {
+        var s = String(raw || '').trim();
+        if (!s || s.indexOf('*') !== -1) return '';
+        return s.replace(/\D+/g, '');
     }
 
     function agendaCurrentClientIdForPrefix(prefix) {
@@ -4122,7 +4142,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var nifEl = $id('eventDetailOcClientSelectedNif');
         if (nifEl) nifEl.textContent = agendaClientNifLabel(eventDetailSelectedClient);
         var nifInput = $id('eventDetailOcClientNifInput');
-        if (nifInput) nifInput.value = String(eventDetailSelectedClient.nif || '').trim();
+        if (nifInput) nifInput.value = agendaNifInputValue(eventDetailSelectedClient.nif);
         var pl = $id('eventDetailOcClientProfileLink');
         if (pl) {
             if (crmPrivacyLockedUi || !canViewClientProfile) {
@@ -4224,13 +4244,17 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcClientNifEditing = !!enabled;
     }
     function eventDetailOcStartClientNifEdit() {
+        if (crmPrivacyLockedUi) {
+            showToast('Não é possível editar o NIF em modo posto.', 'warning');
+            return;
+        }
         if (!eventDetailSelectedClient || !eventDetailSelectedClient.id) {
             showToast('Selecione um cliente primeiro.', 'error');
             return;
         }
         var input = $id('eventDetailOcClientNifInput');
         if (!input) return;
-        input.value = String(eventDetailSelectedClient.nif || '').trim();
+        input.value = agendaNifInputValue(eventDetailSelectedClient.nif);
         eventDetailOcSetNifInlineMode(true);
         setTimeout(function() {
             try {
@@ -5421,13 +5445,17 @@ document.addEventListener('DOMContentLoaded', function() {
         agendaOcClientNifEditing = !!enabled;
     }
     function agendaOcStartClientNifEdit() {
+        if (crmPrivacyLockedUi) {
+            showToast('Não é possível editar o NIF em modo posto.', 'warning');
+            return;
+        }
         if (!agendaOcSelectedClient || !agendaOcSelectedClient.id) {
             showToast('Selecione um cliente primeiro.', 'error');
             return;
         }
         var input = $id('agendaOcClientNifInput');
         if (!input) return;
-        input.value = String(agendaOcSelectedClient.nif || '').trim();
+        input.value = agendaNifInputValue(agendaOcSelectedClient.nif);
         agendaOcSetNifInlineMode(true);
         setTimeout(function() {
             try {
@@ -5523,7 +5551,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var nifEl = $id('agendaOcClientSelectedNif');
         if (nifEl) nifEl.textContent = agendaClientNifLabel(agendaOcSelectedClient);
         var nifInput = $id('agendaOcClientNifInput');
-        if (nifInput) nifInput.value = String(agendaOcSelectedClient.nif || '').trim();
+        if (nifInput) nifInput.value = agendaNifInputValue(agendaOcSelectedClient.nif);
         var pl = $id('agendaOcClientProfileLink');
         if (pl) {
             if (crmPrivacyLockedUi || !canViewClientProfile) {

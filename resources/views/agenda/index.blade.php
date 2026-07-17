@@ -37,7 +37,7 @@
         <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" data-agenda-oc-close aria-label="Fechar"></button>
     </div>
     <div class="offcanvas-body">
-        <form id="agendaMarcacaoTestForm" class="agenda-oc-test-form" autocomplete="off">
+        <form id="agendaMarcacaoTestForm" class="agenda-oc-test-form" autocomplete="off" novalidate>
             <div class="agenda-oc-field" style="order:1">
                 <div id="agendaOcClientNotSelectedWrap">
                     <ul class="nav nav-pills agenda-oc-client-tabs flex-wrap gap-2 mb-2" id="agendaOcClientTabs" role="tablist">
@@ -405,7 +405,7 @@
         <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     </div>
     <div id="eventDetailEditPanel" class="offcanvas-body">
-        <form id="eventDetailEditForm" class="agenda-oc-test-form" autocomplete="off">
+        <form id="eventDetailEditForm" class="agenda-oc-test-form" autocomplete="off" novalidate>
             <input type="hidden" id="eventDetailEditId" name="event_id">
             <input type="hidden" id="eventDetailEditUserId" name="user_id">
             <input type="hidden" id="eventDetailEditStart" name="start_at">
