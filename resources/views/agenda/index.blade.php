@@ -668,6 +668,7 @@ window.AGENDA_CONFIG = {
     urlLeads: @json(url('leads')),
     usersForConsultant: @json($usersForConsultant),
     nationalHolidaysPt: @json($nationalHolidaysPt ?? []),
+    nationalHolidayNamesPt: @json($nationalHolidayNamesPt ?? []),
     memberWeeklySchedules: @json($memberWeeklySchedules ?? []),
     storeWeeklySchedule: @json($storeWeeklySchedule ?? []),
     agendaSlotMin: @json($agendaSlotMin ?? '09:00'),

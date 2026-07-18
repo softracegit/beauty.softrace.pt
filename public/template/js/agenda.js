@@ -394,7 +394,20 @@ document.addEventListener('DOMContentLoaded', function() {
         return 'Pago';
     }
 
-    const HOLIDAYS_PT_SET = new Set((C.nationalHolidaysPt || []).map(function(d) { return String(d || '').slice(0, 10); }));
+    const HOLIDAYS_PT_NAMES = (function() {
+        var map = {};
+        var named = C.nationalHolidayNamesPt || {};
+        Object.keys(named).forEach(function(k) {
+            var ymd = String(k || '').slice(0, 10);
+            if (ymd) map[ymd] = String(named[k] || '');
+        });
+        (C.nationalHolidaysPt || []).forEach(function(d) {
+            var ymd = String(d || '').slice(0, 10);
+            if (ymd && !map[ymd]) map[ymd] = '';
+        });
+        return map;
+    })();
+    const HOLIDAYS_PT_SET = new Set(Object.keys(HOLIDAYS_PT_NAMES));
     function agendaDateToYmdLocal(d) {
         if (!(d instanceof Date) || isNaN(d.getTime())) return '';
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -402,6 +415,40 @@ document.addEventListener('DOMContentLoaded', function() {
     function isNationalHolidayPtAtDate(d) {
         var ymd = agendaDateToYmdLocal(d);
         return !!(ymd && HOLIDAYS_PT_SET.has(ymd));
+    }
+    function nationalHolidayNameForYmd(ymd) {
+        var key = String(ymd || '').slice(0, 10);
+        return key && HOLIDAYS_PT_NAMES[key] ? HOLIDAYS_PT_NAMES[key] : '';
+    }
+    function agendaParseDayHeaderDate(arg) {
+        if (!arg || !arg.date) return null;
+        var dateObj = arg.date;
+        var d = null;
+        if (dateObj.marker) {
+            d = new Date(dateObj.marker);
+        } else if (dateObj.year !== undefined && dateObj.month !== undefined && dateObj.day !== undefined) {
+            d = new Date(dateObj.year, dateObj.month, dateObj.day);
+        } else if (dateObj instanceof Date) {
+            d = dateObj;
+        }
+        if (!d || isNaN(d.getTime())) return null;
+        return d;
+    }
+    function agendaFormatDayHeaderLabel(arg) {
+        var days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        var daysLong = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        var d = agendaParseDayHeaderDate(arg);
+        if (!d) return '';
+        var dayIndex = d.getDay();
+        var currentView = (arg && arg.view && arg.view.type) || agendaCurrentViewType;
+        if (currentView === 'dayGridMonth') {
+            return dayIndex >= 0 && dayIndex <= 6 ? days[dayIndex] : '';
+        }
+        var dayNumber = d.getDate();
+        if (dayIndex >= 0 && dayIndex <= 6 && dayNumber >= 1 && dayNumber <= 31) {
+            return daysLong[dayIndex] + ' ' + dayNumber;
+        }
+        return '';
     }
     function applyHolidayClassesToTimeGridColumns() {
         if (!calendarEl) return;
@@ -413,6 +460,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 col.classList.remove('agenda-day-holiday');
             }
         });
+    }
+    /** Faixa fina acima da grelha (vista Dia com técnicas) com o nome do feriado. */
+    function syncAgendaHolidayBanner() {
+        if (!calendarEl || !calendar || !calendar.view) return;
+        var harness = calendarEl.querySelector('.fc-view-harness');
+        if (!harness || !harness.parentNode) return;
+
+        var banner = calendarEl.querySelector('.agenda-holiday-banner');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.className = 'agenda-holiday-banner';
+            banner.setAttribute('role', 'status');
+            banner.setAttribute('hidden', '');
+            banner.innerHTML = '<span class="agenda-holiday-banner__eyebrow">Feriado</span>'
+                + '<span class="agenda-holiday-banner__name"></span>';
+            harness.parentNode.insertBefore(banner, harness);
+        }
+
+        var view = calendar.view;
+        var show = false;
+        var name = '';
+        if (view.type === 'resourceTimeGridDay') {
+            var ymd = agendaDateToYmdLocal(view.currentStart || view.activeStart);
+            name = nationalHolidayNameForYmd(ymd);
+            show = !!name;
+        }
+
+        var nameEl = banner.querySelector('.agenda-holiday-banner__name');
+        if (nameEl) nameEl.textContent = name;
+        banner.hidden = !show;
+        banner.classList.toggle('is-visible', show);
+        calendarEl.classList.toggle('agenda-has-holiday-banner', show);
     }
     /** Fora do horário efetivo do membro (loja + extensão do horário da técnica). */
     function isMemberUnavailableSlotAt(date, userId) {
@@ -8838,6 +8917,9 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         dayHeaderClassNames: function(arg) {
             var out = [];
+            if (isNationalHolidayPtAtDate(arg.date)) {
+                out.push('agenda-day-holiday-header');
+            }
             if (!getStoreDayConfig(arg.date).enabled) {
                 out.push('agenda-day-store-closed');
             }
@@ -8951,54 +9033,34 @@ document.addEventListener('DOMContentLoaded', function() {
             return isTimeEditable;
         },
         dayHeaderFormat: function(arg) {
-            const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            const daysLong = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-            let d = null;
-            
-            // FullCalendar v6 passa um objeto Date Formatter customizado
-            // O objeto date tem propriedades: marker (ISO string), year, month, day, etc.
-            if (arg && arg.date) {
-                const dateObj = arg.date;
-                
-                // Tentar usar marker (ISO string) primeiro
-                if (dateObj.marker) {
-                    d = new Date(dateObj.marker);
-                }
-                // Se não tem marker, construir a data a partir das propriedades
-                else if (dateObj.year !== undefined && dateObj.month !== undefined && dateObj.day !== undefined) {
-                    // month é 0-indexed no FullCalendar, mas new Date espera 0-indexed também
-                    d = new Date(dateObj.year, dateObj.month, dateObj.day);
-                }
-                // Fallback: tentar usar como Date se for
-                else if (dateObj instanceof Date) {
-                    d = dateObj;
-                }
+            return agendaFormatDayHeaderLabel(arg);
+        },
+        dayHeaderContent: function(arg) {
+            var label = agendaFormatDayHeaderLabel(arg);
+            if (!label) {
+                return { html: '' };
             }
-            
-            // Se não conseguiu obter a data válida
-            if (!d || isNaN(d.getTime())) {
-                return '';
+            var viewType = (arg && arg.view && arg.view.type) || agendaCurrentViewType;
+            var d = agendaParseDayHeaderDate(arg);
+            var holidayName = '';
+            if (
+                d
+                && (viewType === 'timeGridWeek' || viewType === 'timeGridThreeDay')
+                && isNationalHolidayPtAtDate(d)
+            ) {
+                holidayName = nationalHolidayNameForYmd(agendaDateToYmdLocal(d));
             }
-            
-            const dayIndex = d.getDay();
-            
-            const currentView = agendaCurrentViewType;
-            
-            // Na vista de mês, mostrar apenas o nome do dia
-            if (currentView === 'dayGridMonth') {
-                if (dayIndex >= 0 && dayIndex <= 6) {
-                    return days[dayIndex];
-                }
-                return '';
+            var safeLabel = String(label).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            if (!holidayName) {
+                return { html: '<span class="agenda-day-header-label">' + safeLabel + '</span>' };
             }
-            
-            // Semana, 3 dias e Dia: nome completo do dia + número (ex: "Quinta 5")
-            const dayNumber = d.getDate();
-            if (dayIndex >= 0 && dayIndex <= 6 && dayNumber >= 1 && dayNumber <= 31) {
-                return daysLong[dayIndex] + ' ' + dayNumber;
-            }
-            
-            return '';
+            var safeHoliday = String(holidayName).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            return {
+                html: '<span class="agenda-day-header-stack" title="' + safeHoliday + '">'
+                    + '<span class="agenda-day-header-label">' + safeLabel + '</span>'
+                    + '<span class="agenda-day-header-holiday">' + safeHoliday + '</span>'
+                    + '</span>',
+            };
         },
         /* === 2) Clique numa célula: mostrar menu rápido; "Criar evento" abre o modal === */
         dateClick: function(info) {
@@ -9461,6 +9523,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
                 applyHolidayClassesToTimeGridColumns();
+                syncAgendaHolidayBanner();
                 scheduleApplyMemberUnavailableClasses();
                 ensureAgendaMobileToolbarDateNav();
                 syncAgendaMobileControls();
@@ -9494,6 +9557,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
                 applyHolidayClassesToTimeGridColumns();
+                syncAgendaHolidayBanner();
                 syncAgendaMobileControls();
             });
             setTimeout(function() {
@@ -9504,6 +9568,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
                 applyHolidayClassesToTimeGridColumns();
+                syncAgendaHolidayBanner();
             }, 0);
             
             const showConsultantFilter = viewSupportsConsultantFilter(info.view.type);
@@ -9522,11 +9587,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     applyToolbarStyles();
                     ensureAgendaSlot24hToggle();
                     applyHolidayClassesToTimeGridColumns();
+                    syncAgendaHolidayBanner();
                 }, isConsultant ? 150 : 0);
             }
         }
     });
     calendar.render();
+    syncAgendaHolidayBanner();
 
     function ensureAgendaMobileToolbarDateNav() {
         var chunk = calendarEl.querySelector('.fc-header-toolbar .fc-toolbar-chunk:first-child');
@@ -9779,6 +9846,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 scrollTimeReset: false,
                 displayEventTime: get('displayEventTime'),
                 dayHeaderFormat: get('dayHeaderFormat'),
+                dayHeaderContent: get('dayHeaderContent'),
+                dayHeaderClassNames: get('dayHeaderClassNames'),
                 dayCellClassNames: get('dayCellClassNames'),
                 slotLaneClassNames: get('slotLaneClassNames'),
                 slotLaneDidMount: get('slotLaneDidMount'),

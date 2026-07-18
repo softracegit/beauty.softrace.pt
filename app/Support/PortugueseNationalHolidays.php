@@ -16,19 +16,27 @@ final class PortugueseNationalHolidays
      */
     public static function datesBetweenYears(int $yearStart, int $yearEnd): array
     {
+        return array_keys(self::namesByDateBetweenYears($yearStart, $yearEnd));
+    }
+
+    /**
+     * @return array<string, string> Mapa Y-m-d => nome do feriado.
+     */
+    public static function namesByDateBetweenYears(int $yearStart, int $yearEnd): array
+    {
         if ($yearEnd < $yearStart) {
             return [];
         }
 
-        $dates = [];
+        $map = [];
         for ($y = $yearStart; $y <= $yearEnd; $y++) {
-            $dates = array_merge($dates, self::datesForYear($y));
+            foreach (self::entriesForYear($y) as $entry) {
+                $map[$entry['date']] = $entry['name'];
+            }
         }
+        ksort($map);
 
-        $dates = array_values(array_unique($dates));
-        sort($dates);
-
-        return $dates;
+        return $map;
     }
 
     /**
@@ -36,38 +44,59 @@ final class PortugueseNationalHolidays
      */
     public static function datesForYear(int $year): array
     {
+        return array_values(array_map(
+            static fn (array $entry): string => $entry['date'],
+            self::entriesForYear($year),
+        ));
+    }
+
+    /**
+     * @return list<array{date: string, name: string}>
+     */
+    public static function entriesForYear(int $year): array
+    {
         $easter = self::easterSunday($year);
 
         return [
-            Carbon::createMidnightDate($year, 1, 1)->toDateString(),   // Ano Novo
-            Carbon::createMidnightDate($year, 4, 25)->toDateString(),  // Dia da Liberdade
-            Carbon::createMidnightDate($year, 5, 1)->toDateString(),   // Dia do Trabalhador
-            Carbon::createMidnightDate($year, 6, 10)->toDateString(),  // Dia de Portugal
-            Carbon::createMidnightDate($year, 8, 15)->toDateString(),  // Assunção
-            Carbon::createMidnightDate($year, 10, 5)->toDateString(),  // Implantação da República
-            Carbon::createMidnightDate($year, 11, 1)->toDateString(),  // Todos-os-Santos
-            Carbon::createMidnightDate($year, 12, 1)->toDateString(),  // Restauração da Independência
-            Carbon::createMidnightDate($year, 12, 8)->toDateString(),  // Imaculada Conceição
-            Carbon::createMidnightDate($year, 12, 25)->toDateString(), // Natal
-            $easter->copy()->subDays(2)->toDateString(),               // Sexta-Feira Santa
-            $easter->copy()->addDays(60)->toDateString(),              // Corpo de Deus
+            ['date' => Carbon::createMidnightDate($year, 1, 1)->toDateString(), 'name' => 'Ano Novo'],
+            ['date' => Carbon::createMidnightDate($year, 4, 25)->toDateString(), 'name' => 'Dia da Liberdade'],
+            ['date' => Carbon::createMidnightDate($year, 5, 1)->toDateString(), 'name' => 'Dia do Trabalhador'],
+            ['date' => Carbon::createMidnightDate($year, 6, 10)->toDateString(), 'name' => 'Dia de Portugal'],
+            ['date' => Carbon::createMidnightDate($year, 8, 15)->toDateString(), 'name' => 'Assunção de Nossa Senhora'],
+            ['date' => Carbon::createMidnightDate($year, 10, 5)->toDateString(), 'name' => 'Implantação da República'],
+            ['date' => Carbon::createMidnightDate($year, 11, 1)->toDateString(), 'name' => 'Todos-os-Santos'],
+            ['date' => Carbon::createMidnightDate($year, 12, 1)->toDateString(), 'name' => 'Restauração da Independência'],
+            ['date' => Carbon::createMidnightDate($year, 12, 8)->toDateString(), 'name' => 'Imaculada Conceição'],
+            ['date' => Carbon::createMidnightDate($year, 12, 25)->toDateString(), 'name' => 'Natal'],
+            ['date' => $easter->copy()->subDays(2)->toDateString(), 'name' => 'Sexta-Feira Santa'],
+            ['date' => $easter->copy()->addDays(60)->toDateString(), 'name' => 'Corpo de Deus'],
         ];
     }
 
-    public static function isHoliday(CarbonInterface|string $date): bool
+    public static function nameFor(CarbonInterface|string $date): ?string
     {
         if ($date instanceof CarbonInterface) {
             $ymd = $date->toDateString();
         } else {
             $ymd = trim($date);
             if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $ymd)) {
-                return false;
+                return null;
             }
         }
 
         $year = (int) substr($ymd, 0, 4);
+        foreach (self::entriesForYear($year) as $entry) {
+            if ($entry['date'] === $ymd) {
+                return $entry['name'];
+            }
+        }
 
-        return in_array($ymd, self::datesForYear($year), true);
+        return null;
+    }
+
+    public static function isHoliday(CarbonInterface|string $date): bool
+    {
+        return self::nameFor($date) !== null;
     }
 
     /**

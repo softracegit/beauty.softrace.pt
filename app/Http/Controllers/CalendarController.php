@@ -101,10 +101,10 @@ class CalendarController extends Controller
         }
 
         $today = now();
-        $nationalHolidaysPt = PortugueseNationalHolidays::datesBetweenYears(
-            (int) $today->format('Y') - 1,
-            (int) $today->format('Y') + 2,
-        );
+        $holidayYearStart = (int) $today->format('Y') - 1;
+        $holidayYearEnd = (int) $today->format('Y') + 2;
+        $nationalHolidayNamesPt = PortugueseNationalHolidays::namesByDateBetweenYears($holidayYearStart, $holidayYearEnd);
+        $nationalHolidaysPt = array_keys($nationalHolidayNamesPt);
         $posGorjetaEnabled = CrmSetting::posGorjetaEnabled(current_store_id());
         $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired(current_store_id());
 
@@ -119,6 +119,7 @@ class CalendarController extends Controller
             'users',
             'personalTimeTypes',
             'nationalHolidaysPt',
+            'nationalHolidayNamesPt',
             'posGorjetaEnabled',
             'onlineBookingPaymentRequired',
             'storeWeeklySchedule',

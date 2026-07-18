@@ -42,6 +42,13 @@ class PortugueseNationalHolidaysTest extends TestCase
         $this->assertFalse(PortugueseNationalHolidays::isHoliday('2026-04-05'));
     }
 
+    public function test_name_for_holiday(): void
+    {
+        $this->assertSame('Natal', PortugueseNationalHolidays::nameFor('2026-12-25'));
+        $this->assertSame('Sexta-Feira Santa', PortugueseNationalHolidays::nameFor('2026-04-03'));
+        $this->assertNull(PortugueseNationalHolidays::nameFor('2026-04-04'));
+    }
+
     /** @return list<array{0: int, 1: string}> */
     public static function easterSundays(): array
     {
