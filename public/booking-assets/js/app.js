@@ -2123,6 +2123,29 @@
 
         var bookingApp = document.querySelector('.booking-app[data-booking-availability-url]');
         var availabilityUrl = bookingApp ? bookingApp.getAttribute('data-booking-availability-url') : '';
+        var nationalHolidaysSet = (function () {
+            var set = {};
+            var raw = bookingApp ? bookingApp.getAttribute('data-booking-national-holidays') : '';
+            if (!raw) {
+                return set;
+            }
+            try {
+                var list = JSON.parse(raw);
+                if (Array.isArray(list)) {
+                    list.forEach(function (ymd) {
+                        if (ymd) {
+                            set[String(ymd)] = true;
+                        }
+                    });
+                }
+            } catch (e) {
+                /* ignore */
+            }
+            return set;
+        })();
+        function isNationalHolidayDate(date) {
+            return !!nationalHolidaysSet[formatIsoDate(date)];
+        }
         var validAgentIdsRaw = bookingApp ? bookingApp.getAttribute('data-booking-valid-agent-ids') || '' : '';
         var validAgentSet = {};
         validAgentIdsRaw.split(',').forEach(function (piece) {
@@ -2229,6 +2252,17 @@
         }
 
         selectedDateObj = parseIsoDate(selectedDate) || new Date(today);
+        if (isNationalHolidayDate(selectedDateObj) || isBeforeToday(selectedDateObj)) {
+            var probe = new Date(today);
+            var guard = 0;
+            while ((isBeforeToday(probe) || isNationalHolidayDate(probe)) && guard < 60) {
+                probe = addDays(probe, 1);
+                guard += 1;
+            }
+            selectedDateObj = probe;
+            selectedDate = formatIsoDate(selectedDateObj);
+            selectedTime = null;
+        }
         weekStart = startOfWeekMonday(selectedDateObj);
 
         function syncSelectedTimeFromDateTimeStorage() {
@@ -2548,7 +2582,7 @@
                 btn.className = 'booking-week-view__day';
                 btn.setAttribute('role', 'option');
                 btn.setAttribute('data-date', formatIsoDate(d));
-                btn.disabled = isBeforeToday(d);
+                btn.disabled = isBeforeToday(d) || isNationalHolidayDate(d);
 
                 var wd = document.createElement('span');
                 wd.className = 'booking-week-view__weekday';
@@ -2559,6 +2593,9 @@
                 btn.appendChild(wd);
                 btn.appendChild(dn);
 
+                if (isNationalHolidayDate(d)) {
+                    btn.classList.add('is-holiday');
+                }
                 if (sameDay(d, today)) {
                     btn.classList.add('is-today');
                 }
@@ -2613,6 +2650,11 @@
             dateFormat: 'Y-m-d',
             minDate: 'today',
             defaultDate: selectedDate || 'today',
+            disable: [
+                function (date) {
+                    return isNationalHolidayDate(date);
+                },
+            ],
             onChange: function (dates) {
                 if (!dates || !dates.length) {
                     return;

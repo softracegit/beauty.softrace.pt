@@ -1646,6 +1646,10 @@ button.booking-offcanvas-nav__link {
     color: #a6acb4;
 }
 
+.booking-week-view__day.is-holiday:disabled {
+    color: #c4a35a;
+}
+
 .booking-week-view__day.is-active {
     background: #1f2937;
     color: #fff;

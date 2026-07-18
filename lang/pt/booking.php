@@ -523,6 +523,7 @@ return [
         'services_wrong_store' => 'Os serviços não pertencem a esta loja.',
         'agent_invalid' => 'Seleção de técnica inválida.',
         'date_invalid' => 'Data inválida.',
+        'date_holiday' => 'Não é possível marcar em feriados.',
         'duration_invalid' => 'Duração total inválida.',
         'min_lead_time' => 'Esta marcação deve ser feita com pelo menos :minutes minutos de antecedência.',
         'no_technician_for_services' => 'Não há técnica disponível para esta combinação de serviços.',

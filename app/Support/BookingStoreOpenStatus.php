@@ -19,6 +19,17 @@ final class BookingStoreOpenStatus
         $schedule = $storeSchedule ?? Store::defaultWeeklySchedule();
         $tz = (string) config('booking.business_timezone', config('app.timezone', 'Europe/Lisbon'));
         $now = CarbonImmutable::now($tz);
+
+        if (PortugueseNationalHolidays::isHoliday($now)) {
+            $nextOpen = self::nextOpenLabel($schedule, $now, $tz);
+
+            return [
+                'label' => __('booking.partials.store_status_closed'),
+                'css_class' => 'booking-offcanvas__status-closed',
+                'suffix' => $nextOpen !== null ? ' · '.$nextOpen : '',
+            ];
+        }
+
         $dayKey = WeeklyScheduleWindow::carbonIsoToWeekdayKey((int) $now->isoWeekday());
         $window = WeeklyScheduleWindow::resolveDayWindow($schedule, $dayKey);
 
@@ -74,8 +85,11 @@ final class BookingStoreOpenStatus
      */
     private static function nextOpenLabel(array $schedule, CarbonImmutable $now, string $tz): ?string
     {
-        for ($i = 0; $i < 8; $i++) {
+        for ($i = 0; $i < 14; $i++) {
             $probe = $now->addDays($i);
+            if (PortugueseNationalHolidays::isHoliday($probe)) {
+                continue;
+            }
             $key = WeeklyScheduleWindow::carbonIsoToWeekdayKey((int) $probe->isoWeekday());
             $window = WeeklyScheduleWindow::resolveDayWindow($schedule, $key);
             if ($window === null) {

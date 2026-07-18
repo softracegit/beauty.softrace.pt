@@ -523,6 +523,7 @@ return [
         'services_wrong_store' => 'Los servicios no pertenecen a esta tienda.',
         'agent_invalid' => 'Selección de personal no válida.',
         'date_invalid' => 'Fecha no válida.',
+        'date_holiday' => 'No es posible reservar en días festivos.',
         'duration_invalid' => 'Duración total no válida.',
         'min_lead_time' => 'Esta reserva debe hacerse con al menos :minutes minutos de antelación.',
         'no_technician_for_services' => 'No hay personal disponible para esta combinación de servicios.',

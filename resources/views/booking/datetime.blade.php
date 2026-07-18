@@ -9,10 +9,18 @@
 @endpush
 
 @section('content')
+    @php
+        $bookingHolidayYear = (int) now(config('booking.business_timezone', 'Europe/Lisbon'))->format('Y');
+        $bookingNationalHolidays = \App\Support\PortugueseNationalHolidays::datesBetweenYears(
+            $bookingHolidayYear - 1,
+            $bookingHolidayYear + 2,
+        );
+    @endphp
     <div
         class="booking-app d-flex flex-column min-vh-100"
         data-booking-availability-url="{{ route('booking.availability', ['store' => $bookingStoreSlug], false) }}"
         data-booking-valid-agent-ids="{{ implode(',', $bookingValidAgentIds ?? []) }}"
+        data-booking-national-holidays="{{ e(json_encode($bookingNationalHolidays)) }}"
     >
         @include('booking.partials.navbar')
 

@@ -523,6 +523,7 @@ return [
         'services_wrong_store' => 'The services do not belong to this store.',
         'agent_invalid' => 'Invalid staff selection.',
         'date_invalid' => 'Invalid date.',
+        'date_holiday' => 'Bookings are not available on public holidays.',
         'duration_invalid' => 'Invalid total duration.',
         'min_lead_time' => 'This booking must be made at least :minutes minutes in advance.',
         'no_technician_for_services' => 'No staff member is available for this combination of services.',

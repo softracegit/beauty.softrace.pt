@@ -34,6 +34,7 @@ use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
 use App\Support\ClientContactMask;
 use App\Support\CrmPrivacyLock;
+use App\Support\PortugueseNationalHolidays;
 use App\Rules\ClientFullName;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -100,7 +101,10 @@ class CalendarController extends Controller
         }
 
         $today = now();
-        $nationalHolidaysPt = $this->ptNationalHolidayDatesBetweenYears((int) $today->format('Y') - 1, (int) $today->format('Y') + 2);
+        $nationalHolidaysPt = PortugueseNationalHolidays::datesBetweenYears(
+            (int) $today->format('Y') - 1,
+            (int) $today->format('Y') + 2,
+        );
         $posGorjetaEnabled = CrmSetting::posGorjetaEnabled(current_store_id());
         $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired(current_store_id());
 
@@ -123,64 +127,6 @@ class CalendarController extends Controller
             'storeHoursLabel',
             'cashRegisterOpen',
         ));
-    }
-
-    /**
-     * @return array<int, string> Datas Y-m-d dos feriados nacionais de Portugal no intervalo de anos.
-     */
-    private function ptNationalHolidayDatesBetweenYears(int $yearStart, int $yearEnd): array
-    {
-        if ($yearEnd < $yearStart) {
-            return [];
-        }
-
-        $dates = [];
-        for ($y = $yearStart; $y <= $yearEnd; $y++) {
-            $dates = array_merge($dates, $this->ptNationalHolidayDatesForYear($y));
-        }
-
-        $dates = array_values(array_unique($dates));
-        sort($dates);
-
-        return $dates;
-    }
-
-    /**
-     * @return array<int, string> Datas Y-m-d dos feriados nacionais de Portugal para o ano indicado.
-     */
-    private function ptNationalHolidayDatesForYear(int $year): array
-    {
-        // Páscoa (algoritmo de Gauss para calendário gregoriano).
-        $a = $year % 19;
-        $b = intdiv($year, 100);
-        $c = $year % 100;
-        $d = intdiv($b, 4);
-        $e = $b % 4;
-        $f = intdiv($b + 8, 25);
-        $g = intdiv($b - $f + 1, 3);
-        $h = (19 * $a + $b - $d - $g + 15) % 30;
-        $i = intdiv($c, 4);
-        $k = $c % 4;
-        $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
-        $m = intdiv($a + 11 * $h + 22 * $l, 451);
-        $month = intdiv($h + $l - 7 * $m + 114, 31);
-        $day = (($h + $l - 7 * $m + 114) % 31) + 1;
-        $easter = Carbon::createMidnightDate($year, $month, $day);
-
-        return [
-            Carbon::createMidnightDate($year, 1, 1)->toDateString(),   // Ano Novo
-            Carbon::createMidnightDate($year, 4, 25)->toDateString(),  // Dia da Liberdade
-            Carbon::createMidnightDate($year, 5, 1)->toDateString(),   // Dia do Trabalhador
-            Carbon::createMidnightDate($year, 6, 10)->toDateString(),  // Dia de Portugal
-            Carbon::createMidnightDate($year, 8, 15)->toDateString(),  // Assunção
-            Carbon::createMidnightDate($year, 10, 5)->toDateString(),  // Implantação da República
-            Carbon::createMidnightDate($year, 11, 1)->toDateString(),  // Todos-os-Santos
-            Carbon::createMidnightDate($year, 12, 1)->toDateString(),  // Restauração da Independência
-            Carbon::createMidnightDate($year, 12, 8)->toDateString(),  // Imaculada Conceição
-            Carbon::createMidnightDate($year, 12, 25)->toDateString(), // Natal
-            $easter->copy()->subDays(2)->toDateString(),               // Sexta-Feira Santa
-            $easter->copy()->addDays(60)->toDateString(),              // Corpo de Deus
-        ];
     }
 
     /**

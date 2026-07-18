@@ -17,6 +17,7 @@ use App\Services\ReceptionBookingNotifier;
 use App\Support\ApplicableFees;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
+use App\Support\PortugueseNationalHolidays;
 use App\Support\WeeklyScheduleWindow;
 use App\Rules\ClientFullName;
 use Carbon\Carbon;
@@ -343,6 +344,11 @@ class OnlineBookingCheckoutService
         if ($day->lt(now($tz)->startOfDay())) {
             throw ValidationException::withMessages([
                 'date' => [__('booking.validation.date_invalid')],
+            ]);
+        }
+        if (PortugueseNationalHolidays::isHoliday($day)) {
+            throw ValidationException::withMessages([
+                'date' => [__('booking.validation.date_holiday')],
             ]);
         }
 

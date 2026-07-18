@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\CancellationPolicyService;
 use App\Services\ClientWalletService;
 use App\Support\CurrentStore;
+use App\Support\PortugueseNationalHolidays;
 use App\Support\WeeklyScheduleWindow;
 use App\Rules\ClientFullName;
 use Carbon\Carbon;
@@ -221,6 +222,10 @@ class BookingController extends Controller
         }
 
         if ($day->lt(now($tz)->startOfDay())) {
+            return response()->json(['slots' => []]);
+        }
+
+        if (PortugueseNationalHolidays::isHoliday($day)) {
             return response()->json(['slots' => []]);
         }
 
