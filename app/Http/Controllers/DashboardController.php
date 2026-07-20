@@ -20,7 +20,6 @@ use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -75,8 +74,6 @@ class DashboardController extends Controller
         $vendasAnoAnterior = [];
         $atendidosAnoAtual = [];
         $atendidosAnoAnterior = [];
-        $novosAnoAtual = [];
-        $novosAnoAnterior = [];
 
         for ($month = 1; $month <= 12; $month++) {
             $monthLabels[] = Carbon::create($currentYear, $month, 1)
@@ -90,8 +87,6 @@ class DashboardController extends Controller
             $vendasAnoAnterior[] = round($this->resumoVendasEntre($startAnterior, $endAnterior), 2);
             $atendidosAnoAtual[] = $this->resumoClientesAtendidosEntre($startAtual, $endAtual);
             $atendidosAnoAnterior[] = $this->resumoClientesAtendidosEntre($startAnterior, $endAnterior);
-            $novosAnoAtual[] = $this->resumoClientesNovosEntre($startAtual, $endAtual);
-            $novosAnoAnterior[] = $this->resumoClientesNovosEntre($startAnterior, $endAnterior);
         }
 
         $clientesContacto = $this->resumoClientesContactoStats();
@@ -104,8 +99,6 @@ class DashboardController extends Controller
             'vendasAnoAnterior',
             'atendidosAnoAtual',
             'atendidosAnoAnterior',
-            'novosAnoAtual',
-            'novosAnoAnterior',
             'currentYear',
             'previousYear',
             'clientesContacto',
@@ -430,30 +423,6 @@ class DashboardController extends Controller
             ->whereNotNull('client_id')
             ->whereBetween('start_at', [$startUtc, $endUtc])
             ->alreadyPassed($nowUtc)
-            ->count();
-    }
-
-    /**
-     * Clientes cuja 1.ª marcação (não cancelada) cai no período — alinhado com atendimentos reais.
-     */
-    private function resumoClientesNovosEntre(Carbon $start, Carbon $end): int
-    {
-        if ($end->lt($start)) {
-            return 0;
-        }
-
-        [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($start, $end);
-
-        $primeirasMarcacoes = CalendarEvent::forStore(current_store_id())
-            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->whereNotNull('client_id')
-            ->selectRaw('client_id, MIN(start_at) as primeira_marcacao')
-            ->groupBy('client_id');
-
-        return (int) DB::query()
-            ->fromSub($primeirasMarcacoes, 'primeiras_marcacoes')
-            ->whereBetween('primeira_marcacao', [$startUtc, $endUtc])
             ->count();
     }
 

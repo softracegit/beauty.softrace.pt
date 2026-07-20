@@ -287,7 +287,6 @@
         'vendas-ano' => 'Vendas este ano',
         'vendas-mes' => 'Vendas este mês',
         'atendidos' => 'Clientes atendidos',
-        'novos' => 'Clientes novos',
     ];
     $vendasMesLabels = $vendasMesCorrente['labels'] ?? [];
     $vendasMesData = $vendasMesCorrente['data'] ?? [];
@@ -362,25 +361,6 @@
                     </div>
                 </div>
                 <div class="chart-container chart-container-lg" id="resumoAtendidosChart"></div>
-            </div>
-
-            <div
-                class="tab-pane fade"
-                id="resumo-chart-pane-novos"
-                role="tabpanel"
-                aria-labelledby="resumo-chart-tab-novos"
-            >
-                <div class="resumo-chart-tab-toolbar">
-                    <div class="dash-resumo-year-toggles" role="group" aria-label="Anos no gráfico de clientes novos" data-chart-target="resumoNovosChart">
-                        <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $previousYear }}">
-                            <span class="dash-resumo-year-swatch" style="background-color: #d4d4d8;"></span>{{ $previousYear }}
-                        </button>
-                        <button type="button" class="dash-resumo-year-toggle active" data-series="{{ $currentYear }}">
-                            <span class="dash-resumo-year-swatch" style="background-color: var(--accent-color);"></span>{{ $currentYear }}
-                        </button>
-                    </div>
-                </div>
-                <div class="chart-container chart-container-lg" id="resumoNovosChart"></div>
             </div>
         </div>
     </div>
@@ -654,21 +634,10 @@ document.addEventListener('DOMContentLoaded', function() {
     atendidosChart.render();
     bindYearToggles(atendidosChart, 'resumoAtendidosChart');
 
-    var novosChart = new ApexCharts(document.querySelector('#resumoNovosChart'), comparativeBarOptions(
-        [
-            { name: String(previousYear), data: @json($novosAnoAnterior ?? []) },
-            { name: String(currentYear), data: @json($novosAnoAtual ?? []) }
-        ],
-        monthLabels
-    ));
-    novosChart.render();
-    bindYearToggles(novosChart, 'resumoNovosChart');
-
     var resumoBarCharts = {
         'resumo-chart-pane-vendas-ano': vendasAnoChart,
         'resumo-chart-pane-vendas-mes': vendasMesChart,
-        'resumo-chart-pane-atendidos': atendidosChart,
-        'resumo-chart-pane-novos': novosChart
+        'resumo-chart-pane-atendidos': atendidosChart
     };
     document.querySelectorAll('#resumoChartTabs [data-bs-toggle="tab"]').forEach(function(tabEl) {
         tabEl.addEventListener('shown.bs.tab', function(event) {
