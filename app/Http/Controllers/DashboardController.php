@@ -14,8 +14,8 @@ use App\Services\FinancialDashboardService;
 use App\Services\MarcacaoGlueSuggestionsService;
 use App\Services\PrestadorDashboardService;
 use App\Services\VendasReportService;
-use App\Support\ApplicableFees;
 use App\Support\CrmPrivacyLock;
+use App\Support\MarcacaoMoneyBatch;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -70,24 +70,14 @@ class DashboardController extends Controller
         }
 
         $monthLabels = [];
-        $vendasAnoAtual = [];
-        $vendasAnoAnterior = [];
-        $atendidosAnoAtual = [];
-        $atendidosAnoAnterior = [];
-
         for ($month = 1; $month <= 12; $month++) {
             $monthLabels[] = Carbon::create($currentYear, $month, 1)
                 ->locale('pt_PT')
                 ->translatedFormat('M');
-
-            [$startAtual, $endAtual] = $this->resumoMonthBounds($currentYear, $month, $today);
-            [$startAnterior, $endAnterior] = $this->resumoMonthBounds($previousYear, $month, $today);
-
-            $vendasAnoAtual[] = round($this->resumoVendasEntre($startAtual, $endAtual), 2);
-            $vendasAnoAnterior[] = round($this->resumoVendasEntre($startAnterior, $endAnterior), 2);
-            $atendidosAnoAtual[] = $this->resumoClientesAtendidosEntre($startAtual, $endAtual);
-            $atendidosAnoAnterior[] = $this->resumoClientesAtendidosEntre($startAnterior, $endAnterior);
         }
+
+        [$vendasAnoAtual, $vendasAnoAnterior] = $this->resumoVendasAnuaisPorMes($currentYear, $previousYear, $today);
+        [$atendidosAnoAtual, $atendidosAnoAnterior] = $this->resumoAtendidosAnuaisPorMes($currentYear, $previousYear, $today);
 
         $clientesContacto = $this->resumoClientesContactoStats();
         $vendasMesCorrente = $this->resumoVendasDiariasDoMes($today);
@@ -342,24 +332,11 @@ class DashboardController extends Controller
             ])
             ->whereBetween('start_at', [$startUtc, $endUtc])
             ->with([
-                'eventServiceItems.service.fees',
                 'eventServiceItems.extras.extra',
             ])
             ->get();
 
-        $previsto = 0.0;
-        $porFazer = 0.0;
-        foreach ($events as $event) {
-            $subtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $event->eventServiceItems);
-            $due = ApplicableFees::amountDueCashFromEventId((int) $event->id, $subtotal);
-            $previsto += max(0.0, $subtotal);
-            $porFazer += max(0.0, $due);
-        }
-
-        return [
-            'previsto' => round($previsto, 2),
-            'por_fazer' => round($porFazer, 2),
-        ];
+        return MarcacaoMoneyBatch::sumPipelineTotals($events);
     }
 
     /**
@@ -455,15 +432,124 @@ class DashboardController extends Controller
      */
     private function resumoClientesContactoStats(): array
     {
-        $base = Client::forStore(current_store_id());
-        $total = (clone $base)->count();
+        $row = Client::forStore(current_store_id())
+            ->selectRaw("COUNT(*) as total")
+            ->selectRaw("SUM(CASE WHEN phone IS NOT NULL AND phone != '' THEN 1 ELSE 0 END) as com_telemovel")
+            ->selectRaw("SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as com_email")
+            ->selectRaw('SUM(CASE WHEN birth_date IS NOT NULL THEN 1 ELSE 0 END) as com_aniversario')
+            ->first();
 
         return [
-            'total' => $total,
-            'com_telemovel' => (clone $base)->whereNotNull('phone')->where('phone', '!=', '')->count(),
-            'com_email' => (clone $base)->whereNotNull('email')->where('email', '!=', '')->count(),
-            'com_aniversario' => (clone $base)->whereNotNull('birth_date')->count(),
+            'total' => (int) ($row->total ?? 0),
+            'com_telemovel' => (int) ($row->com_telemovel ?? 0),
+            'com_email' => (int) ($row->com_email ?? 0),
+            'com_aniversario' => (int) ($row->com_aniversario ?? 0),
         ];
+    }
+
+    /**
+     * @return array{0: list<float>, 1: list<float>}
+     */
+    private function resumoVendasAnuaisPorMes(int $currentYear, int $previousYear, Carbon $today): array
+    {
+        return [
+            $this->resumoVendasPorMesDoAno($currentYear, $today),
+            $this->resumoVendasPorMesDoAno($previousYear, $today),
+        ];
+    }
+
+    /**
+     * @return list<float>
+     */
+    private function resumoVendasPorMesDoAno(int $year, Carbon $today): array
+    {
+        [$start, $end] = $this->resumoMonthBounds($year, 1, $today);
+        $end = $this->resumoMonthBounds($year, 12, $today)[1];
+        $tz = $today->timezoneName;
+
+        $startUtc = StoreBusinessTime::toUtcInstant($start->copy()->startOfDay());
+        $endUtc = StoreBusinessTime::toUtcInstant($end->copy()->endOfDay());
+
+        $sales = Sale::query()
+            ->where('store_id', current_store_id())
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function ($cq) use ($startUtc, $endUtc): void {
+                $cq->where('store_id', current_store_id())
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', CalendarEvent::STATUS_COMPLETO)
+                    ->whereBetween('start_at', [$startUtc, $endUtc]);
+            })
+            ->with(['calendarEvent:id,start_at'])
+            ->get(['id', 'total', 'calendar_event_id']);
+
+        $byMonth = array_fill(1, 12, 0.0);
+        foreach ($sales as $sale) {
+            $startAt = $sale->calendarEvent?->start_at;
+            if ($startAt === null) {
+                continue;
+            }
+            $month = (int) $startAt->timezone($tz)->month;
+            if ($month >= 1 && $month <= 12) {
+                $byMonth[$month] += (float) $sale->total;
+            }
+        }
+
+        $out = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $out[] = round($byMonth[$m], 2);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return array{0: list<int>, 1: list<int>}
+     */
+    private function resumoAtendidosAnuaisPorMes(int $currentYear, int $previousYear, Carbon $today): array
+    {
+        return [
+            $this->resumoAtendidosPorMesDoAno($currentYear, $today),
+            $this->resumoAtendidosPorMesDoAno($previousYear, $today),
+        ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function resumoAtendidosPorMesDoAno(int $year, Carbon $today): array
+    {
+        $storeId = current_store_id();
+        $nowUtc = StoreBusinessTime::nowUtcForStore($storeId);
+        [$start] = $this->resumoMonthBounds($year, 1, $today);
+        $end = $this->resumoMonthBounds($year, 12, $today)[1];
+        [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($start, $end);
+        $tz = $today->timezoneName;
+
+        $events = CalendarEvent::forStore($storeId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
+            ->whereNotNull('client_id')
+            ->whereBetween('start_at', [$startUtc, $endUtc])
+            ->alreadyPassed($nowUtc)
+            ->get(['id', 'start_at']);
+
+        $byMonth = array_fill(1, 12, 0);
+        foreach ($events as $event) {
+            if ($event->start_at === null) {
+                continue;
+            }
+            $month = (int) $event->start_at->timezone($tz)->month;
+            if ($month >= 1 && $month <= 12) {
+                $byMonth[$month]++;
+            }
+        }
+
+        $out = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $out[] = $byMonth[$m];
+        }
+
+        return $out;
     }
 
     /**

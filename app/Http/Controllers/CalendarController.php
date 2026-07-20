@@ -34,6 +34,7 @@ use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
 use App\Support\ClientContactMask;
 use App\Support\CrmPrivacyLock;
+use App\Support\MarcacaoMoneyBatch;
 use App\Support\PortugueseNationalHolidays;
 use App\Rules\ClientFullName;
 use Carbon\Carbon;
@@ -188,9 +189,7 @@ class CalendarController extends Controller
                 'eventServiceItems.service.fees',
                 'eventServiceItems.serviceOption',
                 'eventServiceItems.extras.extra',
-                'eventable',
                 'personalTimeType',
-                'sales',
                 'onlineBooking',
             ])
             ->where(function ($q) {
@@ -246,6 +245,11 @@ class CalendarController extends Controller
 
         $events = $query->get();
 
+        $moneyBatch = new MarcacaoMoneyBatch(
+            $events->pluck('id')->map(fn ($id): int => (int) $id)->all(),
+            (int) current_store_id(),
+        );
+
         $sameDayPayableCounts = [];
         foreach ($events as $candidate) {
             if (($candidate->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO || ! $candidate->client_id || $candidate->isMarcacaoStatusLocked()) {
@@ -253,7 +257,7 @@ class CalendarController extends Controller
             }
             $serviceItems = $candidate->eventServiceItems ?? collect();
             $subtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($serviceItems);
-            $amountDue = ApplicableFees::amountDueCashFromEventId((int) $candidate->id, $subtotal);
+            $amountDue = $moneyBatch->amountDue((int) $candidate->id, $subtotal);
             if ($amountDue <= 0.00001) {
                 continue;
             }
@@ -266,7 +270,7 @@ class CalendarController extends Controller
             ? collect($activeAgentUserIds)->map(fn ($id) => (string) $id)->flip()->all()
             : [];
 
-        $result = $events->map(function (CalendarEvent $event) use ($forResources, $validUserIds, $sameDayPayableCounts) {
+        $result = $events->map(function (CalendarEvent $event) use ($forResources, $validUserIds, $sameDayPayableCounts, $moneyBatch) {
             $classMap = CalendarEvent::typeClassMap();
             $className = $classMap[$event->event_type] ?? 'bg-secondary';
             $agentColor = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL ? null : ($event->user?->agent?->color);
@@ -277,19 +281,22 @@ class CalendarController extends Controller
 
             $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
             $statusIcon = $isTempoPessoal ? null : $event->status_icon;
-            $activeSales = $this->activeSalesForEvent((int) $event->id);
+            $activeSales = $moneyBatch->activeSalesForEvent((int) $event->id);
             $hasInvoice = $activeSales->isNotEmpty();
             $isCompleted = ($event->status ?? CalendarEvent::STATUS_AGENDADO) === CalendarEvent::STATUS_COMPLETO;
-            $includeCatalogFees = ApplicableFees::includeCatalogFeesForCalendarEvent($event);
-            $subtotal = ApplicableFees::chargeSubtotalForCalendarEvent($event, $serviceItems);
-            $bookingPaidAmount = ApplicableFees::marcacaoBookingPaidAmountForEvent((int) $event->id);
-            $amountDue = self::marcacaoAmountDueFromTotals($subtotal, $activeSales, (int) $event->id);
-            $hasActiveCaixaSale = $activeSales->contains(fn (Sale $s) => $s->scope === Sale::SCOPE_CAIXA_LIQUIDACAO);
+            $includeCatalogFees = $moneyBatch->includeCatalogFees($event, $serviceItems);
+            $subtotal = $moneyBatch->chargeSubtotal($event, $serviceItems);
+            $bookingPaidAmount = $moneyBatch->bookingPaidAmount((int) $event->id);
+            $discount = $moneyBatch->salesDiscount((int) $event->id);
+            $netSubtotal = max(0.0, round($subtotal - $discount, 2));
+            $amountDue = max(0.0, round($netSubtotal - $moneyBatch->moneyToward((int) $event->id), 2));
+            $hasActiveCaixaSale = $moneyBatch->hasActiveCaixa((int) $event->id);
             $servicesSubtotal = ApplicableFees::servicesExtrasSubtotalFromEventItems($serviceItems);
-            $invoiceSettled = $this->isMarcacaoFullySettled($event);
+            $invoiceSettled = ($event->event_type ?? '') === CalendarEvent::TYPE_MARCACAO
+                && $moneyBatch->amountDue((int) $event->id, $servicesSubtotal) <= 0.00001;
             $pendingFinalInvoice = $isCompleted && $servicesSubtotal > 0.00001 && ! $hasActiveCaixaSale && $amountDue <= 0.00001;
             $catalogFees = $includeCatalogFees
-                ? ApplicableFees::forServiceIds($serviceItems->pluck('service_id'), (int) $event->store_id)
+                ? $moneyBatch->catalogFeesForServiceItems($serviceItems)
                 : [];
             $paymentMethodLabels = Sale::paymentMethods();
             $paymentLines = $activeSales->map(function (Sale $s) use ($paymentMethodLabels) {
@@ -375,7 +382,7 @@ class CalendarController extends Controller
                     'catalog_fees' => $catalogFees,
                     'charged_fees' => $includeCatalogFees
                         ? []
-                        : ApplicableFees::chargedFeesForCalendarEvent((int) $event->id),
+                        : $moneyBatch->chargedFees((int) $event->id),
                     'booking_paid_amount' => $bookingPaidAmount,
                     'amount_due' => $amountDue,
                     'pending_final_invoice' => $pendingFinalInvoice,
