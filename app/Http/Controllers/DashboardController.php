@@ -56,18 +56,7 @@ class DashboardController extends Controller
         $slotsByWeekdayKey = $this->ocupacaoSlotsByWeekdayKey($store);
         $prestadorUserIds = $this->ocupacaoPrestadorUserIds();
 
-        $kpiPorPeriodo = [];
-        foreach (['hoje', 'ontem', 'amanha', 'semana', 'mes'] as $period) {
-            [$start, $end] = $this->resumoPeriodBounds($period, $today);
-            $pipeline = $this->resumoVendasPipelineEntre($start, $end);
-            $kpiPorPeriodo[$period] = [
-                'vendas_previsto' => $pipeline['previsto'],
-                'vendas_feitas' => round($this->resumoVendasEntre($start, $end), 2),
-                'vendas_por_fazer' => $pipeline['por_fazer'],
-                'clientes_atendidos' => $this->resumoClientesAtendidosEntre($start, $end),
-                'taxa_ocupacao' => $this->resumoTaxaOcupacaoEntre($start, $end, $slotsByWeekdayKey, $prestadorUserIds),
-            ];
-        }
+        $kpiPorPeriodo = $this->resumoKpiPorPeriodo($today, $slotsByWeekdayKey, $prestadorUserIds);
 
         $monthLabels = [];
         for ($month = 1; $month <= 12; $month++) {
@@ -291,6 +280,183 @@ class DashboardController extends Controller
                 $today->copy()->endOfDay(),
             ],
         };
+    }
+
+    /**
+     * KPIs dos 5 períodos numa passagem (evita 5× pipeline / vendas / ocupação).
+     *
+     * @param  array<string, int>  $slotsByWeekdayKey
+     * @return array<string, array{vendas_previsto: float, vendas_feitas: float, vendas_por_fazer: float, clientes_atendidos: int, taxa_ocupacao: float}>
+     */
+    private function resumoKpiPorPeriodo(Carbon $today, array $slotsByWeekdayKey, Collection $prestadorUserIds): array
+    {
+        $periods = ['hoje', 'ontem', 'amanha', 'semana', 'mes'];
+        /** @var array<string, array{0: Carbon, 1: Carbon}> $bounds */
+        $bounds = [];
+        foreach ($periods as $period) {
+            $bounds[$period] = $this->resumoPeriodBounds($period, $today);
+        }
+
+        $coverStart = $bounds['hoje'][0]->copy();
+        $coverEnd = $bounds['hoje'][1]->copy();
+        foreach ($bounds as [$start, $end]) {
+            if ($start->lt($coverStart)) {
+                $coverStart = $start->copy();
+            }
+            if ($end->gt($coverEnd)) {
+                $coverEnd = $end->copy();
+            }
+        }
+
+        [$coverStartUtc, $coverEndUtc] = $this->ocupacaoUtcQueryBounds($coverStart, $coverEnd);
+        /** @var array<string, array{0: Carbon, 1: Carbon}> $boundsUtc */
+        $boundsUtc = [];
+        foreach ($bounds as $period => [$start, $end]) {
+            $boundsUtc[$period] = $this->ocupacaoUtcQueryBounds($start, $end);
+        }
+
+        $storeId = current_store_id();
+        $nowUtc = StoreBusinessTime::nowUtcForStore($storeId);
+
+        $pipelineEvents = CalendarEvent::forStore($storeId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->whereNotIn('status', [
+                CalendarEvent::STATUS_CANCELADO,
+                CalendarEvent::STATUS_ANULADO,
+                CalendarEvent::STATUS_FALTOU,
+            ])
+            ->whereBetween('start_at', [$coverStartUtc, $coverEndUtc])
+            ->with(['eventServiceItems.extras.extra'])
+            ->get(['id', 'store_id', 'start_at', 'event_type', 'status']);
+
+        $moneyBatch = new MarcacaoMoneyBatch(
+            $pipelineEvents->pluck('id')->map(fn ($id): int => (int) $id)->all(),
+            (int) $storeId,
+        );
+
+        $pipelineByPeriod = array_fill_keys($periods, ['previsto' => 0.0, 'por_fazer' => 0.0]);
+        foreach ($pipelineEvents as $event) {
+            $startAt = $event->start_at;
+            if ($startAt === null) {
+                continue;
+            }
+            $serviceItems = $event->eventServiceItems ?? collect();
+            $subtotal = $moneyBatch->chargeSubtotal($event, $serviceItems);
+            $due = $moneyBatch->amountDue((int) $event->id, $subtotal);
+            $previsto = max(0.0, $subtotal);
+            $porFazer = max(0.0, $due);
+            foreach ($boundsUtc as $period => [$pStart, $pEnd]) {
+                if ($startAt->betweenIncluded($pStart, $pEnd)) {
+                    $pipelineByPeriod[$period]['previsto'] += $previsto;
+                    $pipelineByPeriod[$period]['por_fazer'] += $porFazer;
+                }
+            }
+        }
+
+        $vendasByPeriod = array_fill_keys($periods, 0.0);
+        $sales = Sale::query()
+            ->where('store_id', $storeId)
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function ($cq) use ($storeId, $coverStartUtc, $coverEndUtc): void {
+                $cq->where('store_id', $storeId)
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', CalendarEvent::STATUS_COMPLETO)
+                    ->whereBetween('start_at', [$coverStartUtc, $coverEndUtc]);
+            })
+            ->with(['calendarEvent:id,start_at'])
+            ->get(['id', 'total', 'calendar_event_id']);
+
+        foreach ($sales as $sale) {
+            $startAt = $sale->calendarEvent?->start_at;
+            if ($startAt === null) {
+                continue;
+            }
+            $total = (float) $sale->total;
+            foreach ($boundsUtc as $period => [$pStart, $pEnd]) {
+                if ($startAt->betweenIncluded($pStart, $pEnd)) {
+                    $vendasByPeriod[$period] += $total;
+                }
+            }
+        }
+
+        $atendidosByPeriod = array_fill_keys($periods, 0);
+        $atendidos = CalendarEvent::forStore($storeId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
+            ->whereNotNull('client_id')
+            ->whereBetween('start_at', [$coverStartUtc, $coverEndUtc])
+            ->alreadyPassed($nowUtc)
+            ->get(['id', 'start_at']);
+
+        foreach ($atendidos as $event) {
+            $startAt = $event->start_at;
+            if ($startAt === null) {
+                continue;
+            }
+            foreach ($boundsUtc as $period => [$pStart, $pEnd]) {
+                if ($startAt->betweenIncluded($pStart, $pEnd)) {
+                    $atendidosByPeriod[$period]++;
+                }
+            }
+        }
+
+        $numTecnicos = $prestadorUserIds->count();
+        $ocupacaoByPeriod = array_fill_keys($periods, 0.0);
+        if ($numTecnicos > 0) {
+            $filledMinutesByPeriod = array_fill_keys($periods, 0);
+            $ocupacaoEvents = CalendarEvent::forStore($storeId)
+                ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
+                ->whereIn('user_id', $prestadorUserIds)
+                ->whereBetween('start_at', [$coverStartUtc, $coverEndUtc])
+                ->with(['eventServiceItems:id,calendar_event_id,duration', 'eventServiceItems.extras:id,calendar_event_service_id,duration'])
+                ->get(['id', 'start_at']);
+
+            foreach ($ocupacaoEvents as $event) {
+                $startAt = $event->start_at;
+                if ($startAt === null) {
+                    continue;
+                }
+                $minutes = 0;
+                foreach ($event->eventServiceItems ?? [] as $item) {
+                    $minutes += (int) ($item->duration ?? 0);
+                    foreach ($item->extras ?? [] as $extra) {
+                        $minutes += (int) ($extra->duration ?? 0);
+                    }
+                }
+                if ($minutes <= 0) {
+                    continue;
+                }
+                foreach ($boundsUtc as $period => [$pStart, $pEnd]) {
+                    if ($startAt->betweenIncluded($pStart, $pEnd)) {
+                        $filledMinutesByPeriod[$period] += $minutes;
+                    }
+                }
+            }
+
+            foreach ($periods as $period) {
+                [$start, $end] = $bounds[$period];
+                $totalSlots = $this->ocupacaoTotalSlotsBetween($start, $end, $slotsByWeekdayKey, $numTecnicos);
+                if ($totalSlots <= 0) {
+                    continue;
+                }
+                $filledSlots = (float) ceil($filledMinutesByPeriod[$period] / self::SLOT_DURATION_MINUTES);
+                $ocupacaoByPeriod[$period] = round(min(100, ($filledSlots / $totalSlots) * 100), 1);
+            }
+        }
+
+        $out = [];
+        foreach ($periods as $period) {
+            $out[$period] = [
+                'vendas_previsto' => round($pipelineByPeriod[$period]['previsto'], 2),
+                'vendas_feitas' => round($vendasByPeriod[$period], 2),
+                'vendas_por_fazer' => round($pipelineByPeriod[$period]['por_fazer'], 2),
+                'clientes_atendidos' => $atendidosByPeriod[$period],
+                'taxa_ocupacao' => $ocupacaoByPeriod[$period],
+            ];
+        }
+
+        return $out;
     }
 
     /**
