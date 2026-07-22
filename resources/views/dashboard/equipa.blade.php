@@ -60,8 +60,9 @@
     }
     .dash-equipa-status {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem 1.25rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
         margin-top: 0.75rem;
         padding-top: 0.75rem;
         border-top: 1px solid var(--border-color, rgba(0,0,0,.06));

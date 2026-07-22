@@ -312,9 +312,7 @@ class DashboardController extends Controller
                 $pctMarcacao = $capacity > 0 ? (int) round(min(100, ($minMarcacao / $capacity) * 100)) : 0;
                 $pctPessoal = $capacity > 0 ? (int) round(min(100 - $pctMarcacao, ($minPessoal / $capacity) * 100)) : 0;
                 $pctVagas = $capacity > 0 ? max(0, 100 - $pctMarcacao - $pctPessoal) : 0;
-                $preenchimento = $capacity > 0
-                    ? round(min(100, (($minMarcacao + $minPessoal) / $capacity) * 100), 1)
-                    : 0.0;
+                $preenchimento = (float) $pctMarcacao;
 
                 $avatarUrl = $agent->avatar
                     ? asset('storage/'.$agent->avatar)
