@@ -226,11 +226,12 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
 
     Route::get('/dashboard', [DashboardController::class, 'resumo'])->name('dashboard');
     Route::get('/dashboard/marcacoes', [DashboardController::class, 'marcacoes'])->name('dashboard.marcacoes');
-    Route::get('/dashboard/imoveis', [DashboardController::class, 'imoveis'])->name('dashboard.imoveis');
-    Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
-    Route::get('/dashboard/clientes', [DashboardController::class, 'clientes'])->name('dashboard.clientes');
     Route::get('/dashboard/ocupacao', [DashboardController::class, 'ocupacao'])->name('dashboard.ocupacao');
     Route::get('/dashboard/financeiro', [DashboardController::class, 'financeiro'])->name('dashboard.financeiro');
+    Route::get('/dashboard/clientes', [DashboardController::class, 'clientes'])->name('dashboard.clientes');
+    Route::get('/dashboard/equipa', [DashboardController::class, 'equipa'])->name('dashboard.equipa');
+    Route::get('/dashboard/imoveis', [DashboardController::class, 'imoveis'])->name('dashboard.imoveis');
+    Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
 
     Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
     Route::get('/activity/navegacao', [ActivityLogController::class, 'navigation'])->name('activity.navigation');

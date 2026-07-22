@@ -8,9 +8,10 @@ class NavigationLogDisplay
     private const ROUTE_LABELS = [
         'dashboard' => 'Resumo',
         'dashboard.marcacoes' => 'Dashboard → Marcações',
-        'dashboard.clientes' => 'Dashboard → Clientes',
         'dashboard.ocupacao' => 'Dashboard → Ocupação',
         'dashboard.financeiro' => 'Dashboard → Financeiro',
+        'dashboard.clientes' => 'Dashboard → Clientes',
+        'dashboard.equipa' => 'Dashboard → Equipa',
         'dashboard.imoveis' => 'Dashboard → Imóveis',
         'dashboard.negocios' => 'Dashboard → Negócios',
         'agenda.index' => 'Agenda',

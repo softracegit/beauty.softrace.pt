@@ -398,7 +398,8 @@
 /* Modal caixa: modo «só fatura final» (sem escolha de pagamento / MB WAY / gorjeta) */
 #paymentModal.payment-pos-modal--invoice-only #paymentMethodSectionLegend,
 #paymentModal.payment-pos-modal--invoice-only #paymentMethodToggleGroup,
-#paymentModal.payment-pos-modal--invoice-only #paymentMbwayPhoneWrap {
+#paymentModal.payment-pos-modal--invoice-only #paymentMbwayPhoneWrap,
+#paymentModal.payment-pos-modal--invoice-only #paymentCashTenderWrap {
     display: none !important;
 }
 #paymentModal.payment-pos-modal--invoice-only .payment-pos-hero-gorjeta-wrap,
@@ -438,6 +439,7 @@
 #paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodSectionLegend,
 #paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodToggleGroup,
 #paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMbwayPhoneWrap,
+#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentCashTenderWrap,
 #paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentWalletPartialSummary {
     display: none !important;
 }

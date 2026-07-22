@@ -113,12 +113,7 @@
         </li>
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard.marcacoes') ? 'active' : '' }}" href="{{ route('dashboard.marcacoes') }}">
-            Marcações e Serviços
-          </a>
-        </li>
-        <li>
-          <a class="panel-link {{ request()->routeIs('dashboard.clientes') ? 'active' : '' }}" href="{{ route('dashboard.clientes') }}">
-            Clientes
+            Marcações
           </a>
         </li>
         <li>
@@ -129,6 +124,16 @@
         <li>
           <a class="panel-link {{ request()->routeIs('dashboard.financeiro') ? 'active' : '' }}" href="{{ route('dashboard.financeiro') }}">
             Financeiro
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard.clientes') ? 'active' : '' }}" href="{{ route('dashboard.clientes') }}">
+            Clientes
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('dashboard.equipa') ? 'active' : '' }}" href="{{ route('dashboard.equipa') }}">
+            Equipa
           </a>
         </li>
         @endif

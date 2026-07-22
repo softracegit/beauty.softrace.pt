@@ -2372,6 +2372,118 @@ document.addEventListener('DOMContentLoaded', function() {
         phoneWrap.classList.toggle('d-none', !show);
     }
 
+    function paymentModalFormatEur(amount) {
+        var n = Number(amount);
+        if (!Number.isFinite(n) || n < 0) n = 0;
+        return n.toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function paymentModalParseCashReceived() {
+        var input = $id('paymentCashReceived');
+        if (!input) return NaN;
+        var raw = String(input.value || '').trim().replace(',', '.');
+        if (raw === '') return NaN;
+        return parseFloat(raw);
+    }
+
+    function paymentModalCashTenderIsOk() {
+        var method = String(($id('paymentMethodValue') && $id('paymentMethodValue').value) || '').trim();
+        if (method !== 'dinheiro') return true;
+        if (paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft()) return true;
+        var received = paymentModalParseCashReceived();
+        if (!Number.isFinite(received) || received < 0) return false;
+        var due = paymentModalGetAmountDueCents() / 100;
+        return received + 0.00001 >= due;
+    }
+
+    function paymentModalApplyCashReceived(amount) {
+        var input = $id('paymentCashReceived');
+        if (!input) return;
+        var n = Number(amount);
+        if (!Number.isFinite(n) || n < 0) n = 0;
+        input.value = n.toFixed(2);
+        paymentModalSyncCashChange();
+        paymentModalSetPayButtonEnabled();
+    }
+
+    function paymentModalSyncCashChange() {
+        var changeEl = $id('paymentCashChange');
+        var hint = $id('paymentCashInsufficientHint');
+        var wrap = $id('paymentCashTenderWrap');
+        if (!changeEl) return;
+        var due = paymentModalGetAmountDueCents() / 100;
+        var received = paymentModalParseCashReceived();
+        var visible = !!(wrap && !wrap.classList.contains('d-none'));
+        if (!visible || !Number.isFinite(received)) {
+            changeEl.textContent = paymentModalFormatEur(0);
+            if (hint) hint.classList.add('d-none');
+            paymentModalSyncCashShortcutStates();
+            return;
+        }
+        if (received + 0.00001 < due) {
+            changeEl.textContent = paymentModalFormatEur(0);
+            if (hint) hint.classList.remove('d-none');
+            paymentModalSyncCashShortcutStates();
+            return;
+        }
+        if (hint) hint.classList.add('d-none');
+        changeEl.textContent = paymentModalFormatEur(received - due);
+        paymentModalSyncCashShortcutStates();
+    }
+
+    function paymentModalSyncCashShortcutStates() {
+        var wrap = $id('paymentCashShortcuts');
+        if (!wrap) return;
+        var due = paymentModalGetAmountDueCents() / 100;
+        var received = paymentModalParseCashReceived();
+        $$('#paymentCashShortcuts .payment-pos-cash-shortcut').forEach(function(btn) {
+            var raw = String(btn.getAttribute('data-cash-amount') || '');
+            var amount = raw === 'exact' ? due : parseFloat(raw);
+            if (!Number.isFinite(amount)) amount = 0;
+            var insufficient = amount + 0.00001 < due;
+            btn.classList.toggle('disabled', insufficient);
+            btn.toggleAttribute('disabled', insufficient);
+            var isActive = Number.isFinite(received) && Math.abs(received - amount) < 0.005;
+            btn.classList.toggle('active', isActive && !insufficient);
+        });
+    }
+
+    function paymentModalSyncCashTenderVisibility(method, opts) {
+        opts = opts || {};
+        var wrap = $id('paymentCashTenderWrap');
+        if (!wrap) return;
+        var show = String(method || '').trim() === 'dinheiro'
+            && !paymentModalIsInvoiceOnly()
+            && !paymentModalIsFinalizeDraft();
+        var pm = $id('paymentModal');
+        if (pm && pm.classList.contains('payment-pos-modal--wallet-covers')) {
+            show = false;
+        }
+        var wasHidden = wrap.classList.contains('d-none');
+        wrap.classList.toggle('d-none', !show);
+        var input = $id('paymentCashReceived');
+        if (show && input && (wasHidden || opts.reset)) {
+            var due = paymentModalGetAmountDueCents() / 100;
+            input.value = due > 0 ? due.toFixed(2) : '';
+            if (opts.focus !== false) {
+                setTimeout(function() {
+                    if (!input || wrap.classList.contains('d-none')) return;
+                    input.focus();
+                    input.select();
+                }, 30);
+            }
+        }
+        if (!show && input && opts.clear) {
+            input.value = '';
+        }
+        paymentModalSyncCashChange();
+    }
+
+    function paymentModalSyncMethodExtras(method, opts) {
+        paymentModalSyncMbwayPhoneVisibility(method);
+        paymentModalSyncCashTenderVisibility(method, opts);
+    }
+
     function paymentModalSyncManualPaymentTilesVisibility() {
         var transferBtn = $id('paymentMethodTransferenciaBtn');
         var manual = !paymentModalStripePaymentsEnabled();
@@ -2386,7 +2498,7 @@ document.addEventListener('DOMContentLoaded', function() {
             transferBtn.setAttribute('aria-pressed', 'false');
             method = '';
         }
-        paymentModalSyncMbwayPhoneVisibility(method);
+        paymentModalSyncMethodExtras(method);
     }
 
     function paymentModalIsReserva() {
@@ -2502,6 +2614,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pmv) pmv.value = '';
             var phoneWrap = $id('paymentMbwayPhoneWrap');
             if (phoneWrap) phoneWrap.classList.add('d-none');
+            var cashWrap = $id('paymentCashTenderWrap');
+            if (cashWrap) cashWrap.classList.add('d-none');
         }
     }
 
@@ -2880,6 +2994,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             phoneInput.value = rawPhone;
         }
+        paymentModalSyncCashTenderVisibility('', { clear: true });
         paymentModalFetchWalletBalance(function() {
             paymentModalFetchSavedCards(function() {
                 paymentModalSyncManualPaymentTilesVisibility();
@@ -2922,6 +3037,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 phoneInput.value = rawPhone;
             }
         }
+        paymentModalSyncCashTenderVisibility('', { clear: true });
         var customIn = $id('paymentReservaCustomAmount');
         if (customIn) customIn.value = '';
         var walletCb = $id('paymentWalletApply');
@@ -7418,6 +7534,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var stripeDue = paymentModalGetStripeDueCents();
             if (stripeDue > 0 && stripeDue < 50) return false;
         }
+        if (method === 'dinheiro' && !paymentModalCashTenderIsOk()) return false;
         return true;
     }
 
@@ -7522,6 +7639,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (paymentModalIsReserva()) {
             paymentModalSyncReservaWalletUi();
         }
+        paymentModalSyncCashChange();
         paymentModalUpdateConfirmLabel();
         paymentModalRefreshWalletHint();
     }
@@ -7886,7 +8004,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.setAttribute('aria-pressed', 'true');
         var method = card.dataset.method || '';
         $id('paymentMethodValue').value = method;
-        paymentModalSyncMbwayPhoneVisibility(method);
+        paymentModalSyncMethodExtras(method, { reset: true });
         if (method === 'creditos_carteira') {
             if (paymentModalIsReserva()) return;
             var dueCents = paymentModalGetAmountDueCents();
@@ -7923,6 +8041,7 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentModalReservaCustomAmount = Number.isFinite(n) && n >= 0.01 ? n : null;
             paymentModalUpdateReservaHero();
             paymentModalSyncReservaWalletUi();
+            paymentModalSyncCashChange();
             paymentModalUpdateConfirmLabel();
             paymentModalRefreshWalletHint();
             if (!paymentModalIsReserva()) return;
@@ -7976,6 +8095,26 @@ document.addEventListener('DOMContentLoaded', function() {
         var gIn = $id('paymentGorjeta');
         if (gIn && String(gIn.getAttribute('type') || '').toLowerCase() === 'number') {
             gIn.addEventListener('input', paymentModalUpdateTotals);
+        }
+        var cashIn = $id('paymentCashReceived');
+        if (cashIn) {
+            cashIn.addEventListener('input', function() {
+                paymentModalSyncCashChange();
+                paymentModalSetPayButtonEnabled();
+            });
+        }
+        var cashShortcuts = $id('paymentCashShortcuts');
+        if (cashShortcuts) {
+            cashShortcuts.addEventListener('click', function(e) {
+                var btn = e.target.closest('.payment-pos-cash-shortcut');
+                if (!btn || btn.disabled) return;
+                var raw = String(btn.getAttribute('data-cash-amount') || '');
+                var amount = raw === 'exact'
+                    ? (paymentModalGetAmountDueCents() / 100)
+                    : parseFloat(raw);
+                if (!Number.isFinite(amount) || amount < 0) return;
+                paymentModalApplyCashReceived(amount);
+            });
         }
     })();
 

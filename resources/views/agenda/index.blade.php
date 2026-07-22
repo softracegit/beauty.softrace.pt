@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/css/intlTelInput.css">
     <link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ static_asset('template/css/agenda.css') }}">
+    <link rel="stylesheet" href="{{ asset('template/css/payment-pos-modal.css') }}?v={{ file_exists(public_path('template/css/payment-pos-modal.css')) ? filemtime(public_path('template/css/payment-pos-modal.css')) : time() }}">
     <link rel="stylesheet" href="{{ asset('template/css/client-tags.css') }}?v={{ file_exists(public_path('template/css/client-tags.css')) ? filemtime(public_path('template/css/client-tags.css')) : time() }}">
     <style>
         body.crm-privacy-locked .agenda-oc-client-profile-btn,

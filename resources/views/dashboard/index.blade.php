@@ -1,5 +1,5 @@
 @extends('partials.layouts.main')
-@section('title', 'Dashboard - Marcações e Serviços | Beauty CRM')
+@section('title', 'Dashboard - Marcações | Beauty CRM')
 
 @section('css')
 <style>
@@ -32,6 +32,9 @@
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
     }
+    .dash-confirmacao-panel[hidden] {
+        display: none !important;
+    }
 </style>
 @endsection
 
@@ -47,7 +50,7 @@
 <div class="dash-welcome mb-4">
     <div class="d-flex align-items-center justify-content-between gap-3 w-100">
         <div class="dash-welcome-content">
-            <h2 class="dash-welcome-title mb-0">Marcações e Serviços</h2>
+            <h2 class="dash-welcome-title mb-0">Marcações</h2>
         </div>
         <div class="dash-welcome-actions flex-shrink-0">
             <a href="{{ route('agenda.index') }}" class="btn btn-primary">
@@ -109,6 +112,52 @@
             <span>{{ $variacaoReceita > 0 ? '+' : '' }}{{ $variacaoReceita }}%</span>
         </div>
         @endif
+    </div>
+</div>
+
+@php
+    $confirmacaoPorPeriodo = $confirmacaoPorPeriodo ?? [
+        'hoje' => ['confirmadas' => 0, 'nao_confirmadas' => 0, 'total' => 0, 'pct_confirmadas' => 0, 'pct_nao_confirmadas' => 0],
+        'amanha' => ['confirmadas' => 0, 'nao_confirmadas' => 0, 'total' => 0, 'pct_confirmadas' => 0, 'pct_nao_confirmadas' => 0],
+        'semana' => ['confirmadas' => 0, 'nao_confirmadas' => 0, 'total' => 0, 'pct_confirmadas' => 0, 'pct_nao_confirmadas' => 0],
+        'mes' => ['confirmadas' => 0, 'nao_confirmadas' => 0, 'total' => 0, 'pct_confirmadas' => 0, 'pct_nao_confirmadas' => 0],
+    ];
+@endphp
+<div class="card mb-4">
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <h5 class="card-title mb-0">Confirmadas vs não confirmadas</h5>
+        <div class="dash-chart-tabs" id="dashConfirmacaoTabs" role="tablist">
+            <button type="button" class="dash-chart-tab active" data-confirmacao-period="hoje" aria-selected="true">Hoje</button>
+            <button type="button" class="dash-chart-tab" data-confirmacao-period="amanha" aria-selected="false">Amanhã</button>
+            <button type="button" class="dash-chart-tab" data-confirmacao-period="semana" aria-selected="false">Semana</button>
+            <button type="button" class="dash-chart-tab" data-confirmacao-period="mes" aria-selected="false">Mês</button>
+        </div>
+    </div>
+    <div class="card-body">
+        @foreach (['hoje' => 'Hoje', 'amanha' => 'Amanhã', 'semana' => 'Esta semana', 'mes' => 'Este mês'] as $periodKey => $periodLabel)
+            @php $c = $confirmacaoPorPeriodo[$periodKey]; @endphp
+            <div class="dash-confirmacao-panel" data-confirmacao-panel="{{ $periodKey }}" @if($periodKey !== 'hoje') hidden @endif>
+                <div class="d-flex gap-4 flex-wrap align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="dash-traffic-dot" style="--dot-color: var(--success-color)"></span>
+                        <span><strong>{{ $c['confirmadas'] }}</strong> confirmadas ({{ $c['pct_confirmadas'] }}%)</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="dash-traffic-dot" style="--dot-color: var(--warning-color)"></span>
+                        <span><strong>{{ $c['nao_confirmadas'] }}</strong> não confirmadas ({{ $c['pct_nao_confirmadas'] }}%)</span>
+                    </div>
+                    <div class="text-muted small ms-md-auto">{{ $c['total'] }} marcações · {{ $periodLabel }}</div>
+                </div>
+                <div class="progress mt-3" style="height: 1.5rem;">
+                    @if ($c['total'] > 0)
+                        <div class="progress-bar bg-success" style="width: {{ $c['pct_confirmadas'] }}%">{{ $c['pct_confirmadas'] }}%</div>
+                        <div class="progress-bar bg-warning text-dark" style="width: {{ $c['pct_nao_confirmadas'] }}%">{{ $c['pct_nao_confirmadas'] }}%</div>
+                    @else
+                        <div class="progress-bar bg-secondary" style="width: 100%">Sem marcações</div>
+                    @endif
+                </div>
+            </div>
+        @endforeach
     </div>
 </div>
 
@@ -419,9 +468,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var barChart = new ApexCharts(document.querySelector('#revenueBarChart'), barOptions);
     barChart.render();
 
-    document.querySelectorAll('.dash-chart-tab').forEach(function(tab) {
+    document.querySelectorAll('.dash-chart-tab[data-period]').forEach(function(tab) {
         tab.addEventListener('click', function() {
-            document.querySelectorAll('.dash-chart-tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.dash-chart-tab[data-period]').forEach(function(t) { t.classList.remove('active'); });
             this.classList.add('active');
             var period = this.getAttribute('data-period');
             var data = revenueData[period] || revenueData.revenue;
@@ -431,6 +480,26 @@ document.addEventListener('DOMContentLoaded', function() {
             else barChart.updateOptions({ tooltip: { y: { formatter: function(v) { return v.toLocaleString('pt-PT') + ' €'; } } } });
         });
     });
+
+    var confirmacaoTabs = document.getElementById('dashConfirmacaoTabs');
+    if (confirmacaoTabs) {
+        confirmacaoTabs.querySelectorAll('[data-confirmacao-period]').forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                var period = this.getAttribute('data-confirmacao-period');
+                confirmacaoTabs.querySelectorAll('[data-confirmacao-period]').forEach(function(t) {
+                    t.classList.toggle('active', t === tab);
+                    t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+                });
+                document.querySelectorAll('[data-confirmacao-panel]').forEach(function(panel) {
+                    if (panel.getAttribute('data-confirmacao-panel') === period) {
+                        panel.removeAttribute('hidden');
+                    } else {
+                        panel.setAttribute('hidden', '');
+                    }
+                });
+            });
+        });
+    }
 
     @php
         $estadoLabels = [];

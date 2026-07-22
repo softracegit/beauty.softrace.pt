@@ -165,6 +165,25 @@
                     <input type="tel" class="form-control" id="paymentMbwayPhone" placeholder="+3519XXXXXXXX">
                     <div class="form-text">Se a ficha do cliente não tiver telemóvel, este número ficará guardado.</div>
                 </div>
+
+                <div class="mt-4 d-none" id="paymentCashTenderWrap">
+                    <div class="payment-pos-cash-tender-row d-flex align-items-center gap-2 flex-nowrap">
+                        <label for="paymentCashReceived" class="form-label mb-0 text-nowrap">Recebido</label>
+                        <input type="number" step="0.01" min="0" class="form-control payment-pos-cash-received-input" id="paymentCashReceived" placeholder="0,00" inputmode="decimal" autocomplete="off">
+                        <div class="payment-pos-cash-change text-nowrap ms-2" aria-live="polite">
+                            <span class="text-muted">Troco</span>
+                            <strong class="ms-1" id="paymentCashChange">0,00 €</strong>
+                        </div>
+                    </div>
+                    <div class="payment-pos-cash-shortcuts d-flex flex-wrap gap-1 mt-2" id="paymentCashShortcuts" role="group" aria-label="Valores rápidos">
+                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="exact">Exacto</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="5">5 €</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="10">10 €</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="20">20 €</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="50">50 €</button>
+                    </div>
+                    <div class="form-text text-danger d-none mb-0" id="paymentCashInsufficientHint">Valor insuficiente para o total a pagar.</div>
+                </div>
             </div>
             <div class="modal-footer pt-2 pb-3 border-top flex-nowrap gap-2 payment-pos-modal-footer">
                 <button type="button" class="btn btn-light" id="paymentCancelBtn">Cancelar</button>

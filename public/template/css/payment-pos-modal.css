@@ -3,7 +3,8 @@
 /* Modal caixa: modo «só fatura final» (sem escolha de pagamento / MB WAY / gorjeta) */
 #paymentModal.payment-pos-modal--invoice-only #paymentMethodSectionLegend,
 #paymentModal.payment-pos-modal--invoice-only #paymentMethodToggleGroup,
-#paymentModal.payment-pos-modal--invoice-only #paymentMbwayPhoneWrap {
+#paymentModal.payment-pos-modal--invoice-only #paymentMbwayPhoneWrap,
+#paymentModal.payment-pos-modal--invoice-only #paymentCashTenderWrap {
     display: none !important;
 }
 #paymentModal.payment-pos-modal--invoice-only .payment-pos-hero-gorjeta-wrap,
@@ -43,6 +44,7 @@
 #paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodSectionLegend,
 #paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodToggleGroup,
 #paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMbwayPhoneWrap,
+#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentCashTenderWrap,
 #paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentWalletPartialSummary {
     display: none !important;
 }
@@ -241,4 +243,25 @@
 
 #paymentConfirmBtn.btn-success {
     min-height: 2.75rem;
+}
+
+#paymentModal .payment-pos-cash-tender-row {
+    min-width: 0;
+}
+#paymentModal .payment-pos-cash-received-input {
+    width: 8rem !important;
+    max-width: 8rem !important;
+    min-width: 0 !important;
+    flex: 0 0 8rem !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+}
+#paymentModal .payment-pos-cash-change {
+    flex: 0 0 auto;
+}
+#paymentModal .payment-pos-cash-change strong {
+    font-variant-numeric: tabular-nums;
+}
+#paymentModal .payment-pos-cash-shortcut {
+    min-width: 3.25rem;
 }
