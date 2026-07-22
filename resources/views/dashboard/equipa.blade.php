@@ -7,6 +7,16 @@
     .dash-equipa-card {
         border-top: 3px solid var(--equipa-accent, #6c757d);
         height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .dash-equipa-card > .card-body {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .dash-equipa-card .dash-equipa-metrics {
+        margin-top: auto;
     }
     .dash-equipa-card .dash-equipa-head {
         display: flex;
@@ -73,6 +83,21 @@
         flex-shrink: 0;
         display: inline-block;
     }
+    /* Cinza médio-claro: distingue do verde e do branco das vagas */
+    .dash-equipa-dot--pessoal {
+        background-color: #b8c0cc !important;
+    }
+    .dash-equipa-dot--vagas {
+        background-color: #f8f9fa !important;
+        border: 1px solid #dee2e6;
+    }
+    .dash-equipa-bar .progress-bar.dash-equipa-seg-pessoal {
+        background-color: #b8c0cc !important;
+    }
+    .dash-equipa-bar .progress-bar.dash-equipa-seg-vagas {
+        background-color: #f8f9fa !important;
+        border-left: 1px solid #dee2e6;
+    }
 </style>
 @endsection
 
@@ -118,8 +143,8 @@
         @else
             <div class="row g-3">
                 @foreach ($cards as $card)
-                    <div class="col-12 col-sm-6 col-lg-3">
-                        <div class="card dash-equipa-card" style="--equipa-accent: {{ $card['color'] }}">
+                    <div class="col-12 col-sm-6 col-lg-3 d-flex">
+                        <div class="card dash-equipa-card w-100" style="--equipa-accent: {{ $card['color'] }}">
                             <div class="card-body">
                                 <div class="dash-equipa-head mb-3">
                                     <img src="{{ $card['avatar_url'] }}" alt="" class="dash-equipa-avatar">
@@ -140,40 +165,46 @@
                                             <div class="progress-bar bg-success" style="width: {{ $card['pct_marcacao'] }}%" title="Previstas"></div>
                                         @endif
                                         @if ($card['pct_pessoal'] > 0)
-                                            <div class="progress-bar bg-secondary" style="width: {{ $card['pct_pessoal'] }}%" title="Tempo pessoal"></div>
+                                            <div class="progress-bar dash-equipa-seg-pessoal" style="width: {{ $card['pct_pessoal'] }}%" title="Tempo pessoal"></div>
                                         @endif
                                         @if ($card['pct_vagas'] > 0)
-                                            <div class="progress-bar bg-light text-dark border-start" style="width: {{ $card['pct_vagas'] }}%" title="Vagas"></div>
+                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['pct_vagas'] }}%" title="Vagas"></div>
                                         @endif
                                     @else
                                         <div class="progress-bar bg-secondary" style="width: 100%">Loja fechada</div>
                                     @endif
                                 </div>
 
-                                <div class="dash-equipa-metric">
-                                    <span class="dash-equipa-metric-label">
-                                        <span class="dash-equipa-dot bg-success"></span>
-                                        Horas previstas
-                                    </span>
-                                    <span class="dash-equipa-metric-value">{{ $card['horas_marcacao'] }}</span>
-                                </div>
-                                <div class="dash-equipa-metric">
-                                    <span class="dash-equipa-metric-label">
-                                        <span class="dash-equipa-dot bg-secondary"></span>
-                                        Tempo pessoal
-                                    </span>
-                                    <span class="dash-equipa-metric-value">{{ $card['horas_pessoal'] }}</span>
-                                </div>
-                                <div class="dash-equipa-metric">
-                                    <span class="dash-equipa-metric-label">
-                                        <span class="dash-equipa-dot bg-light border"></span>
-                                        Horas vagas
-                                    </span>
-                                    <span class="dash-equipa-metric-value">{{ $card['horas_vagas'] }}</span>
-                                </div>
-                                <div class="dash-equipa-metric">
-                                    <span class="dash-equipa-metric-label text-muted">Capacidade</span>
-                                    <span class="dash-equipa-metric-value text-muted">{{ $card['horas_capacidade'] }}</span>
+                                <div class="dash-equipa-metrics">
+                                    <div class="dash-equipa-metric">
+                                        <span class="dash-equipa-metric-label">
+                                            <span class="dash-equipa-dot bg-success"></span>
+                                            Horas previstas
+                                        </span>
+                                        <span class="dash-equipa-metric-value">{{ $card['horas_marcacao'] }}</span>
+                                    </div>
+                                    <div class="dash-equipa-metric">
+                                        <span class="dash-equipa-metric-label">
+                                            <span class="dash-equipa-dot dash-equipa-dot--pessoal"></span>
+                                            Tempo pessoal
+                                        </span>
+                                        <span class="dash-equipa-metric-value">{{ $card['horas_pessoal'] }}</span>
+                                    </div>
+                                    <div class="dash-equipa-metric">
+                                        <span class="dash-equipa-metric-label">
+                                            <span class="dash-equipa-dot dash-equipa-dot--vagas"></span>
+                                            Horas vagas
+                                        </span>
+                                        <span class="dash-equipa-metric-value">{{ $card['horas_vagas'] }}</span>
+                                    </div>
+                                    <div class="dash-equipa-metric">
+                                        <span class="dash-equipa-metric-label">Tempo médio</span>
+                                        <span class="dash-equipa-metric-value">{{ $card['horas_medio'] }}</span>
+                                    </div>
+                                    <div class="dash-equipa-metric">
+                                        <span class="dash-equipa-metric-label text-muted">Capacidade</span>
+                                        <span class="dash-equipa-metric-value text-muted">{{ $card['horas_capacidade'] }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

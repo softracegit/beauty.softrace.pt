@@ -293,6 +293,8 @@ class DashboardController extends Controller
                 $minMarcacao = (int) $row['minutos_marcacao'];
                 $minPessoal = (int) $row['minutos_pessoal'];
                 $minVagas = max(0, $capacity - $minMarcacao - $minPessoal);
+                $marcacoesCount = (int) $row['marcacoes'];
+                $minMedio = $marcacoesCount > 0 ? (int) round($minMarcacao / $marcacoesCount) : 0;
                 $pctMarcacao = $capacity > 0 ? (int) round(min(100, ($minMarcacao / $capacity) * 100)) : 0;
                 $pctPessoal = $capacity > 0 ? (int) round(min(100 - $pctMarcacao, ($minPessoal / $capacity) * 100)) : 0;
                 $pctVagas = $capacity > 0 ? max(0, 100 - $pctMarcacao - $pctPessoal) : 0;
@@ -310,15 +312,17 @@ class DashboardController extends Controller
                     'name' => $agent->name ?: ($agent->user?->name ?? '—'),
                     'color' => $agent->color ?: '#6c757d',
                     'avatar_url' => $avatarUrl,
-                    'marcacoes' => (int) $row['marcacoes'],
+                    'marcacoes' => $marcacoesCount,
                     'minutos_marcacao' => $minMarcacao,
                     'minutos_pessoal' => $minPessoal,
                     'minutos_vagas' => $minVagas,
                     'minutos_capacidade' => $capacity,
+                    'minutos_medio' => $minMedio,
                     'horas_marcacao' => $this->equipaFormatMinutes($minMarcacao),
                     'horas_pessoal' => $this->equipaFormatMinutes($minPessoal),
                     'horas_vagas' => $this->equipaFormatMinutes($minVagas),
                     'horas_capacidade' => $this->equipaFormatMinutes($capacity),
+                    'horas_medio' => $this->equipaFormatMinutes($minMedio),
                     'pct_marcacao' => $pctMarcacao,
                     'pct_pessoal' => $pctPessoal,
                     'pct_vagas' => $pctVagas,
