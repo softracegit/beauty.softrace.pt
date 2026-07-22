@@ -208,7 +208,7 @@ class DashboardController extends Controller
                 'eventServiceItems:id,calendar_event_id,duration',
                 'eventServiceItems.extras:id,calendar_event_service_id,duration',
             ])
-            ->get(['id', 'user_id', 'start_at']);
+            ->get(['id', 'user_id', 'start_at', 'status']);
 
         $pessoal = CalendarEvent::forStore($storeId)
             ->where('event_type', CalendarEvent::TYPE_TEMPO_PESSOAL)
@@ -229,11 +229,17 @@ class DashboardController extends Controller
             foreach ($userIds as $uid) {
                 $agg[$period][$uid] = [
                     'marcacoes' => 0,
+                    'concluidas' => 0,
                     'minutos_marcacao' => 0,
                     'minutos_pessoal' => 0,
                 ];
             }
         }
+
+        $statusConcluidos = [
+            CalendarEvent::STATUS_TERMINADO,
+            CalendarEvent::STATUS_COMPLETO,
+        ];
 
         foreach ($marcacoes as $event) {
             $startAt = $event->start_at;
@@ -248,10 +254,15 @@ class DashboardController extends Controller
                     $minutes += (int) ($extra->duration ?? 0);
                 }
             }
+            $status = (string) ($event->status ?? CalendarEvent::STATUS_AGENDADO);
+            $isConcluida = in_array($status, $statusConcluidos, true);
             foreach ($boundsUtc as $period => [$pStart, $pEnd]) {
                 if ($startAt->betweenIncluded($pStart, $pEnd)) {
                     $agg[$period][$uid]['marcacoes']++;
                     $agg[$period][$uid]['minutos_marcacao'] += $minutes;
+                    if ($isConcluida) {
+                        $agg[$period][$uid]['concluidas']++;
+                    }
                 }
             }
         }
@@ -287,6 +298,7 @@ class DashboardController extends Controller
                 $uid = (int) ($agent->user_id ?? 0);
                 $row = $agg[$period][$uid] ?? [
                     'marcacoes' => 0,
+                    'concluidas' => 0,
                     'minutos_marcacao' => 0,
                     'minutos_pessoal' => 0,
                 ];
@@ -294,6 +306,8 @@ class DashboardController extends Controller
                 $minPessoal = (int) $row['minutos_pessoal'];
                 $minVagas = max(0, $capacity - $minMarcacao - $minPessoal);
                 $marcacoesCount = (int) $row['marcacoes'];
+                $concluidas = (int) $row['concluidas'];
+                $porConcluir = max(0, $marcacoesCount - $concluidas);
                 $minMedio = $marcacoesCount > 0 ? (int) round($minMarcacao / $marcacoesCount) : 0;
                 $pctMarcacao = $capacity > 0 ? (int) round(min(100, ($minMarcacao / $capacity) * 100)) : 0;
                 $pctPessoal = $capacity > 0 ? (int) round(min(100 - $pctMarcacao, ($minPessoal / $capacity) * 100)) : 0;
@@ -313,6 +327,8 @@ class DashboardController extends Controller
                     'color' => $agent->color ?: '#6c757d',
                     'avatar_url' => $avatarUrl,
                     'marcacoes' => $marcacoesCount,
+                    'concluidas' => $concluidas,
+                    'por_concluir' => $porConcluir,
                     'minutos_marcacao' => $minMarcacao,
                     'minutos_pessoal' => $minPessoal,
                     'minutos_vagas' => $minVagas,

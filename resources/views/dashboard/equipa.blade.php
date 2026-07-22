@@ -54,6 +54,33 @@
         height: 1.5rem;
         overflow: hidden;
     }
+    .dash-equipa-bar .progress-bar {
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .dash-equipa-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border-color, rgba(0,0,0,.06));
+        font-size: 0.875rem;
+    }
+    .dash-equipa-status-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .dash-equipa-status-item strong {
+        font-variant-numeric: tabular-nums;
+    }
+    .dash-equipa-dot--concluidas {
+        background-color: var(--bs-success, #198754) !important;
+    }
+    .dash-equipa-dot--por-concluir {
+        background-color: #ffc107 !important;
+    }
     .dash-equipa-metric {
         display: flex;
         align-items: center;
@@ -93,6 +120,7 @@
     }
     .dash-equipa-bar .progress-bar.dash-equipa-seg-pessoal {
         background-color: #b8c0cc !important;
+        color: #212529 !important;
     }
     .dash-equipa-bar .progress-bar.dash-equipa-seg-vagas {
         background-color: #f8f9fa !important;
@@ -159,16 +187,16 @@
                                     <div class="dash-equipa-marcacoes-label">Marcações</div>
                                 </div>
 
-                                <div class="progress dash-equipa-bar mb-3">
+                                <div class="progress dash-equipa-bar mb-3" style="height: 1.5rem;">
                                     @if ($card['minutos_capacidade'] > 0)
                                         @if ($card['pct_marcacao'] > 0)
-                                            <div class="progress-bar bg-success" style="width: {{ $card['pct_marcacao'] }}%" title="Previstas"></div>
+                                            <div class="progress-bar bg-success" style="width: {{ $card['pct_marcacao'] }}%" title="Horas previstas {{ $card['pct_marcacao'] }}%">{{ $card['pct_marcacao'] >= 12 ? $card['pct_marcacao'].'%' : '' }}</div>
                                         @endif
                                         @if ($card['pct_pessoal'] > 0)
-                                            <div class="progress-bar dash-equipa-seg-pessoal" style="width: {{ $card['pct_pessoal'] }}%" title="Tempo pessoal"></div>
+                                            <div class="progress-bar dash-equipa-seg-pessoal" style="width: {{ $card['pct_pessoal'] }}%" title="Tempo pessoal {{ $card['pct_pessoal'] }}%">{{ $card['pct_pessoal'] >= 12 ? $card['pct_pessoal'].'%' : '' }}</div>
                                         @endif
                                         @if ($card['pct_vagas'] > 0)
-                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['pct_vagas'] }}%" title="Vagas"></div>
+                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['pct_vagas'] }}%" title="Vagas {{ $card['pct_vagas'] }}%"></div>
                                         @endif
                                     @else
                                         <div class="progress-bar bg-secondary" style="width: 100%">Loja fechada</div>
@@ -204,6 +232,17 @@
                                     <div class="dash-equipa-metric">
                                         <span class="dash-equipa-metric-label text-muted">Capacidade</span>
                                         <span class="dash-equipa-metric-value text-muted">{{ $card['horas_capacidade'] }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="dash-equipa-status">
+                                    <div class="dash-equipa-status-item">
+                                        <span class="dash-equipa-dot dash-equipa-dot--concluidas"></span>
+                                        <span><strong>{{ $card['concluidas'] }}</strong> concluídas</span>
+                                    </div>
+                                    <div class="dash-equipa-status-item">
+                                        <span class="dash-equipa-dot dash-equipa-dot--por-concluir"></span>
+                                        <span><strong>{{ $card['por_concluir'] }}</strong> por concluir</span>
                                     </div>
                                 </div>
                             </div>
