@@ -276,7 +276,7 @@ Artisan::command(
         $catalog = $purgeCatalog ? ' --with-catalog' : '';
         $this->line('  1. php artisan zappy:purge --store='.$storeId.$catalog.' --force');
         $this->line('  2. php artisan zappy:import --store='.$storeId);
-        $this->line('  3. php artisan zappy:import --store='.$storeId.' --repair-times --repair-orphan-paid --repair-missing-services --repair-sale-discounts --repair-sale-dates --repair-relink-sales --repair-client-dates');
+        $this->line('  3. php artisan zappy:import --store='.$storeId.' --repair-times --repair-orphan-paid --repair-missing-services --repair-sale-discounts --repair-sale-dates --repair-sale-invoice-status --repair-relink-sales --repair-client-dates');
         if (! $purgeClients) {
             $this->comment('Nota: usou --without-clients; a lista de clientes não foi limpa.');
         }
@@ -286,7 +286,7 @@ Artisan::command(
 )->purpose('Apaga marcações/vendas/referências importadas do Zappy (preparar reimportação)');
 
 Artisan::command(
-    'zappy:import {--store=1 : ID da loja} {--dry-run : Simular sem gravar} {--fresh : Apagar referências Zappy da loja antes de importar} {--only= : Passos separados por vírgula (services,clients,appointments,sales)} {--repair-times : Corrigir horas das marcações já importadas (fuso Zappy→UTC)} {--repair-invoice-alerts : Atualizar scope das vendas importadas para caixa_liquidacao} {--repair-merge : Fundir marcações consecutivas do mesmo cliente/técnica} {--repair-relink-sales : Religar vendas (inclui fora de canceladas + repartição)} {--repair-orphan-paid : Corrigir marcações pagas sem venda (relink ou venda sintética)} {--repair-sale-discounts : Preencher desconto das vendas importadas a partir do CSV} {--repair-sale-dates : Corrigir data_emissao das vendas importadas a partir do CSV} {--repair-missing-services : Associar serviço por defeito a marcações importadas sem serviço} {--repair-client-dates : Corrigir data de criação dos clientes a partir do CSV Zappy} {--repair-distribute-sales : Repartir faturas por evento após separação de visitas}',
+    'zappy:import {--store=1 : ID da loja} {--dry-run : Simular sem gravar} {--fresh : Apagar referências Zappy da loja antes de importar} {--only= : Passos separados por vírgula (services,clients,appointments,sales)} {--repair-times : Corrigir horas das marcações já importadas (fuso Zappy→UTC)} {--repair-invoice-alerts : Atualizar scope das vendas importadas para caixa_liquidacao} {--repair-merge : Fundir marcações consecutivas do mesmo cliente/técnica} {--repair-relink-sales : Religar vendas (inclui fora de canceladas + repartição)} {--repair-orphan-paid : Corrigir marcações pagas sem venda (relink ou venda sintética)} {--repair-sale-discounts : Preencher desconto das vendas importadas a partir do CSV} {--repair-sale-dates : Corrigir data_emissao das vendas importadas a partir do CSV} {--repair-sale-invoice-status : Alinhar invoice_status (rascunho/faturado) com status do vendas.csv} {--repair-appointment-clients : Realinhar client_id das marcações/vendas ao nome Zappy (corrige fichas poluídas)} {--repair-missing-services : Associar serviço por defeito a marcações importadas sem serviço} {--repair-client-dates : Corrigir data de criação dos clientes a partir do CSV Zappy} {--repair-distribute-sales : Repartir faturas por evento após separação de visitas}',
     function (ZappyImportService $importer) {
     $storeId = (int) ($this->option('store') ?: config('zappy_import.default_store_id', 1));
     $dryRun = (bool) $this->option('dry-run');
@@ -298,19 +298,21 @@ Artisan::command(
     $repairOrphanPaid = (bool) $this->option('repair-orphan-paid');
     $repairSaleDiscounts = (bool) $this->option('repair-sale-discounts');
     $repairSaleDates = (bool) $this->option('repair-sale-dates');
+    $repairSaleInvoiceStatus = (bool) $this->option('repair-sale-invoice-status');
+    $repairAppointmentClients = (bool) $this->option('repair-appointment-clients');
     $repairMissingServices = (bool) $this->option('repair-missing-services');
     $repairDistributeSales = (bool) $this->option('repair-distribute-sales');
     $repairClientDates = (bool) $this->option('repair-client-dates');
     $only = trim((string) ($this->option('only') ?? ''));
 
-    if ($repairTimes || $repairInvoiceAlerts || $repairMerge || $repairRelinkSales || $repairOrphanPaid || $repairSaleDiscounts || $repairSaleDates || $repairMissingServices || $repairDistributeSales || $repairClientDates) {
+    if ($repairTimes || $repairInvoiceAlerts || $repairMerge || $repairRelinkSales || $repairOrphanPaid || $repairSaleDiscounts || $repairSaleDates || $repairSaleInvoiceStatus || $repairAppointmentClients || $repairMissingServices || $repairDistributeSales || $repairClientDates) {
         $this->info(sprintf(
             'Reparação importação Zappy → loja #%d%s',
             $storeId,
             $dryRun ? ' [DRY-RUN]' : '',
         ));
         try {
-            $stats = $importer->run($storeId, $dryRun, false, [], $repairTimes, $repairInvoiceAlerts, $repairMerge, $repairRelinkSales, $repairOrphanPaid, $repairSaleDiscounts, $repairMissingServices, $repairDistributeSales, $repairClientDates, $repairSaleDates);
+            $stats = $importer->run($storeId, $dryRun, false, [], $repairTimes, $repairInvoiceAlerts, $repairMerge, $repairRelinkSales, $repairOrphanPaid, $repairSaleDiscounts, $repairMissingServices, $repairDistributeSales, $repairClientDates, $repairSaleDates, $repairSaleInvoiceStatus, $repairAppointmentClients);
         } catch (\Throwable $e) {
             $this->error($e->getMessage());
 

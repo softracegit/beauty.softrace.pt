@@ -108,13 +108,15 @@ class ZappyImportService
         bool $repairDistributeSales = false,
         bool $repairClientDates = false,
         bool $repairSaleDates = false,
+        bool $repairSaleInvoiceStatus = false,
+        bool $repairAppointmentClients = false,
     ): array {
         $this->storeId = $storeId;
         $this->dryRun = $dryRun;
         $this->fresh = $fresh;
         $this->resetRuntimeState();
 
-        if ($repairTimes || $repairInvoiceAlerts || $repairMergeConsecutive || $repairRelinkSales || $repairOrphanPaid || $repairSaleDiscounts || $repairMissingServices || $repairDistributeSales || $repairClientDates || $repairSaleDates) {
+        if ($repairTimes || $repairInvoiceAlerts || $repairMergeConsecutive || $repairRelinkSales || $repairOrphanPaid || $repairSaleDiscounts || $repairMissingServices || $repairDistributeSales || $repairClientDates || $repairSaleDates || $repairSaleInvoiceStatus || $repairAppointmentClients) {
             $repairStats = [];
             if ($repairTimes) {
                 $repairStats = array_merge($repairStats, $this->repairSplitOverMergedAppointments());
@@ -148,6 +150,12 @@ class ZappyImportService
             }
             if ($repairSaleDates) {
                 $repairStats = array_merge($repairStats, $this->repairImportedSaleDates());
+            }
+            if ($repairSaleInvoiceStatus) {
+                $repairStats = array_merge($repairStats, $this->repairImportedSaleInvoiceStatus());
+            }
+            if ($repairAppointmentClients) {
+                $repairStats = array_merge($repairStats, $this->repairImportedAppointmentClientLinks());
             }
             if ($repairMissingServices) {
                 $repairStats = array_merge($repairStats, $this->repairMissingAppointmentServices());
@@ -1077,6 +1085,7 @@ class ZappyImportService
                 'payment_method' => null,
                 'scope' => $salesScope,
                 'status' => $isCancelled ? Sale::STATUS_ANULADO : Sale::STATUS_PAGO,
+                'invoice_status' => $this->invoiceStatusFromSalesCsvRow($first),
                 'issue_without_fiscal_id' => true,
                 'created_at' => $dataEmissao,
                 'updated_at' => $dataEmissao,
@@ -2249,6 +2258,312 @@ class ZappyImportService
     }
 
     /**
+     * Realinha client_id das marcações (e vendas ligadas) ao nome guardado na ref Zappy.
+     * Corrige fichas poluídas por colisão de clientes sem telemóvel na importação antiga.
+     *
+     * @return array<string, int>
+     */
+    public function repairImportedAppointmentClientLinks(): array
+    {
+        $this->loadExistingClientRefs();
+        $this->loadClientCreatedOnIndex();
+
+        $refs = ZappyImportRef::query()
+            ->where('store_id', $this->storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_APPOINTMENT)
+            ->get(['zappy_key', 'local_id', 'meta']);
+
+        /** @var array<int, array<string, string>> $namesByEvent */
+        $namesByEvent = [];
+        foreach ($refs as $ref) {
+            $eventId = (int) $ref->local_id;
+            if ($eventId <= 0) {
+                continue;
+            }
+            $displayName = trim((string) (($ref->meta['client'] ?? '') ?: ''));
+            if ($displayName === '') {
+                $parts = explode('|', (string) $ref->zappy_key);
+                $displayName = trim((string) ($parts[1] ?? ''));
+            }
+            if ($displayName === '') {
+                continue;
+            }
+            $norm = $this->normalizeName($displayName);
+            if ($norm === '') {
+                continue;
+            }
+            $namesByEvent[$eventId][$norm] = $displayName;
+        }
+
+        $eventsUpdated = 0;
+        $salesUpdated = 0;
+        $clientsCreated = 0;
+        $unchanged = 0;
+        $ambiguous = 0;
+        $missingEvent = 0;
+
+        foreach ($namesByEvent as $eventId => $nameMap) {
+            if (count($nameMap) > 1) {
+                $ambiguous++;
+
+                continue;
+            }
+
+            $csvName = (string) reset($nameMap);
+            $event = CalendarEvent::query()
+                ->where('store_id', $this->storeId)
+                ->whereKey($eventId)
+                ->first();
+            if ($event === null) {
+                $missingEvent++;
+
+                continue;
+            }
+
+            $currentName = $event->client_id
+                ? (string) (Client::query()->whereKey($event->client_id)->value('name') ?? '')
+                : '';
+            if ($this->normalizeName($currentName) === $this->normalizeName($csvName)) {
+                $unchanged++;
+
+                continue;
+            }
+
+            $beforeResolve = $this->resolveClientIdByName($csvName);
+            $desiredClientId = $this->createPlaceholderClient($csvName, $event->start_at);
+            if ($desiredClientId === null) {
+                continue;
+            }
+            if ($beforeResolve === null && ! $this->dryRun) {
+                $clientsCreated++;
+            } elseif ($beforeResolve === null && $this->dryRun) {
+                $clientsCreated++;
+            }
+
+            if ((int) $event->client_id === (int) $desiredClientId) {
+                $unchanged++;
+
+                continue;
+            }
+
+            if ($this->dryRun) {
+                $eventsUpdated++;
+                $salesUpdated += Sale::query()
+                    ->where('store_id', $this->storeId)
+                    ->where('calendar_event_id', $eventId)
+                    ->where(function ($q) use ($desiredClientId): void {
+                        $q->whereNull('client_id')
+                            ->orWhere('client_id', '!=', $desiredClientId);
+                    })
+                    ->count();
+
+                continue;
+            }
+
+            CalendarEvent::withoutEvents(function () use ($event, $desiredClientId, $csvName): void {
+                $title = (string) $event->title;
+                $newTitle = $title;
+                if (str_contains($title, ' — ')) {
+                    $suffix = explode(' — ', $title, 2)[1] ?? '';
+                    $newTitle = $suffix !== '' ? ($csvName.' — '.$suffix) : $csvName;
+                } elseif ($title === '' || $this->normalizeName($title) === $this->normalizeName((string) ($event->client?->name ?? ''))) {
+                    $newTitle = $csvName;
+                }
+                $event->update([
+                    'client_id' => $desiredClientId,
+                    'title' => $newTitle,
+                ]);
+            });
+            $eventsUpdated++;
+
+            $salesUpdated += Sale::query()
+                ->where('store_id', $this->storeId)
+                ->where('calendar_event_id', $eventId)
+                ->where(function ($q) use ($desiredClientId): void {
+                    $q->whereNull('client_id')
+                        ->orWhere('client_id', '!=', $desiredClientId);
+                })
+                ->update(['client_id' => $desiredClientId]);
+        }
+
+        // Vendas importadas: alinhar client_id ao client_name do CSV (mesmo sem evento).
+        $saleStats = $this->repairImportedSaleClientLinksFromCsv();
+
+        return [
+            'appointment_clients_updated' => $eventsUpdated,
+            'appointment_sales_clients_updated' => $salesUpdated,
+            'appointment_clients_created' => $clientsCreated,
+            'appointment_clients_unchanged' => $unchanged,
+            'appointment_clients_ambiguous' => $ambiguous,
+            'appointment_clients_missing_event' => $missingEvent,
+            'sale_clients_updated_from_csv' => $saleStats['sale_clients_updated_from_csv'],
+            'sale_clients_created_from_csv' => $saleStats['sale_clients_created_from_csv'],
+        ];
+    }
+
+    /**
+     * @return array{sale_clients_updated_from_csv: int, sale_clients_created_from_csv: int}
+     */
+    private function repairImportedSaleClientLinksFromCsv(): array
+    {
+        $updated = 0;
+        $created = 0;
+
+        $clientByDoc = [];
+        foreach ($this->reader->read($this->csvPath('sales')) as $row) {
+            $docId = trim($row['doc_id'] ?? '');
+            $clientName = trim($row['client_name'] ?? '');
+            if ($docId === '' || $clientName === '' || isset($clientByDoc[$docId])) {
+                continue;
+            }
+            $clientByDoc[$docId] = $clientName;
+        }
+
+        $refs = ZappyImportRef::query()
+            ->where('store_id', $this->storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_SALE)
+            ->get(['zappy_key', 'local_id']);
+
+        foreach ($refs as $ref) {
+            $zappyKey = (string) $ref->zappy_key;
+            $docId = $zappyKey;
+            $at = strpos($zappyKey, '@');
+            if ($at !== false) {
+                $docId = substr($zappyKey, 0, $at);
+            }
+            // Vendas sintéticas ZAPPY-* não vêm do CSV.
+            if (str_starts_with($docId, 'ZAPPY-') || ! isset($clientByDoc[$docId])) {
+                continue;
+            }
+
+            $csvName = $clientByDoc[$docId];
+            $sale = Sale::query()->whereKey($ref->local_id)->first();
+            if ($sale === null) {
+                continue;
+            }
+
+            $currentName = $sale->client_id
+                ? (string) (Client::query()->whereKey($sale->client_id)->value('name') ?? '')
+                : '';
+            if ($this->normalizeName($currentName) === $this->normalizeName($csvName)) {
+                continue;
+            }
+
+            $before = $this->resolveClientIdByName($csvName);
+            $desired = $this->createPlaceholderClient($csvName, $sale->created_at);
+            if ($desired === null) {
+                continue;
+            }
+            if ($before === null) {
+                $created++;
+            }
+            if ((int) $sale->client_id === (int) $desired) {
+                continue;
+            }
+
+            if (! $this->dryRun) {
+                $sale->update(['client_id' => $desired]);
+            }
+            $updated++;
+        }
+
+        return [
+            'sale_clients_updated_from_csv' => $updated,
+            'sale_clients_created_from_csv' => $created,
+        ];
+    }
+
+    /**
+     * Alinha invoice_status (rascunho/faturado) das vendas importadas com status/status_value do vendas.csv.
+     *
+     * @return array<string, int>
+     */
+    public function repairImportedSaleInvoiceStatus(): array
+    {
+        $statusByDoc = [];
+        foreach ($this->reader->read($this->csvPath('sales')) as $row) {
+            $docId = trim($row['doc_id'] ?? '');
+            if ($docId === '' || isset($statusByDoc[$docId])) {
+                continue;
+            }
+            $statusByDoc[$docId] = $this->invoiceStatusFromSalesCsvRow($row);
+        }
+
+        $refs = ZappyImportRef::query()
+            ->where('store_id', $this->storeId)
+            ->where('entity_type', ZappyImportRef::TYPE_SALE)
+            ->get(['zappy_key', 'local_id']);
+
+        if ($refs->isEmpty()) {
+            return [
+                'sales_invoice_status_updated' => 0,
+                'sales_invoice_status_skipped' => 0,
+                'sales_invoice_status_missing_csv' => 0,
+            ];
+        }
+
+        $updated = 0;
+        $skipped = 0;
+        $missingCsv = 0;
+
+        foreach ($refs as $ref) {
+            $zappyKey = (string) $ref->zappy_key;
+            $docId = $zappyKey;
+            $at = strpos($zappyKey, '@');
+            if ($at !== false) {
+                $docId = substr($zappyKey, 0, $at);
+            }
+
+            if (! isset($statusByDoc[$docId])) {
+                $missingCsv++;
+
+                continue;
+            }
+
+            $desired = $statusByDoc[$docId];
+            $sale = Sale::query()->whereKey($ref->local_id)->first();
+            if ($sale === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            $current = $sale->invoice_status ?? Sale::INVOICE_STATUS_FATURADO;
+            if ($current === $desired) {
+                $skipped++;
+
+                continue;
+            }
+
+            if (! $this->dryRun) {
+                $sale->forceFill(['invoice_status' => $desired])->save();
+            }
+            $updated++;
+        }
+
+        return [
+            'sales_invoice_status_updated' => $updated,
+            'sales_invoice_status_skipped' => $skipped,
+            'sales_invoice_status_missing_csv' => $missingCsv,
+        ];
+    }
+
+    /**
+     * @param  array<string, string>  $row
+     */
+    private function invoiceStatusFromSalesCsvRow(array $row): string
+    {
+        $value = mb_strtolower(trim($row['status_value'] ?? ''), 'UTF-8');
+        $label = mb_strtolower(trim($row['status'] ?? ''), 'UTF-8');
+
+        if ($value === 'draft' || $label === 'rascunho') {
+            return Sale::INVOICE_STATUS_RASCUNHO;
+        }
+
+        return Sale::INVOICE_STATUS_FATURADO;
+    }
+
+    /**
      * Preenche desconto nas vendas importadas a partir de item_total_discount do CSV Zappy.
      *
      * @return array<string, int>
@@ -3000,6 +3315,7 @@ class ZappyImportService
                 'payment_method' => $parent->payment_method,
                 'scope' => (string) config('zappy_import.sales_scope', Sale::SCOPE_CAIXA_LIQUIDACAO),
                 'status' => Sale::STATUS_PAGO,
+                'invoice_status' => $parent->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
                 'issue_without_fiscal_id' => true,
                 'created_at' => $parent->created_at,
                 'updated_at' => $parent->updated_at,
@@ -3012,6 +3328,7 @@ class ZappyImportService
                 'total' => $total,
                 'desconto' => $desconto > 0 ? $desconto : null,
                 'valor_pago' => $total,
+                'invoice_status' => $parent->invoice_status ?? Sale::INVOICE_STATUS_FATURADO,
             ]);
             $sale->items()->delete();
         }
