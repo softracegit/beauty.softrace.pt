@@ -152,7 +152,9 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
 
 Schedule::command('booking:dispatch-sms-reminders')
     ->everyMinute()
-    ->withoutOverlapping();
+    // Expiração curta: se o processo morrer a meio, o lock não bloqueia o resto do dia
+    // (default do Laravel é 1440 min = 24h — causa «No scheduled commands are ready to run»).
+    ->withoutOverlapping(5);
 
 Artisan::command('wallet:reconcile {--store=} {--fix}', function (ClientWalletService $wallet) {
     $storeId = $this->option('store');
