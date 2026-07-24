@@ -405,13 +405,13 @@ class User extends Authenticatable
     /** Estados que o prestador pode definir numa marcação. */
     public function prestadorAllowedMarcacaoStatuses(): array
     {
-        return ['chegou', 'iniciado', 'faltou', 'cancelado'];
+        return ['chegou', 'iniciado'];
     }
 
-    /** Prestador / posto bloqueado: pode abrir o fluxo Faltou / Cancelar. */
+    /** Admin / receção: pode abrir o fluxo Faltou / Cancelar (prestador não). */
     public function canCancelOrMarkMarcacaoFalta(): bool
     {
-        return $this->isAdmin() || $this->isRececao() || $this->isPrestador();
+        return $this->isAdmin() || $this->isRececao();
     }
 
     /** Estados em que o prestador pode editar o conteúdo da marcação (serviços, extras, etc.). */

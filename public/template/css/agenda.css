@@ -1969,6 +1969,12 @@ body.page-agenda .app-wrapper .container-fluid {
     gap: 2px;
     padding: var(--spacing-md, 0.75rem);
 }
+#agendaQuickMenu .quickaccess-message {
+    padding: 0.85rem 1.2rem 1.1rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--bs-secondary-color, #6c757d);
+}
 #agendaQuickMenu .quickaccess-item {
     display: flex;
     flex-direction: column;

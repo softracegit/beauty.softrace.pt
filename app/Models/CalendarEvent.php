@@ -512,6 +512,48 @@ class CalendarEvent extends Model
     }
 
     /**
+     * Margem (minutos) para ainda criar/editar no “quase passado” (ex.: às 17:00 marcar 16:50).
+     */
+    public const PAST_CREATE_GRACE_MINUTES = 20;
+
+    /**
+     * Início já passou no fuso da loja (relógio de parede), com margem opcional.
+     */
+    public function startsInPastForStore(int $graceMinutes = 0): bool
+    {
+        if (! $this->start_at) {
+            return false;
+        }
+
+        $storeId = (int) ($this->store_id ?? 0);
+        if ($storeId <= 0) {
+            $cutoff = now()->subMinutes(max(0, $graceMinutes));
+
+            return $this->start_at->lt($cutoff);
+        }
+
+        return self::startIsTooFarInPastForStore(
+            $this->start_at,
+            $storeId,
+            max(0, $graceMinutes),
+        );
+    }
+
+    /**
+     * O início está antes de (agora na loja − margem). Usado ao criar/mover marcações e tempos pessoais.
+     */
+    public static function startIsTooFarInPastForStore(
+        CarbonInterface $start,
+        int $storeId,
+        ?int $graceMinutes = null,
+    ): bool {
+        $grace = $graceMinutes ?? self::PAST_CREATE_GRACE_MINUTES;
+        $cutoff = StoreBusinessTime::nowUtcForStore($storeId)->subMinutes(max(0, $grace));
+
+        return $start->copy()->utc()->lt($cutoff);
+    }
+
+    /**
      * Registo retroativo na agenda (início antes de agora na loja): sem emails/sininho de criação/alteração.
      */
     public function shouldSendBookingNotifications(): bool

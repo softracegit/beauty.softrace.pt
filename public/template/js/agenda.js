@@ -59,6 +59,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const canProcessPayments = agendaPerms.canProcessPayments !== false;
     const canUsePaymentDraft = agendaPerms.canUsePaymentDraft !== false;
     const canCreateMarcacao = agendaPerms.canCreateMarcacao !== false;
+    const canCreateMarcacaoInPast = agendaPerms.canCreateMarcacaoInPast === true || !!C.currentUserIsAdmin;
+    const pastCreateGraceMinutesRaw = Number(C.pastCreateGraceMinutes);
+    const PAST_CREATE_GRACE_MINUTES = Number.isFinite(pastCreateGraceMinutesRaw) && pastCreateGraceMinutesRaw >= 0
+        ? pastCreateGraceMinutesRaw
+        : 20;
     const canViewClientContacts = agendaPerms.canViewClientContacts !== false;
     const canViewClientProfile = agendaPerms.canViewClientProfile !== false;
     const crmPrivacyLockedUi = !!(document.body && document.body.classList.contains('crm-privacy-locked'));
@@ -68,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const canCancelOrMarkMarcacaoFalta = agendaPerms.canCancelOrMarkMarcacaoFalta !== false;
     const prestadorAllowedStatuses = Array.isArray(agendaPerms.prestadorAllowedStatuses)
         ? agendaPerms.prestadorAllowedStatuses
-        : ['chegou', 'iniciado', 'faltou', 'cancelado'];
+        : ['chegou', 'iniciado'];
     const prestadorEditableStatuses = Array.isArray(agendaPerms.prestadorEditableStatuses)
         ? agendaPerms.prestadorEditableStatuses
         : ['agendado', 'notificado', 'confirmado', 'chegou', 'iniciado'];
@@ -1024,6 +1029,178 @@ document.addEventListener('DOMContentLoaded', function() {
             shouldWarnOutOfHours(range.start, range.end, userId),
             'agendaOcHorarioAvisoWrap'
         );
+        updateAgendaOcPastStartGuard();
+    }
+
+    /**
+     * Agora (relógio de parede) no fuso da loja — YYYY-MM-DD + HH:mm.
+     */
+    function agendaStoreNowWallClock() {
+        return agendaWallClockFromDate(new Date());
+    }
+
+    /** Relógio de parede no fuso da loja para um instante (Date ou parseável). */
+    function agendaWallClockFromDate(dateLike) {
+        var tz = C.storeTimezone || 'Europe/Lisbon';
+        var d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+        if (isNaN(d.getTime())) {
+            d = new Date();
+        }
+        try {
+            var parts = {};
+            new Intl.DateTimeFormat('en-GB', {
+                timeZone: tz,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+            }).formatToParts(d).forEach(function (p) {
+                if (p.type !== 'literal') parts[p.type] = p.value;
+            });
+            var hour = parts.hour === '24' ? '00' : parts.hour;
+            return {
+                ymd: parts.year + '-' + parts.month + '-' + parts.day,
+                hm: hour + ':' + parts.minute,
+            };
+        } catch (e) {
+            return {
+                ymd: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'),
+                hm: String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'),
+            };
+        }
+    }
+
+    /** Corte «passado» com margem (agora − PAST_CREATE_GRACE_MINUTES) no fuso da loja. */
+    function agendaPastCutoffWallClock() {
+        return agendaWallClockFromDate(new Date(Date.now() - PAST_CREATE_GRACE_MINUTES * 60 * 1000));
+    }
+
+    function agendaWallClockIsBefore(a, b) {
+        if (a.ymd < b.ymd) return true;
+        if (a.ymd > b.ymd) return false;
+        return a.hm < b.hm;
+    }
+
+    /** Instantâneo já passou no fuso da loja (com margem)? Admin (canCreateMarcacaoInPast) ignora. */
+    function agendaInstantIsPastInStore(dateLike) {
+        if (canCreateMarcacaoInPast) return false;
+        if (!dateLike) return false;
+        var d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+        if (isNaN(d.getTime())) return false;
+        return agendaWallClockIsBefore(agendaWallClockFromDate(d), agendaPastCutoffWallClock());
+    }
+
+    /** Início seleccionado no offcanvas de criação é no passado (fuso loja)? Admin pode sempre. */
+    function agendaOcSelectedStartIsPast() {
+        if (canCreateMarcacaoInPast) return false;
+        var dStr = agendaOcReadDateStr('agendaOcDate', agendaOcDateFlatpickr);
+        var tStr = (($id('agendaOcTime') && $id('agendaOcTime').value) || '').trim();
+        if (!dStr || !tStr) return false;
+        var hm = tStr.length >= 5 ? tStr.slice(0, 5) : tStr;
+        return agendaWallClockIsBefore({ ymd: dStr, hm: hm }, agendaPastCutoffWallClock());
+    }
+
+    function updateAgendaOcPastStartGuard() {
+        var btn = $id('agendaOcSubmit');
+        if (!btn) return;
+        var past = agendaOcSelectedStartIsPast();
+        var saving = !!(btn.querySelector && btn.querySelector('.spinner-border'));
+        if (saving) return;
+        if (past) {
+            btn.disabled = true;
+            btn.title = 'Não é possível criar marcações no passado.';
+            btn.setAttribute('aria-disabled', 'true');
+        } else {
+            btn.disabled = false;
+            btn.removeAttribute('title');
+            btn.removeAttribute('aria-disabled');
+        }
+        var hint = $id('agendaOcPastStartHint');
+        if (hint) {
+            hint.classList.toggle('d-none', !past);
+        }
+    }
+
+    function tempoPessoalSelectedStartIsPast() {
+        if (canCreateMarcacaoInPast) return false;
+        var dStr = ($id('tempoPessoalDateInput')?.value || '').trim();
+        var tStr = ($id('tempoPessoalStartTimeToggle')?.textContent || '').trim();
+        if (!dStr || !tStr || tStr === '…') return false;
+        var hm = tStr.length >= 5 ? tStr.slice(0, 5) : tStr;
+        return agendaWallClockIsBefore({ ymd: dStr, hm: hm }, agendaPastCutoffWallClock());
+    }
+
+    function updateTempoPessoalPastStartGuard() {
+        var btn = $id('tempoPessoalSubmitBtn');
+        var hint = $id('tempoPessoalPastStartHint');
+        var eventId = ($id('tempoPessoalEventId')?.value || '').trim();
+        var readonlyHint = $id('tempoPessoalPastReadonlyHint');
+        var isReadonly = !!(readonlyHint && !readonlyHint.classList.contains('d-none'));
+        if (isReadonly) {
+            if (hint) hint.classList.add('d-none');
+            return;
+        }
+        var past = !eventId && tempoPessoalSelectedStartIsPast();
+        if (btn && !btn.classList.contains('d-none')) {
+            var saving = !!(btn.querySelector && btn.querySelector('.spinner-border'));
+            if (!saving) {
+                btn.disabled = past;
+                if (past) {
+                    btn.title = 'Não é possível criar tempos pessoais no passado.';
+                    btn.setAttribute('aria-disabled', 'true');
+                } else {
+                    btn.removeAttribute('title');
+                    btn.removeAttribute('aria-disabled');
+                }
+            }
+        }
+        if (hint) hint.classList.toggle('d-none', !past);
+    }
+
+    function setTempoPessoalModalReadOnly(readOnly) {
+        var hint = $id('tempoPessoalPastReadonlyHint');
+        if (hint) hint.classList.toggle('d-none', !readOnly);
+        $$('.tempo-pessoal-type-card').forEach(function(c) {
+            c.disabled = !!readOnly;
+            c.classList.toggle('disabled', !!readOnly);
+            c.style.pointerEvents = readOnly ? 'none' : '';
+            c.style.opacity = readOnly ? '0.75' : '';
+        });
+        ['tempoPessoalDateToggle', 'tempoPessoalStartTimeToggle', 'tempoPessoalEndTimeToggle'].forEach(function(id) {
+            var el = $id(id);
+            if (!el) return;
+            if (readOnly) {
+                el.removeAttribute('data-bs-toggle');
+                el.style.pointerEvents = 'none';
+                el.style.cursor = 'default';
+            } else {
+                el.setAttribute('data-bs-toggle', 'dropdown');
+                el.style.pointerEvents = '';
+                el.style.cursor = 'pointer';
+            }
+        });
+        var membro = $id('tempoPessoalMembro');
+        if (membro) membro.disabled = !!readOnly;
+        var desc = $id('tempoPessoalDescricao');
+        if (desc) desc.readOnly = !!readOnly;
+        var titulo = $id('tempoPessoalTitulo');
+        if (titulo) {
+            titulo.readOnly = !!readOnly;
+            if (readOnly) titulo.disabled = false;
+        }
+        var submit = $id('tempoPessoalSubmitBtn');
+        if (submit) {
+            submit.classList.toggle('d-none', !!readOnly);
+            if (readOnly) {
+                submit.disabled = true;
+            }
+        }
+        var del = $id('tempoPessoalDeleteBtn');
+        if (del && readOnly) del.style.display = 'none';
+        var pastCreateHint = $id('tempoPessoalPastStartHint');
+        if (pastCreateHint && readOnly) pastCreateHint.classList.add('d-none');
     }
 
     /** Na vista Dia (recursos), ao mudar o profissional no offcanvas, mover o evento para a coluna certa. */
@@ -1230,14 +1407,17 @@ document.addEventListener('DOMContentLoaded', function() {
      * @param {string} [headingText] - texto do primeiro li (data/hora); bold, fundo cinza; opcional
      * @param {Array<{label: string, action: function}>} options - lista de { label, action }
      */
-    function showQuickMenu(clientX, clientY, headingText, options) {
+    function showQuickMenu(clientX, clientY, headingText, options, messageText) {
         if (typeof headingText === 'object' && !Array.isArray(headingText) && headingText !== null) {
+            messageText = options;
             options = headingText;
             headingText = null;
         }
         hideEventQuickview();
         var menu = $id('agendaQuickMenu');
-        if (!menu || !options || options.length === 0) return;
+        var hasOptions = options && options.length > 0;
+        var hasMessage = !!(messageText && String(messageText).trim());
+        if (!menu || (!hasOptions && !hasMessage)) return;
 
         function hideQuickMenu() {
             detachAgendaQuickMenuOutsideCapture();
@@ -1273,35 +1453,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         header.appendChild(closeBtn);
         menu.appendChild(header);
-        var grid = document.createElement('div');
-        grid.className = 'quickaccess-grid';
-        options.forEach(function(opt) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'quickaccess-item';
-            btn.setAttribute('role', 'menuitem');
-            var iconSpan = document.createElement('span');
-            iconSpan.className = 'quickaccess-icon';
-            var qaColor = opt.iconColor || 'var(--accent-color, #0d6efd)';
-            iconSpan.style.setProperty('--qa-color', qaColor);
-            var iconClass = opt.icon || 'bi bi-plus-circle';
-            var icon = document.createElement('i');
-            icon.className = iconClass;
-            iconSpan.appendChild(icon);
-            var labelSpan = document.createElement('span');
-            labelSpan.className = 'quickaccess-label';
-            labelSpan.textContent = opt.label;
-            btn.appendChild(iconSpan);
-            btn.appendChild(labelSpan);
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                hideQuickMenu();
-                if (typeof opt.action === 'function') opt.action();
+        if (hasMessage) {
+            var msg = document.createElement('div');
+            msg.className = 'quickaccess-message';
+            msg.setAttribute('role', 'status');
+            msg.textContent = String(messageText).trim();
+            menu.appendChild(msg);
+        }
+        if (hasOptions) {
+            var grid = document.createElement('div');
+            grid.className = 'quickaccess-grid';
+            options.forEach(function(opt) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'quickaccess-item';
+                btn.setAttribute('role', 'menuitem');
+                var iconSpan = document.createElement('span');
+                iconSpan.className = 'quickaccess-icon';
+                var qaColor = opt.iconColor || 'var(--accent-color, #0d6efd)';
+                iconSpan.style.setProperty('--qa-color', qaColor);
+                var iconClass = opt.icon || 'bi bi-plus-circle';
+                var icon = document.createElement('i');
+                icon.className = iconClass;
+                iconSpan.appendChild(icon);
+                var labelSpan = document.createElement('span');
+                labelSpan.className = 'quickaccess-label';
+                labelSpan.textContent = opt.label;
+                btn.appendChild(iconSpan);
+                btn.appendChild(labelSpan);
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    hideQuickMenu();
+                    if (typeof opt.action === 'function') opt.action();
+                });
+                grid.appendChild(btn);
             });
-            grid.appendChild(btn);
-        });
-        menu.appendChild(grid);
+            menu.appendChild(grid);
+        }
 
         var offset = 8;
         menu.style.left = (clientX + offset) + 'px';
@@ -1368,12 +1557,8 @@ document.addEventListener('DOMContentLoaded', function() {
         statusOpts.forEach(function(o) {
             if (o.isCancelAction && (currentStatus === 'faltou' || currentStatus === 'cancelado' || currentStatus === 'anulado')) return;
             if (o.isCancelAction && !canCancelOrMarkMarcacaoFalta) return;
-            if (isPrestadorStaff) {
-                if (o.isCancelAction) {
-                    // Cancelar abre o modal (Faltou / Cliente cancelou).
-                } else if (prestadorAllowedStatuses.indexOf(o.status) === -1) {
-                    return;
-                }
+            if (isPrestadorStaff && !o.isCancelAction && prestadorAllowedStatuses.indexOf(o.status) === -1) {
+                return;
             }
             if (!o.isCancelAction && o.status === currentStatus) return;
             var a = document.createElement('a');
@@ -1940,6 +2125,7 @@ document.addEventListener('DOMContentLoaded', function() {
             TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', timeStr, TempoPessoal.applyNewStartTime);
             TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', $id('tempoPessoalEndTimeToggle').textContent, TempoPessoal.applyNewEndTime);
             updateTempoPessoalOutOfHoursWarning();
+            updateTempoPessoalPastStartGuard();
             var toggle = $id('tempoPessoalStartTimeToggle');
             if (toggle && bootstrap.Dropdown) bootstrap.Dropdown.getInstance(toggle)?.hide();
         },
@@ -1956,6 +2142,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('tempoPessoalEndTimeToggle').textContent = et;
             TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime);
             updateTempoPessoalOutOfHoursWarning();
+            updateTempoPessoalPastStartGuard();
         },
         applyNewEndTime: function(timeStr) {
             var startStr = $id('tempoPessoalStart').value;
@@ -1971,6 +2158,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('tempoPessoalEndTimeToggle').textContent = timeStr;
             TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', timeStr, TempoPessoal.applyNewEndTime);
             updateTempoPessoalOutOfHoursWarning();
+            updateTempoPessoalPastStartGuard();
             var toggle = $id('tempoPessoalEndTimeToggle');
             if (toggle && bootstrap.Dropdown) bootstrap.Dropdown.getInstance(toggle)?.hide();
         },
@@ -2016,6 +2204,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         $id('tempoPessoalDescricao').value = '';
         $id('tempoPessoalDeleteBtn').style.display = 'none';
+        setTempoPessoalModalReadOnly(false);
         var startD = startStr ? new Date(startStr) : new Date();
         var endD = endStr ? new Date(endStr) : new Date(startD.getTime() + 60 * 60 * 1000);
         var pad = function(n) { return String(n).padStart(2, '0'); };
@@ -2035,6 +2224,7 @@ document.addEventListener('DOMContentLoaded', function() {
         TempoPessoal.syncHiddenFromInputs();
         TempoPessoal.syncCustomTitleField();
         updateTempoPessoalOutOfHoursWarning();
+        updateTempoPessoalPastStartGuard();
         bootstrap.Modal.getOrCreateInstance($id('tempoPessoalModal')).show();
     }
 
@@ -2061,8 +2251,14 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('tempoPessoalTipo').value = typeId || (cards[0] ? cards[0].dataset.id : '') || '';
         }
         $id('tempoPessoalDescricao').value = data.description || '';
-        $id('tempoPessoalDeleteBtn').style.display = data.id ? 'inline-block' : 'none';
+        var pastReadonly = !!(data.start_at && agendaInstantIsPastInStore(data.start_at));
+        setTempoPessoalModalReadOnly(pastReadonly);
+        $id('tempoPessoalDeleteBtn').style.display = (data.id && !pastReadonly) ? 'inline-block' : 'none';
         TempoPessoal.syncCustomTitleField(data.title || '');
+        if (pastReadonly) {
+            var titulo = $id('tempoPessoalTitulo');
+            if (titulo) titulo.readOnly = true;
+        }
         toggleOutOfHoursWarning('tempoPessoalHorarioAviso', false);
         var startDate = data.start_at ? new Date(data.start_at) : null;
         var endDate = data.end_at ? new Date(data.end_at) : null;
@@ -2082,6 +2278,7 @@ document.addEventListener('DOMContentLoaded', function() {
             TempoPessoal.syncHiddenFromInputs();
             updateTempoPessoalOutOfHoursWarning();
         }
+        updateTempoPessoalPastStartGuard();
     }
 
     var agendaMembersServicesUrl = (C.agendaMembersServicesUrl || '');
@@ -3970,8 +4167,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var btn = $id('agendaOcSubmit');
         if (!btn) return;
         agendaOcCaptureSubmitDefaultHtml();
-        btn.disabled = false;
         btn.innerHTML = agendaOcSubmitDefaultHtml || 'Criar marcação';
+        updateAgendaOcPastStartGuard();
     }
 
     function openMarcacaoDetailOffcanvas(eventId, options) {
@@ -6526,6 +6723,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 var startDate = parseAgendaLocalDateTime(startLocal);
                 if (!startDate || isNaN(startDate.getTime())) {
                     showToast('Data ou hora inválida.', 'error');
+                    return;
+                }
+                if (agendaOcSelectedStartIsPast()) {
+                    updateAgendaOcPastStartGuard();
+                    showToast('Não é possível criar marcações no passado.', 'error');
                     return;
                 }
                 var totalDuration = agendaOcSelectedServices.reduce(function(sum, s) {
@@ -9168,6 +9370,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
 
+            if ((ext.event_type || '') === 'tempo_pessoal' && !canCreateMarcacaoInPast) {
+                if (agendaInstantIsPastInStore(draggedEvent && draggedEvent.start)) {
+                    return false;
+                }
+                if (dropInfo && agendaInstantIsPastInStore(dropInfo.start)) {
+                    return false;
+                }
+            }
+
             // Se o backend marcou como não editável por estado/origem, bloqueia qualquer drag.
             return isTimeEditable;
         },
@@ -9287,24 +9498,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             var options = [];
-            if (canCreateMarcacao) {
+            var pastSlotMessage = '';
+            if (agendaInstantIsPastInStore(startDate) && !canCreateMarcacaoInPast) {
+                pastSlotMessage = 'Não é possível criar marcações no passado.';
+            } else {
+                if (canCreateMarcacao) {
+                    options.push({
+                        label: 'Nova marcação',
+                        icon: 'bi bi-calendar-check',
+                        iconColor: 'var(--accent-color, #0d6efd)',
+                        action: function() {
+                            openNovaMarcacaoModal(startStr, endStr, resourceId);
+                        }
+                    });
+                }
                 options.push({
-                    label: 'Nova marcação',
-                    icon: 'bi bi-calendar-check',
-                    iconColor: 'var(--accent-color, #0d6efd)',
+                    label: 'Novo tempo pessoal',
+                    icon: 'bi bi-person',
+                    iconColor: 'var(--bs-secondary, #6c757d)',
                     action: function() {
-                        openNovaMarcacaoModal(startStr, endStr, resourceId);
+                        openTempoPessoalModal(startStr, endStr, resourceId);
                     }
                 });
             }
-            options.push({
-                label: 'Novo tempo pessoal',
-                icon: 'bi bi-person',
-                iconColor: 'var(--bs-secondary, #6c757d)',
-                action: function() {
-                    openTempoPessoalModal(startStr, endStr, resourceId);
-                }
-            });
             clearAgendaHoverHighlight();
             var ev = info.jsEvent;
             var cx = ev.clientX;
@@ -9321,7 +9537,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cx = rect.left + rect.width * 0.5;
                 cy = rect.top + rect.height * 0.45;
             }
-            showQuickMenu(cx, cy, headingLabel, options);
+            showQuickMenu(cx, cy, headingLabel, options, pastSlotMessage);
         },
         resources: function(fetchInfo, successCallback, failureCallback) {
             fetch(resourcesUrl, { headers: { 'Accept': 'application/json' } })
@@ -9483,6 +9699,12 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDrop: function(info) {
             if (info.event.extendedProps.invoice_settled) { info.revert(); return; }
             if ((info.event.extendedProps.status || '') === 'completo') { info.revert(); return; }
+            if ((info.event.extendedProps.event_type || '') === 'tempo_pessoal' && !canCreateMarcacaoInPast) {
+                if (agendaInstantIsPastInStore(info.oldEvent && info.oldEvent.start) || agendaInstantIsPastInStore(info.event.start)) {
+                    info.revert();
+                    return;
+                }
+            }
             const timeEditable = info.event.extendedProps.is_time_editable !== false;
             const reassignOnly = info.newResource && isResourceTimeGridDayView(calendar.view.type);
             if (!timeEditable && !reassignOnly) {
@@ -9563,6 +9785,12 @@ document.addEventListener('DOMContentLoaded', function() {
         eventResize: function(info) {
             if (info.event.extendedProps.invoice_settled) { info.revert(); return; }
             if ((info.event.extendedProps.status || '') === 'completo') { info.revert(); return; }
+            if ((info.event.extendedProps.event_type || '') === 'tempo_pessoal' && !canCreateMarcacaoInPast) {
+                if (agendaInstantIsPastInStore(info.event.start)) {
+                    info.revert();
+                    return;
+                }
+            }
             if (info.event.extendedProps.is_time_editable === false) { info.revert(); return; }
             const id = info.event.id;
             const start = info.event.start.toISOString();
@@ -11330,6 +11558,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         TempoPessoal.syncHiddenFromInputs();
                         updateTempoPessoalOutOfHoursWarning();
+                        updateTempoPessoalPastStartGuard();
                         var toggle = $id('tempoPessoalDateToggle');
                         if (toggle && bootstrap.Dropdown) bootstrap.Dropdown.getInstance(toggle)?.hide();
                     }
@@ -11382,18 +11611,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     $id('tempoPessoalTypeToggleGroup')?.addEventListener('click', function(e) {
         var card = e.target.closest('.tempo-pessoal-type-card');
-        if (!card) return;
+        if (!card || card.disabled || card.classList.contains('disabled')) return;
         $$('.tempo-pessoal-type-card').forEach(function(c) { c.classList.remove('active'); });
         card.classList.add('active');
         $id('tempoPessoalTipo').value = card.dataset.id || '';
         TempoPessoal.applyTypeDuration();
         TempoPessoal.syncCustomTitleField();
         updateTempoPessoalOutOfHoursWarning();
+        updateTempoPessoalPastStartGuard();
     });
 
     $id('tempoPessoalForm').addEventListener('submit', function(e) {
         e.preventDefault();
         var btn = $id('tempoPessoalSubmitBtn');
+        if (btn && btn.classList.contains('d-none')) return;
         var originalHtml = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> A guardar...';
@@ -11402,6 +11633,19 @@ document.addEventListener('DOMContentLoaded', function() {
         var startVal = $id('tempoPessoalStart').value;
         var endVal = $id('tempoPessoalEnd').value;
         var memberVal = $id('tempoPessoalMembro').value;
+        if (!id && tempoPessoalSelectedStartIsPast()) {
+            showToast('Não é possível criar tempos pessoais no passado.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            updateTempoPessoalPastStartGuard();
+            return;
+        }
+        if (id && agendaInstantIsPastInStore(startVal)) {
+            showToast('Tempos pessoais passados não podem ser editados.', 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            return;
+        }
         if (currentUserIsAdmin && !memberVal) {
             showToast('Selecione um membro.', 'error');
             btn.disabled = false;
@@ -11463,6 +11707,10 @@ document.addEventListener('DOMContentLoaded', function() {
     $id('tempoPessoalDeleteBtn').addEventListener('click', function() {
         var id = $id('tempoPessoalEventId').value;
         if (!id || !confirm('Eliminar este tempo pessoal?')) return;
+        if (agendaInstantIsPastInStore($id('tempoPessoalStart')?.value)) {
+            showToast('Tempos pessoais passados não podem ser eliminados.', 'error');
+            return;
+        }
         var btn = this;
         btn.disabled = true;
         fetch((C.urlEvents || '') + '/' + id, {

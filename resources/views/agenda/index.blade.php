@@ -133,9 +133,12 @@
             </div>
         </form>
     </div>
-    <div class="agenda-marcacao-test-offcanvas-footer border-top d-flex flex-wrap gap-2 justify-content-end">
-        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
-        <button type="submit" class="btn btn-primary btn-sm" id="agendaOcSubmit" form="agendaMarcacaoTestForm">Criar marcação</button>
+    <div class="agenda-marcacao-test-offcanvas-footer border-top d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <small id="agendaOcPastStartHint" class="text-danger d-none mb-0">Não é possível criar marcações no passado.</small>
+        <div class="d-flex flex-wrap gap-2 justify-content-end ms-auto">
+            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
+            <button type="submit" class="btn btn-primary btn-sm" id="agendaOcSubmit" form="agendaMarcacaoTestForm">Criar marcação</button>
+        </div>
     </div>
 </div>
 
@@ -208,9 +211,17 @@
                 <input type="hidden" id="tempoPessoalStart" name="start_at">
                 <input type="hidden" id="tempoPessoalEnd" name="end_at">
                 <div class="modal-body">
+                    <div class="alert alert-info d-none" id="tempoPessoalPastReadonlyHint" role="alert">
+                        <i class="ph ph-info me-1"></i>
+                        Tempo pessoal passado — apenas visualização. Não é possível editar nem eliminar.
+                    </div>
                     <div class="alert alert-warning d-none" id="tempoPessoalHorarioAviso" role="alert">
                         <i class="ph ph-warning-circle me-1"></i>
                         Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
+                    </div>
+                    <div class="alert alert-danger d-none" id="tempoPessoalPastStartHint" role="alert">
+                        <i class="ph ph-warning-circle me-1"></i>
+                        Não é possível criar tempos pessoais no passado.
                     </div>
                     <div class="mb-3">
                         <label class="form-label d-block">Tipo de tempo pessoal</label>
@@ -613,6 +624,7 @@
     $agendaPermissions = [
         'isPrestador' => $me->isPrestador(),
         'canCreateMarcacao' => $me->canCreateMarcacao(),
+        'canCreateMarcacaoInPast' => $me->isAdmin(),
         'canProcessPayments' => $me->canProcessPayments(),
         'canUsePaymentDraft' => ! $crmPrivacyLocked,
         'canViewClientContacts' => $me->canViewClientContactDetails(),
@@ -642,6 +654,7 @@ window.AGENDA_CONFIG = {
     resourcesUrl: @json(route('agenda.resources')),
     clientesBaseUrl: @json(url('clientes')),
     currentUserIsAdmin: @json(auth()->user()->role === \App\Models\User::ROLE_ADMIN),
+    pastCreateGraceMinutes: @json(\App\Models\CalendarEvent::PAST_CREATE_GRACE_MINUTES),
     permissions: @json($agendaPermissions),
     authId: @json(auth()->id()),
     authName: @json(auth()->user()->name ?? 'Eu'),
@@ -676,6 +689,7 @@ window.AGENDA_CONFIG = {
     agendaSlotMax: @json($agendaSlotMax ?? '20:00'),
     cashRegisterOpen: @json($cashRegisterOpen ?? false),
     onlineBookingPaymentRequired: @json($onlineBookingPaymentRequired ?? true),
+    storeTimezone: @json($storeTimezone ?? 'Europe/Lisbon'),
 };
 </script>
 <script>window.CLIENT_TAGS_CONFIG = { catalogUrl: @json(route('client-tags.index')), maxPerClient: {{ \App\Services\ClientTagService::MAX_TAGS_PER_CLIENT }} };</script>

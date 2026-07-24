@@ -36,6 +36,7 @@ use App\Support\ClientContactMask;
 use App\Support\CrmPrivacyLock;
 use App\Support\MarcacaoMoneyBatch;
 use App\Support\PortugueseNationalHolidays;
+use App\Support\StoreBusinessTime;
 use App\Rules\ClientFullName;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -114,6 +115,7 @@ class CalendarController extends Controller
         [$agendaSlotMin, $agendaSlotMax] = $store->agendaSlotRange();
         $storeHoursLabel = $store->hoursDisplayLabel();
         $cashRegisterOpen = $this->cashRegisterIsOpen();
+        $storeTimezone = StoreBusinessTime::timezoneForStore((int) current_store_id());
 
         return view('agenda.index', compact(
             'eventTypes',
@@ -128,6 +130,7 @@ class CalendarController extends Controller
             'agendaSlotMax',
             'storeHoursLabel',
             'cashRegisterOpen',
+            'storeTimezone',
         ));
     }
 
@@ -1081,6 +1084,24 @@ class CalendarController extends Controller
             $validated['service_id'] = null;
         }
 
+        $eventType = (string) ($validated['event_type'] ?? '');
+        if (in_array($eventType, [CalendarEvent::TYPE_MARCACAO, CalendarEvent::TYPE_TEMPO_PESSOAL], true)) {
+            $actor = auth()->user();
+            if ($actor instanceof User && ! $actor->isAdmin()) {
+                $storeId = (int) current_store_id();
+                $startUtc = Carbon::parse($validated['start_at'])->utc();
+                if (CalendarEvent::startIsTooFarInPastForStore($startUtc, $storeId)) {
+                    throw ValidationException::withMessages([
+                        'start_at' => [
+                            $eventType === CalendarEvent::TYPE_TEMPO_PESSOAL
+                                ? 'Não é possível criar tempos pessoais no passado.'
+                                : 'Não é possível criar marcações no passado.',
+                        ],
+                    ]);
+                }
+            }
+        }
+
         $validated['user_id'] = $validated['user_id'] ?? auth()->id();
         if (auth()->user()->isPrestador()) {
             $validated['user_id'] = auth()->id();
@@ -1173,6 +1194,19 @@ class CalendarController extends Controller
             ], 422);
         }
 
+        $actor = auth()->user();
+        $isAdmin = $actor instanceof User && $actor->isAdmin();
+        if (
+            ! $isAdmin
+            && ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL
+            && $calendarEvent->startsInPastForStore(CalendarEvent::PAST_CREATE_GRACE_MINUTES)
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tempos pessoais passados não podem ser editados.',
+            ], 422);
+        }
+
         $rules = [
             'start_at' => ['sometimes', 'date'],
             'end_at' => ['sometimes', 'date'],
@@ -1219,6 +1253,21 @@ class CalendarController extends Controller
         $servicesPayload = $request->input('services', []);
         if (is_array($servicesPayload) && $servicesPayload !== []) {
             $this->assertMarcacaoServicesOptionsValid($servicesPayload);
+        }
+
+        if (
+            ! $isAdmin
+            && ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL
+            && isset($validated['start_at'])
+        ) {
+            $storeId = (int) ($calendarEvent->store_id ?: current_store_id());
+            $startUtc = Carbon::parse($validated['start_at'])->utc();
+            if (CalendarEvent::startIsTooFarInPastForStore($startUtc, $storeId)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não é possível mover tempos pessoais para o passado.',
+                ], 422);
+            }
         }
 
         $prevStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
@@ -1502,6 +1551,17 @@ class CalendarController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Este evento não pode ser eliminado pela agenda. Elimine-o na origem (visita ou lead).',
+            ], 422);
+        }
+
+        if (
+            $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL
+            && (! $user instanceof User || ! $user->isAdmin())
+            && $calendarEvent->startsInPastForStore(CalendarEvent::PAST_CREATE_GRACE_MINUTES)
+        ) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tempos pessoais passados não podem ser eliminados.',
             ], 422);
         }
 
