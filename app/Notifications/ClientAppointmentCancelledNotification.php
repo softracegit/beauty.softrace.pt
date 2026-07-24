@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CalendarEvent;
-use App\Support\DateTimeDisplay;
+use App\Support\MarcacaoMailCopy;
 use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,44 +32,36 @@ class ClientAppointmentCancelledNotification extends Notification implements Sho
             ->with(['client', 'service', 'eventServices', 'store'])
             ->findOrFail($this->calendarEventId);
 
+        $store = $event->store;
         $storeId = (int) ($event->store_id ?? 0) ?: null;
-        $clientName = $event->client?->name ?? '';
-        $greetingName = $clientName !== '' ? explode(' ', trim($clientName), 2)[0] : '';
-
-        $start = DateTimeDisplay::marcacao($event->start_at, $storeId, 'd/m/Y \à\s H:i');
-
-        $services = $event->eventServices->isNotEmpty()
-            ? $event->eventServices
-                ->map(function ($service) {
-                    $optionName = trim((string) ($service->pivot->option_name ?? ''));
-
-                    return $optionName !== '' ? $optionName : $service->name;
-                })
-                ->implode(', ')
-            : ($event->service?->name ?? 'Marcação');
+        $storeName = MarcacaoMailCopy::storeName($store);
+        $greetingName = MarcacaoMailCopy::firstName($event->client?->name);
 
         $type = $event->cancellation_type ?? $event->status;
         $isFaltou = $type === CalendarEvent::STATUS_FALTOU;
 
-        $subject = $isFaltou
-            ? 'Informação sobre a sua marcação'
-            : 'Marcação cancelada';
-
-        $line = $isFaltou
-            ? "Informamos que a sua marcação de «{$services}» agendada para {$start} foi registada como falta (não comparecimento)."
-            : "Informamos que a sua marcação de «{$services}» agendada para {$start} foi cancelada.";
-
         $mail = (new MailMessage)
-            ->subject($subject)
+            ->subject(MarcacaoMailCopy::subject(
+                $isFaltou ? 'Informação sobre a sua marcação' : 'Marcação cancelada',
+                $store,
+            ))
             ->greeting($greetingName !== '' ? 'Olá '.$greetingName.',' : 'Olá,')
-            ->line($line)
-            ->line('Se tiver questões, contacte-nos.');
+            ->line($isFaltou
+                ? "Informamos que a sua marcação {$storeName} foi registada como falta (não comparecimento)."
+                : "Informamos que a sua marcação {$storeName} foi cancelada.")
+            ->line(MarcacaoMailCopy::block([
+                ($isFaltou ? 'Data da marcação em que faltou: ' : 'Data da marcação cancelada: ')
+                    .MarcacaoMailCopy::dateTime($event->start_at, $storeId),
+                'Serviço: '.MarcacaoMailCopy::servicesLine($event),
+            ]))
+            ->line(MarcacaoMailCopy::spacer())
+            ->line('Se tiver alguma questão ou dúvida, por favor contacte-nos.');
 
-        $storeSlug = $event->store?->slug;
+        $storeSlug = $store?->slug;
         if (is_string($storeSlug) && $storeSlug !== '') {
             $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
         }
 
-        return StoreMailBranding::applyToMailMessage($mail, $event->store);
+        return StoreMailBranding::applyToMailMessage($mail, $store);
     }
 }

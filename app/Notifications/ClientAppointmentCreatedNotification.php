@@ -3,7 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CalendarEvent;
-use App\Support\DateTimeDisplay;
+use App\Support\MarcacaoMailCopy;
 use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -32,35 +32,30 @@ class ClientAppointmentCreatedNotification extends Notification implements Shoul
             ->with(['client', 'service', 'eventServices', 'store'])
             ->findOrFail($this->calendarEventId);
 
+        $store = $event->store;
         $storeId = (int) ($event->store_id ?? 0) ?: null;
-        $clientName = $event->client?->name ?? '';
-        $greetingName = $clientName !== '' ? explode(' ', trim($clientName), 2)[0] : '';
-
-        $start = DateTimeDisplay::marcacao($event->start_at, $storeId, 'd/m/Y \à\s H:i');
-        $end = DateTimeDisplay::marcacao($event->end_at, $storeId, 'H:i');
-
-        $services = $event->eventServices->isNotEmpty()
-            ? $event->eventServices
-                ->map(function ($service) {
-                    $optionName = trim((string) ($service->pivot->option_name ?? ''));
-
-                    return $optionName !== '' ? $optionName : $service->name;
-                })
-                ->implode(', ')
-            : ($event->service?->name ?? 'Marcação');
+        $storeName = MarcacaoMailCopy::storeName($store);
+        $greetingName = MarcacaoMailCopy::firstName($event->client?->name);
 
         $mail = (new MailMessage)
-            ->subject('Marcação confirmada')
+            ->subject(MarcacaoMailCopy::subject('Marcação confirmada', $store))
             ->greeting($greetingName !== '' ? 'Olá '.$greetingName.',' : 'Olá,')
-            ->line("A sua marcação de «{$services}» foi confirmada.")
-            ->line("Data/hora: {$start} – {$end}.")
-            ->line('Se tiver questões, contacte-nos.');
+            ->line("A sua marcação {$storeName} está agendada.")
+            ->line(MarcacaoMailCopy::block([
+                'Data: '.MarcacaoMailCopy::dateTime($event->start_at, $storeId),
+                'Duração: '.MarcacaoMailCopy::duration($event->start_at, $event->end_at),
+            ]))
+            ->line(MarcacaoMailCopy::block([
+                'Serviço: '.MarcacaoMailCopy::servicesLine($event),
+            ]))
+            ->line(MarcacaoMailCopy::spacer())
+            ->line('Se tiver alguma questão ou dúvida, por favor contacte-nos.');
 
-        $storeSlug = $event->store?->slug;
+        $storeSlug = $store?->slug;
         if (is_string($storeSlug) && $storeSlug !== '') {
             $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
         }
 
-        return StoreMailBranding::applyToMailMessage($mail, $event->store);
+        return StoreMailBranding::applyToMailMessage($mail, $store);
     }
 }

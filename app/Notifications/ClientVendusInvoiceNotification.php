@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Models\CalendarEvent;
 use App\Models\Store;
+use App\Support\MarcacaoMailCopy;
 use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -21,6 +23,7 @@ class ClientVendusInvoiceNotification extends Notification
         public string $pdfFilename,
         public string $pdfBinary,
         public ?int $storeId = null,
+        public ?int $calendarEventId = null,
     ) {}
 
     /**
@@ -34,19 +37,40 @@ class ClientVendusInvoiceNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $label = trim($this->invoiceLabel) !== '' ? $this->invoiceLabel : 'Fatura';
+        $store = $this->storeId ? Store::query()->find($this->storeId) : null;
+        $storeName = MarcacaoMailCopy::storeName($store);
+
+        $event = null;
+        if ($this->calendarEventId) {
+            $event = CalendarEvent::query()
+                ->with(['service', 'eventServices'])
+                ->find($this->calendarEventId);
+        }
+
+        $eventStoreId = $event ? ((int) ($event->store_id ?? 0) ?: $this->storeId) : $this->storeId;
+        $dateLine = $event
+            ? MarcacaoMailCopy::dateTime($event->start_at, $eventStoreId)
+            : '-';
+        $servicesLine = $event
+            ? MarcacaoMailCopy::servicesLine($event)
+            : '-';
 
         $mail = (new MailMessage)
-            ->subject('A sua fatura — '.$label)
+            ->subject(MarcacaoMailCopy::subject('A sua fatura - '.$label, $store))
             ->greeting($this->greetingName !== '' ? 'Olá '.$this->greetingName.',' : 'Olá,')
-            ->line('Segue em anexo o documento fiscal emitido pela nossa faturação.')
-            ->line('Documento: '.$label.'.')
-            ->line('Obrigado pela preferência.');
+            ->line("Segue em anexo a sua Fatura relativa à sua marcação {$storeName}")
+            ->line(MarcacaoMailCopy::block([
+                'Documento: '.$label.'.',
+                'Data da marcação realizada: '.$dateLine,
+                'Serviço: '.$servicesLine,
+            ]))
+            ->line(MarcacaoMailCopy::spacer())
+            ->line('Obrigado pela preferência!')
+            ->line('Se tiver alguma questão ou dúvida, por favor contacte-nos.');
 
         $mail->attachData($this->pdfBinary, $this->pdfFilename, [
             'mime' => 'application/pdf',
         ]);
-
-        $store = $this->storeId ? Store::query()->find($this->storeId) : null;
 
         return StoreMailBranding::applyToMailMessage($mail, $store);
     }

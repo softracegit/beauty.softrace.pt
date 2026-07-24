@@ -6,7 +6,7 @@ use App\Models\CalendarEvent;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
 use App\Support\DateTimeDisplay;
-use App\Support\ReceptionNotificationMail;
+use App\Support\MarcacaoMailCopy;
 use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -17,11 +17,11 @@ class AppointmentNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public bool $ccReceptionStaff;
-
     /**
      * @param  bool  $fromPublicBooking  Marcação em /booking: mailer "booking" (sem redirecionamento mail.to em local/staging).
-     * @param  bool  $forReception  Cópia interna para receção: sininho (email via CC nos envios à técnica).
+     * @param  bool  $forReception  Destinatário receção: sininho + email próprio (sem CC).
+     * @param  list<string>  $servicesAdded
+     * @param  list<string>  $servicesRemoved
      */
     public function __construct(
         public int $calendarEventId,
@@ -29,34 +29,65 @@ class AppointmentNotification extends Notification implements ShouldQueue
         public ?string $previousStatus = null,
         public bool $fromPublicBooking = false,
         public bool $forReception = false,
-    ) {
-        $this->ccReceptionStaff = ReceptionNotificationMail::shouldCcReceptionForActor(
-            $fromPublicBooking,
-            auth()->id(),
-        );
-    }
+        public ?string $previousStartIso = null,
+        public ?string $previousEndIso = null,
+        public ?string $previousTechnicianName = null,
+        public array $servicesAdded = [],
+        public array $servicesRemoved = [],
+    ) {}
 
     public function via(object $notifiable): array
     {
         if ($this->forReception) {
-            return ['database'];
+            $channels = [];
+            if ($this->shouldReceiveBell()) {
+                $channels[] = 'database';
+            }
+            if ($this->receptionShouldReceiveMail()) {
+                $channels[] = 'mail';
+            }
+
+            return $channels;
         }
 
         if (! $notifiable instanceof User) {
             return ['database', 'mail'];
         }
 
-        return UserNotificationPreference::channelsForMarcacaoNotification($notifiable, $this->type);
+        $channels = UserNotificationPreference::channelsForMarcacaoNotification($notifiable, $this->type);
+
+        // Sininho de status_changed: só cancelado. Email: cancelado + faltou.
+        if ($this->type === 'status_changed') {
+            if (in_array('database', $channels, true) && ! $this->shouldReceiveBell()) {
+                $channels = array_values(array_filter($channels, fn (string $c): bool => $c !== 'database'));
+            }
+            if (in_array('mail', $channels, true) && ! $this->isCancelOrMissedMail()) {
+                $channels = array_values(array_filter($channels, fn (string $c): bool => $c !== 'mail'));
+            }
+        }
+
+        return $channels;
     }
 
-    /**
-     * Chamado no envio real de cada canal (inclui jobs em fila). Garante que sininho/email
-     * respeitam a preferência atual mesmo que o job tenha sido enfileirado antes.
-     */
     public function shouldSend(object $notifiable, string $channel): bool
     {
         if ($this->forReception) {
-            return $channel === 'database';
+            if ($channel === 'database') {
+                return $this->shouldReceiveBell();
+            }
+            if ($channel === 'mail') {
+                return $this->receptionShouldReceiveMail();
+            }
+
+            return false;
+        }
+
+        if ($channel === 'database' && $this->type === 'status_changed' && ! $this->shouldReceiveBell()) {
+            return false;
+        }
+
+        if ($channel === 'mail' && $this->type === 'status_changed' && ! $this->isCancelOrMissedMail()) {
+            return false;
         }
 
         if (! $notifiable instanceof User) {
@@ -72,13 +103,10 @@ class AppointmentNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         $event = $this->loadEvent();
-        $title = $this->buildTitle($event);
-        $body = $this->buildBody($event);
-        $bodyWithSchedule = $body."\n".$this->formatStartLine($event)."\n".$this->formatEndLine($event);
 
         return [
-            'title' => $title,
-            'body' => $bodyWithSchedule,
+            'title' => $this->buildTitle($event),
+            'body' => $this->buildBellBody($event),
             'url' => route('agenda.index', ['event' => $event->id]),
             'calendar_event_id' => $event->id,
             'type' => $this->type,
@@ -88,121 +116,314 @@ class AppointmentNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $event = $this->loadEvent();
-        $title = $this->buildTitle($event);
-        $body = $this->buildBody($event);
+        $store = $event->store;
+        $storeId = (int) ($event->store_id ?? 0) ?: null;
+        $name = trim((string) ($notifiable->name ?? ''));
 
-        $mail = (new MailMessage)
-            ->subject($title)
-            ->greeting('Olá '.($notifiable->name ?? '').',')
-            ->line($body)
-            ->line($this->formatStartLine($event))
-            ->line($this->formatEndLine($event))
-            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+        $mail = match ($this->type) {
+            'assigned' => $this->mailAssigned($event, $store, $storeId, $name),
+            'reassigned' => $this->mailReassigned($event, $store, $storeId, $name),
+            'rescheduled' => $this->mailRescheduled($event, $store, $storeId, $name),
+            'status_changed' => $this->mailStatusTerminal($event, $store, $storeId, $name),
+            default => $this->mailAssigned($event, $store, $storeId, $name),
+        };
 
         if ($this->fromPublicBooking) {
             $mail->mailer('booking');
         }
 
-        if ($this->ccReceptionStaff) {
-            $primaryEmail = $notifiable instanceof User ? (string) ($notifiable->email ?? '') : '';
-            ReceptionNotificationMail::applyReceptionCc(
-                $mail,
-                $event,
-                $primaryEmail !== '' ? [$primaryEmail] : [],
-            );
+        return StoreMailBranding::applyToMailMessage($mail, $store);
+    }
+
+    private function mailAssigned(
+        CalendarEvent $event,
+        mixed $store,
+        ?int $storeId,
+        string $name,
+    ): MailMessage {
+        $subject = MarcacaoMailCopy::subject('Nova marcação', $store);
+        $intro = $this->forReception
+            ? 'A seguinte marcação foi criada'
+            : 'A seguinte marcação foi criada para si.';
+
+        return (new MailMessage)
+            ->subject($subject)
+            ->greeting($this->greeting($name))
+            ->line($intro)
+            ->line(MarcacaoMailCopy::block([
+                'Data: '.MarcacaoMailCopy::dateTime($event->start_at, $storeId),
+                'Duração: '.MarcacaoMailCopy::duration($event->start_at, $event->end_at),
+            ]))
+            ->line(MarcacaoMailCopy::block([
+                'Cliente: '.MarcacaoMailCopy::clientName($event),
+                'Serviço: '.MarcacaoMailCopy::servicesLine($event),
+                'Origem: '.MarcacaoMailCopy::originLabel($event),
+            ]))
+            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+    }
+
+    private function mailReassigned(
+        CalendarEvent $event,
+        mixed $store,
+        ?int $storeId,
+        string $name,
+    ): MailMessage {
+        if ($this->forReception) {
+            return (new MailMessage)
+                ->subject(MarcacaoMailCopy::subject('Marcação transferida de técnica', $store))
+                ->greeting($this->greeting($name))
+                ->line('A seguinte marcação foi transferida de técnica.')
+                ->line(MarcacaoMailCopy::block([
+                    'Data: '.MarcacaoMailCopy::dateTime($event->start_at, $storeId),
+                    'Duração: '.MarcacaoMailCopy::duration($event->start_at, $event->end_at),
+                ]))
+                ->line(MarcacaoMailCopy::block([
+                    'Cliente: '.MarcacaoMailCopy::clientName($event),
+                    'Serviço: '.MarcacaoMailCopy::servicesLine($event),
+                    'Técnica anterior: '.$this->previousTechnicianLabel(),
+                    'Nova técnica: '.$this->currentTechnicianLabel($event),
+                ]))
+                ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
         }
 
-        return StoreMailBranding::applyToMailMessage($mail, $event->store);
+        return (new MailMessage)
+            ->subject(MarcacaoMailCopy::subject('Marcação transferida para si', $store))
+            ->greeting($this->greeting($name))
+            ->line('A seguinte marcação foi transferida para si.')
+            ->line(MarcacaoMailCopy::block([
+                'Data: '.MarcacaoMailCopy::dateTime($event->start_at, $storeId),
+                'Duração: '.MarcacaoMailCopy::duration($event->start_at, $event->end_at),
+            ]))
+            ->line(MarcacaoMailCopy::block([
+                'Cliente: '.MarcacaoMailCopy::clientName($event),
+                'Serviço: '.MarcacaoMailCopy::servicesLine($event),
+            ]))
+            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+    }
+
+    private function mailRescheduled(
+        CalendarEvent $event,
+        mixed $store,
+        ?int $storeId,
+        string $name,
+    ): MailMessage {
+        $prevStart = MarcacaoMailCopy::parseIso($this->previousStartIso);
+        $datesChanged = MarcacaoMailCopy::startsDiffer($prevStart, $event->start_at, $storeId);
+
+        $scheduleLines = $datesChanged
+            ? [
+                'Data anterior: '.MarcacaoMailCopy::dateTime($prevStart, $storeId),
+                'Nova Data: '.MarcacaoMailCopy::dateTime($event->start_at, $storeId),
+                'Duração: '.MarcacaoMailCopy::duration($event->start_at, $event->end_at),
+            ]
+            : [
+                'Data: '.MarcacaoMailCopy::dateTime($event->start_at, $storeId),
+                'Duração: '.MarcacaoMailCopy::duration($event->start_at, $event->end_at),
+            ];
+
+        $detailLines = [
+            'Cliente: '.MarcacaoMailCopy::clientName($event),
+            ...MarcacaoMailCopy::serviceChangeLines($this->servicesAdded, $this->servicesRemoved),
+            'Serviço: '.MarcacaoMailCopy::servicesLine($event),
+        ];
+
+        return (new MailMessage)
+            ->subject(MarcacaoMailCopy::subject('Marcação alterada', $store))
+            ->greeting($this->greeting($name))
+            ->line('A seguinte marcação foi alterada.')
+            ->line(MarcacaoMailCopy::block($scheduleLines))
+            ->line(MarcacaoMailCopy::block($detailLines))
+            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+    }
+
+    private function mailStatusTerminal(
+        CalendarEvent $event,
+        mixed $store,
+        ?int $storeId,
+        string $name,
+    ): MailMessage {
+        $isMissed = ($event->status ?? '') === CalendarEvent::STATUS_FALTOU;
+
+        $mail = (new MailMessage)
+            ->subject(MarcacaoMailCopy::subject(
+                $isMissed ? 'Marcação marcada como falta' : 'Marcação cancelada',
+                $store,
+            ))
+            ->greeting($this->greeting($name))
+            ->line($isMissed
+                ? 'A seguinte marcação foi marcada como Falta.'
+                : 'A seguinte marcação foi cancelada.')
+            ->line(MarcacaoMailCopy::block([
+                'Data: '.MarcacaoMailCopy::dateTime($event->start_at, $storeId),
+                'Motivo: '.MarcacaoMailCopy::reason($event),
+            ]))
+            ->line(MarcacaoMailCopy::block([
+                'Cliente: '.MarcacaoMailCopy::clientName($event),
+                'Serviço: '.MarcacaoMailCopy::servicesLine($event),
+            ]))
+            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+
+        return $mail;
+    }
+
+    private function greeting(string $name): string
+    {
+        return $name !== '' ? 'Olá '.$name.',' : 'Olá,';
+    }
+
+    private function previousTechnicianLabel(): string
+    {
+        $name = trim((string) ($this->previousTechnicianName ?? ''));
+
+        return $name !== '' ? $name : '-';
+    }
+
+    private function currentTechnicianLabel(CalendarEvent $event): string
+    {
+        $event->loadMissing('user');
+        $name = trim((string) ($event->user?->name ?? ''));
+
+        return $name !== '' ? $name : '-';
+    }
+
+    private function shouldReceiveBell(): bool
+    {
+        if ($this->type !== 'status_changed') {
+            return true;
+        }
+
+        return ($this->loadEvent()->status ?? '') === CalendarEvent::STATUS_CANCELADO;
+    }
+
+    private function receptionShouldReceiveMail(): bool
+    {
+        if (in_array($this->type, ['assigned', 'reassigned', 'rescheduled'], true)) {
+            return true;
+        }
+
+        return $this->type === 'status_changed' && $this->isCancelOrMissedMail();
+    }
+
+    private function isCancelOrMissedMail(): bool
+    {
+        $status = $this->loadEvent()->status ?? '';
+
+        return in_array($status, [
+            CalendarEvent::STATUS_CANCELADO,
+            CalendarEvent::STATUS_FALTOU,
+        ], true);
     }
 
     private function loadEvent(): CalendarEvent
     {
         return CalendarEvent::query()
-            ->with(['client', 'service', 'eventServices', 'store'])
+            ->with(['client', 'service', 'eventServices', 'store', 'user'])
             ->findOrFail($this->calendarEventId);
     }
 
     private function buildTitle(CalendarEvent $event): string
     {
+        $client = MarcacaoMailCopy::clientName($event, 'Cliente não indicado');
+
         if ($this->forReception) {
             return match ($this->type) {
-                'assigned' => 'Nova marcação na loja',
-                'reassigned' => 'Marcação transferida',
-                'rescheduled' => 'Marcação reagendada',
-                'status_changed' => 'Estado da marcação atualizado',
+                'assigned' => 'Nova marcação <strong>'.e($client).'</strong>',
+                'reassigned' => 'Marcação transferida de técnica',
+                'rescheduled' => 'Marcação alterada',
+                'status_changed' => 'Marcação cancelada',
                 default => 'Atualização na agenda',
             };
         }
 
         return match ($this->type) {
-            'assigned' => 'Nova marcação atribuída a si',
+            'assigned' => 'Nova marcação <strong>'.e($client).'</strong>',
             'reassigned' => 'Marcação transferida para si',
-            'rescheduled' => 'Marcação reagendada',
-            'status_changed' => 'Estado da marcação atualizado',
+            'rescheduled' => 'Marcação alterada',
+            'status_changed' => 'Marcação cancelada',
             default => 'Atualização na agenda',
         };
     }
 
-    private function buildBody(CalendarEvent $event): string
+    /**
+     * Corpo HTML do sininho (nomes em &lt;strong&gt;, linhas com &lt;br&gt;).
+     */
+    private function buildBellBody(CalendarEvent $event): string
     {
-        $client = $event->client?->name ?? 'Cliente não indicado';
-        $services = $event->eventServices->isNotEmpty()
-            ? $event->eventServices
-                ->map(function ($service) {
-                    $optionName = trim((string) ($service->pivot->option_name ?? ''));
+        $storeId = (int) ($event->store_id ?? 0) ?: null;
+        $client = MarcacaoMailCopy::clientName($event, 'Cliente não indicado');
+        $services = MarcacaoMailCopy::servicesLine($event, 'Serviço não indicado');
+        $clientLine = 'Cliente <strong>'.e($client).'</strong>';
+        $techName = $this->currentTechnicianLabel($event);
 
-                    return $optionName !== '' ? $optionName : $service->name;
-                })
-                ->implode(', ')
-            : ($event->service?->name ?? 'Serviço não indicado');
-
-        if ($this->forReception) {
-            return match ($this->type) {
-                'assigned' => "Nova marcação: {$client} ({$services}).",
-                'reassigned' => "Marcação transferida: {$client} ({$services}).",
-                'rescheduled' => "A data ou hora da marcação de {$client} ({$services}) foi alterada.",
-                'status_changed' => $this->buildStatusChangedBody($event, $client),
-                default => "Marcação ({$client}) — {$services}.",
-            };
+        if ($this->type === 'assigned') {
+            return implode('<br>', [
+                e($this->dateWithDuration($event->start_at, $event->end_at, $storeId)),
+                e($techName).' ('.e($services).')',
+            ]);
         }
 
-        return match ($this->type) {
-            'assigned' => "Foi-lhe atribuída uma marcação: {$client} ({$services}).",
-            'reassigned' => "Uma marcação foi transferida para si: {$client} ({$services}).",
-            'rescheduled' => "A data ou hora da marcação de {$client} ({$services}) foi alterada.",
-            'status_changed' => $this->buildStatusChangedBody($event, $client),
-            default => "Marcação ({$client}) - {$services}.",
-        };
-    }
-
-    private function buildStatusChangedBody(CalendarEvent $event, string $client): string
-    {
-        $statuses = CalendarEvent::statuses();
-        $new = $event->status ?? CalendarEvent::STATUS_AGENDADO;
-        $newLabel = $statuses[$new] ?? $new;
-        $oldLabel = null;
-        if ($this->previousStatus !== null) {
-            $oldLabel = $statuses[$this->previousStatus] ?? $this->previousStatus;
+        if ($this->type === 'reassigned' && $this->forReception) {
+            return implode('<br>', [
+                'Passou de <strong>'.e($this->previousTechnicianLabel()).'</strong> para <strong>'.e($techName).'</strong>',
+                $clientLine,
+                e($this->dateWithDuration($event->start_at, $event->end_at, $storeId)),
+                e($services),
+            ]);
         }
 
-        if ($oldLabel) {
-            return "O estado da marcação de {$client} passou de «{$oldLabel}» para «{$newLabel}».";
+        if ($this->type === 'rescheduled') {
+            $prevStart = MarcacaoMailCopy::parseIso($this->previousStartIso);
+            $prevEnd = MarcacaoMailCopy::parseIso($this->previousEndIso);
+            $datesChanged = MarcacaoMailCopy::startsDiffer($prevStart, $event->start_at, $storeId);
+
+            if ($datesChanged) {
+                return implode('<br>', [
+                    $clientLine,
+                    e('Nova data: '.$this->dateWithDuration($event->start_at, $event->end_at, $storeId)),
+                    e('Data anterior: '.$this->dateWithDuration($prevStart, $prevEnd, $storeId)),
+                    e($services),
+                ]);
+            }
+
+            return implode('<br>', [
+                $clientLine,
+                e($this->dateWithDuration($event->start_at, $event->end_at, $storeId)),
+                e($services),
+            ]);
         }
 
-        return "O estado da marcação de {$client} é agora «{$newLabel}».";
+        if ($this->type === 'status_changed') {
+            return implode('<br>', [
+                $clientLine,
+                e($this->dateWithDuration($event->start_at, $event->end_at, $storeId)),
+                e('Motivo: '.MarcacaoMailCopy::reason($event)),
+                e($services),
+            ]);
+        }
+
+        if ($this->type === 'reassigned') {
+            return implode('<br>', [
+                $clientLine,
+                e($this->dateWithDuration($event->start_at, $event->end_at, $storeId)),
+                e($services),
+            ]);
+        }
+
+        // Fallback — tipo inesperado
+        $sep = $this->forReception ? ' — ' : ' - ';
+
+        return e('Marcação ('.$client.')'.$sep.$services.'.')
+            .'<br>'.e('Início: '.DateTimeDisplay::marcacao($event->start_at, $storeId))
+            .'<br>'.e('Fim: '.DateTimeDisplay::marcacao($event->end_at, $storeId));
     }
 
-    private function formatStartLine(CalendarEvent $event): string
-    {
-        $start = DateTimeDisplay::marcacao($event->start_at, $event->store_id);
-
-        return 'Início: '.$start;
-    }
-
-    private function formatEndLine(CalendarEvent $event): string
-    {
-        $end = DateTimeDisplay::marcacao($event->end_at, $event->store_id);
-
-        return 'Fim: '.$end;
+    private function dateWithDuration(
+        mixed $start,
+        mixed $end,
+        ?int $storeId,
+    ): string {
+        return MarcacaoMailCopy::dateTime($start, $storeId)
+            .' - duração '
+            .MarcacaoMailCopy::duration($start, $end);
     }
 }

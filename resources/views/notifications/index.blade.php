@@ -21,9 +21,9 @@
               <a href="{{ $url }}"
                  class="list-group-item list-group-item-action d-flex justify-content-between align-items-start {{ $n->read_at ? '' : 'fw-semibold' }}">
                 <div class="me-3">
-                  <div>{{ $title }}</div>
+                  <div>{!! strip_tags($title, '<br><strong><b>') !!}</div>
                   @if($body !== '')
-                    <small class="text-muted d-block">{{ $body }}</small>
+                    <small class="text-muted d-block">{!! strip_tags($body, '<br><strong><b>') !!}</small>
                   @endif
                   <small class="text-muted">{{ $n->created_at?->diffForHumans() }}</small>
                 </div>

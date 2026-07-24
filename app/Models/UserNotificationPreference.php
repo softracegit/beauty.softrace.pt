@@ -125,11 +125,11 @@ class UserNotificationPreference extends Model
             ],
             self::TYPE_RESCHEDULED => [
                 'label' => 'Reagendamento',
-                'description' => 'Quando a data ou hora de uma marcação sua é alterada.',
+                'description' => 'Quando a data, hora ou serviços de uma marcação sua são alterados.',
             ],
             self::TYPE_STATUS_CHANGED => [
-                'label' => 'Mudança de estado',
-                'description' => 'Quando o estado da marcação é atualizado (ex.: confirmado, concluído, cancelado).',
+                'label' => 'Cancelamento / falta',
+                'description' => 'Sininho só em cancelamento; email em cancelamento e falta.',
             ],
         ];
     }

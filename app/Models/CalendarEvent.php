@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToStore;
 use App\Support\ActivityLogContext;
 use App\Support\ActivityLogMarcacaoOrigin;
+use App\Support\StoreBusinessTime;
 use Carbon\CarbonInterface;
 use Spatie\Activitylog\Contracts\Activity;
 use Illuminate\Database\Eloquent\Builder;
@@ -511,7 +512,7 @@ class CalendarEvent extends Model
     }
 
     /**
-     * Registo retroativo na agenda (início antes de agora): sem emails de criação/alteração/cancelamento.
+     * Registo retroativo na agenda (início antes de agora na loja): sem emails/sininho de criação/alteração.
      */
     public function shouldSendBookingNotifications(): bool
     {
@@ -519,7 +520,15 @@ class CalendarEvent extends Model
             return true;
         }
 
-        return ! $this->start_at->isPast();
+        $storeId = (int) ($this->store_id ?? 0);
+        if ($storeId <= 0) {
+            return ! $this->start_at->isPast();
+        }
+
+        $tz = StoreBusinessTime::timezoneForStore($storeId);
+        $startLocal = $this->start_at->copy()->timezone($tz);
+
+        return $startLocal->gt(StoreBusinessTime::nowForStore($storeId));
     }
 
     public static function statuses(): array

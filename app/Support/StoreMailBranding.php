@@ -74,8 +74,7 @@ final class StoreMailBranding
         $branding = self::using($store);
 
         return $mail
-            ->from((string) config('mail.from.address'), $branding['from_name'])
-            ->salutation($branding['footer_name']);
+            ->from((string) config('mail.from.address'), $branding['from_name']);
     }
 
     public static function envelopeForStore(?Store $store, string $subject): Envelope

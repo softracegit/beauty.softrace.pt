@@ -57,6 +57,7 @@ final class VendusInvoiceEmailService
                     $filename,
                     $pdf,
                     (int) ($sale->store_id ?? 0) ?: null,
+                    (int) ($sale->calendar_event_id ?? 0) ?: null,
                 ));
 
             return ['sent' => true, 'message' => null];

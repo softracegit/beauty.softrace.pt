@@ -25,7 +25,7 @@ class BookingContactVerificationCodeMail extends Mailable
     {
         return StoreMailBranding::envelopeForStore(
             $this->store,
-            __('booking.mail.verification_subject'),
+            __('booking.mail.verification_subject', ['app' => StoreMailBranding::resolve($this->store)['name']]),
         );
     }
 

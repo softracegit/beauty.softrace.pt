@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\CalendarEvent;
-use App\Models\User;
 use App\Notifications\AppointmentNotification;
 use App\Support\ReceptionNotificationMail;
 use Illuminate\Support\Facades\Log;
@@ -11,14 +10,18 @@ use Illuminate\Support\Facades\Log;
 final class ReceptionBookingNotifier
 {
     /**
-     * Sininho na receção para marcações novas ou alteradas (em paralelo com a técnica).
-     * Email à receção via CC nos envios à técnica.
+     * Sininho + email próprio na receção para marcações novas ou alteradas.
      */
     public function notify(
         CalendarEvent $event,
         string $type,
         ?string $previousStatus = null,
         bool $fromPublicBooking = false,
+        ?string $previousStartIso = null,
+        ?string $previousEndIso = null,
+        ?string $previousTechnicianName = null,
+        array $servicesAdded = [],
+        array $servicesRemoved = [],
     ): void {
         if ($event->event_type !== CalendarEvent::TYPE_MARCACAO || ! $event->shouldSendBookingNotifications()) {
             return;
@@ -28,48 +31,21 @@ final class ReceptionBookingNotifier
             return;
         }
 
-        $storeId = (int) ($event->store_id ?? 0);
-        if ($storeId <= 0) {
-            return;
-        }
-
-        $actorId = auth()->id();
-        $technicianUserId = (int) ($event->user_id ?? 0);
-
-        foreach (ReceptionNotificationMail::receptionUsersForStore($storeId) as $user) {
-            if (
-                ! $fromPublicBooking
-                && $actorId !== null
-                && (int) $user->id === (int) $actorId
-            ) {
-                continue;
-            }
-            if ($technicianUserId > 0 && (int) $user->id === $technicianUserId) {
-                continue;
-            }
-
-            try {
-                $user->notify(new AppointmentNotification(
-                    (int) $event->id,
-                    $type,
-                    $previousStatus,
-                    $fromPublicBooking,
-                    forReception: true,
-                ));
-            } catch (\Throwable $e) {
-                Log::warning('Falha ao notificar receção sobre marcação.', [
-                    'calendar_event_id' => $event->id,
-                    'recipient_user_id' => $user->id,
-                    'type' => $type,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
+        $this->dispatchToReception(
+            $event,
+            $type,
+            $previousStatus,
+            $fromPublicBooking,
+            $previousStartIso,
+            $previousEndIso,
+            $previousTechnicianName,
+            $servicesAdded,
+            $servicesRemoved,
+        );
     }
 
     /**
-     * Sininho na receção quando uma marcação futura é cancelada (ex.: pelo cliente).
-     * Email à receção via CC nos envios à técnica.
+     * Sininho + email próprio na receção quando a marcação é cancelada ou marcada como falta.
      */
     public function notifyCancellation(
         CalendarEvent $event,
@@ -80,7 +56,30 @@ final class ReceptionBookingNotifier
             return;
         }
 
+        $this->dispatchToReception(
+            $event,
+            'status_changed',
+            $previousStatus,
+            $fromPublicBooking,
+        );
+    }
+
+    private function dispatchToReception(
+        CalendarEvent $event,
+        string $type,
+        ?string $previousStatus,
+        bool $fromPublicBooking,
+        ?string $previousStartIso = null,
+        ?string $previousEndIso = null,
+        ?string $previousTechnicianName = null,
+        array $servicesAdded = [],
+        array $servicesRemoved = [],
+    ): void {
         $storeId = (int) ($event->store_id ?? 0);
+        if ($storeId <= 0) {
+            $event->refresh();
+            $storeId = (int) ($event->store_id ?? 0);
+        }
         if ($storeId <= 0) {
             return;
         }
@@ -93,17 +92,23 @@ final class ReceptionBookingNotifier
             }
 
             try {
-                $user->notify(new AppointmentNotification(
+                $user->notifyNow(new AppointmentNotification(
                     (int) $event->id,
-                    'status_changed',
+                    $type,
                     $previousStatus,
                     $fromPublicBooking,
                     forReception: true,
+                    previousStartIso: $previousStartIso,
+                    previousEndIso: $previousEndIso,
+                    previousTechnicianName: $previousTechnicianName,
+                    servicesAdded: $servicesAdded,
+                    servicesRemoved: $servicesRemoved,
                 ));
             } catch (\Throwable $e) {
-                Log::warning('Falha ao notificar receção sobre cancelamento.', [
+                Log::warning('Falha ao notificar receção sobre marcação.', [
                     'calendar_event_id' => $event->id,
                     'recipient_user_id' => $user->id,
+                    'type' => $type,
                     'error' => $e->getMessage(),
                 ]);
             }

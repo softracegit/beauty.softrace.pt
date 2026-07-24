@@ -735,6 +735,7 @@ class OnlineBookingCheckoutService
             }
 
             $ev = CalendarEvent::create([
+                'store_id' => (int) $client->store_id,
                 'title' => $title,
                 'start_at' => $startForDb,
                 'end_at' => $endForDb,
@@ -787,11 +788,20 @@ class OnlineBookingCheckoutService
             if ($recipient) {
                 $recipient->notify(new AppointmentNotification($event->id, 'assigned', null, fromPublicBooking: true));
             }
-            $this->receptionBookingNotifier->notify($event, 'assigned', null, fromPublicBooking: true);
         } catch (\Throwable $e) {
             \Log::warning('Marcação online: falha ao notificar técnica.', [
                 'calendar_event_id' => $event->id,
                 'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Sininho da receção independente do email da técnica (falhas SMTP não devem engolir o CRM).
+        try {
+            $this->receptionBookingNotifier->notify($event, 'assigned', null, fromPublicBooking: true);
+        } catch (\Throwable $e) {
+            \Log::warning('Marcação online: falha ao notificar receção.', [
+                'calendar_event_id' => $event->id,
                 'error' => $e->getMessage(),
             ]);
         }

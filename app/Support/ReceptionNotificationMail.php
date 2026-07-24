@@ -12,52 +12,28 @@ use Illuminate\Support\Collection;
 final class ReceptionNotificationMail
 {
     /**
-     * Recepção em CC nos emails de marcação, excepto quando a acção na agenda é da própria receção.
+     * @deprecated CC descontinuado — a receção recebe email próprio.
      */
     public static function shouldCcReceptionForActor(bool $fromPublicBooking = false, ?int $actorUserId = null): bool
     {
-        if ($fromPublicBooking) {
-            return true;
-        }
-
-        if ($actorUserId === null) {
-            $actor = auth()->user();
-            $actorUserId = $actor?->id;
-        }
-
-        if ($actorUserId === null) {
-            return true;
-        }
-
-        $user = User::query()->find($actorUserId);
-
-        return ! ($user instanceof User && $user->role === User::ROLE_RECECAO);
+        return false;
     }
 
     /**
-     * CC nos emails de marcação para todas as receções com acesso à loja do evento.
-     *
      * @param  list<string>  $excludeEmails
+     * @deprecated CC descontinuado — a receção recebe email próprio.
      */
     public static function applyReceptionCc(
         MailMessage $mail,
         CalendarEvent $event,
         array $excludeEmails = [],
     ): MailMessage {
-        $exclude = self::normalizeEmailList($excludeEmails);
-
-        foreach (self::receptionEmailsForStore((int) ($event->store_id ?? 0)) as $email) {
-            if (in_array(strtolower($email), $exclude, true)) {
-                continue;
-            }
-            $mail->cc($email);
-        }
-
         return $mail;
     }
 
     /**
      * @param  list<string>  $excludeEmails
+     * @deprecated CC descontinuado — a receção recebe email próprio.
      */
     public static function applyReceptionCcWhenAllowed(
         MailMessage $mail,
@@ -66,11 +42,7 @@ final class ReceptionNotificationMail
         bool $fromPublicBooking = false,
         ?int $actorUserId = null,
     ): MailMessage {
-        if (! self::shouldCcReceptionForActor($fromPublicBooking, $actorUserId)) {
-            return $mail;
-        }
-
-        return self::applyReceptionCc($mail, $event, $excludeEmails);
+        return $mail;
     }
 
     /**

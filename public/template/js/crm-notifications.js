@@ -25,6 +25,38 @@
     return div.innerHTML;
   }
 
+  /** Permite apenas &lt;br&gt; e &lt;strong&gt;/&lt;b&gt; no corpo do sininho. */
+  function formatNotificationBody(html) {
+    if (!html) return '';
+    var tpl = document.createElement('template');
+    tpl.innerHTML = String(html);
+    function sanitize(node) {
+      Array.from(node.childNodes).forEach(function (child) {
+        if (child.nodeType === 1) {
+          var tag = child.tagName.toLowerCase();
+          if (tag === 'br') {
+            while (child.attributes.length) {
+              child.removeAttribute(child.attributes[0].name);
+            }
+            return;
+          }
+          if (tag === 'strong' || tag === 'b') {
+            while (child.attributes.length) {
+              child.removeAttribute(child.attributes[0].name);
+            }
+            sanitize(child);
+            return;
+          }
+          var text = document.createTextNode(child.textContent || '');
+          child.parentNode.replaceChild(text, child);
+          return;
+        }
+      });
+    }
+    sanitize(tpl.content);
+    return tpl.innerHTML;
+  }
+
   function formatTime(iso) {
     if (!iso) return '';
     try {
@@ -82,15 +114,27 @@
 
     notifications.forEach(function (n) {
       var unread = !n.read;
+      var iconClass = 'info';
+      var iconName = 'bi-calendar-check';
+      if (n.type === 'status_changed') {
+        iconClass = 'danger';
+        iconName = 'bi-calendar-x';
+      } else if (n.type === 'rescheduled') {
+        iconClass = 'warning';
+        iconName = 'bi-calendar-event';
+      } else if (n.type === 'reassigned') {
+        iconClass = 'warning';
+        iconName = 'bi-arrow-left-right';
+      }
       var a = document.createElement('a');
       a.href = n.url || '#';
       a.className = 'notification-item' + (unread ? ' unread' : '');
       a.setAttribute('data-notification-id', n.id);
       a.innerHTML =
-        '<div class="notification-icon info"><i class="bi bi-calendar-check"></i></div>' +
+        '<div class="notification-icon ' + iconClass + '"><i class="bi ' + iconName + '"></i></div>' +
         '<div class="notification-content">' +
-        '<div class="notification-title">' + escapeHtml(n.title) + '</div>' +
-        '<div class="notification-text">' + escapeHtml(n.body) + '</div>' +
+        '<div class="notification-title">' + formatNotificationBody(n.title) + '</div>' +
+        '<div class="notification-text">' + formatNotificationBody(n.body) + '</div>' +
         '<div class="notification-time"><i class="bi bi-clock"></i> ' +
         escapeHtml(formatTime(n.created_at)) +
         '</div></div>' +

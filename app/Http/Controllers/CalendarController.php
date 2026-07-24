@@ -1224,8 +1224,14 @@ class CalendarController extends Controller
         $prevStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
         $timeChanged = false;
         $userIdChanged = false;
+        $servicesWillChange = false;
+        $beforeServicesSnapshot = [];
+        $afterServicesSnapshot = [];
         $newAssigneeUserId = null;
+        $previousTechnicianName = null;
         $statusChangedInUpdate = false;
+        $notifyPrevStart = $calendarEvent->start_at?->copy();
+        $notifyPrevEnd = $calendarEvent->end_at?->copy();
 
         if (isset($validated['event_type']) && $validated['event_type'] === CalendarEvent::TYPE_MARCACAO && $calendarEvent->isSourceEditable()) {
             if (! empty($servicesPayload)) {
@@ -1239,13 +1245,6 @@ class CalendarController extends Controller
         }
 
         $tz = config('app.timezone');
-
-        $notifyClientPrevStart = null;
-        $notifyClientPrevEnd = null;
-        if ($calendarEvent->isTimeEditable() && (isset($validated['start_at']) || isset($validated['end_at']))) {
-            $notifyClientPrevStart = $calendarEvent->start_at?->copy();
-            $notifyClientPrevEnd = $calendarEvent->end_at?->copy();
-        }
 
         if ($calendarEvent->isTimeEditable() && (isset($validated['start_at']) || isset($validated['end_at']))) {
             $updates = [];
@@ -1292,6 +1291,9 @@ class CalendarController extends Controller
             if ($currentUserId !== $newUserId) {
                 $userIdChanged = true;
                 $newAssigneeUserId = $newUserId;
+                if ($currentUserId) {
+                    $previousTechnicianName = User::query()->find($currentUserId)?->name;
+                }
                 $calendarEvent->user_id = $newUserId;
                 $calendarEvent->save();
             }
@@ -1390,12 +1392,47 @@ class CalendarController extends Controller
             }
         }
 
-        $freshEvent = $calendarEvent->fresh(['client', 'service', 'eventServices']);
+        $freshEvent = $calendarEvent->fresh(['client', 'service', 'eventServices', 'user', 'store']);
+        $servicesAdded = [];
+        $servicesRemoved = [];
+        if ($servicesWillChange && $freshEvent) {
+            $diff = $this->servicesActivityLogger->addedAndRemovedLabels(
+                $beforeServicesSnapshot,
+                $afterServicesSnapshot,
+                (int) ($freshEvent->store_id ?? 0),
+            );
+            $servicesAdded = $diff['added'];
+            $servicesRemoved = $diff['removed'];
+        }
+
         if ($freshEvent && $freshEvent->event_type === CalendarEvent::TYPE_MARCACAO) {
+            $prevStartIso = $notifyPrevStart?->toIso8601String();
+            $prevEndIso = $notifyPrevEnd?->toIso8601String();
+
             if ($userIdChanged && $newAssigneeUserId !== null) {
-                $this->notifyMarcacaoRecipient($newAssigneeUserId, $freshEvent, 'reassigned');
-            } elseif ($timeChanged && $freshEvent->user_id) {
-                $this->notifyMarcacaoRecipient((int) $freshEvent->user_id, $freshEvent, 'rescheduled');
+                $this->notifyMarcacaoRecipient(
+                    $newAssigneeUserId,
+                    $freshEvent,
+                    'reassigned',
+                    null,
+                    $prevStartIso,
+                    $prevEndIso,
+                    $previousTechnicianName,
+                    $servicesAdded,
+                    $servicesRemoved,
+                );
+            } elseif (($timeChanged || $servicesWillChange) && $freshEvent->user_id) {
+                $this->notifyMarcacaoRecipient(
+                    (int) $freshEvent->user_id,
+                    $freshEvent,
+                    'rescheduled',
+                    null,
+                    $prevStartIso,
+                    $prevEndIso,
+                    null,
+                    $servicesAdded,
+                    $servicesRemoved,
+                );
             }
             if ($statusChangedInUpdate && $freshEvent->user_id) {
                 $this->notifyMarcacaoRecipient((int) $freshEvent->user_id, $freshEvent, 'status_changed', $prevStatus);
@@ -1405,7 +1442,7 @@ class CalendarController extends Controller
         $notifyClientWanted = $request->boolean('notify_client');
         if (
             $notifyClientWanted
-            && $timeChanged
+            && ($timeChanged || $servicesWillChange)
             && $freshEvent
             && $freshEvent->event_type === CalendarEvent::TYPE_MARCACAO
             && $freshEvent->shouldSendBookingNotifications()
@@ -1422,8 +1459,10 @@ class CalendarController extends Controller
                         ->notify(
                             (new ClientAppointmentRescheduledNotification(
                                 (int) $freshEvent->id,
-                                $notifyClientPrevStart?->toIso8601String(),
-                                $notifyClientPrevEnd?->toIso8601String()
+                                $notifyPrevStart?->toIso8601String(),
+                                $notifyPrevEnd?->toIso8601String(),
+                                $servicesAdded,
+                                $servicesRemoved,
                             ))->locale(BookingLocale::emailLocale())
                         );
                 } catch (\Throwable $e) {
@@ -2103,10 +2142,19 @@ class CalendarController extends Controller
     }
 
     /**
-     * Notifica o utilizador responsável pela marcação (sem auto-notificação).
+     * Notifica o utilizador responsável pela marcação (sem auto-notificação) e a receção.
      */
-    private function notifyMarcacaoRecipient(int $userId, CalendarEvent $event, string $type, ?string $previousStatus = null): void
-    {
+    private function notifyMarcacaoRecipient(
+        int $userId,
+        CalendarEvent $event,
+        string $type,
+        ?string $previousStatus = null,
+        ?string $previousStartIso = null,
+        ?string $previousEndIso = null,
+        ?string $previousTechnicianName = null,
+        array $servicesAdded = [],
+        array $servicesRemoved = [],
+    ): void {
         if (
             $event->event_type !== CalendarEvent::TYPE_MARCACAO
             || ! $this->cancellationService->shouldSendCancellationNotifications($event)
@@ -2116,7 +2164,18 @@ class CalendarController extends Controller
         $user = User::find($userId);
         if ($user && auth()->id() !== $user->id) {
             try {
-                $user->notify(new AppointmentNotification($event->id, $type, $previousStatus));
+                $user->notify(new AppointmentNotification(
+                    $event->id,
+                    $type,
+                    $previousStatus,
+                    false,
+                    false,
+                    $previousStartIso,
+                    $previousEndIso,
+                    $previousTechnicianName,
+                    $servicesAdded,
+                    $servicesRemoved,
+                ));
             } catch (\Throwable $e) {
                 // Falha de email/notificação não deve bloquear criação/edição da marcação.
                 \Log::warning('Falha ao enviar notificação de marcação.', [
@@ -2130,7 +2189,22 @@ class CalendarController extends Controller
         }
 
         if (in_array($type, ['assigned', 'reassigned', 'rescheduled'], true)) {
-            $this->receptionBookingNotifier->notify($event, $type, $previousStatus);
+            $this->receptionBookingNotifier->notify(
+                $event,
+                $type,
+                $previousStatus,
+                false,
+                $previousStartIso,
+                $previousEndIso,
+                $previousTechnicianName,
+                $servicesAdded,
+                $servicesRemoved,
+            );
+        } elseif (
+            $type === 'status_changed'
+            && in_array($event->status ?? '', [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true)
+        ) {
+            $this->receptionBookingNotifier->notifyCancellation($event, $previousStatus, false);
         }
     }
 

@@ -50,6 +50,48 @@ class MarcacaoServicesActivityLogger
     /**
      * @param  list<array<string, mixed>>  $before
      * @param  list<array<string, mixed>>  $after
+     * @return array{added: list<string>, removed: list<string>}
+     */
+    public function addedAndRemovedLabels(array $before, array $after, int $storeId): array
+    {
+        $catalog = $this->loadCatalog($before, $after, $storeId);
+        $beforeLabels = [];
+        foreach ($before as $row) {
+            $label = $this->labelFromSnapshotRow($row, $catalog);
+            if ($label !== null && $label !== '') {
+                $beforeLabels[] = $label;
+            }
+        }
+        $afterLabels = [];
+        foreach ($after as $row) {
+            $label = $this->labelFromSnapshotRow($row, $catalog);
+            if ($label !== null && $label !== '') {
+                $afterLabels[] = $label;
+            }
+        }
+
+        $beforeCount = array_count_values($beforeLabels);
+        $afterCount = array_count_values($afterLabels);
+        $added = [];
+        $removed = [];
+
+        foreach (array_unique(array_merge(array_keys($beforeCount), array_keys($afterCount))) as $label) {
+            $b = $beforeCount[$label] ?? 0;
+            $a = $afterCount[$label] ?? 0;
+            for ($i = 0; $i < ($a - $b); $i++) {
+                $added[] = $label;
+            }
+            for ($i = 0; $i < ($b - $a); $i++) {
+                $removed[] = $label;
+            }
+        }
+
+        return ['added' => $added, 'removed' => $removed];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $before
+     * @param  list<array<string, mixed>>  $after
      * @return list<string>
      */
     public function changeLines(array $before, array $after, int $storeId): array
