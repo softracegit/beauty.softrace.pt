@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\PhoneDisplay;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -281,6 +282,48 @@ class Store extends Model
             sprintf('%02d:%02d', intdiv($minM, 60), $minM % 60),
             sprintf('%02d:%02d', intdiv($maxM, 60), $maxM % 60),
         ];
+    }
+
+    /** Chave do dia (sun…sat) alinhada com a agenda JS. */
+    public static function weekKeyFromDate(CarbonInterface $date): string
+    {
+        $keys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+        return $keys[(int) $date->dayOfWeek] ?? 'mon';
+    }
+
+    /**
+     * Horário de abertura/fecho da loja num dia civil (fuso da loja).
+     *
+     * @return array{start: string, end: string}|null null se a loja estiver fechada
+     */
+    public function storeHoursWindowForDate(CarbonInterface $date): ?array
+    {
+        $dayKey = self::weekKeyFromDate($date);
+        $day = $this->normalizedWeeklySchedule()[$dayKey] ?? null;
+        if (! is_array($day) || ! ($day['enabled'] ?? false)) {
+            return null;
+        }
+
+        $start = is_string($day['start'] ?? null) ? $day['start'] : '09:00';
+        $end = is_string($day['end'] ?? null) ? $day['end'] : '20:00';
+
+        return ['start' => $start, 'end' => $end];
+    }
+
+    /** Hora (HH:MM no fuso da loja) dentro do horário da loja nesse dia? */
+    public function isInstantWithinStoreHours(CarbonInterface $instant): bool
+    {
+        $window = $this->storeHoursWindowForDate($instant);
+        if ($window === null) {
+            return false;
+        }
+
+        $mins = Agent::timeStringToMinutes($instant->format('H:i'));
+        $startM = Agent::timeStringToMinutes($window['start']);
+        $endM = Agent::timeStringToMinutes($window['end']);
+
+        return $mins >= $startM && $mins <= $endM;
     }
 
     public static function defaultPublicBookingStoreSlug(): string

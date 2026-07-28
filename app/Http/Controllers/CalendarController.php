@@ -109,6 +109,7 @@ class CalendarController extends Controller
         $nationalHolidaysPt = array_keys($nationalHolidayNamesPt);
         $posGorjetaEnabled = CrmSetting::posGorjetaEnabled(current_store_id());
         $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired(current_store_id());
+        $personalTimeLimitStoreHours = CrmSetting::personalTimeLimitStoreHours(current_store_id());
 
         $store = current_store()->get();
         $storeWeeklySchedule = $store->normalizedWeeklySchedule();
@@ -125,6 +126,7 @@ class CalendarController extends Controller
             'nationalHolidayNamesPt',
             'posGorjetaEnabled',
             'onlineBookingPaymentRequired',
+            'personalTimeLimitStoreHours',
             'storeWeeklySchedule',
             'agendaSlotMin',
             'agendaSlotMax',
@@ -1102,6 +1104,14 @@ class CalendarController extends Controller
             }
         }
 
+        if ($eventType === CalendarEvent::TYPE_TEMPO_PESSOAL) {
+            $this->assertTempoPessoalWithinStoreHoursIfEnabled(
+                (string) $validated['start_at'],
+                (string) $validated['end_at'],
+                (int) current_store_id(),
+            );
+        }
+
         $validated['user_id'] = $validated['user_id'] ?? auth()->id();
         if (auth()->user()->isPrestador()) {
             $validated['user_id'] = auth()->id();
@@ -1267,6 +1277,29 @@ class CalendarController extends Controller
                     'success' => false,
                     'message' => 'Não é possível mover tempos pessoais para o passado.',
                 ], 422);
+            }
+        }
+
+        if (($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL) {
+            $startAt = isset($validated['start_at'])
+                ? (string) $validated['start_at']
+                : ($calendarEvent->start_at?->toIso8601String() ?? '');
+            $endAt = isset($validated['end_at'])
+                ? (string) $validated['end_at']
+                : ($calendarEvent->end_at?->toIso8601String() ?? '');
+            if ($startAt !== '' && $endAt !== '') {
+                try {
+                    $this->assertTempoPessoalWithinStoreHoursIfEnabled(
+                        $startAt,
+                        $endAt,
+                        (int) ($calendarEvent->store_id ?: current_store_id()),
+                    );
+                } catch (ValidationException $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => collect($e->errors())->flatten()->first() ?: 'Horário inválido.',
+                    ], 422);
+                }
             }
         }
 
@@ -2618,6 +2651,46 @@ class CalendarController extends Controller
             ->map(fn (\App\Models\ClientTag $tag) => $tag->toPickerArray())
             ->values()
             ->all();
+    }
+
+    private function assertTempoPessoalWithinStoreHoursIfEnabled(string $startAt, string $endAt, int $storeId): void
+    {
+        if (! CrmSetting::personalTimeLimitStoreHours($storeId)) {
+            return;
+        }
+
+        $store = current_store()->get();
+        if ((int) $store->id !== $storeId) {
+            $store = \App\Models\Store::query()->findOrFail($storeId);
+        }
+
+        $tz = StoreBusinessTime::timezoneForStore($storeId);
+        $startLocal = Carbon::parse($startAt)->timezone($tz);
+        $endLocal = Carbon::parse($endAt)->timezone($tz);
+
+        if ($startLocal->toDateString() !== $endLocal->toDateString()) {
+            throw ValidationException::withMessages([
+                'start_at' => ['O tempo pessoal deve estar num único dia dentro do horário da loja.'],
+            ]);
+        }
+
+        if ($store->storeHoursWindowForDate($startLocal) === null) {
+            throw ValidationException::withMessages([
+                'start_at' => ['A loja está fechada neste dia.'],
+            ]);
+        }
+
+        if (! $store->isInstantWithinStoreHours($startLocal) || ! $store->isInstantWithinStoreHours($endLocal)) {
+            throw ValidationException::withMessages([
+                'start_at' => ['O tempo pessoal deve estar dentro do horário da loja ('.$store->hoursDisplayLabel().').'],
+            ]);
+        }
+
+        if ($endLocal->lte($startLocal)) {
+            throw ValidationException::withMessages([
+                'end_at' => ['A hora de fim deve ser posterior à hora de início.'],
+            ]);
+        }
     }
 
     /**

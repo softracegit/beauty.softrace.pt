@@ -371,6 +371,8 @@ class DefinicoesController extends Controller
             'pageTitle' => 'Equipa',
             'agents' => $agents,
             'roles' => User::roles(),
+            'personalTimeLimitStoreHours' => CrmSetting::personalTimeLimitStoreHours(current_store_id()),
+            'storeHoursLabel' => app(CurrentStore::class)->get()->hoursDisplayLabel(),
         ]);
     }
 
@@ -382,7 +384,20 @@ class DefinicoesController extends Controller
             'members.*.visible_in_agenda' => ['nullable', 'boolean'],
             'members.*.visible_in_booking' => ['nullable', 'boolean'],
             'members.*.agenda_order' => ['nullable', 'integer', 'min:1', 'max:9999'],
+            'personal_time_limit_store_hours' => ['nullable', 'boolean'],
         ]);
+
+        $storeId = current_store_id();
+        $beforePersonalTimeLimit = CrmSetting::personalTimeLimitStoreHours($storeId);
+        CrmSetting::setPersonalTimeLimitStoreHours(
+            $request->boolean('personal_time_limit_store_hours'),
+            $storeId,
+        );
+        $personalTimeLimitChange = $this->settingsActivityLogger->logBoolChange(
+            'Limitar tempo pessoal ao horário da loja',
+            $beforePersonalTimeLimit,
+            CrmSetting::personalTimeLimitStoreHours($storeId),
+        );
 
         $rows = $validated['members'] ?? [];
         foreach ($rows as $agentId => $row) {
@@ -412,7 +427,7 @@ class DefinicoesController extends Controller
 
         $store = app(CurrentStore::class)->get();
 
-        DB::transaction(function () use ($rows, $agents, $store): void {
+        DB::transaction(function () use ($rows, $agents, $store, $personalTimeLimitChange): void {
             $changes = [];
             foreach ($rows as $agentId => $row) {
                 $agentIdInt = (int) $agentId;
@@ -466,6 +481,15 @@ class DefinicoesController extends Controller
                     'equipa',
                     'Configuração da equipa atualizada',
                     $changes,
+                );
+            }
+
+            if ($personalTimeLimitChange !== null) {
+                $this->settingsActivityLogger->logSection(
+                    $store,
+                    'equipa',
+                    'Tempo pessoal na agenda',
+                    [$personalTimeLimitChange],
                 );
             }
         });

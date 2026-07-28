@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const canUsePaymentDraft = agendaPerms.canUsePaymentDraft !== false;
     const canCreateMarcacao = agendaPerms.canCreateMarcacao !== false;
     const canCreateMarcacaoInPast = agendaPerms.canCreateMarcacaoInPast === true || !!C.currentUserIsAdmin;
+    const personalTimeLimitStoreHours = C.personalTimeLimitStoreHours === true;
     const pastCreateGraceMinutesRaw = Number(C.pastCreateGraceMinutes);
     const PAST_CREATE_GRACE_MINUTES = Number.isFinite(pastCreateGraceMinutesRaw) && pastCreateGraceMinutesRaw >= 0
         ? pastCreateGraceMinutesRaw
@@ -289,6 +290,65 @@ document.addEventListener('DOMContentLoaded', function() {
         var cfg = getStoreDayConfig(d);
         if (!cfg.enabled) return null;
         return { start: cfg.start, end: cfg.end };
+    }
+    function tempoPessoalSelectedDate() {
+        var dateStr = ($id('tempoPessoalDateInput')?.value || '').trim();
+        if (dateStr) {
+            return parseAgendaLocalDate(dateStr);
+        }
+        var startStr = $id('tempoPessoalStart')?.value || '';
+        if (startStr) {
+            var d = parseAgendaLocalDateTime(startStr);
+            if (d && !isNaN(d.getTime())) return d;
+        }
+        return null;
+    }
+    function tempoPessoalStoreHoursOptionBounds(isEndTime) {
+        if (!personalTimeLimitStoreHours) return null;
+        var d = tempoPessoalSelectedDate();
+        if (!d || isNaN(d.getTime())) return null;
+        var window = getStoreDayWindowStrings(d);
+        if (!window) return { closed: true };
+        var minM = timeStrToMinutes(window.start);
+        var maxM = timeStrToMinutes(window.end);
+        if (isEndTime) {
+            var startLabel = ($id('tempoPessoalStartTimeToggle')?.textContent || '').trim();
+            if (startLabel && startLabel !== '…') {
+                minM = Math.max(minM, timeStrToMinutes(startLabel) + 15);
+            }
+        }
+        return { minMinutes: minM, maxMinutes: maxM };
+    }
+    function tempoPessoalClampTimesToStoreHours() {
+        if (!personalTimeLimitStoreHours) return;
+        TempoPessoal.syncHiddenFromInputs();
+        var d = tempoPessoalSelectedDate();
+        if (!d || isNaN(d.getTime())) return;
+        var window = getStoreDayWindowStrings(d);
+        if (!window) return;
+        var minM = timeStrToMinutes(window.start);
+        var maxM = timeStrToMinutes(window.end);
+        var startStr = $id('tempoPessoalStart')?.value || '';
+        var endStr = $id('tempoPessoalEnd')?.value || '';
+        if (!startStr) return;
+        var start = parseAgendaLocalDateTime(startStr);
+        var end = endStr ? parseAgendaLocalDateTime(endStr) : null;
+        if (!start || isNaN(start.getTime())) return;
+        var startM = start.getHours() * 60 + start.getMinutes();
+        var endM = end && !isNaN(end.getTime()) ? (end.getHours() * 60 + end.getMinutes()) : (startM + 60);
+        if (startM < minM) startM = minM;
+        if (startM > maxM) startM = maxM;
+        if (endM < startM + 15) endM = Math.min(maxM, startM + 15);
+        if (endM > maxM) endM = maxM;
+        if (endM <= startM) endM = Math.min(maxM, startM + 15);
+        var pad = function(n) { return String(n).padStart(2, '0'); };
+        var ymd = start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate());
+        var st = minutesToTimeStr(startM);
+        var et = minutesToTimeStr(endM);
+        $id('tempoPessoalStart').value = ymd + 'T' + st;
+        $id('tempoPessoalEnd').value = ymd + 'T' + et;
+        $id('tempoPessoalStartTimeToggle').textContent = st;
+        $id('tempoPessoalEndTimeToggle').textContent = et;
     }
     function getAgendaSlotRange(is24h) {
         if (is24h) {
@@ -2088,22 +2148,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.value = '';
             }
         },
-        populateTimeOptions: function(containerSelector, selectedTime, onSelect) {
+        populateTimeOptions: function(containerSelector, selectedTime, onSelect, isEndTime) {
             var container = $(containerSelector);
             if (!container) return;
             container.innerHTML = '';
-            for (var h = 0; h < 24; h++) {
-                for (var m = 0; m < 60; m += 15) {
-                    var ts = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-                    var a = document.createElement('a');
-                    a.href = '#';
-                    a.className = 'dropdown-item tempo-pessoal-time-opt' + (ts === selectedTime ? ' active' : '');
-                    a.dataset.time = ts;
-                    a.textContent = ts;
-                    a.addEventListener('click', function(e) { e.preventDefault(); onSelect(this.dataset.time); });
-                    container.appendChild(a);
-                }
+            var bounds = tempoPessoalStoreHoursOptionBounds(!!isEndTime);
+            if (bounds && bounds.closed) {
+                var closedMsg = document.createElement('div');
+                closedMsg.className = 'dropdown-item-text small text-muted px-3 py-2';
+                closedMsg.textContent = 'Loja fechada neste dia.';
+                container.appendChild(closedMsg);
+                return;
             }
+            var minM = 0;
+            var maxM = (24 * 60) - 15;
+            if (bounds && bounds.minMinutes != null && bounds.maxMinutes != null) {
+                minM = bounds.minMinutes;
+                maxM = bounds.maxMinutes;
+            }
+            if (minM > maxM) {
+                var noSlot = document.createElement('div');
+                noSlot.className = 'dropdown-item-text small text-muted px-3 py-2';
+                noSlot.textContent = 'Sem horários disponíveis.';
+                container.appendChild(noSlot);
+                return;
+            }
+            for (var m = minM; m <= maxM; m += 15) {
+                var ts = minutesToTimeStr(m);
+                var a = document.createElement('a');
+                a.href = '#';
+                a.className = 'dropdown-item tempo-pessoal-time-opt' + (ts === selectedTime ? ' active' : '');
+                a.dataset.time = ts;
+                a.textContent = ts;
+                a.addEventListener('click', function(e) { e.preventDefault(); onSelect(this.dataset.time); });
+                container.appendChild(a);
+            }
+        },
+        refreshTimeOptionLists: function() {
+            var st = ($id('tempoPessoalStartTimeToggle')?.textContent || '').trim();
+            var et = ($id('tempoPessoalEndTimeToggle')?.textContent || '').trim();
+            if (st === '…') st = '';
+            if (et === '…') et = '';
+            TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', st, TempoPessoal.applyNewStartTime, false);
+            TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime, true);
         },
         applyNewStartTime: function(timeStr) {
             var startStr = $id('tempoPessoalStart').value;
@@ -2122,8 +2209,7 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('tempoPessoalEnd').value = end.getFullYear() + '-' + pad(end.getMonth() + 1) + '-' + pad(end.getDate()) + 'T' + pad(end.getHours()) + ':' + pad(end.getMinutes());
             $id('tempoPessoalStartTimeToggle').textContent = timeStr;
             $id('tempoPessoalEndTimeToggle').textContent = pad(end.getHours()) + ':' + pad(Math.floor(end.getMinutes() / 15) * 15);
-            TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', timeStr, TempoPessoal.applyNewStartTime);
-            TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', $id('tempoPessoalEndTimeToggle').textContent, TempoPessoal.applyNewEndTime);
+            TempoPessoal.refreshTimeOptionLists();
             updateTempoPessoalOutOfHoursWarning();
             updateTempoPessoalPastStartGuard();
             var toggle = $id('tempoPessoalStartTimeToggle');
@@ -2140,7 +2226,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var et = pad(endD.getHours()) + ':' + pad(Math.floor(endD.getMinutes() / 15) * 15);
             $id('tempoPessoalEnd').value = endD.getFullYear() + '-' + pad(endD.getMonth() + 1) + '-' + pad(endD.getDate()) + 'T' + pad(endD.getHours()) + ':' + pad(endD.getMinutes());
             $id('tempoPessoalEndTimeToggle').textContent = et;
-            TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime);
+            tempoPessoalClampTimesToStoreHours();
+            TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime, true);
             updateTempoPessoalOutOfHoursWarning();
             updateTempoPessoalPastStartGuard();
         },
@@ -2156,7 +2243,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var pad = function(n) { return String(n).padStart(2, '0'); };
             $id('tempoPessoalEnd').value = end.getFullYear() + '-' + pad(end.getMonth() + 1) + '-' + pad(end.getDate()) + 'T' + pad(end.getHours()) + ':' + pad(end.getMinutes());
             $id('tempoPessoalEndTimeToggle').textContent = timeStr;
-            TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', timeStr, TempoPessoal.applyNewEndTime);
+            TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', timeStr, TempoPessoal.applyNewEndTime, true);
             updateTempoPessoalOutOfHoursWarning();
             updateTempoPessoalPastStartGuard();
             var toggle = $id('tempoPessoalEndTimeToggle');
@@ -2179,7 +2266,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (endD.getTime() <= startD.getTime()) {
                 endD = new Date(startD.getTime() + 60 * 60 * 1000);
                 $id('tempoPessoalEndTimeToggle').textContent = String(endD.getHours()).padStart(2, '0') + ':' + String(endD.getMinutes()).padStart(2, '0');
-                TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', $id('tempoPessoalEndTimeToggle').textContent, TempoPessoal.applyNewEndTime);
+                TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', $id('tempoPessoalEndTimeToggle').textContent, TempoPessoal.applyNewEndTime, true);
             }
             $id('tempoPessoalStart').value = startIso;
             $id('tempoPessoalEnd').value = endD.getFullYear() + '-' + String(endD.getMonth() + 1).padStart(2, '0') + '-' + String(endD.getDate()).padStart(2, '0') + 'T' + String(endD.getHours()).padStart(2, '0') + ':' + String(endD.getMinutes()).padStart(2, '0');
@@ -2219,9 +2306,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.tempoPessoalDateFlatpickr) window.tempoPessoalDateFlatpickr.setDate(ymd, false);
         $id('tempoPessoalStartTimeToggle').textContent = st;
         if (!firstCard) $id('tempoPessoalEndTimeToggle').textContent = et;
-        TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', st, TempoPessoal.applyNewStartTime);
-        TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime);
         TempoPessoal.syncHiddenFromInputs();
+        tempoPessoalClampTimesToStoreHours();
+        TempoPessoal.refreshTimeOptionLists();
         TempoPessoal.syncCustomTitleField();
         updateTempoPessoalOutOfHoursWarning();
         updateTempoPessoalPastStartGuard();
@@ -2273,9 +2360,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (window.tempoPessoalDateFlatpickr) window.tempoPessoalDateFlatpickr.setDate(ymd, false);
             $id('tempoPessoalStartTimeToggle').textContent = st;
             $id('tempoPessoalEndTimeToggle').textContent = et;
-            TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', st, TempoPessoal.applyNewStartTime);
-            TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', et, TempoPessoal.applyNewEndTime);
             TempoPessoal.syncHiddenFromInputs();
+            tempoPessoalClampTimesToStoreHours();
+            TempoPessoal.refreshTimeOptionLists();
             updateTempoPessoalOutOfHoursWarning();
         }
         updateTempoPessoalPastStartGuard();
@@ -11557,6 +11644,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             $id('tempoPessoalDateToggle').textContent = DAYS_LONG[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS_LONG[d.getMonth()];
                         }
                         TempoPessoal.syncHiddenFromInputs();
+                        tempoPessoalClampTimesToStoreHours();
+                        TempoPessoal.refreshTimeOptionLists();
                         updateTempoPessoalOutOfHoursWarning();
                         updateTempoPessoalPastStartGuard();
                         var toggle = $id('tempoPessoalDateToggle');
@@ -11577,7 +11666,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (m === 60) { m = 0; }
             timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
-        TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', timeStr, TempoPessoal.applyNewStartTime);
+        TempoPessoal.populateTimeOptions('.tempo-pessoal-time-options', timeStr, TempoPessoal.applyNewStartTime, false);
     });
     $id('tempoPessoalStartTimeToggle')?.addEventListener('shown.bs.dropdown', function() {
         var active = $('.tempo-pessoal-time-options .tempo-pessoal-time-opt.active');
@@ -11593,7 +11682,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (m === 60) { m = 0; }
             timeStr = String(d.getHours()).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
-        TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', timeStr, TempoPessoal.applyNewEndTime);
+        TempoPessoal.populateTimeOptions('.tempo-pessoal-end-time-options', timeStr, TempoPessoal.applyNewEndTime, true);
     });
     $id('tempoPessoalEndTimeToggle')?.addEventListener('shown.bs.dropdown', function() {
         var active = $('.tempo-pessoal-end-time-options .tempo-pessoal-time-opt.active');

@@ -1,17 +1,17 @@
 @extends('definicoes.layout')
 
 @section('definicoes_content')
-  <div class="card">
-    <div class="card-header">
-      <h5 class="card-title mb-0">Equipa</h5>
-    </div>
-    <div class="card-body">
-      <p class="text-muted small mb-4">
-        Define o nível de acesso, visibilidade e ordem dos membros na Agenda e no Booking.
-      </p>
+  <form method="post" action="{{ route('definicoes.equipa.update') }}">
+    @csrf
 
-      <form method="post" action="{{ route('definicoes.equipa.update') }}">
-        @csrf
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Equipa</h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-4">
+          Define o nível de acesso, visibilidade e ordem dos membros na Agenda e no Booking.
+        </p>
 
         <div class="table-responsive">
           <table class="table table-sm align-middle">
@@ -95,15 +95,45 @@
             </tbody>
           </table>
         </div>
-
-        <div class="uedit-form-actions pt-3">
-          <button type="submit" class="btn btn-primary">
-            <i class="ph ph-check me-1"></i> Guardar alterações
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
-  </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Tempo pessoal</h5>
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between gap-3">
+          <label class="fw-semibold mb-0" for="personal_time_limit_store_hours" style="cursor: pointer">
+            Limitar o tempo pessoal ao horário da loja
+          </label>
+          <div class="form-check form-switch m-0 flex-shrink-0">
+            <input type="hidden" name="personal_time_limit_store_hours" value="0">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              name="personal_time_limit_store_hours"
+              value="1"
+              id="personal_time_limit_store_hours"
+              @checked((bool) old('personal_time_limit_store_hours', $personalTimeLimitStoreHours ?? false))
+            >
+          </div>
+        </div>
+        <p class="small text-muted mb-0 mt-2 w-100">
+          Quando está ligado, ao criar ou editar tempo pessoal na agenda só aparecem horas dentro do horário habitual da loja
+          (atualmente {{ $storeHoursLabel ?? '09:00–20:00' }}, conforme definido em Negócio).
+          Quando está desligado, mantém-se a lista completa de horas (00:00–23:45).
+        </p>
+      </div>
+    </div>
+
+    <div class="uedit-form-actions pt-3">
+      <button type="submit" class="btn btn-primary">
+        <i class="ph ph-check me-1"></i> Guardar alterações
+      </button>
+    </div>
+  </form>
+
   @if (session('status'))
     <script>
       document.addEventListener('DOMContentLoaded', function() {

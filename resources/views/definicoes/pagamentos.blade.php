@@ -14,51 +14,49 @@
       <form method="post" action="{{ route('definicoes.pagamentos.update') }}">
         @csrf
 
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 py-3 border-bottom">
-          <div class="flex-grow-1" style="max-width: 36rem;">
-            <div class="fw-semibold mb-1">Gorjeta na caixa</div>
-            <p class="small text-muted mb-0">
-              Quando está desligada, o campo de gorjeta deixa de aparecer no modal «Caixa — pagamento» da agenda e o valor enviado é sempre zero.
-            </p>
-          </div>
-          <div class="form-check form-switch m-0">
-            <input type="hidden" name="pos_gorjeta_enabled" value="0">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              name="pos_gorjeta_enabled"
-              value="1"
-              id="pos_gorjeta_enabled"
-              @checked($posGorjetaEnabled)
-            >
-            <label class="form-check-label visually-hidden" for="pos_gorjeta_enabled">
-              Permitir gorjeta na caixa
+        <div class="py-3 border-bottom">
+          <div class="d-flex align-items-center justify-content-between gap-3">
+            <label class="fw-semibold mb-0" for="pos_gorjeta_enabled" style="cursor: pointer">
+              Gorjeta na caixa
             </label>
+            <div class="form-check form-switch m-0 flex-shrink-0">
+              <input type="hidden" name="pos_gorjeta_enabled" value="0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="pos_gorjeta_enabled"
+                value="1"
+                id="pos_gorjeta_enabled"
+                @checked($posGorjetaEnabled)
+              >
+            </div>
           </div>
+          <p class="small text-muted mb-0 mt-2 w-100">
+            Quando está desligada, o campo de gorjeta deixa de aparecer no modal «Caixa — pagamento» da agenda e o valor enviado é sempre zero.
+          </p>
         </div>
 
-        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 py-3 border-top border-bottom">
-          <div class="flex-grow-1" style="max-width: 36rem;">
-            <div class="fw-semibold mb-1">Pagamento nas marcações online</div>
-            <p class="small text-muted mb-0">
-              Quando está ligado, o site público e a agenda usam Stripe (cartão e MB WAY automático).
-              Quando está desligado, o passo de pagamento e as opções de fatura no site não aparecem; na agenda os pagamentos são manuais
-              (dinheiro, transferência ou MB WAY registado apenas como controlo interno).
-            </p>
-          </div>
-          <div class="form-check form-switch m-0">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              name="online_booking_payment_required"
-              value="1"
-              id="online_booking_payment_required"
-              @checked($onlineBookingPaymentRequired)
-            >
-            <label class="form-check-label visually-hidden" for="online_booking_payment_required">
-              Exigir pagamento online na marcação
+        <div class="py-3 border-bottom">
+          <div class="d-flex align-items-center justify-content-between gap-3">
+            <label class="fw-semibold mb-0" for="online_booking_payment_required" style="cursor: pointer">
+              Pagamento nas marcações online
             </label>
+            <div class="form-check form-switch m-0 flex-shrink-0">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                name="online_booking_payment_required"
+                value="1"
+                id="online_booking_payment_required"
+                @checked($onlineBookingPaymentRequired)
+              >
+            </div>
           </div>
+          <p class="small text-muted mb-0 mt-2 w-100">
+            Quando está ligado, o site público e a agenda usam Stripe (cartão e MB WAY automático).
+            Quando está desligado, o passo de pagamento e as opções de fatura no site não aparecem; na agenda os pagamentos são manuais
+            (dinheiro, transferência ou MB WAY registado apenas como controlo interno).
+          </p>
         </div>
 
         <div class="uedit-form-actions pt-4 mt-2">

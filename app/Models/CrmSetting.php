@@ -22,6 +22,10 @@ class CrmSetting extends Model
     public const KEY_BOOKING_THEME = 'booking.theme';
 
     public const KEY_EMAIL_USE_BUSINESS_BRANDING = 'email.use_business_branding';
+
+    /** Agenda — tempo pessoal: limitar horas de início/fim ao horário da loja. */
+    public const KEY_AGENDA_PERSONAL_TIME_LIMIT_STORE_HOURS = 'agenda.personal_time_limit_store_hours';
+
     public const KEY_PRIVACY_LOCK_PIN_HASH = 'privacy_lock.pin_hash';
     public const KEY_PRIVACY_LOCK_IDLE_MINUTES = 'privacy_lock.idle_minutes';
 
@@ -300,6 +304,16 @@ class CrmSetting extends Model
     public static function setEmailUseBusinessBranding(bool $enabled, ?int $storeId = null): void
     {
         self::setBool(self::KEY_EMAIL_USE_BUSINESS_BRANDING, $enabled, $storeId);
+    }
+
+    public static function personalTimeLimitStoreHours(?int $storeId = null): bool
+    {
+        return self::getBool(self::KEY_AGENDA_PERSONAL_TIME_LIMIT_STORE_HOURS, false, $storeId);
+    }
+
+    public static function setPersonalTimeLimitStoreHours(bool $enabled, ?int $storeId = null): void
+    {
+        self::setBool(self::KEY_AGENDA_PERSONAL_TIME_LIMIT_STORE_HOURS, $enabled, $storeId);
     }
 
     public static function privacyLockPinHash(?int $storeId = null): string

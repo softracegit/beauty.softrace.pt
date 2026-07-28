@@ -690,6 +690,7 @@ window.AGENDA_CONFIG = {
     cashRegisterOpen: @json($cashRegisterOpen ?? false),
     onlineBookingPaymentRequired: @json($onlineBookingPaymentRequired ?? true),
     storeTimezone: @json($storeTimezone ?? 'Europe/Lisbon'),
+    personalTimeLimitStoreHours: @json($personalTimeLimitStoreHours ?? false),
 };
 </script>
 <script>window.CLIENT_TAGS_CONFIG = { catalogUrl: @json(route('client-tags.index')), maxPerClient: {{ \App\Services\ClientTagService::MAX_TAGS_PER_CLIENT }} };</script>
