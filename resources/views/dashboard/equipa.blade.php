@@ -53,9 +53,11 @@
     .dash-equipa-bar {
         height: 1.5rem;
         overflow: hidden;
+        border: 1px solid #dee2e6;
+        background-color: #fff;
     }
     .dash-equipa-bar .progress-bar {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
         font-weight: 600;
     }
     .dash-equipa-status {
@@ -101,8 +103,13 @@
     }
     .dash-equipa-metric-value {
         font-weight: 600;
+        font-size: 0.8125rem;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
+    }
+    .dash-equipa-metric-pct {
+        font-weight: 500;
+        color: var(--muted-color);
     }
     .dash-equipa-dot {
         width: 0.55rem;
@@ -113,19 +120,18 @@
     }
     /* Cinza médio-claro: distingue do verde e do branco das vagas */
     .dash-equipa-dot--pessoal {
-        background-color: #b8c0cc !important;
+        background-color: #d0d5de !important;
     }
     .dash-equipa-dot--vagas {
         background-color: #f8f9fa !important;
         border: 1px solid #dee2e6;
     }
     .dash-equipa-bar .progress-bar.dash-equipa-seg-pessoal {
-        background-color: #b8c0cc !important;
+        background-color: #d0d5de !important;
         color: #212529 !important;
     }
     .dash-equipa-bar .progress-bar.dash-equipa-seg-vagas {
         background-color: #f8f9fa !important;
-        border-left: 1px solid #dee2e6;
     }
 </style>
 @endsection
@@ -210,21 +216,36 @@
                                             <span class="dash-equipa-dot bg-success"></span>
                                             Horas previstas
                                         </span>
-                                        <span class="dash-equipa-metric-value">{{ $card['horas_marcacao'] }}</span>
+                                        <span class="dash-equipa-metric-value">
+                                            {{ $card['horas_marcacao'] }}
+                                            @if ($card['minutos_capacidade'] > 0)
+                                                <span class="dash-equipa-metric-pct">· {{ $card['pct_marcacao'] }}%</span>
+                                            @endif
+                                        </span>
                                     </div>
                                     <div class="dash-equipa-metric">
                                         <span class="dash-equipa-metric-label">
                                             <span class="dash-equipa-dot dash-equipa-dot--pessoal"></span>
                                             Tempo pessoal
                                         </span>
-                                        <span class="dash-equipa-metric-value">{{ $card['horas_pessoal'] }}</span>
+                                        <span class="dash-equipa-metric-value">
+                                            {{ $card['horas_pessoal'] }}
+                                            @if ($card['minutos_capacidade'] > 0)
+                                                <span class="dash-equipa-metric-pct">· {{ $card['pct_pessoal'] }}%</span>
+                                            @endif
+                                        </span>
                                     </div>
                                     <div class="dash-equipa-metric">
                                         <span class="dash-equipa-metric-label">
                                             <span class="dash-equipa-dot dash-equipa-dot--vagas"></span>
                                             Horas vagas
                                         </span>
-                                        <span class="dash-equipa-metric-value">{{ $card['horas_vagas'] }}</span>
+                                        <span class="dash-equipa-metric-value">
+                                            {{ $card['horas_vagas'] }}
+                                            @if ($card['minutos_capacidade'] > 0)
+                                                <span class="dash-equipa-metric-pct">· {{ $card['pct_vagas'] }}%</span>
+                                            @endif
+                                        </span>
                                     </div>
                                     <div class="dash-equipa-metric">
                                         <span class="dash-equipa-metric-label">Tempo médio</span>
