@@ -132,6 +132,10 @@
     }
     .dash-equipa-bar .progress-bar.dash-equipa-seg-vagas {
         background-color: #f8f9fa !important;
+        color: #6c757d !important;
+        align-items: flex-end;
+        text-align: right;
+        padding-right: 0.35rem;
     }
 </style>
 @endsection
@@ -203,7 +207,7 @@
                                             <div class="progress-bar dash-equipa-seg-pessoal" style="width: {{ $card['pct_pessoal'] }}%" title="Tempo pessoal {{ $card['pct_pessoal'] }}%">{{ $card['pct_pessoal'] >= 12 ? $card['pct_pessoal'].'%' : '' }}</div>
                                         @endif
                                         @if ($card['pct_vagas'] > 0)
-                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['pct_vagas'] }}%" title="Vagas {{ $card['pct_vagas'] }}%"></div>
+                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['pct_vagas'] }}%" title="Vagas {{ $card['pct_vagas'] }}%">{{ $card['pct_vagas'] >= 12 ? $card['pct_vagas'].'%' : '' }}</div>
                                         @endif
                                     @else
                                         <div class="progress-bar bg-secondary" style="width: 100%">Loja fechada</div>
