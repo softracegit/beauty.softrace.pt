@@ -104,6 +104,16 @@ class CalendarEvent extends Model
         $cancelFields = ['cancellation_reason', 'cancellation_type', 'refund_reserva', 'avisou_dentro_prazo'];
         $hasCancel = count(array_intersect($changed, $cancelFields)) > 0;
         $hasStatus = in_array('status', $changed, true);
+        $oldStatus = (string) ($this->getOriginal('status') ?? '');
+        $newStatus = (string) ($this->status ?? '');
+
+        if (
+            $hasStatus
+            && in_array($oldStatus, [self::STATUS_CANCELADO, self::STATUS_FALTOU], true)
+            && $newStatus === self::STATUS_AGENDADO
+        ) {
+            return 'Marcação reativada';
+        }
 
         if ($hasCancel && $hasStatus) {
             return 'Estado e dados de cancelamento/falta atualizados';

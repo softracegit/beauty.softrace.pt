@@ -420,6 +420,10 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::prefix('relatorios')->name('relatorios.')->group(function () {
         Route::get('marcacoes/export', [RelatoriosController::class, 'marcacoesExport'])->name('marcacoes.export');
         Route::get('marcacoes/pdf', [RelatoriosController::class, 'marcacoesPdf'])->name('marcacoes.pdf');
+        Route::get('marcacoes/{calendarEvent}/reativar-preview', [RelatoriosController::class, 'marcacoesReativarPreview'])
+            ->name('marcacoes.reativar-preview');
+        Route::post('marcacoes/{calendarEvent}/reativar', [RelatoriosController::class, 'marcacoesReativar'])
+            ->name('marcacoes.reativar');
         Route::get('marcacoes', [RelatoriosController::class, 'marcacoes'])->name('marcacoes');
         Route::get('vendas/export', [RelatoriosController::class, 'vendasExport'])->name('vendas.export');
         Route::get('vendas/pdf', [RelatoriosController::class, 'vendasPdf'])->name('vendas.pdf');

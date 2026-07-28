@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\AppointmentReactivationException;
 use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\Sale;
@@ -9,6 +10,7 @@ use App\Models\SaleItem;
 use App\Models\Service;
 use App\Models\SmsMessage;
 use App\Models\User;
+use App\Services\AppointmentReactivationService;
 use App\Services\BookingFunnelReportService;
 use App\Services\ComissoesReportService;
 use App\Services\SmsReportService;
@@ -24,6 +26,7 @@ use App\Support\VendasReportPdfColumns;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -41,6 +44,7 @@ class RelatoriosController extends Controller
         private readonly ComissoesReportService $comissoesReportService,
         private readonly SmsReportService $smsReportService,
         private readonly BookingFunnelReportService $bookingFunnelReportService,
+        private readonly AppointmentReactivationService $appointmentReactivationService,
     ) {}
 
     public function marcacoes(Request $request): View
@@ -92,6 +96,86 @@ class RelatoriosController extends Controller
             'marcacoesTotais' => $this->marcacoesReportTotals($request),
             'marcacoesPdfColumnOptions' => MarcacoesReportPdfColumns::labels(),
         ]);
+    }
+
+    public function marcacoesReativarPreview(CalendarEvent $calendarEvent): JsonResponse
+    {
+        $this->assertAdminCanReactivateMarcacao($calendarEvent);
+
+        $calendarEvent->loadMissing('client');
+
+        $status = (string) ($calendarEvent->status ?? '');
+        $statusLabel = CalendarEvent::statuses()[$status] ?? $status;
+
+        if (! in_array($status, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true)) {
+            return response()->json([
+                'success' => true,
+                'event_id' => $calendarEvent->id,
+                'status' => $status,
+                'status_label' => $statusLabel,
+                'can_reactivate' => false,
+                'blockers' => ['Só é possível reativar marcações canceladas ou com falta.'],
+                'start_at' => DateTimeDisplay::marcacao($calendarEvent->start_at, (int) ($calendarEvent->store_id ?? 0) ?: null),
+                'client_name' => $calendarEvent->client?->name,
+            ]);
+        }
+
+        $blockers = $this->appointmentReactivationService->blockers($calendarEvent);
+
+        return response()->json([
+            'success' => true,
+            'event_id' => $calendarEvent->id,
+            'status' => $status,
+            'status_label' => $statusLabel,
+            'can_reactivate' => $blockers === [],
+            'blockers' => $blockers,
+            'start_at' => DateTimeDisplay::marcacao($calendarEvent->start_at, (int) ($calendarEvent->store_id ?? 0) ?: null),
+            'client_name' => $calendarEvent->client?->name,
+        ]);
+    }
+
+    public function marcacoesReativar(Request $request, CalendarEvent $calendarEvent): JsonResponse
+    {
+        $this->assertAdminCanReactivateMarcacao($calendarEvent);
+
+        $validated = $request->validate([
+            'reactivation_reason' => ['nullable', 'string', 'max:1000'],
+            'notify_client' => ['sometimes', 'boolean'],
+        ]);
+
+        try {
+            $result = $this->appointmentReactivationService->reactivate($calendarEvent, [
+                'reactivation_reason' => $validated['reactivation_reason'] ?? null,
+                'notify_client' => (bool) ($validated['notify_client'] ?? false),
+            ]);
+        } catch (AppointmentReactivationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'blockers' => $e->blockers !== [] ? $e->blockers : [$e->getMessage()],
+                'reason_code' => $e->reasonCode,
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Marcação reativada com sucesso.',
+            'client_notified' => $result->clientNotified,
+            'event_id' => $result->event->id,
+            'status' => $result->event->status,
+        ]);
+    }
+
+    private function assertAdminCanReactivateMarcacao(CalendarEvent $calendarEvent): void
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->isAdmin()) {
+            abort(403);
+        }
+
+        if (($calendarEvent->event_type ?? '') !== CalendarEvent::TYPE_MARCACAO) {
+            abort(404);
+        }
     }
 
     public function marcacoesExport(Request $request): StreamedResponse

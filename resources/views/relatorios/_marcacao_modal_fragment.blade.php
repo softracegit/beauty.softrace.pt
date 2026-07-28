@@ -17,6 +17,8 @@
   };
   $showAgenda = ! in_array($ev->status, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true);
   $statusLabel = CalendarEvent::statuses()[$ev->status] ?? $ev->status;
+  $canReativar = auth()->user()?->isAdmin()
+      && in_array($ev->status, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true);
 @endphp
 <div class="js-marcacao-modal-body">
   <div class="row g-4 align-items-start">
@@ -147,6 +149,18 @@
 <div class="js-marcacao-modal-footer d-flex flex-wrap align-items-center justify-content-between gap-2 w-100">
   <div class="d-flex gap-2 ms-auto">
     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
+    @if($canReativar)
+      <button
+        type="button"
+        class="btn btn-primary js-reativar-marcacao"
+        data-event-id="{{ $ev->id }}"
+        data-preview-url="{{ route('relatorios.marcacoes.reativar-preview', $ev) }}"
+        data-reativar-url="{{ route('relatorios.marcacoes.reativar', $ev) }}"
+        data-status-label="{{ $statusLabel }}"
+      >
+        <i class="ph ph-arrow-counter-clockwise me-1"></i> Reativar
+      </button>
+    @endif
     @if($showAgenda)
       <a href="{{ route('agenda.index') }}?event={{ $ev->id }}" class="btn btn-primary">
         <i class="ph ph-calendar me-1"></i> Ver na agenda
