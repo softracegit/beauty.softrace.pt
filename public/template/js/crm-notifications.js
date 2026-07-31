@@ -114,17 +114,19 @@
 
     notifications.forEach(function (n) {
       var unread = !n.read;
-      var iconClass = 'info';
-      var iconName = 'bi-calendar-check';
-      if (n.type === 'status_changed') {
-        iconClass = 'danger';
-        iconName = 'bi-calendar-x';
-      } else if (n.type === 'rescheduled') {
-        iconClass = 'warning';
-        iconName = 'bi-calendar-event';
-      } else if (n.type === 'reassigned') {
-        iconClass = 'warning';
-        iconName = 'bi-arrow-left-right';
+      var iconClass = n.icon_class || 'info';
+      var iconName = n.icon || 'bi-calendar-check';
+      if (!n.icon_class && !n.icon) {
+        if (n.type === 'status_changed') {
+          iconClass = 'danger';
+          iconName = 'bi-calendar-x';
+        } else if (n.type === 'rescheduled') {
+          iconClass = 'warning';
+          iconName = 'bi-calendar-event';
+        } else if (n.type === 'reassigned') {
+          iconClass = 'warning';
+          iconName = 'bi-arrow-left-right';
+        }
       }
       var a = document.createElement('a');
       a.href = n.url || '#';

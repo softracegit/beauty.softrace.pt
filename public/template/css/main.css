@@ -9947,6 +9947,20 @@ textarea.form-control {
 /*--------------------------------------------------------------
 # Notifications Page
 --------------------------------------------------------------*/
+.notifications-page-list.notification-list {
+  max-height: none;
+  overflow: visible;
+  margin: 0 calc(-1 * var(--bs-card-spacer-x, 1rem));
+}
+
+.notifications-page-list .notification-item:first-child {
+  border-top: 1px solid var(--border-color-light);
+}
+
+.notifications-page-list .notification-item:last-child {
+  border-bottom: 1px solid var(--border-color-light);
+}
+
 /* Notifications List */
 .notifications-date-header {
   padding: var(--spacing-sm) var(--spacing-lg);

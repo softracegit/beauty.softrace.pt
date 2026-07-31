@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use App\Support\CrmNotificationPresentation;
 
 class NotificationController extends Controller
 {
@@ -77,6 +78,9 @@ class NotificationController extends Controller
             $data = [];
         }
 
+        $type = $data['type'] ?? null;
+        $icon = CrmNotificationPresentation::iconForType(is_string($type) ? $type : null);
+
         return [
             'id' => $n->id,
             'read' => $n->read_at !== null,
@@ -85,7 +89,9 @@ class NotificationController extends Controller
             'body' => $data['body'] ?? '',
             'url' => $data['url'] ?? route('agenda.index'),
             'calendar_event_id' => $data['calendar_event_id'] ?? null,
-            'type' => $data['type'] ?? null,
+            'type' => $type,
+            'icon_class' => $icon['class'],
+            'icon' => $icon['icon'],
         ];
     }
 }
