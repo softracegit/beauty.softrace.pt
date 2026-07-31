@@ -15,7 +15,7 @@
 
       return $min.'min';
   };
-  $showAgenda = ! in_array($ev->status, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true);
+  $showAgenda = true;
   $statusLabel = CalendarEvent::statuses()[$ev->status] ?? $ev->status;
   $canReativar = auth()->user()?->isAdmin()
       && in_array($ev->status, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true);
