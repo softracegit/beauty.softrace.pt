@@ -49,6 +49,7 @@ class BookingSmsActionController extends Controller
             'bookingCancellationPolicyNotice' => CrmSetting::bookingCancellationPolicyNoticeText($storeId ?: null),
             'cancellationPolicy' => $policy,
             'canCancelOnline' => $policy->canCancelOnline(),
+            'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired($storeId ?: null),
         ]);
     }
 

@@ -140,6 +140,9 @@
 
                             $totalComGorjeta = $totalComTaxas + $gorjeta;
                             $showTotalsSnapshot = $showServicesSubtotalLine;
+                            $showPaymentCards = ($onlineBookingPaymentRequired ?? null) !== null
+                                ? (bool) $onlineBookingPaymentRequired
+                                : CrmSetting::onlineBookingPaymentRequired((int) ($ev->store_id ?? 0));
 
                             $canClientCancel = false;
                             $cancelPolicy = null;
@@ -298,56 +301,58 @@
                                     </div>
                                 @endif
 
-                                <div class="booking-marcacao-card__section booking-marcacao-card__section--payments">
-                                    <h3 class="booking-marcacao-card__label">{{ __('booking.account.payments') }}</h3>
-                                    <div class="booking-marcacao-stats @unless ($showFaltaLoja) booking-marcacao-stats--four @endunless">
-                                        @unless ($showFaltaLoja)
+                                @if ($showPaymentCards)
+                                    <div class="booking-marcacao-card__section booking-marcacao-card__section--payments">
+                                        <h3 class="booking-marcacao-card__label">{{ __('booking.account.payments') }}</h3>
+                                        <div class="booking-marcacao-stats @unless ($showFaltaLoja) booking-marcacao-stats--four @endunless">
+                                            @unless ($showFaltaLoja)
+                                                <div class="booking-marcacao-stat">
+                                                    <span class="booking-marcacao-stat__label">{{ $primaryAmountLabel }}</span>
+                                                    <span class="booking-marcacao-stat__value booking-marcacao-stat__value--total">{{ $fmtMoney($totalPago) }}</span>
+                                                </div>
+                                            @endunless
                                             <div class="booking-marcacao-stat">
-                                                <span class="booking-marcacao-stat__label">{{ $primaryAmountLabel }}</span>
-                                                <span class="booking-marcacao-stat__value booking-marcacao-stat__value--total">{{ $fmtMoney($totalPago) }}</span>
+                                                <span class="booking-marcacao-stat__label">{{ __('booking.account.prepayment') }}</span>
+                                                <div class="booking-marcacao-stat__amount-block">
+                                                    <span class="booking-marcacao-stat__value">
+                                                        {{ $fmtMoney($pagoOnline) }}
+                                                        @if ($ob && $ob->deposit_percent_used)
+                                                            <span class="booking-marcacao-stat__suffix">{{ (int) $ob->deposit_percent_used }}%</span>
+                                                        @endif
+                                                    </span>
+                                                    <span class="booking-marcacao-stat__method">{{ $metodoOnlineLabel }}</span>
+                                                </div>
                                             </div>
-                                        @endunless
-                                        <div class="booking-marcacao-stat">
-                                            <span class="booking-marcacao-stat__label">{{ __('booking.account.prepayment') }}</span>
-                                            <div class="booking-marcacao-stat__amount-block">
-                                                <span class="booking-marcacao-stat__value">
-                                                    {{ $fmtMoney($pagoOnline) }}
-                                                    @if ($ob && $ob->deposit_percent_used)
-                                                        <span class="booking-marcacao-stat__suffix">{{ (int) $ob->deposit_percent_used }}%</span>
-                                                    @endif
-                                                </span>
-                                                <span class="booking-marcacao-stat__method">{{ $metodoOnlineLabel }}</span>
-                                            </div>
+                                            @if ($showFaltaLoja)
+                                                <div class="booking-marcacao-stat">
+                                                    <span class="booking-marcacao-stat__label">{{ __('booking.account.remaining') }}</span>
+                                                    <div class="booking-marcacao-stat__amount-block">
+                                                        <span class="booking-marcacao-stat__value text-warning">{{ $fmtMoney($faltaAmount) }}</span>
+                                                        <span class="booking-marcacao-stat__method">{{ __('booking.account.pay_in_store') }}</span>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div class="booking-marcacao-stat">
+                                                    <span class="booking-marcacao-stat__label">{{ __('booking.account.paid_in_store') }}</span>
+                                                    <div class="booking-marcacao-stat__amount-block">
+                                                        <span class="booking-marcacao-stat__value">{{ $fmtMoney($pagoLoja) }}</span>
+                                                        <span class="booking-marcacao-stat__method">{{ $metodoLojaLabel }}</span>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            @unless ($showFaltaLoja)
+                                                <div class="booking-marcacao-stat">
+                                                    <span class="booking-marcacao-stat__label">{{ __('booking.account.tip') }}</span>
+                                                    <span class="booking-marcacao-stat__value">{{ $fmtMoney($gorjeta) }}</span>
+                                                </div>
+                                            @endunless
                                         </div>
-                                        @if ($showFaltaLoja)
-                                            <div class="booking-marcacao-stat">
-                                                <span class="booking-marcacao-stat__label">{{ __('booking.account.remaining') }}</span>
-                                                <div class="booking-marcacao-stat__amount-block">
-                                                    <span class="booking-marcacao-stat__value text-warning">{{ $fmtMoney($faltaAmount) }}</span>
-                                                    <span class="booking-marcacao-stat__method">{{ __('booking.account.pay_in_store') }}</span>
-                                                </div>
-                                            </div>
-                                        @else
-                                            <div class="booking-marcacao-stat">
-                                                <span class="booking-marcacao-stat__label">{{ __('booking.account.paid_in_store') }}</span>
-                                                <div class="booking-marcacao-stat__amount-block">
-                                                    <span class="booking-marcacao-stat__value">{{ $fmtMoney($pagoLoja) }}</span>
-                                                    <span class="booking-marcacao-stat__method">{{ $metodoLojaLabel }}</span>
-                                                </div>
-                                            </div>
-                                        @endif
-                                        @unless ($showFaltaLoja)
-                                            <div class="booking-marcacao-stat">
-                                                <span class="booking-marcacao-stat__label">{{ __('booking.account.tip') }}</span>
-                                                <span class="booking-marcacao-stat__value">{{ $fmtMoney($gorjeta) }}</span>
-                                            </div>
-                                        @endunless
-                                    </div>
 
-                                    @if (! $ob && $showNoOnlineDepositNote)
-                                        <p class="small text-muted mb-0 mt-2">{{ __('booking.account.no_online_deposit_note') }}</p>
-                                    @endif
-                                </div>
+                                        @if (! $ob && $showNoOnlineDepositNote)
+                                            <p class="small text-muted mb-0 mt-2">{{ __('booking.account.no_online_deposit_note') }}</p>
+                                        @endif
+                                    </div>
+                                @endif
 
                                 @if ($canClientCancel)
                                     <div class="booking-marcacao-card__actions mt-2 pt-2 border-top">
@@ -377,12 +382,7 @@
                                         @if ($ev->cancellation_reason)
                                             <div class="text-break mt-1">{{ $ev->cancellation_reason }}</div>
                                         @endif
-                                        @php
-                                            $showCancellationPaymentMeta = ($onlineBookingPaymentRequired ?? null) !== null
-                                                ? (bool) $onlineBookingPaymentRequired
-                                                : CrmSetting::onlineBookingPaymentRequired((int) ($ev->store_id ?? 0));
-                                        @endphp
-                                        @if ($showCancellationPaymentMeta && ($ev->avisou_dentro_prazo !== null || $ev->refund_reserva !== null))
+                                        @if ($showPaymentCards && ($ev->avisou_dentro_prazo !== null || $ev->refund_reserva !== null))
                                             <div class="text-muted mt-2 small">
                                                 @if ($ev->avisou_dentro_prazo !== null)
                                                     {{ __('booking.account.notice_in_time') }} {{ $ev->avisou_dentro_prazo ? __('booking.account.yes') : __('booking.account.no') }}
