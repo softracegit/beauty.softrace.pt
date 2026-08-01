@@ -70,19 +70,29 @@ class DashboardController extends Controller
 
         $clientesContacto = $this->resumoClientesContactoStats();
         $vendasMesCorrente = $this->resumoVendasDiariasDoMes($today);
+        $opsKpis = $prestadorDashboard->buildForStore($storeId, $user instanceof User ? $user : null);
 
-        return view('dashboard.resumo', compact(
-            'kpiPorPeriodo',
-            'monthLabels',
-            'vendasAnoAtual',
-            'vendasAnoAnterior',
-            'atendidosAnoAtual',
-            'atendidosAnoAnterior',
-            'currentYear',
-            'previousYear',
-            'clientesContacto',
-            'vendasMesCorrente',
-        ));
+        return view('dashboard.resumo', [
+            'kpiPorPeriodo' => $kpiPorPeriodo,
+            'monthLabels' => $monthLabels,
+            'vendasAnoAtual' => $vendasAnoAtual,
+            'vendasAnoAnterior' => $vendasAnoAnterior,
+            'atendidosAnoAtual' => $atendidosAnoAtual,
+            'atendidosAnoAnterior' => $atendidosAnoAnterior,
+            'currentYear' => $currentYear,
+            'previousYear' => $previousYear,
+            'clientesContacto' => $clientesContacto,
+            'vendasMesCorrente' => $vendasMesCorrente,
+            'marcacoesHoje' => $opsKpis['marcacoesHoje'],
+            'faltasHoje' => $opsKpis['faltasHoje'],
+            'marcacoesEstaSemana' => $opsKpis['marcacoesEstaSemana'],
+            'marcacoesEsteMes' => $opsKpis['marcacoesEsteMes'],
+            'reportDateToday' => $opsKpis['reportDateToday'],
+            'reportDateWeekStart' => $opsKpis['reportDateWeekStart'],
+            'reportDateWeekEnd' => $opsKpis['reportDateWeekEnd'],
+            'reportDateMonthStart' => $opsKpis['reportDateMonthStart'],
+            'reportDateMonthEnd' => $opsKpis['reportDateMonthEnd'],
+        ]);
     }
 
     /**
@@ -1271,6 +1281,9 @@ class DashboardController extends Controller
      */
     private const SLOT_DURATION_MINUTES = 90;
 
+    /** Média de pausa de almoço por técnico/dia (horas úteis = horário da loja − isto). */
+    private const OCUPACAO_LUNCH_BREAK_MINUTES = 60;
+
     /**
      * Dashboard de Ocupação (taxa de ocupação, picos, dias, duração média).
      */
@@ -1500,6 +1513,8 @@ class DashboardController extends Controller
     }
 
     /**
+     * Slots úteis por dia da semana (horário da loja − 1 h de almoço em média).
+     *
      * @return array<string, int>
      */
     private function ocupacaoSlotsByWeekdayKey(Store $store): array
@@ -1516,6 +1531,9 @@ class DashboardController extends Controller
             $start = Agent::timeStringToMinutes($day['start'] ?? '09:00');
             $end = Agent::timeStringToMinutes($day['end'] ?? '20:00');
             $minutes = max(0, $end - $start);
+            if ($minutes > 0) {
+                $minutes = max(0, $minutes - self::OCUPACAO_LUNCH_BREAK_MINUTES);
+            }
             $out[$dayKey] = $minutes > 0 ? (int) floor($minutes / self::SLOT_DURATION_MINUTES) : 0;
         }
 

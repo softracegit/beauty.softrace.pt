@@ -191,6 +191,11 @@ class PrestadorDashboardService
             'proximasMarcacoesHoje' => $proximasMarcacoesHoje,
             'servicosMaisRealizados' => $servicosMaisRealizados,
             'periodoMesLabel' => $startOfMonth->locale('pt_PT')->translatedFormat('F Y'),
+            'reportDateToday' => $today->toDateString(),
+            'reportDateWeekStart' => $startOfWeek->toDateString(),
+            'reportDateWeekEnd' => $endOfWeek->toDateString(),
+            'reportDateMonthStart' => $startOfMonth->toDateString(),
+            'reportDateMonthEnd' => $endOfMonth->toDateString(),
         ]);
     }
 

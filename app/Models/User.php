@@ -471,7 +471,7 @@ class User extends Authenticatable
             return false;
         }
 
-        return $this->isAdmin();
+        return $this->isAdmin() || $this->isRececao();
     }
 
     public function canAccessAi(): bool
@@ -520,9 +520,16 @@ class User extends Authenticatable
         }
 
         if ($this->isRececao()) {
+            if (str_starts_with($routeName, 'relatorios.')) {
+                return in_array($routeName, [
+                    'relatorios.marcacoes',
+                    'relatorios.marcacoes.export',
+                    'relatorios.marcacoes.pdf',
+                ], true);
+            }
+
             $deniedPrefixes = [
                 'definicoes.',
-                'relatorios.',
                 'ai.',
                 'activity.',
                 'equipa.',

@@ -295,16 +295,19 @@
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
       </div>
       <ul class="panel-nav">
+        @if($navUser->isAdmin())
         <li>
           <a class="panel-link {{ request()->routeIs('relatorios.vendas') ? 'active' : '' }}" href="{{ route('relatorios.vendas') }}">
             Vendas
           </a>
         </li>
+        @endif
         <li>
           <a class="panel-link {{ request()->routeIs('relatorios.marcacoes') ? 'active' : '' }}" href="{{ route('relatorios.marcacoes') }}">
             Marcações
           </a>
         </li>
+        @if($navUser->isAdmin())
         <li>
           <a class="panel-link {{ request()->routeIs('relatorios.comissoes') ? 'active' : '' }}" href="{{ route('relatorios.comissoes') }}">
             Comissões
@@ -327,6 +330,7 @@
             Funil Booking
           </a>
         </li>
+        @endif
       </ul>
     </div>
     @endif

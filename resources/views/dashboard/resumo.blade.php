@@ -283,6 +283,59 @@
 </div>
 
 @php
+    use App\Models\CalendarEvent;
+    use App\Support\CrmPrivacyLock;
+    use App\Support\MarcacoesReportEstadoFilter;
+
+    $privacyLocked = app()->bound(CrmPrivacyLock::class) && app(CrmPrivacyLock::class)->isActive();
+    $canLinkMarcacoesReport = ! $privacyLocked
+        && (bool) (auth()->user()?->canAccessRoute('relatorios.marcacoes'));
+    $reportDateToday = $reportDateToday ?? now()->toDateString();
+    $reportDateWeekStart = $reportDateWeekStart ?? $reportDateToday;
+    $reportDateWeekEnd = $reportDateWeekEnd ?? $reportDateToday;
+    $reportDateMonthStart = $reportDateMonthStart ?? $reportDateToday;
+    $reportDateMonthEnd = $reportDateMonthEnd ?? $reportDateToday;
+    $marcacoesReportUrl = static function (string $desde, string $ate, string $estado): string {
+        return route('relatorios.marcacoes', [
+            'marcacoes_desde' => $desde,
+            'marcacoes_ate' => $ate,
+            'marcacoes_estado' => $estado,
+        ]);
+    };
+@endphp
+
+<div class="dash-kpi-strip mb-4">
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateToday, $reportDateToday, MarcacoesReportEstadoFilter::ATIVAS) : null,
+        'iconClass' => 'primary',
+        'icon' => 'ph-duotone ph-calendar-dot',
+        'value' => $marcacoesHoje ?? 0,
+        'label' => 'Marcações hoje',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateToday, $reportDateToday, CalendarEvent::STATUS_FALTOU) : null,
+        'iconClass' => 'danger',
+        'icon' => 'ph-duotone ph-user-minus',
+        'value' => $faltasHoje ?? 0,
+        'label' => 'Faltas hoje',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateWeekStart, $reportDateWeekEnd, MarcacoesReportEstadoFilter::ATIVAS) : null,
+        'iconClass' => 'primary',
+        'icon' => 'ph-duotone ph-calendar-blank',
+        'value' => $marcacoesEstaSemana ?? 0,
+        'label' => 'Marcações esta semana',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateMonthStart, $reportDateMonthEnd, MarcacoesReportEstadoFilter::ATIVAS) : null,
+        'iconClass' => 'success',
+        'icon' => 'ph-duotone ph-calendar-check',
+        'value' => $marcacoesEsteMes ?? 0,
+        'label' => 'Marcações este mês',
+    ])
+</div>
+
+@php
     $chartTabs = [
         'vendas-ano' => 'Vendas este ano',
         'vendas-mes' => 'Vendas este mês',

@@ -151,6 +151,20 @@
   min-width: 0;
 }
 
+a.dash-kpi.dash-kpi--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+a.dash-kpi.dash-kpi--link:hover,
+a.dash-kpi.dash-kpi--link:focus {
+  text-decoration: none;
+  color: inherit;
+  border-color: color-mix(in srgb, var(--accent-color), var(--card-border) 55%);
+}
+
 .dash-kpi-icon {
   width: 48px;
   height: 48px;
@@ -204,6 +218,19 @@
   font-size: 0.75rem;
   color: var(--muted-color);
   margin-top: 2px;
+}
+
+.dash-kpi-label-link {
+  display: inline-block;
+  font-size: 0.75rem;
+  margin-top: 2px;
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+.dash-kpi-label-link:hover {
+  text-decoration: underline;
+  color: var(--accent-color);
 }
 
 .dash-kpi-trend {

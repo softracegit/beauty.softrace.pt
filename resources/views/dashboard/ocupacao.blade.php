@@ -33,7 +33,7 @@
     <div class="dash-welcome-header-row">
         <div class="dash-welcome-content flex-grow-1 min-w-0">
             <h2 class="dash-welcome-title">Ocupação</h2>
-            <p class="dash-welcome-text mt-2 d-none d-md-block">Taxa de ocupação dos prestadores de serviços, horários de pico, dias mais ocupados e duração média. Slots de 90 min conforme o horário da loja ({{ $storeHoursLabel ?? '—' }}).</p>
+            <p class="dash-welcome-text mt-2 d-none d-md-block">Taxa de ocupação dos prestadores de serviços, horários de pico, dias mais ocupados e duração média. Slots de 90 min com base no horário da loja menos 1 h de almoço ({{ $storeHoursLabel ?? '—' }}).</p>
         </div>
         <form method="GET" action="{{ route('dashboard.ocupacao') }}" class="dash-welcome-filters">
             @if(request()->filled('glue_period'))
@@ -245,6 +245,7 @@
             <ul class="list-unstyled mb-0 small">
                 <li><strong>Slot:</strong> 90 min</li>
                 <li><strong>Horário da loja:</strong> {{ $storeHoursLabel ?? '—' }}</li>
+                <li><strong>Pausa de almoço:</strong> −1 h / dia (horas úteis)</li>
                 <li><strong>Dias abertos:</strong> {{ $storeOpenDaysLabel ?: '—' }}</li>
                 <li><strong>Slots médios por dia / prestador:</strong> {{ $avgSlotsPerOpenDayPerTech ?? 0 }}</li>
                 <li><strong>Prestadores ativos:</strong> {{ $numTecnicos ?? 0 }}</li>

@@ -2,6 +2,27 @@
 @section('title', 'Dashboard | Beauty CRM')
 
 @section('content')
+@php
+    use App\Models\CalendarEvent;
+    use App\Support\CrmPrivacyLock;
+    use App\Support\MarcacoesReportEstadoFilter;
+
+    $privacyLocked = app()->bound(CrmPrivacyLock::class) && app(CrmPrivacyLock::class)->isActive();
+    $canLinkMarcacoesReport = ! $privacyLocked
+        && (bool) (auth()->user()?->canAccessRoute('relatorios.marcacoes'));
+    $reportDateToday = $reportDateToday ?? now()->toDateString();
+    $reportDateWeekStart = $reportDateWeekStart ?? $reportDateToday;
+    $reportDateWeekEnd = $reportDateWeekEnd ?? $reportDateToday;
+    $reportDateMonthStart = $reportDateMonthStart ?? $reportDateToday;
+    $reportDateMonthEnd = $reportDateMonthEnd ?? $reportDateToday;
+    $marcacoesReportUrl = static function (string $desde, string $ate, string $estado): string {
+        return route('relatorios.marcacoes', [
+            'marcacoes_desde' => $desde,
+            'marcacoes_ate' => $ate,
+            'marcacoes_estado' => $estado,
+        ]);
+    };
+@endphp
 @if (session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
         {{ session('success') }}
@@ -24,87 +45,62 @@
 </div>
 
 <div class="dash-kpi-strip mb-4">
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon primary">
-            <i class="ph-duotone ph-calendar-dot"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $marcacoesHoje }}</div>
-            <div class="dash-kpi-label">Marcações hoje</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon danger">
-            <i class="ph-duotone ph-user-minus"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $faltasHoje }}</div>
-            <div class="dash-kpi-label">Faltas hoje</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon success">
-            <i class="ph-duotone ph-check-circle"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $marcacoesConcluidasHoje }}</div>
-            <div class="dash-kpi-label">Já decorridas hoje</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon info">
-            <i class="ph-duotone ph-clock"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ number_format($horasAgendadasHoje, 1, ',', ' ') }} h</div>
-            <div class="dash-kpi-label">Horas agendadas hoje</div>
-        </div>
-    </div>
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateToday, $reportDateToday, MarcacoesReportEstadoFilter::ATIVAS) : null,
+        'iconClass' => 'primary',
+        'icon' => 'ph-duotone ph-calendar-dot',
+        'value' => $marcacoesHoje,
+        'label' => 'Marcações hoje',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateToday, $reportDateToday, CalendarEvent::STATUS_FALTOU) : null,
+        'iconClass' => 'danger',
+        'icon' => 'ph-duotone ph-user-minus',
+        'value' => $faltasHoje,
+        'label' => 'Faltas hoje',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'iconClass' => 'success',
+        'icon' => 'ph-duotone ph-check-circle',
+        'value' => $marcacoesConcluidasHoje,
+        'label' => 'Já decorridas hoje',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'iconClass' => 'info',
+        'icon' => 'ph-duotone ph-clock',
+        'valueHtml' => e(number_format($horasAgendadasHoje, 1, ',', ' ')).' h',
+        'label' => 'Horas agendadas hoje',
+    ])
 </div>
 
 <div class="dash-kpi-strip mb-4">
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon primary">
-            <i class="ph-duotone ph-calendar-blank"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $marcacoesEstaSemana }}</div>
-            <div class="dash-kpi-label">Marcações esta semana</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon success">
-            <i class="ph-duotone ph-calendar-check"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $marcacoesEsteMes }}</div>
-            <div class="dash-kpi-label">Marcações este mês</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon danger">
-            <i class="ph-duotone ph-user-minus"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $faltasEsteMes }}</div>
-            <div class="dash-kpi-label">Faltas este mês</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon info">
-            <i class="ph-duotone ph-user-check"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $clientesAtendidosMes }}</div>
-            <div class="dash-kpi-label">Clientes atendidos (mês)</div>
-        </div>
-    </div>
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateWeekStart, $reportDateWeekEnd, MarcacoesReportEstadoFilter::ATIVAS) : null,
+        'iconClass' => 'primary',
+        'icon' => 'ph-duotone ph-calendar-blank',
+        'value' => $marcacoesEstaSemana,
+        'label' => 'Marcações esta semana',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateMonthStart, $reportDateMonthEnd, MarcacoesReportEstadoFilter::ATIVAS) : null,
+        'iconClass' => 'success',
+        'icon' => 'ph-duotone ph-calendar-check',
+        'value' => $marcacoesEsteMes,
+        'label' => 'Marcações este mês',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateMonthStart, $reportDateMonthEnd, CalendarEvent::STATUS_FALTOU) : null,
+        'iconClass' => 'danger',
+        'icon' => 'ph-duotone ph-user-minus',
+        'value' => $faltasEsteMes,
+        'label' => 'Faltas este mês',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'iconClass' => 'info',
+        'icon' => 'ph-duotone ph-user-check',
+        'value' => $clientesAtendidosMes,
+        'label' => 'Clientes atendidos (mês)',
+    ])
 </div>
 
 <div class="dash-grid dash-grid-content mb-4">
