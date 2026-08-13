@@ -10,7 +10,11 @@
     <style>
         body.crm-privacy-locked .agenda-oc-client-profile-btn,
         body.crm-privacy-locked #agendaOcClientProfileLink,
+        body.crm-privacy-locked #agendaOcClientMarcacoesLink,
+        body.crm-privacy-locked #agendaOcClientProfileEditBtn,
         body.crm-privacy-locked #eventDetailOcClientProfileLink,
+        body.crm-privacy-locked #eventDetailOcClientMarcacoesLink,
+        body.crm-privacy-locked #eventDetailOcClientProfileEditBtn,
         body.crm-privacy-locked #eventDetailActivityLogWrap {
             display: none !important;
         }
@@ -30,115 +34,84 @@
 </div>
 
 <!-- Nova marcação: offcanvas lateral -->
-<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="agendaMarcacaoTestOffcanvas" aria-labelledby="agendaMarcacaoTestOffcanvasLabel" data-bs-scroll="true">
+<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas agenda-marcacao-test-offcanvas--wide" tabindex="-1" id="agendaMarcacaoTestOffcanvas" aria-labelledby="agendaMarcacaoTestOffcanvasLabel" data-bs-scroll="true">
     <div class="offcanvas-header border-bottom d-flex align-items-center gap-2">
         <div class="flex-grow-1 min-w-0">
             <h5 class="offcanvas-title fw-semibold mb-0" id="agendaMarcacaoTestOffcanvasLabel">Nova marcação</h5>
         </div>
         <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" data-agenda-oc-close aria-label="Fechar"></button>
     </div>
-    <div class="offcanvas-body">
-        <form id="agendaMarcacaoTestForm" class="agenda-oc-test-form" autocomplete="off" novalidate>
-            <div class="agenda-oc-field" style="order:1">
-                <div id="agendaOcClientNotSelectedWrap">
-                    <ul class="nav nav-pills agenda-oc-client-tabs flex-wrap gap-2 mb-2" id="agendaOcClientTabs" role="tablist">
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="nav-link active" id="agendaOcTabExistingBtn" data-bs-toggle="tab" data-bs-target="#agendaOcTabExisting" type="button" role="tab" aria-controls="agendaOcTabExisting" aria-selected="true">
-                                <span class="d-inline-flex align-items-center justify-content-center gap-2">
-                                    <i class="ph ph-magnifying-glass flex-shrink-0" aria-hidden="true"></i>
-                                    <span>Cliente existente</span>
-                                </span>
-                            </button>
-                        </li>
-                        <li class="nav-item flex-shrink-0" role="presentation">
-                            <button class="nav-link" id="agendaOcTabNewBtn" data-bs-toggle="tab" data-bs-target="#agendaOcTabNew" type="button" role="tab" aria-controls="agendaOcTabNew" aria-selected="false">
-                                <span class="d-inline-flex align-items-center justify-content-center gap-2">
-                                    <i class="ph ph-user-plus flex-shrink-0" aria-hidden="true"></i>
-                                    <span>Novo cliente</span>
-                                </span>
-                            </button>
-                        </li>
-                    </ul>
-                    <div class="tab-content" id="agendaOcClientTabContent">
-                        <div class="tab-pane fade show active" id="agendaOcTabExisting" role="tabpanel" aria-labelledby="agendaOcTabExistingBtn" tabindex="0">
-                            <div id="agendaOcClientSearchWrap">
-                                <select id="agendaOcClient" class="form-select form-select-sm" data-placeholder="Pesquisar cliente" aria-label="Pesquisar cliente">
-                                    <option value="">A carregar…</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="tab-pane fade" id="agendaOcTabNew" role="tabpanel" aria-labelledby="agendaOcTabNewBtn" tabindex="0">
-                            <div class="mb-2">
-                                <label class="form-label small mb-1" for="agendaOcNewClientName">Nome <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" id="agendaOcNewClientName" name="agenda_oc_new_client_name" autocomplete="name" placeholder="Nome e apelido">
-                            </div>
-                            <div class="mb-2">
-                                <label class="form-label small mb-1" for="agendaOcNewClientPhone">Telemóvel <span class="text-danger">*</span></label>
-                                <input type="tel" class="form-control" id="agendaOcNewClientPhone" autocomplete="tel" placeholder="Número de telemóvel">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small mb-1" for="agendaOcNewClientEmail">Email</label>
-                                <input type="email" class="form-control form-control-sm" id="agendaOcNewClientEmail" name="agenda_oc_new_client_email" autocomplete="email" placeholder="Opcional">
-                            </div>
-                            <button type="button" class="btn btn-primary btn-sm" id="agendaOcNewClientSubmit">Guardar cliente</button>
-                        </div>
-                    </div>
-                </div>
-                @include('agenda.partials.oc-client-selected-card', ['prefix' => 'agendaOc', 'class' => 'mt-1'])
-            </div>
-            <div class="agenda-oc-field" style="order:2">
-                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcMember">Prestador(a) do serviço <span class="text-danger">*</span></label>
-                <select id="agendaOcMember" class="form-select form-select-sm">
-                    <option value="">Selecionar</option>
-                </select>
-            </div>
-            <div class="agenda-oc-field" style="order:3">
-                <div class="d-flex align-items-center justify-content-between gap-2 mb-1 agenda-oc-services-head">
-                    <label class="form-label fw-semibold text-dark mb-0" for="agendaOcService">Serviços <span class="text-danger">*</span></label>
-                    <div id="agendaOcAddMoreServicesWrap" class="d-none flex-shrink-0">
-                        <button type="button" id="agendaOcAddMoreServicesBtn" class="btn btn-outline-primary agenda-oc-add-services-btn rounded-pill d-inline-flex align-items-center gap-1">
-                            <i class="ph ph-plus" aria-hidden="true"></i>
-                            <span>Adicionar serviços</span>
+    <div class="offcanvas-body agenda-oc-offcanvas-body">
+        <form id="agendaMarcacaoTestForm" class="agenda-oc-test-form agenda-oc-shell" autocomplete="off" novalidate>
+            <div class="agenda-oc-shell__grid">
+                <div class="agenda-oc-split__client">
+                    <div class="agenda-oc-client-column-heading">
+                        <span class="form-label fw-semibold mb-0">Cliente</span>
+                        <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-column-heading__cancel d-none" id="agendaOcClientCancelEditBtn" title="Cancelar alteração de cliente" aria-label="Cancelar alteração de cliente">
+                            <i class="ph ph-x" aria-hidden="true"></i>
                         </button>
                     </div>
+                    @include('agenda.partials.oc-client-picker', ['prefix' => 'agendaOc'])
+                    @include('agenda.partials.oc-client-selected-panel', ['prefix' => 'agendaOc'])
                 </div>
-                <div id="agendaOcServiceSelectWrap">
-                    <select id="agendaOcService" class="form-select form-select-sm" disabled>
-                        <option value="">Escolha primeiro o prestador(a)</option>
-                    </select>
-                </div>
-                <div id="agendaOcSelectedServicesList" class="mt-2 d-none"></div>
-            </div>
-            <div class="agenda-oc-field" style="order:4">
-                <label class="form-label fw-semibold text-dark mb-1" for="agendaOcObs">Notas da Marcação</label>
-                <textarea class="form-control form-control-sm" id="agendaOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
-            </div>
-            <div class="agenda-oc-field" style="order:5">
-                <div class="mb-2 d-none" id="agendaOcHorarioAvisoWrap">
-                    <div class="alert alert-warning mb-0 py-2 small" id="agendaOcHorarioAviso" role="alert">
-                        <i class="ph ph-warning-circle me-1"></i>
-                        Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
+                <div class="agenda-oc-shell__right">
+                    <div class="agenda-oc-shell__right-body">
+                        <div class="agenda-oc-field">
+                            <div class="mb-2 d-none" id="agendaOcHorarioAvisoWrap">
+                                <div class="alert alert-warning mb-0 py-2 small" id="agendaOcHorarioAviso" role="alert">
+                                    <i class="ph ph-warning-circle me-1"></i>
+                                    Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-7">
+                                    <label class="form-label fw-semibold mb-1" for="agendaOcDate">Data</label>
+                                    <input type="text" id="agendaOcDate" class="form-control" placeholder="Selecionar data">
+                                </div>
+                                <div class="col-5">
+                                    <label class="form-label fw-semibold mb-1" for="agendaOcTime">Hora</label>
+                                    <select id="agendaOcTime" class="form-select"></select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="agenda-oc-field">
+                            <label class="form-label fw-semibold mb-1" for="agendaOcMember">Prestador(a) do serviço</label>
+                            <select id="agendaOcMember" class="form-select form-select-sm">
+                                <option value="">Selecionar</option>
+                            </select>
+                        </div>
+                        <div class="agenda-oc-field">
+                            <div class="d-flex align-items-center justify-content-between gap-2 mb-1 agenda-oc-services-head">
+                                <label class="form-label fw-semibold mb-0" for="agendaOcService">Serviços</label>
+                                <div id="agendaOcAddMoreServicesWrap" class="d-none flex-shrink-0">
+                                    <button type="button" id="agendaOcAddMoreServicesBtn" class="btn btn-link btn-sm px-0 text-decoration-none agenda-oc-add-services-btn d-inline-flex align-items-center gap-1">
+                                        <i class="ph ph-plus" aria-hidden="true"></i>
+                                        <span>Adicionar serviços</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="agendaOcServiceSelectWrap">
+                                <select id="agendaOcService" class="form-select form-select-sm" disabled>
+                                    <option value="">Escolha primeiro o prestador(a)</option>
+                                </select>
+                            </div>
+                            <div id="agendaOcSelectedServicesList" class="mt-2 d-none"></div>
+                        </div>
+                        <div class="agenda-oc-field">
+                            <label class="form-label fw-semibold mb-1" for="agendaOcObs">Notas</label>
+                            <textarea class="form-control form-control-sm" id="agendaOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
+                        </div>
                     </div>
-                </div>
-                <div class="row g-2">
-                    <div class="col-7">
-                        <label class="form-label fw-semibold text-dark mb-1" for="agendaOcDate">Data <span class="text-danger">*</span></label>
-                        <input type="text" id="agendaOcDate" class="form-control" placeholder="Selecionar data">
-                    </div>
-                    <div class="col-5">
-                        <label class="form-label fw-semibold text-dark mb-1" for="agendaOcTime">Hora <span class="text-danger">*</span></label>
-                        <select id="agendaOcTime" class="form-select"></select>
+                    <div class="agenda-marcacao-test-offcanvas-footer border-top d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                        <small id="agendaOcPastStartHint" class="text-danger d-none mb-0">Não é possível criar marcações no passado.</small>
+                        <div class="d-flex flex-wrap gap-2 justify-content-end ms-auto">
+                            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
+                            <button type="submit" class="btn btn-primary btn-sm" id="agendaOcSubmit" form="agendaMarcacaoTestForm">Criar marcação</button>
+                        </div>
                     </div>
                 </div>
             </div>
         </form>
-    </div>
-    <div class="agenda-marcacao-test-offcanvas-footer border-top d-flex flex-wrap gap-2 justify-content-between align-items-center">
-        <small id="agendaOcPastStartHint" class="text-danger d-none mb-0">Não é possível criar marcações no passado.</small>
-        <div class="d-flex flex-wrap gap-2 justify-content-end ms-auto">
-            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
-            <button type="submit" class="btn btn-primary btn-sm" id="agendaOcSubmit" form="agendaMarcacaoTestForm">Criar marcação</button>
-        </div>
     </div>
 </div>
 
@@ -383,7 +356,7 @@
 </div>
 
 <!-- Offcanvas: Ver/Editar marcação (estrutura igual à nova marcação: cliente, serviços, profissional, data, notas) -->
-<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas" tabindex="-1" id="eventDetailEditModal" aria-labelledby="eventDetailEditOffcanvasLabel" data-bs-scroll="true">
+<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas agenda-marcacao-test-offcanvas--wide" tabindex="-1" id="eventDetailEditModal" aria-labelledby="eventDetailEditOffcanvasLabel" data-bs-scroll="true">
     <div class="offcanvas-header border-bottom d-flex align-items-center gap-2">
         <div class="d-flex align-items-center flex-grow-1 min-w-0 gap-2">
             <span class="visually-hidden" id="eventDetailEditOffcanvasLabel">Detalhe da marcação</span>
@@ -416,182 +389,142 @@
         </button>
         <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     </div>
-    <div id="eventDetailEditPanel" class="offcanvas-body">
-        <form id="eventDetailEditForm" class="agenda-oc-test-form" autocomplete="off" novalidate>
+    <div id="eventDetailEditPanel" class="offcanvas-body agenda-oc-offcanvas-body">
+        <form id="eventDetailEditForm" class="agenda-oc-test-form agenda-oc-shell" autocomplete="off" novalidate>
             <input type="hidden" id="eventDetailEditId" name="event_id">
             <input type="hidden" id="eventDetailEditUserId" name="user_id">
             <input type="hidden" id="eventDetailEditStart" name="start_at">
             <input type="hidden" id="eventDetailEditEnd" name="end_at">
             <input type="hidden" id="eventDetailStatus" name="status" value="agendado">
-            <div id="eventDetailVisitLeadBlock" class="d-none mb-3"></div>
-            <div id="eventDetailOcMarcacaoSection">
-                <div class="agenda-oc-field" style="order:1">
-                    <div id="eventDetailOcClientNotSelectedWrap">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <ul class="nav nav-pills agenda-oc-client-tabs flex-wrap gap-2 mb-0" id="eventDetailOcClientTabs" role="tablist">
-                                <li class="nav-item flex-shrink-0" role="presentation">
-                                    <button class="nav-link active" id="eventDetailOcTabExistingBtn" data-bs-toggle="tab" data-bs-target="#eventDetailOcTabExisting" type="button" role="tab" aria-controls="eventDetailOcTabExisting" aria-selected="true">
-                                        <span class="d-inline-flex align-items-center justify-content-center gap-2">
-                                            <i class="ph ph-magnifying-glass flex-shrink-0" aria-hidden="true"></i>
-                                            <span>Cliente existente</span>
-                                        </span>
-                                    </button>
-                                </li>
-                                <li class="nav-item flex-shrink-0" role="presentation">
-                                    <button class="nav-link" id="eventDetailOcTabNewBtn" data-bs-toggle="tab" data-bs-target="#eventDetailOcTabNew" type="button" role="tab" aria-controls="eventDetailOcTabNew" aria-selected="false">
-                                        <span class="d-inline-flex align-items-center justify-content-center gap-2">
-                                            <i class="ph ph-user-plus flex-shrink-0" aria-hidden="true"></i>
-                                            <span>Novo cliente</span>
-                                        </span>
-                                    </button>
-                                </li>
-                            </ul>
-                            <button type="button" class="btn btn-link p-1 pt-2 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn d-none" id="eventDetailOcClientCancelEditBtn" title="Cancelar alteração de cliente" aria-label="Cancelar alteração de cliente">
-                                <i class="ph ph-x" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                        <div class="tab-content" id="eventDetailOcClientTabContent">
-                            <div class="tab-pane fade show active" id="eventDetailOcTabExisting" role="tabpanel" aria-labelledby="eventDetailOcTabExistingBtn" tabindex="0">
-                                <div id="eventDetailOcClientSearchWrap">
-                                    <select id="eventDetailOcClient" class="form-select form-select-sm" data-placeholder="Pesquisar cliente" aria-label="Pesquisar cliente">
-                                        <option value="">A carregar…</option>
+            <div class="agenda-oc-shell__grid" id="eventDetailOcMarcacaoSection">
+                <div class="agenda-oc-split__client">
+                    <div class="agenda-oc-client-column-heading">
+                        <span class="form-label fw-semibold mb-0">Cliente</span>
+                        <button type="button" class="btn btn-link p-1 lh-1 text-body-secondary text-decoration-none agenda-oc-client-edit-btn agenda-oc-client-column-heading__cancel d-none" id="eventDetailOcClientCancelEditBtn" title="Cancelar alteração de cliente" aria-label="Cancelar alteração de cliente">
+                            <i class="ph ph-x" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    @include('agenda.partials.oc-client-picker', ['prefix' => 'eventDetailOc'])
+                    @include('agenda.partials.oc-client-selected-panel', ['prefix' => 'eventDetailOc'])
+                </div>
+                <div class="agenda-oc-shell__right">
+                    <div class="agenda-oc-shell__right-body">
+                        <div id="eventDetailVisitLeadBlock" class="d-none mb-3"></div>
+                        <div id="eventDetailOcBookingFields">
+                            <div class="agenda-oc-field">
+                                <div class="mb-2 d-none" id="eventDetailHorarioAvisoWrap">
+                                    <div class="alert alert-warning mb-0 py-2 small" id="eventDetailHorarioAviso" role="alert">
+                                        <i class="ph ph-warning-circle me-1"></i>
+                                        Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-7">
+                                        <label class="form-label fw-semibold mb-1" for="eventDetailOcDate">Data</label>
+                                        <input type="text" id="eventDetailOcDate" class="form-control" placeholder="Selecionar data" autocomplete="off">
+                                    </div>
+                                    <div class="col-5">
+                                        <label class="form-label fw-semibold mb-1" for="eventDetailOcTime">Hora</label>
+                                        <select id="eventDetailOcTime" class="form-select"></select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="agenda-oc-field">
+                                <label class="form-label fw-semibold mb-1" for="eventDetailOcMember">Prestador(a) do serviço</label>
+                                <select id="eventDetailOcMember" class="form-select form-select-sm">
+                                    <option value="">Selecionar</option>
+                                </select>
+                            </div>
+                            <div class="agenda-oc-field">
+                                <div class="d-flex align-items-center justify-content-between gap-2 mb-1 agenda-oc-services-head">
+                                    <label class="form-label fw-semibold mb-0" for="eventDetailOcService">Serviços</label>
+                                    <div id="eventDetailOcAddMoreServicesWrap" class="d-none flex-shrink-0">
+                                        <button type="button" id="eventDetailOcAddMoreServicesBtn" class="btn btn-link btn-sm px-0 text-decoration-none agenda-oc-add-services-btn d-inline-flex align-items-center gap-1">
+                                            <i class="ph ph-plus" aria-hidden="true"></i>
+                                            <span>Adicionar serviços</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="eventDetailOcServiceSelectWrap">
+                                    <select id="eventDetailOcService" class="form-select form-select-sm" disabled>
+                                        <option value="">Escolha primeiro o prestador(a)</option>
                                     </select>
                                 </div>
+                                <div id="eventDetailOcSelectedServicesList" class="mt-2 d-none"></div>
+                                <div id="eventDetailOcFeesList" class="mt-2 d-none"></div>
                             </div>
-                            <div class="tab-pane fade" id="eventDetailOcTabNew" role="tabpanel" aria-labelledby="eventDetailOcTabNewBtn" tabindex="0">
-                                <div class="mb-2">
-                                    <label class="form-label small mb-1" for="eventDetailOcNewClientName">Nome <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm" id="eventDetailOcNewClientName" name="event_detail_oc_new_client_name" autocomplete="name" placeholder="Nome e apelido">
-                                </div>
-                                <div class="mb-2">
-                                    <label class="form-label small mb-1" for="eventDetailOcNewClientPhone">Telemóvel <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="eventDetailOcNewClientPhone" autocomplete="tel" placeholder="Número de telemóvel">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small mb-1" for="eventDetailOcNewClientEmail">Email</label>
-                                    <input type="email" class="form-control form-control-sm" id="eventDetailOcNewClientEmail" name="event_detail_oc_new_client_email" autocomplete="email" placeholder="Opcional">
-                                </div>
-                                <button type="button" class="btn btn-primary btn-sm" id="eventDetailOcNewClientSubmit">Guardar cliente</button>
+                            <div class="agenda-oc-field">
+                                <label class="form-label fw-semibold mb-1" for="eventDetailOcObs">Notas</label>
+                                <textarea class="form-control form-control-sm" id="eventDetailOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
+                            </div>
+                            @if(auth()->user()->isAdmin())
+                            <div class="agenda-oc-field d-none" id="eventDetailActivityLogWrap">
+                                <button type="button" class="btn btn-link btn-sm px-0 text-decoration-none d-inline-flex align-items-center gap-1" id="eventDetailViewLogsBtn">
+                                    <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
+                                    Ver histórico de alterações
+                                </button>
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch" id="eventDetailOffcanvasFooter">
+                        <div class="d-flex align-items-center pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
+                            <div class="event-detail-total-line flex-grow-1 min-w-0" id="eventDetailTotalLeft">
+                                <span class="event-detail-total-line__part" id="eventDetailTotalMain">
+                                    <span class="small text-muted">Total:</span>
+                                    <span class="fw-semibold text-body" id="eventDetailTotalPrice">0,00 €</span>
+                                </span>
+                                <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailReservaSummary">
+                                    <span id="eventDetailReservaSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmount">0,00 €</span> &bull; Falta pagar <span class="fw-semibold text-body" id="eventDetailFaltaPagarAmount">0,00 €</span></span>
+                                </span>
+                                <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailPagoSummary">
+                                    <span id="eventDetailPagoSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">0,00 €</span> &bull; Pagamento final <span class="fw-semibold text-body" id="eventDetailPagoAmount">0,00 €</span></span>
+                                </span>
                             </div>
                         </div>
-                    </div>
-                    @include('agenda.partials.oc-client-selected-card', ['prefix' => 'eventDetailOc', 'class' => 'mt-1'])
-                    <div id="eventDetailOcClientBirthdayBanner" class="agenda-client-birthday-banner d-none mt-2" role="status" aria-live="polite">
-                        <span class="agenda-client-birthday-banner__icon" aria-hidden="true"><i class="ri-gift-2-fill"></i></span>
-                        <span id="eventDetailOcClientBirthdayText" class="agenda-client-birthday-banner__text"></span>
-                    </div>
-                </div>
-                <div class="agenda-oc-field" style="order:2">
-                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcMember">Prestador(a) do serviço <span class="text-danger">*</span></label>
-                    <select id="eventDetailOcMember" class="form-select form-select-sm">
-                        <option value="">Selecionar</option>
-                    </select>
-                </div>
-                <div class="agenda-oc-field" style="order:3">
-                    <div class="d-flex align-items-center justify-content-between gap-2 mb-1 agenda-oc-services-head">
-                        <label class="form-label fw-semibold text-dark mb-0" for="eventDetailOcService">Serviços <span class="text-danger">*</span></label>
-                        <div id="eventDetailOcAddMoreServicesWrap" class="d-none flex-shrink-0">
-                            <button type="button" id="eventDetailOcAddMoreServicesBtn" class="btn btn-outline-primary agenda-oc-add-services-btn rounded-pill d-inline-flex align-items-center gap-1">
-                                <i class="ph ph-plus" aria-hidden="true"></i>
-                                <span>Adicionar serviços</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="eventDetailOcServiceSelectWrap">
-                        <select id="eventDetailOcService" class="form-select form-select-sm" disabled>
-                            <option value="">Escolha primeiro o prestador(a)</option>
-                        </select>
-                    </div>
-                    <div id="eventDetailOcSelectedServicesList" class="mt-2 d-none"></div>
-                    <div id="eventDetailOcFeesList" class="mt-2 d-none"></div>
-                </div>
-                <div class="agenda-oc-field" style="order:4">
-                    <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcObs">Notas da Marcação</label>
-                    <textarea class="form-control form-control-sm" id="eventDetailOcObs" name="description" rows="3" placeholder="Escreva uma nota sobre esta marcação"></textarea>
-                </div>
-                <div class="agenda-oc-field" style="order:5">
-                    <div class="mb-2 d-none" id="eventDetailHorarioAvisoWrap">
-                        <div class="alert alert-warning mb-0 py-2 small" id="eventDetailHorarioAviso" role="alert">
-                            <i class="ph ph-warning-circle me-1"></i>
-                            Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
-                        </div>
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-7">
-                            <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcDate">Data <span class="text-danger">*</span></label>
-                            <input type="text" id="eventDetailOcDate" class="form-control" placeholder="Selecionar data" autocomplete="off">
-                        </div>
-                        <div class="col-5">
-                            <label class="form-label fw-semibold text-dark mb-1" for="eventDetailOcTime">Hora <span class="text-danger">*</span></label>
-                            <select id="eventDetailOcTime" class="form-select"></select>
+                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between w-100 event-detail-oc-footer-actions" id="eventDetailFooterActionsRow">
+                            <div class="d-flex flex-wrap gap-2 align-items-center" id="eventDetailPaymentWrap">
+                                <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn" data-payment-flow-label="Pré-pagamento">
+                                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--long">Pré-pagamento</span>
+                                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--short">Pré-pag.</span>
+                                </button>
+                                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn" data-payment-flow-label="Pagamento">Pagamento</button>
+                                <div class="dropup d-none" id="eventDetailPaymentDropup">
+                                    <button class="btn btn-success btn-sm dropdown-toggle" type="button" id="eventDetailPaymentDropupToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Pagamento
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="eventDetailPaymentDropupToggle" id="eventDetailPaymentDropupMenu">
+                                        <li>
+                                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2" type="button" id="eventDetailPayCurrentBtn">
+                                                <span>Pagar esta marcação</span>
+                                                <span class="small fw-semibold" id="eventDetailPayCurrentAmount">0,00 €</span>
+                                            </button>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><div class="dropdown-item-text small text-muted fw-semibold" id="eventDetailPayAllHint">+0 marcações por pagar hoje</div></li>
+                                        <li>
+                                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2 fw-semibold" type="button" id="eventDetailPayAllBtn" data-payment-flow-label="Pagar todas do dia">
+                                                <span>Pagar todas do dia</span>
+                                                <span class="small fw-semibold" id="eventDetailPayAllAmount">0,00 €</span>
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <button type="button" class="btn btn-outline-success btn-sm d-none" id="eventDetailOpenCashRegisterBtn" data-crm-cash-register-trigger="open" data-crm-cash-register-fixed="open">
+                                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--long">Abrir caixa</span>
+                                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--short">Caixa</span>
+                                </button>
+                                <span class="event-detail-paid-badge d-none" id="eventDetailPagoBadge" role="status" aria-label="Pago">
+                                    <i class="ph ph-check" aria-hidden="true"></i>
+                                    <span>Pago</span>
+                                </span>
+                            </div>
+                            <div class="d-none d-flex flex-wrap gap-1 align-items-center ms-auto" id="eventDetailFaturasWrap"></div>
                         </div>
                     </div>
                 </div>
-                @if(auth()->user()->isAdmin())
-                <div class="agenda-oc-field d-none mt-2 pt-2 border-top" id="eventDetailActivityLogWrap" style="order:99">
-                    <button type="button" class="btn btn-link btn-sm px-0 text-decoration-none d-inline-flex align-items-center gap-1" id="eventDetailViewLogsBtn">
-                        <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
-                        Ver logs
-                    </button>
-                </div>
-                @endif
             </div>
         </form>
-    </div>
-    <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch" id="eventDetailOffcanvasFooter">
-        <div class="d-flex align-items-center pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
-            <div class="event-detail-total-line flex-grow-1 min-w-0" id="eventDetailTotalLeft">
-                <span class="event-detail-total-line__part" id="eventDetailTotalMain">
-                    <span class="small text-muted">Total:</span>
-                    <span class="fw-semibold text-body" id="eventDetailTotalPrice">0,00 €</span>
-                </span>
-                <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailReservaSummary">
-                    <span id="eventDetailReservaSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmount">0,00 €</span> &bull; Falta pagar <span class="fw-semibold text-body" id="eventDetailFaltaPagarAmount">0,00 €</span></span>
-                </span>
-                <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailPagoSummary">
-                    <span id="eventDetailPagoSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">0,00 €</span> &bull; Pagamento final <span class="fw-semibold text-body" id="eventDetailPagoAmount">0,00 €</span></span>
-                </span>
-            </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between w-100 event-detail-oc-footer-actions" id="eventDetailFooterActionsRow">
-            <div class="d-flex flex-wrap gap-2 align-items-center" id="eventDetailPaymentWrap">
-                <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn" data-payment-flow-label="Pré-pagamento">
-                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--long">Pré-pagamento</span>
-                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--short">Pré-pag.</span>
-                </button>
-                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn" data-payment-flow-label="Pagamento">Pagamento</button>
-                <div class="dropup d-none" id="eventDetailPaymentDropup">
-                    <button class="btn btn-success btn-sm dropdown-toggle" type="button" id="eventDetailPaymentDropupToggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        Pagamento
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="eventDetailPaymentDropupToggle" id="eventDetailPaymentDropupMenu">
-                        <li>
-                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2" type="button" id="eventDetailPayCurrentBtn">
-                                <span>Pagar esta marcação</span>
-                                <span class="small fw-semibold" id="eventDetailPayCurrentAmount">0,00 €</span>
-                            </button>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><div class="dropdown-item-text small text-muted fw-semibold" id="eventDetailPayAllHint">+0 marcações por pagar hoje</div></li>
-                        <li>
-                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2 fw-semibold" type="button" id="eventDetailPayAllBtn" data-payment-flow-label="Pagar todas do dia">
-                                <span>Pagar todas do dia</span>
-                                <span class="small fw-semibold" id="eventDetailPayAllAmount">0,00 €</span>
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-                <button type="button" class="btn btn-outline-success btn-sm d-none" id="eventDetailOpenCashRegisterBtn" data-crm-cash-register-trigger="open" data-crm-cash-register-fixed="open">
-                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--long">Abrir caixa</span>
-                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--short">Caixa</span>
-                </button>
-                <span class="event-detail-paid-badge d-none" id="eventDetailPagoBadge" role="status" aria-label="Pago">
-                    <i class="ph ph-check" aria-hidden="true"></i>
-                    <span>Pago</span>
-                </span>
-            </div>
-            <div class="d-none d-flex flex-wrap gap-1 align-items-center ms-auto" id="eventDetailFaturasWrap"></div>
-        </div>
     </div>
 </div>
 
@@ -609,7 +542,10 @@
     </div>
 </div>
 
-@include('partials.payment-modal', ['posGorjetaEnabled' => $posGorjetaEnabled ?? true])
+@include('partials.payment-modal', [
+    'posGorjetaEnabled' => $posGorjetaEnabled ?? true,
+    'stripePaymentsEnabled' => $stripePaymentsEnabled ?? false,
+])
 @endsection
 
 @section('js')
@@ -689,6 +625,9 @@ window.AGENDA_CONFIG = {
     agendaSlotMax: @json($agendaSlotMax ?? '20:00'),
     cashRegisterOpen: @json($cashRegisterOpen ?? false),
     onlineBookingPaymentRequired: @json($onlineBookingPaymentRequired ?? true),
+    stripePaymentsEnabled: @json($stripePaymentsEnabled ?? false),
+    posPaymentMethods: @json($posPaymentMethods ?? []),
+    posPaymentMethodsReserva: @json($posPaymentMethodsReserva ?? []),
     storeTimezone: @json($storeTimezone ?? 'Europe/Lisbon'),
     personalTimeLimitStoreHours: @json($personalTimeLimitStoreHours ?? false),
 };

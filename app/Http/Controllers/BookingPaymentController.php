@@ -23,6 +23,7 @@ use App\Services\VendusInvoiceService;
 use App\Support\BookingLocale;
 use App\Support\CurrentStore;
 use App\Support\StoreBusinessTime;
+use App\Support\StripeCredentials;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +36,6 @@ use Stripe\CustomerSession;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
 use Stripe\PaymentMethod;
-use Stripe\Stripe;
 
 class BookingPaymentController extends Controller
 {
@@ -70,8 +70,7 @@ class BookingPaymentController extends Controller
         $resolved = $this->checkout->resolveValidatedBookingPayload($validated);
         $this->checkout->assertPayableBookingState($request->user(), $validated);
 
-        $secret = config('stripe.secret');
-        if (! is_string($secret) || $secret === '') {
+        if (! StripeCredentials::isReady($storeId)) {
             return response()->json([
                 'message' => __('booking.validation.payment_not_configured'),
             ], 503);
@@ -117,7 +116,7 @@ class BookingPaymentController extends Controller
 
         $actor = $request->user();
         $authenticatedId = $actor instanceof User && $actor->isBookingClient() ? $actor->id : null;
-        $this->configureStripeSdk();
+        $this->configureStripeSdk($storeId);
         $stripeCustomerId = $this->resolveStripeCustomerIdForBookingActor($actor);
 
         try {
@@ -191,8 +190,8 @@ class BookingPaymentController extends Controller
             'status' => Payment::STATUS_PENDING,
         ]);
 
-        $publishable = config('stripe.key');
-        if (! is_string($publishable) || $publishable === '') {
+        $publishable = StripeCredentials::publishableKey($storeId);
+        if ($publishable === '') {
             return response()->json(['message' => __('booking.validation.stripe_key_missing')], 503);
         }
 
@@ -227,13 +226,6 @@ class BookingPaymentController extends Controller
             'invoice_email' => ['nullable', 'string', 'email', 'max:255'],
         ]);
 
-        $secret = config('stripe.secret');
-        if (! is_string($secret) || $secret === '') {
-            return response()->json(['message' => __('booking.validation.payment_not_configured')], 503);
-        }
-
-        $this->configureStripeSdk();
-
         $createdBookingUser = false;
         $confirmParams = [];
         $event = null;
@@ -247,6 +239,13 @@ class BookingPaymentController extends Controller
                 ->where('public_id', $request->string('booking_public_id')->toString())
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            if (! StripeCredentials::isReady((int) $booking->store_id)) {
+                throw ValidationException::withMessages([
+                    'payment' => [__('booking.validation.payment_not_configured')],
+                ]);
+            }
+            $this->configureStripeSdk((int) $booking->store_id);
 
             $routeStore = $request->route('store');
             if ($routeStore instanceof Store && (int) $booking->store_id !== (int) $routeStore->id) {
@@ -1039,23 +1038,8 @@ class BookingPaymentController extends Controller
     /**
      * Chave secreta + opcionalmente Stripe-Version (só se definires uma versão válida no .env).
      */
-    private function configureStripeSdk(): void
+    private function configureStripeSdk(?int $storeId = null): void
     {
-        Stripe::setApiKey((string) config('stripe.secret'));
-
-        $apiVersion = config('stripe.api_version');
-        if (! is_string($apiVersion) || $apiVersion === '') {
-            return;
-        }
-
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}\.[a-zA-Z0-9_]+$/', $apiVersion)) {
-            Log::warning('STRIPE_API_VERSION ignorada. Usa o valor exacto do Dashboard (ex.: 2024-11-20.acacia) ou deixa vazio para o SDK escolher.', [
-                'value' => $apiVersion,
-            ]);
-
-            return;
-        }
-
-        Stripe::setApiVersion($apiVersion);
+        StripeCredentials::configureSdk($storeId);
     }
 }

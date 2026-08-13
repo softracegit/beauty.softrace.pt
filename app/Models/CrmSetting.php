@@ -13,6 +13,19 @@ class CrmSetting extends Model
     /** Caixa (modal de pagamento na agenda): campo e linha de gorjeta. */
     public const KEY_POS_GORJETA_ENABLED = 'pos.gorjeta_enabled';
 
+    /** JSON: métodos de pagamento por canal (caixa / booking / reserva). */
+    public const KEY_PAYMENT_METHODS = 'payments.methods';
+
+    public const KEY_STRIPE_ENABLED = 'payments.stripe.enabled';
+
+    public const KEY_STRIPE_PUBLISHABLE_KEY = 'payments.stripe.publishable_key';
+
+    /** Secret Stripe (encriptado com Crypt). */
+    public const KEY_STRIPE_SECRET_KEY = 'payments.stripe.secret_key';
+
+    /** Webhook signing secret (encriptado). */
+    public const KEY_STRIPE_WEBHOOK_SECRET = 'payments.stripe.webhook_secret';
+
     public const KEY_BOOKING_SLOT_HOLD_MINUTES = 'booking.slot_hold_minutes';
 
     public const KEY_BOOKING_ANY_STAFF_RULE = 'booking.any_staff_rule';
@@ -101,7 +114,7 @@ class CrmSetting extends Model
     }
 
     /**
-     * Pagamentos Stripe activos no booking online (definição da loja + chaves configuradas).
+     * Pagamentos Stripe activos no booking online (toggle marcações + Stripe pronto).
      */
     public static function onlineBookingStripeEnabled(?int $storeId = null): bool
     {
@@ -109,10 +122,29 @@ class CrmSetting extends Model
             return false;
         }
 
-        $key = config('stripe.key');
-        $secret = config('stripe.secret');
+        return \App\Support\StripeCredentials::isReady($storeId);
+    }
 
-        return is_string($key) && $key !== '' && is_string($secret) && $secret !== '';
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function paymentMethodsConfig(?int $storeId = null): array
+    {
+        $raw = self::getString(self::KEY_PAYMENT_METHODS, '', $storeId);
+        if ($raw === '') {
+            return [];
+        }
+        $decoded = json_decode($raw, true);
+
+        return is_array($decoded) ? array_values($decoded) : [];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    public static function setPaymentMethodsConfig(array $rows, ?int $storeId = null): void
+    {
+        self::setString(self::KEY_PAYMENT_METHODS, json_encode(array_values($rows), JSON_UNESCAPED_UNICODE), $storeId);
     }
 
     public static function posGorjetaEnabled(?int $storeId = null): bool

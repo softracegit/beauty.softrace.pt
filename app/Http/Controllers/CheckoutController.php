@@ -21,7 +21,9 @@ use App\Services\VendusInvoiceService;
 use App\Support\ApplicableFees;
 use App\Support\ClientContactMask;
 use App\Support\CrmPrivacyLock;
+use App\Support\PaymentMethodCatalog;
 use App\Support\PhoneDisplay;
+use App\Support\StripeCredentials;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +32,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
-use Stripe\Stripe;
 
 class CheckoutController extends Controller
 {
@@ -406,9 +407,15 @@ class CheckoutController extends Controller
             return $denied;
         }
 
-        if (! CrmSetting::onlineBookingPaymentRequired(current_store_id())) {
+        $storeId = current_store_id();
+        if (! PaymentMethodCatalog::isEnabled(Sale::PAYMENT_MBWAY, PaymentMethodCatalog::CHANNEL_AGENDA, $storeId)) {
             return response()->json([
-                'error' => 'Pagamentos automáticos estão desativados. Registe o MB WAY manualmente na caixa.',
+                'error' => 'MB Way (Stripe) não está activo na caixa. Active-o em Definições → Pagamentos ou use MB Way (registo).',
+            ], 422);
+        }
+        if (! StripeCredentials::isReady($storeId)) {
+            return response()->json([
+                'error' => 'Stripe não está pronto. Configure em Definições → Pagamentos.',
             ], 422);
         }
 
@@ -469,11 +476,10 @@ class CheckoutController extends Controller
             $client->save();
         }
 
-        $secret = config('stripe.secret');
-        if (! is_string($secret) || $secret === '') {
-            return response()->json(['error' => 'Stripe não configurado no servidor.'], 503);
+        if (StripeCredentials::secretKey($storeId) === '') {
+            return response()->json(['error' => 'Stripe não configurado. Configure em Definições → Pagamentos.'], 503);
         }
-        $this->configureStripeSdk();
+        $this->configureStripeSdk($storeId);
 
         $currency = strtolower((string) config('booking.currency', 'eur'));
         $amountCents = (int) round($amountDue * 100);
@@ -531,9 +537,11 @@ class CheckoutController extends Controller
             return $denied;
         }
 
-        if (! CrmSetting::onlineBookingPaymentRequired(current_store_id())) {
+        $storeId = current_store_id();
+        if (! PaymentMethodCatalog::isEnabled(Sale::PAYMENT_MBWAY, PaymentMethodCatalog::CHANNEL_AGENDA, $storeId)
+            || ! StripeCredentials::isReady($storeId)) {
             return response()->json([
-                'error' => 'Pagamentos automáticos estão desativados. Registe o MB WAY manualmente na caixa.',
+                'error' => 'MB Way (Stripe) não está disponível. Verifique Definições → Pagamentos.',
             ], 422);
         }
 
@@ -560,7 +568,7 @@ class CheckoutController extends Controller
             'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
-        $this->configureStripeSdk();
+        $this->configureStripeSdk($storeId);
         try {
             $intent = PaymentIntent::retrieve((string) $validated['payment_intent_id']);
         } catch (ApiErrorException) {
@@ -625,18 +633,9 @@ class CheckoutController extends Controller
         return round(max(0.0, $subtotal), 2);
     }
 
-    private function configureStripeSdk(): void
+    private function configureStripeSdk(?int $storeId = null): void
     {
-        Stripe::setApiKey((string) config('stripe.secret'));
-        $apiVersion = config('stripe.api_version');
-        if (! is_string($apiVersion) || $apiVersion === '') {
-            return;
-        }
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}\.[a-zA-Z0-9_]+$/', $apiVersion)) {
-            return;
-        }
-
-        Stripe::setApiVersion($apiVersion);
+        StripeCredentials::configureSdk($storeId ?? current_store_id());
     }
 
     /**

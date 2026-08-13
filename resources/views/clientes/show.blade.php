@@ -153,6 +153,18 @@
                             <div class="uview-detail-value">{{ \App\Models\Client::maritalStatuses()[$cliente->marital_status] ?? $cliente->marital_status }}</div>
                         </div>
                         @endif
+                        @if($cliente->origem)
+                        <div class="uview-detail-row">
+                            <div class="uview-detail-label">Origem</div>
+                            <div class="uview-detail-value">{{ $cliente->origem }}</div>
+                        </div>
+                        @endif
+                        @if($cliente->profissao)
+                        <div class="uview-detail-row">
+                            <div class="uview-detail-label">Profissão</div>
+                            <div class="uview-detail-value">{{ $cliente->profissao }}</div>
+                        </div>
+                        @endif
                     </div>
 
                     {{-- Preferências --}}
@@ -274,7 +286,7 @@
                         'marcacoes' => $marcacoes,
                         'marcacoesTotais' => $marcacoesTotais ?? [],
                         'showClienteColumn' => false,
-                        'actionMode' => 'agenda',
+                        'actionMode' => 'modal',
                         'emptyMessage' => 'Nenhuma marcação registada.',
                     ])
                 </div>
@@ -553,9 +565,12 @@
 
 @include('partials.payment-modal')
 
+@include('relatorios.partials.marcacao-detalhe-modals', ['marcacoes' => $marcacoes ?? collect()])
+
 @endsection
 @section('js')
 @include('relatorios.partials.vendas-table-scripts')
+@include('relatorios.partials.marcacao-detalhe-modals-script')
 <script>window.CLIENT_TAGS_CONFIG = { catalogUrl: @json(route('client-tags.index')), maxPerClient: {{ \App\Services\ClientTagService::MAX_TAGS_PER_CLIENT }} };</script>
 <script src="{{ asset('template/js/client-tags.js') }}?v={{ file_exists(public_path('template/js/client-tags.js')) ? filemtime(public_path('template/js/client-tags.js')) : time() }}"></script>
 <script>

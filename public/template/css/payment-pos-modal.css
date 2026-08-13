@@ -134,6 +134,22 @@
 #paymentMethodToggleGroup .tempo-pessoal-type-card-name {
     font-size: 0.8rem;
 }
+#paymentMethodToggleGroup .payment-method-stripe-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    height: 0.7rem;
+    margin-top: 0.05rem;
+}
+#paymentMethodToggleGroup .payment-method-stripe-logo {
+    width: 1.45rem;
+    height: auto;
+    max-height: 0.55rem;
+    color: #635BFF;
+    display: block;
+    flex-shrink: 0;
+}
 
 /* Modal pagamento — estilo caixa / POS */
 .payment-pos-modal .modal-content {

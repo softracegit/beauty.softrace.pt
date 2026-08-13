@@ -155,6 +155,41 @@ class AppointmentReactivationServiceTest extends TestCase
         app(AppointmentReactivationService::class)->reactivate($cancelled->fresh());
     }
 
+    public function test_reactivate_blocked_when_start_is_in_the_past(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-15 16:00:00', 'Europe/Lisbon'));
+
+        $event = $this->createMarcacaoAtLocal('2026-06-15 15:00:00');
+        $event->forceFill([
+            'status' => CalendarEvent::STATUS_CANCELADO,
+            'cancellation_type' => CalendarEvent::STATUS_CANCELADO,
+            'cancellation_reason' => 'Erro',
+        ])->save();
+
+        $blockers = app(AppointmentReactivationService::class)->blockers($event->fresh());
+
+        $this->assertNotEmpty($blockers);
+        $this->assertStringContainsString('passado', $blockers[0]);
+
+        $this->expectException(AppointmentReactivationException::class);
+        app(AppointmentReactivationService::class)->reactivate($event->fresh());
+    }
+
+    public function test_reactivate_allowed_when_start_is_exactly_now(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-15 15:00:00', 'Europe/Lisbon'));
+
+        $event = $this->createMarcacaoAtLocal('2026-06-15 15:00:00');
+        $event->forceFill([
+            'status' => CalendarEvent::STATUS_CANCELADO,
+            'cancellation_type' => CalendarEvent::STATUS_CANCELADO,
+        ])->save();
+
+        $result = app(AppointmentReactivationService::class)->reactivate($event->fresh());
+
+        $this->assertSame(CalendarEvent::STATUS_AGENDADO, $result->event->status);
+    }
+
     public function test_reactivate_rejects_anulado_and_agendado(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-15 10:00:00', 'Europe/Lisbon'));

@@ -221,8 +221,13 @@
 </ul>
 
 <div class="tab-content mb-4" id="resumoPeriodTabContent">
+    @php
+        $ocupacaoDashHref = auth()->user()?->canAccessRoute('dashboard.ocupacao')
+            ? route('dashboard.ocupacao')
+            : null;
+    @endphp
     @foreach($periodTabs as $periodKey => $periodLabel)
-        @php $kpi = $kpiPorPeriodo[$periodKey] ?? ['vendas_previsto' => 0, 'vendas_feitas' => 0, 'vendas_por_fazer' => 0, 'clientes_atendidos' => 0, 'taxa_ocupacao' => 0]; @endphp
+        @php $kpi = $kpiPorPeriodo[$periodKey] ?? ['vendas_previsto' => 0, 'vendas_feitas' => 0, 'vendas_por_fazer' => 0, 'clientes_atendidos' => 0, 'taxa_ocupacao' => 0, 'ocupacao_label' => 'Ocupação']; @endphp
         <div
             class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
             id="resumo-pane-{{ $periodKey }}"
@@ -267,15 +272,27 @@
                 </div>
 
                 <div class="col-lg-3 col-sm-6">
-                    <div class="dash-kpi h-100">
-                        <div class="dash-kpi-icon muted">
-                            <i class="ph-duotone ph-chart-pie-slice"></i>
+                    @if ($ocupacaoDashHref)
+                        <a href="{{ $ocupacaoDashHref }}" class="dash-kpi dash-kpi--link h-100" aria-label="Abrir dashboard de ocupação">
+                            <div class="dash-kpi-icon muted">
+                                <i class="ph-duotone ph-chart-pie-slice"></i>
+                            </div>
+                            <div class="dash-kpi-body">
+                                <div class="dash-kpi-value">{{ number_format($kpi['taxa_ocupacao'], 1, ',', '.') }}%</div>
+                                <div class="dash-kpi-label">{{ $kpi['ocupacao_label'] ?? 'Ocupação' }}</div>
+                            </div>
+                        </a>
+                    @else
+                        <div class="dash-kpi h-100">
+                            <div class="dash-kpi-icon muted">
+                                <i class="ph-duotone ph-chart-pie-slice"></i>
+                            </div>
+                            <div class="dash-kpi-body">
+                                <div class="dash-kpi-value">{{ number_format($kpi['taxa_ocupacao'], 1, ',', '.') }}%</div>
+                                <div class="dash-kpi-label">{{ $kpi['ocupacao_label'] ?? 'Ocupação' }}</div>
+                            </div>
                         </div>
-                        <div class="dash-kpi-body">
-                            <div class="dash-kpi-value">{{ number_format($kpi['taxa_ocupacao'], 1, ',', '.') }}%</div>
-                            <div class="dash-kpi-label">Taxa de ocupação</div>
-                        </div>
-                    </div>
+                    @endif
                 </div>
             </div>
         </div>

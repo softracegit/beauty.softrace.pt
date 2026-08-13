@@ -42,7 +42,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /** Painel scrollável do offcanvas «Ver / editar marcação» (âncora para quick menus). */
     function agendaEventDetailEditHostEl() {
-        return $id('eventDetailEditPanel');
+        return document.querySelector('#eventDetailEditModal .agenda-oc-shell__right-body')
+            || $id('eventDetailEditPanel');
     }
 
     const calendarEl = $id('calendar');
@@ -84,13 +85,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (phoneEl) {
             phoneEl.classList.toggle('d-none', !canViewClientContacts);
         }
+        var heroPhone = $id(prefix + 'ClientHeroPhone');
+        if (heroPhone) {
+            heroPhone.classList.toggle('d-none', !canViewClientContacts);
+        }
+        var phoneField = $id(prefix + 'ClientPhoneViewField');
+        if (phoneField) {
+            phoneField.classList.toggle('d-none', !canViewClientContacts);
+        }
         var nifRow = document.querySelector('#' + prefix + 'ClientSelectedCard .agenda-oc-client-nif-row');
         if (nifRow) {
             nifRow.classList.toggle('d-none', !canViewClientContacts);
         }
         var nifEdit = $id(prefix + 'ClientNifEditBtn');
         if (nifEdit) {
-            nifEdit.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientContacts);
+            // No painel vertical o NIF edita-se via «Editar dados» / «Adicionar»; este botão é só legado inline.
+            var card = $id(prefix + 'ClientSelectedCard');
+            var isPanel = !!(card && card.classList.contains('agenda-oc-client-selected-card--panel'));
+            if (isPanel) {
+                nifEdit.classList.add('d-none');
+            } else {
+                nifEdit.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientContacts);
+            }
         }
         var nifInput = $id(prefix + 'ClientNifInput');
         if (nifInput) {
@@ -102,9 +118,124 @@ document.addEventListener('DOMContentLoaded', function() {
                 nifInput.disabled = false;
             }
         }
+        var nifSave = $id(prefix + 'ClientNifSaveBtn');
+        if (nifSave) {
+            nifSave.disabled = crmPrivacyLockedUi || !canViewClientContacts;
+        }
+        var emailInput = $id(prefix + 'ClientEmailInput');
+        if (emailInput) {
+            if (crmPrivacyLockedUi || !canViewClientContacts) {
+                emailInput.value = '';
+                emailInput.disabled = true;
+            } else {
+                emailInput.disabled = false;
+            }
+        }
+        var phoneInput = $id(prefix + 'ClientPhoneInput');
+        if (phoneInput) {
+            if (crmPrivacyLockedUi || !canViewClientContacts) {
+                phoneInput.value = '';
+                phoneInput.disabled = true;
+            } else {
+                phoneInput.disabled = false;
+            }
+        }
+        var emailSave = $id(prefix + 'ClientEmailSaveBtn');
+        if (emailSave) {
+            emailSave.disabled = crmPrivacyLockedUi || !canViewClientContacts;
+        }
+        var birthInput = $id(prefix + 'ClientBirthDateInput');
+        if (birthInput) {
+            if (crmPrivacyLockedUi || !canViewClientContacts) {
+                birthInput.value = '';
+                birthInput.disabled = true;
+            } else {
+                birthInput.disabled = false;
+            }
+        }
+        var birthSave = $id(prefix + 'ClientBirthDateSaveBtn');
+        if (birthSave) {
+            birthSave.disabled = crmPrivacyLockedUi || !canViewClientContacts;
+        }
+        var emailField = $id(prefix + 'ClientEmailViewField')
+            || (emailInput && emailInput.closest('.agenda-oc-client-panel__field'));
+        if (emailField) {
+            emailField.classList.toggle('d-none', !canViewClientContacts);
+        }
+        var birthField = $id(prefix + 'ClientBirthDateViewField')
+            || (birthInput && birthInput.closest('.agenda-oc-client-panel__field'));
+        if (birthField) {
+            birthField.classList.toggle('d-none', !canViewClientContacts);
+        }
+        var origemField = $id(prefix + 'ClientOrigemViewField');
+        if (origemField) {
+            origemField.classList.toggle('d-none', !canViewClientContacts);
+        }
+        var profissaoField = $id(prefix + 'ClientProfissaoViewField');
+        if (profissaoField) {
+            profissaoField.classList.toggle('d-none', !canViewClientContacts);
+        }
+        [
+            prefix + 'ClientPhoneAddBtn',
+            prefix + 'ClientEmailAddBtn',
+            prefix + 'ClientBirthDateAddBtn',
+            prefix + 'ClientNifAddBtn',
+            prefix + 'ClientOrigemAddBtn',
+            prefix + 'ClientProfissaoAddBtn'
+        ].forEach(function(id) {
+            var btn = $id(id);
+            if (btn) {
+                btn.disabled = crmPrivacyLockedUi || !canViewClientContacts;
+                if (crmPrivacyLockedUi || !canViewClientContacts) {
+                    btn.classList.add('d-none');
+                }
+            }
+        });
+        AGENDA_OC_PROFILE_FIELD_KEYS.forEach(function(fieldKey) {
+            var textEl = $id(prefix + 'ClientSelected' + agendaOcProfileFieldSuffix(fieldKey));
+            if (!textEl) return;
+            var locked = crmPrivacyLockedUi || !canViewClientContacts;
+            textEl.classList.toggle('agenda-oc-client-panel__value-text--readonly', locked);
+            textEl.tabIndex = locked ? -1 : 0;
+            if (locked) {
+                textEl.removeAttribute('role');
+            } else {
+                textEl.setAttribute('role', 'button');
+            }
+        });
+        if (crmPrivacyLockedUi || !canViewClientContacts) {
+            agendaOcExitAllProfileInlineEdits(prefix);
+        }
+        var origemInput = $id(prefix + 'ClientOrigemInput');
+        if (origemInput) {
+            if (crmPrivacyLockedUi || !canViewClientContacts) {
+                origemInput.value = '';
+                origemInput.disabled = true;
+            } else {
+                origemInput.disabled = false;
+            }
+        }
+        var profissaoInput = $id(prefix + 'ClientProfissaoInput');
+        if (profissaoInput) {
+            if (crmPrivacyLockedUi || !canViewClientContacts) {
+                profissaoInput.value = '';
+                profissaoInput.disabled = true;
+            } else {
+                profissaoInput.disabled = false;
+            }
+        }
+        var profileFooter = null;
         var profile = $id(prefix + 'ClientProfileLink');
         if (profile) {
-            profile.classList.toggle('d-none', !canViewClientProfile);
+            profile.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientProfile);
+            profileFooter = profile.closest('.agenda-oc-client-panel__profile-footer');
+            if (profileFooter) {
+                profileFooter.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientProfile);
+            }
+        }
+        var marcacoes = $id(prefix + 'ClientMarcacoesLink');
+        if (marcacoes) {
+            marcacoes.classList.add('d-none');
         }
         agendaSetClientProfileLinks(prefix, agendaCurrentClientIdForPrefix(prefix));
     }
@@ -127,28 +258,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function agendaSetClientProfileLinks(prefix, clientId) {
         var id = String(clientId || '').trim();
-        var url = id ? (clientesBaseUrl.replace(/\/$/, '') + '/' + encodeURIComponent(id)) : '#';
-        var canLink = !crmPrivacyLockedUi && canViewClientProfile && !!id;
+        var base = String(clientesBaseUrl || '').replace(/\/$/, '');
+        var url = (base && id) ? (base + '/' + encodeURIComponent(id)) : '';
+        var marcacoesUrl = url ? (url + '#tab-marcacoes') : '';
+        var canLink = !crmPrivacyLockedUi && canViewClientProfile && !!url;
         var hideProfileButton = crmPrivacyLockedUi || !canViewClientProfile;
 
         [
             prefix + 'ClientProfileLink',
-            prefix + 'ClientProfileAvatarLink',
-            prefix + 'ClientProfileNameLink'
+            prefix + 'ClientProfileIconLink',
+            prefix + 'ClientMarcacoesLink',
+            prefix + 'ClientProfileAvatarLink'
         ].forEach(function(elementId) {
             var el = $id(elementId);
             if (!el) return;
 
-            if (elementId === prefix + 'ClientProfileLink') {
+            if (
+                elementId === prefix + 'ClientProfileLink'
+                || elementId === prefix + 'ClientProfileIconLink'
+                || elementId === prefix + 'ClientMarcacoesLink'
+            ) {
                 if (canLink) {
-                    el.href = url;
+                    el.setAttribute('href', elementId === prefix + 'ClientMarcacoesLink' ? marcacoesUrl : url);
+                } else {
+                    el.removeAttribute('href');
                 }
                 el.classList.toggle('d-none', hideProfileButton);
                 return;
             }
 
             if (canLink) {
-                el.href = url;
+                el.setAttribute('href', url);
                 el.classList.remove('agenda-oc-client-card__profile-link--static');
                 el.removeAttribute('aria-disabled');
                 el.setAttribute('title', 'Ver ficha do cliente');
@@ -992,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function readEventDetailStartEndForWarning() {
         var marcacaoSection = $id('eventDetailOcMarcacaoSection');
-        var usePickers = marcacaoSection && !marcacaoSection.classList.contains('d-none');
+        var usePickers = marcacaoSection && !marcacaoSection.classList.contains('agenda-oc-shell__grid--visit');
         if (usePickers) {
             var dStr = agendaOcReadDateStr('eventDetailOcDate', eventDetailOcDateFlatpickr);
             var tStr = ($id('eventDetailOcTime') && $id('eventDetailOcTime').value) || '';
@@ -2396,10 +2536,241 @@ document.addEventListener('DOMContentLoaded', function() {
         if (c.formatted_phone) return c.formatted_phone;
         return c.phone || '…';
     }
+    /**
+     * Atualiza nome / telemóvel / avatar do cliente no calendário (fc-events),
+     * no detalhe aberto e no quickview — sem refetch.
+     */
+    function agendaSyncClientDisplayOnCalendar(client) {
+        if (!client || client.id == null || client.id === '') return;
+        var clientId = String(client.id);
+        var name = String(client.name || '');
+        var phone = String(client.phone || '');
+        var formattedPhone = String(client.formatted_phone || '');
+        var avatarUrl = String(client.avatar_url || '');
+        var avatarProp = avatarUrl !== '' ? avatarUrl : null;
+
+        if (typeof eventDetailCurrentData !== 'undefined' && eventDetailCurrentData
+            && String(eventDetailCurrentData.client_id || '') === clientId) {
+            eventDetailCurrentData.client_name = name;
+            eventDetailCurrentData.client_phone = phone;
+            eventDetailCurrentData.client_formatted_phone = formattedPhone;
+            eventDetailCurrentData.client_avatar_url = avatarProp;
+        }
+
+        if (calendar && typeof calendar.getEvents === 'function') {
+            calendar.getEvents().forEach(function(ev) {
+                var ext = ev.extendedProps || {};
+                if (String(ext.client_id || '') !== clientId) return;
+                if (String(ext.client_name || '') !== name) {
+                    ev.setExtendedProp('client_name', name);
+                }
+                if (String(ext.client_phone || '') !== phone) {
+                    ev.setExtendedProp('client_phone', phone);
+                }
+                if (String(ext.client_formatted_phone || '') !== formattedPhone) {
+                    ev.setExtendedProp('client_formatted_phone', formattedPhone);
+                }
+                if ((ext.client_avatar_url || null) !== avatarProp) {
+                    ev.setExtendedProp('client_avatar_url', avatarProp);
+                }
+            });
+        }
+
+        agendaRefreshOpenQuickviewClientDisplay(clientId, {
+            name: name,
+            phone: formattedPhone || phone,
+            avatar_url: avatarUrl
+        });
+    }
+    function agendaClientInitials(name) {
+        var initials = String(name || '?').split(/\s+/).map(function(w) { return w.charAt(0) || ''; }).slice(0, 2).join('').toUpperCase();
+        return initials || '?';
+    }
+    function agendaRefreshOpenQuickviewClientDisplay(clientId, snap) {
+        var qv = $id('agendaEventQuickview');
+        if (!qv || !qv.classList.contains('is-open')) return;
+        if (!calendar || !agendaEventQuickviewHoverId) return;
+        var ev = typeof calendar.getEventById === 'function'
+            ? calendar.getEventById(String(agendaEventQuickviewHoverId))
+            : null;
+        if (!ev || String((ev.extendedProps || {}).client_id || '') !== String(clientId)) return;
+
+        var nameEl = qv.querySelector('.agenda-quickview-client-name');
+        if (nameEl) nameEl.textContent = (snap && snap.name) || '…';
+
+        var phoneText = String((snap && snap.phone) || '').trim();
+        var phoneEl = qv.querySelector('.agenda-quickview-client-phone');
+        var textWrap = qv.querySelector('.agenda-quickview-client-text');
+        if (phoneText && canViewClientContacts) {
+            if (!phoneEl && textWrap) {
+                phoneEl = document.createElement('span');
+                phoneEl.className = 'agenda-quickview-client-phone';
+                var nameNode = textWrap.querySelector('.agenda-quickview-client-name');
+                if (nameNode && nameNode.nextSibling) {
+                    textWrap.insertBefore(phoneEl, nameNode.nextSibling);
+                } else {
+                    textWrap.appendChild(phoneEl);
+                }
+            }
+            if (phoneEl) phoneEl.textContent = phoneText;
+        } else if (phoneEl) {
+            phoneEl.remove();
+        }
+
+        var clientRow = qv.querySelector('.agenda-quickview-client');
+        if (!clientRow) return;
+        var avatarUrl = String((snap && snap.avatar_url) || '').trim();
+        var img = clientRow.querySelector('.agenda-quickview-avatar');
+        var fallback = clientRow.querySelector('.agenda-quickview-avatar-fallback');
+        if (avatarUrl) {
+            if (fallback) fallback.remove();
+            if (!img) {
+                img = document.createElement('img');
+                img.className = 'agenda-quickview-avatar';
+                img.alt = '';
+                clientRow.insertBefore(img, clientRow.firstChild);
+            }
+            img.src = avatarUrl;
+        } else {
+            if (img) img.remove();
+            if (!fallback) {
+                fallback = document.createElement('div');
+                fallback.className = 'agenda-quickview-avatar-fallback';
+                clientRow.insertBefore(fallback, clientRow.firstChild);
+            }
+            fallback.textContent = agendaClientInitials(snap && snap.name);
+        }
+    }
+    /** Telemóvel sem indicativo (+351 …) para labels da pesquisa de cliente. */
+    function agendaPhoneNationalForSearch(phone) {
+        var s = String(phone || '').trim();
+        if (!s) return '';
+        var withSpace = s.match(/^\+\d{1,4}\s+(.+)$/);
+        if (withSpace) return withSpace[1].trim();
+        var pt = s.match(/^\+351(\d+)$/);
+        if (pt) return pt[1];
+        var e164 = s.match(/^\+(\d{1,3})(\d{7,})$/);
+        if (e164) return e164[2];
+        return s;
+    }
+    function agendaOcClientSearchChoiceLabel(c) {
+        if (!c) return '';
+        var phone = agendaPhoneNationalForSearch(c.formatted_phone || c.phone || '');
+        return (c.name || '') + (phone ? ' · ' + phone : '');
+    }
     function agendaClientNifLabel(c) {
         if (!c) return 'Sem NIF';
         var nif = String(c.nif || '').trim();
         return nif !== '' ? ('NIF ' + nif) : 'Sem NIF';
+    }
+    function agendaClientInitials(name) {
+        var nm = String(name || '').trim();
+        if (!nm) return '?';
+        return nm.split(/\s+/).map(function(w) { return w[0] || ''; }).slice(0, 2).join('').toUpperCase() || '?';
+    }
+    function agendaOcSetAvatarFallback(prefix, name) {
+        var fb = $id(prefix + 'ClientAvatarFallback');
+        var initialsEl = $id(prefix + 'ClientAvatarInitials');
+        var initials = agendaClientInitials(name);
+        if (initialsEl) {
+            initialsEl.textContent = initials;
+        } else if (fb) {
+            fb.textContent = initials;
+        }
+    }
+    function agendaOcSetProfileValueDisplay(textEl, addBtn, value) {
+        var v = String(value == null ? '' : value).trim();
+        if (textEl) {
+            if (v !== '') {
+                textEl.textContent = v;
+                textEl.setAttribute('title', v);
+                textEl.classList.remove('d-none');
+            } else {
+                textEl.textContent = '';
+                textEl.removeAttribute('title');
+                textEl.classList.add('d-none');
+            }
+        }
+        if (addBtn) addBtn.classList.toggle('d-none', v !== '');
+    }
+    var AGENDA_OC_PROFILE_FIELD_KEYS = ['name', 'phone', 'email', 'birth_date', 'nif', 'origem', 'profissao'];
+    function agendaOcProfileFieldSuffix(fieldKey) {
+        return ({
+            name: 'Name',
+            phone: 'Phone',
+            email: 'Email',
+            birth_date: 'BirthDate',
+            nif: 'Nif',
+            origem: 'Origem',
+            profissao: 'Profissao'
+        })[fieldKey] || '';
+    }
+    function agendaOcProfileFieldRow(prefix, fieldKey) {
+        var card = $id(prefix + 'ClientSelectedCard');
+        if (card) {
+            var inCard = card.querySelector('[data-profile-field="' + fieldKey + '"]');
+            if (inCard) return inCard;
+        }
+        var view = $id(prefix + 'ClientProfileView');
+        if (!view) return null;
+        return view.querySelector('[data-profile-field="' + fieldKey + '"]');
+    }
+    /** Foco no input com cursor no fim (sem selecionar o texto). */
+    function agendaFocusInputCaretEnd(input) {
+        if (!input) return;
+        try {
+            input.focus();
+            var len = String(input.value || '').length;
+            if (typeof input.setSelectionRange === 'function') {
+                input.setSelectionRange(len, len);
+            }
+        } catch (e) { /* ignore */ }
+    }
+    function agendaOcExitAllProfileInlineEdits(prefix) {
+        AGENDA_OC_PROFILE_FIELD_KEYS.forEach(function(key) {
+            var row = agendaOcProfileFieldRow(prefix, key);
+            if (row) row.classList.remove('is-editing');
+            var input = $id(prefix + 'Client' + agendaOcProfileFieldSuffix(key) + 'Input');
+            if (input) input.classList.add('d-none');
+        });
+    }
+    function agendaOcSetClientDetailsOpen(prefix, open) {
+        var panel = document.querySelector('#' + prefix + 'ClientSelectedCard .agenda-oc-client-panel');
+        var toggle = $id(prefix + 'ClientDetailsToggle');
+        var isOpen = !!open;
+        if (panel) panel.classList.toggle('is-details-open', isOpen);
+        if (toggle) toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+    function agendaOcBindClientDetailsToggle(prefix) {
+        var toggle = $id(prefix + 'ClientDetailsToggle');
+        if (!toggle || toggle.dataset.bound === '1') return;
+        toggle.dataset.bound = '1';
+        toggle.addEventListener('click', function() {
+            var panel = document.querySelector('#' + prefix + 'ClientSelectedCard .agenda-oc-client-panel');
+            var nextOpen = !(panel && panel.classList.contains('is-details-open'));
+            agendaOcSetClientDetailsOpen(prefix, nextOpen);
+        });
+    }
+    function agendaOcSaveProfileInlineEditOnOutsideClick(ev) {
+        var target = ev && ev.target;
+        if (!target || !target.closest) return;
+        if (target.closest('.flatpickr-calendar')) return;
+        if (typeof eventDetailOcInlineField !== 'undefined' && eventDetailOcInlineField) {
+            if (eventDetailOcClientProfileSaving) return;
+            var edRow = agendaOcProfileFieldRow('eventDetailOc', eventDetailOcInlineField);
+            if (edRow && edRow.contains(target)) return;
+            eventDetailOcSaveProfileInlineField(eventDetailOcInlineField);
+        }
+        if (typeof agendaOcInlineField !== 'undefined' && agendaOcInlineField) {
+            if (agendaOcClientProfileSaving) return;
+            var ocRow = agendaOcProfileFieldRow('agendaOc', agendaOcInlineField);
+            if (ocRow && ocRow.contains(target)) return;
+            agendaOcSaveProfileInlineField(agendaOcInlineField);
+        }
+    }
+    if (!window.__agendaOcProfileInlineOutsideBound) {
+        window.__agendaOcProfileInlineOutsideBound = true;
+        document.addEventListener('mousedown', agendaOcSaveProfileInlineEditOnOutsideClick, true);
     }
     function agendaBirthdayBadgeHtml(title) {
         var t = agendaEscAttr(title || 'Aniversário do cliente');
@@ -2638,22 +3009,96 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailSameDayPayable = null;
 
     function paymentModalStripePaymentsEnabled() {
-        return C.onlineBookingPaymentRequired !== false;
+        return C.stripePaymentsEnabled === true;
+    }
+
+    function paymentModalMethodsForCurrentMode() {
+        var list = paymentModalIsReserva()
+            ? (C.posPaymentMethodsReserva || C.posPaymentMethods || [])
+            : (C.posPaymentMethods || []);
+        if (!Array.isArray(list)) return [];
+        var stripeOn = paymentModalStripePaymentsEnabled();
+        return list.filter(function(row) {
+            if (!row || !row.code) return false;
+            if (String(row.provider || '') === 'stripe' && !stripeOn) return false;
+            return true;
+        });
+    }
+
+    function paymentModalMethodConfig(code) {
+        var want = String(code || '').trim();
+        return paymentModalMethodsForCurrentMode().find(function(row) {
+            return row && String(row.code || '') === want;
+        }) || null;
+    }
+
+    function paymentModalIsMethodEnabled(code) {
+        return !!paymentModalMethodConfig(code);
+    }
+
+    function paymentModalIsStripeMbway(method) {
+        return String(method || '').trim() === 'mbway' && paymentModalStripePaymentsEnabled() && paymentModalIsMethodEnabled('mbway');
     }
 
     function paymentModalManualPaymentMethodValues() {
-        return ['dinheiro', 'mbway', 'transferencia'];
+        return ['dinheiro', 'mbway_manual', 'transferencia'];
     }
 
     function paymentModalIsManualPaymentMethod(method) {
-        return paymentModalManualPaymentMethodValues().indexOf(String(method || '').trim()) >= 0;
+        var m = String(method || '').trim();
+        if (m === 'mbway') {
+            // MB Way Stripe não é “manual”, mas continua a ser um método POS seleccionável.
+            return paymentModalIsMethodEnabled('mbway');
+        }
+        return paymentModalManualPaymentMethodValues().indexOf(m) >= 0;
     }
 
     function paymentModalSyncMbwayPhoneVisibility(method) {
         var phoneWrap = $id('paymentMbwayPhoneWrap');
         if (!phoneWrap) return;
-        var show = String(method || '').trim() === 'mbway' && paymentModalStripePaymentsEnabled();
+        var show = paymentModalIsStripeMbway(method);
         phoneWrap.classList.toggle('d-none', !show);
+    }
+
+    function paymentModalSyncCatalogTilesVisibility() {
+        var channelMethods = paymentModalMethodsForCurrentMode();
+        var enabled = {};
+        channelMethods.forEach(function(row) {
+            if (row && row.code) enabled[String(row.code)] = row;
+        });
+
+        var map = {
+            dinheiro: $id('paymentMethodDinheiroBtn'),
+            mbway: $id('paymentMethodMbwayBtn'),
+            mbway_manual: $id('paymentMethodMbwayManualBtn'),
+            transferencia: $id('paymentMethodTransferenciaBtn')
+        };
+        Object.keys(map).forEach(function(code) {
+            var btn = map[code];
+            if (!btn) return;
+            var show = !!enabled[code];
+            // Cartão e créditos têm regras próprias (saved cards / saldo).
+            // MB Way Stripe nunca aparece com a integração desligada.
+            if (code === 'mbway' && !paymentModalStripePaymentsEnabled()) {
+                show = false;
+            }
+            btn.classList.toggle('d-none', !show);
+            if (!show) {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-pressed', 'false');
+                var pmv = $id('paymentMethodValue');
+                if (pmv && String(pmv.value || '') === code) pmv.value = '';
+            }
+            var name = btn.querySelector('.tempo-pessoal-type-card-name');
+            if (name && enabled[code] && enabled[code].label) {
+                name.textContent = enabled[code].label;
+            }
+        });
+
+        paymentModalSyncCartaoTileVisibility();
+        paymentModalSyncCreditosTileVisibility();
+        var pmv2 = $id('paymentMethodValue');
+        paymentModalSyncMethodExtras(pmv2 ? String(pmv2.value || '').trim() : '');
     }
 
     function paymentModalFormatEur(amount) {
@@ -2769,20 +3214,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function paymentModalSyncManualPaymentTilesVisibility() {
-        var transferBtn = $id('paymentMethodTransferenciaBtn');
-        var manual = !paymentModalStripePaymentsEnabled();
-        if (transferBtn) {
-            transferBtn.classList.toggle('d-none', !manual);
-        }
-        var pmv = $id('paymentMethodValue');
-        var method = pmv ? String(pmv.value || '').trim() : '';
-        if (transferBtn && method === 'transferencia' && !manual) {
-            pmv.value = '';
-            transferBtn.classList.remove('active');
-            transferBtn.setAttribute('aria-pressed', 'false');
-            method = '';
-        }
-        paymentModalSyncMethodExtras(method);
+        paymentModalSyncCatalogTilesVisibility();
     }
 
     function paymentModalIsReserva() {
@@ -2947,7 +3379,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var creditBtn = $id('paymentMethodCreditosCarteiraBtn');
         if (!creditBtn) return;
         var nameSpan = creditBtn.querySelector('.tempo-pessoal-type-card-name');
-        if (paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft() || paymentModalIsReserva()) {
+        if (!paymentModalIsMethodEnabled('creditos_carteira') || paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft() || paymentModalIsReserva()) {
             creditBtn.classList.add('d-none');
             if (nameSpan) nameSpan.textContent = 'Créditos';
             var pmvHide = $id('paymentMethodValue');
@@ -3156,7 +3588,9 @@ document.addEventListener('DOMContentLoaded', function() {
         var subtitle = $id('paymentMethodCartaoSubtitle');
         if (!cartaoBtn) return;
         var cards = paymentModalSavedCards || [];
-        var showCard = paymentModalStripePaymentsEnabled()
+        var catalogAllows = paymentModalIsMethodEnabled('cartao');
+        var showCard = catalogAllows
+            && paymentModalStripePaymentsEnabled()
             && !paymentModalIsInvoiceOnly()
             && !paymentModalIsFinalizeDraft()
             && cards.length > 0;
@@ -4113,10 +4547,17 @@ document.addEventListener('DOMContentLoaded', function() {
         var ocClientNifInput = $id('eventDetailOcClientNifInput');
         var ocClientNifSave = $id('eventDetailOcClientNifSaveBtn');
         var ocClientNifCancel = $id('eventDetailOcClientNifCancelBtn');
+        var ocClientEmailInput = $id('eventDetailOcClientEmailInput');
+        var ocClientEmailSave = $id('eventDetailOcClientEmailSaveBtn');
+        var ocClientPhoneInput = $id('eventDetailOcClientPhoneInput');
+        var ocClientBirthInput = $id('eventDetailOcClientBirthDateInput');
+        var ocClientBirthSave = $id('eventDetailOcClientBirthDateSaveBtn');
         var ocClientProfile = $id('eventDetailOcClientProfileLink');
-        var ocClientTabs = $id('eventDetailOcClientTabs');
         var ocNotSel = $id('eventDetailOcClientNotSelectedWrap');
         var lockMarcacaoClient = eventDetailMarcacaoClientLocked();
+        // Mesmo quando a marcação está “read-only” (paga / não editável),
+        // permitir editar os dados do cliente (contatos) — só bloqueia por privacidade/permissions.
+        var lockClientFields = crmPrivacyLockedUi || !canViewClientContacts;
         if (statusWrap) statusWrap.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
         if (observacoes) observacoes.disabled = lockServicesExceptNif;
         if (addMoreBtn) { addMoreBtn.disabled = lockServicesExceptNif; addMoreBtn.style.display = lockServicesExceptNif ? 'none' : ''; }
@@ -4172,15 +4613,51 @@ document.addEventListener('DOMContentLoaded', function() {
             ocClientEdit.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
         }
         if (ocClientCancelEdit) {
-            ocClientCancelEdit.classList.toggle('d-none', lockMarcacaoClient);
+            // O X só aparece em modo «alterar cliente»; aqui apenas esconde se a marcação bloquear troca.
+            if (lockMarcacaoClient) {
+                ocClientCancelEdit.classList.add('d-none');
+            }
             ocClientCancelEdit.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
         }
-        if (ocClientNifEdit) ocClientNifEdit.style.pointerEvents = lockNifRow ? 'none' : '';
-        if (ocClientNifInput) ocClientNifInput.disabled = lockNifRow;
-        if (ocClientNifSave) ocClientNifSave.disabled = lockNifRow;
-        if (ocClientNifCancel) ocClientNifCancel.disabled = lockNifRow;
+        if (ocClientNifEdit) ocClientNifEdit.style.pointerEvents = lockClientFields ? 'none' : '';
+        if (ocClientNifInput) ocClientNifInput.disabled = lockClientFields;
+        if (ocClientNifSave) ocClientNifSave.disabled = lockClientFields;
+        if (ocClientNifCancel) ocClientNifCancel.disabled = lockClientFields;
+        if (ocClientPhoneInput) ocClientPhoneInput.disabled = lockClientFields;
+        if (ocClientEmailInput) ocClientEmailInput.disabled = lockClientFields;
+        var ocClientNameInput = $id('eventDetailOcClientNameInput');
+        if (ocClientNameInput) ocClientNameInput.disabled = lockClientFields;
+        if (ocClientEmailSave) ocClientEmailSave.disabled = lockClientFields;
+        if (ocClientBirthInput) ocClientBirthInput.disabled = lockClientFields;
+        if (ocClientBirthSave) ocClientBirthSave.disabled = lockClientFields;
+        var ocClientOrigemInput = $id('eventDetailOcClientOrigemInput');
+        var ocClientProfissaoInput = $id('eventDetailOcClientProfissaoInput');
+        if (ocClientOrigemInput) ocClientOrigemInput.disabled = lockClientFields;
+        if (ocClientProfissaoInput) ocClientProfissaoInput.disabled = lockClientFields;
+        [
+            'eventDetailOcClientPhoneAddBtn',
+            'eventDetailOcClientEmailAddBtn',
+            'eventDetailOcClientBirthDateAddBtn',
+            'eventDetailOcClientNifAddBtn',
+            'eventDetailOcClientOrigemAddBtn',
+            'eventDetailOcClientProfissaoAddBtn'
+        ].forEach(function(id) {
+            var btn = $id(id);
+            if (!btn) return;
+            btn.disabled = lockClientFields;
+            btn.style.pointerEvents = lockClientFields ? 'none' : '';
+        });
+        AGENDA_OC_PROFILE_FIELD_KEYS.forEach(function(fieldKey) {
+            var textEl = $id('eventDetailOcClientSelected' + agendaOcProfileFieldSuffix(fieldKey));
+            if (!textEl) return;
+            textEl.style.pointerEvents = lockClientFields ? 'none' : '';
+            textEl.classList.toggle('agenda-oc-client-panel__value-text--readonly', lockClientFields);
+        });
+        if (lockClientFields && eventDetailOcClientProfileEditing) {
+            eventDetailOcSetClientProfileEditMode(false);
+        }
         if (ocClientProfile) ocClientProfile.style.pointerEvents = '';
-        if (ocClientTabs) ocClientTabs.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
+        if (ocNotSel) ocNotSel.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
         if (ocNotSel) ocNotSel.style.pointerEvents = (lockServicesExceptNif || lockMarcacaoClient) ? 'none' : '';
         var selectedList = $id('eventDetailOcSelectedServicesList');
         if (selectedList) selectedList.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
@@ -4402,14 +4879,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (obsEl) obsEl.value = data.description || '';
 
         var hasVisitLead = !!(data.visit || data.lead);
+        var isVisitMode = hasVisitLead || data.event_type !== 'marcacao';
         var marcacaoSection = $id('eventDetailOcMarcacaoSection');
         var visitBlock = $id('eventDetailVisitLeadBlock');
+        var bookingFields = $id('eventDetailOcBookingFields');
         if (visitBlock) {
             visitBlock.classList.add('d-none');
             visitBlock.innerHTML = '';
         }
         if (marcacaoSection) {
-            marcacaoSection.classList.toggle('d-none', hasVisitLead || data.event_type !== 'marcacao');
+            marcacaoSection.classList.remove('d-none');
+            marcacaoSection.classList.toggle('agenda-oc-shell__grid--visit', isVisitMode);
+        }
+        if (bookingFields) {
+            bookingFields.classList.toggle('d-none', isVisitMode);
         }
         if (hasVisitLead && visitBlock) {
             visitBlock.classList.remove('d-none');
@@ -4422,7 +4905,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        if (hasVisitLead || data.event_type !== 'marcacao') {
+        if (isVisitMode) {
             var svcCountEarly = (data.event_services && data.event_services.length) || 0;
             setEventDetailPaymentAndReadOnly(eventDetailExistingSale, data.event_type || 'marcacao', svcCountEarly);
             updateEventDetailOutOfHoursWarning();
@@ -4445,12 +4928,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 formatted_phone: data.client_formatted_phone || '',
                 avatar_url: data.client_avatar_url || '',
                 birth_date: data.client_birth_date || '',
+                origem: data.client_origem || '',
+                profissao: data.client_profissao || '',
+                client_since: data.client_since || '',
+                client_last_update: data.client_last_update || '',
                 tags: data.client_tags || []
             };
             eventDetailOcInitClientChoicesSelect();
             eventDetailOcApplyClientFromApi(cObj);
-            var phoneL = cObj.formatted_phone || cObj.phone || '';
-            var cLabel = (cObj.name || '') + (phoneL ? ' · ' + phoneL : '');
+            var cLabel = agendaOcClientSearchChoiceLabel(cObj);
             if (eventDetailOcChoicesInstances.client) {
                 eventDetailOcChoicesInstances.client.setChoices([{ value: String(cObj.id), label: cLabel }], 'value', 'label', true);
                 try { eventDetailOcChoicesInstances.client.setChoiceByValue(String(cObj.id)); } catch (e) { /* ignore */ }
@@ -4586,9 +5072,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(function(clients) {
                     if (!eventDetailOcChoicesInstances.client) return;
                     var items = (clients || []).map(function(c) {
-                        var phone = c.formatted_phone || c.phone || '';
-                        var label = (c.name || '') + (phone ? ' · ' + phone : '');
-                        return { value: String(c.id), label: label };
+                        return { value: String(c.id), label: agendaOcClientSearchChoiceLabel(c) };
                     });
                     eventDetailOcChoicesInstances.client.setChoices(items, 'value', 'label', true);
                 })
@@ -4599,17 +5083,70 @@ document.addEventListener('DOMContentLoaded', function() {
         var n = $id('eventDetailOcNewClientName');
         var e = $id('eventDetailOcNewClientEmail');
         var p = $id('eventDetailOcNewClientPhone');
-        var tabNew = $id('eventDetailOcTabNew');
+        var nif = $id('eventDetailOcNewClientNif');
+        var birth = $id('eventDetailOcNewClientBirthDate');
+        var newMode = $id('eventDetailOcClientNewMode');
         if (n) n.value = '';
         if (e) e.value = '';
         if (p) p.value = '';
-        if (tabNew) destroyAgendaCreateClientIntl(tabNew);
+        if (nif) nif.value = '';
+        if (birth) {
+            if (typeof window.crmFlatpickrSetValue === 'function') {
+                window.crmFlatpickrSetValue(birth, '');
+            } else {
+                birth.value = '';
+            }
+        }
+        if (newMode) destroyAgendaCreateClientIntl(newMode);
     }
     function eventDetailOcInitNewClientPhoneIntl() {
         var phoneEl = $id('eventDetailOcNewClientPhone');
-        var tabNew = $id('eventDetailOcTabNew');
-        if (!phoneEl || !tabNew) return;
-        initAgendaCreateClientIntl(phoneEl, tabNew);
+        var newMode = $id('eventDetailOcClientNewMode');
+        if (!phoneEl || !newMode) return;
+        initAgendaCreateClientIntl(phoneEl, newMode);
+    }
+    function eventDetailOcSetClientChoiceActive(which) {
+        var existing = $id('eventDetailOcClientSearchMode');
+        var neuCard = $id('eventDetailOcClientNewCard');
+        if (existing) existing.classList.toggle('is-active', which === 'existing');
+        if (neuCard) neuCard.classList.toggle('is-active', which === 'new');
+    }
+    function eventDetailOcShowClientSearchMode() {
+        var neu = $id('eventDetailOcClientNewMode');
+        var btn = $id('eventDetailOcShowNewClientBtn');
+        var card = $id('eventDetailOcClientNewCard');
+        var existing = $id('eventDetailOcClientSearchMode');
+        var orSep = $id('eventDetailOcClientPickerOr');
+        if (neu) neu.classList.add('d-none');
+        if (card) card.classList.remove('is-expanded');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        if (existing) existing.classList.remove('d-none');
+        if (orSep) orSep.classList.remove('d-none');
+        eventDetailOcSetClientChoiceActive('existing');
+        eventDetailOcClearNewClientForm();
+    }
+    function eventDetailOcShowNewClientMode() {
+        var neu = $id('eventDetailOcClientNewMode');
+        var btn = $id('eventDetailOcShowNewClientBtn');
+        var card = $id('eventDetailOcClientNewCard');
+        var existing = $id('eventDetailOcClientSearchMode');
+        var orSep = $id('eventDetailOcClientPickerOr');
+        if (existing) existing.classList.add('d-none');
+        if (orSep) orSep.classList.add('d-none');
+        if (card) card.classList.add('is-expanded');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        eventDetailOcSetClientChoiceActive('new');
+        if (neu) {
+            neu.classList.remove('d-none');
+            if (typeof window.initCrmFlatpickr === 'function') {
+                window.initCrmFlatpickr(neu);
+            }
+        }
+        eventDetailOcInitNewClientPhoneIntl();
+        setTimeout(function() {
+            var n = $id('eventDetailOcNewClientName');
+            try { if (n) n.focus(); } catch (e) { /* ignore */ }
+        }, 0);
     }
     function eventDetailOcResetClientUi() {
         var notSel = $id('eventDetailOcClientNotSelectedWrap');
@@ -4619,13 +5156,11 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcSetNifInlineMode(false);
         eventDetailSelectedClient = null;
         agendaSetClientProfileLinks('eventDetailOc', '');
-        eventDetailOcClearNewClientForm();
+        eventDetailOcFillClientProfileFields(null);
+        eventDetailOcSetClientProfileEditMode(false);
+        eventDetailOcShowClientSearchMode();
         var birthdayBanner = $id('eventDetailOcClientBirthdayBanner');
         if (birthdayBanner) birthdayBanner.classList.add('d-none');
-        var tabBtn = $id('eventDetailOcTabExistingBtn');
-        if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-            try { bootstrap.Tab.getOrCreateInstance(tabBtn).show(); } catch (err) { /* ignore */ }
-        }
     }
     function eventDetailOcApplyClientFromApi(c) {
         if (!c) return;
@@ -4638,16 +5173,18 @@ document.addEventListener('DOMContentLoaded', function() {
             email: c.email || '',
             avatar_url: c.avatar_url || '',
             birth_date: c.birth_date || '',
+            origem: c.origem || '',
+            profissao: c.profissao || '',
+            client_since: c.client_since || '',
+            client_last_update: c.client_last_update || '',
             tags: c.tags || []
         };
         var av = $id('eventDetailOcClientAvatar');
         var fb = $id('eventDetailOcClientAvatarFallback');
         $id('eventDetailOcClientSelectedName').textContent = c.name || '';
-        $id('eventDetailOcClientSelectedPhone').textContent = agendaClientPhoneLabel(eventDetailSelectedClient);
-        var nifEl = $id('eventDetailOcClientSelectedNif');
-        if (nifEl) nifEl.textContent = agendaClientNifLabel(eventDetailSelectedClient);
-        var nifInput = $id('eventDetailOcClientNifInput');
-        if (nifInput) nifInput.value = agendaNifInputValue(eventDetailSelectedClient.nif);
+        eventDetailOcFillClientProfileFields(eventDetailSelectedClient);
+        agendaOcSetAvatarFallback('eventDetailOc', c.name || '');
+        eventDetailOcSetClientProfileEditMode(false);
         var pl = $id('eventDetailOcClientProfileLink');
         if (pl) {
             if (crmPrivacyLockedUi || !canViewClientProfile) {
@@ -4655,7 +5192,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 pl.href = clientesBaseUrl + '/' + c.id;
             }
-            pl.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientProfile);
+            var hideProfile = crmPrivacyLockedUi || !canViewClientProfile;
+            pl.classList.toggle('d-none', hideProfile);
+            var profileFooter = pl.closest('.agenda-oc-client-panel__profile-footer');
+            if (profileFooter) profileFooter.classList.toggle('d-none', hideProfile);
         }
         agendaSetClientProfileLinks('eventDetailOc', c.id);
         applyAgendaClientPrivacyUi('eventDetailOc');
@@ -4678,6 +5218,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcSetNifInlineMode(false);
         agendaRenderClientTags('eventDetailOcClientTagsMount', eventDetailSelectedClient);
         eventDetailOcClientBeforeEdit = null;
+        agendaOcSetClientDetailsOpen('eventDetailOc', false);
         eventDetailOcUpdateBirthdayBanner();
         if (eventDetailCurrentData) {
             setEventDetailPaymentAndReadOnly(
@@ -4686,6 +5227,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetailSelectedServices.length
             );
         }
+        agendaSyncClientDisplayOnCalendar(eventDetailSelectedClient);
     }
     function eventDetailOcInitClientChoicesSelect() {
         var clientSel = $id('eventDetailOcClient');
@@ -4701,10 +5243,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eventDetailMarcacaoClientLocked()) {
             return;
         }
+        eventDetailOcSetClientProfileEditMode(false);
         eventDetailOcClientBeforeEdit = eventDetailSelectedClient ? Object.assign({}, eventDetailSelectedClient) : null;
         eventDetailSelectedClient = null;
         agendaRenderClientTags('eventDetailOcClientTagsMount', null);
-        eventDetailOcClearNewClientForm();
         var notSel = $id('eventDetailOcClientNotSelectedWrap');
         var card = $id('eventDetailOcClientSelectedCard');
         var cedit = $id('eventDetailOcClientEditBtn');
@@ -4713,10 +5255,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (notSel) notSel.classList.remove('d-none');
         if (cedit) cedit.classList.add('d-none');
         if (ceditCancel) ceditCancel.classList.remove('d-none');
-        var tabBtn = $id('eventDetailOcTabExistingBtn');
-        if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-            try { bootstrap.Tab.getOrCreateInstance(tabBtn).show(); } catch (err) { /* ignore */ }
-        }
+        eventDetailOcShowClientSearchMode();
         eventDetailOcInitClientChoicesSelect();
         if (!eventDetailOcClientRemoteSearchBound) {
             eventDetailOcClientRemoteSearchBound = true;
@@ -4742,11 +5281,286 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcResetClientUi();
     }
     function eventDetailOcSetNifInlineMode(enabled) {
+        var card = $id('eventDetailOcClientSelectedCard');
+        var isPanel = !!(card && card.classList.contains('agenda-oc-client-selected-card--panel'));
+        if (isPanel) {
+            eventDetailOcClientNifEditing = false;
+            return;
+        }
         var disp = $id('eventDetailOcClientNifDisplayWrap');
         var inputWrap = $id('eventDetailOcClientNifInputWrap');
         if (disp) disp.classList.toggle('d-none', !!enabled);
         if (inputWrap) inputWrap.classList.toggle('d-none', !enabled);
         eventDetailOcClientNifEditing = !!enabled;
+    }
+    function eventDetailOcFormatBirthDateDisplay(raw) {
+        var bd = String(raw || '').trim();
+        var m = bd.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) return '—';
+        return m[3] + '/' + m[2] + '/' + m[1];
+    }
+    function eventDetailOcFillClientProfileFields(c) {
+        agendaOcExitAllProfileInlineEdits('eventDetailOc');
+        var nameEl = $id('eventDetailOcClientSelectedName');
+        if (nameEl) {
+            var nameVal = String((c && c.name) || '').trim();
+            nameEl.textContent = nameVal || '…';
+            if (nameVal) nameEl.setAttribute('title', 'Clique para editar');
+            else nameEl.setAttribute('title', 'Clique para editar');
+        }
+        var nameInput = $id('eventDetailOcClientNameInput');
+        if (nameInput && !nameInput.disabled) {
+            nameInput.value = String((c && c.name) || '');
+        }
+        var phoneLabel = String((c && (c.formatted_phone || c.phone)) || '').trim();
+        agendaOcSetProfileValueDisplay(
+            $id('eventDetailOcClientSelectedPhone'),
+            $id('eventDetailOcClientPhoneAddBtn'),
+            phoneLabel
+        );
+        var heroPhone = $id('eventDetailOcClientHeroPhone');
+        if (heroPhone) {
+            heroPhone.textContent = phoneLabel || '—';
+        }
+        var email = String((c && c.email) || '').trim();
+        agendaOcSetProfileValueDisplay(
+            $id('eventDetailOcClientSelectedEmail'),
+            $id('eventDetailOcClientEmailAddBtn'),
+            email
+        );
+        var birthDisplay = '';
+        if (c && c.birth_date) {
+            var formatted = eventDetailOcFormatBirthDateDisplay(c.birth_date);
+            birthDisplay = formatted === '—' ? '' : formatted;
+        }
+        agendaOcSetProfileValueDisplay(
+            $id('eventDetailOcClientSelectedBirthDate'),
+            $id('eventDetailOcClientBirthDateAddBtn'),
+            birthDisplay
+        );
+        var nif = String((c && c.nif) || '').trim();
+        agendaOcSetProfileValueDisplay(
+            $id('eventDetailOcClientSelectedNif'),
+            $id('eventDetailOcClientNifAddBtn'),
+            nif
+        );
+        agendaOcSetProfileValueDisplay(
+            $id('eventDetailOcClientSelectedOrigem'),
+            $id('eventDetailOcClientOrigemAddBtn'),
+            (c && c.origem) || ''
+        );
+        agendaOcSetProfileValueDisplay(
+            $id('eventDetailOcClientSelectedProfissao'),
+            $id('eventDetailOcClientProfissaoAddBtn'),
+            (c && c.profissao) || ''
+        );
+        var sinceEl = $id('eventDetailOcClientSelectedSince');
+        if (sinceEl) {
+            var sinceVal = String((c && c.client_since) || '').trim();
+            sinceEl.textContent = sinceVal || '—';
+            sinceEl.removeAttribute('title');
+            if (sinceVal) sinceEl.setAttribute('title', sinceVal);
+        }
+        var lastUpdateEl = $id('eventDetailOcClientSelectedLastUpdate');
+        if (lastUpdateEl) {
+            var lastUpdateVal = String((c && c.client_last_update) || '').trim();
+            lastUpdateEl.textContent = lastUpdateVal || '—';
+            lastUpdateEl.removeAttribute('title');
+            if (lastUpdateVal) lastUpdateEl.setAttribute('title', lastUpdateVal);
+        }
+        var nifInput = $id('eventDetailOcClientNifInput');
+        if (nifInput && !nifInput.disabled) {
+            nifInput.value = agendaNifInputValue(c && c.nif);
+        }
+        var phoneInput = $id('eventDetailOcClientPhoneInput');
+        if (phoneInput && !phoneInput.disabled) {
+            phoneInput.value = String((c && c.phone) || '');
+        }
+        var emailInput = $id('eventDetailOcClientEmailInput');
+        if (emailInput && !emailInput.disabled) {
+            emailInput.value = email;
+        }
+        var birthInput = $id('eventDetailOcClientBirthDateInput');
+        if (birthInput && !birthInput.disabled) {
+            var bd = String((c && c.birth_date) || '').trim();
+            var birthVal = /^\d{4}-\d{2}-\d{2}/.test(bd) ? bd.slice(0, 10) : '';
+            if (typeof window.crmFlatpickrSetValue === 'function') {
+                window.crmFlatpickrSetValue(birthInput, birthVal || '');
+            } else {
+                birthInput.value = birthVal;
+            }
+        }
+        var origemInput = $id('eventDetailOcClientOrigemInput');
+        if (origemInput && !origemInput.disabled) {
+            origemInput.value = String((c && c.origem) || '');
+        }
+        var profissaoInput = $id('eventDetailOcClientProfissaoInput');
+        if (profissaoInput && !profissaoInput.disabled) {
+            profissaoInput.value = String((c && c.profissao) || '');
+        }
+    }
+    var eventDetailOcClientProfileEditing = false;
+    var eventDetailOcClientProfileSaving = false;
+    var eventDetailOcInlineField = null;
+    function eventDetailOcSetClientProfileEditMode(enabled) {
+        // Compat: sair de qualquer edição inline
+        if (!enabled) {
+            eventDetailOcClientProfileEditing = false;
+            eventDetailOcInlineField = null;
+            agendaOcExitAllProfileInlineEdits('eventDetailOc');
+            eventDetailOcFillClientProfileFields(eventDetailSelectedClient);
+        }
+    }
+    function eventDetailOcStartProfileInlineEdit(fieldKey) {
+        if (crmPrivacyLockedUi) {
+            showToast('Não é possível editar o cliente em modo posto.', 'warning');
+            return;
+        }
+        if (!eventDetailSelectedClient || !eventDetailSelectedClient.id) {
+            showToast('Selecione um cliente primeiro.', 'error');
+            return;
+        }
+        if (!canViewClientContacts) return;
+        var suffix = agendaOcProfileFieldSuffix(fieldKey);
+        if (!suffix) return;
+        agendaOcExitAllProfileInlineEdits('eventDetailOc');
+        eventDetailOcFillClientProfileFields(eventDetailSelectedClient);
+        var row = agendaOcProfileFieldRow('eventDetailOc', fieldKey);
+        var input = $id('eventDetailOcClient' + suffix + 'Input');
+        if (!row || !input) return;
+        row.classList.add('is-editing');
+        input.classList.remove('d-none');
+        eventDetailOcClientProfileEditing = true;
+        eventDetailOcInlineField = fieldKey;
+        if (fieldKey === 'birth_date' && typeof window.initCrmFlatpickr === 'function') {
+            window.initCrmFlatpickr(row);
+        }
+        var c = eventDetailSelectedClient || {};
+        if (fieldKey === 'name') {
+            input.value = String(c.name || '');
+        } else if (fieldKey === 'nif') {
+            input.value = agendaNifInputValue(c.nif);
+        } else if (fieldKey === 'birth_date') {
+            var bd = String(c.birth_date || '').trim();
+            var birthVal = /^\d{4}-\d{2}-\d{2}/.test(bd) ? bd.slice(0, 10) : '';
+            if (typeof window.crmFlatpickrSetValue === 'function') {
+                window.crmFlatpickrSetValue(input, birthVal || '');
+            } else {
+                input.value = birthVal;
+            }
+        } else if (fieldKey === 'phone') {
+            input.value = String(c.phone || '');
+        } else if (fieldKey === 'email') {
+            input.value = String(c.email || '');
+        } else if (fieldKey === 'origem') {
+            input.value = String(c.origem || '');
+        } else if (fieldKey === 'profissao') {
+            input.value = String(c.profissao || '');
+        }
+        setTimeout(function() {
+            agendaFocusInputCaretEnd(input);
+        }, 0);
+    }
+    function eventDetailOcSaveClientProfileField(payload, successMsg) {
+        if (!eventDetailSelectedClient || !eventDetailSelectedClient.id) {
+            return Promise.reject(new Error('Selecione um cliente primeiro.'));
+        }
+        if (crmPrivacyLockedUi) {
+            return Promise.reject(new Error('Não é possível editar o cliente em modo posto.'));
+        }
+        return fetch(agendaClientsUrl + '/' + encodeURIComponent(eventDetailSelectedClient.id) + '/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(payload)
+        })
+            .then(function(r) {
+                return r.json().then(function(data) {
+                    if (!r.ok) {
+                        var msg = (data && data.message) ? data.message : '';
+                        if (!msg && data && data.errors) {
+                            var first = Object.keys(data.errors).length ? data.errors[Object.keys(data.errors)[0]] : null;
+                            msg = Array.isArray(first) ? first[0] : first;
+                        }
+                        throw new Error(msg || 'Não foi possível atualizar o cliente.');
+                    }
+                    return data;
+                });
+            })
+            .then(function(client) {
+                eventDetailOcApplyClientFromApi(client);
+                if (successMsg) showToast(successMsg, 'success');
+                return client;
+            });
+    }
+        function eventDetailOcSaveProfileInlineField(fieldKey) {
+        if (eventDetailOcClientProfileSaving) return;
+        if (!eventDetailSelectedClient || !eventDetailSelectedClient.id) return;
+        var suffix = agendaOcProfileFieldSuffix(fieldKey);
+        var input = $id('eventDetailOcClient' + suffix + 'Input');
+        if (!input) return;
+        var raw = String(input.value || '').trim();
+        var payload = {};
+        if (fieldKey === 'name') {
+            if (!agendaAssertClientFullName(raw)) {
+                try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.name = raw;
+        } else if (fieldKey === 'nif') {
+            if (raw !== '' && !/^\d{9}$/.test(raw)) {
+                showToast('O NIF deve ter 9 dígitos.', 'error');
+                try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.nif = raw !== '' ? raw : null;
+        } else if (fieldKey === 'phone') {
+            if (raw === '') {
+                showToast('Indique o telemóvel.', 'error');
+                try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.phone = raw;
+        } else if (fieldKey === 'email') {
+            if (raw !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+                showToast('Indique um email válido.', 'error');
+                try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.email = raw;
+        } else if (fieldKey === 'birth_date') {
+            if (raw !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                showToast('Indique uma data de nascimento válida.', 'error');
+                try { input.focus(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.birth_date = raw || null;
+        } else if (fieldKey === 'origem') {
+            payload.origem = raw;
+        } else if (fieldKey === 'profissao') {
+            payload.profissao = raw;
+        } else {
+            return;
+        }
+        eventDetailOcClientProfileSaving = true;
+        input.disabled = true;
+        eventDetailOcSaveClientProfileField(payload, null)
+            .then(function() {
+                eventDetailOcInlineField = null;
+                eventDetailOcClientProfileEditing = false;
+            })
+            .catch(function(err) {
+                showToast((err && err.message) ? err.message : 'Não foi possível atualizar o cliente.', 'error');
+            })
+            .finally(function() {
+                eventDetailOcClientProfileSaving = false;
+                input.disabled = false;
+                applyAgendaClientPrivacyUi('eventDetailOc');
+            });
+    }
+    function eventDetailOcSaveClientProfileAll() {
+        if (eventDetailOcInlineField) {
+            eventDetailOcSaveProfileInlineField(eventDetailOcInlineField);
+        }
     }
     function eventDetailOcStartClientNifEdit() {
         if (crmPrivacyLockedUi) {
@@ -4757,24 +5571,32 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Selecione um cliente primeiro.', 'error');
             return;
         }
+        var card = $id('eventDetailOcClientSelectedCard');
+        if (card && card.classList.contains('agenda-oc-client-selected-card--panel')) {
+            eventDetailOcStartProfileInlineEdit('nif');
+            return;
+        }
         var input = $id('eventDetailOcClientNifInput');
         if (!input) return;
         input.value = agendaNifInputValue(eventDetailSelectedClient.nif);
         eventDetailOcSetNifInlineMode(true);
         setTimeout(function() {
-            try {
-                input.focus();
-                input.select();
-            } catch (e) { /* ignore */ }
+            agendaFocusInputCaretEnd(input);
         }, 0);
     }
     function eventDetailOcCancelClientNifEdit() {
         if (eventDetailOcClientNifSaving) return;
         eventDetailOcSetNifInlineMode(false);
-        var nifEl = $id('eventDetailOcClientSelectedNif');
-        if (nifEl) nifEl.textContent = agendaClientNifLabel(eventDetailSelectedClient);
+        eventDetailOcFillClientProfileFields(eventDetailSelectedClient);
+        var nifInput = $id('eventDetailOcClientNifInput');
+        if (nifInput) nifInput.value = agendaNifInputValue(eventDetailSelectedClient && eventDetailSelectedClient.nif);
     }
     function eventDetailOcSaveClientNifInline() {
+        var card = $id('eventDetailOcClientSelectedCard');
+        if (card && card.classList.contains('agenda-oc-client-selected-card--panel')) {
+            eventDetailOcSaveClientProfileAll();
+            return;
+        }
         if (eventDetailOcClientNifSaving) return;
         if (!eventDetailSelectedClient || !eventDetailSelectedClient.id) return;
         var input = $id('eventDetailOcClientNifInput');
@@ -4791,21 +5613,9 @@ document.addEventListener('DOMContentLoaded', function() {
         input.disabled = true;
         if (saveBtn) saveBtn.disabled = true;
         if (cancelBtn) cancelBtn.disabled = true;
-        fetch(agendaClientsUrl + '/' + encodeURIComponent(eventDetailSelectedClient.id) + '/nif', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ nif: nif })
-        })
-            .then(function(r) {
-                return r.json().then(function(data) {
-                    if (!r.ok) throw new Error((data && data.message) ? data.message : 'Não foi possível atualizar o NIF.');
-                    return data;
-                });
-            })
-            .then(function(client) {
-                eventDetailOcApplyClientFromApi(client);
+        eventDetailOcSaveClientProfileField({ nif: nif }, 'NIF atualizado com sucesso.')
+            .then(function() {
                 eventDetailOcSetNifInlineMode(false);
-                showToast('NIF atualizado com sucesso.', 'success');
             })
             .catch(function(err) {
                 showToast((err && err.message) ? err.message : 'Não foi possível atualizar o NIF.', 'error');
@@ -4815,7 +5625,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.disabled = false;
                 if (saveBtn) saveBtn.disabled = false;
                 if (cancelBtn) cancelBtn.disabled = false;
+                applyAgendaClientPrivacyUi('eventDetailOc');
             });
+    }
+    function eventDetailOcSaveClientEmail() {
+        eventDetailOcSaveClientProfileAll();
+    }
+    function eventDetailOcSaveClientBirthDate() {
+        eventDetailOcSaveClientProfileAll();
     }
     function eventDetailOcApplyServiceFieldVisibility() {
         var selWrap = $id('eventDetailOcServiceSelectWrap');
@@ -5329,14 +6146,65 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 0);
             });
         }
-        var ctab = $id('eventDetailOcTabNewBtn');
-        if (ctab) {
-            ctab.addEventListener('shown.bs.tab', function() { eventDetailOcInitNewClientPhoneIntl(); });
+        var showNewBtn = $id('eventDetailOcShowNewClientBtn');
+        if (showNewBtn) showNewBtn.addEventListener('click', function() { eventDetailOcShowNewClientMode(); });
+        var cancelNewBtn = $id('eventDetailOcCancelNewClientBtn');
+        if (cancelNewBtn) cancelNewBtn.addEventListener('click', function() { eventDetailOcShowClientSearchMode(); });
+        var eventDetailExistingCard = $id('eventDetailOcClientSearchMode');
+        if (eventDetailExistingCard) {
+            eventDetailExistingCard.addEventListener('focusin', function() { eventDetailOcSetClientChoiceActive('existing'); });
+            eventDetailExistingCard.addEventListener('click', function() { eventDetailOcSetClientChoiceActive('existing'); });
+        }
+        var eventDetailNewForm = $id('eventDetailOcClientNewMode');
+        if (eventDetailNewForm) {
+            eventDetailNewForm.addEventListener('focusin', function() { eventDetailOcSetClientChoiceActive('new'); });
         }
         var cedit = $id('eventDetailOcClientEditBtn');
         if (cedit) cedit.addEventListener('click', function() { eventDetailOcEnterClientSearchMode(); });
         var ceditCancel = $id('eventDetailOcClientCancelEditBtn');
         if (ceditCancel) ceditCancel.addEventListener('click', function() { eventDetailOcCancelClientEdit(); });
+        agendaOcBindClientDetailsToggle('eventDetailOc');
+        var eventDetailOcProfileFieldBind = [
+            { field: 'name', text: 'eventDetailOcClientSelectedName', input: 'eventDetailOcClientNameInput' },
+            { field: 'phone', add: 'eventDetailOcClientPhoneAddBtn', text: 'eventDetailOcClientSelectedPhone', input: 'eventDetailOcClientPhoneInput' },
+            { field: 'email', add: 'eventDetailOcClientEmailAddBtn', text: 'eventDetailOcClientSelectedEmail', input: 'eventDetailOcClientEmailInput' },
+            { field: 'birth_date', add: 'eventDetailOcClientBirthDateAddBtn', text: 'eventDetailOcClientSelectedBirthDate', input: 'eventDetailOcClientBirthDateInput' },
+            { field: 'nif', add: 'eventDetailOcClientNifAddBtn', text: 'eventDetailOcClientSelectedNif', input: 'eventDetailOcClientNifInput' },
+            { field: 'origem', add: 'eventDetailOcClientOrigemAddBtn', text: 'eventDetailOcClientSelectedOrigem', input: 'eventDetailOcClientOrigemInput' },
+            { field: 'profissao', add: 'eventDetailOcClientProfissaoAddBtn', text: 'eventDetailOcClientSelectedProfissao', input: 'eventDetailOcClientProfissaoInput' }
+        ];
+        eventDetailOcProfileFieldBind.forEach(function(cfg) {
+            var start = function() { eventDetailOcStartProfileInlineEdit(cfg.field); };
+            var addBtn = cfg.add ? $id(cfg.add) : null;
+            var textEl = $id(cfg.text);
+            var input = $id(cfg.input);
+            if (addBtn) addBtn.addEventListener('click', start);
+            if (textEl) {
+                textEl.addEventListener('click', function() {
+                    if (textEl.classList.contains('d-none') || textEl.classList.contains('agenda-oc-client-panel__value-text--readonly')) return;
+                    start();
+                });
+                textEl.addEventListener('keydown', function(ev) {
+                    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+                    if (textEl.classList.contains('d-none') || textEl.classList.contains('agenda-oc-client-panel__value-text--readonly')) return;
+                    ev.preventDefault();
+                    start();
+                });
+            }
+            if (input) {
+                input.addEventListener('keydown', function(ev) {
+                    if (ev.key === 'Enter') {
+                        ev.preventDefault();
+                        eventDetailOcSaveProfileInlineField(cfg.field);
+                    } else if (ev.key === 'Escape') {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        if (eventDetailOcClientProfileSaving) return;
+                        eventDetailOcSetClientProfileEditMode(false);
+                    }
+                });
+            }
+        });
         var ceditNif = $id('eventDetailOcClientNifEditBtn');
         if (ceditNif) ceditNif.addEventListener('click', function() { eventDetailOcStartClientNifEdit(); });
         var nifSaveBtn = $id('eventDetailOcClientNifSaveBtn');
@@ -5345,14 +6213,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (nifCancelBtn) nifCancelBtn.addEventListener('click', function() { eventDetailOcCancelClientNifEdit(); });
         var nifInput = $id('eventDetailOcClientNifInput');
         if (nifInput) {
-            nifInput.addEventListener('keydown', function(ev) {
-                if (ev.key === 'Enter') {
-                    ev.preventDefault();
-                    eventDetailOcSaveClientNifInline();
-                }
-            });
             nifInput.addEventListener('blur', function() {
                 if (!eventDetailOcClientNifEditing || eventDetailOcClientNifSaving) return;
+                var card = $id('eventDetailOcClientSelectedCard');
+                if (card && card.classList.contains('agenda-oc-client-selected-card--panel')) return;
                 var value = String(nifInput.value || '').trim();
                 var current = String((eventDetailSelectedClient && eventDetailSelectedClient.nif) || '').trim();
                 if (value === current) {
@@ -5381,14 +6245,24 @@ document.addEventListener('DOMContentLoaded', function() {
             ncBtn.addEventListener('click', function() {
                 var name = ($id('eventDetailOcNewClientName') && $id('eventDetailOcNewClientName').value || '').trim();
                 var email = ($id('eventDetailOcNewClientEmail') && $id('eventDetailOcNewClientEmail').value || '').trim();
-                var tabNew = $id('eventDetailOcTabNew');
-                var iti = tabNew && tabNew._agendaPhoneIti;
+                var nif = ($id('eventDetailOcNewClientNif') && $id('eventDetailOcNewClientNif').value || '').trim();
+                var birthDate = ($id('eventDetailOcNewClientBirthDate') && $id('eventDetailOcNewClientBirthDate').value || '').trim();
+                var newMode = $id('eventDetailOcClientNewMode');
+                var iti = newMode && newMode._agendaPhoneIti;
                 if (!agendaAssertClientFullName(name)) {
+                    return;
+                }
+                if (nif !== '' && !/^\d{9}$/.test(nif)) {
+                    showToast('O NIF deve ter 9 dígitos.', 'error');
+                    return;
+                }
+                if (birthDate !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+                    showToast('Indique uma data de nascimento válida.', 'error');
                     return;
                 }
                 if (!iti) {
                     eventDetailOcInitNewClientPhoneIntl();
-                    iti = tabNew && tabNew._agendaPhoneIti;
+                    iti = newMode && newMode._agendaPhoneIti;
                 }
                 if (!iti) {
                     showToast('Campo de telemóvel indisponível. Recarregue a página.', 'error');
@@ -5407,7 +6281,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     fetch(agendaClientsUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                        body: JSON.stringify({ name: name, email: email || null, phone: phone })
+                        body: JSON.stringify({
+                            name: name,
+                            email: email || null,
+                            phone: phone,
+                            nif: nif || null,
+                            birth_date: birthDate || null
+                        })
                     })
                         .then(function(r) {
                             return r.json().then(function(data) {
@@ -5420,11 +6300,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         .then(function(client) {
                             btn.disabled = false;
                             btn.textContent = origTxt;
-                            eventDetailOcClearNewClientForm();
+                            eventDetailOcShowClientSearchMode();
                             eventDetailOcApplyClientFromApi(client);
                             if (eventDetailOcChoicesInstances.client) {
-                                var phoneL = client.formatted_phone || client.phone || '';
-                                var label = (client.name || '') + (phoneL ? ' · ' + phoneL : '');
+                                var label = agendaOcClientSearchChoiceLabel(client);
                                 eventDetailOcChoicesInstances.client.setChoices([{ value: String(client.id), label: label }], 'value', 'label', true);
                                 try { eventDetailOcChoicesInstances.client.setChoiceByValue(String(client.id)); } catch (e) { /* ignore */ }
                             }
@@ -5913,9 +6792,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(function(clients) {
                     if (!agendaOcChoicesInstances.client) return;
                     var items = (clients || []).map(function(c) {
-                        var phone = c.formatted_phone || c.phone || '';
-                        var label = (c.name || '') + (phone ? ' · ' + phone : '');
-                        return { value: String(c.id), label: label };
+                        return { value: String(c.id), label: agendaOcClientSearchChoiceLabel(c) };
                     });
                     agendaOcChoicesInstances.client.setChoices(items, 'value', 'label', true);
                 })
@@ -5927,26 +6804,355 @@ document.addEventListener('DOMContentLoaded', function() {
         var n = $id('agendaOcNewClientName');
         var e = $id('agendaOcNewClientEmail');
         var p = $id('agendaOcNewClientPhone');
-        var tabNew = $id('agendaOcTabNew');
+        var nif = $id('agendaOcNewClientNif');
+        var birth = $id('agendaOcNewClientBirthDate');
+        var newMode = $id('agendaOcClientNewMode');
         if (n) n.value = '';
         if (e) e.value = '';
         if (p) p.value = '';
-        if (tabNew) destroyAgendaCreateClientIntl(tabNew);
+        if (nif) nif.value = '';
+        if (birth) {
+            if (typeof window.crmFlatpickrSetValue === 'function') {
+                window.crmFlatpickrSetValue(birth, '');
+            } else {
+                birth.value = '';
+            }
+        }
+        if (newMode) destroyAgendaCreateClientIntl(newMode);
     }
 
     function agendaOcInitNewClientPhoneIntl() {
         var phoneEl = $id('agendaOcNewClientPhone');
-        var tabNew = $id('agendaOcTabNew');
-        if (!phoneEl || !tabNew) return;
-        initAgendaCreateClientIntl(phoneEl, tabNew);
+        var newMode = $id('agendaOcClientNewMode');
+        if (!phoneEl || !newMode) return;
+        initAgendaCreateClientIntl(phoneEl, newMode);
+    }
+
+    function agendaOcSetClientChoiceActive(which) {
+        var existing = $id('agendaOcClientSearchMode');
+        var neuCard = $id('agendaOcClientNewCard');
+        if (existing) existing.classList.toggle('is-active', which === 'existing');
+        if (neuCard) neuCard.classList.toggle('is-active', which === 'new');
+    }
+
+    function agendaOcShowClientSearchMode() {
+        var neu = $id('agendaOcClientNewMode');
+        var btn = $id('agendaOcShowNewClientBtn');
+        var card = $id('agendaOcClientNewCard');
+        var existing = $id('agendaOcClientSearchMode');
+        var orSep = $id('agendaOcClientPickerOr');
+        if (neu) neu.classList.add('d-none');
+        if (card) card.classList.remove('is-expanded');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        if (existing) existing.classList.remove('d-none');
+        if (orSep) orSep.classList.remove('d-none');
+        agendaOcSetClientChoiceActive('existing');
+        agendaOcClearNewClientForm();
+    }
+
+    function agendaOcShowNewClientMode() {
+        var neu = $id('agendaOcClientNewMode');
+        var btn = $id('agendaOcShowNewClientBtn');
+        var card = $id('agendaOcClientNewCard');
+        var existing = $id('agendaOcClientSearchMode');
+        var orSep = $id('agendaOcClientPickerOr');
+        if (existing) existing.classList.add('d-none');
+        if (orSep) orSep.classList.add('d-none');
+        if (card) card.classList.add('is-expanded');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        agendaOcSetClientChoiceActive('new');
+        if (neu) {
+            neu.classList.remove('d-none');
+            if (typeof window.initCrmFlatpickr === 'function') {
+                window.initCrmFlatpickr(neu);
+            }
+        }
+        agendaOcInitNewClientPhoneIntl();
+        setTimeout(function() {
+            var n = $id('agendaOcNewClientName');
+            try { if (n) n.focus(); } catch (e) { /* ignore */ }
+        }, 0);
     }
 
     function agendaOcSetNifInlineMode(enabled) {
+        var card = $id('agendaOcClientSelectedCard');
+        var isPanel = !!(card && card.classList.contains('agenda-oc-client-selected-card--panel'));
+        if (isPanel) {
+            agendaOcClientNifEditing = false;
+            return;
+        }
         var disp = $id('agendaOcClientNifDisplayWrap');
         var inputWrap = $id('agendaOcClientNifInputWrap');
         if (disp) disp.classList.toggle('d-none', !!enabled);
         if (inputWrap) inputWrap.classList.toggle('d-none', !enabled);
         agendaOcClientNifEditing = !!enabled;
+    }
+    function agendaOcFormatBirthDateDisplay(raw) {
+        var bd = String(raw || '').trim();
+        var m = bd.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!m) return '—';
+        return m[3] + '/' + m[2] + '/' + m[1];
+    }
+    function agendaOcFillClientProfileFields(c) {
+        agendaOcExitAllProfileInlineEdits('agendaOc');
+        var nameEl = $id('agendaOcClientSelectedName');
+        if (nameEl) {
+            var nameVal = String((c && c.name) || '').trim();
+            nameEl.textContent = nameVal || '…';
+            nameEl.setAttribute('title', 'Clique para editar');
+        }
+        var nameInput = $id('agendaOcClientNameInput');
+        if (nameInput && !nameInput.disabled) {
+            nameInput.value = String((c && c.name) || '');
+        }
+        var phoneLabel = String((c && (c.formatted_phone || c.phone)) || '').trim();
+        agendaOcSetProfileValueDisplay(
+            $id('agendaOcClientSelectedPhone'),
+            $id('agendaOcClientPhoneAddBtn'),
+            phoneLabel
+        );
+        var heroPhone = $id('agendaOcClientHeroPhone');
+        if (heroPhone) {
+            heroPhone.textContent = phoneLabel || '—';
+        }
+        var email = String((c && c.email) || '').trim();
+        agendaOcSetProfileValueDisplay(
+            $id('agendaOcClientSelectedEmail'),
+            $id('agendaOcClientEmailAddBtn'),
+            email
+        );
+        var birthDisplay = '';
+        if (c && c.birth_date) {
+            var formatted = agendaOcFormatBirthDateDisplay(c.birth_date);
+            birthDisplay = formatted === '—' ? '' : formatted;
+        }
+        agendaOcSetProfileValueDisplay(
+            $id('agendaOcClientSelectedBirthDate'),
+            $id('agendaOcClientBirthDateAddBtn'),
+            birthDisplay
+        );
+        var nif = String((c && c.nif) || '').trim();
+        agendaOcSetProfileValueDisplay(
+            $id('agendaOcClientSelectedNif'),
+            $id('agendaOcClientNifAddBtn'),
+            nif
+        );
+        agendaOcSetProfileValueDisplay(
+            $id('agendaOcClientSelectedOrigem'),
+            $id('agendaOcClientOrigemAddBtn'),
+            (c && c.origem) || ''
+        );
+        agendaOcSetProfileValueDisplay(
+            $id('agendaOcClientSelectedProfissao'),
+            $id('agendaOcClientProfissaoAddBtn'),
+            (c && c.profissao) || ''
+        );
+        var sinceEl = $id('agendaOcClientSelectedSince');
+        if (sinceEl) {
+            var sinceVal = String((c && c.client_since) || '').trim();
+            sinceEl.textContent = sinceVal || '—';
+            sinceEl.removeAttribute('title');
+            if (sinceVal) sinceEl.setAttribute('title', sinceVal);
+        }
+        var lastUpdateEl = $id('agendaOcClientSelectedLastUpdate');
+        if (lastUpdateEl) {
+            var lastUpdateVal = String((c && c.client_last_update) || '').trim();
+            lastUpdateEl.textContent = lastUpdateVal || '—';
+            lastUpdateEl.removeAttribute('title');
+            if (lastUpdateVal) lastUpdateEl.setAttribute('title', lastUpdateVal);
+        }
+        var nifInput = $id('agendaOcClientNifInput');
+        if (nifInput && !nifInput.disabled) {
+            nifInput.value = agendaNifInputValue(c && c.nif);
+        }
+        var phoneInput = $id('agendaOcClientPhoneInput');
+        if (phoneInput && !phoneInput.disabled) {
+            phoneInput.value = String((c && c.phone) || '');
+        }
+        var emailInput = $id('agendaOcClientEmailInput');
+        if (emailInput && !emailInput.disabled) {
+            emailInput.value = email;
+        }
+        var birthInput = $id('agendaOcClientBirthDateInput');
+        if (birthInput && !birthInput.disabled) {
+            var bd = String((c && c.birth_date) || '').trim();
+            var birthVal = /^\d{4}-\d{2}-\d{2}/.test(bd) ? bd.slice(0, 10) : '';
+            if (typeof window.crmFlatpickrSetValue === 'function') {
+                window.crmFlatpickrSetValue(birthInput, birthVal || '');
+            } else {
+                birthInput.value = birthVal;
+            }
+        }
+        var origemInput = $id('agendaOcClientOrigemInput');
+        if (origemInput && !origemInput.disabled) {
+            origemInput.value = String((c && c.origem) || '');
+        }
+        var profissaoInput = $id('agendaOcClientProfissaoInput');
+        if (profissaoInput && !profissaoInput.disabled) {
+            profissaoInput.value = String((c && c.profissao) || '');
+        }
+    }
+    var agendaOcClientProfileEditing = false;
+    var agendaOcClientProfileSaving = false;
+    var agendaOcInlineField = null;
+    function agendaOcSetClientProfileEditMode(enabled) {
+        if (!enabled) {
+            agendaOcClientProfileEditing = false;
+            agendaOcInlineField = null;
+            agendaOcExitAllProfileInlineEdits('agendaOc');
+            agendaOcFillClientProfileFields(agendaOcSelectedClient);
+        }
+    }
+    function agendaOcStartProfileInlineEdit(fieldKey) {
+        if (crmPrivacyLockedUi) {
+            showToast('Não é possível editar o cliente em modo posto.', 'warning');
+            return;
+        }
+        if (!agendaOcSelectedClient || !agendaOcSelectedClient.id) {
+            showToast('Selecione um cliente primeiro.', 'error');
+            return;
+        }
+        if (!canViewClientContacts) return;
+        var suffix = agendaOcProfileFieldSuffix(fieldKey);
+        if (!suffix) return;
+        agendaOcExitAllProfileInlineEdits('agendaOc');
+        agendaOcFillClientProfileFields(agendaOcSelectedClient);
+        var row = agendaOcProfileFieldRow('agendaOc', fieldKey);
+        var input = $id('agendaOcClient' + suffix + 'Input');
+        if (!row || !input) return;
+        row.classList.add('is-editing');
+        input.classList.remove('d-none');
+        agendaOcClientProfileEditing = true;
+        agendaOcInlineField = fieldKey;
+        if (fieldKey === 'birth_date' && typeof window.initCrmFlatpickr === 'function') {
+            window.initCrmFlatpickr(row);
+        }
+        var c = agendaOcSelectedClient || {};
+        if (fieldKey === 'name') {
+            input.value = String(c.name || '');
+        } else if (fieldKey === 'nif') {
+            input.value = agendaNifInputValue(c.nif);
+        } else if (fieldKey === 'birth_date') {
+            var bd = String(c.birth_date || '').trim();
+            var birthVal = /^\d{4}-\d{2}-\d{2}/.test(bd) ? bd.slice(0, 10) : '';
+            if (typeof window.crmFlatpickrSetValue === 'function') {
+                window.crmFlatpickrSetValue(input, birthVal || '');
+            } else {
+                input.value = birthVal;
+            }
+        } else if (fieldKey === 'phone') {
+            input.value = String(c.phone || '');
+        } else if (fieldKey === 'email') {
+            input.value = String(c.email || '');
+        } else if (fieldKey === 'origem') {
+            input.value = String(c.origem || '');
+        } else if (fieldKey === 'profissao') {
+            input.value = String(c.profissao || '');
+        }
+        setTimeout(function() {
+            agendaFocusInputCaretEnd(input);
+        }, 0);
+    }
+    function agendaOcSaveClientProfileField(payload, successMsg) {
+        if (!agendaOcSelectedClient || !agendaOcSelectedClient.id) {
+            return Promise.reject(new Error('Selecione um cliente primeiro.'));
+        }
+        if (crmPrivacyLockedUi) {
+            return Promise.reject(new Error('Não é possível editar o cliente em modo posto.'));
+        }
+        return fetch(agendaClientsUrl + '/' + encodeURIComponent(agendaOcSelectedClient.id) + '/profile', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(payload)
+        })
+            .then(function(r) {
+                return r.json().then(function(data) {
+                    if (!r.ok) {
+                        var msg = (data && data.message) ? data.message : '';
+                        if (!msg && data && data.errors) {
+                            var first = Object.keys(data.errors).length ? data.errors[Object.keys(data.errors)[0]] : null;
+                            msg = Array.isArray(first) ? first[0] : first;
+                        }
+                        throw new Error(msg || 'Não foi possível atualizar o cliente.');
+                    }
+                    return data;
+                });
+            })
+            .then(function(client) {
+                agendaOcApplyClientFromApi(client);
+                if (successMsg) showToast(successMsg, 'success');
+                return client;
+            });
+    }
+        function agendaOcSaveProfileInlineField(fieldKey) {
+        if (agendaOcClientProfileSaving) return;
+        if (!agendaOcSelectedClient || !agendaOcSelectedClient.id) return;
+        var suffix = agendaOcProfileFieldSuffix(fieldKey);
+        var input = $id('agendaOcClient' + suffix + 'Input');
+        if (!input) return;
+        var raw = String(input.value || '').trim();
+        var payload = {};
+        if (fieldKey === 'name') {
+            if (!agendaAssertClientFullName(raw)) {
+                try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.name = raw;
+        } else if (fieldKey === 'nif') {
+            if (raw !== '' && !/^\d{9}$/.test(raw)) {
+                showToast('O NIF deve ter 9 dígitos.', 'error');
+                try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.nif = raw !== '' ? raw : null;
+        } else if (fieldKey === 'phone') {
+            if (raw === '') {
+                showToast('Indique o telemóvel.', 'error');
+                try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.phone = raw;
+        } else if (fieldKey === 'email') {
+            if (raw !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+                showToast('Indique um email válido.', 'error');
+                try { input.focus(); input.select(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.email = raw;
+        } else if (fieldKey === 'birth_date') {
+            if (raw !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                showToast('Indique uma data de nascimento válida.', 'error');
+                try { input.focus(); } catch (e) { /* ignore */ }
+                return;
+            }
+            payload.birth_date = raw || null;
+        } else if (fieldKey === 'origem') {
+            payload.origem = raw;
+        } else if (fieldKey === 'profissao') {
+            payload.profissao = raw;
+        } else {
+            return;
+        }
+        agendaOcClientProfileSaving = true;
+        input.disabled = true;
+        agendaOcSaveClientProfileField(payload, null)
+            .then(function() {
+                agendaOcInlineField = null;
+                agendaOcClientProfileEditing = false;
+            })
+            .catch(function(err) {
+                showToast((err && err.message) ? err.message : 'Não foi possível atualizar o cliente.', 'error');
+            })
+            .finally(function() {
+                agendaOcClientProfileSaving = false;
+                input.disabled = false;
+                applyAgendaClientPrivacyUi('agendaOc');
+            });
+    }
+    function agendaOcSaveClientProfileAll() {
+        if (agendaOcInlineField) {
+            agendaOcSaveProfileInlineField(agendaOcInlineField);
+        }
     }
     function agendaOcStartClientNifEdit() {
         if (crmPrivacyLockedUi) {
@@ -5957,24 +7163,32 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Selecione um cliente primeiro.', 'error');
             return;
         }
+        var card = $id('agendaOcClientSelectedCard');
+        if (card && card.classList.contains('agenda-oc-client-selected-card--panel')) {
+            agendaOcStartProfileInlineEdit('nif');
+            return;
+        }
         var input = $id('agendaOcClientNifInput');
         if (!input) return;
         input.value = agendaNifInputValue(agendaOcSelectedClient.nif);
         agendaOcSetNifInlineMode(true);
         setTimeout(function() {
-            try {
-                input.focus();
-                input.select();
-            } catch (e) { /* ignore */ }
+            agendaFocusInputCaretEnd(input);
         }, 0);
     }
     function agendaOcCancelClientNifEdit() {
         if (agendaOcClientNifSaving) return;
         agendaOcSetNifInlineMode(false);
-        var nifEl = $id('agendaOcClientSelectedNif');
-        if (nifEl) nifEl.textContent = agendaClientNifLabel(agendaOcSelectedClient);
+        agendaOcFillClientProfileFields(agendaOcSelectedClient);
+        var nifInput = $id('agendaOcClientNifInput');
+        if (nifInput) nifInput.value = agendaNifInputValue(agendaOcSelectedClient && agendaOcSelectedClient.nif);
     }
     function agendaOcSaveClientNifInline() {
+        var card = $id('agendaOcClientSelectedCard');
+        if (card && card.classList.contains('agenda-oc-client-selected-card--panel')) {
+            agendaOcSaveClientProfileAll();
+            return;
+        }
         if (agendaOcClientNifSaving) return;
         if (!agendaOcSelectedClient || !agendaOcSelectedClient.id) return;
         var input = $id('agendaOcClientNifInput');
@@ -6017,7 +7231,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (cancelBtn) cancelBtn.disabled = false;
             });
     }
-
     function agendaOcResetClientUi() {
         var notSel = $id('agendaOcClientNotSelectedWrap');
         var card = $id('agendaOcClientSelectedCard');
@@ -6026,14 +7239,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (card) card.classList.add('d-none');
         agendaOcSelectedClient = null;
         agendaSetClientProfileLinks('agendaOc', '');
+        agendaOcFillClientProfileFields(null);
+        agendaOcSetClientProfileEditMode(false);
         agendaRenderClientTags('agendaOcClientTagsMount', null);
-        agendaOcClearNewClientForm();
-        var tabBtn = $id('agendaOcTabExistingBtn');
-        if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-            try {
-                bootstrap.Tab.getOrCreateInstance(tabBtn).show();
-            } catch (err) { /* ignore */ }
-        }
+        agendaOcShowClientSearchMode();
+        agendaOcClientBeforeEdit = null;
+        var ceditCancel = $id('agendaOcClientCancelEditBtn');
+        if (ceditCancel) ceditCancel.classList.add('d-none');
+        agendaOcSetClientDetailsOpen('agendaOc', false);
     }
 
     function agendaOcApplyClientFromApi(c) {
@@ -6046,16 +7259,19 @@ document.addEventListener('DOMContentLoaded', function() {
             formatted_phone: c.formatted_phone || '',
             email: c.email || '',
             avatar_url: c.avatar_url || '',
+            birth_date: c.birth_date || '',
+            origem: c.origem || '',
+            profissao: c.profissao || '',
+            client_since: c.client_since || '',
+            client_last_update: c.client_last_update || '',
             tags: c.tags || []
         };
         var av = $id('agendaOcClientAvatar');
         var fb = $id('agendaOcClientAvatarFallback');
         $id('agendaOcClientSelectedName').textContent = c.name || '';
-        $id('agendaOcClientSelectedPhone').textContent = agendaClientPhoneLabel(agendaOcSelectedClient);
-        var nifEl = $id('agendaOcClientSelectedNif');
-        if (nifEl) nifEl.textContent = agendaClientNifLabel(agendaOcSelectedClient);
-        var nifInput = $id('agendaOcClientNifInput');
-        if (nifInput) nifInput.value = agendaNifInputValue(agendaOcSelectedClient.nif);
+        agendaOcFillClientProfileFields(agendaOcSelectedClient);
+        agendaOcSetAvatarFallback('agendaOc', c.name || '');
+        agendaOcSetClientProfileEditMode(false);
         var pl = $id('agendaOcClientProfileLink');
         if (pl) {
             if (crmPrivacyLockedUi || !canViewClientProfile) {
@@ -6063,7 +7279,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 pl.href = clientesBaseUrl + '/' + c.id;
             }
-            pl.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientProfile);
+            var hideProfile = crmPrivacyLockedUi || !canViewClientProfile;
+            pl.classList.toggle('d-none', hideProfile);
+            var profileFooter = pl.closest('.agenda-oc-client-panel__profile-footer');
+            if (profileFooter) profileFooter.classList.toggle('d-none', hideProfile);
         }
         agendaSetClientProfileLinks('agendaOc', c.id);
         applyAgendaClientPrivacyUi('agendaOc');
@@ -6081,6 +7300,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sc) sc.classList.remove('d-none');
         agendaOcSetNifInlineMode(false);
         agendaRenderClientTags('agendaOcClientTagsMount', agendaOcSelectedClient);
+        var cedit = $id('agendaOcClientEditBtn');
+        var ceditCancel = $id('agendaOcClientCancelEditBtn');
+        if (cedit) cedit.classList.remove('d-none');
+        if (ceditCancel) ceditCancel.classList.add('d-none');
+        agendaOcClientBeforeEdit = null;
+        agendaOcSetClientDetailsOpen('agendaOc', false);
+        agendaSyncClientDisplayOnCalendar(agendaOcSelectedClient);
     }
 
     function agendaOcInitClientChoicesSelect() {
@@ -6096,26 +7322,40 @@ document.addEventListener('DOMContentLoaded', function() {
         agendaOcChoicesInstances.client = new Choices(clientSel, agendaOcClientChoicesOpts());
     }
 
+    var agendaOcClientBeforeEdit = null;
+
     function agendaOcEnterClientSearchMode() {
+        agendaOcSetClientProfileEditMode(false);
         agendaOcSetNifInlineMode(false);
+        agendaOcClientBeforeEdit = agendaOcSelectedClient ? Object.assign({}, agendaOcSelectedClient) : null;
         agendaOcSelectedClient = null;
         agendaRenderClientTags('agendaOcClientTagsMount', null);
-        agendaOcClearNewClientForm();
         var notSel = $id('agendaOcClientNotSelectedWrap');
         var card = $id('agendaOcClientSelectedCard');
+        var cedit = $id('agendaOcClientEditBtn');
+        var ceditCancel = $id('agendaOcClientCancelEditBtn');
         if (card) card.classList.add('d-none');
         if (notSel) notSel.classList.remove('d-none');
-        var tabBtn = $id('agendaOcTabExistingBtn');
-        if (tabBtn && typeof bootstrap !== 'undefined' && bootstrap.Tab) {
-            try {
-                bootstrap.Tab.getOrCreateInstance(tabBtn).show();
-            } catch (e) { /* ignore */ }
-        }
+        if (cedit) cedit.classList.add('d-none');
+        if (ceditCancel) ceditCancel.classList.remove('d-none');
+        agendaOcShowClientSearchMode();
         agendaOcInitClientChoicesSelect();
         if (!agendaOcClientRemoteSearchBound) {
             agendaOcClientRemoteSearchBound = true;
             $id('agendaOcClient').addEventListener('search', agendaOcOnClientSearchEvent);
         }
+    }
+
+    function agendaOcCancelClientEdit() {
+        var cedit = $id('agendaOcClientEditBtn');
+        var ceditCancel = $id('agendaOcClientCancelEditBtn');
+        if (cedit) cedit.classList.remove('d-none');
+        if (ceditCancel) ceditCancel.classList.add('d-none');
+        if (agendaOcClientBeforeEdit) {
+            agendaOcApplyClientFromApi(agendaOcClientBeforeEdit);
+            return;
+        }
+        agendaOcResetClientUi();
     }
 
     function agendaOcDestroyTestChoices() {
@@ -6689,8 +7929,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         .then(function(clients) {
                             if (!agendaOcChoicesInstances.client || !clients || !clients[0]) return;
                             var c = clients[0];
-                            var phone = c.formatted_phone || c.phone || '';
-                            var label = (c.name || '') + (phone ? ' · ' + phone : '');
+                            var label = agendaOcClientSearchChoiceLabel(c);
                             agendaOcChoicesInstances.client.setChoices(
                                 [{ value: String(c.id), label: label }],
                                 'value',
@@ -6879,6 +8118,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .then(function(res) {
                         if (res.success && res.event) {
+                            showToast('Marcação criada com sucesso!', 'success');
                             if (typeof calendar !== 'undefined') {
                                 calendar.refetchEvents();
                             }
@@ -6939,6 +8179,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 $id('agendaOcClientEditBtn').addEventListener('click', function() {
                     agendaOcEnterClientSearchMode();
                 });
+                agendaOcBindClientDetailsToggle('agendaOc');
+                var ocCancelEdit = $id('agendaOcClientCancelEditBtn');
+                if (ocCancelEdit) {
+                    ocCancelEdit.addEventListener('click', function() { agendaOcCancelClientEdit(); });
+                }
+                var agendaOcProfileFieldBind = [
+                    { field: 'name', text: 'agendaOcClientSelectedName', input: 'agendaOcClientNameInput' },
+                    { field: 'phone', add: 'agendaOcClientPhoneAddBtn', text: 'agendaOcClientSelectedPhone', input: 'agendaOcClientPhoneInput' },
+                    { field: 'email', add: 'agendaOcClientEmailAddBtn', text: 'agendaOcClientSelectedEmail', input: 'agendaOcClientEmailInput' },
+                    { field: 'birth_date', add: 'agendaOcClientBirthDateAddBtn', text: 'agendaOcClientSelectedBirthDate', input: 'agendaOcClientBirthDateInput' },
+                    { field: 'nif', add: 'agendaOcClientNifAddBtn', text: 'agendaOcClientSelectedNif', input: 'agendaOcClientNifInput' },
+                    { field: 'origem', add: 'agendaOcClientOrigemAddBtn', text: 'agendaOcClientSelectedOrigem', input: 'agendaOcClientOrigemInput' },
+                    { field: 'profissao', add: 'agendaOcClientProfissaoAddBtn', text: 'agendaOcClientSelectedProfissao', input: 'agendaOcClientProfissaoInput' }
+                ];
+                agendaOcProfileFieldBind.forEach(function(cfg) {
+                    var start = function() { agendaOcStartProfileInlineEdit(cfg.field); };
+                    var addBtn = cfg.add ? $id(cfg.add) : null;
+                    var textEl = $id(cfg.text);
+                    var input = $id(cfg.input);
+                    if (addBtn) addBtn.addEventListener('click', start);
+                    if (textEl) {
+                        textEl.addEventListener('click', function() {
+                            if (textEl.classList.contains('d-none') || textEl.classList.contains('agenda-oc-client-panel__value-text--readonly')) return;
+                            start();
+                        });
+                        textEl.addEventListener('keydown', function(ev) {
+                            if (ev.key !== 'Enter' && ev.key !== ' ') return;
+                            if (textEl.classList.contains('d-none') || textEl.classList.contains('agenda-oc-client-panel__value-text--readonly')) return;
+                            ev.preventDefault();
+                            start();
+                        });
+                    }
+                    if (input) {
+                        input.addEventListener('keydown', function(ev) {
+                            if (ev.key === 'Enter') {
+                                ev.preventDefault();
+                                agendaOcSaveProfileInlineField(cfg.field);
+                            } else if (ev.key === 'Escape') {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                if (agendaOcClientProfileSaving) return;
+                                agendaOcSetClientProfileEditMode(false);
+                            }
+                        });
+                    }
+                });
                 var ocNifEdit = $id('agendaOcClientNifEditBtn');
                 if (ocNifEdit) ocNifEdit.addEventListener('click', function() { agendaOcStartClientNifEdit(); });
                 var ocNifSave = $id('agendaOcClientNifSaveBtn');
@@ -6947,14 +8233,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (ocNifCancel) ocNifCancel.addEventListener('click', function() { agendaOcCancelClientNifEdit(); });
                 var ocNifInput = $id('agendaOcClientNifInput');
                 if (ocNifInput) {
-                    ocNifInput.addEventListener('keydown', function(ev) {
-                        if (ev.key === 'Enter') {
-                            ev.preventDefault();
-                            agendaOcSaveClientNifInline();
-                        }
-                    });
                     ocNifInput.addEventListener('blur', function() {
                         if (!agendaOcClientNifEditing || agendaOcClientNifSaving) return;
+                        var card = $id('agendaOcClientSelectedCard');
+                        if (card && card.classList.contains('agenda-oc-client-selected-card--panel')) return;
                         var value = String(ocNifInput.value || '').trim();
                         var current = String((agendaOcSelectedClient && agendaOcSelectedClient.nif) || '').trim();
                         if (value === current) {
@@ -6962,25 +8244,42 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                 }
-                var newTabBtn = $id('agendaOcTabNewBtn');
-                if (newTabBtn) {
-                    newTabBtn.addEventListener('shown.bs.tab', function() {
-                        agendaOcInitNewClientPhoneIntl();
-                    });
+                var showNewBtn = $id('agendaOcShowNewClientBtn');
+                if (showNewBtn) showNewBtn.addEventListener('click', function() { agendaOcShowNewClientMode(); });
+                var cancelNewBtn = $id('agendaOcCancelNewClientBtn');
+                if (cancelNewBtn) cancelNewBtn.addEventListener('click', function() { agendaOcShowClientSearchMode(); });
+                var agendaExistingCard = $id('agendaOcClientSearchMode');
+                if (agendaExistingCard) {
+                    agendaExistingCard.addEventListener('focusin', function() { agendaOcSetClientChoiceActive('existing'); });
+                    agendaExistingCard.addEventListener('click', function() { agendaOcSetClientChoiceActive('existing'); });
+                }
+                var agendaNewForm = $id('agendaOcClientNewMode');
+                if (agendaNewForm) {
+                    agendaNewForm.addEventListener('focusin', function() { agendaOcSetClientChoiceActive('new'); });
                 }
                 var agendaOcNewClientSubmitBtn = $id('agendaOcNewClientSubmit');
                 if (agendaOcNewClientSubmitBtn) {
                     agendaOcNewClientSubmitBtn.addEventListener('click', function() {
                         var name = ($id('agendaOcNewClientName') && $id('agendaOcNewClientName').value || '').trim();
                         var email = ($id('agendaOcNewClientEmail') && $id('agendaOcNewClientEmail').value || '').trim();
-                        var tabNew = $id('agendaOcTabNew');
-                        var iti = tabNew && tabNew._agendaPhoneIti;
+                        var nif = ($id('agendaOcNewClientNif') && $id('agendaOcNewClientNif').value || '').trim();
+                        var birthDate = ($id('agendaOcNewClientBirthDate') && $id('agendaOcNewClientBirthDate').value || '').trim();
+                        var newMode = $id('agendaOcClientNewMode');
+                        var iti = newMode && newMode._agendaPhoneIti;
                         if (!agendaAssertClientFullName(name)) {
+                            return;
+                        }
+                        if (nif !== '' && !/^\d{9}$/.test(nif)) {
+                            showToast('O NIF deve ter 9 dígitos.', 'error');
+                            return;
+                        }
+                        if (birthDate !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+                            showToast('Indique uma data de nascimento válida.', 'error');
                             return;
                         }
                         if (!iti) {
                             agendaOcInitNewClientPhoneIntl();
-                            iti = tabNew && tabNew._agendaPhoneIti;
+                            iti = newMode && newMode._agendaPhoneIti;
                         }
                         if (!iti) {
                             showToast('Campo de telemóvel indisponível. Recarregue a página.', 'error');
@@ -6999,7 +8298,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             fetch(agendaClientsUrl, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                                body: JSON.stringify({ name: name, email: email || null, phone: phone })
+                                body: JSON.stringify({
+                                    name: name,
+                                    email: email || null,
+                                    phone: phone,
+                                    nif: nif || null,
+                                    birth_date: birthDate || null
+                                })
                             })
                                 .then(function(r) {
                                     return r.json().then(function(data) {
@@ -7012,7 +8317,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 .then(function(client) {
                                     btn.disabled = false;
                                     btn.textContent = origTxt;
-                                    agendaOcClearNewClientForm();
+                                    agendaOcShowClientSearchMode();
                                     agendaOcApplyClientFromApi(client);
                                     showToast('Cliente criado com sucesso.', 'success');
                                 })
@@ -7038,7 +8343,7 @@ document.addEventListener('DOMContentLoaded', function() {
         openAgendaMarcacaoTestOffcanvas(startStr, endStr, resourceId, preSelectedClientId);
     }
 
-    /** intl-tel-input: aba «Novo cliente» no offcanvas (nova marcação / editar marcação) */
+    /** intl-tel-input: formulário «Novo cliente» no offcanvas (nova marcação / editar marcação) */
     function destroyAgendaCreateClientIntl(popup) {
         if (popup && popup._agendaPhoneIti) {
             try {
@@ -7819,7 +9124,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return (paymentModalSavedCards || []).length > 0;
         }
         if (!paymentModalIsManualPaymentMethod(method)) return false;
-        if (paymentModalIsReserva() && method === 'mbway' && paymentModalStripePaymentsEnabled()) {
+        if (paymentModalIsReserva() && paymentModalIsStripeMbway(method)) {
             var stripeDue = paymentModalGetStripeDueCents();
             if (stripeDue > 0 && stripeDue < 50) return false;
         }
@@ -8571,7 +9876,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            if (method === 'mbway' && paymentModalStripePaymentsEnabled()) {
+            if (paymentModalIsStripeMbway(method)) {
                 var mbwayPhoneInputR = $id('paymentMbwayPhone');
                 var mbwayPhoneR = mbwayPhoneInputR ? String(mbwayPhoneInputR.value || '').trim() : '';
                 fetch(paymentModalDepositUrl('agendaDepositMbwayIntentUrl', eventId), {
@@ -8727,7 +10032,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Nenhum serviço para faturar.', 'error');
             return;
         }
-        if (!paymentModalIsInvoiceOnly() && method === 'mbway' && paymentModalStripePaymentsEnabled()) {
+        if (!paymentModalIsInvoiceOnly() && paymentModalIsStripeMbway(method)) {
             var mbwayPhoneInput = $id('paymentMbwayPhone');
             var mbwayPhone = mbwayPhoneInput ? String(mbwayPhoneInput.value || '').trim() : '';
             fetch(C.agendaCheckoutMbwayIntentUrl || '', {

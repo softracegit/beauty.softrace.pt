@@ -4,12 +4,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Stripe API (Payment Intents)
+    | Stripe API keys (legado / não usado em runtime)
     |--------------------------------------------------------------------------
     |
-    | Publishable key is safe for the browser (Stripe.js). Secret key must stay
-    | on the server. Supports both STRIPE_API_* (this project) and the common
-    | STRIPE_KEY / STRIPE_SECRET names.
+    | As chaves de pagamento são configuradas por loja em Definições → Pagamentos
+    | ({@see \App\Support\StripeCredentials}). Estes valores .env ficam apenas
+    | como referência legada e não são lidos no fluxo de cobrança.
     |
     */
 
@@ -19,8 +19,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Webhook signing secret (whsec_...)
+    | Webhook signing secret (legado)
     |--------------------------------------------------------------------------
+    |
+    | O webhook usa os secrets gravados por loja nas Definições.
+    |
     */
 
     'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),

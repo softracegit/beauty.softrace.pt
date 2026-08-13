@@ -21,6 +21,9 @@ class Sale extends Model
 
     public const PAYMENT_MBWAY = 'mbway';
 
+    /** Registo interno de MB Way (sem cobrança Stripe). */
+    public const PAYMENT_MBWAY_MANUAL = 'mbway_manual';
+
     public const PAYMENT_DINHEIRO = 'dinheiro';
 
     public const PAYMENT_TRANSFERENCIA = 'transferencia';
@@ -127,17 +130,9 @@ class Sale extends Model
         ];
     }
 
-    public static function paymentMethods(): array
+    public static function paymentMethods(?int $storeId = null): array
     {
-        return [
-            self::PAYMENT_MULTIBANCO => 'Multibanco',
-            self::PAYMENT_MBWAY => 'MB Way',
-            self::PAYMENT_DINHEIRO => 'Dinheiro',
-            self::PAYMENT_TRANSFERENCIA => 'Transferência',
-            self::PAYMENT_CARTAO => 'Cartão',
-            self::PAYMENT_OUTRO => 'Outro',
-            self::PAYMENT_CREDITOS_CARTEIRA => 'Créditos (carteira)',
-        ];
+        return \App\Support\PaymentMethodCatalog::labels($storeId);
     }
 
     /**

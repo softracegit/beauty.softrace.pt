@@ -502,11 +502,22 @@ class DefinicoesController extends Controller
     public function pagamentos(): View
     {
         $storeId = current_store_id();
+        $secret = \App\Support\StripeCredentials::secretKey($storeId);
+        $webhook = \App\Support\StripeCredentials::webhookSecret($storeId);
 
         return view('definicoes.pagamentos', [
             'pageTitle' => 'Pagamentos',
             'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired($storeId),
             'posGorjetaEnabled' => CrmSetting::posGorjetaEnabled($storeId),
+            'stripeEnabled' => \App\Support\StripeCredentials::isEnabled($storeId),
+            'stripeReady' => \App\Support\StripeCredentials::isReady($storeId),
+            'stripePublishableKey' => \App\Support\StripeCredentials::publishableKey($storeId),
+            'stripeSecretMasked' => $secret !== '' ? \App\Support\StripeCredentials::maskSecret($secret) : '',
+            'stripeWebhookMasked' => $webhook !== '' ? \App\Support\StripeCredentials::maskSecret($webhook) : '',
+            'stripeHasSecret' => $secret !== '',
+            'stripeHasWebhook' => $webhook !== '',
+            'stripeWebhookUrl' => url('/stripe/webhook'),
+            'paymentMethods' => \App\Support\PaymentMethodCatalog::forStore($storeId),
         ]);
     }
 
@@ -516,6 +527,16 @@ class DefinicoesController extends Controller
         $store = app(CurrentStore::class)->get();
         $beforeGorjeta = CrmSetting::posGorjetaEnabled($storeId);
         $beforeOnlinePayment = CrmSetting::onlineBookingPaymentRequired($storeId);
+
+        $request->validate([
+            'pos_gorjeta_enabled' => ['sometimes', 'boolean'],
+            'online_booking_payment_required' => ['sometimes', 'boolean'],
+            'methods' => ['nullable', 'array'],
+            'methods.*.code' => ['required', 'string'],
+            'methods.*.sort' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'methods.*.agenda' => ['sometimes', 'boolean'],
+            'methods.*.booking' => ['sometimes', 'boolean'],
+        ]);
 
         CrmSetting::setBool(
             CrmSetting::KEY_POS_GORJETA_ENABLED,
@@ -527,6 +548,22 @@ class DefinicoesController extends Controller
             $request->boolean('online_booking_payment_required'),
             $storeId,
         );
+
+        $methodRows = [];
+        foreach ((array) $request->input('methods', []) as $row) {
+            if (! is_array($row) || empty($row['code'])) {
+                continue;
+            }
+            $methodRows[] = [
+                'code' => (string) $row['code'],
+                'sort' => (int) ($row['sort'] ?? 0),
+                'agenda' => self::notificationToggleFromInput($row['agenda'] ?? null),
+                'booking' => self::notificationToggleFromInput($row['booking'] ?? null),
+            ];
+        }
+        if ($methodRows !== []) {
+            \App\Support\PaymentMethodCatalog::saveFromRequest($methodRows, $storeId);
+        }
 
         $changes = array_filter([
             $this->settingsActivityLogger->logBoolChange(
@@ -551,6 +588,88 @@ class DefinicoesController extends Controller
         return redirect()
             ->route('definicoes.pagamentos')
             ->with('status', 'Definições de pagamento guardadas.');
+    }
+
+    public function updatePagamentosStripe(Request $request): RedirectResponse
+    {
+        $storeId = current_store_id();
+        $store = app(CurrentStore::class)->get();
+        $beforeStripeEnabled = \App\Support\StripeCredentials::isEnabled($storeId);
+        $action = (string) $request->input('stripe_action', 'save');
+
+        if ($action === 'disable') {
+            \App\Support\StripeCredentials::setEnabled(false, $storeId);
+
+            $this->settingsActivityLogger->logSection(
+                $store,
+                'pagamentos',
+                'Stripe desativado',
+                array_values(array_filter([
+                    $this->settingsActivityLogger->logBoolChange(
+                        'Stripe ativo',
+                        $beforeStripeEnabled,
+                        false,
+                    ),
+                ])),
+            );
+
+            return redirect()
+                ->route('definicoes.pagamentos')
+                ->with('status', 'Stripe desativado.');
+        }
+
+        $validated = $request->validate([
+            'stripe_publishable_key' => ['required', 'string', 'max:255'],
+            'stripe_secret_key' => ['nullable', 'string', 'max:255'],
+            'stripe_webhook_secret' => ['nullable', 'string', 'max:255'],
+        ], [
+            'stripe_publishable_key.required' => 'A Publishable key é obrigatória.',
+        ]);
+
+        $secretInput = trim((string) ($validated['stripe_secret_key'] ?? ''));
+        $webhookInput = trim((string) ($validated['stripe_webhook_secret'] ?? ''));
+        $hasSecret = $secretInput !== '' || \App\Support\StripeCredentials::secretKey($storeId) !== '';
+        $hasWebhook = $webhookInput !== '' || \App\Support\StripeCredentials::webhookSecret($storeId) !== '';
+
+        $errors = [];
+        if (! $hasSecret) {
+            $errors['stripe_secret_key'] = 'A Secret key é obrigatória.';
+        }
+        if (! $hasWebhook) {
+            $errors['stripe_webhook_secret'] = 'O Webhook secret é obrigatório.';
+        }
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        \App\Support\StripeCredentials::setPublishableKey(
+            (string) $validated['stripe_publishable_key'],
+            $storeId,
+        );
+        if ($secretInput !== '') {
+            \App\Support\StripeCredentials::setSecretKey($secretInput, $storeId);
+        }
+        if ($webhookInput !== '') {
+            \App\Support\StripeCredentials::setWebhookSecret($webhookInput, $storeId);
+        }
+        \App\Support\StripeCredentials::setEnabled(true, $storeId);
+
+        $this->settingsActivityLogger->logSection(
+            $store,
+            'pagamentos',
+            'Configuração Stripe actualizada',
+            array_values(array_filter([
+                $this->settingsActivityLogger->logBoolChange(
+                    'Stripe ativo',
+                    $beforeStripeEnabled,
+                    true,
+                ),
+            ])),
+        );
+
+        return redirect()
+            ->route('definicoes.pagamentos')
+            ->with('status', 'Stripe ativado e configurado.');
     }
 
     public function notificacoes(): View

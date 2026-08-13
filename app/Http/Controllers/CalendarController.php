@@ -38,7 +38,9 @@ use App\Support\MarcacaoMoneyBatch;
 use App\Support\PortugueseNationalHolidays;
 use App\Support\StoreBusinessTime;
 use App\Rules\ClientFullName;
+use App\Rules\UniqueClientPhone;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -109,6 +111,12 @@ class CalendarController extends Controller
         $nationalHolidaysPt = array_keys($nationalHolidayNamesPt);
         $posGorjetaEnabled = CrmSetting::posGorjetaEnabled(current_store_id());
         $onlineBookingPaymentRequired = CrmSetting::onlineBookingPaymentRequired(current_store_id());
+        $stripePaymentsEnabled = \App\Support\StripeCredentials::isReady(current_store_id());
+        $posPaymentMethods = \App\Support\PaymentMethodCatalog::enabledForChannel(
+            \App\Support\PaymentMethodCatalog::CHANNEL_AGENDA,
+            current_store_id(),
+        );
+        $posPaymentMethodsReserva = $posPaymentMethods;
         $personalTimeLimitStoreHours = CrmSetting::personalTimeLimitStoreHours(current_store_id());
 
         $store = current_store()->get();
@@ -126,6 +134,9 @@ class CalendarController extends Controller
             'nationalHolidayNamesPt',
             'posGorjetaEnabled',
             'onlineBookingPaymentRequired',
+            'stripePaymentsEnabled',
+            'posPaymentMethods',
+            'posPaymentMethodsReserva',
             'personalTimeLimitStoreHours',
             'storeWeeklySchedule',
             'agendaSlotMin',
@@ -553,13 +564,7 @@ class CalendarController extends Controller
         if ($clientId) {
             $client = \App\Models\Client::forStore(current_store_id())->with('tags')->whereKey($clientId)->first();
             if ($client) {
-                $arr = $client->only(['id', 'name', 'email', 'phone', 'nif']);
-                $arr['formatted_phone'] = $client->formatted_phone;
-                $arr['avatar_url'] = $client->avatar ? asset('storage/'.$client->avatar) : null;
-                $arr['birth_date'] = $client->birth_date?->format('Y-m-d');
-                $arr['tags'] = $this->clientTagsPayload($client);
-
-                return response()->json([$this->sanitizeClientPayloadForUser($arr)]);
+                return response()->json([$this->sanitizeClientPayloadForUser($this->clientAgendaPayload($client))]);
             }
 
             return response()->json([]);
@@ -599,6 +604,12 @@ class CalendarController extends Controller
         if ($request->input('email') === '') {
             $request->merge(['email' => null]);
         }
+        if ($request->input('nif') === '') {
+            $request->merge(['nif' => null]);
+        }
+        if ($request->input('birth_date') === '') {
+            $request->merge(['birth_date' => null]);
+        }
 
         // Ordem: telemóvel (obrigatório) primeiro; só depois email (opcional).
         $validated = $request->validate([
@@ -614,8 +625,13 @@ class CalendarController extends Controller
 
         $validated = array_merge($validated, $request->validate([
             'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'nif' => ['nullable', 'digits:9'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
         ], [
             'email.unique' => 'Este email já está associado a um cliente.',
+            'nif.digits' => 'O NIF deve ter 9 dígitos.',
+            'birth_date.date' => 'Indique uma data de nascimento válida.',
+            'birth_date.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
         ]));
 
         $client = Client::create([
@@ -623,20 +639,13 @@ class CalendarController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'] ?? null,
             'phone' => $validated['phone'],
+            'nif' => $validated['nif'] ?? null,
+            'birth_date' => $validated['birth_date'] ?? null,
         ]);
 
-        $result = [
-            'id' => (string) $client->id,
-            'name' => $client->name,
-            'email' => $client->email,
-            'phone' => $client->phone,
-            'nif' => $client->nif,
-            'formatted_phone' => $client->formatted_phone,
-            'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
-            'tags' => [],
-        ];
+        $client->load('tags');
 
-        return response()->json($this->sanitizeClientPayloadForUser($result));
+        return response()->json($this->sanitizeClientPayloadForUser($this->clientAgendaPayload($client)));
     }
 
     public function updateClientNif(Request $request, Client $client)
@@ -655,16 +664,123 @@ class CalendarController extends Controller
         $client->save();
         $client->load('tags');
 
-        return response()->json([
+        return response()->json($this->clientAgendaPayload($client));
+    }
+
+    /**
+     * Actualiza campos do cliente a partir do offcanvas da agenda (nome, NIF, email, data de nascimento, origem, profissão).
+     */
+    public function updateClientProfile(Request $request, Client $client)
+    {
+        if (auth()->user()->isPrestador()) {
+            return response()->json(['message' => 'Sem permissão.'], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255', new ClientFullName],
+            'nif' => ['sometimes', 'nullable', 'digits:9'],
+            'email' => [
+                'sometimes',
+                'nullable',
+                'email',
+                'max:255',
+                Rule::unique('clients', 'email')
+                    ->ignore($client->id)
+                    ->where(fn ($q) => $q->where('store_id', current_store_id())),
+            ],
+            'phone' => ['sometimes', 'required', 'string', 'max:50', new UniqueClientPhone($client->id)],
+            'birth_date' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
+            'origem' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'profissao' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ], [
+            'name.required' => 'Indique o nome.',
+            'nif.digits' => 'O NIF deve ter 9 dígitos.',
+            'email.email' => 'Indique um email válido.',
+            'email.unique' => 'Este email já está associado a um cliente.',
+            'phone.required' => 'Indique o telemóvel.',
+            'birth_date.date' => 'Indique uma data de nascimento válida.',
+            'birth_date.before_or_equal' => 'A data de nascimento não pode ser no futuro.',
+        ]);
+
+        if (array_key_exists('name', $validated)) {
+            $client->name = trim((string) $validated['name']);
+        }
+        if (array_key_exists('nif', $validated)) {
+            $client->nif = $validated['nif'] !== null && $validated['nif'] !== ''
+                ? $validated['nif']
+                : null;
+        }
+        if (array_key_exists('email', $validated)) {
+            $email = is_string($validated['email'] ?? null) ? trim($validated['email']) : '';
+            $client->email = $email !== '' ? $email : null;
+        }
+        if (array_key_exists('phone', $validated)) {
+            $client->phone = trim((string) $validated['phone']);
+        }
+        if (array_key_exists('birth_date', $validated)) {
+            $client->birth_date = $validated['birth_date'] ?: null;
+        }
+        if (array_key_exists('origem', $validated)) {
+            $origem = is_string($validated['origem'] ?? null) ? trim($validated['origem']) : '';
+            $client->origem = $origem !== '' ? $origem : null;
+        }
+        if (array_key_exists('profissao', $validated)) {
+            $profissao = is_string($validated['profissao'] ?? null) ? trim($validated['profissao']) : '';
+            $client->profissao = $profissao !== '' ? $profissao : null;
+        }
+
+        try {
+            $client->save();
+        } catch (QueryException $e) {
+            $sqlState = (string) ($e->errorInfo[0] ?? '');
+            $driverCode = (int) ($e->errorInfo[1] ?? 0);
+            if ($sqlState === '23000' && $driverCode === 1062) {
+                $message = $e->getMessage();
+                if (str_contains($message, 'email')) {
+                    return response()->json([
+                        'message' => 'Este email já está associado a um cliente.',
+                        'errors' => ['email' => ['Este email já está associado a um cliente.']],
+                    ], 422);
+                }
+
+                return response()->json([
+                    'message' => 'Este telemóvel já está registado noutro cliente.',
+                    'errors' => ['phone' => ['Este telemóvel já está registado noutro cliente.']],
+                ], 422);
+            }
+
+            throw $e;
+        }
+
+        $client->load('tags');
+
+        return response()->json($this->clientAgendaPayload($client));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function clientAgendaPayload(Client $client): array
+    {
+        return [
             'id' => (string) $client->id,
             'name' => $client->name,
             'email' => $client->email,
             'phone' => $client->phone,
             'nif' => $client->nif,
+            'birth_date' => $client->birth_date?->format('Y-m-d'),
+            'origem' => $client->origem,
+            'profissao' => $client->profissao,
+            'client_since' => $client->created_at
+                ? \App\Support\DateTimeDisplay::formatInstant($client->created_at, $client->store_id ? (int) $client->store_id : null, 'd/m/Y')
+                : null,
+            'client_last_update' => $client->updated_at
+                ? \App\Support\DateTimeDisplay::formatInstant($client->updated_at, $client->store_id ? (int) $client->store_id : null, 'd/m/Y H:i')
+                : null,
             'formatted_phone' => $client->formatted_phone,
             'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
             'tags' => $this->clientTagsPayload($client),
-        ]);
+        ];
     }
 
     /**
@@ -727,6 +843,22 @@ class CalendarController extends Controller
                 'client_formatted_phone' => $calendarEvent->client?->formatted_phone,
                 'client_avatar_url' => $calendarEvent->client?->avatar ? asset('storage/'.$calendarEvent->client->avatar) : null,
                 'client_birth_date' => $calendarEvent->client?->birth_date?->format('Y-m-d'),
+                'client_origem' => $calendarEvent->client?->origem,
+                'client_profissao' => $calendarEvent->client?->profissao,
+                'client_since' => $calendarEvent->client?->created_at
+                    ? \App\Support\DateTimeDisplay::formatInstant(
+                        $calendarEvent->client->created_at,
+                        $calendarEvent->client->store_id ? (int) $calendarEvent->client->store_id : (int) $calendarEvent->store_id,
+                        'd/m/Y'
+                    )
+                    : null,
+                'client_last_update' => $calendarEvent->client?->updated_at
+                    ? \App\Support\DateTimeDisplay::formatInstant(
+                        $calendarEvent->client->updated_at,
+                        $calendarEvent->client->store_id ? (int) $calendarEvent->client->store_id : (int) $calendarEvent->store_id,
+                        'd/m/Y H:i'
+                    )
+                    : null,
                 'client_tags' => $this->clientTagsPayload($calendarEvent->client),
                 ...$this->clientBirthdayMetaForEvent($calendarEvent->client, $calendarEvent->start_at, (int) $calendarEvent->store_id),
                 'event_services' => $calendarEvent->eventServices->map(function ($s) {
@@ -2016,6 +2148,22 @@ class CalendarController extends Controller
                 'client_formatted_phone' => $event->client?->formatted_phone,
                 'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
                 'client_birth_date' => $event->client?->birth_date?->format('Y-m-d'),
+                'client_origem' => $event->client?->origem,
+                'client_profissao' => $event->client?->profissao,
+                'client_since' => $event->client?->created_at
+                    ? \App\Support\DateTimeDisplay::formatInstant(
+                        $event->client->created_at,
+                        $event->client->store_id ? (int) $event->client->store_id : (int) $event->store_id,
+                        'd/m/Y'
+                    )
+                    : null,
+                'client_last_update' => $event->client?->updated_at
+                    ? \App\Support\DateTimeDisplay::formatInstant(
+                        $event->client->updated_at,
+                        $event->client->store_id ? (int) $event->client->store_id : (int) $event->store_id,
+                        'd/m/Y H:i'
+                    )
+                    : null,
                 ...$this->clientBirthdayMetaForEvent($event->client, $event->start_at, (int) $event->store_id),
                 'description' => $event->description,
                 'event_type' => $event->event_type,

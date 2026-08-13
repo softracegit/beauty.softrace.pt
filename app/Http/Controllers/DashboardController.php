@@ -17,6 +17,7 @@ use App\Services\VendasReportService;
 use App\Support\CrmPrivacyLock;
 use App\Support\MarcacaoMoneyBatch;
 use App\Support\StoreBusinessTime;
+use App\Support\WeeklyScheduleWindow;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -53,10 +54,10 @@ class DashboardController extends Controller
         $previousYear = $currentYear - 1;
 
         $store = current_store()->get();
-        $slotsByWeekdayKey = $this->ocupacaoSlotsByWeekdayKey($store);
-        $prestadorUserIds = $this->ocupacaoPrestadorUserIds();
+        $prestadorAgents = $this->ocupacaoPrestadorAgents();
+        $prestadorUserIds = $prestadorAgents->pluck('user_id')->filter()->map(fn ($id): int => (int) $id)->values();
 
-        $kpiPorPeriodo = $this->resumoKpiPorPeriodo($today, $slotsByWeekdayKey, $prestadorUserIds);
+        $kpiPorPeriodo = $this->resumoKpiPorPeriodo($today, $store, $prestadorAgents, $prestadorUserIds);
 
         $monthLabels = [];
         for ($month = 1; $month <= 12; $month++) {
@@ -129,7 +130,7 @@ class DashboardController extends Controller
         $storeId = current_store_id();
         $store = current_store()->get();
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
-        $slotsByWeekdayKey = $this->ocupacaoSlotsByWeekdayKey($store);
+        $storeSchedule = $store->normalizedWeeklySchedule();
 
         $agents = Agent::activeServiceProviders($storeId)
             ->with('user')
@@ -144,7 +145,7 @@ class DashboardController extends Controller
             $bounds[$period] = $this->resumoPeriodBounds($period, $today);
         }
 
-        $cardsByPeriod = $this->equipaBuildCardsByPeriod($agents, $bounds, $slotsByWeekdayKey, $storeId);
+        $cardsByPeriod = $this->equipaBuildCardsByPeriod($agents, $bounds, $storeSchedule, $storeId);
 
         $periodLabels = [
             'ontem' => 'Ontem',
@@ -164,13 +165,13 @@ class DashboardController extends Controller
     /**
      * @param  Collection<int, Agent>  $agents
      * @param  array<string, array{0: Carbon, 1: Carbon}>  $bounds
-     * @param  array<string, int>  $slotsByWeekdayKey
+     * @param  array<string, array{enabled?: bool, start?: string|null, end?: string|null}>  $storeSchedule
      * @return array<string, list<array<string, mixed>>>
      */
     private function equipaBuildCardsByPeriod(
         Collection $agents,
         array $bounds,
-        array $slotsByWeekdayKey,
+        array $storeSchedule,
         int $storeId,
     ): array {
         $periodKeys = array_keys($bounds);
@@ -295,17 +296,29 @@ class DashboardController extends Controller
             }
         }
 
-        $capacityByPeriod = [];
+        $capacityByPeriodByAgent = [];
         foreach ($bounds as $period => [$start, $end]) {
-            $capacityByPeriod[$period] = $this->ocupacaoTotalSlotsBetween($start, $end, $slotsByWeekdayKey, 1)
-                * self::SLOT_DURATION_MINUTES;
+            foreach ($agents as $agent) {
+                $uid = (int) ($agent->user_id ?? 0);
+                if ($uid <= 0) {
+                    continue;
+                }
+                // Capacidade = horário da técnica ∩ loja (sem −1 h almoço; isso só na taxa de ocupação).
+                $capacityByPeriodByAgent[$period][$uid] = $this->ocupacaoCapacityMinutesForAgents(
+                    $start,
+                    $end,
+                    collect([$agent]),
+                    $storeSchedule,
+                    false
+                );
+            }
         }
 
         $out = [];
         foreach ($periodKeys as $period) {
-            $capacity = (int) ($capacityByPeriod[$period] ?? 0);
-            $out[$period] = $agents->map(function (Agent $agent) use ($agg, $period, $capacity): array {
+            $out[$period] = $agents->map(function (Agent $agent) use ($agg, $period, $capacityByPeriodByAgent): array {
                 $uid = (int) ($agent->user_id ?? 0);
+                $capacity = (int) ($capacityByPeriodByAgent[$period][$uid] ?? 0);
                 $row = $agg[$period][$uid] ?? [
                     'marcacoes' => 0,
                     'concluidas' => 0,
@@ -319,10 +332,22 @@ class DashboardController extends Controller
                 $concluidas = (int) $row['concluidas'];
                 $porConcluir = max(0, $marcacoesCount - $concluidas);
                 $minMedio = $marcacoesCount > 0 ? (int) round($minMarcacao / $marcacoesCount) : 0;
-                $pctMarcacao = $capacity > 0 ? (int) round(min(100, ($minMarcacao / $capacity) * 100)) : 0;
-                $pctPessoal = $capacity > 0 ? (int) round(min(100 - $pctMarcacao, ($minPessoal / $capacity) * 100)) : 0;
-                $pctVagas = $capacity > 0 ? max(0, 100 - $pctMarcacao - $pctPessoal) : 0;
-                $preenchimento = (float) $pctMarcacao;
+
+                $pctMarcacao = $capacity > 0 ? (int) round(($minMarcacao / $capacity) * 100) : 0;
+                $pctPessoal = $capacity > 0 ? (int) round(($minPessoal / $capacity) * 100) : 0;
+                $pctVagas = $capacity > 0 ? (int) round(($minVagas / $capacity) * 100) : 0;
+                // Barra: se marcações + pessoal > capacidade, normalizar para somar 100%.
+                $filledForBar = $minMarcacao + $minPessoal;
+                if ($capacity > 0 && $filledForBar > $capacity && $filledForBar > 0) {
+                    $barPctMarcacao = (int) round(($minMarcacao / $filledForBar) * 100);
+                    $barPctPessoal = max(0, 100 - $barPctMarcacao);
+                    $barPctVagas = 0;
+                } else {
+                    $barPctMarcacao = min(100, $pctMarcacao);
+                    $barPctPessoal = min(100 - $barPctMarcacao, $pctPessoal);
+                    $barPctVagas = max(0, 100 - $barPctMarcacao - $barPctPessoal);
+                }
+                $preenchimento = (float) min(100, $pctMarcacao);
 
                 $avatarUrl = $agent->avatar
                     ? asset('storage/'.$agent->avatar)
@@ -350,6 +375,9 @@ class DashboardController extends Controller
                     'pct_marcacao' => $pctMarcacao,
                     'pct_pessoal' => $pctPessoal,
                     'pct_vagas' => $pctVagas,
+                    'bar_pct_marcacao' => $barPctMarcacao,
+                    'bar_pct_pessoal' => $barPctPessoal,
+                    'bar_pct_vagas' => $barPctVagas,
                     'preenchimento' => $preenchimento,
                 ];
             })->values()->all();
@@ -368,6 +396,19 @@ class DashboardController extends Controller
         $m = $minutes % 60;
 
         return $m > 0 ? $h.'h '.$m.'min' : $h.'h';
+    }
+
+    /** Formato compacto tipo 29h30min (subtítulo dos KPI de ocupação). */
+    private function ocupacaoFormatDurationLabel(int $minutes): string
+    {
+        $minutes = max(0, $minutes);
+        if ($minutes < 60) {
+            return $minutes.'min';
+        }
+        $h = intdiv($minutes, 60);
+        $m = $minutes % 60;
+
+        return $m > 0 ? $h.'h'.$m.'min' : $h.'h';
     }
 
     /**
@@ -625,11 +666,16 @@ class DashboardController extends Controller
     /**
      * KPIs dos 5 períodos numa passagem (evita 5× pipeline / vendas / ocupação).
      *
-     * @param  array<string, int>  $slotsByWeekdayKey
-     * @return array<string, array{vendas_previsto: float, vendas_feitas: float, vendas_por_fazer: float, clientes_atendidos: int, taxa_ocupacao: float}>
+     * @param  Collection<int, Agent>  $prestadorAgents
+     * @param  Collection<int, int>  $prestadorUserIds
+     * @return array<string, array{vendas_previsto: float, vendas_feitas: float, vendas_por_fazer: float, clientes_atendidos: int, taxa_ocupacao: float, horas_preenchidas: string, horas_uteis: string, ocupacao_label: string}>
      */
-    private function resumoKpiPorPeriodo(Carbon $today, array $slotsByWeekdayKey, Collection $prestadorUserIds): array
-    {
+    private function resumoKpiPorPeriodo(
+        Carbon $today,
+        Store $store,
+        Collection $prestadorAgents,
+        Collection $prestadorUserIds,
+    ): array {
         $periods = ['hoje', 'ontem', 'amanha', 'semana', 'mes'];
         /** @var array<string, array{0: Carbon, 1: Carbon}> $bounds */
         $bounds = [];
@@ -657,6 +703,7 @@ class DashboardController extends Controller
 
         $storeId = current_store_id();
         $nowUtc = StoreBusinessTime::nowUtcForStore($storeId);
+        $storeSchedule = $store->normalizedWeeklySchedule();
 
         $pipelineEvents = CalendarEvent::forStore($storeId)
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
@@ -740,10 +787,11 @@ class DashboardController extends Controller
             }
         }
 
-        $numTecnicos = $prestadorUserIds->count();
+        $numTecnicos = $prestadorAgents->count();
         $ocupacaoByPeriod = array_fill_keys($periods, 0.0);
+        $filledMinutesByPeriod = array_fill_keys($periods, 0);
+        $capacityMinutesByPeriod = array_fill_keys($periods, 0);
         if ($numTecnicos > 0) {
-            $filledMinutesByPeriod = array_fill_keys($periods, 0);
             $ocupacaoEvents = CalendarEvent::forStore($storeId)
                 ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                 ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
@@ -776,23 +824,37 @@ class DashboardController extends Controller
 
             foreach ($periods as $period) {
                 [$start, $end] = $bounds[$period];
-                $totalSlots = $this->ocupacaoTotalSlotsBetween($start, $end, $slotsByWeekdayKey, $numTecnicos);
-                if ($totalSlots <= 0) {
+                $capacityMinutes = $this->ocupacaoCapacityMinutesForAgents(
+                    $start,
+                    $end,
+                    $prestadorAgents,
+                    $storeSchedule,
+                    true
+                );
+                $capacityMinutesByPeriod[$period] = $capacityMinutes;
+                if ($capacityMinutes <= 0) {
                     continue;
                 }
-                $filledSlots = (float) ceil($filledMinutesByPeriod[$period] / self::SLOT_DURATION_MINUTES);
-                $ocupacaoByPeriod[$period] = round(min(100, ($filledSlots / $totalSlots) * 100), 1);
+                $ocupacaoByPeriod[$period] = round(
+                    min(100, ($filledMinutesByPeriod[$period] / $capacityMinutes) * 100),
+                    1
+                );
             }
         }
 
         $out = [];
         foreach ($periods as $period) {
+            $horasPreenchidas = $this->ocupacaoFormatDurationLabel((int) round($filledMinutesByPeriod[$period]));
+            $horasUteis = $this->ocupacaoFormatDurationLabel((int) $capacityMinutesByPeriod[$period]);
             $out[$period] = [
                 'vendas_previsto' => round($pipelineByPeriod[$period]['previsto'], 2),
                 'vendas_feitas' => round($vendasByPeriod[$period], 2),
                 'vendas_por_fazer' => round($pipelineByPeriod[$period]['por_fazer'], 2),
                 'clientes_atendidos' => $atendidosByPeriod[$period],
                 'taxa_ocupacao' => $ocupacaoByPeriod[$period],
+                'horas_preenchidas' => $horasPreenchidas,
+                'horas_uteis' => $horasUteis,
+                'ocupacao_label' => $horasPreenchidas.' / '.$horasUteis,
             ];
         }
 
@@ -910,27 +972,34 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param  array<string, int>  $slotsByWeekdayKey
+     * @param  Collection<int, Agent>  $prestadorAgents
+     * @param  Collection<int, int>  $prestadorUserIds
      */
     private function resumoTaxaOcupacaoEntre(
         Carbon $start,
         Carbon $end,
-        array $slotsByWeekdayKey,
+        Store $store,
+        Collection $prestadorAgents,
         Collection $prestadorUserIds,
     ): float {
-        $numTecnicos = $prestadorUserIds->count();
-        if ($numTecnicos <= 0) {
+        if ($prestadorAgents->isEmpty()) {
             return 0;
         }
 
-        $totalSlots = $this->ocupacaoTotalSlotsBetween($start, $end, $slotsByWeekdayKey, $numTecnicos);
-        if ($totalSlots <= 0) {
+        $capacityMinutes = $this->ocupacaoCapacityMinutesForAgents(
+            $start,
+            $end,
+            $prestadorAgents,
+            $store->normalizedWeeklySchedule(),
+            true
+        );
+        if ($capacityMinutes <= 0) {
             return 0;
         }
 
-        $filledSlots = $this->ocupacaoFilledSlotsBetween($start, $end, $prestadorUserIds);
+        $filledMinutes = $this->ocupacaoFilledMinutesBetween($start, $end, $prestadorUserIds);
 
-        return round(min(100, ($filledSlots / $totalSlots) * 100), 1);
+        return round(min(100, ($filledMinutes / $capacityMinutes) * 100), 1);
     }
 
     /**
@@ -1311,17 +1380,35 @@ class DashboardController extends Controller
         [$startOfMonthUtc, $endOfMonthUtc] = $this->ocupacaoUtcQueryBounds($startOfMonth, $endOfMonth);
         [$startOfWeek, $endOfWeek] = $this->ocupacaoWeekRangeInMonth($startOfMonth, $endOfMonth, $today);
 
-        $slotsByWeekdayKey = $this->ocupacaoSlotsByWeekdayKey($store);
-        $prestadorUserIds = $this->ocupacaoPrestadorUserIds();
-        $numTecnicos = $prestadorUserIds->count();
+        $prestadorAgents = $this->ocupacaoPrestadorAgents();
+        $prestadorUserIds = $prestadorAgents->pluck('user_id')->filter()->map(fn ($id): int => (int) $id)->values();
+        $numTecnicos = $prestadorAgents->count();
+        $storeSchedule = $store->normalizedWeeklySchedule();
 
-        $totalSlotsMonth = $this->ocupacaoTotalSlotsBetween($startOfMonth, $endOfMonth, $slotsByWeekdayKey, $numTecnicos);
-        $totalSlotsWeek = $this->ocupacaoTotalSlotsBetween($startOfWeek, $endOfWeek, $slotsByWeekdayKey, $numTecnicos);
-        $filledSlotsMonth = $this->ocupacaoFilledSlotsBetween($startOfMonth, $endOfMonth, $prestadorUserIds);
-        $filledSlotsWeek = $this->ocupacaoFilledSlotsBetween($startOfWeek, $endOfWeek, $prestadorUserIds);
+        $endOfToday = $today->copy()->endOfDay();
+        $capacityMinutesHoje = $this->ocupacaoCapacityMinutesForAgents($today, $endOfToday, $prestadorAgents, $storeSchedule, true);
+        $capacityMinutesMonth = $this->ocupacaoCapacityMinutesForAgents($startOfMonth, $endOfMonth, $prestadorAgents, $storeSchedule, true);
+        $capacityMinutesWeek = $this->ocupacaoCapacityMinutesForAgents($startOfWeek, $endOfWeek, $prestadorAgents, $storeSchedule, true);
+        $filledMinutesHoje = $this->ocupacaoFilledMinutesBetween($today, $endOfToday, $prestadorUserIds);
+        $filledMinutesMonth = $this->ocupacaoFilledMinutesBetween($startOfMonth, $endOfMonth, $prestadorUserIds);
+        $filledMinutesWeek = $this->ocupacaoFilledMinutesBetween($startOfWeek, $endOfWeek, $prestadorUserIds);
 
-        $taxaOcupacaoMes = $totalSlotsMonth > 0 ? round(min(100, ($filledSlotsMonth / $totalSlotsMonth) * 100), 1) : 0;
-        $taxaOcupacaoSemana = $totalSlotsWeek > 0 ? round(min(100, ($filledSlotsWeek / $totalSlotsWeek) * 100), 1) : 0;
+        $taxaOcupacaoHoje = $capacityMinutesHoje > 0
+            ? round(min(100, ($filledMinutesHoje / $capacityMinutesHoje) * 100), 1)
+            : 0;
+        $taxaOcupacaoMes = $capacityMinutesMonth > 0
+            ? round(min(100, ($filledMinutesMonth / $capacityMinutesMonth) * 100), 1)
+            : 0;
+        $taxaOcupacaoSemana = $capacityMinutesWeek > 0
+            ? round(min(100, ($filledMinutesWeek / $capacityMinutesWeek) * 100), 1)
+            : 0;
+
+        $horasOcupacaoHoje = $this->ocupacaoFormatDurationLabel((int) round($filledMinutesHoje))
+            .' / '.$this->ocupacaoFormatDurationLabel($capacityMinutesHoje);
+        $horasOcupacaoSemana = $this->ocupacaoFormatDurationLabel((int) round($filledMinutesWeek))
+            .' / '.$this->ocupacaoFormatDurationLabel($capacityMinutesWeek);
+        $horasOcupacaoMes = $this->ocupacaoFormatDurationLabel((int) round($filledMinutesMonth))
+            .' / '.$this->ocupacaoFormatDurationLabel($capacityMinutesMonth);
 
         $marcacoesBase = $this->ocupacaoMarcacoesBase($prestadorUserIds)
             ->whereBetween('start_at', [$startOfMonthUtc, $endOfMonthUtc]);
@@ -1373,7 +1460,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        $ocupacaoPorTecnico = $this->ocupacaoPorTecnico($startOfMonth, $endOfMonth, $slotsByWeekdayKey, $prestadorUserIds);
+        $ocupacaoPorTecnico = $this->ocupacaoPorTecnico($startOfMonth, $endOfMonth, $store, $prestadorAgents, $prestadorUserIds);
         $slotsMaisVazios = $this->ocupacaoSlotsMaisVazios($startOfMonth, $endOfMonth, $store, $prestadorUserIds, $numTecnicos);
 
         $totalMarcacoesMes = (clone $marcacoesBase)->count();
@@ -1381,10 +1468,7 @@ class DashboardController extends Controller
             ? round(($totalMarcacoesMes * $duracaoMediaGeral) / 60, 1)
             : 0;
 
-        $openDaySlots = array_values(array_filter($slotsByWeekdayKey, fn (int $slots) => $slots > 0));
-        $avgSlotsPerOpenDayPerTech = $openDaySlots !== []
-            ? round(array_sum($openDaySlots) / count($openDaySlots), 1)
-            : 0.0;
+        $avgUsefulHoursPerOpenDayPerTech = $this->ocupacaoAvgUsefulHoursPerOpenDay($prestadorAgents, $storeSchedule);
 
         $shortWeekdayLabels = [
             'mon' => 'Seg',
@@ -1395,8 +1479,8 @@ class DashboardController extends Controller
             'sat' => 'Sáb',
             'sun' => 'Dom',
         ];
-        $storeOpenDaysLabel = collect($slotsByWeekdayKey)
-            ->filter(fn (int $slots) => $slots > 0)
+        $storeOpenDaysLabel = collect($storeSchedule)
+            ->filter(fn ($day) => (bool) ($day['enabled'] ?? false))
             ->keys()
             ->map(fn (string $key) => $shortWeekdayLabels[$key] ?? $key)
             ->implode(', ');
@@ -1415,12 +1499,12 @@ class DashboardController extends Controller
         $ocupacaoTimezoneLabel = $tz;
 
         return view('dashboard.ocupacao', compact(
+            'taxaOcupacaoHoje',
             'taxaOcupacaoMes',
             'taxaOcupacaoSemana',
-            'totalSlotsMonth',
-            'filledSlotsMonth',
-            'totalSlotsWeek',
-            'filledSlotsWeek',
+            'horasOcupacaoHoje',
+            'horasOcupacaoSemana',
+            'horasOcupacaoMes',
             'numTecnicos',
             'porHora',
             'porDiaSemana',
@@ -1438,7 +1522,7 @@ class DashboardController extends Controller
             'weekPeriodLabel',
             'storeHoursLabel',
             'storeOpenDaysLabel',
-            'avgSlotsPerOpenDayPerTech',
+            'avgUsefulHoursPerOpenDayPerTech',
             'ocupacaoTimezoneLabel',
             'glueSuggestionsData',
             'gluePeriod',
@@ -1504,74 +1588,104 @@ class DashboardController extends Controller
 
     private function ocupacaoPrestadorUserIds(): Collection
     {
-        return Agent::forStore(current_store_id())
-            ->where('status', Agent::STATUS_ACTIVE)
-            ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
+        return $this->ocupacaoPrestadorAgents()
             ->pluck('user_id')
             ->filter()
+            ->map(fn ($id): int => (int) $id)
             ->values();
     }
 
     /**
-     * Slots úteis por dia da semana (horário da loja − 1 h de almoço em média).
-     *
-     * @return array<string, int>
+     * @return Collection<int, Agent>
      */
-    private function ocupacaoSlotsByWeekdayKey(Store $store): array
+    private function ocupacaoPrestadorAgents(): Collection
     {
-        $schedule = $store->normalizedWeeklySchedule();
-        $out = [];
-        foreach (Agent::WEEKDAY_KEYS as $dayKey) {
-            $day = $schedule[$dayKey] ?? ['enabled' => false, 'start' => '09:00', 'end' => '20:00'];
-            if (! ($day['enabled'] ?? false)) {
-                $out[$dayKey] = 0;
+        return Agent::forStore(current_store_id())
+            ->where('status', Agent::STATUS_ACTIVE)
+            ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
+            ->get(['id', 'user_id', 'name', 'weekly_schedule']);
+    }
 
-                continue;
-            }
-            $start = Agent::timeStringToMinutes($day['start'] ?? '09:00');
-            $end = Agent::timeStringToMinutes($day['end'] ?? '20:00');
-            $minutes = max(0, $end - $start);
-            if ($minutes > 0) {
-                $minutes = max(0, $minutes - self::OCUPACAO_LUNCH_BREAK_MINUTES);
-            }
-            $out[$dayKey] = $minutes > 0 ? (int) floor($minutes / self::SLOT_DURATION_MINUTES) : 0;
+    /**
+     * Capacidade em minutos no intervalo: horário de cada técnica ∩ loja.
+     * Com $subtractLunch, desconta a pausa média de almoço por técnica/dia aberto.
+     *
+     * @param  Collection<int, Agent>  $agents
+     * @param  array<string, mixed>  $storeSchedule
+     */
+    private function ocupacaoCapacityMinutesForAgents(
+        Carbon $start,
+        Carbon $end,
+        Collection $agents,
+        array $storeSchedule,
+        bool $subtractLunch = false,
+    ): int {
+        if ($agents->isEmpty()) {
+            return 0;
         }
 
-        return $out;
+        $total = 0;
+        $d = $start->copy()->startOfDay();
+        while ($d->lte($end)) {
+            $dayKey = WeeklyScheduleWindow::carbonIsoToWeekdayKey($d->dayOfWeekIso);
+            foreach ($agents as $agent) {
+                $window = WeeklyScheduleWindow::resolveMinutesWindow(
+                    $agent->weekly_schedule,
+                    $dayKey,
+                    $storeSchedule
+                );
+                if ($window === null) {
+                    continue;
+                }
+                $minutes = max(0, (int) $window[1] - (int) $window[0]);
+                if ($subtractLunch && $minutes > 0) {
+                    $minutes = max(0, $minutes - self::OCUPACAO_LUNCH_BREAK_MINUTES);
+                }
+                $total += $minutes;
+            }
+            $d->addDay();
+        }
+
+        return $total;
+    }
+
+    /**
+     * Média de horas úteis/dia aberto (horário técnica ∩ loja − almoço).
+     *
+     * @param  Collection<int, Agent>  $agents
+     * @param  array<string, mixed>  $storeSchedule
+     */
+    private function ocupacaoAvgUsefulHoursPerOpenDay(Collection $agents, array $storeSchedule): float
+    {
+        $samples = [];
+        foreach ($agents as $agent) {
+            foreach (Agent::WEEKDAY_KEYS as $dayKey) {
+                $window = WeeklyScheduleWindow::resolveMinutesWindow(
+                    $agent->weekly_schedule,
+                    $dayKey,
+                    $storeSchedule
+                );
+                if ($window === null) {
+                    continue;
+                }
+                $minutes = max(0, (int) $window[1] - (int) $window[0]);
+                if ($minutes <= 0) {
+                    continue;
+                }
+                $samples[] = max(0, $minutes - self::OCUPACAO_LUNCH_BREAK_MINUTES);
+            }
+        }
+
+        if ($samples === []) {
+            return 0.0;
+        }
+
+        return round((array_sum($samples) / count($samples)) / 60, 1);
     }
 
     private function ocupacaoIsoWeekdayToScheduleKey(int $iso): string
     {
-        return match ($iso) {
-            1 => 'mon',
-            2 => 'tue',
-            3 => 'wed',
-            4 => 'thu',
-            5 => 'fri',
-            6 => 'sat',
-            7 => 'sun',
-            default => 'mon',
-        };
-    }
-
-    /**
-     * @param  array<string, int>  $slotsByWeekdayKey
-     */
-    private function ocupacaoTotalSlotsBetween(Carbon $start, Carbon $end, array $slotsByWeekdayKey, int $numTecnicos): int
-    {
-        if ($numTecnicos <= 0) {
-            return 0;
-        }
-
-        $perTech = 0;
-        $d = $start->copy()->startOfDay();
-        while ($d->lte($end)) {
-            $key = $this->ocupacaoIsoWeekdayToScheduleKey($d->dayOfWeekIso);
-            $perTech += $slotsByWeekdayKey[$key] ?? 0;
-            $d->addDay();
-        }
-
-        return $perTech * $numTecnicos;
+        return WeeklyScheduleWindow::carbonIsoToWeekdayKey($iso);
     }
 
     private function ocupacaoMarcacoesBase(Collection $prestadorUserIds)
@@ -1587,7 +1701,7 @@ class DashboardController extends Controller
         return $query->whereIn('user_id', $prestadorUserIds);
     }
 
-    private function ocupacaoFilledSlotsBetween(Carbon $startLocal, Carbon $endLocal, Collection $prestadorUserIds): float
+    private function ocupacaoFilledMinutesBetween(Carbon $startLocal, Carbon $endLocal, Collection $prestadorUserIds): float
     {
         if ($prestadorUserIds->isEmpty()) {
             return 0;
@@ -1609,9 +1723,7 @@ class DashboardController extends Controller
         $cesIds = CalendarEventService::whereIn('calendar_event_id', $eventIds)->pluck('id');
         $extraMinutes = CalendarEventServiceExtra::whereIn('calendar_event_service_id', $cesIds)->sum('duration');
 
-        $total = (int) $totalMinutes + (int) $extraMinutes;
-
-        return ceil($total / self::SLOT_DURATION_MINUTES);
+        return (float) ((int) $totalMinutes + (int) $extraMinutes);
     }
 
     /**
@@ -1798,16 +1910,23 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param  array<string, int>  $slotsByWeekdayKey
+     * @param  Collection<int, Agent>  $prestadorAgents
+     * @param  Collection<int, int>  $prestadorUserIds
      */
-    private function ocupacaoPorTecnico(Carbon $startLocal, Carbon $endLocal, array $slotsByWeekdayKey, Collection $prestadorUserIds): Collection
-    {
-        if ($prestadorUserIds->isEmpty()) {
+    private function ocupacaoPorTecnico(
+        Carbon $startLocal,
+        Carbon $endLocal,
+        Store $store,
+        Collection $prestadorAgents,
+        Collection $prestadorUserIds,
+    ): Collection {
+        if ($prestadorAgents->isEmpty()) {
             return collect();
         }
 
         [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($startLocal, $endLocal);
-        $totalSlotsPerTech = $this->ocupacaoTotalSlotsBetween($startLocal, $endLocal, $slotsByWeekdayKey, 1);
+        $storeSchedule = $store->normalizedWeeklySchedule();
+        $agentsByUserId = $prestadorAgents->keyBy(fn (Agent $a): int => (int) $a->user_id);
 
         $filledByUser = CalendarEventService::query()
             ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
@@ -1823,17 +1942,31 @@ class DashboardController extends Controller
 
         $users = User::whereIn('id', $prestadorUserIds)->get()->keyBy('id');
 
-        return $prestadorUserIds->map(function ($userId) use ($filledByUser, $totalSlotsPerTech, $users) {
+        return $prestadorUserIds->map(function ($userId) use ($filledByUser, $agentsByUserId, $storeSchedule, $startLocal, $endLocal, $users) {
+            $userId = (int) $userId;
+            $agent = $agentsByUserId->get($userId);
+            $capacityMinutes = $agent instanceof Agent
+                ? $this->ocupacaoCapacityMinutesForAgents(
+                    $startLocal,
+                    $endLocal,
+                    collect([$agent]),
+                    $storeSchedule,
+                    true
+                )
+                : 0;
             $row = $filledByUser->get($userId);
             $totalMin = $row ? (int) $row->total_min : 0;
-            $filledSlots = ceil($totalMin / self::SLOT_DURATION_MINUTES);
-            $taxa = $totalSlotsPerTech > 0 ? round(min(100, ($filledSlots / $totalSlotsPerTech) * 100), 1) : 0;
+            $taxa = $capacityMinutes > 0
+                ? round(min(100, ($totalMin / $capacityMinutes) * 100), 1)
+                : 0;
 
             return (object) [
                 'user_id' => $userId,
-                'name' => $users->get($userId)?->name ?? 'N/A',
-                'filled_slots' => $filledSlots,
-                'total_slots' => (int) $totalSlotsPerTech,
+                'name' => $agent?->name ?: ($users->get($userId)?->name ?? 'N/A'),
+                'filled_hours' => $this->ocupacaoFormatDurationLabel($totalMin),
+                'total_hours' => $this->ocupacaoFormatDurationLabel($capacityMinutes),
+                'filled_minutes' => $totalMin,
+                'total_minutes' => $capacityMinutes,
                 'taxa' => $taxa,
             ];
         })->sortByDesc('taxa')->values();

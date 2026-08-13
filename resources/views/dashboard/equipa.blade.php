@@ -200,14 +200,14 @@
 
                                 <div class="progress dash-equipa-bar mb-3" style="height: 1.5rem;">
                                     @if ($card['minutos_capacidade'] > 0)
-                                        @if ($card['pct_marcacao'] > 0)
-                                            <div class="progress-bar bg-success" style="width: {{ $card['pct_marcacao'] }}%" title="Horas previstas {{ $card['pct_marcacao'] }}%">{{ $card['pct_marcacao'] >= 12 ? $card['pct_marcacao'].'%' : '' }}</div>
+                                        @if ($card['bar_pct_marcacao'] > 0)
+                                            <div class="progress-bar bg-success" style="width: {{ $card['bar_pct_marcacao'] }}%" title="Horas previstas {{ $card['pct_marcacao'] }}%">{{ $card['bar_pct_marcacao'] >= 12 ? $card['bar_pct_marcacao'].'%' : '' }}</div>
                                         @endif
-                                        @if ($card['pct_pessoal'] > 0)
-                                            <div class="progress-bar dash-equipa-seg-pessoal" style="width: {{ $card['pct_pessoal'] }}%" title="Tempo pessoal {{ $card['pct_pessoal'] }}%">{{ $card['pct_pessoal'] >= 12 ? $card['pct_pessoal'].'%' : '' }}</div>
+                                        @if ($card['bar_pct_pessoal'] > 0)
+                                            <div class="progress-bar dash-equipa-seg-pessoal" style="width: {{ $card['bar_pct_pessoal'] }}%" title="Tempo pessoal {{ $card['pct_pessoal'] }}%">{{ $card['bar_pct_pessoal'] >= 12 ? $card['bar_pct_pessoal'].'%' : '' }}</div>
                                         @endif
-                                        @if ($card['pct_vagas'] > 0)
-                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['pct_vagas'] }}%" title="Vagas {{ $card['pct_vagas'] }}%">{{ $card['pct_vagas'] >= 12 ? $card['pct_vagas'].'%' : '' }}</div>
+                                        @if ($card['bar_pct_vagas'] > 0)
+                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['bar_pct_vagas'] }}%" title="Vagas {{ $card['pct_vagas'] }}%">{{ $card['bar_pct_vagas'] >= 12 ? $card['bar_pct_vagas'].'%' : '' }}</div>
                                         @endif
                                     @else
                                         <div class="progress-bar bg-secondary" style="width: 100%">Loja fechada</div>

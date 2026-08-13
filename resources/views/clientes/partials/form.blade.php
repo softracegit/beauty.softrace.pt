@@ -139,6 +139,20 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Origem</label>
+                            <input type="text" name="origem" class="form-control @error('origem') is-invalid @enderror" value="{{ $v('origem') }}" maxlength="255" placeholder="Ex: Indicação, Google, Instagram…">
+                            @error('origem')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Profissão</label>
+                            <input type="text" name="profissao" class="form-control @error('profissao') is-invalid @enderror" value="{{ $v('profissao') }}" maxlength="255" placeholder="Ex: Designer, Médica…">
+                            @error('profissao')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                     </div>
                 </div>
             </div>

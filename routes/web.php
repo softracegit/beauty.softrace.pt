@@ -271,6 +271,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
         Route::post('notificacoes', [DefinicoesController::class, 'updateNotificacoes'])->name('notificacoes.update');
         Route::get('pagamentos', [DefinicoesController::class, 'pagamentos'])->name('pagamentos');
         Route::post('pagamentos', [DefinicoesController::class, 'updatePagamentos'])->name('pagamentos.update');
+        Route::post('pagamentos/stripe', [DefinicoesController::class, 'updatePagamentosStripe'])->name('pagamentos.stripe.update');
     });
 
     Route::get('client-tags', [ClientTagController::class, 'index'])->name('client-tags.index');
@@ -333,6 +334,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('agenda/clients', [CalendarController::class, 'clients'])->name('agenda.clients');
     Route::post('agenda/clients', [CalendarController::class, 'storeClient'])->name('agenda.clients.store');
     Route::put('agenda/clients/{client}/nif', [CalendarController::class, 'updateClientNif'])->name('agenda.clients.nif');
+    Route::put('agenda/clients/{client}/profile', [CalendarController::class, 'updateClientProfile'])->name('agenda.clients.profile');
     Route::put('agenda/clients/{client}/tags', [ClientTagController::class, 'syncForClient'])->name('agenda.clients.tags');
     Route::get('agenda/clients/{client}/wallet', [CalendarController::class, 'clientWallet'])->name('agenda.clients.wallet');
     Route::get('agenda/clients/{client}/saved-cards', [CalendarController::class, 'clientSavedCards'])->name('agenda.clients.saved_cards');

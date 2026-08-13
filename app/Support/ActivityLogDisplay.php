@@ -15,7 +15,7 @@ use DateTimeInterface;
 class ActivityLogDisplay
 {
     /** Atributos omitidos na listagem (ex.: título auto-gerado, já não registado). */
-    private const HIDDEN_CHANGE_ATTRIBUTES = ['title', 'password', 'synthetic', 'synthetic_causer_label', 'origem'];
+    private const HIDDEN_CHANGE_ATTRIBUTES = ['title', 'password', 'synthetic', 'synthetic_causer_label'];
 
     /** @var array<string, string> */
     private const ATTRIBUTE_LABELS = [
@@ -39,6 +39,8 @@ class ActivityLogDisplay
         'role' => 'Tipo de membro',
         'preferences_notes' => 'Notas de preferências',
         'preferred_schedule' => 'Horário preferido',
+        'origem' => 'Origem',
+        'profissao' => 'Profissão',
         'type' => 'Tipo de cliente',
         'visible_in_agenda' => 'Visível na agenda',
         'visible_in_booking' => 'Visível na marcação online',

@@ -7,6 +7,7 @@ use App\Models\Client;
 use App\Models\CrmSetting;
 use App\Models\User;
 use App\Support\CurrentStore;
+use App\Support\StripeCredentials;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,6 @@ use Stripe\Customer;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentMethod;
 use Stripe\SetupIntent;
-use Stripe\Stripe;
 
 class BookingSavedCardController extends Controller
 {
@@ -52,8 +52,8 @@ class BookingSavedCardController extends Controller
             return response()->json(['message' => __('booking.validation.card_validation_prepare_failed')], 422);
         }
 
-        $publishable = config('stripe.key');
-        if (! is_string($publishable) || $publishable === '') {
+        $publishable = StripeCredentials::publishableKey($this->bookingStoreId());
+        if ($publishable === '') {
             return response()->json(['message' => __('booking.validation.stripe_key_missing')], 503);
         }
 
@@ -343,17 +343,6 @@ class BookingSavedCardController extends Controller
 
     private function configureStripeSdk(): void
     {
-        Stripe::setApiKey((string) config('stripe.secret'));
-
-        $apiVersion = config('stripe.api_version');
-        if (! is_string($apiVersion) || $apiVersion === '') {
-            return;
-        }
-
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}\.[a-zA-Z0-9_]+$/', $apiVersion)) {
-            return;
-        }
-
-        Stripe::setApiVersion($apiVersion);
+        StripeCredentials::configureSdk($this->bookingStoreId());
     }
 }

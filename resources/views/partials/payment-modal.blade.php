@@ -1,5 +1,6 @@
 @php
     $posGorjetaEnabled = $posGorjetaEnabled ?? \App\Models\CrmSetting::posGorjetaEnabled((int) current_store_id());
+    $stripePaymentsEnabled = $stripePaymentsEnabled ?? \App\Support\StripeCredentials::isReady((int) current_store_id());
 @endphp
 <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true" data-bs-backdrop="static" role="dialog" aria-modal="true" data-pos-gorjeta-enabled="{{ ($posGorjetaEnabled ?? true) ? '1' : '0' }}">
     <div class="modal-dialog modal-dialog-centered modal-lg payment-pos-modal">
@@ -136,24 +137,33 @@
 
                 <p class="small fw-semibold text-uppercase text-muted mb-2 mt-3" id="paymentMethodSectionLegend">Pagamento</p>
                 <div class="tempo-pessoal-type-toggle-wrapper" role="group" aria-labelledby="paymentMethodSectionLegend" id="paymentMethodToggleGroup">
-                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="dinheiro" aria-pressed="false">
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="dinheiro" aria-pressed="false" id="paymentMethodDinheiroBtn">
                         <i class="ph ph-money tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">Dinheiro</span>
                     </button>
-                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="cartao" aria-pressed="false" id="paymentMethodCartaoBtn">
+                    @if(! empty($stripePaymentsEnabled))
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="cartao" aria-pressed="false" id="paymentMethodCartaoBtn">
                         <i class="ph ph-credit-card tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">Cartão</span>
                         <span class="tempo-pessoal-type-card-sub small text-muted d-none" id="paymentMethodCartaoSubtitle"></span>
                     </button>
-                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="mbway" aria-pressed="false">
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="mbway" aria-pressed="false" id="paymentMethodMbwayBtn">
                         <i class="ph ph-device-mobile tempo-pessoal-type-card-icon" aria-hidden="true"></i>
-                        <span class="fw-semibold tempo-pessoal-type-card-name">MB Way</span>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">MBWay</span>
+                        <span class="tempo-pessoal-type-card-sub payment-method-stripe-badge" aria-label="Stripe">
+                            @include('definicoes.partials.stripe-logo', ['class' => 'payment-method-stripe-logo'])
+                        </span>
+                    </button>
+                    @endif
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="mbway_manual" aria-pressed="false" id="paymentMethodMbwayManualBtn">
+                        <i class="ph ph-device-mobile tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">MBWay (manual)</span>
                     </button>
                     <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="transferencia" aria-pressed="false" id="paymentMethodTransferenciaBtn">
                         <i class="ph ph-bank tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">Transferência</span>
                     </button>
-                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card" data-method="creditos_carteira" aria-pressed="false" id="paymentMethodCreditosCarteiraBtn">
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="creditos_carteira" aria-pressed="false" id="paymentMethodCreditosCarteiraBtn">
                         <i class="ph ph-wallet tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">Créditos</span>
                     </button>

@@ -13,12 +13,13 @@ use App\Models\ClientWalletTransaction;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Support\ApplicableFees;
+use App\Support\PaymentMethodCatalog;
 use App\Support\PhoneDisplay;
+use App\Support\StripeCredentials;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
-use Stripe\Stripe;
 
 class AgendaDepositService
 {
@@ -192,11 +193,24 @@ class AgendaDepositService
 
         $paymentMethod = (string) ($options['payment_method'] ?? '');
         if ($stripePortionCents > 0) {
-            if ($paymentMethod === Sale::PAYMENT_MBWAY && CrmSetting::onlineBookingPaymentRequired((int) $calendarEvent->store_id)) {
-                throw new AgendaDepositException('MB WAY automático requer pagamentos online ativos. Use cartão guardado ou desative pagamentos Stripe nas definições para MB WAY manual.');
+            $stripeMbwayActive = PaymentMethodCatalog::isEnabled(Sale::PAYMENT_MBWAY, PaymentMethodCatalog::CHANNEL_AGENDA, (int) $calendarEvent->store_id)
+                && StripeCredentials::isReady((int) $calendarEvent->store_id);
+
+            if ($paymentMethod === Sale::PAYMENT_MBWAY && $stripeMbwayActive) {
+                throw new AgendaDepositException('MB WAY automático requer o fluxo Stripe. Use o botão MB Way (Stripe) ou MB Way (registo).');
             }
-            if (! in_array($paymentMethod, [Sale::PAYMENT_DINHEIRO, Sale::PAYMENT_MBWAY, Sale::PAYMENT_TRANSFERENCIA], true)) {
-                throw new AgendaDepositException('Para o valor em falta após créditos, use dinheiro, MB WAY ou transferência.');
+
+            $allowedManual = [
+                Sale::PAYMENT_DINHEIRO,
+                Sale::PAYMENT_MBWAY_MANUAL,
+                Sale::PAYMENT_TRANSFERENCIA,
+            ];
+            if (! $stripeMbwayActive) {
+                $allowedManual[] = Sale::PAYMENT_MBWAY;
+            }
+
+            if (! in_array($paymentMethod, $allowedManual, true)) {
+                throw new AgendaDepositException('Para o valor em falta após créditos, use dinheiro, MB Way (registo) ou transferência.');
             }
         } elseif ($walletApplyCents <= 0) {
             throw new AgendaDepositException('Indique créditos da carteira ou um método de pagamento.');
@@ -275,7 +289,7 @@ class AgendaDepositService
             $client->save();
         }
 
-        $this->configureStripeSdk();
+        $this->configureStripeSdk((int) $calendarEvent->store_id);
 
         try {
             $intent = PaymentIntent::create([
@@ -422,7 +436,7 @@ class AgendaDepositService
             throw new AgendaDepositException('O valor mínimo para pagamento com cartão é 0,50 €.');
         }
 
-        $this->configureStripeSdk();
+        $this->configureStripeSdk((int) $calendarEvent->store_id);
 
         try {
             $intent = PaymentIntent::create([
@@ -834,17 +848,12 @@ class AgendaDepositService
         };
     }
 
-    private function configureStripeSdk(): void
+    private function configureStripeSdk(?int $storeId = null): void
     {
-        $secret = config('stripe.secret');
-        if (! is_string($secret) || $secret === '') {
-            throw new AgendaDepositException('Stripe não configurado no servidor.', 503);
-        }
-
-        Stripe::setApiKey($secret);
-        $apiVersion = config('stripe.api_version');
-        if (is_string($apiVersion) && $apiVersion !== '' && preg_match('/^\d{4}-\d{2}-\d{2}\.[a-zA-Z0-9_]+$/', $apiVersion)) {
-            Stripe::setApiVersion($apiVersion);
+        try {
+            StripeCredentials::configureSdk($storeId);
+        } catch (\RuntimeException $e) {
+            throw new AgendaDepositException($e->getMessage() !== '' ? $e->getMessage() : 'Stripe não configurado.', 503);
         }
     }
 }

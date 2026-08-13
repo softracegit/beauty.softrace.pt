@@ -33,7 +33,6 @@
     <div class="dash-welcome-header-row">
         <div class="dash-welcome-content flex-grow-1 min-w-0">
             <h2 class="dash-welcome-title">Ocupação</h2>
-            <p class="dash-welcome-text mt-2 d-none d-md-block">Taxa de ocupação dos prestadores de serviços, horários de pico, dias mais ocupados e duração média. Slots de 90 min com base no horário da loja menos 1 h de almoço ({{ $storeHoursLabel ?? '—' }}).</p>
         </div>
         <form method="GET" action="{{ route('dashboard.ocupacao') }}" class="dash-welcome-filters">
             @if(request()->filled('glue_period'))
@@ -60,31 +59,31 @@
 <div class="dash-kpi-strip mb-4">
     <div class="dash-kpi">
         <div class="dash-kpi-icon primary">
-            <i class="ph-duotone ph-chart-pie-slice"></i>
+            <i class="ph-duotone ph-calendar-check"></i>
         </div>
         <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $taxaOcupacaoMes ?? 0 }}%</div>
-            <div class="dash-kpi-label">Ocupação em {{ $periodLabel ?? 'este mês' }}</div>
-        </div>
-    </div>
-
-    <div class="dash-kpi">
-        <div class="dash-kpi-icon success">
-            <i class="ph-duotone ph-chart-bar"></i>
-        </div>
-        <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ $taxaOcupacaoSemana ?? 0 }}%</div>
-            <div class="dash-kpi-label">Ocupação na semana ({{ $weekPeriodLabel ?? '—' }})</div>
+            <div class="dash-kpi-value">{{ $taxaOcupacaoHoje ?? 0 }}%</div>
+            <div class="dash-kpi-label">hoje · {{ $horasOcupacaoHoje ?? '0min / 0min' }}</div>
         </div>
     </div>
 
     <div class="dash-kpi">
         <div class="dash-kpi-icon info">
-            <i class="ph-duotone ph-squares-four"></i>
+            <i class="ph-duotone ph-chart-bar"></i>
         </div>
         <div class="dash-kpi-body">
-            <div class="dash-kpi-value">{{ number_format($filledSlotsMonth ?? 0, 0, ',', '.') }} / {{ number_format($totalSlotsMonth ?? 0, 0, ',', '.') }}</div>
-            <div class="dash-kpi-label">Slots preenchidos / total ({{ $periodLabel ?? 'mês' }})</div>
+            <div class="dash-kpi-value">{{ $taxaOcupacaoSemana ?? 0 }}%</div>
+            <div class="dash-kpi-label">esta semana · {{ $horasOcupacaoSemana ?? '0min / 0min' }}</div>
+        </div>
+    </div>
+
+    <div class="dash-kpi">
+        <div class="dash-kpi-icon success">
+            <i class="ph-duotone ph-chart-pie-slice"></i>
+        </div>
+        <div class="dash-kpi-body">
+            <div class="dash-kpi-value">{{ $taxaOcupacaoMes ?? 0 }}%</div>
+            <div class="dash-kpi-label">este mês · {{ $horasOcupacaoMes ?? '0min / 0min' }}</div>
         </div>
     </div>
 
@@ -94,7 +93,7 @@
         </div>
         <div class="dash-kpi-body">
             <div class="dash-kpi-value">{{ $duracaoMediaGeral ? round($duracaoMediaGeral) : '—' }}{{ $duracaoMediaGeral ? ' min' : '' }}</div>
-            <div class="dash-kpi-label">Duração média (marcação)</div>
+            <div class="dash-kpi-label">duração média</div>
         </div>
     </div>
 </div>
@@ -201,7 +200,7 @@
                             <div class="progress region-progress">
                                 <div class="progress-bar" style="width: {{ min($t->taxa, 100) }}%"></div>
                             </div>
-                            <span class="region-value">{{ $t->taxa }}% ({{ $t->filled_slots }}/{{ $t->total_slots }} slots)</span>
+                            <span class="region-value">{{ $t->taxa }}% ({{ $t->filled_hours }}/{{ $t->total_hours }})</span>
                         </div>
                     </div>
                 @empty
@@ -243,11 +242,12 @@
         </div>
         <div class="card-body">
             <ul class="list-unstyled mb-0 small">
-                <li><strong>Slot:</strong> 90 min</li>
+                <li><strong>Slot:</strong> 90 min (análise de horários vazios)</li>
                 <li><strong>Horário da loja:</strong> {{ $storeHoursLabel ?? '—' }}</li>
-                <li><strong>Pausa de almoço:</strong> −1 h / dia (horas úteis)</li>
-                <li><strong>Dias abertos:</strong> {{ $storeOpenDaysLabel ?: '—' }}</li>
-                <li><strong>Slots médios por dia / prestador:</strong> {{ $avgSlotsPerOpenDayPerTech ?? 0 }}</li>
+                <li><strong>Capacidade:</strong> horário de cada técnica ∩ loja</li>
+                <li><strong>Pausa de almoço:</strong> −1 h / dia (só na taxa de ocupação)</li>
+                <li><strong>Dias abertos (loja):</strong> {{ $storeOpenDaysLabel ?: '—' }}</li>
+                <li><strong>Horas úteis médias / dia / prestador:</strong> {{ $avgUsefulHoursPerOpenDayPerTech ?? 0 }} h</li>
                 <li><strong>Prestadores ativos:</strong> {{ $numTecnicos ?? 0 }}</li>
                 <li><strong>Fuso horário:</strong> {{ $ocupacaoTimezoneLabel ?? '—' }}</li>
             </ul>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
@@ -17,19 +18,29 @@ class StripeWebhookController extends Controller
      */
     public function handle(Request $request): Response
     {
-        $secret = config('stripe.webhook_secret');
-        if (! is_string($secret) || $secret === '') {
-            Log::warning('Stripe webhook: STRIPE_WEBHOOK_SECRET não está definido.');
+        $secrets = StripeCredentials::allWebhookSecrets();
+        if ($secrets === []) {
+            Log::warning('Stripe webhook: nenhum webhook secret configurado nas Definições das lojas.');
 
             return response('Webhook not configured', 503);
         }
 
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature', '');
-        try {
-            $event = Webhook::constructEvent($payload, $sigHeader, $secret);
-        } catch (\UnexpectedValueException|SignatureVerificationException $e) {
-            return response('Invalid payload', 400);
+        $event = null;
+        foreach ($secrets as $secret) {
+            try {
+                $event = Webhook::constructEvent($payload, $sigHeader, $secret);
+                break;
+            } catch (SignatureVerificationException) {
+                continue;
+            } catch (\UnexpectedValueException) {
+                return response('Invalid payload', 400);
+            }
+        }
+
+        if ($event === null) {
+            return response('Invalid signature', 400);
         }
 
         $object = $event->data->object ?? null;

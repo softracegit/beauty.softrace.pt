@@ -529,7 +529,7 @@ class BookingController extends Controller
             'client' => $client,
             'savedCards' => $cards,
             'bookingStripeEnabled' => $bookingStripeEnabled,
-            'stripePublishableKey' => $bookingStripeEnabled ? (string) config('stripe.key') : '',
+            'stripePublishableKey' => $bookingStripeEnabled ? \App\Support\StripeCredentials::publishableKey($this->bookingStoreId()) : '',
         ]);
     }
 

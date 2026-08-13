@@ -7,17 +7,19 @@ use App\Http\Concerns\DeniesPrestadorPayments;
 use App\Exceptions\AgendaDepositException;
 use App\Models\CalendarEvent;
 use App\Models\CrmSetting;
+use App\Models\Sale;
 use App\Services\AgendaDepositResult;
 use App\Services\AgendaDepositService;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
+use App\Support\PaymentMethodCatalog;
+use App\Support\StripeCredentials;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
-use Stripe\Stripe;
 
 class AgendaDepositController extends Controller
 {
@@ -65,7 +67,7 @@ class AgendaDepositController extends Controller
         $this->assertMarcacaoInStore($calendarEvent);
 
         $validated = $request->validate([
-            'payment_method' => ['nullable', 'string', 'in:dinheiro,mbway,transferencia'],
+            'payment_method' => ['nullable', 'string', 'in:dinheiro,mbway,mbway_manual,transferencia'],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
             'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
@@ -104,6 +106,14 @@ class AgendaDepositController extends Controller
 
         $this->assertMarcacaoInStore($calendarEvent);
 
+        $storeId = (int) ($calendarEvent->store_id ?: current_store_id());
+        if (! PaymentMethodCatalog::isEnabled(Sale::PAYMENT_MBWAY, PaymentMethodCatalog::CHANNEL_AGENDA, $storeId)
+            || ! StripeCredentials::isReady($storeId)) {
+            return response()->json([
+                'error' => 'MB Way (Stripe) não está disponível para pré-pagamento. Verifique Definições → Pagamentos.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'mbway_phone' => ['nullable', 'string', 'max:40'],
             'wallet_apply' => ['sometimes', 'boolean'],
@@ -136,9 +146,11 @@ class AgendaDepositController extends Controller
         }
 
         $this->assertMarcacaoInStore($calendarEvent);
-        if (! CrmSetting::onlineBookingPaymentRequired(current_store_id())) {
+        $storeId = current_store_id();
+        if (! PaymentMethodCatalog::isEnabled(Sale::PAYMENT_MBWAY, PaymentMethodCatalog::CHANNEL_AGENDA, $storeId)
+            || ! StripeCredentials::isReady($storeId)) {
             return response()->json([
-                'error' => 'Pagamentos automáticos estão desativados. Registe o MB WAY manualmente (dinheiro/MB WAY).',
+                'error' => 'MB Way (Stripe) não está disponível para pré-pagamento. Verifique Definições → Pagamentos.',
             ], 422);
         }
 
@@ -151,8 +163,7 @@ class AgendaDepositController extends Controller
             'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
-        $this->configureStripeSdk();
-
+        $this->configureStripeSdk($storeId);
         try {
             $intent = PaymentIntent::retrieve((string) $validated['payment_intent_id']);
         } catch (ApiErrorException) {
@@ -184,9 +195,11 @@ class AgendaDepositController extends Controller
         }
 
         $this->assertMarcacaoInStore($calendarEvent);
-        if (! CrmSetting::onlineBookingPaymentRequired(current_store_id())) {
+        $storeId = current_store_id();
+        if (! PaymentMethodCatalog::isEnabled(Sale::PAYMENT_CARTAO, PaymentMethodCatalog::CHANNEL_AGENDA, $storeId)
+            || ! StripeCredentials::isReady($storeId)) {
             return response()->json([
-                'error' => 'Pagamentos com cartão guardado requerem pagamentos online ativos nas definições.',
+                'error' => 'Pagamentos com cartão requerem Stripe activo em Definições → Pagamentos.',
             ], 422);
         }
 
@@ -348,17 +361,12 @@ class AgendaDepositController extends Controller
         return response()->json($body, $status);
     }
 
-    private function configureStripeSdk(): void
+    private function configureStripeSdk(?int $storeId = null): void
     {
-        $secret = config('stripe.secret');
-        if (! is_string($secret) || $secret === '') {
-            return;
-        }
-
-        Stripe::setApiKey($secret);
-        $apiVersion = config('stripe.api_version');
-        if (is_string($apiVersion) && $apiVersion !== '' && preg_match('/^\d{4}-\d{2}-\d{2}\.[a-zA-Z0-9_]+$/', $apiVersion)) {
-            Stripe::setApiVersion($apiVersion);
+        try {
+            StripeCredentials::configureSdk($storeId ?? current_store_id());
+        } catch (\RuntimeException) {
+            // Caller validates readiness where needed.
         }
     }
 }

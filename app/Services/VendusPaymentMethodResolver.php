@@ -121,6 +121,7 @@ final class VendusPaymentMethodResolver
             // Em algumas contas Vendus não existe tipo MBWAY; FR exige pagamento no ato.
             // Fallback para cartões evita erro A001 em documentos FR.
             Sale::PAYMENT_MBWAY => ['MBWAY', 'CC', 'CD', 'NU'],
+            Sale::PAYMENT_MBWAY_MANUAL => ['MBWAY', 'CC', 'CD', 'NU'],
             Sale::PAYMENT_MULTIBANCO => ['MB', 'CD'],
             Sale::PAYMENT_TRANSFERENCIA => ['TB'],
             Sale::PAYMENT_CARTAO => ['CC', 'CD'],

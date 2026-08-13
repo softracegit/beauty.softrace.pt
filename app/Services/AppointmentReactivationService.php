@@ -9,6 +9,7 @@ use App\Models\ClientWalletTransaction;
 use App\Notifications\ClientAppointmentReactivatedNotification;
 use App\Support\ActivityLogContext;
 use App\Support\BookingLocale;
+use App\Support\StoreBusinessTime;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +27,10 @@ class AppointmentReactivationService
     public function blockers(CalendarEvent $event): array
     {
         $blockers = [];
+
+        if ($this->isStartInThePast($event)) {
+            $blockers[] = 'Só é possível reativar marcações com início no momento atual ou no futuro. Esta marcação está no passado — crie uma nova na agenda.';
+        }
 
         if ($this->hasCancellationWalletCredit($event)) {
             $amount = (int) ($event->wallet_credit_amount_cents ?? 0);
@@ -163,6 +168,24 @@ class AppointmentReactivationService
             previousStatus: $result->previousStatus,
             clientNotified: $clientNotified,
         );
+    }
+
+    /**
+     * Reativar mantém start_at/end_at; não faz sentido voltar a «agendado» no passado.
+     */
+    public function isStartInThePast(CalendarEvent $event): bool
+    {
+        $start = $event->start_at;
+        if (! $start instanceof CarbonInterface) {
+            return false;
+        }
+
+        $storeId = (int) ($event->store_id ?? 0);
+        $nowUtc = $storeId > 0
+            ? StoreBusinessTime::nowUtcForStore($storeId)
+            : now()->utc();
+
+        return StoreBusinessTime::toUtcInstant($start)->lt($nowUtc);
     }
 
     public function hasCancellationWalletCredit(CalendarEvent $event): bool

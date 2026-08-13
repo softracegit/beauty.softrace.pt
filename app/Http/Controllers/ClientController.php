@@ -227,6 +227,8 @@ class ClientController extends Controller
             'gender' => ['nullable', Rule::in(array_keys(Client::genders()))],
             'nationality' => ['nullable', 'string', 'max:100'],
             'marital_status' => ['nullable', Rule::in(array_keys(Client::maritalStatuses()))],
+            'origem' => ['nullable', 'string', 'max:255'],
+            'profissao' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
             'door' => ['nullable', 'string', 'max:10'],
             'floor' => ['nullable', 'string', 'max:10'],
@@ -330,7 +332,7 @@ class ClientController extends Controller
         }
 
         $marcacoes = $marcacoesQuery
-            ->with(['user', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
+            ->with(['client', 'user', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
             ->orderByDesc('start_at')
             ->limit(200)
             ->get();
@@ -535,6 +537,8 @@ class ClientController extends Controller
             'gender' => ['nullable', Rule::in(array_keys(Client::genders()))],
             'nationality' => ['nullable', 'string', 'max:100'],
             'marital_status' => ['nullable', Rule::in(array_keys(Client::maritalStatuses()))],
+            'origem' => ['nullable', 'string', 'max:255'],
+            'profissao' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
             'door' => ['nullable', 'string', 'max:10'],
             'floor' => ['nullable', 'string', 'max:10'],
