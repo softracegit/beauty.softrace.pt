@@ -336,18 +336,13 @@ class DashboardController extends Controller
                 $pctMarcacao = $capacity > 0 ? (int) round(($minMarcacao / $capacity) * 100) : 0;
                 $pctPessoal = $capacity > 0 ? (int) round(($minPessoal / $capacity) * 100) : 0;
                 $pctVagas = $capacity > 0 ? (int) round(($minVagas / $capacity) * 100) : 0;
-                // Barra: se marcações + pessoal > capacidade, normalizar para somar 100%.
-                $filledForBar = $minMarcacao + $minPessoal;
-                if ($capacity > 0 && $filledForBar > $capacity && $filledForBar > 0) {
-                    $barPctMarcacao = (int) round(($minMarcacao / $filledForBar) * 100);
-                    $barPctPessoal = max(0, 100 - $barPctMarcacao);
-                    $barPctVagas = 0;
-                } else {
-                    $barPctMarcacao = min(100, $pctMarcacao);
-                    $barPctPessoal = min(100 - $barPctMarcacao, $pctPessoal);
-                    $barPctVagas = max(0, 100 - $barPctMarcacao - $barPctPessoal);
-                }
-                $preenchimento = (float) min(100, $pctMarcacao);
+                $minExcesso = max(0, $minMarcacao + $minPessoal - $capacity);
+                // Barra = fatias da capacidade (máx. 100%). Se excede, o excesso não entra na barra.
+                $barPctMarcacao = min(100, $pctMarcacao);
+                $barPctPessoal = min(max(0, 100 - $barPctMarcacao), $pctPessoal);
+                $barPctVagas = max(0, 100 - $barPctMarcacao - $barPctPessoal);
+                // Preenchimento = % de capacidade ocupada por marcações (alinhado ao segmento verde).
+                $preenchimento = (float) $barPctMarcacao;
 
                 $avatarUrl = $agent->avatar
                     ? asset('storage/'.$agent->avatar)
@@ -365,11 +360,13 @@ class DashboardController extends Controller
                     'minutos_marcacao' => $minMarcacao,
                     'minutos_pessoal' => $minPessoal,
                     'minutos_vagas' => $minVagas,
+                    'minutos_excesso' => $minExcesso,
                     'minutos_capacidade' => $capacity,
                     'minutos_medio' => $minMedio,
                     'horas_marcacao' => $this->equipaFormatMinutes($minMarcacao),
                     'horas_pessoal' => $this->equipaFormatMinutes($minPessoal),
                     'horas_vagas' => $this->equipaFormatMinutes($minVagas),
+                    'horas_excesso' => $this->equipaFormatMinutes($minExcesso),
                     'horas_capacidade' => $this->equipaFormatMinutes($capacity),
                     'horas_medio' => $this->equipaFormatMinutes($minMedio),
                     'pct_marcacao' => $pctMarcacao,
@@ -378,6 +375,7 @@ class DashboardController extends Controller
                     'bar_pct_marcacao' => $barPctMarcacao,
                     'bar_pct_pessoal' => $barPctPessoal,
                     'bar_pct_vagas' => $barPctVagas,
+                    'excede_capacidade' => $minExcesso > 0,
                     'preenchimento' => $preenchimento,
                 ];
             })->values()->all();

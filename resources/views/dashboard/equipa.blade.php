@@ -56,9 +56,19 @@
         border: 1px solid #dee2e6;
         background-color: #fff;
     }
+    .dash-equipa-bar.dash-equipa-bar--over {
+        border-color: #f1aeb5;
+        box-shadow: inset 0 0 0 1px rgba(220, 53, 69, 0.12);
+    }
     .dash-equipa-bar .progress-bar {
         font-size: 0.65rem;
         font-weight: 600;
+    }
+    .dash-equipa-dot--excesso {
+        background-color: var(--bs-danger, #dc3545) !important;
+    }
+    .dash-equipa-metric--excesso .dash-equipa-metric-value {
+        color: var(--bs-danger, #dc3545);
     }
     .dash-equipa-status {
         display: flex;
@@ -198,16 +208,16 @@
                                     <div class="dash-equipa-marcacoes-label">Marcações</div>
                                 </div>
 
-                                <div class="progress dash-equipa-bar mb-3" style="height: 1.5rem;">
+                                <div class="progress dash-equipa-bar mb-3{{ ! empty($card['excede_capacidade']) ? ' dash-equipa-bar--over' : '' }}" style="height: 1.5rem;"@if (! empty($card['excede_capacidade'])) title="Excede a capacidade em {{ $card['horas_excesso'] }}"@endif>
                                     @if ($card['minutos_capacidade'] > 0)
                                         @if ($card['bar_pct_marcacao'] > 0)
-                                            <div class="progress-bar bg-success" style="width: {{ $card['bar_pct_marcacao'] }}%" title="Horas previstas {{ $card['pct_marcacao'] }}%">{{ $card['bar_pct_marcacao'] >= 12 ? $card['bar_pct_marcacao'].'%' : '' }}</div>
+                                            <div class="progress-bar bg-success" style="width: {{ $card['bar_pct_marcacao'] }}%" title="Horas previstas {{ $card['pct_marcacao'] }}%">{{ $card['bar_pct_marcacao'] >= 12 ? $card['pct_marcacao'].'%' : '' }}</div>
                                         @endif
                                         @if ($card['bar_pct_pessoal'] > 0)
-                                            <div class="progress-bar dash-equipa-seg-pessoal" style="width: {{ $card['bar_pct_pessoal'] }}%" title="Tempo pessoal {{ $card['pct_pessoal'] }}%">{{ $card['bar_pct_pessoal'] >= 12 ? $card['bar_pct_pessoal'].'%' : '' }}</div>
+                                            <div class="progress-bar dash-equipa-seg-pessoal" style="width: {{ $card['bar_pct_pessoal'] }}%" title="Tempo pessoal {{ $card['pct_pessoal'] }}%">{{ $card['bar_pct_pessoal'] >= 12 ? $card['pct_pessoal'].'%' : '' }}</div>
                                         @endif
                                         @if ($card['bar_pct_vagas'] > 0)
-                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['bar_pct_vagas'] }}%" title="Vagas {{ $card['pct_vagas'] }}%">{{ $card['bar_pct_vagas'] >= 12 ? $card['bar_pct_vagas'].'%' : '' }}</div>
+                                            <div class="progress-bar dash-equipa-seg-vagas" style="width: {{ $card['bar_pct_vagas'] }}%" title="Vagas {{ $card['pct_vagas'] }}%">{{ $card['bar_pct_vagas'] >= 12 ? $card['pct_vagas'].'%' : '' }}</div>
                                         @endif
                                     @else
                                         <div class="progress-bar bg-secondary" style="width: 100%">Loja fechada</div>
@@ -251,6 +261,15 @@
                                             @endif
                                         </span>
                                     </div>
+                                    @if (! empty($card['excede_capacidade']))
+                                        <div class="dash-equipa-metric dash-equipa-metric--excesso">
+                                            <span class="dash-equipa-metric-label">
+                                                <span class="dash-equipa-dot dash-equipa-dot--excesso"></span>
+                                                Excesso
+                                            </span>
+                                            <span class="dash-equipa-metric-value">{{ $card['horas_excesso'] }}</span>
+                                        </div>
+                                    @endif
                                     <div class="dash-equipa-metric">
                                         <span class="dash-equipa-metric-label">Tempo médio</span>
                                         <span class="dash-equipa-metric-value">{{ $card['horas_medio'] }}</span>
