@@ -95,7 +95,6 @@ class ClientController extends Controller
 
         $genders = Client::genders();
         $maritalStatuses = Client::maritalStatuses();
-        $yesNo = static fn (?bool $value): string => $value ? 'Sim' : 'Não';
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
@@ -116,10 +115,6 @@ class ClientController extends Controller
             'Profissão',
             'Etiquetas',
             'Observações das preferências',
-            'Saldo carteira (€)',
-            'Notificar email (atualizações)',
-            'Notificar email (lembretes)',
-            'Notificar SMS (lembretes)',
             'Termos aceites em',
             'Telemóvel verificado em',
             'Registado em',
@@ -130,7 +125,6 @@ class ClientController extends Controller
         $rowIndex = 2;
         foreach ($clients as $c) {
             $storeId = $c->store_id ? (int) $c->store_id : null;
-            $walletCents = (int) ($c->wallet_balance_cents ?? 0);
 
             $sheet->fromArray([
                 [
@@ -148,10 +142,6 @@ class ClientController extends Controller
                     $c->profissao ?? '',
                     $c->tags->pluck('name')->filter()->sort()->values()->implode(', '),
                     $this->exportShortText($c->preferences_notes),
-                    number_format($walletCents / 100, 2, ',', ' '),
-                    $yesNo((bool) $c->notify_email_booking_updates),
-                    $yesNo((bool) $c->notify_email_booking_reminders),
-                    $yesNo((bool) $c->notify_sms_booking_reminders),
                     DateTimeDisplay::formatInstant($c->terms_accepted_at, $storeId, 'd/m/Y H:i', ''),
                     DateTimeDisplay::formatInstant($c->phone_verified_at, $storeId, 'd/m/Y H:i', ''),
                     DateTimeDisplay::formatInstant($c->created_at, $storeId, 'd/m/Y H:i', ''),
