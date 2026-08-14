@@ -91,7 +91,16 @@
                     <div class="agenda-oc-client-panel__value">
                         <span id="{{ $pfx }}ClientSelectedOrigem" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
                         <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientOrigemAddBtn">Adicionar</button>
-                        <input type="text" id="{{ $pfx }}ClientOrigemInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="255" placeholder="Ex: Indicação, Google…" autocomplete="off">
+                        <select id="{{ $pfx }}ClientOrigemInput" class="agenda-oc-client-panel__inline-input agenda-oc-client-panel__inline-select d-none" aria-label="Origem do cliente">
+                            <option value="">— Selecionar —</option>
+                            @foreach(\App\Models\Client::origemGroups() as $group => $options)
+                                <optgroup label="{{ $group }}">
+                                    @foreach($options as $opt)
+                                        <option value="{{ $opt }}">{{ $opt }}</option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
                 <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientProfissaoViewField" data-profile-field="profissao">

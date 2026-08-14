@@ -141,7 +141,23 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Origem</label>
-                            <input type="text" name="origem" class="form-control @error('origem') is-invalid @enderror" value="{{ $v('origem') }}" maxlength="255" placeholder="Ex: Indicação, Google, Instagram…">
+                            @php
+                                $origemValue = (string) $v('origem');
+                                $origemKnown = array_key_exists($origemValue, \App\Models\Client::origemOptions());
+                            @endphp
+                            <select name="origem" class="form-select @error('origem') is-invalid @enderror">
+                                <option value="">— Selecionar —</option>
+                                @if($origemValue !== '' && ! $origemKnown)
+                                    <option value="{{ $origemValue }}" selected>{{ $origemValue }}</option>
+                                @endif
+                                @foreach(\App\Models\Client::origemGroups() as $group => $options)
+                                    <optgroup label="{{ $group }}">
+                                        @foreach($options as $opt)
+                                            <option value="{{ $opt }}" @selected($origemValue === $opt)>{{ $opt }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endforeach
+                            </select>
                             @error('origem')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

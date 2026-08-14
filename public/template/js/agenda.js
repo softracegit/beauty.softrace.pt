@@ -2720,11 +2720,38 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!input) return;
         try {
             input.focus();
+            if (input.tagName === 'SELECT') return;
             var len = String(input.value || '').length;
             if (typeof input.setSelectionRange === 'function') {
                 input.setSelectionRange(len, len);
             }
         } catch (e) { /* ignore */ }
+    }
+    function agendaOcEnsureOrigemOption(select, value) {
+        if (!select) return;
+        var v = String(value || '');
+        var extra = select.querySelector('option[data-legacy="1"]');
+        if (extra) extra.remove();
+        if (v === '') {
+            select.value = '';
+            return;
+        }
+        var found = false;
+        Array.prototype.forEach.call(select.options, function(opt) {
+            if (opt.value === v) found = true;
+        });
+        if (!found) {
+            var o = document.createElement('option');
+            o.value = v;
+            o.textContent = v;
+            o.setAttribute('data-legacy', '1');
+            if (select.options.length > 1) {
+                select.insertBefore(o, select.options[1]);
+            } else {
+                select.appendChild(o);
+            }
+        }
+        select.value = v;
     }
     function agendaOcExitAllProfileInlineEdits(prefix) {
         AGENDA_OC_PROFILE_FIELD_KEYS.forEach(function(key) {
@@ -5453,7 +5480,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (fieldKey === 'email') {
             input.value = String(c.email || '');
         } else if (fieldKey === 'origem') {
-            input.value = String(c.origem || '');
+            agendaOcEnsureOrigemOption(input, c.origem);
         } else if (fieldKey === 'profissao') {
             input.value = String(c.profissao || '');
         }
@@ -6203,6 +6230,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         eventDetailOcSetClientProfileEditMode(false);
                     }
                 });
+                if (cfg.field === 'origem') {
+                    input.addEventListener('change', function() {
+                        eventDetailOcSaveProfileInlineField('origem');
+                    });
+                }
             }
         });
         var ceditNif = $id('eventDetailOcClientNifEditBtn');
@@ -7045,7 +7077,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (fieldKey === 'email') {
             input.value = String(c.email || '');
         } else if (fieldKey === 'origem') {
-            input.value = String(c.origem || '');
+            agendaOcEnsureOrigemOption(input, c.origem);
         } else if (fieldKey === 'profissao') {
             input.value = String(c.profissao || '');
         }
@@ -8223,6 +8255,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 agendaOcSetClientProfileEditMode(false);
                             }
                         });
+                        if (cfg.field === 'origem') {
+                            input.addEventListener('change', function() {
+                                agendaOcSaveProfileInlineField('origem');
+                            });
+                        }
                     }
                 });
                 var ocNifEdit = $id('agendaOcClientNifEditBtn');

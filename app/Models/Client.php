@@ -154,6 +154,55 @@ class Client extends Model
         ];
     }
 
+    /**
+     * Origem do cliente (grupos para <select> / <optgroup>).
+     *
+     * @return array<string, list<string>>
+     */
+    public static function origemGroups(): array
+    {
+        return [
+            'Redes Sociais' => [
+                'Instagram (Orgânico)',
+                'Instagram (Anúncios/Ads)',
+                'TikTok / Outras Redes',
+                'Facebook',
+            ],
+            'Google e Presença Local' => [
+                'Google Perfil da Empresa (Maps/Reviews)',
+                'Pesquisa Google (Orgânico)',
+            ],
+            'Referenciação e Boca a Boca' => [
+                'Recomendação de Cliente',
+                'Angariação da Equipa',
+                'Parcerias Locais (B2B)',
+            ],
+            'Meio Físico e Espaço' => [
+                'Passagem no Local (Walk-in)',
+                'Material Impresso',
+            ],
+            'Retenção e Campanhas Específicas' => [
+                'Campanha Festiva / Sorteio',
+                'Oferta de Voucher (Gift Card)',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function origemOptions(): array
+    {
+        $out = [];
+        foreach (self::origemGroups() as $options) {
+            foreach ($options as $label) {
+                $out[$label] = $label;
+            }
+        }
+
+        return $out;
+    }
+
     public function getClientIdAttribute(): string
     {
         return '#CL'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT);
