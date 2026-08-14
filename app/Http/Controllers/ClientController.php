@@ -93,26 +93,8 @@ class ClientController extends Controller
     {
         $clients = $this->clientsFilteredQuery($request)->with('tags')->get();
 
-        $districtNames = $this->localNamesById(
-            $clients->pluck('id_district')->filter()->unique()->all(),
-            'id_district',
-            'district'
-        );
-        $cityNames = $this->localNamesById(
-            $clients->pluck('id_city')->filter()->unique()->all(),
-            'id_city',
-            'city'
-        );
-        $parishNames = $this->localNamesById(
-            $clients->pluck('id_parish')->filter()->unique()->all(),
-            'id_parish',
-            'parish'
-        );
-
         $genders = Client::genders();
         $maritalStatuses = Client::maritalStatuses();
-        $schedules = Client::preferredSchedules();
-        $types = Client::types();
         $yesNo = static fn (?bool $value): string => $value ? 'Sim' : 'Não';
 
         $spreadsheet = new Spreadsheet;
@@ -133,16 +115,6 @@ class ClientController extends Controller
             'Origem',
             'Profissão',
             'Etiquetas',
-            'Morada',
-            'Porta',
-            'Andar',
-            'Lado',
-            'Código postal',
-            'Localidade',
-            'Distrito',
-            'Concelho',
-            'Freguesia',
-            'Horário preferido',
             'Observações das preferências',
             'Saldo carteira (€)',
             'Notificar email (atualizações)',
@@ -150,7 +122,6 @@ class ClientController extends Controller
             'Notificar SMS (lembretes)',
             'Termos aceites em',
             'Telemóvel verificado em',
-            'Tipo',
             'Registado em',
             'Última atualização',
         ];
@@ -176,24 +147,13 @@ class ClientController extends Controller
                     $c->origem ?? '',
                     $c->profissao ?? '',
                     $c->tags->pluck('name')->filter()->sort()->values()->implode(', '),
-                    $c->address ?? '',
-                    $c->door ?? '',
-                    $c->floor ?? '',
-                    $c->side ?? '',
-                    $c->postal_code ?? '',
-                    $c->locality ?? '',
-                    $districtNames[(int) $c->id_district] ?? '',
-                    $cityNames[(int) $c->id_city] ?? '',
-                    $parishNames[(int) $c->id_parish] ?? '',
-                    $schedules[$c->preferred_schedule] ?? ($c->preferred_schedule ?? ''),
-                    $c->preferences_notes ?? '',
+                    $this->exportShortText($c->preferences_notes),
                     number_format($walletCents / 100, 2, ',', ' '),
                     $yesNo((bool) $c->notify_email_booking_updates),
                     $yesNo((bool) $c->notify_email_booking_reminders),
                     $yesNo((bool) $c->notify_sms_booking_reminders),
                     DateTimeDisplay::formatInstant($c->terms_accepted_at, $storeId, 'd/m/Y H:i', ''),
                     DateTimeDisplay::formatInstant($c->phone_verified_at, $storeId, 'd/m/Y H:i', ''),
-                    $types[$c->type] ?? ($c->type ?? ''),
                     DateTimeDisplay::formatInstant($c->created_at, $storeId, 'd/m/Y H:i', ''),
                     DateTimeDisplay::formatInstant($c->updated_at, $storeId, 'd/m/Y H:i', ''),
                 ],
@@ -204,8 +164,14 @@ class ClientController extends Controller
         $lastCol = Coordinate::stringFromColumnIndex(count($headers));
         $sheet->getStyle('A1:'.$lastCol.'1')->getFont()->setBold(true);
         $sheet->freezePane('A2');
+        $notesColIndex = array_search('Observações das preferências', $headers, true);
         foreach (range(1, count($headers)) as $colIndex) {
-            $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($colIndex))->setAutoSize(true);
+            $dimension = $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($colIndex));
+            if ($notesColIndex !== false && $colIndex === $notesColIndex + 1) {
+                $dimension->setWidth(36);
+                continue;
+            }
+            $dimension->setAutoSize(true);
         }
 
         $filename = 'clientes_'.now()->format('Y-m-d_His').'.xlsx';
@@ -218,25 +184,17 @@ class ClientController extends Controller
         ]);
     }
 
-    /**
-     * @param  list<int|string>  $ids
-     * @return array<int, string>
-     */
-    private function localNamesById(array $ids, string $idColumn, string $nameColumn): array
+    private function exportShortText(?string $text, int $max = 80): string
     {
-        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
-        if ($ids === []) {
-            return [];
+        $normalized = trim((string) preg_replace('/\s+/u', ' ', (string) $text));
+        if ($normalized === '') {
+            return '';
+        }
+        if (mb_strlen($normalized) <= $max) {
+            return $normalized;
         }
 
-        return Local::query()
-            ->select($idColumn, $nameColumn)
-            ->whereIn($idColumn, $ids)
-            ->whereNotNull($nameColumn)
-            ->distinct()
-            ->get()
-            ->mapWithKeys(fn ($row) => [(int) $row->{$idColumn} => (string) $row->{$nameColumn}])
-            ->all();
+        return rtrim(mb_substr($normalized, 0, $max - 1)).'…';
     }
 
     public function indexPdf(Request $request)
