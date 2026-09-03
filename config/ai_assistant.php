@@ -13,7 +13,7 @@ return [
 
   'base_url' => rtrim(env('AI_ASSISTANT_BASE_URL', 'https://api.groq.com/openai/v1'), '/'),
 
-  'model' => env('AI_ASSISTANT_MODEL', 'llama-3.3-70b-versatile'),
+  'model' => env('AI_ASSISTANT_MODEL', 'openai/gpt-oss-120b'),
 
   'timeout_seconds' => (int) env('AI_ASSISTANT_TIMEOUT', 60),
 

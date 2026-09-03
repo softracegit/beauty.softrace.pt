@@ -28,6 +28,7 @@ use App\Services\CashRegisterService;
 use App\Services\ClientWalletService;
 use App\Services\MarcacaoServicesActivityLogger;
 use App\Services\ReceptionBookingNotifier;
+use App\Support\MarcacaoTerminalReasons;
 use App\Support\ActivityLogQuery;
 use App\Support\ActivityLogSyntheticMarcacao;
 use App\Support\ApplicableFees;
@@ -827,6 +828,7 @@ class CalendarController extends Controller
                 'status_label' => $isTempoPessoal ? 'Tempo pessoal' : (CalendarEvent::statuses()[$calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO] ?? 'Agendado'),
                 'status_icon' => $isTempoPessoal ? null : $calendarEvent->status_icon,
                 'cancellation_reason' => $calendarEvent->cancellation_reason,
+                'cancellation_notes' => $calendarEvent->cancellation_notes,
                 'user_id' => $calendarEvent->user_id,
                 'user_name' => $calendarEvent->user?->name,
                 'user_avatar_url' => $userAvatarUrl,
@@ -1355,6 +1357,8 @@ class CalendarController extends Controller
             'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'status' => ['sometimes', 'string', 'in:agendado,notificado,confirmado,chegou,iniciado,terminado,faltou,cancelado'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
+            'cancellation_outra_text' => ['nullable', 'string', 'max:1000'],
+            'cancellation_notes' => ['nullable', 'string', 'max:1000'],
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'refund_reserva' => ['nullable', 'boolean'],
             'avisou_dentro_prazo' => ['nullable', 'boolean'],
@@ -1518,11 +1522,13 @@ class CalendarController extends Controller
             $update = ['status' => $newStatus];
             if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true)) {
                 $update['cancellation_reason'] = isset($validated['cancellation_reason']) ? trim($validated['cancellation_reason']) ?: null : null;
+                $update['cancellation_notes'] = isset($validated['cancellation_notes']) ? trim($validated['cancellation_notes']) ?: null : null;
                 $update['cancellation_type'] = $validated['cancellation_type'] ?? $newStatus;
                 $update['refund_reserva'] = array_key_exists('refund_reserva', $validated) ? (bool) $validated['refund_reserva'] : null;
                 $update['avisou_dentro_prazo'] = array_key_exists('avisou_dentro_prazo', $validated) ? (bool) $validated['avisou_dentro_prazo'] : null;
             } else {
                 $update['cancellation_reason'] = null;
+                $update['cancellation_notes'] = null;
                 $update['cancellation_type'] = null;
                 $update['refund_reserva'] = null;
                 $update['avisou_dentro_prazo'] = null;
@@ -1767,6 +1773,8 @@ class CalendarController extends Controller
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:agendado,notificado,confirmado,chegou,iniciado,terminado,faltou,cancelado,completo'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
+            'cancellation_outra_text' => ['nullable', 'string', 'max:1000'],
+            'cancellation_notes' => ['nullable', 'string', 'max:1000'],
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'notify_client' => ['sometimes', 'boolean'],
         ]);
@@ -1774,6 +1782,15 @@ class CalendarController extends Controller
         $newStatus = $validated['status'];
         $marcacao = ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO;
         $previousStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
+
+        if ($marcacao && in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO], true)) {
+            $terminal = $this->resolveTerminalMarcacaoFields($request, $calendarEvent, $newStatus);
+            if ($terminal instanceof JsonResponse) {
+                return $terminal;
+            }
+            $validated['cancellation_reason'] = $terminal['reason'];
+            $validated['cancellation_notes'] = $terminal['notes'];
+        }
 
         if ($marcacao && $newStatus === CalendarEvent::STATUS_CANCELADO) {
             return $this->updateStatusViaCancellationService($request, $calendarEvent, $validated, $previousStatus);
@@ -1791,11 +1808,13 @@ class CalendarController extends Controller
         $update = ['status' => $newStatus];
         if (in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_ANULADO], true)) {
             $update['cancellation_reason'] = isset($validated['cancellation_reason']) ? trim($validated['cancellation_reason']) ?: null : null;
+            $update['cancellation_notes'] = isset($validated['cancellation_notes']) ? trim($validated['cancellation_notes']) ?: null : null;
             $update['cancellation_type'] = $validated['cancellation_type'] ?? $newStatus;
             $update['refund_reserva'] = false;
             $update['avisou_dentro_prazo'] = $newStatus === CalendarEvent::STATUS_FALTOU ? false : null;
         } else {
             $update['cancellation_reason'] = null;
+            $update['cancellation_notes'] = null;
             $update['cancellation_type'] = null;
             $update['refund_reserva'] = null;
             $update['avisou_dentro_prazo'] = null;
@@ -1813,12 +1832,46 @@ class CalendarController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Estado atualizado com sucesso.',
+            'message' => $newStatus === CalendarEvent::STATUS_FALTOU
+                ? 'Falta registada.'
+                : 'Estado atualizado com sucesso.',
             'event' => $this->formatEventForCalendar($calendarEvent->fresh()),
             'status' => $newStatus,
             'status_label' => CalendarEvent::statuses()[$newStatus],
             'status_icon' => $calendarEvent->fresh()->status_icon,
         ]);
+    }
+
+    /**
+     * @return array{reason: string, notes: ?string}|JsonResponse
+     */
+    private function resolveTerminalMarcacaoFields(
+        Request $request,
+        CalendarEvent $calendarEvent,
+        string $newStatus,
+    ): array|JsonResponse {
+        if ($newStatus === CalendarEvent::STATUS_FALTOU && ! $calendarEvent->hasStartedForStore()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Só é possível registar falta depois do horário de início da marcação.',
+            ], 422);
+        }
+
+        $resolved = MarcacaoTerminalReasons::resolveStoredReason(
+            $newStatus,
+            $request->input('cancellation_reason'),
+            $request->input('cancellation_outra_text'),
+            $request->input('cancellation_notes'),
+        );
+
+        if ($resolved === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Selecione uma razão válida.',
+            ], 422);
+        }
+
+        return $resolved;
     }
 
     /**
@@ -1840,11 +1893,13 @@ class CalendarController extends Controller
         }
 
         $reason = isset($validated['cancellation_reason']) ? trim((string) $validated['cancellation_reason']) : '';
+        $notes = isset($validated['cancellation_notes']) ? trim((string) $validated['cancellation_notes']) : '';
         $notifyClient = (bool) ($validated['notify_client'] ?? false);
 
         try {
             $result = $this->cancellationService->cancel($calendarEvent, [
                 'cancellation_reason' => $reason !== '' ? $reason : null,
+                'cancellation_notes' => $notes !== '' ? $notes : null,
                 'cancellation_type' => $validated['cancellation_type'] ?? CalendarEvent::STATUS_CANCELADO,
                 'notify_client' => $notifyClient,
                 'from_public_booking' => false,
@@ -1931,7 +1986,7 @@ class CalendarController extends Controller
 
                 continue;
             }
-            if ($key === 'cancellation_reason') {
+            if ($key === 'cancellation_reason' || $key === 'cancellation_notes') {
                 if (trim((string) ($cur ?? '')) !== trim((string) ($val ?? ''))) {
                     return true;
                 }

@@ -160,6 +160,7 @@ class AppointmentCancellationService
                 'status' => CalendarEvent::STATUS_CANCELADO,
                 'cancellation_type' => $cancellationType,
                 'cancellation_reason' => $reason !== '' ? $reason : null,
+                'cancellation_notes' => trim((string) ($options['cancellation_notes'] ?? '')) ?: null,
                 'avisou_dentro_prazo' => $policy->isWithinNoticePeriod,
                 'refund_reserva' => $refundReserva,
                 'cancellation_evaluated_at' => $policy->evaluatedAtLocal->copy()->utc(),

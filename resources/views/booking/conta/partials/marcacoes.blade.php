@@ -382,6 +382,9 @@
                                         @if ($ev->cancellation_reason)
                                             <div class="text-break mt-1">{{ $ev->cancellation_reason }}</div>
                                         @endif
+                                        @if ($ev->cancellation_notes)
+                                            <div class="text-break mt-1 text-muted">{{ $ev->cancellation_notes }}</div>
+                                        @endif
                                         @if ($showPaymentCards && ($ev->avisou_dentro_prazo !== null || $ev->refund_reserva !== null))
                                             <div class="text-muted mt-2 small">
                                                 @if ($ev->avisou_dentro_prazo !== null)

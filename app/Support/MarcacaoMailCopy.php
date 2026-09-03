@@ -165,8 +165,17 @@ final class MarcacaoMailCopy
     public static function reason(?CalendarEvent $event, string $fallback = '-'): string
     {
         $reason = trim((string) ($event?->cancellation_reason ?? ''));
+        $notes = trim((string) ($event?->cancellation_notes ?? ''));
 
-        return $reason !== '' ? $reason : $fallback;
+        if ($reason === '' && $notes === '') {
+            return $fallback;
+        }
+
+        if ($notes !== '') {
+            return $reason !== '' ? $reason.'. Notas: '.$notes : 'Notas: '.$notes;
+        }
+
+        return $reason;
     }
 
     /**

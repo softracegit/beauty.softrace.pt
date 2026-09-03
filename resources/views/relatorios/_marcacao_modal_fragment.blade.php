@@ -65,17 +65,17 @@
 
       @if(in_array($ev->status, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true))
         <div class="uview-detail-group">
-          <div class="uview-detail-title">Cancelamento ou falta</div>
-          @if($ev->cancellation_type)
-            <div class="uview-detail-row">
-              <div class="uview-detail-label">Tipo</div>
-              <div class="uview-detail-value">{{ $ev->cancellation_type }}</div>
-            </div>
-          @endif
+          <div class="uview-detail-title">{{ $ev->status === CalendarEvent::STATUS_FALTOU ? 'Falta' : 'Cancelamento' }}</div>
           @if($ev->cancellation_reason)
             <div class="uview-detail-row">
               <div class="uview-detail-label">Motivo</div>
               <div class="uview-detail-value text-break">{{ $ev->cancellation_reason }}</div>
+            </div>
+          @endif
+          @if($ev->cancellation_notes)
+            <div class="uview-detail-row">
+              <div class="uview-detail-label">Notas</div>
+              <div class="uview-detail-value text-break">{{ $ev->cancellation_notes }}</div>
             </div>
           @endif
           @if($ev->status === CalendarEvent::STATUS_CANCELADO)

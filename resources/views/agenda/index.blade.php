@@ -278,7 +278,7 @@
     </div>
 </div>
 
-<!-- Modal: Cancelar marcação -->
+<!-- Modal: Faltou / Cancelar marcação -->
 <div class="modal fade" id="cancelMarcacaoModal" tabindex="-1" aria-labelledby="cancelMarcacaoModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -288,43 +288,39 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="cancelMarcacaoEventId" value="">
-                <div class="mb-4">
-                    <label for="cancelMarcacaoQueAconteceu" class="form-label">O que aconteceu?</label>
-                    <select class="form-select w-100" id="cancelMarcacaoQueAconteceu">
-                        <option value="faltou">Faltou (não compareceu)</option>
-                        <option value="cancelado">Cliente cancelou (avisou)</option>
-                    </select>
-                </div>
+                <input type="hidden" id="cancelMarcacaoMode" value="cancelado">
                 <div class="mb-3">
-                    <label for="cancelMarcacaoReason" class="form-label">Razão</label>
-                    <select class="form-select w-100" id="cancelMarcacaoReason">
-                        <option value="">Selecionar razão (opcional)</option>
-                        <option value="O cliente não forneceu razão">O cliente não forneceu razão</option>
-                        <option value="Marcação duplicada">Marcação duplicada</option>
-                        <option value="Marcação feita por engano">Marcação feita por engano</option>
-                        <option value="Cliente não disponível">Cliente não disponível</option>
-                        <option value="outra">Outra razão</option>
+                    <label for="cancelMarcacaoReason" class="form-label">Razão <span class="text-danger">*</span></label>
+                    <select class="form-select w-100" id="cancelMarcacaoReason" required>
+                        <option value="">Selecionar razão</option>
                     </select>
                 </div>
                 <div id="cancelMarcacaoOutraWrap" class="mb-3 d-none">
-                    <label for="cancelMarcacaoOutraTexto" class="form-label">Indique a razão</label>
-                    <textarea class="form-control" id="cancelMarcacaoOutraTexto" rows="2" placeholder="Escreva a razão do cancelamento..."></textarea>
+                    <label for="cancelMarcacaoOutraTexto" class="form-label">Indique a razão <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="cancelMarcacaoOutraTexto" rows="2" placeholder="Escreva a razão..."></textarea>
                 </div>
-                <div class="form-check mb-3">
+                <div class="mb-3">
+                    <label for="cancelMarcacaoNotes" class="form-label">Notas (opcional)</label>
+                    <textarea class="form-control" id="cancelMarcacaoNotes" rows="2" maxlength="1000" placeholder="Observações internas..."></textarea>
+                </div>
+                <div class="form-check mb-3" id="cancelMarcacaoNotifyWrap">
                     <input class="form-check-input" type="checkbox" id="cancelMarcacaoNotifyClient">
-                    <label class="form-check-label" for="cancelMarcacaoNotifyClient">Avisar cliente do cancelamento</label>
+                    <label class="form-check-label" for="cancelMarcacaoNotifyClient" id="cancelMarcacaoNotifyClientLabel">Avisar cliente do cancelamento</label>
                 </div>
-                <div class="border rounded p-3 bg-light">
+                <div class="border rounded p-3 bg-light" id="cancelMarcacaoPolicyBlock">
                     <h6 class="nova-marcacao-section-title mb-2">Política de cancelamento</h6>
                     <div class="mb-0">
                         <span class="text-muted">Total da marcação:</span>
                         <strong id="cancelMarcacaoTotalPrice" class="ms-1">0,00 €</strong>
                     </div>
-                    <p class="small text-muted mb-0" id="cancelMarcacaoPolicyLoading">A calcular…</p><p class="small mb-0 d-none" id="cancelMarcacaoPolicyStatus"></p><p class="small text-muted mb-0 mt-2 d-none" id="cancelMarcacaoPolicyCredit"></p><p class="small text-danger mb-0 mt-2 d-none" id="cancelMarcacaoPolicyForfeit"></p>
+                    <p class="small text-muted mb-0" id="cancelMarcacaoPolicyLoading">A calcular…</p>
+                    <p class="small mb-0 d-none" id="cancelMarcacaoPolicyStatus"></p>
+                    <p class="small text-muted mb-0 mt-2 d-none" id="cancelMarcacaoPolicyCredit"></p>
+                    <p class="small text-danger mb-0 mt-2 d-none" id="cancelMarcacaoPolicyForfeit"></p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Não cancelar</button>
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="cancelMarcacaoDismissBtn">Fechar</button>
                 <button type="button" class="btn btn-danger" id="cancelMarcacaoConfirmBtn">Cancelar marcação</button>
             </div>
         </div>
@@ -372,7 +368,8 @@
                         <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ri-notification-3-fill agenda-status-icon-confirmado"></i>Confirmado</a>
                         <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ri-map-pin-fill agenda-status-icon-chegou"></i>Chegou</a>
                         <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ri-play-fill agenda-status-icon-iniciado"></i>Iniciado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ri-close-circle-fill text-danger"></i>Cancelar</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="faltou"><i class="me-0 ph ph-x text-danger"></i>Faltou</a>
+                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ph ph-trash text-danger"></i>Cancelar</a>
                     </div>
                 </span>
                 <span class="d-none event-detail-status-static d-inline-flex align-items-center small text-muted" id="eventDetailStatusStatic">
@@ -591,6 +588,10 @@ window.AGENDA_CONFIG = {
     clientesBaseUrl: @json(url('clientes')),
     currentUserIsAdmin: @json(auth()->user()->role === \App\Models\User::ROLE_ADMIN),
     pastCreateGraceMinutes: @json(\App\Models\CalendarEvent::PAST_CREATE_GRACE_MINUTES),
+    terminalReasons: @json([
+        'faltou' => \App\Support\MarcacaoTerminalReasons::FALTOU,
+        'cancelado' => \App\Support\MarcacaoTerminalReasons::CANCELADO,
+    ]),
     permissions: @json($agendaPermissions),
     authId: @json(auth()->id()),
     authName: @json(auth()->user()->name ?? 'Eu'),

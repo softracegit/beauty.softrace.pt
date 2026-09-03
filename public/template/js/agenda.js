@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const canReassignMarcacao = agendaPerms.canReassignMarcacao !== false;
     const canChangeMarcacaoClient = agendaPerms.canChangeMarcacaoClient !== false;
     const canCancelOrMarkMarcacaoFalta = agendaPerms.canCancelOrMarkMarcacaoFalta !== false;
+    const terminalReasons = C.terminalReasons || { faltou: [], cancelado: [] };
     const prestadorAllowedStatuses = Array.isArray(agendaPerms.prestadorAllowedStatuses)
         ? agendaPerms.prestadorAllowedStatuses
         : ['chegou', 'iniciado'];
@@ -1292,6 +1293,77 @@ document.addEventListener('DOMContentLoaded', function() {
         return agendaWallClockIsBefore(agendaWallClockFromDate(d), agendaPastCutoffWallClock());
     }
 
+    function agendaInstantHasStartedInStore(dateLike) {
+        if (!dateLike) return false;
+        var d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+        if (isNaN(d.getTime())) return false;
+        var start = agendaWallClockFromDate(d);
+        var now = agendaStoreNowWallClock();
+        if (start.ymd > now.ymd) return false;
+        if (start.ymd < now.ymd) return true;
+        return start.hm <= now.hm;
+    }
+
+    function populateCancelMarcacaoReasonOptions(mode) {
+        var select = $id('cancelMarcacaoReason');
+        if (!select) return;
+        var list = Array.isArray(terminalReasons[mode]) ? terminalReasons[mode] : [];
+        select.innerHTML = '<option value="">Selecionar razão</option>';
+        list.forEach(function(label) {
+            var opt = document.createElement('option');
+            opt.value = label;
+            opt.textContent = label;
+            select.appendChild(opt);
+        });
+    }
+
+    function openMarcacaoTerminalModal(mode, eventId, context, eventStart, totalPrice) {
+        if (!canCancelOrMarkMarcacaoFalta) return;
+        if (mode === 'faltou' && eventStart && !agendaInstantHasStartedInStore(eventStart)) {
+            showToast('Só é possível registar falta depois do horário de início da marcação.', 'error');
+            return;
+        }
+        window._cancelMarcacaoConfirmed = false;
+        window._cancelMarcacaoContext = context || 'quick';
+        window._cancelMarcacaoPreviousStatus = window._cancelMarcacaoPreviousStatus || 'agendado';
+        var modeEl = $id('cancelMarcacaoMode');
+        if (modeEl) modeEl.value = mode;
+        $id('cancelMarcacaoEventId').value = eventId || '';
+        populateCancelMarcacaoReasonOptions(mode);
+        $id('cancelMarcacaoReason').value = '';
+        $id('cancelMarcacaoOutraTexto').value = '';
+        $id('cancelMarcacaoNotes').value = '';
+        $id('cancelMarcacaoOutraWrap').classList.add('d-none');
+        $id('cancelMarcacaoNotifyClient').checked = false;
+
+        var isFaltou = mode === 'faltou';
+        var titleEl = $id('cancelMarcacaoModalLabel');
+        var confirmBtn = $id('cancelMarcacaoConfirmBtn');
+        var dismissBtn = $id('cancelMarcacaoDismissBtn');
+        var notifyLabel = $id('cancelMarcacaoNotifyClientLabel');
+        var policyBlock = $id('cancelMarcacaoPolicyBlock');
+        if (titleEl) titleEl.textContent = isFaltou ? 'Registar falta' : 'Cancelar marcação';
+        if (confirmBtn) confirmBtn.textContent = isFaltou ? 'Registar falta' : 'Cancelar marcação';
+        if (dismissBtn) dismissBtn.textContent = isFaltou ? 'Fechar' : 'Não cancelar';
+        if (notifyLabel) {
+            notifyLabel.textContent = isFaltou
+                ? 'Avisar cliente por email (falta registada)'
+                : 'Avisar cliente do cancelamento';
+        }
+        if (policyBlock) policyBlock.classList.toggle('d-none', isFaltou);
+
+        var total = typeof totalPrice === 'number' ? totalPrice : 0;
+        $id('cancelMarcacaoTotalPrice').textContent = total > 0 ? (total.toFixed(2).replace('.', ',') + ' €') : '0,00 €';
+
+        if (isFaltou) {
+            resetCancelMarcacaoPolicyPreview('Falta registada — sem crédito automático na carteira.');
+        } else if (eventId) {
+            loadCancelMarcacaoPolicyPreview(eventId);
+        }
+
+        bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
+    }
+
     /** Início seleccionado no offcanvas de criação é no passado (fuso loja)? Admin pode sempre. */
     function agendaOcSelectedStartIsPast() {
         if (canCreateMarcacaoInPast) return false;
@@ -1738,7 +1810,8 @@ document.addEventListener('DOMContentLoaded', function() {
             { status: 'confirmado', label: 'Confirmado', icon: 'ri-notification-3-fill agenda-status-icon-confirmado' },
             { status: 'chegou', label: 'Chegou', icon: 'ri-map-pin-fill agenda-status-icon-chegou' },
             { status: 'iniciado', label: 'Iniciado', icon: 'ri-play-fill agenda-status-icon-iniciado' },
-            { status: 'cancelar', label: 'Cancelar', icon: 'ri-close-circle-fill', isCancelAction: true }
+            { status: 'faltou', label: 'Faltou', icon: 'ph ph-x', isTerminalAction: true, terminalMode: 'faltou' },
+            { status: 'cancelar', label: 'Cancelar', icon: 'ph ph-trash', isTerminalAction: true, terminalMode: 'cancelado' }
         ];
         function hideMenu() {
             detachAgendaQuickMenuOutsideCapture();
@@ -1755,35 +1828,25 @@ document.addEventListener('DOMContentLoaded', function() {
         var list = document.createElement('div');
         list.className = 'agenda-status-dropdown-list';
         statusOpts.forEach(function(o) {
-            if (o.isCancelAction && (currentStatus === 'faltou' || currentStatus === 'cancelado' || currentStatus === 'anulado')) return;
-            if (o.isCancelAction && !canCancelOrMarkMarcacaoFalta) return;
-            if (isPrestadorStaff && !o.isCancelAction && prestadorAllowedStatuses.indexOf(o.status) === -1) {
+            if (o.isTerminalAction && (currentStatus === 'faltou' || currentStatus === 'cancelado' || currentStatus === 'anulado')) return;
+            if (o.isTerminalAction && !canCancelOrMarkMarcacaoFalta) return;
+            if (isPrestadorStaff && !o.isTerminalAction && prestadorAllowedStatuses.indexOf(o.status) === -1) {
                 return;
             }
-            if (!o.isCancelAction && o.status === currentStatus) return;
+            if (!o.isTerminalAction && o.status === currentStatus) return;
             var a = document.createElement('a');
             a.href = '#';
-            a.className = 'agenda-status-dropdown-item dropdown-item d-flex align-items-center gap-2' + (o.isCancelAction ? ' text-danger' : '');
+            a.className = 'agenda-status-dropdown-item dropdown-item d-flex align-items-center gap-2' + (o.isTerminalAction ? ' text-danger' : '');
             a.innerHTML = '<i class="' + o.icon + '"></i><span>' + (o.label || o.status) + '</span>';
             a.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 hideMenu();
-                if (o.isCancelAction) {
-                    window._cancelMarcacaoConfirmed = false;
+                if (o.isTerminalAction) {
                     window._cancelMarcacaoPreviousStatus = currentStatus;
-                    window._cancelMarcacaoContext = 'quick';
-                    $id('cancelMarcacaoEventId').value = event.id;
                     var totalQuick = 0;
                     (ext.event_services || []).forEach(function(s) { totalQuick += parseFloat(s.price) || 0; });
-                    $id('cancelMarcacaoTotalPrice').textContent = totalQuick > 0 ? (totalQuick.toFixed(2).replace('.', ',') + ' €') : '0,00 €';
-                    $id('cancelMarcacaoQueAconteceu').value = 'faltou';
-                    $id('cancelMarcacaoReason').value = '';
-                    $id('cancelMarcacaoOutraTexto').value = '';
-                    $id('cancelMarcacaoOutraWrap').classList.add('d-none');
-                    $id('cancelMarcacaoNotifyClient').checked = false;
-                    loadCancelMarcacaoPolicyPreview(event.id);
-                    bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
+                    openMarcacaoTerminalModal(o.terminalMode, event.id, 'quick', event.start, totalQuick);
                     return;
                 }
                 fetch((C.urlEvents || '') + '/' + event.id + '/status', {
@@ -4889,7 +4952,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         var cancelOpt = $id('eventDetailStatusMenu')?.querySelector('[data-status="cancelar"]');
-        if (cancelOpt) cancelOpt.style.display = (statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado') ? 'none' : '';
+        var faltouOpt = $id('eventDetailStatusMenu')?.querySelector('[data-status="faltou"]');
+        var hideTerminal = (statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado');
+        if (cancelOpt) cancelOpt.style.display = hideTerminal ? 'none' : '';
+        if (faltouOpt) faltouOpt.style.display = hideTerminal ? 'none' : '';
 
         var sourceBadge = $id('eventDetailMarcacaoSourceBadge');
         if (sourceBadge) {
@@ -13171,7 +13237,7 @@ document.addEventListener('DOMContentLoaded', function() {
     $id('eventDetailStatusMenu').querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
         if (isPrestadorStaff) {
             var optStatus = opt.dataset.status || '';
-            if (optStatus === 'cancelar') {
+            if (optStatus === 'cancelar' || optStatus === 'faltou') {
                 if (!canCancelOrMarkMarcacaoFalta) {
                     opt.classList.add('d-none');
                 }
@@ -13179,7 +13245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 opt.classList.add('d-none');
             }
         } else if (!canCancelOrMarkMarcacaoFalta) {
-            if ((opt.dataset.status || '') === 'cancelar') {
+            if ((opt.dataset.status || '') === 'cancelar' || (opt.dataset.status || '') === 'faltou') {
                 opt.classList.add('d-none');
             }
         }
@@ -13191,23 +13257,15 @@ document.addEventListener('DOMContentLoaded', function() {
             var evId = $id('eventDetailEditId')?.value;
             var previousStatus = $id('eventDetailStatus').value;
             bootstrap.Dropdown.getInstance($id('eventDetailStatusDropdownBtn'))?.hide();
-            if (status === 'cancelar') {
+            if (status === 'cancelar' || status === 'faltou') {
                 if (!canCancelOrMarkMarcacaoFalta) return;
                 if (previousStatus === 'faltou' || previousStatus === 'cancelado' || previousStatus === 'anulado') return;
-                window._cancelMarcacaoConfirmed = false;
                 window._cancelMarcacaoPreviousStatus = previousStatus;
-                window._cancelMarcacaoContext = 'edit';
-                $id('cancelMarcacaoEventId').value = evId;
                 var total = 0;
                 (eventDetailSelectedServices || []).forEach(function(s) { total += parseFloat(s.price) || 0; });
-                $id('cancelMarcacaoTotalPrice').textContent = total > 0 ? (total.toFixed(2).replace('.', ',') + ' €') : '0,00 €';
-                $id('cancelMarcacaoQueAconteceu').value = 'faltou';
-                $id('cancelMarcacaoReason').value = '';
-                $id('cancelMarcacaoOutraTexto').value = '';
-                $id('cancelMarcacaoOutraWrap').classList.add('d-none');
-                $id('cancelMarcacaoNotifyClient').checked = false;
-                loadCancelMarcacaoPolicyPreview(evId);
-                bootstrap.Modal.getOrCreateInstance($id('cancelMarcacaoModal')).show();
+                var calendarEv = evId && typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
+                var startAt = (calendarEv && calendarEv.start) || $id('eventDetailEditStart')?.value || null;
+                openMarcacaoTerminalModal(status === 'faltou' ? 'faltou' : 'cancelado', evId, 'edit', startAt, total);
                 return;
             }
             $id('eventDetailStatus').value = status;
@@ -13259,16 +13317,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     $id('cancelMarcacaoReason').addEventListener('change', function() {
-        $id('cancelMarcacaoOutraWrap').classList.toggle('d-none', this.value !== 'outra');
-    });
-
-    $id('cancelMarcacaoQueAconteceu').addEventListener('change', function() {
-        var evId = $id('cancelMarcacaoEventId').value;
-        if (evId && this.value === 'cancelado') {
-            loadCancelMarcacaoPolicyPreview(evId);
-        } else {
-            resetCancelMarcacaoPolicyPreview('Falta registada — sem crédito automático na carteira.');
-        }
+        $id('cancelMarcacaoOutraWrap').classList.toggle('d-none', this.value !== 'Outra razão');
     });
 
     function resetCancelMarcacaoPolicyPreview(message) {
@@ -13290,7 +13339,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var statusEl = $id('cancelMarcacaoPolicyStatus');
         var creditEl = $id('cancelMarcacaoPolicyCredit');
         var forfeitEl = $id('cancelMarcacaoPolicyForfeit');
-        if ($id('cancelMarcacaoQueAconteceu').value !== 'cancelado') {
+        if ($id('cancelMarcacaoMode').value !== 'cancelado') {
             resetCancelMarcacaoPolicyPreview('Falta registada — sem crédito automático na carteira.');
             return;
         }
@@ -13344,23 +13393,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     $id('cancelMarcacaoConfirmBtn').addEventListener('click', function() {
         var reasonSelect = $id('cancelMarcacaoReason');
-        var reason = reasonSelect.value;
-        if (reason === 'outra') {
-            reason = $id('cancelMarcacaoOutraTexto').value.trim() || null;
-        } else if (reason) {
-            reason = reason;
-        } else {
-            reason = null;
+        var preset = (reasonSelect.value || '').trim();
+        if (!preset) {
+            showToast('Selecione a razão.', 'error');
+            return;
         }
-        var status = $id('cancelMarcacaoQueAconteceu').value;
+        var outraText = '';
+        if (preset === 'Outra razão') {
+            outraText = ($id('cancelMarcacaoOutraTexto').value || '').trim();
+            if (!outraText) {
+                showToast('Indique a razão.', 'error');
+                return;
+            }
+        }
+        var mode = ($id('cancelMarcacaoMode')?.value || 'cancelado').trim();
+        var status = mode === 'faltou' ? 'faltou' : 'cancelado';
         var evId = $id('cancelMarcacaoEventId').value;
         if (!evId) return;
         var btn = $id('cancelMarcacaoConfirmBtn');
+        var confirmDefault = status === 'faltou' ? 'Registar falta' : 'Cancelar marcação';
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A cancelar...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar...';
         var payload = {
             status: status,
-            cancellation_reason: reason,
+            cancellation_reason: preset,
+            cancellation_outra_text: outraText || null,
+            cancellation_notes: ($id('cancelMarcacaoNotes').value || '').trim() || null,
             cancellation_type: status,
             notify_client: $id('cancelMarcacaoNotifyClient').checked
         };
@@ -13372,21 +13430,21 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(function(r) { return r.json(); })
         .then(function(res) {
             btn.disabled = false;
-            btn.innerHTML = 'Cancelar marcação';
+            btn.innerHTML = confirmDefault;
             if (res.success) {
                 window._cancelMarcacaoConfirmed = true;
                 var ev = typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
                 if (ev) ev.remove();
                 bootstrap.Modal.getInstance($id('cancelMarcacaoModal'))?.hide();
                 bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
-                showToast(res.message || 'Marcação cancelada.', 'success');
+                showToast(res.message || (status === 'faltou' ? 'Falta registada.' : 'Marcação cancelada.'), 'success');
             } else {
-                showToast(res.message || 'Erro ao cancelar.', 'error');
+                showToast(res.message || 'Erro ao guardar.', 'error');
             }
         })
         .catch(function() {
             btn.disabled = false;
-            btn.innerHTML = 'Cancelar marcação';
+            btn.innerHTML = confirmDefault;
             showToast('Erro de ligação.', 'error');
         });
     });

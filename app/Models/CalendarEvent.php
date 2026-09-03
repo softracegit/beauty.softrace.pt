@@ -36,6 +36,7 @@ class CalendarEvent extends Model
                 'personal_time_type_id',
                 'status',
                 'cancellation_reason',
+                'cancellation_notes',
                 'cancellation_type',
                 'refund_reserva',
                 'avisou_dentro_prazo',
@@ -101,7 +102,7 @@ class CalendarEvent extends Model
         }
         sort($changed);
 
-        $cancelFields = ['cancellation_reason', 'cancellation_type', 'refund_reserva', 'avisou_dentro_prazo'];
+        $cancelFields = ['cancellation_reason', 'cancellation_notes', 'cancellation_type', 'refund_reserva', 'avisou_dentro_prazo'];
         $hasCancel = count(array_intersect($changed, $cancelFields)) > 0;
         $hasStatus = in_array('status', $changed, true);
         $oldStatus = (string) ($this->getOriginal('status') ?? '');
@@ -253,6 +254,7 @@ class CalendarEvent extends Model
         'booking_sms_reminder_sent_at',
         'booking_sms_reminder_failed_at',
         'cancellation_reason',
+        'cancellation_notes',
         'cancellation_type',
         'refund_reserva',
         'avisou_dentro_prazo',
@@ -525,6 +527,23 @@ class CalendarEvent extends Model
      * Margem (minutos) para ainda criar/editar no “quase passado” (ex.: às 17:00 marcar 16:50).
      */
     public const PAST_CREATE_GRACE_MINUTES = 20;
+
+    /**
+     * Horário de início já passou (ou é agora) no fuso da loja — necessário para registar falta.
+     */
+    public function hasStartedForStore(): bool
+    {
+        if (! $this->start_at) {
+            return false;
+        }
+
+        $storeId = (int) ($this->store_id ?? 0);
+        if ($storeId <= 0) {
+            return $this->start_at->copy()->utc()->lte(now()->utc());
+        }
+
+        return $this->start_at->copy()->utc()->lte(StoreBusinessTime::nowUtcForStore($storeId));
+    }
 
     /**
      * Início já passou no fuso da loja (relógio de parede), com margem opcional.

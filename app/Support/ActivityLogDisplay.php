@@ -30,6 +30,7 @@ class ActivityLogDisplay
         'service_id' => 'Serviço',
         'personal_time_type_id' => 'Tipo tempo pessoal',
         'cancellation_reason' => 'Motivo cancelamento',
+        'cancellation_notes' => 'Notas (cancelamento/falta)',
         'cancellation_type' => 'Tipo cancelamento',
         'refund_reserva' => 'Reembolso reserva',
         'avisou_dentro_prazo' => 'Avisou dentro do prazo',
