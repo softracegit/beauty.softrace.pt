@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
 class AgendaSameDayPayableService
 {
     /**
-     * Marcações até ao fim do dia (fuso da loja) — hoje e dias anteriores —
+     * Marcações até ao fim do dia (fuso da loja) — hoje e até 1 mês atrás —
      * com saldo por pagar ou fatura final em falta. Usado no fecho de caixa.
      *
      * @return array{
@@ -136,7 +136,7 @@ class AgendaSameDayPayableService
     }
 
     /**
-     * Marcações da loja com início até ao fim do dia corrente (inclui dias anteriores).
+     * Marcações da loja com início no intervalo [início do dia há 1 mês, fim do dia de hoje].
      *
      * @return Builder<CalendarEvent>
      */
@@ -144,11 +144,12 @@ class AgendaSameDayPayableService
     {
         $today = StoreBusinessTime::nowForStore($storeId);
         $endOfToday = $today->copy()->endOfDay();
+        $from = $today->copy()->subMonth()->startOfDay();
 
         return CalendarEvent::query()
             ->where('store_id', $storeId)
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
-            ->where('start_at', '<=', $endOfToday);
+            ->whereBetween('start_at', [$from, $endOfToday]);
     }
 
     /**
