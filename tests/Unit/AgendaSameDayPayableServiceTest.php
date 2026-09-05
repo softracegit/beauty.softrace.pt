@@ -81,7 +81,8 @@ class AgendaSameDayPayableServiceTest extends TestCase
         $result = app(AgendaSameDayPayableService::class)->unpaidMarcacoesTodayForStore($store->id);
 
         $this->assertSame(1, $result['count']);
-        $this->assertSame('18/06/2026 10:00', $result['rows'][0]['start_time']);
+        $this->assertSame('18/06/2026', $result['rows'][0]['start_date']);
+        $this->assertSame('10:00', $result['rows'][0]['start_time']);
     }
 
     public function test_unpaid_marcacoes_ignores_consolidated_secondary_event_paid_with_sibling(): void

@@ -21,6 +21,7 @@ class AgendaSameDayPayableService
      *   total_due: float,
      *   rows: list<array{
      *     id: int,
+     *     start_date: string,
      *     start_time: string,
      *     client_name: string,
      *     agent_name: string,
@@ -166,6 +167,7 @@ class AgendaSameDayPayableService
     /**
      * @return array{
      *   id: int,
+     *   start_date: string,
      *   start_time: string,
      *   client_name: string,
      *   agent_name: string,
@@ -181,7 +183,8 @@ class AgendaSameDayPayableService
 
         return [
             'id' => (int) $event->id,
-            'start_time' => DateTimeDisplay::marcacao($event->start_at, (int) $event->store_id, 'd/m/Y H:i'),
+            'start_date' => DateTimeDisplay::marcacao($event->start_at, (int) $event->store_id, 'd/m/Y'),
+            'start_time' => DateTimeDisplay::marcacao($event->start_at, (int) $event->store_id, 'H:i'),
             'client_name' => trim((string) ($event->client?->name ?? '')) ?: '—',
             'agent_name' => trim((string) ($event->user?->name ?? '')) ?: '—',
             'services_label' => $this->servicesLabelForEvent($event),

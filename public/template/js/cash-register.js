@@ -182,9 +182,11 @@
                 ? '<span class="crm-cash-register-close-unpaid-item__amount text-muted">—</span>'
                 : '<span class="crm-cash-register-close-unpaid-item__amount">' + escapeHtml(formatMoney(row.amount_due)) + '</span>';
             return '<li class="crm-cash-register-close-unpaid-item">'
-                + '<div class="crm-cash-register-close-unpaid-item__line">'
+                + '<div class="crm-cash-register-close-unpaid-item__when" title="' + escapeHtml((row.start_date || '') + ' ' + (row.start_time || '')) + '">'
+                + '<span class="crm-cash-register-close-unpaid-item__date">' + escapeHtml(row.start_date || '—') + '</span>'
                 + '<span class="crm-cash-register-close-unpaid-item__time fw-semibold">' + escapeHtml(row.start_time || '—') + '</span>'
-                + '<span class="crm-cash-register-close-unpaid-item__dot" aria-hidden="true">·</span>'
+                + '</div>'
+                + '<div class="crm-cash-register-close-unpaid-item__line">'
                 + '<span class="crm-cash-register-close-unpaid-item__client">' + escapeHtml(row.client_name || '—') + '</span>'
                 + '<span class="crm-cash-register-close-unpaid-item__dot" aria-hidden="true">·</span>'
                 + '<span class="crm-cash-register-close-unpaid-item__services" title="' + escapeHtml(servicesLabel) + '">' + escapeHtml(servicesLabel) + '</span>'
