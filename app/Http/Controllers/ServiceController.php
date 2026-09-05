@@ -103,9 +103,14 @@ class ServiceController extends Controller
         }
 
         $categories = $categoriesQuery
-            ->with(['services' => fn ($q) => $q->with([
-                'options' => fn ($oq) => $oq->orderBy('sort_order'),
-            ])->orderBy('sort_order')])
+            ->with(['services' => function ($q) use ($onlyVisible) {
+                if ($onlyVisible) {
+                    $q->visibleInBooking();
+                }
+                $q->with([
+                    'options' => fn ($oq) => $oq->orderBy('sort_order'),
+                ])->orderBy('sort_order');
+            }])
             ->get()
             ->filter(fn (Category $category) => $category->services->isNotEmpty())
             ->values();

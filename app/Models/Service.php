@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToStore;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -17,7 +18,7 @@ class Service extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['category_id', 'name', 'description', 'duration', 'price', 'online_price', 'sort_order'])
+            ->logOnly(['category_id', 'name', 'description', 'duration', 'price', 'online_price', 'sort_order', 'hidden_from_booking'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Serviço criado',
@@ -36,6 +37,7 @@ class Service extends Model
         'price',
         'online_price',
         'sort_order',
+        'hidden_from_booking',
     ];
 
     protected $casts = [
@@ -43,6 +45,7 @@ class Service extends Model
         'price' => 'decimal:2',
         'online_price' => 'decimal:2',
         'sort_order' => 'integer',
+        'hidden_from_booking' => 'boolean',
     ];
 
     /**
@@ -63,6 +66,10 @@ class Service extends Model
 
     public function isBookableOnline(): bool
     {
+        if ($this->hidden_from_booking) {
+            return false;
+        }
+
         $this->loadMissing('category');
 
         if (! $this->category) {
@@ -70,6 +77,11 @@ class Service extends Model
         }
 
         return ! $this->category->hidden_from_booking;
+    }
+
+    public function scopeVisibleInBooking(Builder $query): Builder
+    {
+        return $query->where('hidden_from_booking', false);
     }
 
     /**

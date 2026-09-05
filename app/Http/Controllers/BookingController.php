@@ -29,9 +29,7 @@ class BookingController extends Controller
 {
     /**
      * Lista de serviços para marcação online (estilo Square).
-     * Nota: as colunas is_active / is_visible_online foram removidas de `services` na migration
-     * 2026_02_18_193135; mostramos todos os serviços. Para filtrar no futuro, volta a adicionar
-     * colunas na BD ou usa outro critério.
+     * Categorias e serviços com hidden_from_booking ficam ocultos.
      */
     public function index(): View
     {
@@ -91,6 +89,7 @@ class BookingController extends Controller
             ->with([
                 'services' => function ($q) use ($storeId, $onlyServiceIds) {
                     $q->where('store_id', $storeId)
+                        ->visibleInBooking()
                         ->orderBy('sort_order')
                         ->with([
                             'options' => function ($oq) {
@@ -109,7 +108,7 @@ class BookingController extends Controller
                 },
             ])
             ->whereHas('services', function ($q) use ($storeId, $onlyServiceIds) {
-                $q->where('store_id', $storeId);
+                $q->where('store_id', $storeId)->visibleInBooking();
                 if ($onlyServiceIds !== null) {
                     $q->whereIn('id', $onlyServiceIds);
                 }
@@ -828,6 +827,7 @@ class BookingController extends Controller
         return Service::query()
             ->where('store_id', $storeId)
             ->whereIn('id', $serviceIds)
+            ->visibleInBooking()
             ->where(function (Builder $q): void {
                 $q->whereNull('category_id')
                     ->orWhereHas('category', fn (Builder $cq) => $cq->where('hidden_from_booking', false));

@@ -72,6 +72,7 @@ class StoreServiceRequest extends FormRequest
             'fee_ids' => ['nullable', 'array'],
             'fee_ids.*' => [Rule::exists('fees', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'hidden_from_booking' => ['nullable', 'boolean'],
         ];
 
         if ($hasOptions) {
@@ -149,7 +150,10 @@ class StoreServiceRequest extends FormRequest
             'sort_order',
         ]);
 
-        return is_array($only) ? $only : $only->all();
+        $attrs = is_array($only) ? $only : $only->all();
+        $attrs['hidden_from_booking'] = $this->boolean('hidden_from_booking');
+
+        return $attrs;
     }
 
     /**

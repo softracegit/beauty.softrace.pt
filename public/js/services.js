@@ -892,15 +892,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const rowHasOptionsClass = hasOpts ? ' service-item-row--has-options' : '';
             const bodyAlignClass = hasOpts ? 'align-items-start' : 'align-items-center';
             const rightAlignClass = hasOpts ? 'align-items-start' : 'align-items-center';
+            const hiddenBooking = !!service.hidden_from_booking;
+            const hiddenIcon = hiddenBooking
+                ? '<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>'
+                : '';
             return `
-            <div class="service-item-row${rowHasOptionsClass}" data-service-id="${service.id}">
+            <div class="service-item-row${rowHasOptionsClass}" data-service-id="${service.id}" data-hidden-from-booking="${hiddenBooking ? '1' : '0'}">
                 <div class="service-drag-handle" aria-label="Arrastar para reordenar">
                     <span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
                 </div>
                 <div class="card service-item service-item-clickable" style="--service-category-color: ${borderColor};">
                     <div class="card-body d-flex justify-content-between ${bodyAlignClass} gap-3 py-2 pe-2">
                         <div class="service-item-left">
-                            <h6 class="mb-0 service-item-name">${escapeHtml(service.name)}</h6>
+                            <h6 class="mb-0 service-item-name d-inline-flex align-items-center">${escapeHtml(service.name)}${hiddenIcon}</h6>
                             ${service.description ? `<p class="text-muted small mb-1">${escapeHtml(service.description.substring(0, 100))}${service.description.length > 100 ? '...' : ''}</p>` : ''}
                             <div class="d-flex flex-wrap gap-3 text-muted small service-item-duration">
                                 ${metaLine}
@@ -1157,6 +1161,8 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.set('sync_fees', '1');
         const feeIds = Array.from(document.querySelectorAll('#addServiceModal .service-fee-cb:checked')).map(cb => cb.value);
         feeIds.forEach(id => formData.append('fee_ids[]', id));
+        formData.delete('hidden_from_booking');
+        formData.append('hidden_from_booking', document.getElementById('addServiceHiddenFromBooking')?.checked ? '1' : '0');
 
         fetch('/services', {
             method: 'POST',
@@ -1190,6 +1196,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const cb = document.getElementById('addServiceHasOptions');
                     if (cb) {
                         cb.checked = false;
+                    }
+                    const hiddenCb = document.getElementById('addServiceHiddenFromBooking');
+                    if (hiddenCb) {
+                        hiddenCb.checked = false;
                     }
                     toggleAddServiceOptionsUi();
                     refreshAfterServiceChange();
@@ -1256,6 +1266,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const feeIds = Array.from(document.querySelectorAll('#editServiceModal .service-fee-cb:checked')).map(cb => cb.value);
         formData.delete('fee_ids[]');
         feeIds.forEach(id => formData.append('fee_ids[]', id));
+        formData.delete('hidden_from_booking');
+        formData.append('hidden_from_booking', document.getElementById('editServiceHiddenFromBooking')?.checked ? '1' : '0');
         
         formData.set('_method', 'PUT');
         
@@ -1318,6 +1330,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('editServiceDuration').value = service.duration;
                 document.getElementById('editServicePrice').value = service.price;
                 document.getElementById('editServiceOnlinePrice').value = service.online_price || '';
+                const hiddenBookingEl = document.getElementById('editServiceHiddenFromBooking');
+                if (hiddenBookingEl) {
+                    hiddenBookingEl.checked = !!service.hidden_from_booking;
+                }
 
                 const hasOpts = service.options && service.options.length > 0;
                 const hc = document.getElementById('editServiceHasOptions');

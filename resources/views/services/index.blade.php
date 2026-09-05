@@ -468,6 +468,11 @@
                         <label class="form-label">Descrição</label>
                         <textarea class="form-control" name="description" rows="3"></textarea>
                     </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="hidden_from_booking" value="1" id="addServiceHiddenFromBooking">
+                        <label class="form-check-label" for="addServiceHiddenFromBooking">Ocultar no Booking</label>
+                        <div class="form-text">O serviço deixa de aparecer na marcação online (mantém-se no catálogo e na agenda).</div>
+                    </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="addServiceHasOptions" value="1" autocomplete="off">
                         <label class="form-check-label" for="addServiceHasOptions">Este serviço tem variantes (opções de preço e duração)</label>
@@ -591,6 +596,11 @@
                     <div class="mb-3">
                         <label class="form-label">Descrição</label>
                         <textarea class="form-control" name="description" id="editServiceDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="hidden_from_booking" value="1" id="editServiceHiddenFromBooking">
+                        <label class="form-check-label" for="editServiceHiddenFromBooking">Ocultar no Booking</label>
+                        <div class="form-text">O serviço deixa de aparecer na marcação online (mantém-se no catálogo e na agenda).</div>
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="editServiceHasOptions" value="1" autocomplete="off">
