@@ -13,7 +13,8 @@ use Illuminate\Support\Collection;
 class AgendaSameDayPayableService
 {
     /**
-     * Marcações de hoje (fuso da loja) com saldo por pagar ou fatura final em falta.
+     * Marcações até ao fim do dia (fuso da loja) — hoje e dias anteriores —
+     * com saldo por pagar ou fatura final em falta. Usado no fecho de caixa.
      *
      * @return array{
      *   count: int,
@@ -31,7 +32,7 @@ class AgendaSameDayPayableService
      */
     public function unpaidMarcacoesTodayForStore(int $storeId): array
     {
-        $events = $this->marcacoesForStoreDay($storeId)
+        $events = $this->marcacoesThroughEndOfToday($storeId)
             ->with([
                 'client:id,name',
                 'user:id,name',
@@ -135,6 +136,22 @@ class AgendaSameDayPayableService
     }
 
     /**
+     * Marcações da loja com início até ao fim do dia corrente (inclui dias anteriores).
+     *
+     * @return Builder<CalendarEvent>
+     */
+    private function marcacoesThroughEndOfToday(int $storeId): Builder
+    {
+        $today = StoreBusinessTime::nowForStore($storeId);
+        $endOfToday = $today->copy()->endOfDay();
+
+        return CalendarEvent::query()
+            ->where('store_id', $storeId)
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->where('start_at', '<=', $endOfToday);
+    }
+
+    /**
      * @return array{0: CarbonInterface, 1: CarbonInterface}
      */
     private function dayRangeForStore(CarbonInterface $dayInStoreTimezone): array
@@ -163,7 +180,7 @@ class AgendaSameDayPayableService
 
         return [
             'id' => (int) $event->id,
-            'start_time' => DateTimeDisplay::marcacao($event->start_at, (int) $event->store_id, 'H:i'),
+            'start_time' => DateTimeDisplay::marcacao($event->start_at, (int) $event->store_id, 'd/m/Y H:i'),
             'client_name' => trim((string) ($event->client?->name ?? '')) ?: '—',
             'agent_name' => trim((string) ($event->user?->name ?? '')) ?: '—',
             'services_label' => $this->servicesLabelForEvent($event),

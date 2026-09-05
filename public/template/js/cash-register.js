@@ -167,8 +167,8 @@
 
         var totalDue = Number(unpaid.total_due) || 0;
         var alertText = count === 1
-            ? 'Existe 1 marcação de hoje por liquidar ou faturar. Liquide ou fature todas antes de fechar a caixa.'
-            : 'Existem ' + count + ' marcações de hoje por liquidar ou faturar. Liquide ou fature todas antes de fechar a caixa.';
+            ? 'Existe 1 marcação por liquidar ou faturar (hoje ou dias anteriores). Liquide ou fature todas antes de fechar a caixa.'
+            : 'Existem ' + count + ' marcações por liquidar ou faturar (hoje ou dias anteriores). Liquide ou fature todas antes de fechar a caixa.';
         if (totalDue > 0.00001) {
             alertText += ' Total em falta: ' + formatMoney(totalDue) + '.';
         }
@@ -207,7 +207,7 @@
         }
         submit.disabled = !!blocked;
         if (blocked) {
-            submit.setAttribute('title', 'Liquide ou fature todas as marcações de hoje antes de fechar a caixa.');
+            submit.setAttribute('title', 'Liquide ou fature todas as marcações (hoje e dias anteriores) antes de fechar a caixa.');
         } else {
             submit.removeAttribute('title');
         }

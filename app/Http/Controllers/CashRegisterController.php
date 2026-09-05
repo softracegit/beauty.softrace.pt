@@ -139,8 +139,8 @@ class CashRegisterController extends Controller
         if (($unpaidMarcacoes['count'] ?? 0) > 0) {
             $count = (int) $unpaidMarcacoes['count'];
             $message = $count === 1
-                ? 'Não é possível fechar a caixa: existe 1 marcação de hoje por liquidar ou faturar.'
-                : 'Não é possível fechar a caixa: existem '.$count.' marcações de hoje por liquidar ou faturar.';
+                ? 'Não é possível fechar a caixa: existe 1 marcação por liquidar ou faturar (hoje ou dias anteriores).'
+                : 'Não é possível fechar a caixa: existem '.$count.' marcações por liquidar ou faturar (hoje ou dias anteriores).';
 
             if ($request->expectsJson()) {
                 return response()->json(['error' => $message], 422);
