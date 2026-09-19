@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Category;
 use App\Models\Service;
+use App\Models\Store;
 use Illuminate\Support\Collection;
 
 class ServiceCategoriesForAssociation
@@ -11,24 +12,23 @@ class ServiceCategoriesForAssociation
     public const UNCATEGORIZED_CATEGORY_KEY = -1;
 
     /**
-     * Categorias da loja com serviços agrupados (cada serviço aparece uma única vez).
+     * Categorias da organização com serviços agrupados (cada serviço aparece uma única vez).
      *
      * @return array{categories: Collection<int, Category>, serviceCount: int}
      */
-    public static function forStore(?int $storeId = null): array
+    public static function forOrganization(?int $organizationId = null): array
     {
-        $storeId = $storeId ?? (int) current_store_id();
+        $organizationId = $organizationId ?? (int) current_organization_id();
 
-        $categories = Category::forStore($storeId)
+        $categories = Category::forOrganization($organizationId)
             ->orderBy('sort_order')
             ->get();
 
-        $allServices = Service::forStore($storeId)
+        $allServices = Service::forOrganization($organizationId)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        $validCategoryIds = $categories->pluck('id')->map(fn ($id) => (int) $id)->all();
         $placedIds = [];
 
         foreach ($categories as $category) {
@@ -45,7 +45,7 @@ class ServiceCategoriesForAssociation
 
         if ($orphans->isNotEmpty()) {
             $uncategorized = new Category([
-                'store_id' => $storeId,
+                'organization_id' => $organizationId,
                 'name' => 'Sem categoria',
                 'color' => '#6c757d',
                 'sort_order' => 999999,
@@ -60,5 +60,18 @@ class ServiceCategoriesForAssociation
             'categories' => $categories,
             'serviceCount' => $allServices->count(),
         ];
+    }
+
+    /**
+     * Compat: resolve organização a partir da loja.
+     *
+     * @return array{categories: Collection<int, Category>, serviceCount: int}
+     */
+    public static function forStore(?int $storeId = null): array
+    {
+        $storeId = $storeId ?? (int) current_store_id();
+        $orgId = Store::query()->whereKey($storeId)->value('organization_id');
+
+        return self::forOrganization($orgId ? (int) $orgId : 0);
     }
 }

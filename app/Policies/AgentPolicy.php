@@ -56,6 +56,22 @@ class AgentPolicy
     }
 
     /**
+     * Transferir prestador para outra loja da mesma organização.
+     */
+    public function migrateStore(User $user, Agent $agent): bool
+    {
+        if (! $user->isAdmin() || $user->organization_id === null) {
+            return false;
+        }
+
+        $agent->loadMissing(['store', 'user']);
+
+        return $agent->store !== null
+            && (int) $agent->store->organization_id === (int) $user->organization_id
+            && $agent->user?->isPrestador() === true;
+    }
+
+    /**
      * Determine whether the user can restore the model.
      */
     public function restore(User $user, Agent $agent): bool

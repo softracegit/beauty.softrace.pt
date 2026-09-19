@@ -57,3 +57,18 @@ if (! function_exists('current_store_id')) {
         return $current->id();
     }
 }
+
+if (! function_exists('current_organization_id')) {
+    function current_organization_id(): int
+    {
+        $user = auth()->user();
+        if ($user instanceof User && $user->organization_id) {
+            return (int) $user->organization_id;
+        }
+
+        $storeId = current_store_id();
+        $orgId = \App\Models\Store::query()->whereKey($storeId)->value('organization_id');
+
+        return (int) ($orgId ?? 0);
+    }
+}

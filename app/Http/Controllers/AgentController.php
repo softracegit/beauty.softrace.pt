@@ -11,6 +11,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\VendasReportService;
 use App\Support\ActivityLogUserTimeline;
+use App\Services\MigrateAgentToStoreService;
 use App\Support\CurrentStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -27,7 +28,17 @@ class AgentController extends Controller
     public function index(Request $request)
     {
         $this->authorize('viewAny', Agent::class);
-        $query = Agent::query()->forStore(current_store_id())->orderBy('name');
+
+        $user = auth()->user();
+        $filter = \App\Support\StoreContextPreference::resolveEquipaFilter($user, $request);
+        if ($filter['store_id'] !== null) {
+            \App\Support\StoreContextPreference::persist($request, $filter['store_id']);
+        }
+
+        $query = Agent::query()
+            ->whereIn('store_id', $filter['store_ids'])
+            ->with(['user', 'store'])
+            ->orderBy('name');
 
         if ($request->filled('search')) {
             $search = $request->search;
@@ -61,9 +72,51 @@ class AgentController extends Controller
             $query->where('status', '!=', Agent::STATUS_INACTIVE);
         }
 
-        $agents = $query->with('user')->paginate(30)->withQueryString();
+        $agents = $query->paginate(30)->withQueryString();
 
-        return view('agentes.index', compact('agents'));
+        $statsBase = Agent::query()->whereIn('store_id', $filter['store_ids']);
+        $totalAgentes = (clone $statsBase)->count();
+        $activeCount = (clone $statsBase)->where('status', Agent::STATUS_ACTIVE)->count();
+        $inactiveCount = (clone $statsBase)->where('status', Agent::STATUS_INACTIVE)->count();
+        $onLeaveCount = (clone $statsBase)->where('status', Agent::STATUS_ON_LEAVE)->count();
+
+        $migrateStores = collect();
+        $migrateCandidatesByAgent = [];
+        $orgId = $user?->organization_id;
+        if ($user?->isAdmin() && $orgId) {
+            $migrateStores = Store::query()
+                ->where('organization_id', $orgId)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+
+            $storePrestadores = Agent::query()
+                ->whereIn('store_id', $filter['store_ids'])
+                ->whereHas('user', fn ($q) => $q->where('role', User::ROLE_PRESTADOR))
+                ->with('user:id,role')
+                ->orderBy('name')
+                ->get(['id', 'name', 'user_id', 'store_id']);
+
+            foreach ($storePrestadores as $prestador) {
+                $sameStore = $storePrestadores->where('store_id', $prestador->store_id);
+                $migrateCandidatesByAgent[$prestador->id] = $sameStore
+                    ->filter(fn (Agent $other) => (int) $other->id !== (int) $prestador->id)
+                    ->map(fn (Agent $other) => ['id' => $other->id, 'name' => $other->name])
+                    ->values()
+                    ->all();
+            }
+        }
+
+        return view('agentes.index', [
+            'agents' => $agents,
+            'migrateStores' => $migrateStores,
+            'migrateCandidatesByAgent' => $migrateCandidatesByAgent,
+            'equipaStoreFilter' => $filter,
+            'totalAgentes' => $totalAgentes,
+            'activeCount' => $activeCount,
+            'inactiveCount' => $inactiveCount,
+            'onLeaveCount' => $onLeaveCount,
+            'showStoreColumn' => count($filter['store_ids']) > 1 || $filter['scope'] === \App\Support\StoreContextPreference::SCOPE_ALL,
+        ]);
     }
 
     /**
@@ -72,7 +125,7 @@ class AgentController extends Controller
     public function create()
     {
         $this->authorize('create', Agent::class);
-        $categories = Category::forStore(current_store_id())->orderBy('sort_order')
+        $categories = Category::forOrganization(current_organization_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
@@ -117,7 +170,7 @@ class AgentController extends Controller
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'booking_slug' => $this->bookingSlugRules($request, null),
             'service_ids' => ['nullable', 'array'],
-            'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
         ]);
 
         $validated = $this->applySpecializationByRole($validated);
@@ -160,11 +213,12 @@ class AgentController extends Controller
         $this->authorize('view', $agente);
 
         $storeId = current_store_id();
+        $organizationId = current_organization_id();
         $agente->load([
             'notes.user',
             'user',
-            'services' => function ($q) use ($storeId) {
-                $q->where('services.store_id', $storeId)->with('category');
+            'services' => function ($q) use ($organizationId) {
+                $q->where('services.organization_id', $organizationId)->with('category');
             },
         ]);
 
@@ -294,7 +348,7 @@ class AgentController extends Controller
     {
         $this->authorize('update', $agente);
         $agente->load('services');
-        $categories = Category::forStore(current_store_id())->orderBy('sort_order')
+        $categories = Category::forOrganization(current_organization_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
 
@@ -341,7 +395,7 @@ class AgentController extends Controller
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'booking_slug' => $this->bookingSlugRules($request, $agente->id),
             'service_ids' => ['nullable', 'array'],
-            'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
         ]);
 
         $validated = $this->applySpecializationByRole($validated);
@@ -514,6 +568,89 @@ class AgentController extends Controller
                 ->where(fn ($q) => $q->where('store_id', $storeId))
                 ->ignore($ignoreAgentId),
         ];
+    }
+
+    public function migrateStoreForm(Agent $agente): \Illuminate\View\View
+    {
+        $this->authorize('migrateStore', $agente);
+
+        $agente->loadMissing(['store', 'user']);
+        $stores = Store::query()
+            ->where('organization_id', auth()->user()->organization_id)
+            ->where('id', '!=', $agente->store_id)
+            ->orderBy('name')
+            ->get();
+
+        $takeOverCandidates = Agent::query()
+            ->forStore((int) $agente->store_id)
+            ->where('id', '!=', $agente->id)
+            ->whereHas('user', fn ($q) => $q->where('role', User::ROLE_PRESTADOR))
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $futureCount = app(MigrateAgentToStoreService::class)->futureAppointmentsCount($agente);
+
+        return view('agentes.migrate-store', [
+            'agente' => $agente,
+            'stores' => $stores,
+            'takeOverCandidates' => $takeOverCandidates,
+            'futureCount' => $futureCount,
+        ]);
+    }
+
+    public function migrateStore(Request $request, Agent $agente, MigrateAgentToStoreService $migrator): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('migrateStore', $agente);
+
+        $validated = $request->validate([
+            'store_id' => ['required', 'integer', 'exists:stores,id'],
+            'future_mode' => ['required', Rule::in([
+                MigrateAgentToStoreService::MODE_MIGRATE_FUTURE,
+                MigrateAgentToStoreService::MODE_REASSIGN,
+            ])],
+            'take_over_agent_id' => ['nullable', 'integer', 'exists:agents,id'],
+        ]);
+
+        $target = Store::query()->findOrFail($validated['store_id']);
+        if ((int) $target->organization_id !== (int) auth()->user()->organization_id) {
+            abort(403);
+        }
+
+        $mode = $validated['future_mode'];
+        $takeOver = null;
+        if ($mode === MigrateAgentToStoreService::MODE_REASSIGN && ! empty($validated['take_over_agent_id'])) {
+            $takeOver = Agent::query()->findOrFail((int) $validated['take_over_agent_id']);
+        }
+
+        $conflicts = $migrator->conflictMessages($agente, $target, $mode, $takeOver);
+        if ($conflicts !== []) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Não é possível migrar: verifique as opções e o catálogo da loja destino.')
+                ->with('migrate_conflicts', $conflicts);
+        }
+
+        try {
+            $migrator->migrate($agente, $target, $mode, $takeOver);
+        } catch (\RuntimeException $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+
+        if ($mode === MigrateAgentToStoreService::MODE_MIGRATE_FUTURE) {
+            $request->session()->put(\App\Http\Middleware\SetCurrentStore::SESSION_KEY, $target->id);
+            $msg = 'Membro transferido para '.$target->name.'. As marcações futuras foram com ele.';
+        } else {
+            $msg = 'Membro transferido para '.$target->name.'.'
+                .($takeOver ? ' As marcações futuras ficaram com '.$takeOver->name.'.' : '');
+        }
+
+        return redirect()
+            ->route('equipa.index')
+            ->with('success', $msg);
     }
 
     /**

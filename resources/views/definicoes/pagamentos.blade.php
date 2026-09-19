@@ -157,10 +157,16 @@
     @csrf
     @php $methodIndex = 0; @endphp
 
+    <div class="alert alert-light border mb-4 small mb-0">
+      <i class="ph ph-buildings me-1" aria-hidden="true"></i>
+      <strong>Stripe</strong> e <strong>métodos de pagamento</strong> aplicam-se a <strong>todas as lojas</strong> da organização.
+      Gorjeta na caixa e pagamento online obrigatório continuam só na loja activa.
+    </div>
+
     <div class="card mb-4">
       <div class="card-header">
         <h5 class="card-title mb-0">Métodos de pagamento manuais</h5>
-        <p class="pay-section-lead">Registo interno — sem cobrança automática</p>
+        <p class="pay-section-lead">Registo interno — sem cobrança automática · partilhado na organização</p>
       </div>
       <div class="card-body">
         <div class="pay-methods">
@@ -183,7 +189,7 @@
           <div class="pay-stripe-brand">
             @include('definicoes.partials.stripe-logo', ['class' => 'pay-stripe-brand__mark'])
           </div>
-          <p class="pay-section-lead">Cobrança automática via Stripe</p>
+          <p class="pay-section-lead">Cobrança automática via Stripe · conta da organização</p>
         </div>
         @if($stripeReady)
           <div class="d-flex flex-wrap align-items-center gap-2">
@@ -220,7 +226,7 @@
           @endforeach
           <div class="pay-stripe-empty">
             <p class="pay-stripe-empty__text">
-              Ative o Stripe para configurar os métodos de pagamento automáticos.
+            Ative o Stripe (organização) para configurar os métodos de pagamento automáticos.
             </p>
             <button type="button" class="btn btn-primary pay-stripe-empty__cta" data-bs-toggle="modal" data-bs-target="#stripeConfigModal">
               Ativar Stripe
@@ -233,6 +239,7 @@
     <div class="card mb-4">
       <div class="card-header">
         <h5 class="card-title mb-0">Comportamento</h5>
+        <p class="pay-section-lead">Opções da loja activa</p>
       </div>
       <div class="card-body">
         <div class="py-3 border-bottom">
@@ -378,12 +385,6 @@
         var modalEl = document.getElementById('stripeConfigModal');
         if (modalEl && window.bootstrap && bootstrap.Modal) {
           bootstrap.Modal.getOrCreateInstance(modalEl).show();
-        }
-      @endif
-
-      @if (session('status'))
-        if (typeof window.showToast === 'function') {
-          window.showToast(@json(session('status')), 'success');
         }
       @endif
     });

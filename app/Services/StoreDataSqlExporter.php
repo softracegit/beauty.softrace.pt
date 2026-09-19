@@ -73,15 +73,7 @@ class StoreDataSqlExporter
      */
     private function exportOrder(): array
     {
-        $catalog = [
-            'categories',
-            'extra_categories',
-            'services',
-            'extras',
-            'service_extra',
-            'fees',
-        ];
-
+        // Catálogo (categories/services/fees/extras) é da organização — não exportar com a loja.
         $data = [
             'clients',
             'client_client_tag',
@@ -97,19 +89,19 @@ class StoreDataSqlExporter
             'cash_register_sessions',
         ];
 
-        $full = [
+        $storeTeam = [
             'organizations',
             'stores',
             'agents',
             'agent_service',
             'personal_time_types',
-            'client_tags',
             'crm_settings',
         ];
 
         return match ($this->mode) {
-            StoreDataSqlPurger::MODE_FULL => array_merge($full, $catalog, $data),
-            StoreDataSqlPurger::MODE_CATALOG => array_merge($catalog, $data),
+            StoreDataSqlPurger::MODE_FULL => array_merge($storeTeam, $data),
+            // MODE_CATALOG: dados + pivots agent_service (sem entidades de catálogo)
+            StoreDataSqlPurger::MODE_CATALOG => array_merge(['agent_service'], $data),
             default => $data,
         };
     }
@@ -122,13 +114,8 @@ class StoreDataSqlExporter
         $this->idSets['organizations'] = $orgId > 0 ? [$orgId] : [];
         $this->idSets['stores'] = [$storeId];
 
-        $this->idSets['categories'] = $this->pluckIds('categories', 'store_id', $storeId);
-        $this->idSets['extra_categories'] = $this->pluckIds('extra_categories', 'store_id', $storeId);
-        $this->idSets['services'] = $this->pluckIds('services', 'store_id', $storeId);
-        $this->idSets['fees'] = $this->pluckIds('fees', 'store_id', $storeId);
         $this->idSets['agents'] = $this->pluckIds('agents', 'store_id', $storeId);
         $this->idSets['personal_time_types'] = $this->pluckIds('personal_time_types', 'store_id', $storeId);
-        $this->idSets['client_tags'] = $this->pluckIds('client_tags', 'store_id', $storeId);
         $this->idSets['clients'] = $this->pluckIds('clients', 'store_id', $storeId);
         $this->idSets['calendar_events'] = $this->pluckIds('calendar_events', 'store_id', $storeId);
         $this->idSets['sales'] = $this->pluckIds('sales', 'store_id', $storeId);
@@ -137,17 +124,37 @@ class StoreDataSqlExporter
         $this->idSets['zappy_import_refs'] = $this->pluckIds('zappy_import_refs', 'store_id', $storeId);
         $this->idSets['cash_register_sessions'] = $this->pluckIds('cash_register_sessions', 'store_id', $storeId);
 
-        $this->idSets['extras'] = $this->pluckIdsWhereIn(
-            'extras',
-            'extra_category_id',
-            $this->idSets['extra_categories']
-        );
-
-        $this->idSets['service_extra'] = DB::table('service_extra')
-            ->whereIn('service_id', $this->idSets['services'])
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        // Serviços usados em marcações/vendas desta loja (para remap por nome no catálogo da org)
+        $serviceIdsFromEvents = [];
+        if ($this->idSets['calendar_events'] !== [] && Schema::hasTable('calendar_event_services')) {
+            $serviceIdsFromEvents = DB::table('calendar_event_services')
+                ->whereIn('calendar_event_id', $this->idSets['calendar_events'])
+                ->whereNotNull('service_id')
+                ->pluck('service_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+        $serviceIdsFromSales = [];
+        if ($this->idSets['sales'] !== [] && Schema::hasTable('sale_items')) {
+            $serviceIdsFromSales = DB::table('sale_items')
+                ->whereIn('sale_id', $this->idSets['sales'])
+                ->whereNotNull('service_id')
+                ->pluck('service_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+        $legacyEventServiceIds = [];
+        if ($this->idSets['calendar_events'] !== [] && Schema::hasColumn('calendar_events', 'service_id')) {
+            $legacyEventServiceIds = DB::table('calendar_events')
+                ->whereIn('id', $this->idSets['calendar_events'])
+                ->whereNotNull('service_id')
+                ->pluck('service_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+        $this->idSets['services'] = array_values(array_unique(array_filter(
+            array_merge($serviceIdsFromEvents, $serviceIdsFromSales, $legacyEventServiceIds)
+        )));
 
         $this->idSets['agent_service'] = DB::table('agent_service')
             ->whereIn('agent_id', $this->idSets['agents'])
@@ -207,23 +214,6 @@ class StoreDataSqlExporter
 
         return DB::table($table)
             ->where($column, $value)
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
-    }
-
-    /**
-     * @param  list<int>  $values
-     * @return list<int>
-     */
-    private function pluckIdsWhereIn(string $table, string $column, array $values): array
-    {
-        if ($values === [] || ! Schema::hasTable($table)) {
-            return [];
-        }
-
-        return DB::table($table)
-            ->whereIn($column, $values)
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
@@ -357,7 +347,7 @@ class StoreDataSqlExporter
     }
 
     /**
-     * Ajusta service_id nas marcações/vendas para o catálogo já existente no servidor (match por nome).
+     * Ajusta service_id nas marcações/vendas para o catálogo da organização no servidor (match por nome).
      */
     private function dumpServiceIdRemapSql(): string
     {
@@ -365,8 +355,13 @@ class StoreDataSqlExporter
             return '';
         }
 
+        $serviceIds = $this->idSets['services'] ?? [];
+        if ($serviceIds === []) {
+            return '';
+        }
+
         $services = DB::table('services')
-            ->where('store_id', $this->storeId)
+            ->whereIn('id', $serviceIds)
             ->orderBy('id')
             ->get(['id', 'name']);
 
@@ -375,7 +370,7 @@ class StoreDataSqlExporter
         }
 
         $lines = [
-            '-- Remapear service_id local → catálogo do servidor (por nome do serviço)',
+            '-- Remapear service_id local → catálogo da organização no servidor (por nome)',
             'DROP TEMPORARY TABLE IF EXISTS `_zappy_service_id_map`;',
             'CREATE TEMPORARY TABLE `_zappy_service_id_map` (`old_id` INT NOT NULL, `name` VARCHAR(255) NOT NULL, PRIMARY KEY (`old_id`));',
         ];
@@ -389,13 +384,16 @@ class StoreDataSqlExporter
             $lines[] = 'INSERT INTO `_zappy_service_id_map` (`old_id`, `name`) VALUES '.implode(', ', $chunk).';';
         }
 
+        // Match no catálogo da org da loja destino (@store_id), não por services.store_id.
         if (Schema::hasTable('calendar_event_services')) {
             $lines[] = <<<'SQL'
 UPDATE calendar_event_services ces
 INNER JOIN `_zappy_service_id_map` m ON m.old_id = ces.service_id
 INNER JOIN calendar_events ce ON ce.id = ces.calendar_event_id
 SET ces.service_id = COALESCE(
-    (SELECT s.id FROM services s WHERE s.store_id = @store_id AND s.name = m.name LIMIT 1),
+    (SELECT s.id FROM services s
+     INNER JOIN stores st ON st.organization_id = s.organization_id AND st.id = @store_id
+     WHERE s.name = m.name LIMIT 1),
     ces.service_id
 )
 WHERE ce.store_id = @store_id;
@@ -408,7 +406,9 @@ UPDATE sale_items si
 INNER JOIN `_zappy_service_id_map` m ON m.old_id = si.service_id
 INNER JOIN sales sa ON sa.id = si.sale_id
 SET si.service_id = COALESCE(
-    (SELECT s.id FROM services s WHERE s.store_id = @store_id AND s.name = m.name LIMIT 1),
+    (SELECT s.id FROM services s
+     INNER JOIN stores st ON st.organization_id = s.organization_id AND st.id = @store_id
+     WHERE s.name = m.name LIMIT 1),
     si.service_id
 )
 WHERE sa.store_id = @store_id AND si.service_id IS NOT NULL;
@@ -420,7 +420,9 @@ SQL;
 UPDATE calendar_events ce
 INNER JOIN `_zappy_service_id_map` m ON m.old_id = ce.service_id
 SET ce.service_id = COALESCE(
-    (SELECT s.id FROM services s WHERE s.store_id = @store_id AND s.name = m.name LIMIT 1),
+    (SELECT s.id FROM services s
+     INNER JOIN stores st ON st.organization_id = s.organization_id AND st.id = @store_id
+     WHERE s.name = m.name LIMIT 1),
     ce.service_id
 )
 WHERE ce.store_id = @store_id AND ce.service_id IS NOT NULL;

@@ -29,7 +29,6 @@ class OrganizationStoreController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('stores', 'slug')],
-            'timezone' => ['nullable', 'string', 'max:64'],
             'phone' => ['nullable', 'string', 'max:64'],
             'email' => ['nullable', 'email', 'max:255'],
             'address_line' => ['nullable', 'string', 'max:255'],
@@ -45,7 +44,7 @@ class OrganizationStoreController extends Controller
         $store = $organization->stores()->create([
             'name' => $validated['name'],
             'slug' => $slug,
-            'timezone' => $validated['timezone'] ?? null,
+            'timezone' => null,
             'phone' => $validated['phone'] ?? null,
             'email' => $validated['email'] ?? null,
             'address_line' => $validated['address_line'] ?? null,
@@ -74,7 +73,6 @@ class OrganizationStoreController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', Rule::unique('stores', 'slug')->ignore($store->getKey())],
-            'timezone' => ['nullable', 'string', 'max:64'],
             'phone' => ['nullable', 'string', 'max:64'],
             'email' => ['nullable', 'email', 'max:255'],
             'address_line' => ['nullable', 'string', 'max:255'],
@@ -82,7 +80,10 @@ class OrganizationStoreController extends Controller
             'postal_code' => ['nullable', 'string', 'max:32'],
         ]);
 
-        $store->update($validated);
+        $store->update([
+            ...$validated,
+            'timezone' => null,
+        ]);
 
         return redirect()
             ->route('super-admin.organizations.show', $organization)

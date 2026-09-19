@@ -436,16 +436,22 @@ class Agent extends Model
     }
 
     /**
-     * Eager load serviços da mesma loja (evita pivots cruzados e problemas com `services:id` no many-to-many).
+     * Eager load serviços da organização da loja (catálogo partilhado; evita pivots cruzados entre orgs).
      *
      * @param  Builder<Agent>  $query
      * @return Builder<Agent>
      */
     public function scopeWithServicesForStore(Builder $query, int $storeId): Builder
     {
+        $orgId = (int) (Store::query()->whereKey($storeId)->value('organization_id') ?? 0);
+
         return $query->with([
-            'services' => function (BelongsToMany $q) use ($storeId): void {
-                $q->where('services.store_id', $storeId);
+            'services' => function (BelongsToMany $q) use ($orgId): void {
+                if ($orgId > 0) {
+                    $q->where('services.organization_id', $orgId);
+                } else {
+                    $q->whereRaw('0 = 1');
+                }
             },
         ]);
     }

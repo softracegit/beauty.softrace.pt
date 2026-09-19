@@ -121,7 +121,7 @@
         </div>
         <p class="small text-muted mb-0 mt-2 w-100">
           Quando está ligado, ao criar ou editar tempo pessoal na agenda só aparecem horas dentro do horário habitual da loja
-          (atualmente {{ $storeHoursLabel ?? '09:00–20:00' }}, conforme definido em Negócio).
+          (atualmente {{ $storeHoursLabel ?? '09:00–20:00' }}, conforme definido em Definições → Loja).
           Quando está desligado, mantém-se a lista completa de horas (00:00–23:45).
         </p>
       </div>
@@ -134,13 +134,4 @@
     </div>
   </form>
 
-  @if (session('status'))
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        if (typeof window.showToast === 'function') {
-          window.showToast(@json(session('status')), 'success');
-        }
-      });
-    </script>
-  @endif
 @endsection

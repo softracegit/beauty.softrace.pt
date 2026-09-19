@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToStore;
+use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,9 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    use BelongsToStore;
+    use BelongsToOrganization;
 
     protected $fillable = [
+        'organization_id',
         'store_id',
         'name',
         'description',
@@ -25,6 +26,14 @@ class Category extends Model
         'sort_order' => 'integer',
         'hidden_from_booking' => 'boolean',
     ];
+
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
 
     /**
      * @return BelongsTo<Store, $this>

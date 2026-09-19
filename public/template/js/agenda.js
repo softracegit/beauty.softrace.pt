@@ -10686,6 +10686,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Dropdown será inicializado após render (só visível na vista Dia)
                 }
             },
+            storeFilter: {
+                text: 'Loja',
+                click: function() {
+                    // Select inicializado após render
+                }
+            },
             refreshAgenda: {
                 text: '',
                 click: function() {
@@ -10702,7 +10708,7 @@ document.addEventListener('DOMContentLoaded', function() {
         headerToolbar: {
             left: 'today prev currentDate next refreshAgenda',
             center: '',
-            right: 'consultantFilter viewSelector adicionarDropdown'
+            right: 'storeFilter consultantFilter viewSelector adicionarDropdown'
         },
         buttonText: {
             today: 'Hoje',
@@ -11348,15 +11354,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentDateBtn = calendarEl.querySelector('.fc-currentDate-button');
                 const prevBtn = calendarEl.querySelector('.fc-prev-button');
                 const nextBtn = calendarEl.querySelector('.fc-next-button');
-                if (viewSelectorBtn && (!viewSelectorBtn.closest('.dropdown') || !calendarEl.querySelector('#viewSelectorDropdown'))) {
-                    viewSelectorBtn.dataset.initialized = '';
-                    initViewSelectorDropdown();
-                }
-                if (consultantBtn && viewSupportsConsultantFilter(viewType) && (!consultantBtn.closest('.dropdown') || !calendarEl.querySelector('#consultantDropdown'))) {
-                    consultantBtn.dataset.initialized = '';
-                    initConsultantDropdown();
-                }
-                initAdicionarDropdown();
+                ensureAgendaToolbarDropdowns();
                 var startDate = viewType === 'dayGridMonth' ? calendar.view.currentStart : info.start;
                 if (currentDateBtn) {
                     currentDateBtn.textContent = formatCurrentDateButton(viewType, startDate, info.end);
@@ -11380,6 +11378,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     var res = selectedConsultantId && allResources.length ? allResources.find(function(r) { return r.id === selectedConsultantId; }) : null;
                     consultantBtn.textContent = res ? res.title : 'Toda a equipa';
                 }
+                updateAgendaStoreFilterButton();
                 if (prevBtn) prevBtn.innerHTML = '<span class="fc-icon fc-icon-chevron-left"></span>';
                 if (nextBtn) nextBtn.innerHTML = '<span class="fc-icon fc-icon-chevron-right"></span>';
                 applyToolbarStyles();
@@ -11423,10 +11422,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 syncAgendaMobileControls();
             });
             setTimeout(function() {
-                initViewSelectorDropdown();
+                ensureAgendaToolbarDropdowns();
                 updateViewSelectorButton(info.view.type);
                 updateViewDropdownActive(info.view.type);
-                initAdicionarDropdown();
                 applyToolbarStyles();
                 ensureAgendaSlot24hToggle();
                 applyHolidayClassesToTimeGridColumns();
@@ -11444,13 +11442,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (showConsultantFilter) {
                 setTimeout(function() {
-                    initConsultantDropdown();
+                    ensureAgendaToolbarDropdowns();
                     updateConsultantFilterButton();
+                    updateAgendaStoreFilterButton();
                     applyToolbarStyles();
                     ensureAgendaSlot24hToggle();
                     applyHolidayClassesToTimeGridColumns();
                     syncAgendaHolidayBanner();
                 }, isConsultant ? 150 : 0);
+            } else {
+                updateAgendaStoreFilterButton();
             }
         }
     });
@@ -12551,6 +12552,44 @@ document.addEventListener('DOMContentLoaded', function() {
         viewBtn.textContent = viewLabels[viewType] || 'Dia';
     }
 
+    /** Remove wrappers/menus de dropdown órfãos na toolbar (FC recria botões e deixa shells vazios). */
+    function cleanupOrphanAgendaToolbarDropdowns() {
+        var liveViewBtn = calendarEl.querySelector('.fc-viewSelector-button');
+        var liveConsultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
+        var liveAddBtn = calendarEl.querySelector('.fc-adicionarDropdown-button');
+        var liveStoreBtn = calendarEl.querySelector('.fc-storeFilter-button');
+
+        function wrapOwnsLiveButton(wrap) {
+            return (liveViewBtn && wrap.contains(liveViewBtn))
+                || (liveConsultantBtn && wrap.contains(liveConsultantBtn))
+                || (liveAddBtn && wrap.contains(liveAddBtn))
+                || (liveStoreBtn && wrap.contains(liveStoreBtn));
+        }
+
+        calendarEl.querySelectorAll('#viewSelectorDropdown, #consultantDropdown, #agendaStoreDropdown, #adicionarDropdownMenu, .agenda-adicionar-dropdown-menu').forEach(function(menu) {
+            var wrap = menu.closest('.dropdown');
+            if (!wrap || !wrapOwnsLiveButton(wrap)) {
+                menu.remove();
+            }
+        });
+
+        calendarEl.querySelectorAll('.fc-header-toolbar .dropdown').forEach(function(wrap) {
+            if (!wrapOwnsLiveButton(wrap)) {
+                wrap.remove();
+            }
+        });
+    }
+
+    function ensureAgendaToolbarDropdowns() {
+        cleanupOrphanAgendaToolbarDropdowns();
+        initViewSelectorDropdown();
+        initAgendaStoreFilter();
+        if (calendar && viewSupportsConsultantFilter(calendar.view.type)) {
+            initConsultantDropdown();
+        }
+        initAdicionarDropdown();
+    }
+
     // Inicializar dropdown de vistas
     function initViewSelectorDropdown() {
         const viewBtn = calendarEl.querySelector('.fc-viewSelector-button');
@@ -12570,7 +12609,7 @@ document.addEventListener('DOMContentLoaded', function() {
             viewBtn.dataset.initialized = '';
         }
         
-        if (viewBtn.dataset.initialized) return;
+        if (viewBtn.dataset.initialized === '1') return;
         
         viewBtn.dataset.initialized = '1';
         
@@ -12599,11 +12638,7 @@ document.addEventListener('DOMContentLoaded', function() {
         viewBtn.setAttribute('aria-expanded', 'false');
         viewBtn.setAttribute('id', 'viewSelectorBtn');
         
-        // Remover dropdown existente se houver (mas não o consultantDropdown)
-        const existingDropdown = btnParent.querySelector('#viewSelectorDropdown');
-        if (existingDropdown) {
-            existingDropdown.remove();
-        }
+        calendarEl.querySelectorAll('#viewSelectorDropdown').forEach(function(el) { el.remove(); });
         
         const dropdown = document.createElement('div');
         dropdown.className = 'dropdown-menu';
@@ -12716,15 +12751,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const addBtn = calendarEl.querySelector('.fc-adicionarDropdown-button');
         if (!addBtn) return;
 
+        var isolated = addBtn.closest('.agenda-adicionar-dropdown-isolated');
+        var existingMenu = isolated
+            ? isolated.querySelector('#adicionarDropdownMenu, .agenda-adicionar-dropdown-menu')
+            : null;
+        var isolatedOk = isolated
+            && existingMenu
+            && !isolated.querySelector('.fc-viewSelector-button')
+            && !isolated.querySelector('.fc-consultantFilter-button');
+        if (isolatedOk) {
+            return;
+        }
+
         var existingDd = bootstrap.Dropdown.getInstance(addBtn);
         if (existingDd) existingDd.dispose();
 
-        calendarEl.querySelectorAll('.agenda-adicionar-dropdown-menu').forEach(function(el) { el.remove(); });
-        var orphanMenu = document.getElementById('adicionarDropdownMenu');
-        if (orphanMenu) orphanMenu.remove();
+        calendarEl.querySelectorAll('.agenda-adicionar-dropdown-menu, #adicionarDropdownMenu').forEach(function(el) { el.remove(); });
 
-        var isolated = addBtn.closest('.agenda-adicionar-dropdown-isolated');
-        var isolatedOk = isolated && !isolated.querySelector('.fc-viewSelector-button') && !isolated.querySelector('.fc-consultantFilter-button');
+        isolated = addBtn.closest('.agenda-adicionar-dropdown-isolated');
+        isolatedOk = isolated && !isolated.querySelector('.fc-viewSelector-button') && !isolated.querySelector('.fc-consultantFilter-button');
         if (!isolatedOk) {
             var nw = document.createElement('div');
             nw.className = 'dropdown agenda-adicionar-dropdown-isolated';
@@ -12736,7 +12781,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         var btnParent = addBtn.parentElement;
-        btnParent.querySelectorAll('.agenda-adicionar-dropdown-menu').forEach(function(el) { el.remove(); });
+        btnParent.querySelectorAll('.agenda-adicionar-dropdown-menu, #adicionarDropdownMenu').forEach(function(el) { el.remove(); });
 
         addBtn.dataset.initialized = '1';
         addBtn.classList.add('dropdown-toggle');
@@ -12870,8 +12915,97 @@ document.addEventListener('DOMContentLoaded', function() {
         syncAgendaMobileControls();
     }
 
+    // Filtro de loja (ao lado de «Toda a equipa») — muda cookie/sessão via ?loja=
+    function agendaStoreFilterLabel() {
+        var stores = C.selectableStores || [];
+        var currentId = String(C.currentStoreId || '');
+        var current = stores.find(function (s) { return String(s.id) === currentId; });
+        return current ? current.name : 'Loja';
+    }
+
+    function updateAgendaStoreFilterButton() {
+        var storeBtn = calendarEl.querySelector('.fc-storeFilter-button');
+        if (!storeBtn || storeBtn.style.display === 'none') {
+            return;
+        }
+        storeBtn.textContent = agendaStoreFilterLabel();
+    }
+
+    function initAgendaStoreFilter() {
+        var stores = C.selectableStores || [];
+        if (!C.canChooseStore || stores.length <= 1) {
+            var hideBtn = calendarEl.querySelector('.fc-storeFilter-button');
+            if (hideBtn) {
+                hideBtn.style.display = 'none';
+            }
+            return;
+        }
+        var storeBtn = calendarEl.querySelector('.fc-storeFilter-button');
+        if (!storeBtn) {
+            return;
+        }
+
+        if (storeBtn.dataset.initialized === '1') {
+            var existingWrap = storeBtn.closest('.dropdown');
+            var existingMenu = existingWrap ? existingWrap.querySelector('#agendaStoreDropdown') : null;
+            if (existingWrap && existingMenu) {
+                updateAgendaStoreFilterButton();
+                return;
+            }
+            storeBtn.dataset.initialized = '';
+        }
+
+        storeBtn.dataset.initialized = '1';
+        storeBtn.textContent = agendaStoreFilterLabel();
+
+        var currentId = String(C.currentStoreId || '');
+        var btnParent = storeBtn.parentElement;
+        if (!btnParent) return;
+        if (!btnParent.classList.contains('dropdown')) {
+            var wrapper = document.createElement('div');
+            wrapper.className = 'dropdown';
+            wrapper.style.setProperty('display', 'inline-block', 'important');
+            wrapper.style.setProperty('margin', '0', 'important');
+            wrapper.style.setProperty('padding', '0', 'important');
+            btnParent.insertBefore(wrapper, storeBtn);
+            wrapper.appendChild(storeBtn);
+            btnParent = wrapper;
+        } else {
+            btnParent.classList.add('dropdown');
+        }
+
+        storeBtn.classList.add('dropdown-toggle');
+        storeBtn.setAttribute('data-bs-toggle', 'dropdown');
+        storeBtn.setAttribute('aria-expanded', 'false');
+        storeBtn.setAttribute('id', 'agendaStoreFilterBtn');
+
+        calendarEl.querySelectorAll('#agendaStoreDropdown').forEach(function (el) { el.remove(); });
+
+        var dropdown = document.createElement('div');
+        dropdown.className = 'dropdown-menu';
+        dropdown.id = 'agendaStoreDropdown';
+        dropdown.setAttribute('aria-labelledby', 'agendaStoreFilterBtn');
+
+        stores.forEach(function (s) {
+            var opt = document.createElement('a');
+            opt.className = 'dropdown-item' + (String(s.id) === currentId ? ' active' : '');
+            opt.href = '#';
+            opt.textContent = s.name;
+            opt.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (String(s.id) === currentId) return;
+                var url = new URL(window.location.href);
+                url.searchParams.set('loja', String(s.id));
+                window.location.href = url.toString();
+            });
+            dropdown.appendChild(opt);
+        });
+        btnParent.appendChild(dropdown);
+    }
+
     // Inicializar dropdown de consultores após render
     function initConsultantDropdown() {
+        initAgendaStoreFilter();
         const consultantBtn = calendarEl.querySelector('.fc-consultantFilter-button');
         if (!consultantBtn) return;
 
@@ -12893,14 +13027,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (wrapper && dropdown) {
                 // Estrutura existe, apenas atualizar estado e garantir estilos com important
                 updateDropdownActive();
-                wrapper.style.setProperty('margin', '0', 'important');
-                wrapper.style.setProperty('margin-left', '0', 'important');
-                wrapper.style.setProperty('margin-right', '0', 'important');
                 wrapper.style.setProperty('padding', '0', 'important');
                 wrapper.style.setProperty('display', 'inline-block', 'important');
-                consultantBtn.style.setProperty('margin', '0', 'important');
-                consultantBtn.style.setProperty('margin-left', '0', 'important');
-                consultantBtn.style.setProperty('margin-right', '0', 'important');
                 return;
             }
             // Estrutura perdida, re-inicializar
@@ -12918,18 +13046,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const wrapper = document.createElement('div');
             wrapper.className = 'dropdown';
             wrapper.style.setProperty('display', 'inline-block', 'important');
-            wrapper.style.setProperty('margin', '0', 'important');
-            wrapper.style.setProperty('margin-left', '0', 'important');
-            wrapper.style.setProperty('margin-right', '0', 'important');
             wrapper.style.setProperty('padding', '0', 'important');
             consultantBtn.parentElement.insertBefore(wrapper, consultantBtn);
             wrapper.appendChild(consultantBtn);
             btnParent = wrapper;
         } else {
             btnParent.classList.add('dropdown');
-            btnParent.style.setProperty('margin', '0', 'important');
-            btnParent.style.setProperty('margin-left', '0', 'important');
-            btnParent.style.setProperty('margin-right', '0', 'important');
             btnParent.style.setProperty('padding', '0', 'important');
             btnParent.style.setProperty('display', 'inline-block', 'important');
         }
@@ -12939,15 +13061,8 @@ document.addEventListener('DOMContentLoaded', function() {
         consultantBtn.setAttribute('data-bs-target', '#consultantDropdown');
         consultantBtn.setAttribute('aria-expanded', 'false');
         consultantBtn.setAttribute('id', 'consultantFilterBtn');
-        consultantBtn.style.setProperty('margin', '0', 'important');
-        consultantBtn.style.setProperty('margin-left', '0', 'important');
-        consultantBtn.style.setProperty('margin-right', '0', 'important');
         
-        // Remover dropdown existente se houver (mas não o viewSelectorDropdown)
-        const existingDropdown = btnParent.querySelector('#consultantDropdown');
-        if (existingDropdown) {
-            existingDropdown.remove();
-        }
+        calendarEl.querySelectorAll('#consultantDropdown').forEach(function(el) { el.remove(); });
         
         const dropdown = document.createElement('div');
         dropdown.className = 'dropdown-menu';
@@ -13001,15 +13116,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Atualizar estado ativo do dropdown
             updateDropdownActive();
             
-            // Garantir que os estilos estão aplicados com important
-            consultantBtn.style.setProperty('margin', '0', 'important');
-            consultantBtn.style.setProperty('margin-left', '0', 'important');
-            consultantBtn.style.setProperty('margin-right', '0', 'important');
             const consultantWrapper = consultantBtn.closest('.dropdown');
             if (consultantWrapper) {
-                consultantWrapper.style.setProperty('margin', '0', 'important');
-                consultantWrapper.style.setProperty('margin-left', '0', 'important');
-                consultantWrapper.style.setProperty('margin-right', '0', 'important');
                 consultantWrapper.style.setProperty('padding', '0', 'important');
                 consultantWrapper.style.setProperty('display', 'inline-block', 'important');
             }

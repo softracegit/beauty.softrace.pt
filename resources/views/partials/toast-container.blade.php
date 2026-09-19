@@ -23,12 +23,20 @@
     };
 })();
 </script>
-@if ($errors->any())
+@php
+  $toastError = $errors->any() ? $errors->first() : (session('error') ?: null);
+  $toastSuccess = session('success') ?: session('status');
+@endphp
+@if ($toastError || $toastSuccess)
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    if (typeof window.showToast === 'function') {
-        window.showToast(@json($errors->first()), 'error');
-    }
+    if (typeof window.showToast !== 'function') return;
+    @if ($toastError)
+      window.showToast(@json($toastError), 'error');
+    @endif
+    @if ($toastSuccess)
+      window.showToast(@json($toastSuccess), 'success');
+    @endif
 });
 </script>
 @endif

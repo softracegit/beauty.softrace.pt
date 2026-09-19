@@ -6,10 +6,10 @@ use App\Http\Requests\StoreExtraCategoryRequest;
 use App\Http\Requests\StoreExtraRequest;
 use App\Http\Requests\UpdateExtraCategoryRequest;
 use App\Http\Requests\UpdateExtraRequest;
-use App\Models\Category;
 use App\Models\Extra;
 use App\Models\ExtraCategory;
 use App\Models\Service;
+use App\Support\ServiceCategoriesForAssociation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,15 +21,16 @@ class ExtraController extends Controller
      */
     public function index(Request $request): View
     {
+        $organizationId = current_organization_id();
         $selectedCategory = null;
-        $categories = ExtraCategory::forStore(current_store_id())->orderBy('sort_order')
+        $categories = ExtraCategory::forOrganization($organizationId)->orderBy('sort_order')
             ->withCount('extras')
             ->with(['extras' => fn ($q) => $q->with('extraCategory', 'services')->orderBy('sort_order')])
             ->get();
 
         $categoryId = $request->get('category_id');
         if ($categoryId && $categoryId !== 'all') {
-            $selectedCategory = $categories->firstWhere('id', (int) $categoryId) ?? ExtraCategory::forStore(current_store_id())->find($categoryId);
+            $selectedCategory = $categories->firstWhere('id', (int) $categoryId) ?? ExtraCategory::forOrganization($organizationId)->find($categoryId);
             if ($selectedCategory && ! $selectedCategory->relationLoaded('extras')) {
                 $selectedCategory->load(['extras' => fn ($q) => $q->with('extraCategory', 'services')->orderBy('sort_order')]);
             }
@@ -39,8 +40,8 @@ class ExtraController extends Controller
             ? $selectedCategory->extras
             : collect();
 
-        $services = Service::forStore(current_store_id())->with('category')->orderBy('name')->get();
-        $association = \App\Support\ServiceCategoriesForAssociation::forStore();
+        $services = Service::forOrganization($organizationId)->with('category')->orderBy('name')->get();
+        $association = ServiceCategoriesForAssociation::forOrganization($organizationId);
 
         return view('extras.index', [
             'categories' => $categories,
@@ -53,8 +54,9 @@ class ExtraController extends Controller
 
     public function create(): View
     {
-        $categories = ExtraCategory::forStore(current_store_id())->orderBy('sort_order')->get();
-        $services = Service::forStore(current_store_id())->with('category')->orderBy('name')->get();
+        $organizationId = current_organization_id();
+        $categories = ExtraCategory::forOrganization($organizationId)->orderBy('sort_order')->get();
+        $services = Service::forOrganization($organizationId)->with('category')->orderBy('name')->get();
 
         return view('extras.create', compact('categories', 'services'));
     }
@@ -106,8 +108,9 @@ class ExtraController extends Controller
     public function edit(Extra $extra): View
     {
         $extra->load('services');
-        $categories = ExtraCategory::forStore(current_store_id())->orderBy('sort_order')->get();
-        $services = Service::forStore(current_store_id())->with('category')->orderBy('name')->get();
+        $organizationId = current_organization_id();
+        $categories = ExtraCategory::forOrganization($organizationId)->orderBy('sort_order')->get();
+        $services = Service::forOrganization($organizationId)->with('category')->orderBy('name')->get();
 
         return view('extras.edit', compact('extra', 'categories', 'services'));
     }
@@ -147,7 +150,7 @@ class ExtraController extends Controller
     {
         $categoryId = $request->get('extra_category_id');
         $query = Extra::query()
-            ->whereHas('extraCategory', fn ($q) => $q->where('store_id', current_store_id()))
+            ->whereHas('extraCategory', fn ($q) => $q->where('organization_id', current_organization_id()))
             ->with('extraCategory')
             ->orderBy('sort_order');
         if ($categoryId) {
@@ -172,10 +175,11 @@ class ExtraController extends Controller
     public function storeCategory(StoreExtraCategoryRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $organizationId = current_organization_id();
         if (! isset($data['sort_order'])) {
-            $data['sort_order'] = (ExtraCategory::forStore(current_store_id())->max('sort_order') ?? 0) + 1;
+            $data['sort_order'] = (ExtraCategory::forOrganization($organizationId)->max('sort_order') ?? 0) + 1;
         }
-        $data['store_id'] = current_store_id();
+        $data['organization_id'] = $organizationId;
         $category = ExtraCategory::create($data);
 
         return response()->json([

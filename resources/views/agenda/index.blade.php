@@ -631,6 +631,9 @@ window.AGENDA_CONFIG = {
     posPaymentMethodsReserva: @json($posPaymentMethodsReserva ?? []),
     storeTimezone: @json($storeTimezone ?? 'Europe/Lisbon'),
     personalTimeLimitStoreHours: @json($personalTimeLimitStoreHours ?? false),
+    canChooseStore: @json($canChooseStoreContext ?? false),
+    currentStoreId: @json((int) ($activeStore->id ?? current_store_id())),
+    selectableStores: @json(($selectableStores ?? collect())->map(fn ($s) => ['id' => (int) $s->id, 'name' => $s->name])->values()->all()),
 };
 </script>
 <script>window.CLIENT_TAGS_CONFIG = { catalogUrl: @json(route('client-tags.index')), maxPerClient: {{ \App\Services\ClientTagService::MAX_TAGS_PER_CLIENT }} };</script>

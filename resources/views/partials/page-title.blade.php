@@ -111,6 +111,26 @@
                 ];
             }
         }
+    } elseif (str_contains($currentRoute, 'lojas')) {
+        $breadcrumbs[] = [
+            'label' => 'Lojas',
+            'url' => route('lojas.index'),
+            'active' => in_array($currentRoute, ['lojas.index', 'lojas.create'], true),
+        ];
+        if ($currentRoute === 'lojas.create') {
+            $breadcrumbs[] = [
+                'label' => 'Nova',
+                'url' => null,
+                'active' => true,
+            ];
+        } elseif ($currentRoute === 'lojas.edit') {
+            $store = $store ?? null;
+            $breadcrumbs[] = [
+                'label' => $store?->name ?? 'Ficha',
+                'url' => null,
+                'active' => true,
+            ];
+        }
     } elseif (str_contains($currentRoute, 'definicoes')) {
         $breadcrumbs[] = [
             'label' => 'Definições',
@@ -118,10 +138,9 @@
             'active' => false
         ];
         $sectionLabels = [
-            'definicoes.negocio' => 'Negócio',
-            'definicoes.marcacoes' => 'Marcações',
+            'definicoes.empresa' => 'Empresa',
+            'definicoes.marcacoes' => 'Booking',
             'definicoes.equipa' => 'Equipa',
-            'definicoes.emails' => 'Emails',
             'definicoes.etiquetas' => 'Etiquetas',
             'definicoes.notificacoes' => 'Notificações',
             'definicoes.pagamentos' => 'Pagamentos',

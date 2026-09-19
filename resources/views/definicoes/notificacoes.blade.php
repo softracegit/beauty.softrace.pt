@@ -51,13 +51,4 @@
       </form>
     </div>
   </div>
-  @if (session('status'))
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        if (typeof window.showToast === 'function') {
-          window.showToast(@json(session('status')), 'success');
-        }
-      });
-    </script>
-  @endif
 @endsection

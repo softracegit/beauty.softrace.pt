@@ -43,6 +43,7 @@
   <div class="dash-welcome mb-4">
     <div class="dash-welcome-content">
       <h2 class="dash-welcome-title mb-0">Funil Booking</h2>
+      @include('relatorios.partials.store-context')
       <p class="text-muted small mb-0 mt-1">
         Abandonos e bloqueios no fluxo público de marcação (OTP, contas online e horários temporários). Histórico completo.
       </p>
@@ -82,7 +83,7 @@
         <a
           class="nav-link {{ ($activeTab ?? '') === $tabKey ? 'active' : '' }}"
           id="booking-funnel-tab-{{ $tabKey }}"
-          href="{{ route('relatorios.booking-funnel', ['tab' => $tabKey]) }}"
+          href="{{ route('relatorios.booking-funnel', array_merge(request()->except('page'), ['tab' => $tabKey])) }}"
           role="tab"
           aria-controls="booking-funnel-pane-{{ $tabKey }}"
           aria-selected="{{ ($activeTab ?? '') === $tabKey ? 'true' : 'false' }}"
@@ -144,7 +145,7 @@
                   $clientMatch = $authCodeClients[$row->id] ?? null;
               @endphp
               <tr>
-                <td class="text-nowrap">{{ DateTimeDisplay::formatInstant($row->created_at, current_store_id()) }}</td>
+                <td class="text-nowrap">{{ DateTimeDisplay::formatInstant($row->created_at, (int) ($row->store_id ?? $displayStoreId ?? 0) ?: null) }}</td>
                 <td>{{ $funnelService->authCodeChannelLabel($row) }}</td>
                 <td class="text-nowrap">{{ $contactDisplay }}</td>
                 <td>
@@ -155,7 +156,7 @@
                   @endif
                 </td>
                 <td>{{ (int) $row->attempts }}</td>
-                <td class="text-nowrap">{{ $row->expires_at ? DateTimeDisplay::formatInstant($row->expires_at, current_store_id()) : '—' }}</td>
+                <td class="text-nowrap">{{ $row->expires_at ? DateTimeDisplay::formatInstant($row->expires_at, (int) ($row->store_id ?? $displayStoreId ?? 0) ?: null) : '—' }}</td>
                 <td><span class="badge text-bg-light border">{{ $funnelService->authCodeStatusLabel($row) }}</span></td>
               </tr>
             @elseif($row instanceof User)
@@ -164,10 +165,10 @@
                   $preExistingCrm = $funnelService->bookingUserHadPreExistingCrmClient($row);
               @endphp
               <tr>
-                <td class="text-nowrap">{{ DateTimeDisplay::formatInstant($row->created_at, current_store_id()) }}</td>
+                <td class="text-nowrap">{{ DateTimeDisplay::formatInstant($row->created_at, (int) ($client?->store_id ?? $displayStoreId ?? 0) ?: null) }}</td>
                 <td class="text-nowrap">
                   @if($client?->created_at)
-                    {{ DateTimeDisplay::formatInstant($client->created_at, current_store_id()) }}
+                    {{ DateTimeDisplay::formatInstant($client->created_at, (int) ($client->store_id ?? $displayStoreId ?? 0) ?: null) }}
                     @if($preExistingCrm)
                       <span class="badge text-bg-light border ms-1">CRM pré-existente</span>
                     @endif
@@ -189,12 +190,13 @@
             @elseif($row instanceof BookingSlotHold)
               @php
                   $bookingClient = $row->bookingUser?->client;
+                  $slotStoreId = (int) ($row->store_id ?? $displayStoreId ?? 0) ?: null;
                   $slotLabel = $row->slot_date
-                      ? DateTimeDisplay::marcacao($row->slot_start_at, current_store_id(), 'd/m/Y H:i')
+                      ? DateTimeDisplay::marcacao($row->slot_start_at, $slotStoreId, 'd/m/Y H:i')
                       : '—';
               @endphp
               <tr>
-                <td class="text-nowrap">{{ DateTimeDisplay::formatInstant($row->created_at, current_store_id()) }}</td>
+                <td class="text-nowrap">{{ DateTimeDisplay::formatInstant($row->created_at, $slotStoreId) }}</td>
                 <td class="text-nowrap">{{ $slotLabel }}</td>
                 <td>{{ $row->selectedUser?->name ?? '—' }}</td>
                 <td>
@@ -206,7 +208,7 @@
                     <span class="text-muted">Anónimo</span>
                   @endif
                 </td>
-                <td class="text-nowrap">{{ $row->expires_at ? DateTimeDisplay::formatInstant($row->expires_at, current_store_id()) : '—' }}</td>
+                <td class="text-nowrap">{{ $row->expires_at ? DateTimeDisplay::formatInstant($row->expires_at, (int) ($row->store_id ?? $displayStoreId ?? 0) ?: null) : '—' }}</td>
                 <td>
                   @if($funnelService->holdIsTimeExpired($row))
                     <span class="badge text-bg-warning">{{ $funnelService->holdReasonLabel($row) }}</span>

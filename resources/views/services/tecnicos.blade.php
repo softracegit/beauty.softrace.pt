@@ -49,22 +49,35 @@
 @section('content')
 
 <div class="card">
+    <div class="users-toolbar">
+        <div class="users-toolbar-left d-flex align-items-center gap-2 flex-wrap min-w-0">
+            @include('partials.store-context-filter', [
+                'selected' => $matrixStoreId ?? current_store_id(),
+                'allowAll' => false,
+                'inputId' => 'services_tecnicos_store_filter',
+            ])
+            @php
+                $showMatrixStoreLabel = ! (($canChooseStoreContext ?? false) && ($selectableStores ?? collect())->count() > 1);
+            @endphp
+            @if ($showMatrixStoreLabel && ! empty($matrixStore?->name))
+                <span class="text-muted small text-nowrap">Loja: <strong class="text-body">{{ $matrixStore->name }}</strong></span>
+            @endif
+        </div>
+    </div>
     <div class="users-table-wrap">
-        @if(!$agents->isEmpty() && $categories->isNotEmpty() && $categories->sum(fn ($c) => $c->services->count()) > 0)
-            <p class="text-muted small px-3 pt-3 mb-0">As marcações aplicam-se ao <strong>serviço</strong> (título na lista). Se o serviço tiver variantes, a mesma equipa técnica aplica-se a todas as opções.</p>
-        @endif
         @if($agents->isEmpty())
             <div class="p-4 text-center text-muted">
-                <p class="mb-2">Não há técnicos ou prestadores de serviços na equipa.</p>
+                <p class="mb-2">Não há técnicos ou prestadores de serviços nesta loja.</p>
                 <p class="small mb-0">Adicione membros com o perfil adequado em <a href="{{ route('equipa.index') }}">Equipa</a>.</p>
             </div>
         @elseif($categories->isEmpty() || $categories->sum(fn ($c) => $c->services->count()) === 0)
             <div class="p-4 text-center text-muted">
-                <p class="mb-0">Ainda não existem serviços. Crie categorias e serviços em <a href="{{ route('services.index') }}">Serviços</a>.</p>
+                <p class="mb-0">Ainda não existem serviços nesta loja. Crie categorias e serviços em <a href="{{ route('services.index') }}">Serviços</a>.</p>
             </div>
         @else
             <form id="services-matrix-form" action="{{ route('services.tecnicos.sync') }}" method="post">
                 @csrf
+                <input type="hidden" name="{{ \App\Support\StoreContextPreference::QUERY_STORE }}" value="{{ $matrixStoreId }}">
                 <table class="users-table">
                     <tbody>
                         @foreach($categories as $category)

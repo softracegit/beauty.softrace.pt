@@ -374,7 +374,7 @@ Artisan::command(
 })->purpose('Importa CSVs do Zappy (serviços, clientes, marcações, vendas)');
 
 Artisan::command(
-    'store:purge-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql} {--with-catalog : Apagar também serviços, extras e taxas (preserva users/agents)} {--full : Apagar também agents e CRM}',
+    'store:purge-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql} {--with-catalog : Apagar também agent_service da loja (preserva catálogo da org, users/agents)} {--full : Apagar também agents e CRM (não apaga catálogo da org)}',
     function () {
         $storeId = max(1, (int) $this->option('store'));
         $mode = (bool) $this->option('full')
@@ -397,9 +397,9 @@ Artisan::command(
 
         $this->info('SQL de limpeza gravado em: '.$output);
         $this->comment(match ($mode) {
-            \App\Services\StoreDataSqlPurger::MODE_FULL => 'Modo completo: inclui agents.',
-            \App\Services\StoreDataSqlPurger::MODE_CATALOG => 'Modo catálogo: apaga categorias, serviços, extras e taxas; preserva users e agents.',
-            default => 'Modo dados: preserva users, agents e catálogo.',
+            \App\Services\StoreDataSqlPurger::MODE_FULL => 'Modo completo: inclui agents; catálogo da organização preservado.',
+            \App\Services\StoreDataSqlPurger::MODE_CATALOG => 'Modo com pivots: apaga agent_service da loja; preserva catálogo da org, users e agents.',
+            default => 'Modo dados: preserva users, agents e catálogo da organização.',
         });
 
         return self::SUCCESS;
@@ -429,7 +429,7 @@ Artisan::command(
 )->purpose('Gera SQL de agentes ligados a users por email (para o servidor)');
 
 Artisan::command(
-    'store:export-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql} {--without-org-store : Não exportar organizations/stores} {--with-purge : Gerar também o SQL de limpeza} {--with-catalog : Incluir serviços, extras e taxas no export/purge} {--full : Export/purge completo (inclui agents)}',
+    'store:export-sql {--store=1 : ID da loja} {--output= : Caminho do ficheiro .sql} {--without-org-store : Não exportar organizations/stores} {--with-purge : Gerar também o SQL de limpeza} {--with-catalog : Incluir agent_service da loja (não exporta catálogo da org)} {--full : Export/purge completo (inclui agents; sem catálogo da org)}',
     function () {
         $storeId = max(1, (int) $this->option('store'));
         $withoutOrgStore = (bool) $this->option('without-org-store');
@@ -456,9 +456,9 @@ Artisan::command(
         $sizeKb = round(filesize($output) / 1024, 1);
         $this->info('Export SQL gravado em: '.$output.' ('.$sizeKb.' KB)');
         $this->comment(match ($mode) {
-            \App\Services\StoreDataSqlPurger::MODE_FULL => 'Modo completo: inclui catálogo e agents.',
-            \App\Services\StoreDataSqlPurger::MODE_CATALOG => 'Modo catálogo: dados + categorias, serviços, extras e taxas (sem users/agents).',
-            default => 'Modo dados: clientes, marcações, vendas… (preserva catálogo no servidor).',
+            \App\Services\StoreDataSqlPurger::MODE_FULL => 'Modo completo: agents + dados (catálogo da organização não é exportado).',
+            \App\Services\StoreDataSqlPurger::MODE_CATALOG => 'Modo com pivots: dados + agent_service (sem entidades de catálogo).',
+            default => 'Modo dados: clientes, marcações, vendas… (catálogo da org permanece no servidor).',
         });
 
         if ((bool) $this->option('with-purge')) {

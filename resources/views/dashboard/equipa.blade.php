@@ -147,6 +147,42 @@
         text-align: right;
         padding-right: 0.35rem;
     }
+#equipaPeriodTabs {
+    border-bottom: 1px solid var(--border-color);
+}
+#equipaPeriodTabs .nav-link {
+    position: relative;
+    border: none !important;
+    margin-bottom: 0;
+    padding-bottom: calc(0.625rem + 4px);
+    font-weight: 500;
+    background: transparent !important;
+}
+#equipaPeriodTabs .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: -1px;
+    height: 0;
+    background: var(--accent-color);
+    border-radius: 3px 3px 0 0;
+    transition: height 0.15s ease, opacity 0.15s ease;
+    z-index: 2;
+}
+#equipaPeriodTabs .nav-link:hover::after,
+#equipaPeriodTabs .nav-link:focus::after {
+    height: 2px;
+    opacity: 0.45;
+}
+#equipaPeriodTabs .nav-link.active {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+#equipaPeriodTabs .nav-link.active::after {
+    height: 4px;
+    opacity: 1;
+}
 </style>
 @endsection
 
@@ -165,22 +201,38 @@
 @endphp
 
 <div class="dash-welcome mb-4">
-    <div class="d-flex align-items-center justify-content-between gap-3 w-100 flex-wrap">
-        <div class="dash-welcome-content">
+    <div class="dash-welcome-header-row">
+        <div class="dash-welcome-content flex-grow-1 min-w-0">
             <h2 class="dash-welcome-title mb-0">Equipa</h2>
         </div>
-        <div class="dash-chart-tabs" id="dashEquipaTabs" role="tablist">
-            @foreach ($periodKeys as $periodKey)
-                <button
-                    type="button"
-                    class="dash-chart-tab {{ $periodKey === 'hoje' ? 'active' : '' }}"
-                    data-equipa-period="{{ $periodKey }}"
-                    aria-selected="{{ $periodKey === 'hoje' ? 'true' : 'false' }}"
-                >{{ $periodLabels[$periodKey] ?? $periodKey }}</button>
-            @endforeach
+        <div class="dash-welcome-actions d-flex align-items-center gap-2 flex-wrap">
+            @include('partials.store-context-filter', [
+                'selected' => $dashStoreSelected ?? \App\Support\StoreContextPreference::SCOPE_ALL,
+                'allowAll' => true,
+                'allLabel' => 'Todas as lojas',
+                'inputId' => 'dash_equipa_store_filter',
+            ])
+            <a href="{{ route('equipa.index') }}" class="btn btn-primary btn-sm dash-welcome-filter-btn text-nowrap">
+                <i class="ph ph-users"></i><span class="dash-welcome-filter-btn-label">Ver equipa</span>
+            </a>
         </div>
     </div>
 </div>
+
+<ul class="nav nav-tabs nav-tabs-bordered mb-4" id="equipaPeriodTabs" role="tablist">
+    @foreach ($periodKeys as $periodKey)
+        <li class="nav-item" role="presentation">
+            <button
+                type="button"
+                class="nav-link {{ $periodKey === 'hoje' ? 'active' : '' }}"
+                id="equipa-tab-{{ $periodKey }}"
+                data-equipa-period="{{ $periodKey }}"
+                role="tab"
+                aria-selected="{{ $periodKey === 'hoje' ? 'true' : 'false' }}"
+            >{{ $periodLabels[$periodKey] ?? $periodKey }}</button>
+        </li>
+    @endforeach
+</ul>
 
 @foreach ($periodKeys as $periodKey)
     @php $cards = $cardsByPeriod[$periodKey] ?? []; @endphp
@@ -304,7 +356,7 @@
 @section('js')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var tabs = document.getElementById('dashEquipaTabs');
+    var tabs = document.getElementById('equipaPeriodTabs');
     if (!tabs) return;
     tabs.querySelectorAll('[data-equipa-period]').forEach(function(tab) {
         tab.addEventListener('click', function() {

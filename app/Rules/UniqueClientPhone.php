@@ -18,7 +18,7 @@ class UniqueClientPhone implements ValidationRule
             return;
         }
 
-        if (Client::existsWithSamePhoneAs($value, current_store_id(), $this->exceptClientId)) {
+        if (Client::existsWithSamePhoneAs($value, current_organization_id(), $this->exceptClientId)) {
             $fail('Este telemóvel já está registado noutro cliente.');
         }
     }

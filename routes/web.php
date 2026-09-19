@@ -30,6 +30,7 @@ use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\LojasController;
 use App\Http\Controllers\LegalController;
 use App\Http\Controllers\MarketingSmsController;
 use App\Http\Controllers\NotificationController;
@@ -257,6 +258,8 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
 
     Route::prefix('definicoes')->name('definicoes.')->group(function () {
         Route::get('/', [DefinicoesController::class, 'index'])->name('index');
+        Route::get('empresa', [DefinicoesController::class, 'empresa'])->name('empresa');
+        Route::post('empresa', [DefinicoesController::class, 'updateEmpresa'])->name('empresa.update');
         Route::get('negocio', [DefinicoesController::class, 'negocio'])->name('negocio');
         Route::post('negocio', [DefinicoesController::class, 'updateNegocio'])->name('negocio.update');
         Route::get('marcacoes', [DefinicoesController::class, 'marcacoes'])->name('marcacoes');
@@ -285,8 +288,17 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::resource('clientes', ClientController::class);
     Route::post('clientes/{cliente}/notes', [ClientController::class, 'storeNote'])->name('clientes.storeNote');
 
+    Route::get('lojas', [LojasController::class, 'index'])->name('lojas.index');
+    Route::get('lojas/create', [LojasController::class, 'create'])->name('lojas.create');
+    Route::post('lojas', [LojasController::class, 'store'])->name('lojas.store');
+    Route::get('lojas/{loja}/edit', [LojasController::class, 'edit'])->name('lojas.edit');
+    Route::put('lojas/{loja}', [LojasController::class, 'update'])->name('lojas.update');
+    Route::delete('lojas/{loja}', [LojasController::class, 'destroy'])->name('lojas.destroy');
+
     Route::resource('equipa', AgentController::class)->parameters(['equipa' => 'agente']);
     Route::post('equipa/{agente}/notes', [AgentController::class, 'storeNote'])->name('equipa.storeNote');
+    Route::get('equipa/{agente}/migrar-loja', [AgentController::class, 'migrateStoreForm'])->name('equipa.migrate-store-form');
+    Route::post('equipa/{agente}/migrar-loja', [AgentController::class, 'migrateStore'])->name('equipa.migrate-store');
 
     // Rotas de Leads
     Route::get('leads/kanban', [LeadController::class, 'kanban'])->name('leads.kanban');
@@ -420,6 +432,9 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     });
 
     Route::prefix('relatorios')->name('relatorios.')->group(function () {
+        Route::get('organizacao', [RelatoriosController::class, 'organizacao'])->name('organizacao');
+        Route::get('organizacao/export', [RelatoriosController::class, 'organizacaoExport'])->name('organizacao.export');
+        Route::get('organizacao/pdf', [RelatoriosController::class, 'organizacaoPdf'])->name('organizacao.pdf');
         Route::get('marcacoes/export', [RelatoriosController::class, 'marcacoesExport'])->name('marcacoes.export');
         Route::get('marcacoes/pdf', [RelatoriosController::class, 'marcacoesPdf'])->name('marcacoes.pdf');
         Route::get('marcacoes/{calendarEvent}/reativar-preview', [RelatoriosController::class, 'marcacoesReativarPreview'])

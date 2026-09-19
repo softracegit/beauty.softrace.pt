@@ -12,9 +12,9 @@ class ClientTagService
 {
     public const MAX_TAGS_PER_CLIENT = 5;
 
-    public function findOrCreateForStore(string $name, ?int $storeId = null): ClientTag
+    public function findOrCreateForOrganization(string $name, ?int $organizationId = null): ClientTag
     {
-        $storeId ??= current_store_id();
+        $organizationId ??= current_organization_id();
         $normalized = $this->normalizeName($name);
 
         if ($normalized === '') {
@@ -24,7 +24,7 @@ class ClientTagService
         }
 
         $existing = ClientTag::query()
-            ->forStore($storeId)
+            ->forOrganization($organizationId)
             ->whereRaw('LOWER(name) = ?', [mb_strtolower($normalized, 'UTF-8')])
             ->first();
 
@@ -32,14 +32,25 @@ class ClientTagService
             return $existing;
         }
 
-        $maxOrder = ClientTag::query()->forStore($storeId)->max('sort_order') ?? 0;
+        $maxOrder = ClientTag::query()->forOrganization($organizationId)->max('sort_order') ?? 0;
 
         return ClientTag::create([
-            'store_id' => $storeId,
+            'organization_id' => $organizationId,
+            'store_id' => current_store_id(),
             'name' => $normalized,
             'color' => ClientTagStyle::defaultColor(),
             'sort_order' => $maxOrder + 1,
         ]);
+    }
+
+    /** @deprecated Use findOrCreateForOrganization */
+    public function findOrCreateForStore(string $name, ?int $storeId = null): ClientTag
+    {
+        $orgId = $storeId
+            ? (int) \App\Models\Store::query()->whereKey($storeId)->value('organization_id')
+            : current_organization_id();
+
+        return $this->findOrCreateForOrganization($name, $orgId);
     }
 
     /**
@@ -49,7 +60,7 @@ class ClientTagService
      */
     public function syncClientTags(Client $client, array $tagIds, array $newTagNames = []): Collection
     {
-        $storeId = (int) $client->store_id;
+        $organizationId = (int) $client->organization_id;
         $resolvedIds = [];
 
         foreach ($tagIds as $tagId) {
@@ -57,7 +68,7 @@ class ClientTagService
             if ($id <= 0) {
                 continue;
             }
-            $exists = ClientTag::query()->forStore($storeId)->whereKey($id)->exists();
+            $exists = ClientTag::query()->forOrganization($organizationId)->whereKey($id)->exists();
             if (! $exists) {
                 throw ValidationException::withMessages([
                     'tag_ids' => 'Etiqueta inválida.',
@@ -70,7 +81,7 @@ class ClientTagService
             if (! is_string($newName)) {
                 continue;
             }
-            $tag = $this->findOrCreateForStore($newName, $storeId);
+            $tag = $this->findOrCreateForOrganization($newName, $organizationId);
             $resolvedIds[] = (int) $tag->id;
         }
 
@@ -110,15 +121,25 @@ class ClientTagService
     /**
      * @return Collection<int, ClientTag>
      */
-    public function tagsForStore(?int $storeId = null): Collection
+    public function tagsForOrganization(?int $organizationId = null): Collection
     {
-        $storeId ??= current_store_id();
+        $organizationId ??= current_organization_id();
 
         return ClientTag::query()
-            ->forStore($storeId)
+            ->forOrganization($organizationId)
             ->withCount('clients')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
+    }
+
+    /** @deprecated Use tagsForOrganization */
+    public function tagsForStore(?int $storeId = null): Collection
+    {
+        return $this->tagsForOrganization(
+            $storeId
+                ? (int) \App\Models\Store::query()->whereKey($storeId)->value('organization_id')
+                : null
+        );
     }
 }

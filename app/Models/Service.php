@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToStore;
+use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +13,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Service extends Model
 {
-    use BelongsToStore, LogsActivity;
+    use BelongsToOrganization, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -29,6 +29,7 @@ class Service extends Model
     }
 
     protected $fillable = [
+        'organization_id',
         'store_id',
         'category_id',
         'name',
@@ -47,6 +48,14 @@ class Service extends Model
         'sort_order' => 'integer',
         'hidden_from_booking' => 'boolean',
     ];
+
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
 
     /**
      * @return BelongsTo<Store, $this>
@@ -82,6 +91,17 @@ class Service extends Model
     public function scopeVisibleInBooking(Builder $query): Builder
     {
         return $query->where('hidden_from_booking', false);
+    }
+
+    /**
+     * Serviços «activos» numa loja = associados a pelo menos um agente dessa loja.
+     *
+     * @param  Builder<Service>  $query
+     * @return Builder<Service>
+     */
+    public function scopeActiveInStore(Builder $query, int $storeId): Builder
+    {
+        return $query->whereHas('agents', fn (Builder $q) => $q->where('agents.store_id', $storeId));
     }
 
     /**

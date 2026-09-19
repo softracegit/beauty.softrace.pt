@@ -3,14 +3,14 @@
         $hasOpts = $service->relationLoaded('options') && $service->options->isNotEmpty();
         $fromOnline = $hasOpts ? $service->options->min('online_price') : null;
     @endphp
-    <div class="service-item-row {{ $hasOpts ? 'service-item-row--has-options' : '' }}" data-service-id="{{ $service->id }}">
+    <div class="service-item-row {{ $hasOpts ? 'service-item-row--has-options' : '' }}" data-service-id="{{ $service->id }}" data-hidden-from-booking="{{ $service->hidden_from_booking ? '1' : '0' }}">
         <div class="service-drag-handle" aria-label="Arrastar para reordenar">
             <span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
         </div>
         <div class="card service-item service-item-clickable" style="--service-category-color: {{ isset($category) ? $category->color : '#6c757d' }};">
         <div class="card-body d-flex justify-content-between {{ $hasOpts ? 'align-items-start' : 'align-items-center' }} gap-3 py-3 pe-2">
             <div class="service-item-left">
-                <h6 class="mb-0 service-item-name">{{ $service->name }}</h6>
+                <h6 class="mb-0 service-item-name">{{ $service->name }}@if($service->hidden_from_booking)<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>@endif</h6>
                 @if($service->description)
                     <p class="text-muted small mb-1">{{ Str::limit($service->description, 100) }}</p>
                 @endif

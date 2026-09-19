@@ -6,10 +6,13 @@ class StoreDataSqlPurger
 {
     public const MODE_DATA = 'data';
 
-    /** Dados + catálogo (serviços, extras, taxas); preserva users e agents. */
+    /**
+     * Dados + pivots agent_service da loja (não apaga catálogo da organização).
+     * Preserva users e agents.
+     */
     public const MODE_CATALOG = 'catalog';
 
-    /** Tudo incluindo agents (não apaga users). */
+    /** Tudo incluindo agents (não apaga users nem catálogo da organização). */
     public const MODE_FULL = 'full';
 
     public function __construct(
@@ -25,6 +28,7 @@ class StoreDataSqlPurger
         $lines[] = '-- Limpeza de dados da loja store_id='.$storeId;
         $lines[] = '-- Modo: '.$this->modeLabel();
         $lines[] = '-- Executar no servidor ANTES de importar store_'.$storeId.'_data.sql';
+        $lines[] = '-- Catálogo da organização (categories/services/fees/extras) NÃO é apagado.';
         $lines[] = '-- Gerado em '.now()->toDateTimeString();
         $lines[] = '';
         $lines[] = 'SET @store_id := '.$storeId.';';
@@ -47,9 +51,9 @@ class StoreDataSqlPurger
     private function modeLabel(): string
     {
         return match ($this->mode) {
-            self::MODE_CATALOG => 'dados + catálogo (categorias, serviços, extras, taxas; preserva users/agents)',
-            self::MODE_FULL => 'completo (inclui agents; não apaga users)',
-            default => 'só dados (preserva users, agents, serviços)',
+            self::MODE_CATALOG => 'dados + agent_service da loja (preserva catálogo da org, users/agents)',
+            self::MODE_FULL => 'completo (inclui agents; não apaga users nem catálogo da org)',
+            default => 'só dados (preserva users, agents, catálogo da org)',
         };
     }
 
@@ -61,7 +65,7 @@ class StoreDataSqlPurger
         $statements = $this->dataDeleteStatements();
 
         if ($this->mode === self::MODE_CATALOG || $this->mode === self::MODE_FULL) {
-            $statements += $this->catalogDeleteStatements();
+            $statements += $this->storeServicePivotDeleteStatements();
         }
 
         if ($this->mode === self::MODE_FULL) {
@@ -159,52 +163,17 @@ SQL,
     }
 
     /**
-     * Catálogo da loja (serviços, categorias, extras, taxas); preserva users e agents.
+     * Pivots agent_service dos agentes desta loja — não apaga o catálogo da organização.
      *
      * @return array<string, string>
      */
-    private function catalogDeleteStatements(): array
+    private function storeServicePivotDeleteStatements(): array
     {
         return [
-            'Serviços por agente (só pivots dos serviços da loja)' => <<<'SQL'
+            'Serviços por agente (pivots dos agentes desta loja)' => <<<'SQL'
 DELETE ags FROM agent_service ags
-INNER JOIN services sv ON sv.id = ags.service_id
-WHERE sv.store_id = @store_id
-SQL,
-            'Taxas por serviço' => <<<'SQL'
-DELETE sf FROM service_fee sf
-INNER JOIN services sv ON sv.id = sf.service_id
-WHERE sv.store_id = @store_id
-SQL,
-            'Opções de serviço' => <<<'SQL'
-DELETE so FROM service_options so
-INNER JOIN services sv ON sv.id = so.service_id
-WHERE sv.store_id = @store_id
-SQL,
-            'Extras por serviço (catálogo)' => <<<'SQL'
-DELETE se FROM service_extra se
-INNER JOIN services sv ON sv.id = se.service_id
-WHERE sv.store_id = @store_id
-SQL,
-            'Extras' => <<<'SQL'
-DELETE e FROM extras e
-INNER JOIN extra_categories ec ON ec.id = e.extra_category_id
-WHERE ec.store_id = @store_id
-SQL,
-            'Categorias de extras' => <<<'SQL'
-DELETE FROM extra_categories WHERE store_id = @store_id
-SQL,
-            'Serviços' => <<<'SQL'
-DELETE FROM services WHERE store_id = @store_id
-SQL,
-            'Categorias de serviços' => <<<'SQL'
-DELETE FROM categories WHERE store_id = @store_id
-SQL,
-            'Etiquetas de clientes' => <<<'SQL'
-DELETE FROM client_tags WHERE store_id = @store_id
-SQL,
-            'Taxas (fees)' => <<<'SQL'
-DELETE FROM fees WHERE store_id = @store_id
+INNER JOIN agents a ON a.id = ags.agent_id
+WHERE a.store_id = @store_id
 SQL,
         ];
     }

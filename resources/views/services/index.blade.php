@@ -83,6 +83,11 @@
     position: relative;
     --service-category-color: var(--bs-secondary, #6c757d);
 }
+/* Padding vertical único (SSR + AJAX) — evita py-2 vs py-3 */
+.service-item-row .service-item > .card-body {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
 /* Borda esquerda com a cor da categoria; barra arredondada (não reta) */
 .service-item-row .service-item::before {
     content: '';
@@ -127,13 +132,42 @@
 .service-item .btn-icon i {
     font-size: 1.25rem;
 }
-/* Reduzir espaço vertical entre nome e duração */
+/* Tipografia e espaçamento interno — iguais em SSR e AJAX */
+.service-item-left {
+    line-height: 1.4;
+    min-width: 0;
+}
 .service-item-name {
+    display: block;
+    line-height: 1.35;
     margin-bottom: 0.25rem !important;
 }
-.service-item-duration {
+.service-item-left > p.text-muted {
     margin-top: 0;
+    margin-bottom: 0.25rem !important;
+    line-height: 1.4;
 }
+.service-item-duration {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    line-height: 1.4;
+}
+.service-option-chips {
+    margin-top: 0.25rem !important;
+    margin-bottom: 0 !important;
+    line-height: 1.35;
+}
+.service-option-chips > li {
+    margin-bottom: 0.15rem !important;
+    line-height: 1.35;
+}
+.service-option-chips > li:last-child {
+    margin-bottom: 0 !important;
+}
+.service-item-price {
+    line-height: 1.35;
+}
+/* Reduzir espaço vertical entre nome e duração */
 .service-item-row--has-options .service-item-right {
     padding-top: 0.1rem;
 }

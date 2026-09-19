@@ -6,10 +6,11 @@ use App\Models\CrmSetting;
 use App\Models\Sale;
 
 /**
- * Catálogo de métodos de pagamento por loja (Definições → Pagamentos).
+ * Catálogo de métodos de pagamento por organização (Definições → Pagamentos).
  *
  * Canais de UI: Agenda (caixa + pré-pagamento) e Booking (site público).
  * Códigos estáveis em {@see Sale} para histórico / Vendus / relatórios.
+ * O $storeId resolve a organização; a activação é partilhada por todas as lojas.
  */
 class PaymentMethodCatalog
 {

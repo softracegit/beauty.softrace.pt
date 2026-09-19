@@ -309,7 +309,7 @@ class ApplicableFees
         $storeId = $storeId ?? (int) current_store_id();
 
         $fees = Fee::query()
-            ->where('store_id', $storeId)
+            ->forStore($storeId)
             ->whereHas('services', fn ($q) => $q->whereIn('services.id', $ids))
             ->orderBy('sort_order')
             ->orderBy('name')

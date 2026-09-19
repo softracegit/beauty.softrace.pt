@@ -77,27 +77,33 @@ class BookingFunnelReportService
     }
 
     /**
+     * @param  list<int>  $storeIds
      * @return array{sms_pending: int, otp_failed: int, accounts_without_booking: int, expired_holds: int}
      */
-    public function summaryCounts(int $storeId): array
+    public function summaryCounts(array $storeIds): array
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return [
-            'sms_pending' => $this->otpSmsWithoutResponseQuery($storeId)->count(),
-            'otp_failed' => $this->otpFailedQuery($storeId)->count(),
-            'accounts_without_booking' => $this->bookingUsersWithoutMarcacaoQuery($storeId)->count(),
-            'expired_holds' => $this->abandonedHoldsQuery($storeId)->count(),
+            'sms_pending' => $this->otpSmsWithoutResponseQuery($storeIds)->count(),
+            'otp_failed' => $this->otpFailedQuery($storeIds)->count(),
+            'accounts_without_booking' => $this->bookingUsersWithoutMarcacaoQuery($storeIds)->count(),
+            'expired_holds' => $this->abandonedHoldsQuery($storeIds)->count(),
         ];
     }
 
     /**
      * OTP por SMS pedido, enviado, mas código nunca consumido.
      *
+     * @param  list<int>  $storeIds
      * @return Builder<BookingAuthCode>
      */
-    public function otpSmsWithoutResponseQuery(int $storeId): Builder
+    public function otpSmsWithoutResponseQuery(array $storeIds): Builder
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return BookingAuthCode::query()
-            ->where('store_id', $storeId)
+            ->whereIn('store_id', $storeIds)
             ->where('email', 'like', '+%')
             ->whereNull('consumed_at')
             ->whereExists(function ($query): void {
@@ -115,12 +121,15 @@ class BookingFunnelReportService
     /**
      * Código introduzido com erro (tentativas) mas nunca validado.
      *
+     * @param  list<int>  $storeIds
      * @return Builder<BookingAuthCode>
      */
-    public function otpFailedQuery(int $storeId): Builder
+    public function otpFailedQuery(array $storeIds): Builder
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return BookingAuthCode::query()
-            ->where('store_id', $storeId)
+            ->whereIn('store_id', $storeIds)
             ->whereNull('consumed_at')
             ->where('attempts', '>', 0)
             ->orderByDesc('updated_at');
@@ -132,19 +141,22 @@ class BookingFunnelReportService
      * Usa created_at (quando o registo foi criado) ou start_at (marcação agendada após a conta),
      * ambos em UTC na BD — a comparação é directa, sem conversão de fuso.
      *
+     * @param  list<int>  $storeIds
      * @return Builder<User>
      */
-    public function bookingUsersWithoutMarcacaoQuery(int $storeId): Builder
+    public function bookingUsersWithoutMarcacaoQuery(array $storeIds): Builder
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return User::query()
             ->where('role', User::ROLE_CLIENTE)
             ->whereNotNull('client_id')
-            ->whereHas('client', fn (Builder $q): Builder => $q->where('store_id', $storeId))
-            ->whereNotExists(function ($query) use ($storeId): void {
+            ->whereHas('client', fn (Builder $q): Builder => $q->whereIn('store_id', $storeIds))
+            ->whereNotExists(function ($query) use ($storeIds): void {
                 $query->selectRaw('1')
                     ->from('calendar_events')
                     ->whereColumn('calendar_events.client_id', 'users.client_id')
-                    ->where('calendar_events.store_id', $storeId)
+                    ->whereIn('calendar_events.store_id', $storeIds)
                     ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where(function ($events): void {
                         $events
@@ -170,12 +182,15 @@ class BookingFunnelReportService
     /**
      * Reserva temporária de horário que expirou ou foi libertada sem conclusão.
      *
+     * @param  list<int>  $storeIds
      * @return Builder<BookingSlotHold>
      */
-    public function abandonedHoldsQuery(int $storeId): Builder
+    public function abandonedHoldsQuery(array $storeIds): Builder
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return BookingSlotHold::query()
-            ->where('store_id', $storeId)
+            ->whereIn('store_id', $storeIds)
             ->where(function (Builder $query): void {
                 $query->where(function (Builder $inner): void {
                     $inner->whereNull('released_at')
@@ -194,16 +209,18 @@ class BookingFunnelReportService
     }
 
     /**
+     * @param  list<int>  $storeIds
      * @return Collection<int, BookingAuthCode>
      */
-    public function paginatedTabQuery(string $tab, int $storeId, int $perPage = 25): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function paginatedTabQuery(string $tab, array $storeIds, int $perPage = 25): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
         $query = match ($tab) {
-            self::TAB_SMS_PENDING => $this->otpSmsWithoutResponseQuery($storeId),
-            self::TAB_OTP_FAILED => $this->otpFailedQuery($storeId),
-            self::TAB_ACCOUNTS => $this->bookingUsersWithoutMarcacaoQuery($storeId),
-            self::TAB_HOLDS => $this->abandonedHoldsQuery($storeId),
-            default => $this->otpSmsWithoutResponseQuery($storeId),
+            self::TAB_SMS_PENDING => $this->otpSmsWithoutResponseQuery($storeIds),
+            self::TAB_OTP_FAILED => $this->otpFailedQuery($storeIds),
+            self::TAB_ACCOUNTS => $this->bookingUsersWithoutMarcacaoQuery($storeIds),
+            self::TAB_HOLDS => $this->abandonedHoldsQuery($storeIds),
+            default => $this->otpSmsWithoutResponseQuery($storeIds),
         };
 
         return $query->paginate($perPage)->withQueryString();
@@ -243,9 +260,10 @@ class BookingFunnelReportService
 
     /**
      * @param  Collection<int, BookingAuthCode>  $codes
+     * @param  list<int>  $storeIds
      * @return array<int, Client|null> keyed by booking_auth_codes.id
      */
-    public function clientsForAuthCodes(Collection $codes, int $storeId): array
+    public function clientsForAuthCodes(Collection $codes, array $storeIds): array
     {
         if ($codes->isEmpty()) {
             return [];
@@ -266,7 +284,7 @@ class BookingFunnelReportService
         }
 
         $clients = Client::query()
-            ->forStore($storeId)
+            ->forOrganization(current_organization_id())
             ->get(['id', 'name', 'email', 'phone']);
 
         $byEmail = [];
@@ -293,5 +311,19 @@ class BookingFunnelReportService
         }
 
         return $out;
+    }
+
+    /**
+     * @param  list<int>  $storeIds
+     * @return list<int>
+     */
+    private function normalizeStoreIds(array $storeIds): array
+    {
+        $ids = array_values(array_unique(array_map('intval', $storeIds)));
+        if ($ids === []) {
+            return [(int) current_store_id()];
+        }
+
+        return $ids;
     }
 }

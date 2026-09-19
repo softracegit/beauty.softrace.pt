@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Middleware\SetCurrentStore;
 use App\Models\Store;
+use App\Support\StoreContextPreference;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -18,7 +18,12 @@ class CurrentStoreController extends Controller
         $store = Store::query()->findOrFail($validated['store_id']);
         $this->authorize('switchTo', $store);
 
-        $request->session()->put(SetCurrentStore::SESSION_KEY, $store->id);
+        StoreContextPreference::persist($request, (int) $store->id);
+
+        $redirect = $request->input('redirect');
+        if (is_string($redirect) && $redirect !== '' && str_starts_with($redirect, '/')) {
+            return redirect()->to($redirect);
+        }
 
         return redirect()->back();
     }

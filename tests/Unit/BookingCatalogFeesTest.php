@@ -28,12 +28,14 @@ class BookingCatalogFeesTest extends TestCase
             'slug' => 'loja-booking-fees',
         ]);
         $category = Category::query()->create([
+            'organization_id' => $org->id,
             'store_id' => $store->id,
             'name' => 'Cat',
             'sort_order' => 1,
         ]);
 
         $serviceA = Service::query()->create([
+            'organization_id' => $org->id,
             'store_id' => $store->id,
             'category_id' => $category->id,
             'name' => 'Serviço A',
@@ -43,6 +45,7 @@ class BookingCatalogFeesTest extends TestCase
             'sort_order' => 1,
         ]);
         $serviceB = Service::query()->create([
+            'organization_id' => $org->id,
             'store_id' => $store->id,
             'category_id' => $category->id,
             'name' => 'Serviço B',
@@ -53,12 +56,14 @@ class BookingCatalogFeesTest extends TestCase
         ]);
 
         $sharedFee = Fee::query()->create([
+            'organization_id' => $org->id,
             'store_id' => $store->id,
             'name' => 'Deslocação',
             'price' => 5.0,
             'sort_order' => 1,
         ]);
         $otherFee = Fee::query()->create([
+            'organization_id' => $org->id,
             'store_id' => $store->id,
             'name' => 'Material',
             'price' => 2.5,

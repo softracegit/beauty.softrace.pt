@@ -78,6 +78,14 @@ class Store extends Model
     }
 
     /**
+     * @return HasMany<Fee, $this>
+     */
+    public function fees(): HasMany
+    {
+        return $this->hasMany(Fee::class);
+    }
+
+    /**
      * @return HasMany<CrmSetting, $this>
      */
     public function crmSettings(): HasMany
@@ -201,6 +209,11 @@ class Store extends Model
     {
         $raw = $this->weekly_schedule;
         if (! is_array($raw) || $raw === []) {
+            $org = $this->relationLoaded('organization') ? $this->organization : $this->organization()->first();
+            if ($org instanceof Organization) {
+                return $org->normalizedWeeklySchedule();
+            }
+
             return self::defaultWeeklySchedule();
         }
 
@@ -224,6 +237,100 @@ class Store extends Model
         }
 
         return $out;
+    }
+
+    public function usesOrganizationSchedule(): bool
+    {
+        return ! is_array($this->weekly_schedule) || $this->weekly_schedule === [];
+    }
+
+    public function organizationOrNull(): ?Organization
+    {
+        if ($this->relationLoaded('organization')) {
+            return $this->organization;
+        }
+
+        return $this->organization()->first();
+    }
+
+    public function resolvedPhone(): string
+    {
+        $local = trim((string) ($this->phone ?? ''));
+        if ($local !== '') {
+            return $local;
+        }
+
+        return trim((string) ($this->organizationOrNull()?->phone ?? ''));
+    }
+
+    public function resolvedEmail(): string
+    {
+        $local = trim((string) ($this->email ?? ''));
+        if ($local !== '') {
+            return $local;
+        }
+
+        return trim((string) ($this->organizationOrNull()?->email ?? ''));
+    }
+
+    public function resolvedWebsiteUrl(): string
+    {
+        $local = trim((string) ($this->website_url ?? ''));
+        if ($local !== '') {
+            return $local;
+        }
+
+        return trim((string) ($this->organizationOrNull()?->website_url ?? ''));
+    }
+
+    public function resolvedInstagramUrl(): string
+    {
+        $local = trim((string) ($this->instagram_url ?? ''));
+        if ($local !== '') {
+            return $local;
+        }
+
+        return trim((string) ($this->organizationOrNull()?->instagram_url ?? ''));
+    }
+
+    public function usesOrganizationPhone(): bool
+    {
+        return trim((string) ($this->phone ?? '')) === '';
+    }
+
+    public function usesOrganizationEmail(): bool
+    {
+        return trim((string) ($this->email ?? '')) === '';
+    }
+
+    public function usesOrganizationWebsite(): bool
+    {
+        return trim((string) ($this->website_url ?? '')) === '';
+    }
+
+    public function usesOrganizationInstagram(): bool
+    {
+        return trim((string) ($this->instagram_url ?? '')) === '';
+    }
+
+    public function usesOrganizationLogo(): bool
+    {
+        return trim((string) ($this->logo ?? '')) === '';
+    }
+
+    public function usesOrganizationLogoEmail(): bool
+    {
+        return trim((string) ($this->logo_email ?? '')) === '';
+    }
+
+    public function usesOrganizationLogoFavicon(): bool
+    {
+        return trim((string) ($this->logo_favicon ?? '')) === '';
+    }
+
+    public function usesOrganizationTimezone(): bool
+    {
+        return trim((string) ($this->timezone ?? '')) === '';
     }
 
     /** Etiqueta curta para avisos na agenda (ex.: "09:00–20:00" ou "varia por dia"). */
@@ -370,21 +477,10 @@ class Store extends Model
         return 'https://maps.google.com/?q='.rawurlencode($address);
     }
 
-    /** Fuso usado no booking (coluna `timezone` ou fallback global). */
+    /** Fuso fixo: Portugal / Lisboa (config booking.business_timezone). */
     public function bookingTimezone(): string
     {
-        $tz = trim((string) ($this->timezone ?? ''));
-        if ($tz !== '') {
-            try {
-                new \DateTimeZone($tz);
-
-                return $tz;
-            } catch (\Exception) {
-                // valor inválido na BD
-            }
-        }
-
-        return (string) config('booking.business_timezone', config('app.timezone', 'Europe/Lisbon'));
+        return (string) config('booking.business_timezone', 'Europe/Lisbon');
     }
 
     /** Pasta no disco `public`: `storage/app/public/store-logos/{id}/`. */
@@ -406,6 +502,11 @@ class Store extends Model
             return asset('storage/'.ltrim($path, '/'));
         }
 
+        $org = $this->organizationOrNull();
+        if ($org instanceof Organization && $org->hasOwnLogo()) {
+            return $org->logoGenericUrl();
+        }
+
         return $this->defaultLogoFallbackUrl();
     }
 
@@ -421,6 +522,11 @@ class Store extends Model
             return asset('storage/'.ltrim($generic, '/'));
         }
 
+        $org = $this->organizationOrNull();
+        if ($org instanceof Organization) {
+            return $org->logoFaviconUrl();
+        }
+
         return $this->defaultLogoFallbackUrl();
     }
 
@@ -429,6 +535,11 @@ class Store extends Model
         $path = trim((string) ($this->logo_email ?? ''));
         if ($path !== '') {
             return asset('storage/'.ltrim($path, '/'));
+        }
+
+        $org = $this->organizationOrNull();
+        if ($org instanceof Organization && $org->hasOwnLogoEmail()) {
+            return $org->logoEmailUrl();
         }
 
         return asset('template/img/logo-color-black.png');
@@ -459,15 +570,16 @@ class Store extends Model
      */
     public function publicBookingProfile(): array
     {
-        $website = trim((string) ($this->website_url ?? ''));
-        $instagram = trim((string) ($this->instagram_url ?? ''));
+        $website = $this->resolvedWebsiteUrl();
+        $instagram = $this->resolvedInstagramUrl();
+        $phone = $this->resolvedPhone();
 
         return [
             'name' => (string) $this->name,
             'address' => $this->formattedAddress(),
-            'phone' => trim((string) ($this->phone ?? '')),
-            'phone_tel_href' => PhoneDisplay::telHref($this->phone),
-            'email' => trim((string) ($this->email ?? '')),
+            'phone' => $phone,
+            'phone_tel_href' => PhoneDisplay::telHref($phone !== '' ? $phone : null),
+            'email' => $this->resolvedEmail(),
             'photo' => $this->logoGenericUrl(),
             'favicon' => $this->logoFaviconUrl(),
             'maps_url' => $this->mapsUrl(),

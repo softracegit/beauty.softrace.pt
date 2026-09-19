@@ -44,7 +44,7 @@ class VendasReportService
     }
 
     /**
-     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string, data_criterio?: ?string}  $filters
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string, data_criterio?: ?string, store_ids?: list<int>|null}  $filters
      */
     public function reportQuery(array $filters): Builder
     {
@@ -55,6 +55,7 @@ class VendasReportService
         $tecnico = $filters['tecnico'] ?? null;
         $estado = (string) ($filters['estado'] ?? '');
         $dateCriterion = self::resolveDateCriterion($filters['data_criterio'] ?? null);
+        $storeIds = $this->normalizeStoreIds($filters['store_ids'] ?? null);
 
         if (! $desde) {
             $desde = now()->copy()->startOfMonth()->toDateString();
@@ -64,10 +65,10 @@ class VendasReportService
         }
 
         $q = Sale::query()
-            ->where('store_id', current_store_id())
+            ->whereIn('store_id', $storeIds)
             ->where('status', Sale::STATUS_PAGO)
-            ->whereHas('calendarEvent', function (Builder $cq) use ($dateCriterion, $desde, $ate) {
-                $cq->where('store_id', current_store_id())
+            ->whereHas('calendarEvent', function (Builder $cq) use ($dateCriterion, $desde, $ate, $storeIds) {
+                $cq->whereIn('store_id', $storeIds)
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
 
@@ -99,17 +100,30 @@ class VendasReportService
             });
         }
         if ($tecnico) {
-            $q->where(function (Builder $outer) use ($tecnico): void {
+            $q->where(function (Builder $outer) use ($tecnico, $storeIds): void {
                 $outer->whereHas('calendarEvent', fn (Builder $cq) => $cq
-                    ->where('store_id', current_store_id())
+                    ->whereIn('store_id', $storeIds)
                     ->where('user_id', $tecnico))
                     ->orWhereHas('items.calendarEventService.event', fn (Builder $cq) => $cq
-                        ->where('store_id', current_store_id())
+                        ->whereIn('store_id', $storeIds)
                         ->where('user_id', $tecnico));
             });
         }
 
         return $q;
+    }
+
+    /**
+     * @param  list<int>|null  $storeIds
+     * @return list<int>
+     */
+    public function normalizeStoreIds(?array $storeIds): array
+    {
+        if ($storeIds !== null && $storeIds !== []) {
+            return array_values(array_unique(array_map('intval', $storeIds)));
+        }
+
+        return [(int) current_store_id()];
     }
 
     public function sumVendasPagasPorEmissao(Carbon $start, Carbon $end): float
@@ -118,13 +132,15 @@ class VendasReportService
             return 0.0;
         }
 
+        $storeIds = $this->normalizeStoreIds(null);
+
         return round((float) Sale::query()
-            ->where('store_id', current_store_id())
+            ->whereIn('store_id', $storeIds)
             ->where('status', Sale::STATUS_PAGO)
             ->whereDate('data_emissao', '>=', $start->toDateString())
             ->whereDate('data_emissao', '<=', $end->toDateString())
-            ->whereHas('calendarEvent', function (Builder $cq) {
-                $cq->where('store_id', current_store_id())
+            ->whereHas('calendarEvent', function (Builder $cq) use ($storeIds) {
+                $cq->whereIn('store_id', $storeIds)
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             })
@@ -137,14 +153,15 @@ class VendasReportService
             return 0.0;
         }
 
+        $storeIds = $this->normalizeStoreIds(null);
         $startUtc = StoreBusinessTime::toUtcInstant($start->copy()->startOfDay());
         $endUtc = StoreBusinessTime::toUtcInstant($end->copy()->endOfDay());
 
         return round((float) Sale::query()
-            ->where('store_id', current_store_id())
+            ->whereIn('store_id', $storeIds)
             ->where('status', Sale::STATUS_PAGO)
-            ->whereHas('calendarEvent', function (Builder $cq) use ($startUtc, $endUtc) {
-                $cq->where('store_id', current_store_id())
+            ->whereHas('calendarEvent', function (Builder $cq) use ($startUtc, $endUtc, $storeIds) {
+                $cq->whereIn('store_id', $storeIds)
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', CalendarEvent::STATUS_COMPLETO)
                     ->whereBetween('start_at', [$startUtc, $endUtc]);
@@ -298,15 +315,19 @@ class VendasReportService
         })->values();
     }
 
-    public function servicosOpts(): Collection
+    /**
+     * @param  list<int>|null  $storeIds
+     */
+    public function servicosOpts(?array $storeIds = null): Collection
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return Service::query()
-            ->forStore(current_store_id())
             ->join('sale_items', 'services.id', '=', 'sale_items.service_id')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
-            ->where('sales.store_id', current_store_id())
-            ->where('calendar_events.store_id', current_store_id())
+            ->whereIn('sales.store_id', $storeIds)
+            ->whereIn('calendar_events.store_id', $storeIds)
             ->where('sale_items.tipo', SaleItem::TIPO_SERVICO)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
@@ -316,17 +337,22 @@ class VendasReportService
             ->get();
     }
 
-    public function clientesOpts(): Collection
+    /**
+     * @param  list<int>|null  $storeIds
+     */
+    public function clientesOpts(?array $storeIds = null): Collection
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return Client::query()
-            ->forStore(current_store_id())
-            ->whereExists(function ($q) {
+            ->forOrganization(current_organization_id())
+            ->whereExists(function ($q) use ($storeIds) {
                 $q->selectRaw('1')
                     ->from('sales')
                     ->join('calendar_events', 'calendar_events.id', '=', 'sales.calendar_event_id')
                     ->whereColumn('sales.client_id', 'clients.id')
-                    ->where('sales.store_id', current_store_id())
-                    ->where('calendar_events.store_id', current_store_id())
+                    ->whereIn('sales.store_id', $storeIds)
+                    ->whereIn('calendar_events.store_id', $storeIds)
                     ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO);
             })

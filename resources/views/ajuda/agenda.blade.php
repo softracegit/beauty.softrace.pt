@@ -137,7 +137,7 @@
                 [
                     'id' => 'faq-horario',
                     'question' => 'Posso marcar fora do horário de funcionamento?',
-                    'answer' => 'A grelha da agenda reflecte o horário configurado em Definições → Negócio. Slots fora desse horário podem não estar disponíveis ou aparecer desactivados consoante a configuração da loja.',
+                    'answer' => 'A grelha da agenda reflecte o horário configurado na ficha da loja (menu Lojas). Slots fora desse horário podem não estar disponíveis ou aparecer desactivados consoante a configuração da loja.',
                 ],
                 [
                     'id' => 'faq-online',

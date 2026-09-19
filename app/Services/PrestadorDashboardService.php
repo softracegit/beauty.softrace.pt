@@ -162,7 +162,6 @@ class PrestadorDashboardService
             ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
             ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
             ->where('calendar_events.store_id', $storeId)
-            ->where('services.store_id', $storeId)
             ->whereNull('calendar_events.personal_time_type_id')
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->whereNotIn('calendar_events.status', CalendarEvent::dashboardExcludedStatuses())

@@ -165,6 +165,20 @@
         padding-top: 0.65rem;
     }
 }
+.dash-resumo-clocks {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+.dash-resumo-clock {
+    display: inline-block;
+    min-width: 8ch;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: 0.02em;
+    text-align: left;
+}
 </style>
 @endsection
 @section('content')
@@ -177,18 +191,28 @@
 @endif
 
 <div class="dash-welcome mb-4">
-    <div class="dash-welcome-content">
-        <h2 class="dash-welcome-title">Olá de novo, {{ auth()->user()->name }}</h2>
-        <p class="dash-welcome-text">Visão geral do seu negócio.</p>
-    </div>
-    <div class="dash-welcome-actions">
-        <div class="dash-date">
-            <i class="bi bi-calendar3"></i>
-            <span id="dashDate"></span>
+    <div class="dash-welcome-header-row">
+        <div class="dash-welcome-content flex-grow-1 min-w-0">
+            <h2 class="dash-welcome-title">Olá de novo, {{ auth()->user()->name }}</h2>
+            <p class="dash-welcome-text">Visão geral do seu negócio.</p>
         </div>
-        <div class="dash-date">
-            <i class="bi bi-clock"></i>
-            <span id="dashTime"></span>
+        <div class="dash-welcome-actions d-flex align-items-center gap-2 flex-wrap">
+            <div class="dash-resumo-clocks">
+                <div class="dash-date">
+                    <i class="bi bi-calendar3"></i>
+                    <span id="dashDate"></span>
+                </div>
+                <div class="dash-date">
+                    <i class="bi bi-clock"></i>
+                    <span id="dashTime" class="dash-resumo-clock"></span>
+                </div>
+            </div>
+            @include('partials.store-context-filter', [
+                'selected' => $dashStoreSelected ?? \App\Support\StoreContextPreference::SCOPE_ALL,
+                'allowAll' => true,
+                'allLabel' => 'Todas as lojas',
+                'inputId' => 'dash_resumo_store_filter',
+            ])
         </div>
     </div>
 </div>
@@ -500,7 +524,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateDateTime() {
         var now = new Date();
         if (dateEl) dateEl.textContent = now.toLocaleDateString('pt-PT', { month: 'short', day: 'numeric', year: 'numeric' });
-        if (timeEl) timeEl.textContent = now.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        if (timeEl) {
+            var hh = String(now.getHours()).padStart(2, '0');
+            var mm = String(now.getMinutes()).padStart(2, '0');
+            var ss = String(now.getSeconds()).padStart(2, '0');
+            timeEl.textContent = hh + ':' + mm + ':' + ss;
+        }
     }
     updateDateTime();
     setInterval(updateDateTime, 1000);

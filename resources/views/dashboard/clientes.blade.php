@@ -11,14 +11,21 @@
 
 <!-- Welcome Banner -->
 <div class="dash-welcome mb-4">
-    <div class="dash-welcome-content">
-        <h2 class="dash-welcome-title">Dashboard de Clientes</h2>
-        <p class="dash-welcome-text d-none d-md-block">Métricas baseadas em marcações e retenção.</p>
-    </div>
-    <div class="dash-welcome-actions">
-        <a href="{{ route('clientes.create') }}" class="btn btn-primary">
-            <i class="ph ph-plus me-2"></i> Novo Cliente
-        </a>
+    <div class="dash-welcome-header-row">
+        <div class="dash-welcome-content flex-grow-1 min-w-0">
+            <h2 class="dash-welcome-title mb-0">Clientes</h2>
+        </div>
+        <div class="dash-welcome-actions d-flex align-items-center gap-2 flex-wrap">
+            @include('partials.store-context-filter', [
+                'selected' => $dashStoreSelected ?? \App\Support\StoreContextPreference::SCOPE_ALL,
+                'allowAll' => true,
+                'allLabel' => 'Todas as lojas',
+                'inputId' => 'dash_clientes_store_filter',
+            ])
+            <a href="{{ route('clientes.create') }}" class="btn btn-primary btn-sm dash-welcome-filter-btn text-nowrap">
+                <i class="ph ph-plus"></i><span class="dash-welcome-filter-btn-label">Novo Cliente</span>
+            </a>
+        </div>
     </div>
 </div>
 

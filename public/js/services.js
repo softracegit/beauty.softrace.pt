@@ -752,6 +752,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             initServicesDragula();
             attachServiceEventListeners();
+            applyServiceSearch();
         })
         .catch(err => { console.error(err); showToast('Erro ao carregar serviços', 'error'); });
     }
@@ -802,6 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Initialize services dragula
             initServicesDragula();
             attachServiceEventListeners();
+            applyServiceSearch();
         })
         .catch(error => {
             console.error('Error loading services:', error);
@@ -866,13 +868,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
             }
             const extrasN = service.extras_count || (service.extras && service.extras.length) || 0;
+            const feesN = service.fees_count || (service.fees && service.fees.length) || 0;
             const metaLine = hasOpts
-                ? `<span class="text-success" title="Menor preço online entre opções"><i class="ph ph-globe me-1"></i>Desde ${formatPrice(fromOnline)}</span>
-                   <span><i class="ph ph-list-checks me-1"></i>${opts.length} opção(ões)</span>`
-                : `<span><i class="ph ph-clock me-1"></i>${formatDuration(service.duration)}</span>
-                   ${service.online_price ? `<span class="text-success" title="Preço online"><i class="ph ph-globe me-1"></i>${formatPrice(service.online_price)}</span>` : ''}`;
+                ? `<span class="text-success" title="Menor preço online entre opções"><i class="ph ph-globe me-1"></i>Desde ${formatPrice(fromOnline)}</span>` +
+                  `<span><i class="ph ph-list-checks me-1"></i>${opts.length} opção(ões)</span>`
+                : `<span><i class="ph ph-clock me-1"></i>${formatDuration(service.duration)}</span>` +
+                  (service.online_price
+                      ? `<span class="text-success" title="Preço online"><i class="ph ph-globe me-1"></i>${formatPrice(service.online_price)}</span>`
+                      : '');
             const optionList = hasOpts
-                ? `<ul class="list-unstyled small text-muted mb-0 mt-1 ps-0">${opts
+                ? `<ul class="list-unstyled small text-muted mb-0 mt-1 ps-0 service-option-chips">${opts
                       .map(function (opt) {
                           return (
                               '<li class="mb-1">' +
@@ -887,8 +892,8 @@ document.addEventListener('DOMContentLoaded', function() {
                       .join('')}</ul>`
                 : '';
             const priceAside = hasOpts
-                ? `<span class="service-item-price"><span class="small fw-normal">desde</span> ${formatPrice(fromOnline)}</span>`
-                : `<span class="service-item-price">${formatPrice(service.price)}</span>`;
+                ? `<span class="service-item-price" title="Menor preço online"><span class="small fw-normal">desde</span> ${formatPrice(fromOnline)}</span>`
+                : `<span class="service-item-price" title="Preço normal">${formatPrice(service.price)}</span>`;
             const rowHasOptionsClass = hasOpts ? ' service-item-row--has-options' : '';
             const bodyAlignClass = hasOpts ? 'align-items-start' : 'align-items-center';
             const rightAlignClass = hasOpts ? 'align-items-start' : 'align-items-center';
@@ -902,13 +907,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
                 </div>
                 <div class="card service-item service-item-clickable" style="--service-category-color: ${borderColor};">
-                    <div class="card-body d-flex justify-content-between ${bodyAlignClass} gap-3 py-2 pe-2">
+                    <div class="card-body d-flex justify-content-between ${bodyAlignClass} gap-3 py-3 pe-2">
                         <div class="service-item-left">
-                            <h6 class="mb-0 service-item-name d-inline-flex align-items-center">${escapeHtml(service.name)}${hiddenIcon}</h6>
+                            <h6 class="mb-0 service-item-name">${escapeHtml(service.name)}${hiddenIcon}</h6>
                             ${service.description ? `<p class="text-muted small mb-1">${escapeHtml(service.description.substring(0, 100))}${service.description.length > 100 ? '...' : ''}</p>` : ''}
                             <div class="d-flex flex-wrap gap-3 text-muted small service-item-duration">
                                 ${metaLine}
                                 ${extrasN > 0 ? `<span><i class="ph ph-package me-1"></i>${extrasN} extra(s)</span>` : ''}
+                                ${feesN > 0 ? `<span><i class="ph ph-coins me-1"></i>${feesN} taxa(s)</span>` : ''}
                             </div>
                             ${optionList}
                         </div>
@@ -1490,14 +1496,35 @@ document.addEventListener('DOMContentLoaded', function() {
     attachServiceEventListeners();
     initServicesDragula();
 
-    // Search functionality
-    document.getElementById('serviceSearch')?.addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
-        document.querySelectorAll('.service-item-row').forEach(row => {
-            const text = row.textContent.toLowerCase();
-            row.style.display = text.includes(searchTerm) ? '' : 'none';
+    /** Filtra linhas pelo termo actual (mantém-se após editar/guardar / mudança de categoria). */
+    function applyServiceSearch() {
+        const input = document.getElementById('serviceSearch');
+        const searchTerm = (input?.value || '').toLowerCase().trim();
+
+        document.querySelectorAll('.service-item-row').forEach(function (row) {
+            if (row.classList.contains('service-empty-placeholder')) {
+                row.style.display = searchTerm ? 'none' : '';
+                return;
+            }
+            const text = (row.textContent || '').toLowerCase();
+            row.style.display = (!searchTerm || text.includes(searchTerm)) ? '' : 'none';
         });
-    });
+
+        document.querySelectorAll('[data-category-block]').forEach(function (block) {
+            if (!searchTerm) {
+                block.style.display = '';
+                return;
+            }
+            const hasVisible = Array.from(
+                block.querySelectorAll('.service-item-row:not(.service-empty-placeholder)')
+            ).some(function (row) {
+                return row.style.display !== 'none';
+            });
+            block.style.display = hasVisible ? '' : 'none';
+        });
+    }
+
+    document.getElementById('serviceSearch')?.addEventListener('input', applyServiceSearch);
 
     // Usa showToast global do layout (cores soft, bottom center)
 });

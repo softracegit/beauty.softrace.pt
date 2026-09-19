@@ -82,13 +82,16 @@ class BookingController extends Controller
      */
     private function bookingServicesIndexViewData(?array $onlyServiceIds = null): array
     {
-        $storeId = $this->bookingStoreId();
+        $store = $this->bookingStore();
+        $storeId = (int) $store->id;
+        $organizationId = (int) $store->organization_id;
+
         $categories = Category::query()
-            ->where('store_id', $storeId)
+            ->forOrganization($organizationId)
             ->visibleInBooking()
             ->with([
                 'services' => function ($q) use ($storeId, $onlyServiceIds) {
-                    $q->where('store_id', $storeId)
+                    $q->activeInStore($storeId)
                         ->visibleInBooking()
                         ->orderBy('sort_order')
                         ->with([
@@ -108,7 +111,7 @@ class BookingController extends Controller
                 },
             ])
             ->whereHas('services', function ($q) use ($storeId, $onlyServiceIds) {
-                $q->where('store_id', $storeId)->visibleInBooking();
+                $q->activeInStore($storeId)->visibleInBooking();
                 if ($onlyServiceIds !== null) {
                     $q->whereIn('id', $onlyServiceIds);
                 }
@@ -431,7 +434,14 @@ class BookingController extends Controller
      */
     public function showService(Store $store, Service $service): View
     {
-        abort_unless((int) $store->id === (int) $service->store_id, 404);
+        abort_unless(
+            Service::query()
+                ->whereKey($service->id)
+                ->forOrganization((int) $store->organization_id)
+                ->activeInStore((int) $store->id)
+                ->exists(),
+            404,
+        );
         abort_unless($service->isBookableOnline(), 404);
 
         return view('booking.service', [
@@ -811,7 +821,7 @@ class BookingController extends Controller
     }
 
     /**
-     * Ignora IDs do carrinho que não pertencem à loja da URL (ex.: localStorage partilhado entre lojas).
+     * Ignora IDs do carrinho que não estão activos na loja da URL (ex.: localStorage partilhado entre lojas).
      *
      * @param  list<int>  $serviceIds
      * @return list<int>
@@ -822,10 +832,11 @@ class BookingController extends Controller
             return [];
         }
 
-        $storeId = $this->bookingStoreId();
+        $store = $this->bookingStore();
 
         return Service::query()
-            ->where('store_id', $storeId)
+            ->forOrganization((int) $store->organization_id)
+            ->activeInStore((int) $store->id)
             ->whereIn('id', $serviceIds)
             ->visibleInBooking()
             ->where(function (Builder $q): void {

@@ -2,20 +2,9 @@
 @section('title', 'Equipa | Beauty CRM')
 @section('content')
 
-@if (session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
-
 @php
-    $storeAgentsQuery = \App\Models\Agent::query()->forStore(current_store_id());
-    $totalAgentes = (clone $storeAgentsQuery)->count();
-    $activeCount = (clone $storeAgentsQuery)->where('status', \App\Models\Agent::STATUS_ACTIVE)->count();
-    $inactiveCount = (clone $storeAgentsQuery)->where('status', \App\Models\Agent::STATUS_INACTIVE)->count();
-    $onLeaveCount = (clone $storeAgentsQuery)->where('status', \App\Models\Agent::STATUS_ON_LEAVE)->count();
     $currentStatusFilter = request('status', '');
+    $showStoreColumn = $showStoreColumn ?? false;
 @endphp
 
 <!-- Agentes Stats Strip (based on users-stats) -->
@@ -54,31 +43,57 @@
 <div class="card">
     <div class="users-toolbar">
         <div class="users-toolbar-left">
-            <form action="{{ route('equipa.index') }}" method="GET" class="d-flex align-items-center gap-2 flex-wrap">
+            <form action="{{ route('equipa.index') }}" method="GET" class="d-flex align-items-center gap-2 flex-wrap flex-grow-1 min-w-0" id="equipa-filter-form">
                 <div class="users-search">
                     <i class="ph ph-magnifying-glass"></i>
-                    <input type="text" name="search" placeholder="Pesquisar membros..." value="{{ request('search') }}">
+                    <input type="text" name="search" placeholder="Pesquisar..." value="{{ request('search') }}">
                 </div>
-                <select name="status" class="form-select users-toolbar-select" onchange="this.form.submit()" aria-label="Filtrar por estado">
+                @include('partials.store-context-filter', [
+                    'selected' => ($equipaStoreFilter['store_id'] ?? null) === null
+                        ? \App\Support\StoreContextPreference::SCOPE_ALL
+                        : $equipaStoreFilter['store_id'],
+                    'allowAll' => true,
+                    'allLabel' => 'Todas as lojas',
+                    'formId' => 'equipa-filter-form',
+                    'inputId' => 'equipa_store_filter',
+                    'class' => 'users-toolbar-select equipa-store-filter',
+                    'style' => '',
+                ])
+                <select name="status" class="form-select users-toolbar-select equipa-status-filter" onchange="this.form.submit()" aria-label="Filtrar por estado">
                     <option value="" {{ $currentStatusFilter === '' ? 'selected' : '' }}>Ativos</option>
                     <option value="inactive" {{ $currentStatusFilter === 'inactive' ? 'selected' : '' }}>Inativos</option>
                     <option value="all" {{ $currentStatusFilter === 'all' ? 'selected' : '' }}>Todos</option>
                 </select>
                 <button type="submit" class="btn btn-outline-secondary users-toolbar-submit">
-                    <i class="ph ph-magnifying-glass me-1"></i> Pesquisar
+                    <i class="ph ph-magnifying-glass"></i>
                 </button>
             </form>
         </div>
-        <a href="{{ route('equipa.create') }}" class="btn btn-primary">
-            <i class="ph ph-plus me-1"></i> Adicionar Membro
+        <a href="{{ route('equipa.create') }}" class="btn btn-primary text-nowrap flex-shrink-0">
+            <i class="ph ph-plus"></i> Adicionar
         </a>
     </div>
+
+    <style>
+      #equipa_store_filter.equipa-store-filter,
+      .equipa-status-filter {
+        min-width: 0 !important;
+        max-width: 9.5rem;
+        width: auto;
+      }
+      #equipa_store_filter.equipa-store-filter {
+        max-width: 11rem;
+      }
+    </style>
 
     <div class="users-table-wrap">
         <table class="users-table">
             <thead>
                 <tr>
                     <th>Membro</th>
+                    @if ($showStoreColumn)
+                      <th>Loja</th>
+                    @endif
                     <th>Contacto</th>
                     <th>Especialização</th>
                     <th>Comissão</th>
@@ -111,6 +126,11 @@
                                 </div>
                             </div>
                         </td>
+                        @if ($showStoreColumn)
+                          <td>
+                            <span class="users-cell-meta">{{ $agent->store?->name ?? '—' }}</span>
+                          </td>
+                        @endif
                         <td>
                             @if($agent->phone)
                                 <span class="users-cell-meta">{{ $agent->formatted_phone }}</span>
@@ -144,6 +164,22 @@
                             <div class="users-actions">
                                 <a href="{{ route('equipa.show', $agent) }}" class="users-action-btn" title="Ver"><i class="ph ph-eye"></i></a>
                                 <a href="{{ route('equipa.edit', $agent) }}" class="users-action-btn" title="Editar"><i class="ph ph-pencil-simple"></i></a>
+                                @can('migrateStore', $agent)
+                                    @if(($migrateStores ?? collect())->isNotEmpty())
+                                        <button
+                                            type="button"
+                                            class="users-action-btn"
+                                            title="Mudar de loja"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#migrateStoreModal"
+                                            data-agent-id="{{ $agent->id }}"
+                                            data-agent-name="{{ $agent->name }}"
+                                            data-action="{{ route('equipa.migrate-store', $agent) }}"
+                                        >
+                                            <i class="ph ph-arrows-left-right"></i>
+                                        </button>
+                                    @endif
+                                @endcan
                             </div>
                         </td>
                     </tr>
@@ -195,5 +231,9 @@
     </div>
     @endif
 </div>
+
+@if(($migrateStores ?? collect())->isNotEmpty())
+    @include('agentes.partials.migrate-store-modal')
+@endif
 
 @endsection

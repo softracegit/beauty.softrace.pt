@@ -34,10 +34,17 @@
         <div class="dash-welcome-content flex-grow-1 min-w-0">
             <h2 class="dash-welcome-title">Ocupação</h2>
         </div>
-        <form method="GET" action="{{ route('dashboard.ocupacao') }}" class="dash-welcome-filters">
+        <form method="GET" action="{{ route('dashboard.ocupacao') }}" class="dash-welcome-filters" id="dash-ocupacao-filters">
             @if(request()->filled('glue_period'))
                 <input type="hidden" name="glue_period" value="{{ request('glue_period') }}">
             @endif
+            @include('partials.store-context-filter', [
+                'selected' => $dashStoreSelected ?? \App\Support\StoreContextPreference::SCOPE_ALL,
+                'allowAll' => true,
+                'allLabel' => 'Todas as lojas',
+                'formId' => 'dash-ocupacao-filters',
+                'inputId' => 'dash_ocupacao_store_filter',
+            ])
             <select id="ocupacaoFilterMonth" name="month" class="form-select form-select-sm dash-welcome-filter-month" aria-label="Mês">
                 @foreach($monthOptions ?? [] as $monthValue => $monthLabel)
                     <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>

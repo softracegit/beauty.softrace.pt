@@ -69,7 +69,7 @@ class ClientTagController extends Controller
             }
 
             $duplicate = ClientTag::query()
-                ->forStore(current_store_id())
+                ->forOrganization(current_organization_id())
                 ->whereRaw('LOWER(name) = ?', [mb_strtolower($normalized, 'UTF-8')])
                 ->whereKeyNot($clientTag->id)
                 ->exists();
@@ -107,7 +107,7 @@ class ClientTagController extends Controller
     {
         $this->assertCanEditClientTags();
 
-        if ((int) $client->store_id !== (int) current_store_id()) {
+        if ((int) $client->organization_id !== (int) current_organization_id()) {
             abort(404);
         }
 

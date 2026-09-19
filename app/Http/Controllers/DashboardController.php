@@ -13,26 +13,30 @@ use App\Models\User;
 use App\Services\FinancialDashboardService;
 use App\Services\MarcacaoGlueSuggestionsService;
 use App\Services\PrestadorDashboardService;
-use App\Services\VendasReportService;
 use App\Support\CrmPrivacyLock;
+use App\Support\CurrentStore;
 use App\Support\MarcacaoMoneyBatch;
 use App\Support\StoreBusinessTime;
+use App\Support\StoreContextPreference;
 use App\Support\WeeklyScheduleWindow;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
+    /** @var list<int>|null */
+    private ?array $dashboardStoreIds = null;
+
     public function __construct(
         private readonly FinancialDashboardService $financialDashboard,
-        private readonly VendasReportService $vendasReportService,
     ) {}
 
     /**
      * Dashboard Resumo (página inicial do dashboard).
      */
-    public function resumo(PrestadorDashboardService $prestadorDashboard)
+    public function resumo(Request $request, PrestadorDashboardService $prestadorDashboard)
     {
         $user = auth()->user();
         $storeId = current_store_id();
@@ -49,11 +53,14 @@ class DashboardController extends Controller
             return view('dashboard.prestador', $prestadorDashboard->buildForStore($storeId, $user));
         }
 
+        $filter = $this->resolveDashboardStoreContext($request);
+        $storeId = $this->primaryDashboardStoreId();
+
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $currentYear = $today->year;
         $previousYear = $currentYear - 1;
 
-        $store = current_store()->get();
+        $store = Store::query()->find($storeId) ?? current_store()->get();
         $prestadorAgents = $this->ocupacaoPrestadorAgents();
         $prestadorUserIds = $prestadorAgents->pluck('user_id')->filter()->map(fn ($id): int => (int) $id)->values();
 
@@ -71,9 +78,9 @@ class DashboardController extends Controller
 
         $clientesContacto = $this->resumoClientesContactoStats();
         $vendasMesCorrente = $this->resumoVendasDiariasDoMes($today);
-        $opsKpis = $prestadorDashboard->buildForStore($storeId, $user instanceof User ? $user : null);
+        $opsKpis = $this->resumoOpsKpisAcrossStores($prestadorDashboard, $user instanceof User ? $user : null);
 
-        return view('dashboard.resumo', [
+        return view('dashboard.resumo', array_merge([
             'kpiPorPeriodo' => $kpiPorPeriodo,
             'monthLabels' => $monthLabels,
             'vendasAnoAtual' => $vendasAnoAtual,
@@ -93,7 +100,7 @@ class DashboardController extends Controller
             'reportDateWeekEnd' => $opsKpis['reportDateWeekEnd'],
             'reportDateMonthStart' => $opsKpis['reportDateMonthStart'],
             'reportDateMonthEnd' => $opsKpis['reportDateMonthEnd'],
-        ]);
+        ], $this->dashStoreViewData($filter)));
     }
 
     /**
@@ -105,7 +112,9 @@ class DashboardController extends Controller
             return $redirect;
         }
 
-        $storeId = current_store_id();
+        $filter = $this->resolveDashboardStoreContext($request);
+        $storeIds = $filter['store_ids'];
+        $storeId = $this->primaryDashboardStoreId();
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $year = (int) $request->input('year', $today->year);
         $monthRaw = $request->input('month', (string) $today->month);
@@ -113,27 +122,34 @@ class DashboardController extends Controller
             ? FinancialDashboardService::MONTH_WHOLE_YEAR
             : max(1, min(12, (int) $monthRaw));
 
-        $data = $this->financialDashboard->build($storeId, $year, $month);
+        if (count($storeIds) === 1) {
+            $data = $this->financialDashboard->build($storeIds[0], $year, $month);
+        } else {
+            $data = $this->mergeFinancialDashboardBuilds($storeIds, $year, $month);
+        }
 
-        return view('dashboard.financeiro', $data);
+        return view('dashboard.financeiro', array_merge($data, $this->dashStoreViewData($filter)));
     }
 
     /**
      * Dashboard Equipa — carga por técnica (marcações, horas, tempo pessoal).
      */
-    public function equipa()
+    public function equipa(Request $request)
     {
         if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
             return $redirect;
         }
 
-        $storeId = current_store_id();
-        $store = current_store()->get();
+        $filter = $this->resolveDashboardStoreContext($request);
+        $storeId = $this->primaryDashboardStoreId();
+        $store = Store::query()->find($storeId) ?? current_store()->get();
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $storeSchedule = $store->normalizedWeeklySchedule();
 
-        $agents = Agent::activeServiceProviders($storeId)
-            ->with('user')
+        $agents = Agent::query()
+            ->whereIn('store_id', $filter['store_ids'])
+            ->activeServiceProviders()
+            ->with(['user', 'store'])
             ->orderBy('agenda_order')
             ->orderBy('name')
             ->get();
@@ -145,7 +161,7 @@ class DashboardController extends Controller
             $bounds[$period] = $this->resumoPeriodBounds($period, $today);
         }
 
-        $cardsByPeriod = $this->equipaBuildCardsByPeriod($agents, $bounds, $storeSchedule, $storeId);
+        $cardsByPeriod = $this->equipaBuildCardsByPeriod($agents, $bounds, $storeSchedule, $filter['store_ids']);
 
         $periodLabels = [
             'ontem' => 'Ontem',
@@ -155,24 +171,25 @@ class DashboardController extends Controller
             'mes' => 'Mês',
         ];
 
-        return view('dashboard.equipa', compact(
+        return view('dashboard.equipa', array_merge(compact(
             'cardsByPeriod',
             'periodLabels',
             'periodKeys',
-        ));
+        ), $this->dashStoreViewData($filter)));
     }
 
     /**
      * @param  Collection<int, Agent>  $agents
      * @param  array<string, array{0: Carbon, 1: Carbon}>  $bounds
      * @param  array<string, array{enabled?: bool, start?: string|null, end?: string|null}>  $storeSchedule
+     * @param  list<int>  $storeIds
      * @return array<string, list<array<string, mixed>>>
      */
     private function equipaBuildCardsByPeriod(
         Collection $agents,
         array $bounds,
         array $storeSchedule,
-        int $storeId,
+        array $storeIds,
     ): array {
         $periodKeys = array_keys($bounds);
         $emptyPeriods = array_fill_keys($periodKeys, []);
@@ -210,7 +227,7 @@ class DashboardController extends Controller
             CalendarEvent::STATUS_FALTOU,
         ];
 
-        $marcacoes = CalendarEvent::forStore($storeId)
+        $marcacoes = $this->calendarEventsQuery($storeIds)
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->whereNotIn('status', $excluded)
             ->whereIn('user_id', $userIds)
@@ -221,7 +238,7 @@ class DashboardController extends Controller
             ])
             ->get(['id', 'user_id', 'start_at', 'status']);
 
-        $pessoal = CalendarEvent::forStore($storeId)
+        $pessoal = $this->calendarEventsQuery($storeIds)
             ->where('event_type', CalendarEvent::TYPE_TEMPO_PESSOAL)
             ->where(function ($q): void {
                 $q->whereNull('status')
@@ -303,12 +320,13 @@ class DashboardController extends Controller
                 if ($uid <= 0) {
                     continue;
                 }
+                $agentSchedule = $agent->store?->normalizedWeeklySchedule() ?? $storeSchedule;
                 // Capacidade = horário da técnica ∩ loja (sem −1 h almoço; isso só na taxa de ocupação).
                 $capacityByPeriodByAgent[$period][$uid] = $this->ocupacaoCapacityMinutesForAgents(
                     $start,
                     $end,
                     collect([$agent]),
-                    $storeSchedule,
+                    $agentSchedule,
                     false
                 );
             }
@@ -412,13 +430,15 @@ class DashboardController extends Controller
     /**
      * Dashboard Marcações.
      */
-    public function marcacoes()
+    public function marcacoes(Request $request)
     {
         if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
             return $redirect;
         }
 
-        $storeId = current_store_id();
+        $filter = $this->resolveDashboardStoreContext($request);
+        $storeIds = $filter['store_ids'];
+        $storeId = $this->primaryDashboardStoreId();
         $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $startOfWeek = $today->copy()->startOfWeek();
         $endOfWeek = $today->copy()->endOfWeek()->endOfDay();
@@ -428,7 +448,7 @@ class DashboardController extends Controller
         $startOfTomorrow = $today->copy()->addDay()->startOfDay();
         $endOfTomorrow = $today->copy()->addDay()->endOfDay();
 
-        $marcacoesBase = CalendarEvent::forStore($storeId)->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $marcacoesBase = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
 
         [$hojeStartUtc, $hojeEndUtc] = $this->ocupacaoUtcQueryBounds($today, $endOfToday);
@@ -469,10 +489,10 @@ class DashboardController extends Controller
             ? round((($receitaEsteMes - $receitaMesAnterior) / $receitaMesAnterior) * 100, 1)
             : ($receitaEsteMes > 0 ? 100 : 0);
 
-        $totalClientes = Client::forStore($storeId)->count();
-        $totalTecnicos = Agent::forStore($storeId)->where('status', Agent::STATUS_ACTIVE)->count();
+        $totalClientes = Client::forOrganization(current_organization_id())->count();
+        $totalTecnicos = Agent::query()->whereIn('store_id', $storeIds)->where('status', Agent::STATUS_ACTIVE)->count();
 
-        $proximasMarcacoes = CalendarEvent::forStore($storeId)->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $proximasMarcacoes = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->where('start_at', '>=', StoreBusinessTime::toUtcInstant($today))
             ->with(['client', 'user', 'eventServices'])
@@ -480,7 +500,7 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
-        $marcacoesRecentes = CalendarEvent::forStore($storeId)->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $marcacoesRecentes = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->with(['client', 'user', 'eventServices'])
             ->orderBy('start_at', 'desc')
@@ -491,8 +511,7 @@ class DashboardController extends Controller
         $porServico = CalendarEventService::query()
             ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
             ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
-            ->where('calendar_events.store_id', $storeId)
-            ->where('services.store_id', $storeId)
+            ->whereIn('calendar_events.store_id', $storeIds)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->groupBy('services.id', 'services.name')
@@ -501,7 +520,7 @@ class DashboardController extends Controller
             ->limit(8)
             ->get();
 
-        $porTecnico = CalendarEvent::forStore($storeId)->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $porTecnico = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->selectRaw('user_id, count(*) as total')
             ->groupBy('user_id')
@@ -512,10 +531,10 @@ class DashboardController extends Controller
 
         // Receita por técnico: apenas vendas pagas de marcações concluídas
         $receitaPorTecnico = Sale::query()
-            ->where('sales.store_id', $storeId)
+            ->whereIn('sales.store_id', $storeIds)
             ->join('calendar_events', 'sales.calendar_event_id', '=', 'calendar_events.id')
             ->where('sales.status', Sale::STATUS_PAGO)
-            ->where('calendar_events.store_id', $storeId)
+            ->whereIn('calendar_events.store_id', $storeIds)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', CalendarEvent::STATUS_COMPLETO)
             ->groupBy('calendar_events.user_id')
@@ -523,7 +542,7 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('user_id');
 
-        $porEstado = CalendarEvent::forStore($storeId)->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $porEstado = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status')
@@ -548,7 +567,7 @@ class DashboardController extends Controller
             ];
         }
 
-        return view('dashboard.index', compact(
+        return view('dashboard.index', array_merge(compact(
             'marcacoesHoje',
             'marcacoesEstaSemana',
             'marcacoesEsteMes',
@@ -570,7 +589,7 @@ class DashboardController extends Controller
             'porEstado',
             'mensalMarcacoes',
             'mensalReceita'
-        ));
+        ), $this->dashStoreViewData($filter)));
     }
 
     /**
@@ -603,7 +622,7 @@ class DashboardController extends Controller
             CalendarEvent::STATUS_NOTIFICADO,
         ];
 
-        $row = CalendarEvent::forStore(current_store_id())
+        $row = $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where(function ($q) use ($confirmados, $naoConfirmados): void {
                 $q->whereIn('status', array_merge($confirmados, $naoConfirmados))
@@ -699,11 +718,10 @@ class DashboardController extends Controller
             $boundsUtc[$period] = $this->ocupacaoUtcQueryBounds($start, $end);
         }
 
-        $storeId = current_store_id();
+        $storeId = $this->primaryDashboardStoreId();
         $nowUtc = StoreBusinessTime::nowUtcForStore($storeId);
-        $storeSchedule = $store->normalizedWeeklySchedule();
 
-        $pipelineEvents = CalendarEvent::forStore($storeId)
+        $pipelineEvents = $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->whereNotIn('status', [
                 CalendarEvent::STATUS_CANCELADO,
@@ -716,7 +734,7 @@ class DashboardController extends Controller
 
         $moneyBatch = new MarcacaoMoneyBatch(
             $pipelineEvents->pluck('id')->map(fn ($id): int => (int) $id)->all(),
-            (int) $storeId,
+            $storeId,
         );
 
         $pipelineByPeriod = array_fill_keys($periods, ['previsto' => 0.0, 'por_fazer' => 0.0]);
@@ -740,10 +758,10 @@ class DashboardController extends Controller
 
         $vendasByPeriod = array_fill_keys($periods, 0.0);
         $sales = Sale::query()
-            ->where('store_id', $storeId)
+            ->whereIn('store_id', $this->dashboardStoreIds())
             ->where('status', Sale::STATUS_PAGO)
-            ->whereHas('calendarEvent', function ($cq) use ($storeId, $coverStartUtc, $coverEndUtc): void {
-                $cq->where('store_id', $storeId)
+            ->whereHas('calendarEvent', function ($cq) use ($coverStartUtc, $coverEndUtc): void {
+                $cq->whereIn('store_id', $this->dashboardStoreIds())
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', CalendarEvent::STATUS_COMPLETO)
                     ->whereBetween('start_at', [$coverStartUtc, $coverEndUtc]);
@@ -765,7 +783,7 @@ class DashboardController extends Controller
         }
 
         $atendidosByPeriod = array_fill_keys($periods, 0);
-        $atendidos = CalendarEvent::forStore($storeId)
+        $atendidos = $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
@@ -790,7 +808,7 @@ class DashboardController extends Controller
         $filledMinutesByPeriod = array_fill_keys($periods, 0);
         $capacityMinutesByPeriod = array_fill_keys($periods, 0);
         if ($numTecnicos > 0) {
-            $ocupacaoEvents = CalendarEvent::forStore($storeId)
+            $ocupacaoEvents = $this->calendarEventsQuery()
                 ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                 ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
                 ->whereIn('user_id', $prestadorUserIds)
@@ -822,11 +840,10 @@ class DashboardController extends Controller
 
             foreach ($periods as $period) {
                 [$start, $end] = $bounds[$period];
-                $capacityMinutes = $this->ocupacaoCapacityMinutesForAgents(
+                $capacityMinutes = $this->ocupacaoCapacityAcrossStores(
                     $start,
                     $end,
                     $prestadorAgents,
-                    $storeSchedule,
                     true
                 );
                 $capacityMinutesByPeriod[$period] = $capacityMinutes;
@@ -872,7 +889,7 @@ class DashboardController extends Controller
 
     private function resumoVendasEntre(Carbon $start, Carbon $end): float
     {
-        return $this->vendasReportService->sumVendasPagasPorMarcacao($start, $end);
+        return $this->receitaMarcacoesEntre($start, $end);
     }
 
     /**
@@ -886,10 +903,10 @@ class DashboardController extends Controller
             return ['previsto' => 0.0, 'por_fazer' => 0.0];
         }
 
-        $storeId = current_store_id();
+        $storeId = $this->primaryDashboardStoreId();
         [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($start, $end);
 
-        $events = CalendarEvent::forStore($storeId)
+        $events = $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->whereNotIn('status', [
                 CalendarEvent::STATUS_CANCELADO,
@@ -915,12 +932,19 @@ class DashboardController extends Controller
         $start = $today->copy()->startOfMonth();
         $end = $today->copy()->endOfMonth()->endOfDay();
         $tz = $start->timezoneName;
+        $storeIds = $this->dashboardStoreIds();
+        $startUtc = StoreBusinessTime::toUtcInstant($start->copy()->startOfDay());
+        $endUtc = StoreBusinessTime::toUtcInstant($end->copy()->endOfDay());
 
-        $sales = $this->vendasReportService->reportQuery([
-            'desde' => $start->toDateString(),
-            'ate' => $end->toDateString(),
-            'data_criterio' => VendasReportService::DATE_CRITERION_MARCACAO,
-        ])
+        $sales = Sale::query()
+            ->whereIn('store_id', $storeIds)
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function ($cq) use ($storeIds, $startUtc, $endUtc): void {
+                $cq->whereIn('store_id', $storeIds)
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', CalendarEvent::STATUS_COMPLETO)
+                    ->whereBetween('start_at', [$startUtc, $endUtc]);
+            })
             ->with('calendarEvent')
             ->get();
 
@@ -956,11 +980,11 @@ class DashboardController extends Controller
             return 0;
         }
 
-        $storeId = current_store_id();
+        $storeId = $this->primaryDashboardStoreId();
         $nowUtc = StoreBusinessTime::nowUtcForStore($storeId);
         [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($start, $end);
 
-        return (int) CalendarEvent::forStore($storeId)
+        return (int) $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
@@ -984,11 +1008,10 @@ class DashboardController extends Controller
             return 0;
         }
 
-        $capacityMinutes = $this->ocupacaoCapacityMinutesForAgents(
+        $capacityMinutes = $this->ocupacaoCapacityAcrossStores(
             $start,
             $end,
             $prestadorAgents,
-            $store->normalizedWeeklySchedule(),
             true
         );
         if ($capacityMinutes <= 0) {
@@ -1005,7 +1028,7 @@ class DashboardController extends Controller
      */
     private function resumoClientesContactoStats(): array
     {
-        $row = Client::forStore(current_store_id())
+        $row = Client::forOrganization(current_organization_id())
             ->selectRaw("COUNT(*) as total")
             ->selectRaw("SUM(CASE WHEN phone IS NOT NULL AND phone != '' THEN 1 ELSE 0 END) as com_telemovel")
             ->selectRaw("SUM(CASE WHEN email IS NOT NULL AND email != '' THEN 1 ELSE 0 END) as com_email")
@@ -1044,10 +1067,10 @@ class DashboardController extends Controller
         $endUtc = StoreBusinessTime::toUtcInstant($end->copy()->endOfDay());
 
         $sales = Sale::query()
-            ->where('store_id', current_store_id())
+            ->whereIn('store_id', $this->dashboardStoreIds())
             ->where('status', Sale::STATUS_PAGO)
             ->whereHas('calendarEvent', function ($cq) use ($startUtc, $endUtc): void {
-                $cq->where('store_id', current_store_id())
+                $cq->whereIn('store_id', $this->dashboardStoreIds())
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', CalendarEvent::STATUS_COMPLETO)
                     ->whereBetween('start_at', [$startUtc, $endUtc]);
@@ -1091,14 +1114,14 @@ class DashboardController extends Controller
      */
     private function resumoAtendidosPorMesDoAno(int $year, Carbon $today): array
     {
-        $storeId = current_store_id();
+        $storeId = $this->primaryDashboardStoreId();
         $nowUtc = StoreBusinessTime::nowUtcForStore($storeId);
         [$start] = $this->resumoMonthBounds($year, 1, $today);
         $end = $this->resumoMonthBounds($year, 12, $today)[1];
         [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($start, $end);
         $tz = $today->timezoneName;
 
-        $events = CalendarEvent::forStore($storeId)
+        $events = $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
@@ -1130,7 +1153,24 @@ class DashboardController extends Controller
      */
     private function receitaMarcacoesEntre(Carbon $start, Carbon $end): float
     {
-        return $this->vendasReportService->sumVendasPagasPorMarcacao($start, $end);
+        if ($end->lt($start)) {
+            return 0.0;
+        }
+
+        $storeIds = $this->dashboardStoreIds();
+        $startUtc = StoreBusinessTime::toUtcInstant($start->copy()->startOfDay());
+        $endUtc = StoreBusinessTime::toUtcInstant($end->copy()->endOfDay());
+
+        return round((float) Sale::query()
+            ->whereIn('store_id', $storeIds)
+            ->where('status', Sale::STATUS_PAGO)
+            ->whereHas('calendarEvent', function ($cq) use ($storeIds, $startUtc, $endUtc): void {
+                $cq->whereIn('store_id', $storeIds)
+                    ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+                    ->where('status', CalendarEvent::STATUS_COMPLETO)
+                    ->whereBetween('start_at', [$startUtc, $endUtc]);
+            })
+            ->sum('total'), 2);
     }
 
     /**
@@ -1160,32 +1200,39 @@ class DashboardController extends Controller
     /**
      * Dashboard de Clientes (métricas baseadas em marcações de serviços)
      */
-    public function clientes()
+    public function clientes(Request $request)
     {
         if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
             return $redirect;
         }
 
-        $today = Carbon::today();
-        $startOfMonth = $today->copy()->startOfMonth();
-        $endOfMonth = $today->copy()->endOfMonth();
+        $filter = $this->resolveDashboardStoreContext($request);
+        $storeIds = $filter['store_ids'];
+        $storeId = $this->primaryDashboardStoreId();
 
-        $marcacoesBase = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
+        $startOfMonth = $today->copy()->startOfMonth();
+        $endOfMonth = $today->copy()->endOfMonth()->endOfDay();
+
+        $marcacoesBase = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id');
 
-        $totalClientes = Client::forStore(current_store_id())->count();
+        $totalClientes = Client::forOrganization(current_organization_id())->count();
         $totalClientesComMarcacao = (clone $marcacoesBase)->distinct('client_id')->count('client_id');
 
-        $clientesEsteMes = Client::forStore(current_store_id())->whereMonth('created_at', $today->month)
+        $clientesEsteMes = Client::forOrganization(current_organization_id())->whereMonth('created_at', $today->month)
             ->whereYear('created_at', $today->year)
             ->count();
 
         $marcacoesEsteMes = (clone $marcacoesBase)
-            ->whereBetween('start_at', [$startOfMonth, $endOfMonth])
+            ->whereBetween('start_at', [
+                StoreBusinessTime::toUtcInstant($startOfMonth),
+                StoreBusinessTime::toUtcInstant($endOfMonth),
+            ])
             ->get();
 
-        $primeiraMarcacaoPorCliente = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $primeiraMarcacaoPorCliente = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
             ->selectRaw('client_id, min(start_at) as primeira')
@@ -1210,7 +1257,7 @@ class DashboardController extends Controller
         }
 
         $clientesComUmaOuMais = (clone $marcacoesBase)->distinct('client_id')->pluck('client_id');
-        $clientesComDuasOuMais = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $clientesComDuasOuMais = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
             ->selectRaw('client_id, count(*) as total')
@@ -1223,10 +1270,10 @@ class DashboardController extends Controller
 
         $receitaPorCliente = $this->receitaPorCliente();
         $topClientesPorMarcacoes = Client::query()
-            ->forStore(current_store_id())
+            ->forOrganization(current_organization_id())
             ->whereIn('id', $clientesComUmaOuMais)
-            ->withCount(['calendarEvents as marcacoes_count' => function ($q) {
-                $q->where('store_id', current_store_id())
+            ->withCount(['calendarEvents as marcacoes_count' => function ($q) use ($storeIds) {
+                $q->whereIn('store_id', $storeIds)
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             }])
@@ -1240,10 +1287,10 @@ class DashboardController extends Controller
             });
 
         $topClientesPorReceita = Client::query()
-            ->forStore(current_store_id())
+            ->forOrganization(current_organization_id())
             ->whereIn('id', $receitaPorCliente->keys())
-            ->withCount(['calendarEvents as marcacoes_count' => function ($q) {
-                $q->where('store_id', current_store_id())
+            ->withCount(['calendarEvents as marcacoes_count' => function ($q) use ($storeIds) {
+                $q->whereIn('store_id', $storeIds)
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
             }])
@@ -1261,16 +1308,16 @@ class DashboardController extends Controller
 
         $monthlyGrowth = [];
         for ($i = 5; $i >= 0; $i--) {
-            $date = Carbon::now()->subMonths($i);
+            $date = StoreBusinessTime::nowForStore($storeId)->subMonths($i);
             $monthlyGrowth[] = [
                 'month' => $date->locale('pt_PT')->translatedFormat('M'),
-                'count' => Client::forStore(current_store_id())->whereMonth('created_at', $date->month)->whereYear('created_at', $date->year)->count(),
+                'count' => Client::forOrganization(current_organization_id())->whereMonth('created_at', $date->month)->whereYear('created_at', $date->year)->count(),
             ];
         }
 
-        $recentClients = Client::forStore(current_store_id())->orderBy('created_at', 'desc')->limit(10)->get();
+        $recentClients = Client::forOrganization(current_organization_id())->orderBy('created_at', 'desc')->limit(10)->get();
 
-        return view('dashboard.clientes', compact(
+        return view('dashboard.clientes', array_merge(compact(
             'totalClientes',
             'totalClientesComMarcacao',
             'clientesEsteMes',
@@ -1282,7 +1329,7 @@ class DashboardController extends Controller
             'intervaloMedioDias',
             'monthlyGrowth',
             'recentClients'
-        ));
+        ), $this->dashStoreViewData($filter)));
     }
 
     /**
@@ -1290,12 +1337,14 @@ class DashboardController extends Controller
      */
     private function receitaPorCliente()
     {
+        $storeIds = $this->dashboardStoreIds();
+
         return Sale::query()
-            ->where('store_id', current_store_id())
+            ->whereIn('store_id', $storeIds)
             ->where('status', Sale::STATUS_PAGO)
             ->whereNotNull('client_id')
-            ->whereHas('calendarEvent', function ($q) {
-                $q->where('store_id', current_store_id())
+            ->whereHas('calendarEvent', function ($q) use ($storeIds) {
+                $q->whereIn('store_id', $storeIds)
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', CalendarEvent::STATUS_COMPLETO);
             })
@@ -1312,7 +1361,7 @@ class DashboardController extends Controller
      */
     private function intervaloMedioEntreVisitas(): ?float
     {
-        $clientIds = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $clientIds = $this->calendarEventsQuery()->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereNotNull('client_id')
             ->selectRaw('client_id, count(*) as c')
@@ -1327,7 +1376,7 @@ class DashboardController extends Controller
         $somas = 0;
         $n = 0;
         foreach ($clientIds as $clientId) {
-            $datas = CalendarEvent::forStore(current_store_id())->where('client_id', $clientId)
+            $datas = $this->calendarEventsQuery()->where('client_id', $clientId)
                 ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                 ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
                 ->orderBy('start_at')
@@ -1359,13 +1408,17 @@ class DashboardController extends Controller
         if ($redirect = $this->redirectPrestadorFromAdminDashboard()) {
             return $redirect;
         }
-        $storeId = current_store_id();
+
+        $filter = $this->resolveDashboardStoreContext($request);
+        $storeIds = $filter['store_ids'];
+        $storeId = $this->primaryDashboardStoreId();
         $gluePeriod = (string) $request->get('glue_period', 'hoje');
+        // Cola de vagas: loja primária (agregação multi-loja não aplicável ao serviço actual).
         $glueSuggestionsData = $glueSuggestions->build($storeId, $gluePeriod);
 
-        $store = current_store()->get();
+        $store = Store::query()->find($storeId) ?? current_store()->get();
         $tz = $store->bookingTimezone();
-        $today = StoreBusinessTime::nowForStore(current_store_id())->startOfDay();
+        $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
         $year = (int) $request->input('year', $today->year);
         $month = (int) $request->input('month', $today->month);
         $year = max($this->ocupacaoMinYear($store), min($today->year, $year));
@@ -1384,9 +1437,9 @@ class DashboardController extends Controller
         $storeSchedule = $store->normalizedWeeklySchedule();
 
         $endOfToday = $today->copy()->endOfDay();
-        $capacityMinutesHoje = $this->ocupacaoCapacityMinutesForAgents($today, $endOfToday, $prestadorAgents, $storeSchedule, true);
-        $capacityMinutesMonth = $this->ocupacaoCapacityMinutesForAgents($startOfMonth, $endOfMonth, $prestadorAgents, $storeSchedule, true);
-        $capacityMinutesWeek = $this->ocupacaoCapacityMinutesForAgents($startOfWeek, $endOfWeek, $prestadorAgents, $storeSchedule, true);
+        $capacityMinutesHoje = $this->ocupacaoCapacityAcrossStores($today, $endOfToday, $prestadorAgents, true);
+        $capacityMinutesMonth = $this->ocupacaoCapacityAcrossStores($startOfMonth, $endOfMonth, $prestadorAgents, true);
+        $capacityMinutesWeek = $this->ocupacaoCapacityAcrossStores($startOfWeek, $endOfWeek, $prestadorAgents, true);
         $filledMinutesHoje = $this->ocupacaoFilledMinutesBetween($today, $endOfToday, $prestadorUserIds);
         $filledMinutesMonth = $this->ocupacaoFilledMinutesBetween($startOfMonth, $endOfMonth, $prestadorUserIds);
         $filledMinutesWeek = $this->ocupacaoFilledMinutesBetween($startOfWeek, $endOfWeek, $prestadorUserIds);
@@ -1430,8 +1483,8 @@ class DashboardController extends Controller
         }
 
         $duracaoMediaGeral = CalendarEventService::query()
-            ->whereHas('event', function ($q) use ($prestadorUserIds, $startOfMonthUtc, $endOfMonthUtc) {
-                $q->where('store_id', current_store_id())
+            ->whereHas('event', function ($q) use ($prestadorUserIds, $startOfMonthUtc, $endOfMonthUtc, $storeIds) {
+                $q->whereIn('store_id', $storeIds)
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
                     ->whereBetween('start_at', [$startOfMonthUtc, $endOfMonthUtc])
@@ -1443,15 +1496,14 @@ class DashboardController extends Controller
             ->avg('total_min');
 
         $duracaoMediaPorServico = CalendarEventService::query()
-            ->whereHas('event', function ($q) use ($prestadorUserIds, $startOfMonthUtc, $endOfMonthUtc) {
-                $q->where('store_id', current_store_id())
+            ->whereHas('event', function ($q) use ($prestadorUserIds, $startOfMonthUtc, $endOfMonthUtc, $storeIds) {
+                $q->whereIn('store_id', $storeIds)
                     ->where('event_type', CalendarEvent::TYPE_MARCACAO)
                     ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
                     ->whereBetween('start_at', [$startOfMonthUtc, $endOfMonthUtc])
                     ->whereIn('user_id', $prestadorUserIds);
             })
             ->join('services', 'calendar_event_services.service_id', '=', 'services.id')
-            ->where('services.store_id', current_store_id())
             ->selectRaw('services.id, services.name as service_name, count(*) as qtd, avg(calendar_event_services.duration) as media_min')
             ->groupBy('services.id', 'services.name')
             ->orderByDesc('qtd')
@@ -1496,7 +1548,7 @@ class DashboardController extends Controller
         $storeHoursLabel = $store->hoursDisplayLabel();
         $ocupacaoTimezoneLabel = $tz;
 
-        return view('dashboard.ocupacao', compact(
+        return view('dashboard.ocupacao', array_merge(compact(
             'taxaOcupacaoHoje',
             'taxaOcupacaoMes',
             'taxaOcupacaoSemana',
@@ -1524,7 +1576,7 @@ class DashboardController extends Controller
             'ocupacaoTimezoneLabel',
             'glueSuggestionsData',
             'gluePeriod',
-        ));
+        ), $this->dashStoreViewData($filter)));
     }
 
     /**
@@ -1573,12 +1625,12 @@ class DashboardController extends Controller
 
     private function ocupacaoMinYear(Store $store): int
     {
-        $earliest = CalendarEvent::forStore(current_store_id())
+        $earliest = $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->min('start_at');
 
         if ($earliest === null) {
-            return (int) StoreBusinessTime::nowForStore(current_store_id())->year;
+            return (int) StoreBusinessTime::nowForStore($this->primaryDashboardStoreId())->year;
         }
 
         return max(2000, (int) Carbon::parse($earliest)->timezone($store->bookingTimezone())->year);
@@ -1598,10 +1650,12 @@ class DashboardController extends Controller
      */
     private function ocupacaoPrestadorAgents(): Collection
     {
-        return Agent::forStore(current_store_id())
+        return Agent::query()
+            ->whereIn('store_id', $this->dashboardStoreIds())
             ->where('status', Agent::STATUS_ACTIVE)
             ->whereHas('user', fn ($q) => $q->whereIn('role', User::serviceProviderRoles()))
-            ->get(['id', 'user_id', 'name', 'weekly_schedule']);
+            ->with('store')
+            ->get(['id', 'user_id', 'store_id', 'name', 'weekly_schedule']);
     }
 
     /**
@@ -1688,7 +1742,7 @@ class DashboardController extends Controller
 
     private function ocupacaoMarcacoesBase(Collection $prestadorUserIds)
     {
-        $query = CalendarEvent::forStore(current_store_id())
+        $query = $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO);
 
@@ -1707,7 +1761,7 @@ class DashboardController extends Controller
 
         [$startUtc, $endUtc] = $this->ocupacaoUtcQueryBounds($startLocal, $endLocal);
 
-        $eventIds = CalendarEvent::forStore(current_store_id())->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        $eventIds = $this->calendarEventsQuery()->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereIn('user_id', $prestadorUserIds)
             ->whereBetween('start_at', [$startUtc, $endUtc])
@@ -1777,7 +1831,7 @@ class DashboardController extends Controller
             $d->addDay();
         }
 
-        $events = CalendarEvent::forStore(current_store_id())
+        $events = $this->calendarEventsQuery()
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereIn('user_id', $prestadorUserIds)
@@ -1928,7 +1982,7 @@ class DashboardController extends Controller
 
         $filledByUser = CalendarEventService::query()
             ->join('calendar_events', 'calendar_event_services.calendar_event_id', '=', 'calendar_events.id')
-            ->where('calendar_events.store_id', current_store_id())
+            ->whereIn('calendar_events.store_id', $this->dashboardStoreIds())
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('calendar_events.status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereBetween('calendar_events.start_at', [$startUtc, $endUtc])
@@ -1943,12 +1997,15 @@ class DashboardController extends Controller
         return $prestadorUserIds->map(function ($userId) use ($filledByUser, $agentsByUserId, $storeSchedule, $startLocal, $endLocal, $users) {
             $userId = (int) $userId;
             $agent = $agentsByUserId->get($userId);
+            $agentSchedule = $agent instanceof Agent
+                ? ($agent->store?->normalizedWeeklySchedule() ?? $storeSchedule)
+                : $storeSchedule;
             $capacityMinutes = $agent instanceof Agent
                 ? $this->ocupacaoCapacityMinutesForAgents(
                     $startLocal,
                     $endLocal,
                     collect([$agent]),
-                    $storeSchedule,
+                    $agentSchedule,
                     true
                 )
                 : 0;
@@ -2108,5 +2165,191 @@ class DashboardController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * @return array{store_id: ?int, scope: string, store_ids: list<int>}
+     */
+    private function resolveDashboardStoreContext(Request $request): array
+    {
+        $user = auth()->user();
+        $filter = StoreContextPreference::resolveFilter($user, $request, true);
+        if ($filter['store_id'] !== null) {
+            StoreContextPreference::persist($request, $filter['store_id']);
+            $store = Store::query()->find($filter['store_id']);
+            if ($store) {
+                app(CurrentStore::class)->set($store);
+            }
+        } else {
+            StoreContextPreference::persistAll($request);
+        }
+        $this->dashboardStoreIds = $filter['store_ids'];
+
+        return $filter;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function dashboardStoreIds(): array
+    {
+        return $this->dashboardStoreIds ?? [(int) current_store_id()];
+    }
+
+    private function primaryDashboardStoreId(): int
+    {
+        return (int) ($this->dashboardStoreIds()[0] ?? current_store_id());
+    }
+
+    /**
+     * @param  list<int>|null  $storeIds
+     */
+    private function calendarEventsQuery(?array $storeIds = null): Builder
+    {
+        return CalendarEvent::query()->whereIn('store_id', $storeIds ?? $this->dashboardStoreIds());
+    }
+
+    /**
+     * @param  array{store_id: ?int, scope: string, store_ids: list<int>}  $filter
+     * @return array{dashStoreFilter: array, dashStoreSelected: int|string}
+     */
+    private function dashStoreViewData(array $filter): array
+    {
+        return [
+            'dashStoreFilter' => $filter,
+            'dashStoreSelected' => $filter['store_id'] ?? StoreContextPreference::SCOPE_ALL,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resumoOpsKpisAcrossStores(PrestadorDashboardService $prestadorDashboard, ?User $user): array
+    {
+        $storeIds = $this->dashboardStoreIds();
+        $sumKeys = ['marcacoesHoje', 'faltasHoje', 'marcacoesEstaSemana', 'marcacoesEsteMes'];
+        $merged = null;
+
+        foreach ($storeIds as $sid) {
+            $part = $prestadorDashboard->buildForStore((int) $sid, $user);
+            if ($merged === null) {
+                $merged = $part;
+
+                continue;
+            }
+            foreach ($sumKeys as $key) {
+                $merged[$key] = (int) ($merged[$key] ?? 0) + (int) ($part[$key] ?? 0);
+            }
+        }
+
+        return $merged ?? $prestadorDashboard->buildForStore($this->primaryDashboardStoreId(), $user);
+    }
+
+    /**
+     * @param  Collection<int, Agent>  $agents
+     */
+    private function ocupacaoCapacityAcrossStores(
+        Carbon $start,
+        Carbon $end,
+        Collection $agents,
+        bool $subtractLunch = false,
+    ): int {
+        if ($agents->isEmpty()) {
+            return 0;
+        }
+
+        $total = 0;
+        $byStore = $agents->groupBy(fn (Agent $a): int => (int) $a->store_id);
+        foreach ($byStore as $sid => $storeAgents) {
+            $store = $storeAgents->first()?->store
+                ?? Store::query()->find((int) $sid);
+            if (! $store instanceof Store) {
+                continue;
+            }
+            $total += $this->ocupacaoCapacityMinutesForAgents(
+                $start,
+                $end,
+                $storeAgents,
+                $store->normalizedWeeklySchedule(),
+                $subtractLunch
+            );
+        }
+
+        return $total;
+    }
+
+    /**
+     * @param  list<int>  $storeIds
+     * @return array<string, mixed>
+     */
+    private function mergeFinancialDashboardBuilds(array $storeIds, int $year, int $month): array
+    {
+        $builds = [];
+        foreach ($storeIds as $sid) {
+            $store = Store::query()->find((int) $sid);
+            if ($store instanceof Store) {
+                app(CurrentStore::class)->set($store);
+            }
+            $builds[] = $this->financialDashboard->build((int) $sid, $year, $month);
+        }
+
+        $primaryStore = Store::query()->find($this->primaryDashboardStoreId());
+        if ($primaryStore instanceof Store) {
+            app(CurrentStore::class)->set($primaryStore);
+        }
+
+        if ($builds === []) {
+            return $this->financialDashboard->build($this->primaryDashboardStoreId(), $year, $month);
+        }
+
+        $merged = $builds[0];
+        $sumKpiKeys = [
+            'receita', 'receita_anterior', 'receita_semana', 'receita_semana_anterior',
+            'num_faturas', 'clientes_unicos', 'dias_com_vendas', 'taxas', 'descontos',
+            'comissoes_estimadas', 'margem_estimada',
+        ];
+
+        for ($i = 1; $i < count($builds); $i++) {
+            $b = $builds[$i];
+            foreach ($sumKpiKeys as $key) {
+                $merged['kpis'][$key] = (float) ($merged['kpis'][$key] ?? 0) + (float) ($b['kpis'][$key] ?? 0);
+            }
+
+            $seriesA = $merged['receita_diaria'] ?? null;
+            $seriesB = $b['receita_diaria'] ?? null;
+            if (is_array($seriesA) && is_array($seriesB) && count($seriesA) === count($seriesB)) {
+                foreach ($seriesA as $idx => $row) {
+                    $merged['receita_diaria'][$idx]['receita'] = round(
+                        (float) ($row['receita'] ?? 0) + (float) ($seriesB[$idx]['receita'] ?? 0),
+                        2
+                    );
+                }
+            }
+        }
+
+        $k = &$merged['kpis'];
+        $k['receita'] = round((float) $k['receita'], 2);
+        $k['receita_anterior'] = round((float) $k['receita_anterior'], 2);
+        $k['receita_semana'] = round((float) $k['receita_semana'], 2);
+        $k['receita_semana_anterior'] = round((float) $k['receita_semana_anterior'], 2);
+        $k['taxas'] = round((float) $k['taxas'], 2);
+        $k['descontos'] = round((float) $k['descontos'], 2);
+        $k['comissoes_estimadas'] = round((float) $k['comissoes_estimadas'], 2);
+        $k['margem_estimada'] = round((float) $k['receita'] - (float) $k['comissoes_estimadas'], 2);
+        $k['ticket_medio'] = ((int) $k['num_faturas'] > 0)
+            ? round((float) $k['receita'] / (int) $k['num_faturas'], 2)
+            : null;
+        $k['receita_media_dia'] = ((int) $k['dias_com_vendas'] > 0)
+            ? round((float) $k['receita'] / (int) $k['dias_com_vendas'], 2)
+            : null;
+        $k['variacao_receita'] = ((float) $k['receita_anterior'] > 0)
+            ? round((((float) $k['receita'] - (float) $k['receita_anterior']) / (float) $k['receita_anterior']) * 100, 1)
+            : (((float) $k['receita'] > 0) ? 100.0 : 0.0);
+        $k['variacao_receita_semana'] = ((float) $k['receita_semana_anterior'] > 0)
+            ? round((((float) $k['receita_semana'] - (float) $k['receita_semana_anterior']) / (float) $k['receita_semana_anterior']) * 100, 1)
+            : (((float) $k['receita_semana'] > 0) ? 100.0 : 0.0);
+
+        // Rankings / destaques: loja primária (primeira) — agregação multi-loja não ordena bem.
+        return $merged;
     }
 }

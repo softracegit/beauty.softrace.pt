@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class Local extends Model
 {
@@ -20,11 +21,20 @@ class Local extends Model
 
     public $timestamps = false;
 
+    private static function tableReady(): bool
+    {
+        return Schema::hasTable('local');
+    }
+
     /**
      * Get all unique districts
      */
     public static function getDistricts()
     {
+        if (! static::tableReady()) {
+            return collect();
+        }
+
         return static::select('id_district', 'district')
             ->whereNotNull('district')
             ->distinct()
@@ -43,6 +53,10 @@ class Local extends Model
      */
     public static function getCitiesByDistrict($districtId)
     {
+        if (! static::tableReady()) {
+            return collect();
+        }
+
         return static::select('id_city', 'city')
             ->where('id_district', $districtId)
             ->whereNotNull('city')
@@ -62,6 +76,10 @@ class Local extends Model
      */
     public static function getParishesByCity($cityId)
     {
+        if (! static::tableReady()) {
+            return collect();
+        }
+
         return static::select('id_parish', 'parish')
             ->where('id_city', $cityId)
             ->whereNotNull('parish')
@@ -81,6 +99,10 @@ class Local extends Model
      */
     public static function getDistrictByName($districtName)
     {
+        if (! static::tableReady()) {
+            return null;
+        }
+
         return static::where('district', $districtName)
             ->first();
     }
@@ -90,6 +112,10 @@ class Local extends Model
      */
     public static function getCityByName($cityName, $districtId = null)
     {
+        if (! static::tableReady()) {
+            return null;
+        }
+
         $query = static::where('city', $cityName);
         
         if ($districtId) {
@@ -104,6 +130,10 @@ class Local extends Model
      */
     public static function getParishByName($parishName, $cityId = null)
     {
+        if (! static::tableReady()) {
+            return null;
+        }
+
         $query = static::where('parish', $parishName);
         
         if ($cityId) {
@@ -118,6 +148,10 @@ class Local extends Model
      */
     public static function getDistrictNameById(int $id): ?string
     {
+        if (! static::tableReady()) {
+            return null;
+        }
+
         $local = static::where('id_district', $id)->first();
         return $local ? $local->district : null;
     }
@@ -127,6 +161,10 @@ class Local extends Model
      */
     public static function getCityNameById(int $id): ?string
     {
+        if (! static::tableReady()) {
+            return null;
+        }
+
         $local = static::where('id_city', $id)->first();
         return $local ? $local->city : null;
     }
@@ -136,6 +174,10 @@ class Local extends Model
      */
     public static function getParishNameById(int $id): ?string
     {
+        if (! static::tableReady()) {
+            return null;
+        }
+
         $local = static::where('id_parish', $id)->first();
         return $local ? $local->parish : null;
     }

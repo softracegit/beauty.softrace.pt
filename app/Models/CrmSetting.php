@@ -57,10 +57,33 @@ class CrmSetting extends Model
     public const BOOKING_ANY_STAFF_RULE_D = 'agenda_order_then_month_load';
 
     protected $fillable = [
+        'organization_id',
         'store_id',
         'key',
+        'setting_scope',
         'value',
     ];
+
+    /**
+     * Chaves partilhadas por toda a organização (não por loja).
+     *
+     * @return list<string>
+     */
+    public static function organizationScopedKeys(): array
+    {
+        return [
+            self::KEY_PAYMENT_METHODS,
+            self::KEY_STRIPE_ENABLED,
+            self::KEY_STRIPE_PUBLISHABLE_KEY,
+            self::KEY_STRIPE_SECRET_KEY,
+            self::KEY_STRIPE_WEBHOOK_SECRET,
+        ];
+    }
+
+    public static function isOrganizationScopedKey(string $key): bool
+    {
+        return in_array($key, self::organizationScopedKeys(), true);
+    }
 
     /**
      * @return BelongsTo<Store, $this>
@@ -68,6 +91,14 @@ class CrmSetting extends Model
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);
+    }
+
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
     }
 
     /**
@@ -87,10 +118,40 @@ class CrmSetting extends Model
         return Store::defaultPublicBookingStoreId();
     }
 
-    public static function getBool(string $key, bool $default = false, ?int $storeId = null): bool
+    /**
+     * Resolve organização a partir de uma loja de contexto (ou sessão).
+     */
+    public static function resolveOrganizationId(?int $storeId = null): int
     {
         $sid = self::resolveStoreId($storeId);
-        $raw = static::query()->where('store_id', $sid)->where('key', $key)->value('value');
+        $orgId = Store::query()->whereKey($sid)->value('organization_id');
+        if ($orgId) {
+            return (int) $orgId;
+        }
+
+        if (function_exists('current_organization_id')) {
+            $fromHelper = (int) current_organization_id();
+            if ($fromHelper > 0) {
+                return $fromHelper;
+            }
+        }
+
+        return 0;
+    }
+
+    public static function storeSettingScope(int $storeId, string $key): string
+    {
+        return 's:'.$storeId.':'.$key;
+    }
+
+    public static function organizationSettingScope(int $organizationId, string $key): string
+    {
+        return 'o:'.$organizationId.':'.$key;
+    }
+
+    public static function getBool(string $key, bool $default = false, ?int $storeId = null): bool
+    {
+        $raw = self::getRawValue($key, $storeId);
         if ($raw === null || $raw === '') {
             return $default;
         }
@@ -101,11 +162,7 @@ class CrmSetting extends Model
 
     public static function setBool(string $key, bool $value, ?int $storeId = null): void
     {
-        $sid = self::resolveStoreId($storeId);
-        static::query()->updateOrCreate(
-            ['store_id' => $sid, 'key' => $key],
-            ['value' => $value ? '1' : '0'],
-        );
+        self::setRawValue($key, $value ? '1' : '0', $storeId);
     }
 
     public static function onlineBookingPaymentRequired(?int $storeId = null): bool
@@ -154,8 +211,7 @@ class CrmSetting extends Model
 
     public static function getInt(string $key, int $default = 0, ?int $storeId = null): int
     {
-        $sid = self::resolveStoreId($storeId);
-        $raw = static::query()->where('store_id', $sid)->where('key', $key)->value('value');
+        $raw = self::getRawValue($key, $storeId);
         if ($raw === null || trim((string) $raw) === '') {
             return $default;
         }
@@ -168,17 +224,12 @@ class CrmSetting extends Model
 
     public static function setInt(string $key, int $value, ?int $storeId = null): void
     {
-        $sid = self::resolveStoreId($storeId);
-        static::query()->updateOrCreate(
-            ['store_id' => $sid, 'key' => $key],
-            ['value' => (string) $value],
-        );
+        self::setRawValue($key, (string) $value, $storeId);
     }
 
     public static function getString(string $key, string $default = '', ?int $storeId = null): string
     {
-        $sid = self::resolveStoreId($storeId);
-        $raw = static::query()->where('store_id', $sid)->where('key', $key)->value('value');
+        $raw = self::getRawValue($key, $storeId);
         if ($raw === null) {
             return $default;
         }
@@ -190,10 +241,124 @@ class CrmSetting extends Model
 
     public static function setString(string $key, string $value, ?int $storeId = null): void
     {
+        self::setRawValue($key, trim($value), $storeId);
+    }
+
+    private static function getRawValue(string $key, ?int $storeId = null): mixed
+    {
+        $hasScope = \Illuminate\Support\Facades\Schema::hasColumn('crm_settings', 'setting_scope');
+
+        if (self::isOrganizationScopedKey($key)) {
+            $orgId = self::resolveOrganizationId($storeId);
+            if ($orgId <= 0) {
+                return null;
+            }
+
+            if ($hasScope) {
+                $orgValue = static::query()
+                    ->where('setting_scope', self::organizationSettingScope($orgId, $key))
+                    ->value('value');
+                if ($orgValue !== null) {
+                    return $orgValue;
+                }
+            }
+
+            // Compat: dados antigos ainda por loja (pré-migração).
+            $storeIds = Store::query()
+                ->where('organization_id', $orgId)
+                ->orderBy('id')
+                ->pluck('id');
+            if ($storeIds->isEmpty()) {
+                return null;
+            }
+
+            return static::query()
+                ->whereIn('store_id', $storeIds)
+                ->where('key', $key)
+                ->whereNotNull('value')
+                ->where('value', '!=', '')
+                ->orderBy('id')
+                ->value('value')
+                ?? static::query()
+                    ->whereIn('store_id', $storeIds)
+                    ->where('key', $key)
+                    ->orderBy('id')
+                    ->value('value');
+        }
+
         $sid = self::resolveStoreId($storeId);
+        if ($hasScope) {
+            $scoped = static::query()
+                ->where('setting_scope', self::storeSettingScope($sid, $key))
+                ->value('value');
+            if ($scoped !== null) {
+                return $scoped;
+            }
+        }
+
+        return static::query()->where('store_id', $sid)->where('key', $key)->value('value');
+    }
+
+    private static function setRawValue(string $key, string $value, ?int $storeId = null): void
+    {
+        $hasScope = \Illuminate\Support\Facades\Schema::hasColumn('crm_settings', 'setting_scope');
+
+        if (self::isOrganizationScopedKey($key)) {
+            $orgId = self::resolveOrganizationId($storeId);
+            if ($orgId <= 0) {
+                throw new \RuntimeException('Organização em falta para gravar definição de pagamentos.');
+            }
+
+            if ($hasScope) {
+                $scope = self::organizationSettingScope($orgId, $key);
+                static::query()->updateOrCreate(
+                    ['setting_scope' => $scope],
+                    [
+                        'organization_id' => $orgId,
+                        'store_id' => null,
+                        'key' => $key,
+                        'value' => $value,
+                    ],
+                );
+            } else {
+                // Pré-migração: grava na loja de contexto (leitura já agrega por org).
+                $sid = self::resolveStoreId($storeId);
+                static::query()->updateOrCreate(
+                    ['store_id' => $sid, 'key' => $key],
+                    ['value' => $value],
+                );
+            }
+
+            $storeIds = Store::query()->where('organization_id', $orgId)->pluck('id');
+            if ($hasScope && $storeIds->isNotEmpty()) {
+                static::query()
+                    ->whereIn('store_id', $storeIds)
+                    ->where('key', $key)
+                    ->delete();
+            }
+
+            return;
+        }
+
+        $sid = self::resolveStoreId($storeId);
+        if ($hasScope) {
+            $scope = self::storeSettingScope($sid, $key);
+            static::query()->updateOrCreate(
+                ['setting_scope' => $scope],
+                [
+                    'organization_id' => null,
+                    'store_id' => $sid,
+                    'key' => $key,
+                    'value' => $value,
+                ],
+            );
+
+            return;
+        }
+
         static::query()->updateOrCreate(
             ['store_id' => $sid, 'key' => $key],
-            ['value' => trim($value)],
+            ['value' => $value],
         );
     }
 
@@ -330,12 +495,17 @@ class CrmSetting extends Model
 
     public static function emailUseBusinessBranding(?int $storeId = null): bool
     {
-        return self::getBool(self::KEY_EMAIL_USE_BUSINESS_BRANDING, false, $storeId);
+        return self::getInheritableBool(self::KEY_EMAIL_USE_BUSINESS_BRANDING, false, $storeId);
     }
 
     public static function setEmailUseBusinessBranding(bool $enabled, ?int $storeId = null): void
     {
         self::setBool(self::KEY_EMAIL_USE_BUSINESS_BRANDING, $enabled, $storeId);
+    }
+
+    public static function setOrganizationEmailUseBusinessBranding(bool $enabled, int $organizationId): void
+    {
+        self::setOrganizationRawValue(self::KEY_EMAIL_USE_BUSINESS_BRANDING, $enabled ? '1' : '0', $organizationId);
     }
 
     public static function personalTimeLimitStoreHours(?int $storeId = null): bool
@@ -365,12 +535,88 @@ class CrmSetting extends Model
 
     public static function privacyLockIdleMinutes(?int $storeId = null): int
     {
-        return max(0, min(240, self::getInt(self::KEY_PRIVACY_LOCK_IDLE_MINUTES, 5, $storeId)));
+        return max(0, min(240, self::getInheritableInt(self::KEY_PRIVACY_LOCK_IDLE_MINUTES, 5, $storeId)));
     }
 
     public static function setPrivacyLockIdleMinutes(int $minutes, ?int $storeId = null): void
     {
         $clamped = max(0, min(240, $minutes));
         self::setInt(self::KEY_PRIVACY_LOCK_IDLE_MINUTES, $clamped, $storeId);
+    }
+
+    public static function setOrganizationPrivacyLockIdleMinutes(int $minutes, int $organizationId): void
+    {
+        $clamped = max(0, min(240, $minutes));
+        self::setOrganizationRawValue(self::KEY_PRIVACY_LOCK_IDLE_MINUTES, (string) $clamped, $organizationId);
+    }
+
+    public static function storeHasSettingOverride(int $storeId, string $key): bool
+    {
+        return static::query()
+            ->where('setting_scope', self::storeSettingScope($storeId, $key))
+            ->exists();
+    }
+
+    public static function clearStoreSettingOverride(int $storeId, string $key): void
+    {
+        static::query()
+            ->where('setting_scope', self::storeSettingScope($storeId, $key))
+            ->delete();
+    }
+
+    private static function getInheritableBool(string $key, bool $default, ?int $storeId = null): bool
+    {
+        $sid = self::resolveStoreId($storeId);
+        if (self::storeHasSettingOverride($sid, $key)) {
+            return self::getBool($key, $default, $sid);
+        }
+
+        $orgId = self::resolveOrganizationId($sid);
+        if ($orgId > 0) {
+            $raw = static::query()
+                ->where('setting_scope', self::organizationSettingScope($orgId, $key))
+                ->value('value');
+            if ($raw !== null && $raw !== '') {
+                $s = strtolower(trim((string) $raw));
+
+                return in_array($s, ['1', 'true', 'yes', 'on'], true);
+            }
+        }
+
+        return $default;
+    }
+
+    private static function getInheritableInt(string $key, int $default, ?int $storeId = null): int
+    {
+        $sid = self::resolveStoreId($storeId);
+        if (self::storeHasSettingOverride($sid, $key)) {
+            return self::getInt($key, $default, $sid);
+        }
+
+        $orgId = self::resolveOrganizationId($sid);
+        if ($orgId > 0) {
+            $raw = static::query()
+                ->where('setting_scope', self::organizationSettingScope($orgId, $key))
+                ->value('value');
+            if ($raw !== null && trim((string) $raw) !== '' && is_numeric($raw)) {
+                return (int) $raw;
+            }
+        }
+
+        return $default;
+    }
+
+    private static function setOrganizationRawValue(string $key, string $value, int $organizationId): void
+    {
+        $scope = self::organizationSettingScope($organizationId, $key);
+        static::query()->updateOrCreate(
+            ['setting_scope' => $scope],
+            [
+                'organization_id' => $organizationId,
+                'store_id' => null,
+                'key' => $key,
+                'value' => $value,
+            ],
+        );
     }
 }

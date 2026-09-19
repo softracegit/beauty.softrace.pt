@@ -22,11 +22,6 @@
           @error('slug')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
         <div class="col-md-6">
-          <label class="form-label">Fuso horário</label>
-          <input type="text" name="timezone" value="{{ old('timezone', $store->timezone) }}" class="form-control @error('timezone') is-invalid @enderror">
-          @error('timezone')<div class="invalid-feedback">{{ $message }}</div>@enderror
-        </div>
-        <div class="col-md-6">
           <label class="form-label">Telefone</label>
           <input type="text" name="phone" value="{{ old('phone', $store->phone) }}" class="form-control @error('phone') is-invalid @enderror">
           @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror

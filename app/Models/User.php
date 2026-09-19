@@ -165,26 +165,30 @@ class User extends Authenticatable
     }
 
     /** Membros de equipa com ficha de agente activa (opcionalmente filtrados por loja). */
-    public function scopeActiveStaff(Builder $query, ?int $storeId = null): Builder
+    public function scopeActiveStaff(Builder $query, int|array|null $storeId = null): Builder
     {
         return $query
             ->where('role', '!=', self::ROLE_CLIENTE)
             ->whereHas('agent', function (Builder $agentQuery) use ($storeId) {
                 $agentQuery->where('status', Agent::STATUS_ACTIVE);
-                if ($storeId !== null) {
+                if (is_array($storeId)) {
+                    $agentQuery->whereIn('store_id', $storeId);
+                } elseif ($storeId !== null) {
                     $agentQuery->where('store_id', $storeId);
                 }
             });
     }
 
     /** Prestadores de serviços activos (filtros de técnico em relatórios e catálogo). */
-    public function scopeActiveServiceProviders(Builder $query, ?int $storeId = null): Builder
+    public function scopeActiveServiceProviders(Builder $query, int|array|null $storeId = null): Builder
     {
         return $query
             ->whereIn('role', self::serviceProviderRoles())
             ->whereHas('agent', function (Builder $agentQuery) use ($storeId) {
                 $agentQuery->where('status', Agent::STATUS_ACTIVE);
-                if ($storeId !== null) {
+                if (is_array($storeId)) {
+                    $agentQuery->whereIn('store_id', $storeId);
+                } elseif ($storeId !== null) {
                     $agentQuery->where('store_id', $storeId);
                 }
             });
@@ -456,6 +460,15 @@ class User extends Authenticatable
         return ! $this->isPrestador();
     }
 
+    public function canAccessLojas(): bool
+    {
+        if ($this->isCrmPrivacyLocked()) {
+            return false;
+        }
+
+        return $this->isAdmin() && $this->organization_id !== null;
+    }
+
     public function canAccessEquipa(): bool
     {
         if ($this->isCrmPrivacyLocked()) {
@@ -532,6 +545,7 @@ class User extends Authenticatable
                 'definicoes.',
                 'ai.',
                 'activity.',
+                'lojas.',
                 'equipa.',
                 'services.',
                 'categories.',

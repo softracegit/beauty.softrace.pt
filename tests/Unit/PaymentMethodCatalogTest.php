@@ -2,13 +2,16 @@
 
 namespace Tests\Unit;
 
+use App\Models\CrmSetting;
 use App\Models\Sale;
 use App\Support\PaymentMethodCatalog;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class PaymentMethodCatalogTest extends TestCase
 {
-    public function test_catalog_defines_stripe_and_manual_mbway(): void
+    #[Test]
+    public function catalog_defines_stripe_and_manual_mbway(): void
     {
         $defs = PaymentMethodCatalog::definitions();
 
@@ -20,24 +23,16 @@ class PaymentMethodCatalogTest extends TestCase
         $this->assertSame('MBWay (manual)', $defs[Sale::PAYMENT_MBWAY_MANUAL]['label']);
     }
 
-    public function test_enabled_for_channel_excludes_stripe_methods_when_not_ready(): void
+    #[Test]
+    public function stripe_and_payment_methods_are_organization_scoped(): void
     {
-        try {
-            $storeId = 1;
-            if (\App\Support\StripeCredentials::isReady($storeId)) {
-                $this->markTestSkipped('Stripe está ativo nesta loja de teste.');
-            }
+        $this->assertTrue(CrmSetting::isOrganizationScopedKey(CrmSetting::KEY_PAYMENT_METHODS));
+        $this->assertTrue(CrmSetting::isOrganizationScopedKey(CrmSetting::KEY_STRIPE_ENABLED));
+        $this->assertTrue(CrmSetting::isOrganizationScopedKey(CrmSetting::KEY_STRIPE_SECRET_KEY));
+        $this->assertFalse(CrmSetting::isOrganizationScopedKey(CrmSetting::KEY_POS_GORJETA_ENABLED));
+        $this->assertFalse(CrmSetting::isOrganizationScopedKey(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED));
 
-            $codes = array_column(
-                PaymentMethodCatalog::enabledForChannel(PaymentMethodCatalog::CHANNEL_AGENDA, $storeId),
-                'code',
-            );
-        } catch (\Throwable) {
-            $this->markTestSkipped('Base de dados de teste sem crm_settings.');
-        }
-
-        $this->assertNotContains(Sale::PAYMENT_CARTAO, $codes);
-        $this->assertNotContains(Sale::PAYMENT_MBWAY, $codes);
-        $this->assertNotContains(Sale::PAYMENT_MULTIBANCO, $codes);
+        $this->assertSame('o:9:payments.methods', CrmSetting::organizationSettingScope(9, CrmSetting::KEY_PAYMENT_METHODS));
+        $this->assertSame('s:3:pos.gorjeta_enabled', CrmSetting::storeSettingScope(3, CrmSetting::KEY_POS_GORJETA_ENABLED));
     }
 }

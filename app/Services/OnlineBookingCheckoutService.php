@@ -200,9 +200,46 @@ class OnlineBookingCheckoutService
     }
 
     /**
+     * Loja do contexto de marcação online (URL / CurrentStore). Já não deriva de services.store_id.
+     *
      * @param  list<array<string, mixed>>  $servicesInput
      */
     public function storeIdFromBookingServices(array $servicesInput): int
+    {
+        $storeId = app(CurrentStore::class)->tryId();
+        if ($storeId !== null) {
+            return (int) $storeId;
+        }
+
+        return Store::defaultPublicBookingStoreId();
+    }
+
+    /**
+     * Garante que os serviços do pedido pertencem à organização da loja do URL
+     * e estão activos nessa loja (agente com agent_service).
+     */
+    public function assertPublicBookingServicesBelongToUrlStore(array $servicesInput, ?Request $request = null): void
+    {
+        $request ??= request();
+        $store = $request->route('store');
+        if (! $store instanceof Store) {
+            $storeId = app(CurrentStore::class)->tryId();
+            if ($storeId === null) {
+                return;
+            }
+            $store = Store::query()->find($storeId);
+            if (! $store instanceof Store) {
+                return;
+            }
+        }
+
+        $this->assertBookingServicesActiveInStore($servicesInput, $store);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $servicesInput
+     */
+    public function assertBookingServicesActiveInStore(array $servicesInput, Store $store): void
     {
         $ids = [];
         foreach ($servicesInput as $row) {
@@ -216,36 +253,17 @@ class OnlineBookingCheckoutService
         }
         $ids = array_values(array_unique($ids));
         if ($ids === []) {
-            return Store::defaultPublicBookingStoreId();
-        }
-
-        $storeIds = Service::query()->whereIn('id', $ids)->pluck('store_id')->unique()->values();
-        if ($storeIds->isEmpty()) {
-            return Store::defaultPublicBookingStoreId();
-        }
-        if ($storeIds->count() > 1) {
-            throw ValidationException::withMessages([
-                'services' => [__('booking.validation.services_different_stores')],
-            ]);
-        }
-
-        return (int) $storeIds->first();
-    }
-
-    /**
-     * Garante que os serviços do pedido pertencem à loja do segmento /booking/{store}.
-     */
-    public function assertPublicBookingServicesBelongToUrlStore(array $servicesInput, ?Request $request = null): void
-    {
-        $request ??= request();
-        $store = $request->route('store');
-        if (! $store instanceof Store) {
             return;
         }
 
-        $expected = (int) $store->id;
-        $fromServices = $this->storeIdFromBookingServices($servicesInput);
-        if ($fromServices !== $expected) {
+        $organizationId = (int) $store->organization_id;
+        $validCount = Service::query()
+            ->whereIn('id', $ids)
+            ->forOrganization($organizationId)
+            ->activeInStore((int) $store->id)
+            ->count();
+
+        if ($validCount !== count($ids)) {
             throw ValidationException::withMessages([
                 'services' => [__('booking.validation.services_wrong_store')],
             ]);
@@ -286,7 +304,7 @@ class OnlineBookingCheckoutService
             (float) array_sum(array_map(fn (array $line): float => $this->bookingLineTotalPrice($line), $bookingLines)),
             2,
         );
-        $storeId = (int) ($bookingLines[0]['service']->store_id ?? 0);
+        $storeId = $this->storeIdFromBookingServices($validated['services'] ?? []);
         $catalogFees = ApplicableFees::forServiceIds(
             array_map(fn (array $line): int => (int) $line['service']->id, $bookingLines),
             $storeId > 0 ? $storeId : null,
@@ -364,7 +382,7 @@ class OnlineBookingCheckoutService
             ]);
         }
 
-        $storeId = (int) $bookingLines[0]['service']->store_id;
+        $storeId = $this->storeIdFromBookingServices($validated['services'] ?? []);
 
         $startLocal = Carbon::createFromFormat('Y-m-d H:i', $validated['date'].' '.$validated['time'], $tz);
         $endLocal = $startLocal->copy()->addMinutes($totalDuration);
@@ -461,6 +479,14 @@ class OnlineBookingCheckoutService
             throw ValidationException::withMessages([
                 'services' => [__('booking.validation.services_invalid')],
             ]);
+        }
+
+        $store = app(CurrentStore::class)->tryGet();
+        if ($store instanceof Store) {
+            $this->assertBookingServicesActiveInStore(
+                array_map(fn (int $id): array => ['id' => $id], $serviceIds),
+                $store,
+            );
         }
 
         foreach ($services as $service) {
@@ -624,6 +650,7 @@ class OnlineBookingCheckoutService
         $this->assertGuestBookingAllowedBeforePayment(
             $validated['email'],
             $validated['phone'],
+            (int) ($validated['store_id'] ?? app(\App\Support\CurrentStore::class)->id()),
         );
     }
 
@@ -975,7 +1002,7 @@ class OnlineBookingCheckoutService
     /**
      * Validação pré-pagamento para visitantes (sem criar ficha nem utilizador).
      */
-    private function assertGuestBookingAllowedBeforePayment(string $email, string $phoneRaw): void
+    private function assertGuestBookingAllowedBeforePayment(string $email, string $phoneRaw, int $storeId): void
     {
         $phoneE164 = PhoneDisplay::toE164(trim($phoneRaw));
         if ($phoneE164 === null || $phoneE164 === '') {
@@ -991,8 +1018,12 @@ class OnlineBookingCheckoutService
             ]);
         }
 
-        $byPhone = $this->findClientByPhoneE164($phoneE164);
-        $byEmail = Client::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->first();
+        $organizationId = (int) Store::query()->whereKey($storeId)->value('organization_id');
+        $byPhone = $this->findClientByPhoneE164($phoneE164, $organizationId);
+        $byEmail = Client::query()
+            ->forOrganization($organizationId)
+            ->whereRaw('LOWER(email) = ?', [$emailNorm])
+            ->first();
 
         if ($byPhone && $byEmail && $byPhone->id !== $byEmail->id) {
             throw ValidationException::withMessages([
@@ -1044,11 +1075,12 @@ class OnlineBookingCheckoutService
         }
     }
 
-    private function findClientByPhoneE164(string $e164): ?Client
+    private function findClientByPhoneE164(string $e164, ?int $organizationId = null): ?Client
     {
         $needleNorm = PhoneDisplay::toE164($e164) ?? trim($e164);
 
         return Client::query()
+            ->when($organizationId, fn ($q) => $q->forOrganization($organizationId))
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->get()
@@ -1082,8 +1114,12 @@ class OnlineBookingCheckoutService
             ]);
         }
 
-        $byPhone = $this->findClientByPhoneE164($phoneE164);
-        $byEmail = Client::query()->whereRaw('LOWER(email) = ?', [$emailNorm])->first();
+        $organizationId = (int) Store::query()->whereKey($storeId)->value('organization_id');
+        $byPhone = $this->findClientByPhoneE164($phoneE164, $organizationId);
+        $byEmail = Client::query()
+            ->forOrganization($organizationId)
+            ->whereRaw('LOWER(email) = ?', [$emailNorm])
+            ->first();
 
         if ($byPhone && $byEmail && $byPhone->id !== $byEmail->id) {
             throw ValidationException::withMessages([
@@ -1153,6 +1189,7 @@ class OnlineBookingCheckoutService
 
         try {
             $client = Client::create([
+                'organization_id' => $organizationId,
                 'store_id' => $storeId,
                 'name' => $name,
                 'email' => $emailNorm,

@@ -61,6 +61,7 @@
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 w-100">
       <div class="dash-welcome-content mb-0 flex-grow-1 min-w-0">
         <h2 class="dash-welcome-title mb-0">Comissões</h2>
+        @include('relatorios.partials.store-context')
       </div>
       <div class="d-flex flex-wrap gap-2 flex-shrink-0">
         <a href="{{ route('relatorios.comissoes.export', request()->query()) }}" class="btn btn-outline-primary btn-sm js-comissoes-export-link">
@@ -105,6 +106,7 @@
   </div>
 
   <form method="GET" action="{{ route('relatorios.comissoes') }}" class="uview-cliente-tab-filters relatorio-tab-filters mb-3">
+    @include('relatorios.partials.store-context-hidden')
     <div class="uview-filter-field uview-filter-date">
       <label class="form-label small text-muted mb-0">Desde</label>
       <input type="text" name="comissoes_desde" class="form-control form-control-sm" value="{{ $comissoesDesde ?? '' }}">

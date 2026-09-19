@@ -18,10 +18,11 @@ class NavigationLogDisplay
         'activity.index' => 'Activity Log',
         'activity.navigation' => 'Activity Log → Navegação',
         'definicoes.index' => 'Definições',
-        'definicoes.negocio' => 'Definições → Negócio',
-        'definicoes.marcacoes' => 'Definições → Marcações',
+        'definicoes.empresa' => 'Definições → Empresa',
+        'definicoes.negocio' => 'Lojas → Ficha',
+        'definicoes.marcacoes' => 'Definições → Booking',
         'definicoes.equipa' => 'Definições → Equipa',
-        'definicoes.emails' => 'Definições → Emails',
+        'definicoes.emails' => 'Lojas → Ficha',
         'definicoes.etiquetas' => 'Definições → Etiquetas',
         'definicoes.notificacoes' => 'Definições → Notificações',
         'definicoes.pagamentos' => 'Definições → Pagamentos',
@@ -30,6 +31,9 @@ class NavigationLogDisplay
         'clientes.create' => 'Clientes → Novo cliente',
         'clientes.show' => 'Clientes → Ficha',
         'clientes.edit' => 'Clientes → Editar',
+        'lojas.index' => 'Lojas',
+        'lojas.create' => 'Lojas → Nova',
+        'lojas.edit' => 'Lojas → Ficha',
         'equipa.index' => 'Equipa → Membros',
         'equipa.create' => 'Equipa → Novo membro',
         'equipa.show' => 'Equipa → Ficha',
@@ -98,7 +102,7 @@ class NavigationLogDisplay
 
     /** @var array<string, string> */
     private const SEGMENT_LABELS = [
-        'negocio' => 'Negócio',
+        'negocio' => 'Loja',
         'marcacoes' => 'Marcações',
         'equipa' => 'Equipa',
         'notificacoes' => 'Notificações',

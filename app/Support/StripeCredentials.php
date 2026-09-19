@@ -9,8 +9,9 @@ use Stripe\Stripe;
 use Throwable;
 
 /**
- * Credenciais Stripe por loja (Definições → Pagamentos).
- * Sem fallback para .env — cada loja configura as suas chaves.
+ * Credenciais Stripe por organização (Definições → Pagamentos).
+ * O $storeId nos métodos serve só para resolver a organização de contexto.
+ * Sem fallback para .env — cada organização configura as suas chaves.
  */
 class StripeCredentials
 {
@@ -48,8 +49,7 @@ class StripeCredentials
 
     public static function webhookSecret(?int $storeId = null): string
     {
-        $sid = CrmSetting::resolveStoreId($storeId);
-        $enc = CrmSetting::getString(CrmSetting::KEY_STRIPE_WEBHOOK_SECRET, '', $sid);
+        $enc = CrmSetting::getString(CrmSetting::KEY_STRIPE_WEBHOOK_SECRET, '', $storeId);
         if ($enc === '') {
             return '';
         }
@@ -64,7 +64,7 @@ class StripeCredentials
     }
 
     /**
-     * Secrets de webhook gravados nas lojas (endpoint global /stripe/webhook).
+     * Secrets de webhook gravados nas organizações (endpoint global /stripe/webhook).
      *
      * @return list<string>
      */
@@ -98,7 +98,7 @@ class StripeCredentials
     }
 
     /**
-     * Stripe utilizável: toggle activo + API keys + webhook secret da loja.
+     * Stripe utilizável: toggle activo + API keys + webhook secret da organização.
      */
     public static function isReady(?int $storeId = null): bool
     {
@@ -149,7 +149,7 @@ class StripeCredentials
     {
         $secret = self::secretKey($storeId);
         if ($secret === '') {
-            throw new \RuntimeException('Stripe não configurado nesta loja. Definições → Pagamentos.');
+            throw new \RuntimeException('Stripe não configurado nesta organização. Definições → Pagamentos.');
         }
 
         Stripe::setApiKey($secret);

@@ -14,6 +14,7 @@
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 w-100">
       <div class="dash-welcome-content mb-0 flex-grow-1 min-w-0">
         <h2 class="dash-welcome-title mb-0">Vendas</h2>
+        @include('relatorios.partials.store-context')
       </div>
       <div class="d-flex flex-wrap gap-2 flex-shrink-0">
         <a href="{{ route('relatorios.vendas.export', request()->query()) }}" class="btn btn-outline-primary btn-sm">
@@ -30,13 +31,7 @@
     </div>
   </div>
   <form method="GET" action="{{ route('relatorios.vendas') }}" class="uview-cliente-tab-filters relatorio-tab-filters mb-3">
-    <div class="uview-filter-field uview-filter-select">
-      <label class="form-label small text-muted mb-0">Período por</label>
-      <select name="vendas_data_criterio" class="form-select form-select-sm">
-        <option value="{{ \App\Services\VendasReportService::DATE_CRITERION_MARCACAO }}" {{ ($vendasDataCriterio ?? \App\Services\VendasReportService::DATE_CRITERION_MARCACAO) === \App\Services\VendasReportService::DATE_CRITERION_MARCACAO ? 'selected' : '' }}>Data da marcação (Pagou)</option>
-        <option value="{{ \App\Services\VendasReportService::DATE_CRITERION_EMISSAO }}" {{ ($vendasDataCriterio ?? '') === \App\Services\VendasReportService::DATE_CRITERION_EMISSAO ? 'selected' : '' }}>Data da fatura</option>
-      </select>
-    </div>
+    @include('relatorios.partials.store-context-hidden')
     <div class="uview-filter-field uview-filter-date">
       <label class="form-label small text-muted mb-0">Desde</label>
       <input type="text" name="vendas_desde" class="form-control form-control-sm" value="{{ $vendasDesde ?? '' }}">

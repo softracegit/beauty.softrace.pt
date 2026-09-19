@@ -33,6 +33,11 @@
         </div>
     </div>
     <div class="uview-header-actions">
+        @can('migrateStore', $agente)
+        <a href="{{ route('equipa.migrate-store-form', $agente) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="ph ph-arrows-left-right me-1"></i> Mudar de loja
+        </a>
+        @endcan
         <a href="{{ route('equipa.edit', $agente) }}" class="btn btn-primary btn-sm">
             <i class="ph ph-pencil-simple me-1"></i> Editar
         </a>

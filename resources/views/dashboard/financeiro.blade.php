@@ -85,9 +85,15 @@
     <div class="dash-welcome-header-row">
         <div class="dash-welcome-content flex-grow-1 min-w-0">
             <h2 class="dash-welcome-title">Financeiro</h2>
-            <p class="dash-welcome-text mt-2 d-none d-md-block">Receitas, rentabilidade por serviço, técnica e cliente. Baseado em vendas pagas de {{ $periodLabel ?? '—' }}.</p>
         </div>
-        <form method="GET" action="{{ route('dashboard.financeiro') }}" class="dash-welcome-filters">
+        <form method="GET" action="{{ route('dashboard.financeiro') }}" class="dash-welcome-filters" id="dash-financeiro-filters">
+            @include('partials.store-context-filter', [
+                'selected' => $dashStoreSelected ?? \App\Support\StoreContextPreference::SCOPE_ALL,
+                'allowAll' => true,
+                'allLabel' => 'Todas as lojas',
+                'formId' => 'dash-financeiro-filters',
+                'inputId' => 'dash_financeiro_store_filter',
+            ])
             <select name="month" class="form-select form-select-sm dash-welcome-filter-month" aria-label="Mês">
                 @foreach($monthOptions ?? [] as $monthValue => $monthOptionLabel)
                     <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthOptionLabel }}</option>

@@ -52,7 +52,7 @@ class Extra extends Model
     }
 
     /**
-     * Extras vivem na categoria; a loja vem de {@see ExtraCategory::store_id}.
+     * Extras vivem na categoria; a org vem de {@see ExtraCategory::organization_id}.
      */
     public function resolveRouteBinding($value, $field = null)
     {
@@ -60,7 +60,7 @@ class Extra extends Model
 
         return static::query()
             ->where($field, $value)
-            ->whereHas('extraCategory', fn ($q) => $q->where('store_id', current_store_id()))
+            ->whereHas('extraCategory', fn ($q) => $q->where('organization_id', current_organization_id()))
             ->firstOrFail();
     }
 

@@ -48,7 +48,7 @@ class UpdateServiceRequest extends FormRequest
         $hasOptions = $this->boolean('has_options');
 
         $rules = [
-            'category_id' => ['required', Rule::exists('categories', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'category_id' => ['required', Rule::exists('categories', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'has_options' => ['sometimes', 'boolean'],
@@ -71,11 +71,11 @@ class UpdateServiceRequest extends FormRequest
             'extra_ids.*' => [
                 Rule::exists('extras', 'id')->where(fn ($q) => $q->whereIn(
                     'extra_category_id',
-                    ExtraCategory::query()->forStore(current_store_id())->select('id')
+                    ExtraCategory::query()->forOrganization(current_organization_id())->select('id')
                 )),
             ],
             'fee_ids' => ['nullable', 'array'],
-            'fee_ids.*' => [Rule::exists('fees', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'fee_ids.*' => [Rule::exists('fees', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'hidden_from_booking' => ['nullable', 'boolean'],
         ];

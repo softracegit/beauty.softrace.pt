@@ -48,13 +48,19 @@
 @endif
 
 <div class="dash-welcome mb-4">
-    <div class="d-flex align-items-center justify-content-between gap-3 w-100">
+    <div class="d-flex align-items-center justify-content-between gap-3 w-100 flex-wrap">
         <div class="dash-welcome-content">
             <h2 class="dash-welcome-title mb-0">Marcações</h2>
         </div>
-        <div class="dash-welcome-actions flex-shrink-0">
-            <a href="{{ route('agenda.index') }}" class="btn btn-primary">
-                <i class="ph ph-calendar-blank me-2"></i> Ver Agenda
+        <div class="dash-welcome-actions flex-shrink-0 d-flex align-items-center gap-2 flex-wrap">
+            @include('partials.store-context-filter', [
+                'selected' => $dashStoreSelected ?? \App\Support\StoreContextPreference::SCOPE_ALL,
+                'allowAll' => true,
+                'allLabel' => 'Todas as lojas',
+                'inputId' => 'dash_marcacoes_store_filter',
+            ])
+            <a href="{{ route('agenda.index') }}" class="btn btn-primary btn-sm dash-welcome-filter-btn text-nowrap">
+                <i class="ph ph-calendar-blank"></i><span class="dash-welcome-filter-btn-label">Ver Agenda</span>
             </a>
         </div>
     </div>

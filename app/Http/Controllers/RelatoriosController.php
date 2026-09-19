@@ -9,6 +9,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Service;
 use App\Models\SmsMessage;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\AppointmentReactivationService;
 use App\Services\BookingFunnelReportService;
@@ -22,6 +23,7 @@ use App\Support\MarcacoesReportPdfColumns;
 use App\Support\TechnicianFilterUserId;
 use App\Support\MarcacoesReportEstadoFilter;
 use App\Support\StoreBusinessTime;
+use App\Support\StoreContextPreference;
 use App\Support\VendasReportPdfColumns;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -45,33 +47,205 @@ class RelatoriosController extends Controller
         private readonly SmsReportService $smsReportService,
         private readonly BookingFunnelReportService $bookingFunnelReportService,
         private readonly AppointmentReactivationService $appointmentReactivationService,
+        private readonly \App\Services\OrganizationMetricsService $organizationMetricsService,
     ) {}
+
+    public function organizacao(Request $request): View
+    {
+        $ctx = $this->organizacaoContext($request);
+        $evolucaoMode = $request->input('evolucao');
+        $metrics = $this->organizationMetricsService->summarize(
+            $ctx['storeIds'],
+            $ctx['desde'],
+            $ctx['ate'],
+            is_string($evolucaoMode) ? $evolucaoMode : null,
+        );
+
+        return view('relatorios.organizacao', [
+            'stores' => $ctx['allStores'],
+            'desde' => $ctx['desde'],
+            'ate' => $ctx['ate'],
+            'lojasScope' => $ctx['scope'],
+            'selectedStoreIds' => $ctx['storeIds'],
+            'evolucaoMode' => $metrics['evolucao']['mode'] ?? 'diaria',
+            'metrics' => $metrics,
+        ]);
+    }
+
+    public function organizacaoExport(Request $request): StreamedResponse
+    {
+        $ctx = $this->organizacaoContext($request);
+        $evolucaoMode = $request->input('evolucao');
+        $metrics = $this->organizationMetricsService->summarize(
+            $ctx['storeIds'],
+            $ctx['desde'],
+            $ctx['ate'],
+            is_string($evolucaoMode) ? $evolucaoMode : null,
+        );
+
+        $filename = 'resumo_empresa_'.$ctx['desde'].'_'.$ctx['ate'].'.csv';
+
+        return response()->streamDownload(function () use ($metrics, $ctx) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            $sep = ';';
+
+            fputcsv($out, ['Resumo empresa', $ctx['desde'].' a '.$ctx['ate']], $sep);
+            fputcsv($out, [], $sep);
+            fputcsv($out, ['Indicador', 'Valor'], $sep);
+            fputcsv($out, ['Faturação', number_format((float) $metrics['faturacao_total'], 2, ',', '')], $sep);
+            fputcsv($out, ['Vendas pagas', (string) $metrics['num_vendas']], $sep);
+            fputcsv($out, ['Ticket médio', number_format((float) $metrics['ticket_medio'], 2, ',', '')], $sep);
+            fputcsv($out, ['Taxa conclusão %', number_format((float) $metrics['taxa_conclusao'], 1, ',', '')], $sep);
+            fputcsv($out, ['No-shows total', (string) $metrics['noshows_total']], $sep);
+            fputcsv($out, ['Faltou', (string) $metrics['faltou_total']], $sep);
+            fputcsv($out, ['Cancelado', (string) $metrics['cancelado_total']], $sep);
+            fputcsv($out, ['Anulado', (string) $metrics['anulado_total']], $sep);
+            fputcsv($out, ['Ocupação %', number_format((float) $metrics['taxa_ocupacao'], 1, ',', '')], $sep);
+            fputcsv($out, ['Rascunhos', (string) $metrics['rascunhos_total']], $sep);
+            fputcsv($out, ['SMS falhados', (string) $metrics['sms_falhados_total']], $sep);
+            fputcsv($out, [], $sep);
+
+            fputcsv($out, [
+                'Loja', 'Previsto', 'Feito', 'Por fazer', 'Ocupação %', 'Faltou', 'Cancelado', 'Anulado', 'No-shows %', 'Conclusão %', 'Clientes', 'Caixa', 'Rascunhos', 'SMS fail',
+            ], $sep);
+            foreach ($metrics['por_loja'] as $row) {
+                fputcsv($out, [
+                    $row->nome,
+                    number_format((float) $row->previsto, 2, ',', ''),
+                    number_format((float) $row->vendas_feitas, 2, ',', ''),
+                    number_format((float) $row->por_fazer, 2, ',', ''),
+                    number_format((float) $row->taxa_ocupacao, 1, ',', ''),
+                    (string) $row->faltou,
+                    (string) $row->cancelado,
+                    (string) $row->anulado,
+                    number_format((float) $row->taxa_noshow, 1, ',', ''),
+                    number_format((float) $row->taxa_conclusao, 1, ',', ''),
+                    (string) $row->clientes_unicos,
+                    $row->caixa_label,
+                    (string) $row->rascunhos,
+                    (string) $row->sms_falhados,
+                ], $sep);
+            }
+
+            fputcsv($out, [], $sep);
+            fputcsv($out, ['Top serviços', 'Qtd', 'Receita'], $sep);
+            foreach ($metrics['top_servicos'] as $svc) {
+                fputcsv($out, [$svc->nome, (string) $svc->qtd, number_format((float) $svc->receita, 2, ',', '')], $sep);
+            }
+
+            fputcsv($out, [], $sep);
+            fputcsv($out, ['Top categorias', 'Qtd', 'Receita'], $sep);
+            foreach ($metrics['top_categorias'] as $cat) {
+                fputcsv($out, [$cat->nome, (string) $cat->qtd, number_format((float) $cat->receita, 2, ',', '')], $sep);
+            }
+
+            fputcsv($out, [], $sep);
+            fputcsv($out, ['Técnico', 'Comissão c/ IVA'], $sep);
+            foreach ($metrics['comissoes_tecnicos'] as $tec) {
+                fputcsv($out, [$tec->nome, number_format((float) $tec->comissao, 2, ',', '')], $sep);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function organizacaoPdf(Request $request)
+    {
+        $ctx = $this->organizacaoContext($request);
+        $evolucaoMode = $request->input('evolucao');
+        $metrics = $this->organizationMetricsService->summarize(
+            $ctx['storeIds'],
+            $ctx['desde'],
+            $ctx['ate'],
+            is_string($evolucaoMode) ? $evolucaoMode : null,
+        );
+
+        $pdf = Pdf::loadView('relatorios.pdf.organizacao', [
+            'metrics' => $metrics,
+            'desde' => $ctx['desde'],
+            'ate' => $ctx['ate'],
+            'appName' => config('app.name'),
+            'lojasScope' => $ctx['scope'],
+            'storeNames' => $ctx['allStores']->whereIn('id', $ctx['storeIds'])->pluck('name')->values()->all(),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->stream('resumo_empresa_'.$ctx['desde'].'_'.$ctx['ate'].'.pdf');
+    }
+
+    /**
+     * @return array{allStores: \Illuminate\Support\Collection, desde: string, ate: string, scope: string, storeIds: list<int>}
+     */
+    private function organizacaoContext(Request $request): array
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $user->isAdmin(), 403);
+
+        $orgId = (int) $user->organization_id;
+        $allStores = \App\Models\Store::query()
+            ->where('organization_id', $orgId)
+            ->orderBy('name')
+            ->get();
+
+        $desde = $request->input('desde') ?: now()->copy()->startOfMonth()->toDateString();
+        $ate = $request->input('ate') ?: now()->copy()->endOfMonth()->toDateString();
+
+        $scope = (string) $request->input('lojas_scope', 'todas');
+        $selectedIds = collect($request->input('store_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->values()
+            ->all();
+
+        $allowedIds = $allStores->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        if ($scope === 'actual') {
+            $storeIds = in_array(current_store_id(), $allowedIds, true) ? [current_store_id()] : $allowedIds;
+        } elseif ($scope === 'subset' && $selectedIds !== []) {
+            $storeIds = array_values(array_intersect($selectedIds, $allowedIds));
+        } else {
+            $scope = 'todas';
+            $storeIds = $allowedIds;
+        }
+
+        return [
+            'allStores' => $allStores,
+            'desde' => $desde,
+            'ate' => $ate,
+            'scope' => $scope,
+            'storeIds' => $storeIds,
+        ];
+    }
 
     public function marcacoes(Request $request): View
     {
-        $marcacoes = $this->marcacoesReportQuery($request)
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
+
+        $marcacoes = $this->marcacoesReportQuery($request, $storeIds)
             ->with(['user', 'client', 'personalTimeType', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
             ->orderByDesc('start_at')
             ->paginate(100)
             ->withQueryString();
 
         $servicosOpts = Service::query()
-            ->forStore(current_store_id())
             ->join('calendar_event_services', 'services.id', '=', 'calendar_event_services.service_id')
             ->join('calendar_events', 'calendar_events.id', '=', 'calendar_event_services.calendar_event_id')
-            ->where('calendar_events.store_id', current_store_id())
+            ->whereIn('calendar_events.store_id', $storeIds)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->select('services.id', 'services.name')
             ->distinct()
             ->orderBy('services.name')
             ->get();
 
-        $tecnicosOpts = $this->membrosOptsForRelatorios();
+        $tecnicosOpts = $this->membrosOptsForRelatorios($storeIds);
 
         $clientesOpts = Client::query()
-            ->forStore(current_store_id())
+            ->forOrganization(current_organization_id())
             ->join('calendar_events', 'calendar_events.client_id', '=', 'clients.id')
-            ->where('calendar_events.store_id', current_store_id())
+            ->whereIn('calendar_events.store_id', $storeIds)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->select('clients.id', 'clients.name')
             ->distinct()
@@ -83,6 +257,7 @@ class RelatoriosController extends Controller
 
         return view('relatorios.marcacoes', [
             'pageTitle' => 'Relatórios — Marcações',
+            'reportStoreFilter' => $storeCtx,
             'marcacoes' => $marcacoes,
             'marcacoesDesde' => $marcacoesDesde,
             'marcacoesAte' => $marcacoesAte,
@@ -93,7 +268,7 @@ class RelatoriosController extends Controller
             'servicosOpts' => $servicosOpts,
             'tecnicosOpts' => $tecnicosOpts,
             'clientesOpts' => $clientesOpts,
-            'marcacoesTotais' => $this->marcacoesReportTotals($request),
+            'marcacoesTotais' => $this->marcacoesReportTotals($request, $storeIds),
             'marcacoesPdfColumnOptions' => MarcacoesReportPdfColumns::labels(),
         ]);
     }
@@ -180,7 +355,10 @@ class RelatoriosController extends Controller
 
     public function marcacoesExport(Request $request): StreamedResponse
     {
-        $events = $this->marcacoesReportQuery($request)
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
+
+        $events = $this->marcacoesReportQuery($request, $storeIds)
             ->with(['user', 'client', 'personalTimeType', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
             ->orderByDesc('start_at')
             ->get();
@@ -188,6 +366,8 @@ class RelatoriosController extends Controller
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Marcações');
+
+        $sheet->fromArray([$this->relatorioLojaFiltroLine($storeCtx)], null, 'A1');
 
         $headers = [
             'Data',
@@ -199,9 +379,9 @@ class RelatoriosController extends Controller
             'Preço total (€)',
             'Notas',
         ];
-        $sheet->fromArray($headers, null, 'A1');
+        $sheet->fromArray($headers, null, 'A2');
 
-        $rowIndex = 2;
+        $rowIndex = 3;
         foreach ($events as $ev) {
             $totalPreco = $ev->eventServiceItems->sum(function ($es) {
                 return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
@@ -255,7 +435,10 @@ class RelatoriosController extends Controller
      */
     public function marcacoesPdf(Request $request)
     {
-        $events = $this->marcacoesReportQuery($request)
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
+
+        $events = $this->marcacoesReportQuery($request, $storeIds)
             ->with(['user', 'client', 'personalTimeType', 'eventServiceItems.service.category', 'eventServiceItems.extras'])
             ->orderByDesc('start_at')
             ->get();
@@ -264,7 +447,7 @@ class RelatoriosController extends Controller
 
         $pdf = Pdf::loadView('relatorios.pdf.marcacoes', [
             'marcacoes' => $events,
-            'filtrosLinhas' => $this->marcacoesFiltrosResumo($request),
+            'filtrosLinhas' => $this->marcacoesFiltrosResumo($request, $storeCtx),
             'appName' => config('app.name'),
             'totalRegistos' => $events->count(),
             'marcacoesTotais' => MarcacoesReportEstadoFilter::totaisFromEvents($events),
@@ -280,25 +463,28 @@ class RelatoriosController extends Controller
     /**
      * Linhas de texto descrevendo os filtros efetivos (para cabeçalho do PDF).
      *
+     * @param  array{store_id: ?int, scope: string, store_ids: list<int>}  $storeCtx
      * @return array<int, string>
      */
-    private function marcacoesFiltrosResumo(Request $request): array
+    private function marcacoesFiltrosResumo(Request $request, array $storeCtx): array
     {
         $desde = $request->get('marcacoes_desde') ?: $this->marcacoesDefaultDesde();
         $ate = $request->get('marcacoes_ate') ?: $this->marcacoesDefaultAte();
+        $storeIds = $storeCtx['store_ids'];
 
         $lines = [
+            $this->relatorioLojaFiltroLine($storeCtx),
             'Período: '.Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
         ];
 
         if ($cid = $request->get('marcacoes_cliente')) {
-            $lines[] = 'Cliente: '.(Client::query()->forStore(current_store_id())->find($cid)?->name ?? '—');
+            $lines[] = 'Cliente: '.(Client::query()->forOrganization(current_organization_id())->find($cid)?->name ?? '—');
         }
         if ($sid = $request->get('marcacoes_servico')) {
-            $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
+            $lines[] = 'Serviço: '.(Service::query()->forOrganization(current_organization_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $request->get('marcacoes_tecnico')) {
-            $lines[] = 'Técnico: '.(User::activeStaff(current_store_id())->find($tid)?->name ?? '—');
+            $lines[] = 'Técnico: '.(User::activeStaff($storeIds)->find($tid)?->name ?? '—');
         }
         $est = MarcacoesReportEstadoFilter::resolve($request->get('marcacoes_estado'));
         $lines[] = 'Estado: '.MarcacoesReportEstadoFilter::label($est);
@@ -308,8 +494,10 @@ class RelatoriosController extends Controller
 
     /**
      * Query base do relatório de marcações (mesmos filtros na listagem e na exportação).
+     *
+     * @param  list<int>  $storeIds
      */
-    private function marcacoesReportQuery(Request $request): Builder
+    private function marcacoesReportQuery(Request $request, array $storeIds): Builder
     {
         $marcacoesDesde = $request->get('marcacoes_desde') ?: $this->marcacoesDefaultDesde();
         $marcacoesAte = $request->get('marcacoes_ate') ?: $this->marcacoesDefaultAte();
@@ -319,7 +507,7 @@ class RelatoriosController extends Controller
         $marcacoesCliente = $request->get('marcacoes_cliente');
 
         $marcacoesQuery = MarcacoesReportEstadoFilter::apply(
-            CalendarEvent::query()->forStore(current_store_id()),
+            CalendarEvent::query()->whereIn('store_id', $storeIds),
             $marcacoesEstado,
         );
 
@@ -345,11 +533,12 @@ class RelatoriosController extends Controller
     /**
      * Soma do preço (serviços + extras) e contagem de linhas de serviço para o relatório de marcações (filtros atuais).
      *
+     * @param  list<int>  $storeIds
      * @return array{preco_total: float, servicos_count: int}
      */
-    private function marcacoesReportTotals(Request $request): array
+    private function marcacoesReportTotals(Request $request, array $storeIds): array
     {
-        $eventIds = $this->marcacoesReportQuery($request)->select('calendar_events.id');
+        $eventIds = $this->marcacoesReportQuery($request, $storeIds)->select('calendar_events.id');
 
         $serviceSum = (float) DB::table('calendar_event_services')
             ->whereIn('calendar_event_id', $eventIds)
@@ -372,8 +561,10 @@ class RelatoriosController extends Controller
 
     public function vendas(Request $request): View
     {
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
         $dateCriterion = $this->vendasDateCriterion($request);
-        $sales = $this->vendasSalesForReport($request);
+        $sales = $this->vendasSalesForReport($request, $storeIds);
 
         $allLines = $this->vendasResumoCollection(
             $sales,
@@ -403,6 +594,7 @@ class RelatoriosController extends Controller
 
         return view('relatorios.vendas', [
             'pageTitle' => 'Relatórios — Vendas',
+            'reportStoreFilter' => $storeCtx,
             'vendas' => $vendas,
             'vendasDesde' => $vendasDesde,
             'vendasAte' => $vendasAte,
@@ -412,9 +604,9 @@ class RelatoriosController extends Controller
             'vendasEstado' => $request->get('vendas_estado'),
             'vendasDataCriterio' => $dateCriterion,
             'vendasDataColunaLabel' => $this->vendasDataColunaLabel($dateCriterion),
-            'clientesOpts' => $this->vendasClientesOpts(),
-            'servicosOpts' => $this->vendasServicosOpts(),
-            'tecnicosOpts' => $this->membrosOptsForRelatorios(),
+            'clientesOpts' => $this->vendasClientesOpts($storeIds),
+            'servicosOpts' => $this->vendasServicosOpts($storeIds),
+            'tecnicosOpts' => $this->membrosOptsForRelatorios($storeIds),
             'vendasTotais' => $this->vendasTotaisRodape($allLines, $dateCriterion, $sales),
             'vendasPdfColumnOptions' => $this->vendasPdfColumnOptions($dateCriterion),
         ]);
@@ -422,8 +614,10 @@ class RelatoriosController extends Controller
 
     public function vendasExport(Request $request): StreamedResponse
     {
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
         $dateCriterion = $this->vendasDateCriterion($request);
-        $sales = $this->vendasSalesForReport($request);
+        $sales = $this->vendasSalesForReport($request, $storeIds);
         $lines = $this->vendasResumoCollection(
             $sales,
             $request->get('vendas_servico'),
@@ -436,6 +630,8 @@ class RelatoriosController extends Controller
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Vendas');
+
+        $sheet->fromArray([$this->relatorioLojaFiltroLine($storeCtx)], null, 'A1');
 
         $headers = [
             $dataHeader,
@@ -450,9 +646,9 @@ class RelatoriosController extends Controller
             'Gorjeta (€)',
             'Estado fatura',
         ];
-        $sheet->fromArray($headers, null, 'A1');
+        $sheet->fromArray($headers, null, 'A2');
 
-        $rowIndex = 2;
+        $rowIndex = 3;
         foreach ($lines as $linha) {
             $categoria = trim((string) ($linha->categoria ?? ''));
             $categoria = $categoria !== '' && $categoria !== '—' ? $categoria : '';
@@ -534,10 +730,12 @@ class RelatoriosController extends Controller
 
     public function vendasPdf(Request $request)
     {
-        return $this->vendasReportRunService->streamPdf(
-            $this->vendasReportRunService->filtersFromRequest($request),
-            $request,
-        );
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $filters = $this->vendasReportRunService->filtersFromRequest($request);
+        $filters['store_ids'] = $storeCtx['store_ids'];
+        $filters['store_scope'] = $storeCtx['scope'];
+
+        return $this->vendasReportRunService->streamPdf($filters, $request);
     }
 
     /**
@@ -552,16 +750,19 @@ class RelatoriosController extends Controller
     }
 
     /**
+     * @param  array{store_id: ?int, scope: string, store_ids: list<int>}  $storeCtx
      * @return array<int, string>
      */
-    private function vendasFiltrosResumo(Request $request): array
+    private function vendasFiltrosResumo(Request $request, array $storeCtx): array
     {
         $desde = $request->get('vendas_desde') ?: $this->vendasDefaultDesde();
         $ate = $request->get('vendas_ate') ?: $this->vendasDefaultAte();
+        $storeIds = $storeCtx['store_ids'];
 
         $dateCriterion = $this->vendasDateCriterion($request);
 
         $lines = [
+            $this->relatorioLojaFiltroLine($storeCtx),
             'Período ('.mb_strtolower(VendasReportService::dateCriterionLabel($dateCriterion)).'): '
                 .Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
         ];
@@ -571,13 +772,13 @@ class RelatoriosController extends Controller
         }
 
         if ($cid = $request->get('vendas_cliente')) {
-            $lines[] = 'Cliente: '.(Client::query()->forStore(current_store_id())->find($cid)?->name ?? '—');
+            $lines[] = 'Cliente: '.(Client::query()->forOrganization(current_organization_id())->find($cid)?->name ?? '—');
         }
         if ($sid = $request->get('vendas_servico')) {
-            $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
+            $lines[] = 'Serviço: '.(Service::query()->forOrganization(current_organization_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $request->get('vendas_tecnico')) {
-            $lines[] = 'Técnico: '.(User::activeStaff(current_store_id())->find($tid)?->name ?? '—');
+            $lines[] = 'Técnico: '.(User::activeStaff($storeIds)->find($tid)?->name ?? '—');
         }
         if ($est = $request->get('vendas_estado')) {
             $label = $est === Sale::INVOICE_STATUS_RASCUNHO ? 'Rascunho' : ($est === Sale::INVOICE_STATUS_FATURADO ? 'Faturado' : $est);
@@ -589,7 +790,10 @@ class RelatoriosController extends Controller
         return $lines;
     }
 
-    private function vendasReportQuery(Request $request): Builder
+    /**
+     * @param  list<int>  $storeIds
+     */
+    private function vendasReportQuery(Request $request, array $storeIds): Builder
     {
         return $this->vendasReportService->reportQuery([
             'desde' => $request->get('vendas_desde'),
@@ -599,15 +803,17 @@ class RelatoriosController extends Controller
             'tecnico' => $request->get('vendas_tecnico'),
             'estado' => $request->get('vendas_estado'),
             'data_criterio' => $this->vendasDateCriterion($request),
+            'store_ids' => $storeIds,
         ]);
     }
 
     /**
+     * @param  list<int>  $storeIds
      * @return Collection<int, Sale>
      */
-    private function vendasSalesForReport(Request $request): Collection
+    private function vendasSalesForReport(Request $request, array $storeIds): Collection
     {
-        $sales = $this->vendasReportQuery($request)
+        $sales = $this->vendasReportQuery($request, $storeIds)
             ->with(['client', 'calendarEvent.user', 'calendarEvent.eventServiceItems.extras.extra', 'settledEvents', 'items.service.category', 'items.extra', 'items.calendarEventService.service.category', 'items.calendarEventService.event.user'])
             ->get();
 
@@ -636,7 +842,7 @@ class RelatoriosController extends Controller
 
     private function vendasDateCriterion(Request $request): string
     {
-        return VendasReportService::resolveDateCriterion($request->get('vendas_data_criterio'));
+        return VendasReportService::defaultDateCriterion();
     }
 
     private function vendasDataColunaLabel(string $dateCriterion): string
@@ -663,14 +869,20 @@ class RelatoriosController extends Controller
         return $this->vendasReportService->resumoCollection($sales, $vendasServico, $vendasTecnico, $dateCriterion);
     }
 
-    private function vendasClientesOpts(): Collection
+    /**
+     * @param  list<int>  $storeIds
+     */
+    private function vendasClientesOpts(array $storeIds): Collection
     {
-        return $this->vendasReportService->clientesOpts();
+        return $this->vendasReportService->clientesOpts($storeIds);
     }
 
-    private function vendasServicosOpts(): Collection
+    /**
+     * @param  list<int>  $storeIds
+     */
+    private function vendasServicosOpts(array $storeIds): Collection
     {
-        return $this->vendasReportService->servicosOpts();
+        return $this->vendasReportService->servicosOpts($storeIds);
     }
 
     private function marcacoesDefaultDesde(): string
@@ -696,11 +908,12 @@ class RelatoriosController extends Controller
     /**
      * Prestadores de serviços activos (filtro «Técnico» nos relatórios).
      *
+     * @param  list<int>  $storeIds
      * @return Collection<int, User>
      */
-    private function membrosOptsForRelatorios(): Collection
+    private function membrosOptsForRelatorios(array $storeIds): Collection
     {
-        return User::activeServiceProviders(current_store_id())
+        return User::activeServiceProviders($storeIds)
             ->select('users.id', 'users.name')
             ->orderBy('users.name')
             ->get();
@@ -708,7 +921,8 @@ class RelatoriosController extends Controller
 
     public function comissoes(Request $request): View
     {
-        $report = $this->comissoesReportData($request);
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $report = $this->comissoesReportData($request, $storeCtx);
 
         $page = max(1, (int) $request->get('page', 1));
         $perPage = 100;
@@ -728,6 +942,7 @@ class RelatoriosController extends Controller
 
         return view('relatorios.comissoes', [
             'pageTitle' => 'Relatórios — Comissões',
+            'reportStoreFilter' => $storeCtx,
             'linhas' => $linhas,
             'comissoesDesde' => $report['filters']['desde'],
             'comissoesAte' => $report['filters']['ate'],
@@ -735,9 +950,9 @@ class RelatoriosController extends Controller
             'comissoesTecnico' => $request->get('comissoes_tecnico'),
             'comissoesEstado' => $request->get('comissoes_estado'),
             'comissoesCliente' => $request->get('comissoes_cliente'),
-            'servicosOpts' => $this->comissoesReportService->servicosOpts(),
-            'tecnicosOpts' => $this->membrosOptsForRelatorios(),
-            'clientesOpts' => $this->comissoesReportService->clientesOpts(),
+            'servicosOpts' => $this->comissoesReportService->servicosOpts($storeCtx['store_ids']),
+            'tecnicosOpts' => $this->membrosOptsForRelatorios($storeCtx['store_ids']),
+            'clientesOpts' => $this->comissoesReportService->clientesOpts($storeCtx['store_ids']),
             'comissoesTotais' => $report['totais'],
             'comissoesTotalHistorico' => $report['usesHistoricalFooter'],
             'comissoesPdfColumnOptions' => ComissoesReportPdfColumns::labels(),
@@ -746,11 +961,14 @@ class RelatoriosController extends Controller
 
     public function comissoesExport(Request $request): StreamedResponse
     {
-        $report = $this->comissoesReportData($request);
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $report = $this->comissoesReportData($request, $storeCtx);
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Comissões');
+
+        $sheet->fromArray([$this->relatorioLojaFiltroLine($storeCtx)], null, 'A1');
 
         $headers = [
             'Data venda',
@@ -764,9 +982,9 @@ class RelatoriosController extends Controller
             'Valor comissão c/ IVA (€)',
             'Valor comissão s/ IVA (€)',
         ];
-        $sheet->fromArray($headers, null, 'A1');
+        $sheet->fromArray($headers, null, 'A2');
 
-        $rowIndex = 2;
+        $rowIndex = 3;
         foreach ($report['lines'] as $linha) {
             $sheet->fromArray([
                 [
@@ -826,13 +1044,14 @@ class RelatoriosController extends Controller
 
     public function comissoesPdf(Request $request)
     {
-        $report = $this->comissoesReportData($request);
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $report = $this->comissoesReportData($request, $storeCtx);
 
         $pdfColumns = ComissoesReportPdfColumns::resolveFromRequest($request);
 
         $pdf = Pdf::loadView('relatorios.pdf.comissoes', [
             'linhas' => $report['lines'],
-            'filtrosLinhas' => $this->comissoesFiltrosResumo($request),
+            'filtrosLinhas' => $this->comissoesFiltrosResumo($request, $storeCtx),
             'appName' => config('app.name'),
             'totalLinhas' => $report['lines']->count(),
             'comissoesTotais' => $report['totais'],
@@ -848,16 +1067,18 @@ class RelatoriosController extends Controller
     }
 
     /**
+     * @param  array{store_id: ?int, scope: string, store_ids: list<int>}  $storeCtx
      * @return array{
-     *   filters: array{desde: string, ate: string, cliente: mixed, servico: mixed, tecnico: mixed|null, estado: ?string},
+     *   filters: array{desde: string, ate: string, cliente: mixed, servico: mixed, tecnico: mixed|null, estado: ?string, store_ids: list<int>},
      *   lines: Collection<int, object>,
      *   totais: array{total_comissao_com_iva: float, total_comissao_sem_iva: float},
      *   usesHistoricalFooter: bool
      * }
      */
-    private function comissoesReportData(Request $request): array
+    private function comissoesReportData(Request $request, array $storeCtx): array
     {
         $filters = $this->comissoesFiltersFromRequest($request);
+        $filters['store_ids'] = $storeCtx['store_ids'];
         $filters['tecnico'] = TechnicianFilterUserId::resolve($filters['tecnico']);
 
         $sales = $this->comissoesReportService->salesForReport($filters);
@@ -865,7 +1086,12 @@ class RelatoriosController extends Controller
             ? (int) $filters['servico']
             : null;
         $tecnicoFilter = $filters['tecnico'];
-        $lines = $this->comissoesReportService->linesCollection($sales, $servicoFilter, $tecnicoFilter);
+        $lines = $this->comissoesReportService->linesCollection(
+            $sales,
+            $servicoFilter,
+            $tecnicoFilter,
+            $storeCtx['store_ids'],
+        );
 
         return [
             'filters' => $filters,
@@ -876,25 +1102,28 @@ class RelatoriosController extends Controller
     }
 
     /**
+     * @param  array{store_id: ?int, scope: string, store_ids: list<int>}  $storeCtx
      * @return array<int, string>
      */
-    private function comissoesFiltrosResumo(Request $request): array
+    private function comissoesFiltrosResumo(Request $request, array $storeCtx): array
     {
         $desde = $this->normalizeRelatorioDate($request->get('comissoes_desde')) ?: $this->marcacoesDefaultDesde();
         $ate = $this->normalizeRelatorioDate($request->get('comissoes_ate')) ?: $this->marcacoesDefaultAte();
+        $storeIds = $storeCtx['store_ids'];
 
         $lines = [
+            $this->relatorioLojaFiltroLine($storeCtx),
             'Período: '.Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
         ];
 
         if ($cid = $request->get('comissoes_cliente')) {
-            $lines[] = 'Cliente: '.(Client::query()->forStore(current_store_id())->find($cid)?->name ?? '—');
+            $lines[] = 'Cliente: '.(Client::query()->forOrganization(current_organization_id())->find($cid)?->name ?? '—');
         }
         if ($sid = $request->get('comissoes_servico')) {
-            $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
+            $lines[] = 'Serviço: '.(Service::query()->forOrganization(current_organization_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $request->get('comissoes_tecnico')) {
-            $lines[] = 'Colaborador(a): '.(User::activeServiceProviders(current_store_id())->find($tid)?->name ?? '—');
+            $lines[] = 'Colaborador(a): '.(User::activeServiceProviders($storeIds)->find($tid)?->name ?? '—');
         }
 
         return $lines;
@@ -959,32 +1188,38 @@ class RelatoriosController extends Controller
 
     public function bookingFunnel(Request $request): View
     {
-        $storeId = current_store_id();
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
+        $displayStoreId = $storeCtx['store_id'] ?? $storeIds[0];
         $tab = $this->bookingFunnelReportService->resolveTab((string) $request->query('tab', BookingFunnelReportService::TAB_SMS_PENDING));
-        $rows = $this->bookingFunnelReportService->paginatedTabQuery($tab, $storeId);
+        $rows = $this->bookingFunnelReportService->paginatedTabQuery($tab, $storeIds);
         $authCodeClients = in_array($tab, [
             BookingFunnelReportService::TAB_SMS_PENDING,
             BookingFunnelReportService::TAB_OTP_FAILED,
         ], true)
-            ? $this->bookingFunnelReportService->clientsForAuthCodes($rows->getCollection(), $storeId)
+            ? $this->bookingFunnelReportService->clientsForAuthCodes($rows->getCollection(), $storeIds)
             : [];
 
         return view('relatorios.booking-funnel', [
             'pageTitle' => 'Relatórios — Funil Booking',
+            'reportStoreFilter' => $storeCtx,
             'activeTab' => $tab,
-            'summaryCounts' => $this->bookingFunnelReportService->summaryCounts($storeId),
+            'summaryCounts' => $this->bookingFunnelReportService->summaryCounts($storeIds),
             'rows' => $rows,
             'authCodeClients' => $authCodeClients,
-            'storeTimezone' => StoreBusinessTime::timezoneForStore($storeId),
+            'storeTimezone' => StoreBusinessTime::timezoneForStore($displayStoreId),
+            'displayStoreId' => $displayStoreId,
             'funnelService' => $this->bookingFunnelReportService,
         ]);
     }
 
     public function sms(Request $request): View
     {
-        $storeId = current_store_id();
-        $today = StoreBusinessTime::nowForStore($storeId)->startOfDay();
-        $availableYears = $this->smsReportService->availableYears($storeId);
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
+        $displayStoreId = $storeCtx['store_id'] ?? $storeIds[0];
+        $today = StoreBusinessTime::nowForStore($displayStoreId)->startOfDay();
+        $availableYears = $this->smsReportService->availableYears($storeIds);
         $year = (int) $request->get('year', $today->year);
         $year = max($availableYears[0] ?? $today->year, min($today->year, $year));
         $month = max(1, min(12, (int) $request->get('month', $today->month)));
@@ -992,7 +1227,7 @@ class RelatoriosController extends Controller
             $month = $today->month;
         }
 
-        $messages = $this->smsReportService->reportQuery($storeId, $year, $month)
+        $messages = $this->smsReportService->reportQuery($storeIds, $year, $month)
             ->orderByDesc('sent_at')
             ->orderByDesc('id')
             ->paginate(50)
@@ -1000,15 +1235,51 @@ class RelatoriosController extends Controller
 
         return view('relatorios.sms', [
             'pageTitle' => 'Relatórios — SMS',
+            'reportStoreFilter' => $storeCtx,
             'messages' => $messages,
-            'summaryCounts' => $this->smsReportService->summaryCounts($storeId),
+            'summaryCounts' => $this->smsReportService->summaryCounts($storeIds),
             'month' => $month,
             'year' => $year,
             'monthOptions' => $this->smsReportService->monthOptions(),
             'availableYears' => $availableYears,
-            'periodLabel' => $this->smsReportService->periodLabel($year, $month),
+            'periodLabel' => $this->smsReportService->periodLabel($year, $month, $displayStoreId),
             'typeLabels' => SmsMessage::typeLabels(),
-            'storeTimezone' => StoreBusinessTime::timezoneForStore($storeId),
+            'storeTimezone' => StoreBusinessTime::timezoneForStore($displayStoreId),
         ]);
+    }
+
+    /**
+     * @return array{store_id: ?int, scope: 'loja'|'todas', store_ids: list<int>}
+     */
+    private function resolveReportStoreContext(Request $request): array
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
+        $filter = StoreContextPreference::resolveFilter($user, $request, true);
+        if ($filter['store_id'] !== null) {
+            StoreContextPreference::persist($request, $filter['store_id']);
+        } else {
+            StoreContextPreference::persistAll($request);
+        }
+
+        return $filter;
+    }
+
+    /**
+     * @param  array{store_id: ?int, scope: string, store_ids: list<int>}  $storeCtx
+     */
+    private function relatorioLojaFiltroLine(array $storeCtx): string
+    {
+        if (($storeCtx['scope'] ?? '') === StoreContextPreference::SCOPE_ALL) {
+            return 'Loja: Todas as lojas';
+        }
+
+        $storeId = $storeCtx['store_id'] ?? ($storeCtx['store_ids'][0] ?? null);
+        $name = $storeId !== null
+            ? Store::query()->whereKey($storeId)->value('name')
+            : current_store()->tryGet()?->name;
+
+        return 'Loja: '.($name !== null && $name !== '' ? $name : '—');
     }
 }

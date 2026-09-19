@@ -56,6 +56,7 @@
     <script src="{{ asset('template/js/cash-register.js') }}?v={{ file_exists(public_path('template/js/cash-register.js')) ? filemtime(public_path('template/js/cash-register.js')) : time() }}"></script>
   @endif
   @yield('js')
+  @stack('scripts')
 </body>
 
 </html>

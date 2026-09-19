@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToStore;
+use App\Models\Concerns\BelongsToOrganization;
 use App\Support\ActivityLogContext;
 use App\Support\DateTimeDisplay;
 use App\Support\PhoneDisplay;
@@ -19,7 +19,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Client extends Model
 {
-    use BelongsToStore, LogsActivity;
+    use BelongsToOrganization, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -47,6 +47,7 @@ class Client extends Model
     }
 
     protected $fillable = [
+        'organization_id',
         'store_id',
         'name',
         'email',
@@ -81,7 +82,17 @@ class Client extends Model
     ];
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<Store, $this>
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\Organization, $this>
+     */
+    public function organization(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Organization::class);
+    }
+
+    /**
+     * Loja preferida / última visita (opcional).
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo<\App\Models\Store, $this>
      */
     public function store(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
@@ -419,19 +430,19 @@ class Client extends Model
     /**
      * Verifica se já existe cliente com o mesmo número (E.164 quando analisável; senão comparação literal).
      */
-    public static function existsWithSamePhoneAs(string $phone, ?int $storeId = null, ?int $exceptClientId = null): bool
+    public static function existsWithSamePhoneAs(string $phone, ?int $organizationId = null, ?int $exceptClientId = null): bool
     {
         $phone = trim($phone);
         if ($phone === '') {
             return false;
         }
-        if ($storeId === null) {
-            $storeId = current_store_id();
+        if ($organizationId === null) {
+            $organizationId = current_organization_id();
         }
         $inputE164 = PhoneDisplay::toE164($phone);
 
         return static::query()
-            ->forStore($storeId)
+            ->forOrganization($organizationId)
             ->when($exceptClientId !== null, fn ($q) => $q->where('id', '!=', $exceptClientId))
             ->whereNotNull('phone')
             ->where('phone', '!=', '')

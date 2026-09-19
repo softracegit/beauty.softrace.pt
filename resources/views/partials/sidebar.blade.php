@@ -53,6 +53,13 @@
           </a>
         </li>
         @endif
+        @if(!$crmPrivacyLocked && $navUser->canAccessLojas())
+        <li>
+          <a href="#!" class="iconbar-item {{ request()->routeIs('lojas.*') ? 'active' : '' }}" data-panel="lojas" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Lojas" aria-label="Lojas">
+            <i class="ph ph-storefront"></i>
+          </a>
+        </li>
+        @endif
         @if(!$crmPrivacyLocked && $navUser->canAccessEquipa())
         <li>
           <a href="#!" class="iconbar-item {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-panel="agentes" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-title="Equipa" aria-label="Equipa">
@@ -257,6 +264,27 @@
     </div>
     @endif
 
+    @if(!$crmPrivacyLocked && $navUser->canAccessLojas())
+    <div class="sidebar-panel-section {{ request()->routeIs('lojas.*') ? 'active' : '' }}" data-section="lojas">
+      <div class="sidebar-panel-header">
+        <h6>Lojas</h6>
+        <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
+      </div>
+      <ul class="panel-nav">
+        <li>
+          <a class="panel-link {{ request()->routeIs('lojas.index') ? 'active' : '' }}" href="{{ route('lojas.index') }}">
+            Todas as lojas
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('lojas.create') ? 'active' : '' }}" href="{{ route('lojas.create') }}">
+            Nova loja
+          </a>
+        </li>
+      </ul>
+    </div>
+    @endif
+
     @if(!$crmPrivacyLocked && $navUser->canAccessEquipa())
     <div class="sidebar-panel-section {{ request()->routeIs('equipa.*') ? 'active' : '' }}" data-section="agentes">
       <div class="sidebar-panel-header">
@@ -296,6 +324,11 @@
       </div>
       <ul class="panel-nav">
         @if($navUser->isAdmin())
+        <li>
+          <a class="panel-link {{ request()->routeIs('relatorios.organizacao') ? 'active' : '' }}" href="{{ route('relatorios.organizacao') }}">
+            Resumo empresa
+          </a>
+        </li>
         <li>
           <a class="panel-link {{ request()->routeIs('relatorios.vendas') ? 'active' : '' }}" href="{{ route('relatorios.vendas') }}">
             Vendas
@@ -359,23 +392,18 @@
       </div>
       <ul class="panel-nav">
         <li>
-          <a class="panel-link {{ request()->routeIs('definicoes.negocio') ? 'active' : '' }}" href="{{ route('definicoes.negocio') }}">
-            Negócio
+          <a class="panel-link {{ request()->routeIs('definicoes.empresa') ? 'active' : '' }}" href="{{ route('definicoes.empresa') }}">
+            Empresa
           </a>
         </li>
         <li>
           <a class="panel-link {{ request()->routeIs('definicoes.marcacoes') ? 'active' : '' }}" href="{{ route('definicoes.marcacoes') }}">
-            Marcações
+            Booking
           </a>
         </li>
         <li>
           <a class="panel-link {{ request()->routeIs('definicoes.equipa') ? 'active' : '' }}" href="{{ route('definicoes.equipa') }}">
             Equipa
-          </a>
-        </li>
-        <li>
-          <a class="panel-link {{ request()->routeIs('definicoes.emails') ? 'active' : '' }}" href="{{ route('definicoes.emails') }}">
-            Emails
           </a>
         </li>
         <li>

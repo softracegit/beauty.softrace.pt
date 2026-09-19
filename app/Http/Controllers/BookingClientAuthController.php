@@ -6,6 +6,7 @@ use App\Mail\BookingAuthCodeMail;
 use App\Models\BookingAuthCode;
 use App\Models\Client;
 use App\Models\SmsMessage;
+use App\Models\Store;
 use App\Models\User;
 use App\Services\BookingOtpSendRateLimiter;
 use App\Services\TwilioSmsService;
@@ -308,6 +309,7 @@ class BookingClientAuthController extends Controller
 
             try {
                 $client = Client::query()->create([
+                    'organization_id' => $this->bookingPublicOrganizationId(),
                     'store_id' => $this->bookingPublicStoreId(),
                     'name' => $name,
                     'email' => $emailNorm,
@@ -426,7 +428,7 @@ class BookingClientAuthController extends Controller
         $byUserEmail = User::query()
             ->whereRaw('LOWER(email) = ?', [$emailNorm])
             ->where('role', User::ROLE_CLIENTE)
-            ->whereHas('client', fn ($c) => $c->where('store_id', $storeId))
+            ->whereHas('client', fn ($c) => $c->where('organization_id', $this->bookingPublicOrganizationId()))
             ->first();
 
         if ($byUserEmail instanceof User) {
@@ -436,8 +438,8 @@ class BookingClientAuthController extends Controller
         return User::query()
             ->where('role', User::ROLE_CLIENTE)
             ->whereNotNull('client_id')
-            ->whereHas('client', function ($q) use ($emailNorm, $storeId): void {
-                $q->where('store_id', $storeId)
+            ->whereHas('client', function ($q) use ($emailNorm): void {
+                $q->where('organization_id', $this->bookingPublicOrganizationId())
                     ->whereNotNull('email')
                     ->where('email', '!=', '')
                     ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm]);
@@ -453,7 +455,7 @@ class BookingClientAuthController extends Controller
         }
 
         $clientIds = Client::query()
-            ->where('store_id', $this->bookingPublicStoreId())
+            ->where('organization_id', $this->bookingPublicOrganizationId())
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->get(['id', 'phone'])
@@ -497,7 +499,7 @@ class BookingClientAuthController extends Controller
         }
 
         $clients = Client::query()
-            ->where('store_id', $this->bookingPublicStoreId())
+            ->where('organization_id', $this->bookingPublicOrganizationId())
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])
@@ -512,7 +514,7 @@ class BookingClientAuthController extends Controller
     private function assertNoPhoneConflictForBookingAuth(string $phoneE164): void
     {
         $matches = Client::query()
-            ->where('store_id', $this->bookingPublicStoreId())
+            ->where('organization_id', $this->bookingPublicOrganizationId())
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->get(['id', 'phone'])
@@ -581,7 +583,7 @@ class BookingClientAuthController extends Controller
         $phoneE164 = trim($phoneE164);
         if ($channel === 'phone') {
             $matches = Client::query()
-                ->where('store_id', $this->bookingPublicStoreId())
+                ->where('organization_id', $this->bookingPublicOrganizationId())
                 ->whereNotNull('phone')
                 ->where('phone', '!=', '')
                 ->get(['id', 'phone'])
@@ -609,7 +611,7 @@ class BookingClientAuthController extends Controller
         }
 
         return Client::query()
-            ->where('store_id', $this->bookingPublicStoreId())
+            ->where('organization_id', $this->bookingPublicOrganizationId())
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm])
@@ -623,8 +625,10 @@ class BookingClientAuthController extends Controller
             return null;
         }
 
+        $orgId = (int) Store::query()->whereKey($storeId)->value('organization_id');
+
         return Client::query()
-            ->forStore($storeId)
+            ->forOrganization($orgId)
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->get(['id', 'name', 'phone'])
@@ -657,7 +661,7 @@ class BookingClientAuthController extends Controller
         }
 
         $q = Client::query()
-            ->where('store_id', $this->bookingPublicStoreId())
+            ->where('organization_id', $this->bookingPublicOrganizationId())
             ->whereNotNull('email')
             ->where('email', '!=', '')
             ->whereRaw('LOWER(TRIM(email)) = ?', [$emailNorm]);
@@ -683,7 +687,7 @@ class BookingClientAuthController extends Controller
         }
 
         $conflict = Client::query()
-            ->where('store_id', $this->bookingPublicStoreId())
+            ->where('organization_id', $this->bookingPublicOrganizationId())
             ->whereNotNull('phone')
             ->where('phone', '!=', '')
             ->when($except instanceof Client, fn ($q) => $q->where('id', '!=', $except->id))
@@ -751,6 +755,13 @@ class BookingClientAuthController extends Controller
         return app(CurrentStore::class)->id();
     }
 
+    private function bookingPublicOrganizationId(): int
+    {
+        $orgId = Store::query()->whereKey($this->bookingPublicStoreId())->value('organization_id');
+
+        return (int) ($orgId ?? 0);
+    }
+
     /**
      * Após validação do código, mantém users.email alinhado com o email verificado no booking
      * quando a conta cliente foi resolvida por clients.email (dados legados).
@@ -806,6 +817,7 @@ class BookingClientAuthController extends Controller
         }
 
         $conflict = Client::query()
+            ->where('organization_id', (int) ($user->client->organization_id ?? $user->organization_id))
             ->where('id', '!=', $user->client->id)
             ->whereNotNull('phone')
             ->where('phone', '!=', '')

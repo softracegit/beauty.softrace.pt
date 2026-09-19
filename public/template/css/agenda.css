@@ -2482,6 +2482,9 @@ body.page-agenda .app-wrapper .container-fluid {
 .fc-viewSelector-button {
     margin-left: 0.55em !important;
 }
+.fc-consultantFilter-button {
+    margin-left: 0.55em !important;
+}
 
 /* Flatpickr (data pelo título): acima da toolbar e dos controlos flutuantes mobile */
 .flatpickr-calendar.open {

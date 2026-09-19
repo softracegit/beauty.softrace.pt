@@ -93,47 +93,6 @@
       </div>
     </div>
     @endif
-    @isset($activeStore, $selectableStores)
-    @if($navUser->canSwitchStore())
-    <div class="header-action dropdown store-selector-dropdown d-none">
-      <button
-        class="dropdown-toggle d-inline-flex align-items-center gap-1"
-        type="button"
-        data-bs-toggle="dropdown"
-        data-bs-display="static"
-        aria-expanded="false"
-        title="Loja activa"
-      >
-        <i class="ph ph-storefront" aria-hidden="true"></i>
-        <span class="d-none d-xl-inline text-truncate" style="max-width: 12rem">{{ $activeStore->name }}</span>
-      </button>
-      <div class="dropdown-menu">
-        <div class="px-3 py-2 small text-muted text-uppercase">Loja</div>
-        @if ($selectableStores->count() > 1)
-          @foreach ($selectableStores as $store)
-            @if ((int) $store->id === (int) $activeStore->id)
-              <span class="dropdown-item active d-flex align-items-center gap-2" aria-current="true">
-                <i class="ph ph-check fw-bold" aria-hidden="true"></i>
-                <span class="text-truncate">{{ $store->name }}</span>
-              </span>
-            @else
-              <form method="POST" action="{{ route('current-store.update') }}" class="m-0">
-                @csrf
-                <input type="hidden" name="store_id" value="{{ $store->id }}">
-                <button type="submit" class="dropdown-item d-flex align-items-center gap-2 w-100 text-start border-0 bg-transparent">
-                  <span class="visually-hidden">Mudar para </span>
-                  <span class="text-truncate">{{ $store->name }}</span>
-                </button>
-              </form>
-            @endif
-          @endforeach
-        @else
-          <div class="dropdown-item-text small text-body-secondary text-truncate">{{ $activeStore->name }}</div>
-        @endif
-      </div>
-    </div>
-    @endif
-    @endisset
     @if(!empty($cashRegisterCanManage) && !$crmPrivacyLocked)
     @php
       $cashRegisterIsOpen = ! empty($cashRegisterSession);
@@ -358,8 +317,8 @@
           @endfor
         </div>
         <div class="text-center mt-3">
-          @if(!$crmPrivacyLocked && $navUser->canAccessDefinicoes())
-          <a href="{{ route('definicoes.negocio') }}#privacy-lock-pin" class="small text-muted">Não se lembra do PIN?</a>
+          @if(!$crmPrivacyLocked && $navUser->canAccessLojas())
+          <a href="{{ route('lojas.edit', ['loja' => current_store_id(), 'tab' => 'privacidade']) }}#privacy-lock-pin" class="small text-muted">Não se lembra do PIN?</a>
           @else
           <a href="#" class="small text-muted" id="crmPrivacyPinForgotLink">Não se lembra do PIN?</a>
           @endif
@@ -382,7 +341,7 @@
       </div>
       <div class="modal-body">
         <p class="mb-2">O PIN é guardado de forma segura e <strong>não pode ser consultado</strong> depois de definido.</p>
-        <p class="mb-0">Peça a um responsável com acesso às definições para definir um <strong>novo PIN</strong> em <strong>Definições → Negócio → Privacidade no posto</strong>.</p>
+        <p class="mb-0">Peça a um responsável com acesso às definições para definir um <strong>novo PIN</strong> em <strong>Definições → Loja → Privacidade</strong>.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>

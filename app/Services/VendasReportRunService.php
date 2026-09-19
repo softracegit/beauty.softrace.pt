@@ -114,7 +114,7 @@ class VendasReportRunService
             'servico' => $request->get('vendas_servico'),
             'tecnico' => $request->get('vendas_tecnico'),
             'estado' => $request->get('vendas_estado'),
-            'data_criterio' => $request->get('vendas_data_criterio'),
+            'data_criterio' => VendasReportService::defaultDateCriterion(),
         ];
     }
 
@@ -152,15 +152,19 @@ class VendasReportRunService
     }
 
     /**
-     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string, data_criterio?: ?string}  $filters
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string, data_criterio?: ?string, store_ids?: list<int>|null}  $filters
      * @return array<int, string>
      */
     private function filtrosResumo(array $filters, string $dateCriterion): array
     {
         $desde = $filters['desde'] ?? now()->copy()->startOfMonth()->toDateString();
         $ate = $filters['ate'] ?? now()->copy()->endOfMonth()->toDateString();
+        $storeIds = $this->vendasReportService->normalizeStoreIds($filters['store_ids'] ?? null);
+        $isAll = ($filters['store_scope'] ?? null) === \App\Support\StoreContextPreference::SCOPE_ALL
+            || count($storeIds) > 1;
 
         $lines = [
+            $this->lojaFiltroLine($storeIds, $isAll),
             'Período ('.mb_strtolower(VendasReportService::dateCriterionLabel($dateCriterion)).'): '
                 .Carbon::parse($desde)->format('d/m/Y').' a '.Carbon::parse($ate)->format('d/m/Y'),
         ];
@@ -170,13 +174,13 @@ class VendasReportRunService
         }
 
         if ($cid = $filters['cliente'] ?? null) {
-            $lines[] = 'Cliente: '.(Client::query()->forStore(current_store_id())->find($cid)?->name ?? '—');
+            $lines[] = 'Cliente: '.(Client::query()->forOrganization(current_organization_id())->find($cid)?->name ?? '—');
         }
         if ($sid = $filters['servico'] ?? null) {
-            $lines[] = 'Serviço: '.(Service::query()->forStore(current_store_id())->find($sid)?->name ?? '—');
+            $lines[] = 'Serviço: '.(Service::query()->forOrganization(current_organization_id())->find($sid)?->name ?? '—');
         }
         if ($tid = $filters['tecnico'] ?? null) {
-            $lines[] = 'Técnico: '.(User::activeStaff(current_store_id())->find($tid)?->name ?? '—');
+            $lines[] = 'Técnico: '.(User::activeStaff($storeIds)->find($tid)?->name ?? '—');
         }
         if ($est = $filters['estado'] ?? null) {
             $label = $est === Sale::INVOICE_STATUS_RASCUNHO ? 'Rascunho' : ($est === Sale::INVOICE_STATUS_FATURADO ? 'Faturado' : $est);
@@ -186,6 +190,20 @@ class VendasReportRunService
         }
 
         return $lines;
+    }
+
+    /**
+     * @param  list<int>  $storeIds
+     */
+    private function lojaFiltroLine(array $storeIds, bool $isAll): string
+    {
+        if ($isAll) {
+            return 'Loja: Todas as lojas';
+        }
+
+        $name = \App\Models\Store::query()->whereKey($storeIds[0] ?? 0)->value('name');
+
+        return 'Loja: '.($name !== null && $name !== '' ? $name : (current_store()->tryGet()?->name ?: '—'));
     }
 
     /**

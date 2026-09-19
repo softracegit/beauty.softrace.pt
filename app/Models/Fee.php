@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\BelongsToStore;
+use App\Models\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class Fee extends Model
 {
-    use BelongsToStore, LogsActivity;
+    use BelongsToOrganization, LogsActivity;
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -26,6 +27,7 @@ class Fee extends Model
     }
 
     protected $fillable = [
+        'organization_id',
         'store_id',
         'name',
         'price',
@@ -36,6 +38,14 @@ class Fee extends Model
         'price' => 'decimal:2',
         'sort_order' => 'integer',
     ];
+
+    /**
+     * @return BelongsTo<Organization, $this>
+     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
 
     public function services(): BelongsToMany
     {

@@ -21,15 +21,16 @@ class ComissoesReportService
     ) {}
 
     /**
-     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string}  $filters
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string, store_ids?: list<int>|null}  $filters
      */
     public function reportQuery(array $filters): Builder
     {
         $estado = (string) ($filters['estado'] ?? '');
+        $storeIds = $this->normalizeStoreIds($filters['store_ids'] ?? null);
         $eventSub = $this->eventQuery($filters)->select('calendar_events.id');
 
         $query = Sale::query()
-            ->where('store_id', current_store_id())
+            ->whereIn('store_id', $storeIds)
             ->where('status', Sale::STATUS_PAGO)
             ->where(function (Builder $q) use ($eventSub): void {
                 $q->whereIn('calendar_event_id', $eventSub)
@@ -46,7 +47,7 @@ class ComissoesReportService
     }
 
     /**
-     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed}  $filters
+     * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, store_ids?: list<int>|null}  $filters
      */
     public function eventQuery(array $filters): Builder
     {
@@ -62,9 +63,10 @@ class ComissoesReportService
         $servico = $filters['servico'] ?? null;
         $tecnico = TechnicianFilterUserId::resolve($filters['tecnico'] ?? null);
         $cliente = $filters['cliente'] ?? null;
+        $storeIds = $this->normalizeStoreIds($filters['store_ids'] ?? null);
 
         $query = CalendarEvent::query()
-            ->forStore(current_store_id())
+            ->whereIn('store_id', $storeIds)
             ->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->whereDate('start_at', '>=', $desde)
@@ -81,6 +83,19 @@ class ComissoesReportService
         }
 
         return $query;
+    }
+
+    /**
+     * @param  list<int>|null  $storeIds
+     * @return list<int>
+     */
+    public function normalizeStoreIds(?array $storeIds): array
+    {
+        if ($storeIds !== null && $storeIds !== []) {
+            return array_values(array_unique(array_map('intval', $storeIds)));
+        }
+
+        return [(int) current_store_id()];
     }
 
     /**
@@ -113,6 +128,7 @@ class ComissoesReportService
 
     /**
      * @param  Collection<int, Sale>  $sales
+     * @param  list<int>|null  $storeIds
      * @return Collection<int, object{
      *     sale_id: int,
      *     sale_item_id: int,
@@ -129,7 +145,7 @@ class ComissoesReportService
      *     comissao_sem_iva: float
      * }>
      */
-    public function linesCollection(Collection $sales, ?int $servicoFilter = null, ?int $tecnicoFilter = null): Collection
+    public function linesCollection(Collection $sales, ?int $servicoFilter = null, ?int $tecnicoFilter = null, ?array $storeIds = null): Collection
     {
         $userIds = [];
         foreach ($sales as $sale) {
@@ -150,8 +166,10 @@ class ComissoesReportService
             }
         }
 
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         $agents = Agent::query()
-            ->where('store_id', current_store_id())
+            ->whereIn('store_id', $storeIds)
             ->whereIn('user_id', array_keys($userIds))
             ->get(['user_id', 'commission_rate', 'commission_unit'])
             ->keyBy('user_id');
@@ -549,13 +567,17 @@ class ComissoesReportService
         }
     }
 
-    public function servicosOpts(): Collection
+    /**
+     * @param  list<int>|null  $storeIds
+     */
+    public function servicosOpts(?array $storeIds = null): Collection
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return Service::query()
-            ->forStore(current_store_id())
             ->join('calendar_event_services', 'services.id', '=', 'calendar_event_services.service_id')
             ->join('calendar_events', 'calendar_events.id', '=', 'calendar_event_services.calendar_event_id')
-            ->where('calendar_events.store_id', current_store_id())
+            ->whereIn('calendar_events.store_id', $storeIds)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->select('services.id', 'services.name')
             ->distinct()
@@ -578,7 +600,7 @@ class ComissoesReportService
         }
 
         $sales = $this->salesForReport($filters);
-        $lines = $this->linesCollection($sales, null, null);
+        $lines = $this->linesCollection($sales, null, null, $filters['store_ids'] ?? null);
 
         $crmByUser = [];
         foreach ($lines as $line) {
@@ -638,12 +660,17 @@ class ComissoesReportService
         return $out;
     }
 
-    public function clientesOpts(): Collection
+    /**
+     * @param  list<int>|null  $storeIds
+     */
+    public function clientesOpts(?array $storeIds = null): Collection
     {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+
         return Client::query()
-            ->forStore(current_store_id())
+            ->forOrganization(current_organization_id())
             ->join('calendar_events', 'calendar_events.client_id', '=', 'clients.id')
-            ->where('calendar_events.store_id', current_store_id())
+            ->whereIn('calendar_events.store_id', $storeIds)
             ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
             ->select('clients.id', 'clients.name')
             ->distinct()

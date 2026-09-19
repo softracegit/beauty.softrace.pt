@@ -4,18 +4,16 @@ namespace App\Http\Controllers;
 
 use App\Models\Agent;
 use App\Models\CrmSetting;
-use App\Models\Store;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
 use App\Services\ClientTagService;
+use App\Services\StoreBusinessSettingsService;
 use App\Services\StoreSettingsActivityLogger;
 use App\Support\BookingTheme;
 use App\Support\CurrentStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -24,220 +22,67 @@ class DefinicoesController extends Controller
     public function __construct(
         private readonly StoreSettingsActivityLogger $settingsActivityLogger,
         private readonly ClientTagService $clientTagService,
+        private readonly StoreBusinessSettingsService $storeBusinessSettings,
     ) {}
 
     public function index(): RedirectResponse
     {
-        return redirect()->route('definicoes.negocio');
+        return redirect()->route('definicoes.empresa');
     }
 
-    public function negocio(): View
+    public function empresa(Request $request): View
     {
-        $store = app(CurrentStore::class)->get();
+        $orgId = current_organization_id();
+        $organization = \App\Models\Organization::query()->findOrFail($orgId);
+        $data = $this->storeBusinessSettings->viewDataForOrganization($organization, $request->query('tab'));
 
-        return view('definicoes.negocio', [
-            'pageTitle' => 'Negócio',
-            'store' => $store,
-            'weeklySchedule' => old('weekly_schedule', $store->normalizedWeeklySchedule()),
-            'privacyLockIdleMinutes' => old('privacy_lock_idle_minutes', CrmSetting::privacyLockIdleMinutes((int) $store->id)),
-            'privacyLockEnabled' => CrmSetting::privacyLockEnabled((int) $store->id),
-        ]);
+        return view('definicoes.empresa', array_merge($data, [
+            'pageTitle' => 'Empresa',
+        ]));
     }
 
-    public function updateNegocio(Request $request): RedirectResponse
+    public function updateEmpresa(Request $request): RedirectResponse
     {
-        $store = app(CurrentStore::class)->get();
-        $storeId = (int) $store->id;
+        $orgId = current_organization_id();
+        $organization = \App\Models\Organization::query()->findOrFail($orgId);
+        $this->storeBusinessSettings->applyToOrganization($request, $organization);
 
-        $before = [
-            'name' => $store->name,
-            'email' => $store->email,
-            'phone' => $store->phone,
-            'address_line' => $store->address_line,
-            'city' => $store->city,
-            'postal_code' => $store->postal_code,
-            'maps_url' => $store->maps_url,
-            'website_url' => $store->website_url,
-            'instagram_url' => $store->instagram_url,
-            'logo' => $store->logo,
-            'logo_email' => $store->logo_email,
-            'logo_favicon' => $store->logo_favicon,
-            'weekly_schedule' => $store->normalizedWeeklySchedule(),
-            'privacy_lock_enabled' => CrmSetting::privacyLockEnabled($storeId),
-            'privacy_lock_idle_minutes' => CrmSetting::privacyLockIdleMinutes($storeId),
-        ];
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:64'],
-            'address_line' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:120'],
-            'postal_code' => ['nullable', 'string', 'max:32'],
-            'maps_url' => ['nullable', 'url', 'max:512'],
-            'website_url' => ['nullable', 'url', 'max:512'],
-            'instagram_url' => ['nullable', 'url', 'max:512'],
-            'logo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
-            'logo_email' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
-            'logo_favicon' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
-            'remove_logo' => ['nullable', 'boolean'],
-            'remove_logo_email' => ['nullable', 'boolean'],
-            'remove_logo_favicon' => ['nullable', 'boolean'],
-            'privacy_lock_idle_minutes' => ['nullable', 'integer', 'min:0', 'max:240'],
-            'privacy_lock_pin' => ['nullable', 'regex:/^\d{4}$/'],
-            'privacy_lock_pin_confirmation' => ['nullable', 'same:privacy_lock_pin'],
-        ], [
-            'maps_url.url' => 'O link do mapa deve ser um URL válido.',
-            'website_url.url' => 'O site deve ser um URL válido.',
-            'instagram_url.url' => 'O Instagram deve ser um URL válido.',
-            'privacy_lock_pin.regex' => 'O PIN deve ter exatamente 4 dígitos.',
-            'privacy_lock_pin_confirmation.same' => 'A confirmação do PIN não coincide.',
-        ]);
-
-        $logoPath = $this->handleStoreLogoField($request, $store, 'logo', 'remove_logo', $store->logo);
-        $logoEmailPath = $this->handleStoreLogoField($request, $store, 'logo_email', 'remove_logo_email', $store->logo_email);
-        $logoFaviconPath = $this->handleStoreLogoField($request, $store, 'logo_favicon', 'remove_logo_favicon', $store->logo_favicon);
-
-        $store->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'] ?? null,
-            'phone' => $validated['phone'] ?? null,
-            'address_line' => $validated['address_line'] ?? null,
-            'city' => $validated['city'] ?? null,
-            'postal_code' => $validated['postal_code'] ?? null,
-            'maps_url' => $validated['maps_url'] ?? null,
-            'website_url' => $validated['website_url'] ?? null,
-            'instagram_url' => $validated['instagram_url'] ?? null,
-            'logo' => $logoPath,
-            'logo_email' => $logoEmailPath,
-            'logo_favicon' => $logoFaviconPath,
-            'weekly_schedule' => $this->validatedWeeklySchedule($request),
-        ]);
-
-        CrmSetting::setPrivacyLockIdleMinutes(
-            (int) ($validated['privacy_lock_idle_minutes'] ?? 5),
-            $storeId,
-        );
-
-        if ($request->filled('privacy_lock_pin')) {
-            CrmSetting::setPrivacyLockPinHash(
-                Hash::make((string) $request->input('privacy_lock_pin')),
-                $storeId,
-            );
-        }
-
-        $store->refresh();
-        $changes = array_filter([
-            $this->settingsActivityLogger->logScalarChange('Nome', $before['name'], $store->name),
-            $this->settingsActivityLogger->logScalarChange('Email', $before['email'], $store->email),
-            $this->settingsActivityLogger->logScalarChange('Telefone', $before['phone'], $store->phone),
-            $this->settingsActivityLogger->logScalarChange('Morada', $before['address_line'], $store->address_line),
-            $this->settingsActivityLogger->logScalarChange('Cidade', $before['city'], $store->city),
-            $this->settingsActivityLogger->logScalarChange('Código postal', $before['postal_code'], $store->postal_code),
-            $this->settingsActivityLogger->logScalarChange('Link do mapa', $before['maps_url'], $store->maps_url),
-            $this->settingsActivityLogger->logScalarChange('Site', $before['website_url'], $store->website_url),
-            $this->settingsActivityLogger->logScalarChange('Instagram', $before['instagram_url'], $store->instagram_url),
-        ]);
-
-        if ($before['logo'] !== $logoPath) {
-            $changes[] = $logoPath ? 'Logo principal atualizado' : 'Logo principal removido';
-        }
-        if ($before['logo_email'] !== $logoEmailPath) {
-            $changes[] = $logoEmailPath ? 'Logo de email atualizado' : 'Logo de email removido';
-        }
-        if ($before['logo_favicon'] !== $logoFaviconPath) {
-            $changes[] = $logoFaviconPath ? 'Favicon atualizado' : 'Favicon removido';
-        }
-        if (json_encode($before['weekly_schedule']) !== json_encode($store->normalizedWeeklySchedule())) {
-            $changes[] = 'Horário da loja alterado';
-        }
-        if ($before['privacy_lock_idle_minutes'] !== CrmSetting::privacyLockIdleMinutes($storeId)) {
-            $changes[] = 'Inatividade para bloqueio CRM alterada';
-        }
-        if (! $before['privacy_lock_enabled'] && CrmSetting::privacyLockEnabled($storeId)) {
-            $changes[] = 'PIN do bloqueio CRM configurado';
-        }
-        if ($before['privacy_lock_enabled'] && $request->filled('privacy_lock_pin')) {
-            $changes[] = 'PIN do bloqueio CRM atualizado';
-        }
-
-        $this->settingsActivityLogger->logSection(
-            $store,
-            'negocio',
-            'Definições do negócio atualizadas',
-            array_values($changes),
-        );
+        $tab = $this->storeBusinessSettings->resolveActiveTab($request->input('_active_tab'));
 
         return redirect()
-            ->route('definicoes.negocio')
-            ->with('status', 'Dados do negócio guardados.');
+            ->route('definicoes.empresa', ['tab' => $tab])
+            ->with('status', 'Dados da empresa guardados.');
     }
 
-    public function emails(): View
+    public function negocio(Request $request): RedirectResponse
     {
-        $storeId = current_store_id();
-
-        return view('definicoes.emails', [
-            'pageTitle' => 'Emails',
-            'emailUseBusinessBranding' => CrmSetting::emailUseBusinessBranding($storeId),
-        ]);
+        return $this->redirectToCurrentStoreEdit($request->query('tab'));
     }
 
-    public function updateEmails(Request $request): RedirectResponse
+    public function updateNegocio(): RedirectResponse
     {
-        $storeId = current_store_id();
+        return $this->redirectToCurrentStoreEdit();
+    }
+
+    public function emails(): RedirectResponse
+    {
+        return $this->redirectToCurrentStoreEdit('emails');
+    }
+
+    public function updateEmails(): RedirectResponse
+    {
+        return $this->redirectToCurrentStoreEdit('emails');
+    }
+
+    private function redirectToCurrentStoreEdit(?string $tab = null): RedirectResponse
+    {
         $store = app(CurrentStore::class)->get();
-        $beforeBranding = CrmSetting::emailUseBusinessBranding($storeId);
-
-        $request->validate([
-            'email_use_business_branding' => ['nullable', 'boolean'],
-        ]);
-
-        CrmSetting::setEmailUseBusinessBranding(
-            $request->boolean('email_use_business_branding'),
-            $storeId,
-        );
-
-        $change = $this->settingsActivityLogger->logBoolChange(
-            'Branding nos emails',
-            $beforeBranding,
-            CrmSetting::emailUseBusinessBranding($storeId),
-        );
-
-        $this->settingsActivityLogger->logSection(
-            $store,
-            'emails',
-            'Definições de emails atualizadas',
-            array_values(array_filter([$change])),
-        );
-
-        return redirect()
-            ->route('definicoes.emails')
-            ->with('status', 'Definições de emails guardadas.');
-    }
-
-    private function handleStoreLogoField(
-        Request $request,
-        Store $store,
-        string $uploadField,
-        string $removeField,
-        ?string $currentPath,
-    ): ?string {
-        $path = $currentPath;
-        if ($request->boolean($removeField) && $path) {
-            Storage::disk('public')->delete($path);
-            $path = null;
-        }
-        if ($request->hasFile($uploadField)) {
-            if ($path) {
-                Storage::disk('public')->delete($path);
-            }
-            $logoDir = $store->logoStorageDirectory();
-            Storage::disk('public')->makeDirectory($logoDir);
-            $path = $request->file($uploadField)->store($logoDir, 'public');
+        $params = ['loja' => $store];
+        if (is_string($tab) && $tab !== '') {
+            $params['tab'] = $tab;
         }
 
-        return $path;
+        return redirect()->route('lojas.edit', $params);
     }
 
     public function marcacoes(): View
@@ -245,7 +90,7 @@ class DefinicoesController extends Controller
         $storeId = current_store_id();
 
         return view('definicoes.agendamentos', [
-            'pageTitle' => 'Marcações',
+            'pageTitle' => 'Booking',
             'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes($storeId),
             'bookingCancellationNoticeHours' => CrmSetting::bookingCancellationNoticeHours($storeId),
             'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRulesUi(),
@@ -587,7 +432,7 @@ class DefinicoesController extends Controller
 
         return redirect()
             ->route('definicoes.pagamentos')
-            ->with('status', 'Definições de pagamento guardadas.');
+            ->with('status', 'Definições de pagamento guardadas (métodos: toda a organização; gorjeta e booking online: loja activa).');
     }
 
     public function updatePagamentosStripe(Request $request): RedirectResponse
@@ -603,7 +448,7 @@ class DefinicoesController extends Controller
             $this->settingsActivityLogger->logSection(
                 $store,
                 'pagamentos',
-                'Stripe desativado',
+                'Stripe desativado na organização',
                 array_values(array_filter([
                     $this->settingsActivityLogger->logBoolChange(
                         'Stripe ativo',
@@ -615,7 +460,7 @@ class DefinicoesController extends Controller
 
             return redirect()
                 ->route('definicoes.pagamentos')
-                ->with('status', 'Stripe desativado.');
+                ->with('status', 'Stripe desativado para toda a organização.');
         }
 
         $validated = $request->validate([
@@ -657,7 +502,7 @@ class DefinicoesController extends Controller
         $this->settingsActivityLogger->logSection(
             $store,
             'pagamentos',
-            'Configuração Stripe actualizada',
+            'Configuração Stripe da organização actualizada',
             array_values(array_filter([
                 $this->settingsActivityLogger->logBoolChange(
                     'Stripe ativo',
@@ -669,7 +514,7 @@ class DefinicoesController extends Controller
 
         return redirect()
             ->route('definicoes.pagamentos')
-            ->with('status', 'Stripe ativado e configurado.');
+            ->with('status', 'Stripe ativado e configurado para toda a organização.');
     }
 
     public function notificacoes(): View
@@ -741,49 +586,6 @@ class DefinicoesController extends Controller
         }
 
         return (bool) filter_var($value, FILTER_VALIDATE_BOOLEAN);
-    }
-
-    /**
-     * @return array<string, array{enabled: bool, start: ?string, end: ?string}>
-     */
-    private function validatedWeeklySchedule(Request $request): array
-    {
-        $raw = $request->input('weekly_schedule');
-        if (! is_array($raw)) {
-            throw ValidationException::withMessages([
-                'weekly_schedule' => 'Indique o horário da loja.',
-            ]);
-        }
-
-        $timePattern = '/^([01]\d|2[0-3]):(00|15|30|45)$/';
-        $out = [];
-
-        foreach (Agent::WEEKDAY_KEYS as $day) {
-            $dayIn = $raw[$day] ?? [];
-            $enabled = filter_var($dayIn['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            if (! $enabled) {
-                $out[$day] = ['enabled' => false, 'start' => null, 'end' => null];
-
-                continue;
-            }
-            $start = $dayIn['start'] ?? '09:00';
-            $end = $dayIn['end'] ?? '20:00';
-            if (! is_string($start) || ! is_string($end) || ! preg_match($timePattern, $start) || ! preg_match($timePattern, $end)) {
-                throw ValidationException::withMessages([
-                    "weekly_schedule.{$day}" => 'Horário inválido. Use intervalos de 15 minutos (00:00–23:45).',
-                ]);
-            }
-            $smin = Agent::timeStringToMinutes($start);
-            $emin = Agent::timeStringToMinutes($end);
-            if ($smin >= $emin) {
-                throw ValidationException::withMessages([
-                    "weekly_schedule.{$day}" => 'A hora de início deve ser anterior à hora de fim.',
-                ]);
-            }
-            $out[$day] = ['enabled' => true, 'start' => $start, 'end' => $end];
-        }
-
-        return $out;
     }
 
     public function etiquetas(): View

@@ -14,12 +14,13 @@ class FeeController extends Controller
 {
     public function index(): View
     {
-        $fees = Fee::forStore(current_store_id())
+        $organizationId = current_organization_id();
+        $fees = Fee::forOrganization($organizationId)
             ->withCount('services')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
-        $association = ServiceCategoriesForAssociation::forStore();
+        $association = ServiceCategoriesForAssociation::forOrganization($organizationId);
 
         return view('fees.index', [
             'fees' => $fees,
@@ -33,10 +34,11 @@ class FeeController extends Controller
         $serviceIds = $data['service_ids'] ?? null;
         unset($data['service_ids']);
 
+        $organizationId = current_organization_id();
         if (! isset($data['sort_order'])) {
-            $data['sort_order'] = (Fee::forStore(current_store_id())->max('sort_order') ?? 0) + 1;
+            $data['sort_order'] = (Fee::forOrganization($organizationId)->max('sort_order') ?? 0) + 1;
         }
-        $data['store_id'] = current_store_id();
+        $data['organization_id'] = $organizationId;
 
         $fee = Fee::create($data);
         if ($serviceIds !== null) {

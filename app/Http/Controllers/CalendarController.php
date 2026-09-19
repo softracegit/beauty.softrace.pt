@@ -563,7 +563,7 @@ class CalendarController extends Controller
         $clientId = $request->get('client_id');
 
         if ($clientId) {
-            $client = \App\Models\Client::forStore(current_store_id())->with('tags')->whereKey($clientId)->first();
+            $client = \App\Models\Client::forOrganization(current_organization_id())->with('tags')->whereKey($clientId)->first();
             if ($client) {
                 return response()->json([$this->sanitizeClientPayloadForUser($this->clientAgendaPayload($client))]);
             }
@@ -571,7 +571,7 @@ class CalendarController extends Controller
             return response()->json([]);
         }
 
-        $query = \App\Models\Client::query()->forStore(current_store_id())->orderBy('name')->limit(50);
+        $query = \App\Models\Client::query()->forOrganization(current_organization_id())->orderBy('name')->limit(50);
 
         if (strlen($search) >= 1) {
             $query->where(function ($q) use ($search) {
@@ -625,7 +625,7 @@ class CalendarController extends Controller
         }
 
         $validated = array_merge($validated, $request->validate([
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'email' => ['nullable', 'email', 'max:255', Rule::unique('clients', 'email')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'nif' => ['nullable', 'digits:9'],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
         ], [
@@ -636,6 +636,7 @@ class CalendarController extends Controller
         ]));
 
         $client = Client::create([
+            'organization_id' => current_organization_id(),
             'store_id' => current_store_id(),
             'name' => $validated['name'],
             'email' => $validated['email'] ?? null,
@@ -687,7 +688,7 @@ class CalendarController extends Controller
                 'max:255',
                 Rule::unique('clients', 'email')
                     ->ignore($client->id)
-                    ->where(fn ($q) => $q->where('store_id', current_store_id())),
+                    ->where(fn ($q) => $q->where('organization_id', current_organization_id())),
             ],
             'phone' => ['sometimes', 'required', 'string', 'max:50', new UniqueClientPhone($client->id)],
             'birth_date' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
@@ -1171,10 +1172,10 @@ class CalendarController extends Controller
             'description' => ['nullable', 'string'],
             'event_type' => ['required', 'in:manual,outro,marcacao,tempo_pessoal'],
             'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
-            'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
-            'service_id' => ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
+            'service_id' => ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'services' => ['nullable', 'array'],
-            'services.*.service_id' => ['required_with:services', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'services.*.service_id' => ['required_with:services', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
@@ -1213,7 +1214,7 @@ class CalendarController extends Controller
             if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
             } else {
-                $request->validate(['service_id' => ['required', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))]]);
+                $request->validate(['service_id' => ['required', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))]]);
                 $validated['service_id'] = $request->input('service_id');
             }
         } else {
@@ -1362,9 +1363,9 @@ class CalendarController extends Controller
             'cancellation_type' => ['nullable', 'string', 'in:faltou,cancelado'],
             'refund_reserva' => ['nullable', 'boolean'],
             'avisou_dentro_prazo' => ['nullable', 'boolean'],
-            'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'services' => ['nullable', 'array'],
-            'services.*.service_id' => ['required_with:services', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'services.*.service_id' => ['required_with:services', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
@@ -1387,7 +1388,7 @@ class CalendarController extends Controller
             $rules['personal_time_type_id'] = ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))];
             $rules['description'] = ['nullable', 'string'];
             $rules['event_type'] = ['sometimes', 'in:manual,outro,marcacao,tempo_pessoal'];
-            $rules['service_id'] = ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))];
+            $rules['service_id'] = ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))];
         }
 
         $validated = $request->validate($rules);
@@ -1455,7 +1456,7 @@ class CalendarController extends Controller
             if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
             } elseif (! array_key_exists('service_id', $validated)) {
-                $request->validate(['service_id' => ['required', Rule::exists('services', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))]]);
+                $request->validate(['service_id' => ['required', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))]]);
                 $validated['service_id'] = $request->input('service_id');
             }
         } elseif (isset($validated['event_type']) && $validated['event_type'] !== CalendarEvent::TYPE_MARCACAO) {
