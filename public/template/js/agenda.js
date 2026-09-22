@@ -8830,10 +8830,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    /** Polling MB WAY: um pedido finalize de cada vez; evita 422 por corrida + toast falso. */
+    /** Polling / modal de espera MB WAY (Stripe). */
+    var MBWAY_POLL_MS = 1000;
+    var MBWAY_FIRST_POLL_MS = 700;
+    var MBWAY_MAX_WAIT_MS = 4 * 60 * 1000;
     var paymentMbwayFinalizeInterval = null;
+    var paymentMbwayCountdownInterval = null;
     var paymentMbwayFinalizeSucceeded = false;
     var paymentMbwayFinalizeRequestPending = false;
+    var paymentMbwayAwaiting = false;
+    var paymentMbwayWaitState = null;
+    var paymentMbwayCancelInFlight = false;
+    var paymentMbwayDeadlineReached = false;
 
     function paymentModalStopMbwayFinalizePoll() {
         if (paymentMbwayFinalizeInterval !== null) {
@@ -8841,6 +8849,341 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentMbwayFinalizeInterval = null;
         }
         paymentMbwayFinalizeRequestPending = false;
+    }
+
+    function paymentModalStopMbwayCountdown() {
+        if (paymentMbwayCountdownInterval !== null) {
+            clearInterval(paymentMbwayCountdownInterval);
+            paymentMbwayCountdownInterval = null;
+        }
+    }
+
+    function paymentModalFormatMbwayCountdown(msLeft) {
+        var totalSec = Math.max(0, Math.ceil(msLeft / 1000));
+        var m = Math.floor(totalSec / 60);
+        var s = totalSec % 60;
+        return m + ':' + String(s).padStart(2, '0');
+    }
+
+    function paymentModalUpdateMbwayCountdownDisplay(msLeft) {
+        var el = $id('mbwayWaitingCountdown');
+        if (el) el.textContent = paymentModalFormatMbwayCountdown(msLeft);
+    }
+
+    function paymentModalSetMbwayAwaiting(active) {
+        paymentMbwayAwaiting = !!active;
+        var payModal = $id('paymentModal');
+        var closeBtn = $id('paymentModalCloseBtn');
+        var cancelBtn = $id('paymentCancelBtn');
+        if (payModal) {
+            payModal.setAttribute('data-mbway-awaiting', paymentMbwayAwaiting ? '1' : '0');
+            if (paymentMbwayAwaiting) {
+                payModal.setAttribute('data-bs-keyboard', 'false');
+            } else {
+                payModal.removeAttribute('data-bs-keyboard');
+            }
+        }
+        if (closeBtn) closeBtn.disabled = paymentMbwayAwaiting;
+        if (cancelBtn) cancelBtn.disabled = paymentMbwayAwaiting;
+    }
+
+    function paymentModalHideMbwayWaitingModal() {
+        var el = $id('mbwayWaitingModal');
+        if (!el) return;
+        var inst = bootstrap.Modal.getInstance(el);
+        if (inst) inst.hide();
+    }
+
+    function paymentModalShowMbwayWaitingModal() {
+        var el = $id('mbwayWaitingModal');
+        if (!el || !window.bootstrap || !bootstrap.Modal) return;
+        paymentModalUpdateMbwayCountdownDisplay(MBWAY_MAX_WAIT_MS);
+        bootstrap.Modal.getOrCreateInstance(el, { backdrop: 'static', keyboard: false }).show();
+        // Keep wait modal above payment modal backdrops.
+        requestAnimationFrame(function() {
+            el.style.zIndex = '1080';
+            var backdrops = document.querySelectorAll('.modal-backdrop');
+            if (backdrops.length) {
+                backdrops[backdrops.length - 1].style.zIndex = '1075';
+            }
+        });
+    }
+
+    function paymentModalClearMbwayWait(opts) {
+        opts = opts || {};
+        paymentModalStopMbwayFinalizePoll();
+        paymentModalStopMbwayCountdown();
+        paymentModalSetMbwayAwaiting(false);
+        paymentMbwayWaitState = null;
+        paymentMbwayCancelInFlight = false;
+        paymentMbwayDeadlineReached = false;
+        var cancelBtn = $id('mbwayWaitingCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+            cancelBtn.textContent = 'Cancelar';
+        }
+        if (!opts.keepWaitingModal) {
+            paymentModalHideMbwayWaitingModal();
+        }
+    }
+
+    function paymentModalMbwayCancelUrl(state) {
+        if (!state) return '';
+        if (state.mode === 'reserva') {
+            return paymentModalDepositUrl('agendaDepositMbwayCancelUrl', state.eventId);
+        }
+        return C.agendaCheckoutMbwayCancelUrl || '';
+    }
+
+    function paymentModalMbwayFinalizeUrl(state) {
+        if (!state) return '';
+        if (state.mode === 'reserva') {
+            return paymentModalDepositUrl('agendaDepositMbwayFinalizeUrl', state.eventId);
+        }
+        return C.agendaCheckoutMbwayFinalizeUrl || '';
+    }
+
+    function paymentModalMbwayStatusUrl(state) {
+        if (!state) return '';
+        if (state.mode === 'reserva') {
+            return paymentModalDepositUrl('agendaDepositMbwayStatusUrl', state.eventId);
+        }
+        return C.agendaCheckoutMbwayStatusUrl || '';
+    }
+
+    function paymentModalRequestMbwayCancel(reason, done) {
+        var state = paymentMbwayWaitState;
+        if (!state || !state.paymentIntentId) {
+            if (typeof done === 'function') done({ ok: false });
+            return;
+        }
+        var url = paymentModalMbwayCancelUrl(state);
+        if (!url) {
+            if (typeof done === 'function') done({ ok: false });
+            return;
+        }
+        var body = {
+            payment_intent_id: state.paymentIntentId,
+            cancellation_reason: reason || 'requested_by_customer'
+        };
+        if (state.mode !== 'reserva') {
+            body.event_id = state.eventId;
+        }
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(body)
+        })
+        .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res || {} }; }); })
+        .then(function(pack) {
+            if (typeof done === 'function') done(pack);
+        })
+        .catch(function() {
+            if (typeof done === 'function') done({ ok: false, res: {} });
+        });
+    }
+
+    function paymentModalOnMbwayWaitSuccess(res) {
+        var state = paymentMbwayWaitState;
+        paymentMbwayFinalizeSucceeded = true;
+        paymentModalClearMbwayWait();
+        if (state && typeof state.onSuccess === 'function') {
+            state.onSuccess(res || {});
+        }
+    }
+
+    function paymentModalExpireOrCancelMbwayWait(reason, toastMsg) {
+        if (paymentMbwayFinalizeSucceeded || paymentMbwayCancelInFlight) return;
+        paymentMbwayCancelInFlight = true;
+        paymentModalStopMbwayFinalizePoll();
+        paymentModalStopMbwayCountdown();
+        var cancelBtn = $id('mbwayWaitingCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.disabled = true;
+            cancelBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>A cancelar...';
+        }
+        paymentModalRequestMbwayCancel(reason, function(pack) {
+            var status = pack && pack.res ? String(pack.res.status || '') : '';
+            if (status === 'succeeded') {
+                // Cliente pagou no instante do cancel — tentar finalize uma vez.
+                paymentMbwayCancelInFlight = false;
+                paymentModalAttemptMbwayFinalize(true);
+                return;
+            }
+            paymentModalClearMbwayWait();
+            paymentModalRestoreConfirmButton();
+            if (toastMsg) showToast(toastMsg, reason === 'abandoned' ? 'warning' : 'info');
+        });
+    }
+
+    function paymentModalRunMbwayFinalizeRequest(isFinalAttempt) {
+        var state = paymentMbwayWaitState;
+        if (!state || paymentMbwayFinalizeSucceeded || paymentMbwayFinalizeRequestPending) return;
+        var url = paymentModalMbwayFinalizeUrl(state);
+        if (!url) return;
+        paymentMbwayFinalizeRequestPending = true;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(state.finalizeBody || {})
+        })
+        .then(function(r) { return r.json().then(function(res2) { return { ok: r.ok, status: r.status, res: res2 || {} }; }); })
+        .then(function(pack) {
+            paymentMbwayFinalizeRequestPending = false;
+            if (paymentMbwayFinalizeSucceeded) return;
+            if (pack.ok && pack.res && pack.res.success) {
+                paymentModalOnMbwayWaitSuccess(pack.res);
+                return;
+            }
+            if (pack.res && pack.res.terminal) {
+                paymentModalClearMbwayWait();
+                paymentModalRestoreConfirmButton();
+                showToast(pack.res.message || 'O cliente recusou ou cancelou o pagamento MB Way.', 'warning');
+                return;
+            }
+            if (pack.status === 202) {
+                if (isFinalAttempt || paymentMbwayDeadlineReached) {
+                    paymentModalExpireOrCancelMbwayWait('abandoned', 'Pedido MB Way expirou. Gere um novo pagamento.');
+                }
+                return;
+            }
+            if (paymentMbwayFinalizeSucceeded) return;
+            paymentModalClearMbwayWait();
+            paymentModalRestoreConfirmButton();
+            showToast((pack.res && (pack.res.error || pack.res.message)) || 'Falha ao confirmar pagamento MB WAY.', 'error');
+        })
+        .catch(function() {
+            paymentMbwayFinalizeRequestPending = false;
+            if (paymentMbwayFinalizeSucceeded) return;
+            if (isFinalAttempt) {
+                paymentModalExpireOrCancelMbwayWait('abandoned', 'Pedido MB Way expirou. Gere um novo pagamento.');
+            }
+        });
+    }
+
+    function paymentModalAttemptMbwayFinalize(isFinalAttempt) {
+        var state = paymentMbwayWaitState;
+        if (!state || paymentMbwayFinalizeSucceeded || paymentMbwayFinalizeRequestPending) return;
+        var statusUrl = paymentModalMbwayStatusUrl(state);
+        if (!statusUrl) {
+            paymentModalRunMbwayFinalizeRequest(isFinalAttempt);
+            return;
+        }
+        paymentMbwayFinalizeRequestPending = true;
+        var body = { payment_intent_id: state.paymentIntentId };
+        if (state.mode !== 'reserva') {
+            body.event_id = state.eventId;
+        }
+        fetch(statusUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(body)
+        })
+        .then(function(r) { return r.json().then(function(res2) { return { ok: r.ok, status: r.status, res: res2 || {} }; }); })
+        .then(function(pack) {
+            paymentMbwayFinalizeRequestPending = false;
+            if (paymentMbwayFinalizeSucceeded) return;
+            var res = pack.res || {};
+            var pollState = String(res.state || '');
+            if (pack.ok && (res.success || pollState === 'completed')) {
+                paymentModalOnMbwayWaitSuccess(res);
+                return;
+            }
+            if (res.terminal || pollState === 'terminal') {
+                paymentModalClearMbwayWait();
+                paymentModalRestoreConfirmButton();
+                showToast(res.message || 'O cliente recusou ou cancelou o pagamento MB Way.', 'warning');
+                return;
+            }
+            if (pollState === 'ready_to_finalize') {
+                paymentModalRunMbwayFinalizeRequest(isFinalAttempt);
+                return;
+            }
+            if (pack.status === 202 || pollState === 'waiting') {
+                if (isFinalAttempt || paymentMbwayDeadlineReached) {
+                    paymentModalExpireOrCancelMbwayWait('abandoned', 'Pedido MB Way expirou. Gere um novo pagamento.');
+                }
+                return;
+            }
+            if (pollState === 'error' || !pack.ok) {
+                if (isFinalAttempt) {
+                    paymentModalClearMbwayWait();
+                    paymentModalRestoreConfirmButton();
+                    showToast(res.message || res.error || 'Falha ao confirmar pagamento MB WAY.', 'error');
+                }
+                return;
+            }
+            if (isFinalAttempt || paymentMbwayDeadlineReached) {
+                paymentModalExpireOrCancelMbwayWait('abandoned', 'Pedido MB Way expirou. Gere um novo pagamento.');
+            }
+        })
+        .catch(function() {
+            paymentMbwayFinalizeRequestPending = false;
+            if (paymentMbwayFinalizeSucceeded) return;
+            if (isFinalAttempt) {
+                paymentModalExpireOrCancelMbwayWait('abandoned', 'Pedido MB Way expirou. Gere um novo pagamento.');
+            }
+        });
+    }
+
+    /**
+     * @param {{
+     *   mode: 'caixa'|'reserva',
+     *   eventId: string|number,
+     *   paymentIntentId: string,
+     *   finalizeBody: object,
+     *   onSuccess: function(object): void
+     * }} opts
+     */
+    function paymentModalStartMbwayWait(opts) {
+        paymentMbwayFinalizeSucceeded = false;
+        paymentModalStopMbwayFinalizePoll();
+        paymentModalStopMbwayCountdown();
+        paymentMbwayWaitState = {
+            mode: opts.mode || 'caixa',
+            eventId: opts.eventId,
+            paymentIntentId: opts.paymentIntentId,
+            finalizeBody: opts.finalizeBody || {},
+            onSuccess: opts.onSuccess,
+            startedAt: Date.now()
+        };
+        paymentModalSetMbwayAwaiting(true);
+        paymentModalShowMbwayWaitingModal();
+
+        paymentMbwayCountdownInterval = setInterval(function() {
+            var state = paymentMbwayWaitState;
+            if (!state) return;
+            var elapsed = Date.now() - state.startedAt;
+            var left = MBWAY_MAX_WAIT_MS - elapsed;
+            paymentModalUpdateMbwayCountdownDisplay(left);
+            if (left <= 0) {
+                paymentMbwayDeadlineReached = true;
+                paymentModalStopMbwayCountdown();
+                paymentModalStopMbwayFinalizePoll();
+                paymentModalAttemptMbwayFinalize(true);
+            }
+        }, 250);
+
+        paymentMbwayFinalizeInterval = setInterval(function() {
+            if (paymentMbwayFinalizeSucceeded || paymentMbwayCancelInFlight || paymentMbwayDeadlineReached) return;
+            var state = paymentMbwayWaitState;
+            if (!state) return;
+            var elapsed = Date.now() - state.startedAt;
+            if (elapsed >= MBWAY_MAX_WAIT_MS) {
+                paymentMbwayDeadlineReached = true;
+                paymentModalStopMbwayFinalizePoll();
+                paymentModalAttemptMbwayFinalize(true);
+                return;
+            }
+            paymentModalAttemptMbwayFinalize(false);
+        }, MBWAY_POLL_MS);
+
+        // Primeira tentativa rápida após o push MB Way.
+        setTimeout(function() {
+            if (!paymentMbwayFinalizeSucceeded && !paymentMbwayCancelInFlight) {
+                paymentModalAttemptMbwayFinalize(false);
+            }
+        }, MBWAY_FIRST_POLL_MS);
     }
 
     function eventDetailServicesSubtotal() {
@@ -9997,58 +10340,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                     showToast(res.message || 'Pedido MB WAY enviado para o cliente.', 'success');
-                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>A aguardar MB WAY...';
                     var paymentIntentId = res.payment_intent_id;
                     if (!paymentIntentId) {
                         paymentModalRestoreConfirmButton();
                         showToast('Resposta MB WAY inválida.', 'error');
                         return;
                     }
-                    paymentMbwayFinalizeSucceeded = false;
-                    paymentModalStopMbwayFinalizePoll();
-                    var triesR = 0;
-                    var maxTriesR = 30;
-                    paymentMbwayFinalizeInterval = setInterval(function() {
-                        if (paymentMbwayFinalizeSucceeded) return;
-                        if (paymentMbwayFinalizeRequestPending) return;
-                        triesR += 1;
-                        paymentMbwayFinalizeRequestPending = true;
-                        fetch(paymentModalDepositUrl('agendaDepositMbwayFinalizeUrl', eventId), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                            body: JSON.stringify(Object.assign({ payment_intent_id: paymentIntentId }, depositBase)),
-                        })
-                        .then(function(r) { return r.json().then(function(res2) { return { ok: r.ok, status: r.status, res: res2 || {} }; }); })
-                        .then(function(pack) {
-                            paymentMbwayFinalizeRequestPending = false;
-                            if (paymentMbwayFinalizeSucceeded) return;
-                            if (pack.ok && pack.res && pack.res.success) {
-                                paymentMbwayFinalizeSucceeded = true;
-                                paymentModalStopMbwayFinalizePoll();
-                                paymentModalHandleDepositSuccess(pack.res, eventId);
-                                return;
-                            }
-                            if (pack.status === 202) {
-                                if (triesR >= maxTriesR) {
-                                    paymentModalStopMbwayFinalizePoll();
-                                    paymentModalRestoreConfirmButton();
-                                    showToast('Pedido MB WAY enviado. Ainda pendente; pode confirmar mais tarde.', 'warning');
-                                }
-                                return;
-                            }
-                            if (paymentMbwayFinalizeSucceeded) return;
-                            paymentModalStopMbwayFinalizePoll();
-                            paymentModalRestoreConfirmButton();
-                            showToast((pack.res && (pack.res.error || pack.res.message)) || 'Falha ao confirmar pagamento MB WAY.', 'error');
-                        })
-                        .catch(function() {
-                            paymentMbwayFinalizeRequestPending = false;
-                            if (paymentMbwayFinalizeSucceeded) return;
-                            paymentModalStopMbwayFinalizePoll();
-                            paymentModalRestoreConfirmButton();
-                            showToast('Erro de ligação ao validar MB WAY.', 'error');
-                        });
-                    }, 3000);
+                    paymentModalStartMbwayWait({
+                        mode: 'reserva',
+                        eventId: eventId,
+                        paymentIntentId: paymentIntentId,
+                        finalizeBody: Object.assign({ payment_intent_id: paymentIntentId }, depositBase),
+                        onSuccess: function(finalRes) {
+                            paymentModalHandleDepositSuccess(finalRes, eventId);
+                        }
+                    });
                 })
                 .catch(function() {
                     paymentModalRestoreConfirmButton();
@@ -10141,7 +10447,17 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(C.agendaCheckoutMbwayIntentUrl || '', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({ event_id: eventId, event_ids: selectedEventIds, gorjeta: gorjeta, items: items, mbway_phone: mbwayPhone })
+                body: JSON.stringify({
+                    event_id: eventId,
+                    event_ids: selectedEventIds,
+                    gorjeta: gorjeta,
+                    items: items,
+                    mbway_phone: mbwayPhone,
+                    invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
+                    billing_nif: fiscal.billing_nif || null,
+                    invoice_delivery: paymentModalGetInvoiceDelivery(),
+                    checkout_mode: checkoutMode
+                })
             })
             .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
             .then(function(_) {
@@ -10153,68 +10469,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 showToast(res.message || 'Pedido MB WAY enviado para o cliente.', 'success');
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>A aguardar MB WAY...';
                 var paymentIntentId = res.payment_intent_id;
                 if (!paymentIntentId) {
                     paymentModalRestoreConfirmButton();
                     showToast('Resposta MB WAY inválida.', 'error');
                     return;
                 }
-                paymentMbwayFinalizeSucceeded = false;
-                paymentModalStopMbwayFinalizePoll();
-                var tries = 0;
-                var maxTries = 30; // ~90s
-                paymentMbwayFinalizeInterval = setInterval(function() {
-                    if (paymentMbwayFinalizeSucceeded) return;
-                    if (paymentMbwayFinalizeRequestPending) return;
-                    tries += 1;
-                    paymentMbwayFinalizeRequestPending = true;
-                    fetch(C.agendaCheckoutMbwayFinalizeUrl || '', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                        body: JSON.stringify({
-                            payment_intent_id: paymentIntentId,
-                            event_id: eventId,
-                            event_ids: selectedEventIds,
-                            gorjeta: gorjeta,
-                            items: items,
-                            invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
-                            billing_nif: fiscal.billing_nif || null,
-                            invoice_delivery: paymentModalGetInvoiceDelivery(),
-                            checkout_mode: checkoutMode
-                        })
-                    })
-                    .then(function(r) { return r.json().then(function(res2) { return { ok: r.ok, status: r.status, res: res2 || {} }; }); })
-                    .then(function(pack) {
-                        paymentMbwayFinalizeRequestPending = false;
-                        if (paymentMbwayFinalizeSucceeded) return;
-                        if (pack.ok && pack.res && pack.res.success) {
-                            paymentMbwayFinalizeSucceeded = true;
-                            paymentModalStopMbwayFinalizePoll();
-                            agendaAfterCheckoutPaymentSuccess(pack.res, eventId);
-                            return;
-                        }
-                        if (pack.status === 202) {
-                            if (tries >= maxTries) {
-                                paymentModalStopMbwayFinalizePoll();
-                                paymentModalRestoreConfirmButton();
-                                showToast('Pedido MB WAY enviado. Ainda pendente; pode confirmar mais tarde.', 'warning');
-                            }
-                            return;
-                        }
-                        if (paymentMbwayFinalizeSucceeded) return;
-                        paymentModalStopMbwayFinalizePoll();
-                        paymentModalRestoreConfirmButton();
-                        showToast((pack.res && (pack.res.error || pack.res.message)) || 'Falha ao confirmar pagamento MB WAY.', 'error');
-                    })
-                    .catch(function() {
-                        paymentMbwayFinalizeRequestPending = false;
-                        if (paymentMbwayFinalizeSucceeded) return;
-                        paymentModalStopMbwayFinalizePoll();
-                        paymentModalRestoreConfirmButton();
-                        showToast('Erro de ligação ao validar MB WAY.', 'error');
-                    });
-                }, 3000);
+                paymentModalStartMbwayWait({
+                    mode: 'caixa',
+                    eventId: eventId,
+                    paymentIntentId: paymentIntentId,
+                    finalizeBody: {
+                        payment_intent_id: paymentIntentId,
+                        event_id: eventId,
+                        event_ids: selectedEventIds,
+                        gorjeta: gorjeta,
+                        items: items,
+                        invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
+                        billing_nif: fiscal.billing_nif || null,
+                        invoice_delivery: paymentModalGetInvoiceDelivery(),
+                        checkout_mode: checkoutMode
+                    },
+                    onSuccess: function(finalRes) {
+                        agendaAfterCheckoutPaymentSuccess(finalRes, eventId);
+                    }
+                });
             })
             .catch(function() {
                 paymentModalRestoreConfirmButton();
@@ -10263,8 +10542,35 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalSubmit('rascunho');
     });
 
-    $id('paymentCancelBtn').addEventListener('click', function() { bootstrap.Modal.getInstance($id('paymentModal'))?.hide(); });
-    $id('paymentModalCloseBtn').addEventListener('click', function() { bootstrap.Modal.getInstance($id('paymentModal'))?.hide(); });
+    $id('paymentCancelBtn').addEventListener('click', function() {
+        if (paymentMbwayAwaiting) {
+            showToast('Aguarde o MB Way ou cancele no modal de espera.', 'warning');
+            return;
+        }
+        bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
+    });
+    $id('paymentModalCloseBtn').addEventListener('click', function() {
+        if (paymentMbwayAwaiting) {
+            showToast('Aguarde o MB Way ou cancele no modal de espera.', 'warning');
+            return;
+        }
+        bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
+    });
+
+    $id('paymentModal').addEventListener('hide.bs.modal', function(ev) {
+        if (paymentMbwayAwaiting) {
+            ev.preventDefault();
+            showToast('Aguarde o MB Way ou cancele no modal de espera.', 'warning');
+        }
+    });
+
+    var mbwayWaitingCancelBtn = $id('mbwayWaitingCancelBtn');
+    if (mbwayWaitingCancelBtn) {
+        mbwayWaitingCancelBtn.addEventListener('click', function() {
+            if (!paymentMbwayAwaiting || paymentMbwayCancelInFlight || paymentMbwayFinalizeSucceeded) return;
+            paymentModalExpireOrCancelMbwayWait('requested_by_customer', 'Pedido MB Way cancelado.');
+        });
+    }
 
     $id('paymentModal').addEventListener('show.bs.modal', function() {
         var pm = $id('paymentModal');
@@ -10290,7 +10596,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (pm) pm.style.zIndex = '1065';
     });
     $id('paymentModal').addEventListener('hidden.bs.modal', function() {
-        paymentModalStopMbwayFinalizePoll();
+        paymentModalClearMbwayWait({ keepWaitingModal: true });
+        paymentModalHideMbwayWaitingModal();
         paymentMbwayFinalizeSucceeded = false;
         paymentModalResetToCaixa();
         paymentModalRestoreConfirmButton();

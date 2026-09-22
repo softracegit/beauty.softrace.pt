@@ -21,6 +21,26 @@ class Agent extends Model
 {
     use BelongsToStore, HasFactory, LogsActivity;
 
+    /**
+     * Equipa lista «Todas as lojas»: o binding não pode ficar preso à loja activa da sessão
+     * (senão /equipa/{id} de outra loja dá 404). Limita às lojas acessíveis do user.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field = $field ?? $this->getRouteKeyName();
+        $query = static::query()->where($field, $value);
+
+        $user = auth()->user();
+        if ($user instanceof User) {
+            $ids = $user->accessibleStores()->pluck('id')->map(fn ($id) => (int) $id)->all();
+            if ($ids !== []) {
+                return $query->whereIn($this->getTable().'.store_id', $ids)->firstOrFail();
+            }
+        }
+
+        return $query->forStore($this->resolveRouteBindingStoreId())->firstOrFail();
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

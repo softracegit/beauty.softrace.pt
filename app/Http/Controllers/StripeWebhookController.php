@@ -48,6 +48,7 @@ class StripeWebhookController extends Controller
         match ($event->type) {
             'payment_intent.succeeded' => $this->handlePaymentIntentSucceeded(is_object($object) ? $object : null),
             'payment_intent.payment_failed' => $this->handlePaymentIntentFailed(is_object($object) ? $object : null),
+            'payment_intent.canceled' => $this->handlePaymentIntentCanceled(is_object($object) ? $object : null),
             default => null,
         };
 
@@ -75,6 +76,30 @@ class StripeWebhookController extends Controller
             $booking->payment_status = Booking::PAYMENT_PAID;
             $booking->save();
         }
+
+        // Agenda caixa / pré-pagamento: completar venda mesmo sem o browser aberto.
+        try {
+            app(\App\Services\AgendaMbwayPendingService::class)->completeFromWebhook($id);
+        } catch (\Throwable $e) {
+            Log::error('Stripe webhook: falha ao completar MB Way da agenda.', [
+                'payment_intent_id' => $id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function handlePaymentIntentCanceled(?object $intent): void
+    {
+        if ($intent === null) {
+            return;
+        }
+
+        $id = $intent->id ?? null;
+        if (! is_string($id) || $id === '') {
+            return;
+        }
+
+        app(\App\Services\AgendaMbwayPendingService::class)->markCanceled($id);
     }
 
     private function handlePaymentIntentFailed(?object $intent): void
@@ -103,5 +128,7 @@ class StripeWebhookController extends Controller
             $booking->payment_status = Booking::PAYMENT_FAILED;
             $booking->save();
         }
+
+        app(\App\Services\AgendaMbwayPendingService::class)->markCanceled($id);
     }
 }

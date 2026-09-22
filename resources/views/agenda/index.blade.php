@@ -543,6 +543,7 @@
     'posGorjetaEnabled' => $posGorjetaEnabled ?? true,
     'stripePaymentsEnabled' => $stripePaymentsEnabled ?? false,
 ])
+@include('partials.mbway-waiting-modal')
 @endsection
 
 @section('js')
@@ -603,13 +604,17 @@ window.AGENDA_CONFIG = {
     urlEventsStore: @json(route('agenda.events.store')),
     agendaCheckoutStoreUrl: @json(route('agenda.checkout.store')),
     agendaCheckoutMbwayIntentUrl: @json(route('agenda.checkout.mbway.intent')),
+    agendaCheckoutMbwayStatusUrl: @json(route('agenda.checkout.mbway.status')),
     agendaCheckoutMbwayFinalizeUrl: @json(route('agenda.checkout.mbway.finalize')),
+    agendaCheckoutMbwayCancelUrl: @json(route('agenda.checkout.mbway.cancel')),
     agendaSameDayPayableUrl: @json($agendaEventsBase . '/__EVENT_ID__/same-day-payable'),
     bookingDepositPercent: @json((int) config('booking.deposit_percent')),
     agendaDepositShowUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit'),
     agendaDepositStoreUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit'),
     agendaDepositMbwayIntentUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/mbway/intent'),
+    agendaDepositMbwayStatusUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/mbway/status'),
     agendaDepositMbwayFinalizeUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/mbway/finalize'),
+    agendaDepositMbwayCancelUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/mbway/cancel'),
     agendaDepositCardUrl: @json($agendaEventsBase . '/__EVENT_ID__/deposit/card'),
     agendaClientSavedCardsUrl: @json($agendaClientsBase . '/__CLIENT_ID__/saved-cards'),
     agendaEventActivityLogUrl: @json($agendaEventsBase . '/__EVENT_ID__/activity-log'),

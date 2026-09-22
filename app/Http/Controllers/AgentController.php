@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\SetCurrentStore;
 use App\Models\Agent;
 use App\Models\CalendarEvent;
 use App\Models\Category;
@@ -9,14 +10,14 @@ use App\Models\Note;
 use App\Models\Sale;
 use App\Models\Store;
 use App\Models\User;
+use App\Services\MigrateAgentToStoreService;
 use App\Services\VendasReportService;
 use App\Support\ActivityLogUserTimeline;
-use App\Services\MigrateAgentToStoreService;
 use App\Support\CurrentStore;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -211,6 +212,7 @@ class AgentController extends Controller
     public function show(Agent $agente, VendasReportService $vendasReportService)
     {
         $this->authorize('view', $agente);
+        $this->alignStoreContextToAgent($agente);
 
         $storeId = current_store_id();
         $organizationId = current_organization_id();
@@ -319,6 +321,9 @@ class AgentController extends Controller
      */
     public function storeNote(Request $request, Agent $agente)
     {
+        $this->authorize('update', $agente);
+        $this->alignStoreContextToAgent($agente);
+
         $validated = $request->validate([
             'note' => ['required', 'string'],
             'type' => ['nullable', 'in:geral,email,chamada,reuniao'],
@@ -347,6 +352,7 @@ class AgentController extends Controller
     public function edit(Agent $agente)
     {
         $this->authorize('update', $agente);
+        $this->alignStoreContextToAgent($agente);
         $agente->load('services');
         $categories = Category::forOrganization(current_organization_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
@@ -366,6 +372,7 @@ class AgentController extends Controller
     public function update(Request $request, Agent $agente)
     {
         $this->authorize('update', $agente);
+        $this->alignStoreContextToAgent($agente);
 
         $this->prepareCommissionInput($request);
         $this->prepareBookingSlugInput($request);
@@ -393,7 +400,7 @@ class AgentController extends Controller
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
-            'booking_slug' => $this->bookingSlugRules($request, $agente->id),
+            'booking_slug' => $this->bookingSlugRules($request, $agente->id, (int) $agente->store_id),
             'service_ids' => ['nullable', 'array'],
             'service_ids.*' => ['integer', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
         ]);
@@ -445,6 +452,7 @@ class AgentController extends Controller
     public function destroy(Agent $agente)
     {
         $this->authorize('delete', $agente);
+        $this->alignStoreContextToAgent($agente);
 
         // O user será removido automaticamente devido ao cascadeOnDelete
         $agente->delete();
@@ -554,9 +562,9 @@ class AgentController extends Controller
     }
 
     /** @return array<int, \Illuminate\Contracts\Validation\ValidationRule|string> */
-    private function bookingSlugRules(Request $request, ?int $ignoreAgentId): array
+    private function bookingSlugRules(Request $request, ?int $ignoreAgentId, ?int $storeId = null): array
     {
-        $storeId = current_store_id();
+        $storeId = $storeId ?? current_store_id();
 
         return [
             'nullable',
@@ -573,6 +581,7 @@ class AgentController extends Controller
     public function migrateStoreForm(Agent $agente): \Illuminate\View\View
     {
         $this->authorize('migrateStore', $agente);
+        $this->alignStoreContextToAgent($agente);
 
         $agente->loadMissing(['store', 'user']);
         $stores = Store::query()
@@ -601,6 +610,7 @@ class AgentController extends Controller
     public function migrateStore(Request $request, Agent $agente, MigrateAgentToStoreService $migrator): \Illuminate\Http\RedirectResponse
     {
         $this->authorize('migrateStore', $agente);
+        $this->alignStoreContextToAgent($agente);
 
         $validated = $request->validate([
             'store_id' => ['required', 'integer', 'exists:stores,id'],
@@ -693,6 +703,26 @@ class AgentController extends Controller
         $validated['commission_rate'] = round((float) $rate, 2);
 
         return $validated;
+    }
+
+    /**
+     * Após abrir um membro de outra loja (lista «Todas»), alinhar CurrentStore/sessão
+     * para marcações, vendas e labels usarem a loja correcta. Não altera o cookie «todas».
+     */
+    private function alignStoreContextToAgent(Agent $agente): void
+    {
+        $storeId = (int) $agente->store_id;
+        if ($storeId <= 0 || $storeId === (int) current_store_id()) {
+            return;
+        }
+
+        $store = Store::query()->find($storeId);
+        if (! $store) {
+            return;
+        }
+
+        app(CurrentStore::class)->set($store);
+        request()->session()->put(SetCurrentStore::SESSION_KEY, $storeId);
     }
 
     /** @return array<int, \Illuminate\Contracts\Validation\ValidationRule|string> */

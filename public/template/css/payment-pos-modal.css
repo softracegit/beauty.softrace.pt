@@ -281,3 +281,47 @@
 #paymentModal .payment-pos-cash-shortcut {
     min-width: 3.25rem;
 }
+
+/* Modal pequenino — espera MB Way */
+#mbwayWaitingModal {
+    z-index: 1080;
+}
+.mbway-waiting-modal-dialog {
+    max-width: 22rem;
+}
+.mbway-waiting-modal-content {
+    border: 0;
+    border-radius: 0.85rem;
+    box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.18);
+}
+.mbway-waiting-brand {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.mbway-waiting-brand__logo {
+    width: 7.5rem;
+    height: auto;
+    display: block;
+}
+.mbway-waiting-spinner .spinner-border {
+    width: 2rem;
+    height: 2rem;
+    border-width: 0.2rem;
+}
+.mbway-waiting-title {
+    font-weight: 650;
+    font-size: 1.05rem;
+}
+.mbway-waiting-countdown {
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    margin: 0;
+    color: var(--bs-body-color);
+}
+#mbwayWaitingCancelBtn:disabled {
+    opacity: 0.65;
+}
+

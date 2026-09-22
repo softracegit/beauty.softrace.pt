@@ -19,7 +19,7 @@
     || (request()->routeIs('dashboard*') && (auth()->user()?->isPrestador() || auth()->user()?->isRececao()));
 @endphp
 @php($crmPrivacyLocked = app(\App\Support\CrmPrivacyLock::class)->isActive())
-<body class="{{ $sidebarPanelCollapsedByDefault ? 'sidebar-panel-collapsed' : '' }} {{ request()->routeIs('agenda.index') ? 'page-agenda' : '' }} {{ request()->routeIs('relatorios.*') ? 'page-relatorios' : '' }} {{ request()->routeIs('ai.*') ? 'page-ai-assistant' : '' }} {{ request()->routeIs('definicoes.*') ? 'definicoes-sidebar-open' : '' }} {{ $crmPrivacyLocked ? 'crm-privacy-locked' : '' }}">
+<body class="{{ $sidebarPanelCollapsedByDefault ? 'sidebar-panel-collapsed' : '' }} {{ request()->routeIs('agenda.index') ? 'page-agenda' : '' }} {{ request()->routeIs('relatorios.*') ? 'page-relatorios' : '' }} {{ request()->routeIs('ai.*') ? 'page-ai-assistant' : '' }} {{ request()->routeIs('definicoes.*') ? 'definicoes-sidebar-open' : '' }} {{ request()->routeIs('year-recap.*') ? 'page-year-recap' : '' }} {{ $crmPrivacyLocked ? 'crm-privacy-locked' : '' }}">
   @include('partials.header')
   @include('partials.sidebar')
 

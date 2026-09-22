@@ -308,9 +308,12 @@ class AgendaDepositService
                 'description' => 'Pré-pagamento MB WAY (receção) — '.config('app.name'),
                 'metadata' => [
                     'agenda_deposit' => '1',
+                    'agenda_flow' => 'deposit',
                     'event_id' => (string) $calendarEvent->id,
                     'wallet_apply_cents' => (string) $walletApplyCents,
                     'deposit_cents' => (string) $depositCents,
+                    'store_id' => (string) (int) $calendarEvent->store_id,
+                    'organization_id' => (string) \App\Models\CrmSetting::resolveOrganizationId((int) $calendarEvent->store_id),
                 ],
             ]);
         } catch (ApiErrorException $e) {

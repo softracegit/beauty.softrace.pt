@@ -23,6 +23,7 @@ use App\Http\Controllers\ClientTagController;
 use App\Http\Controllers\CurrentStoreController;
 use App\Http\Controllers\CrmPrivacyLockController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\YearRecapController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\DevErrorTestController;
 use App\Http\Controllers\DefinicoesController;
@@ -234,6 +235,9 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('/dashboard/imoveis', [DashboardController::class, 'imoveis'])->name('dashboard.imoveis');
     Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
 
+    // Year Recap (protótipo — dados demo)
+    Route::get('/year-recap', [YearRecapController::class, 'show'])->name('year-recap.show');
+
     Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
     Route::get('/activity/navegacao', [ActivityLogController::class, 'navigation'])->name('activity.navigation');
 
@@ -365,11 +369,15 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::middleware('cash.register.open')->group(function () {
         Route::post('agenda/events/{calendarEvent}/deposit', [AgendaDepositController::class, 'store'])->name('agenda.deposit.store');
         Route::post('agenda/events/{calendarEvent}/deposit/mbway/intent', [AgendaDepositController::class, 'createMbwayIntent'])->name('agenda.deposit.mbway.intent');
+        Route::post('agenda/events/{calendarEvent}/deposit/mbway/status', [AgendaDepositController::class, 'mbwayStatus'])->name('agenda.deposit.mbway.status');
         Route::post('agenda/events/{calendarEvent}/deposit/mbway/finalize', [AgendaDepositController::class, 'finalizeMbway'])->name('agenda.deposit.mbway.finalize');
+        Route::post('agenda/events/{calendarEvent}/deposit/mbway/cancel', [AgendaDepositController::class, 'cancelMbway'])->name('agenda.deposit.mbway.cancel');
         Route::post('agenda/events/{calendarEvent}/deposit/card', [AgendaDepositController::class, 'storeCard'])->name('agenda.deposit.card');
         Route::post('agenda/checkout', [CheckoutController::class, 'store'])->name('agenda.checkout.store');
         Route::post('agenda/checkout/mbway/intent', [CheckoutController::class, 'createMbwayIntent'])->name('agenda.checkout.mbway.intent');
+        Route::post('agenda/checkout/mbway/status', [CheckoutController::class, 'mbwayStatus'])->name('agenda.checkout.mbway.status');
         Route::post('agenda/checkout/mbway/finalize', [CheckoutController::class, 'finalizeMbway'])->name('agenda.checkout.mbway.finalize');
+        Route::post('agenda/checkout/mbway/cancel', [CheckoutController::class, 'cancelMbway'])->name('agenda.checkout.mbway.cancel');
     });
     Route::post('agenda/events/{calendarEvent}/invoices/email', [CheckoutController::class, 'sendMarcacaoInvoicesEmail'])->name('agenda.invoices.email');
     Route::get('sales/{sale}/pdf', [CheckoutController::class, 'pdf'])->name('sales.pdf');

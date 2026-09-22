@@ -24,6 +24,9 @@ use App\Support\CrmPrivacyLock;
 use App\Support\PaymentMethodCatalog;
 use App\Support\PhoneDisplay;
 use App\Support\StripeCredentials;
+use App\Support\StripeMbwayWaitStatus;
+use App\Models\AgendaMbwayPendingPayment;
+use App\Services\AgendaMbwayPendingService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -424,11 +427,21 @@ class CheckoutController extends Controller
             'event_ids' => ['sometimes', 'array', 'min:1'],
             'event_ids.*' => ['integer', 'exists:calendar_events,id'],
             'items' => ['required', 'array', 'min:1'],
+            'items.*.tipo' => ['sometimes', 'in:servico,extra,taxa'],
+            'items.*.descricao' => ['sometimes', 'string', 'max:255'],
             'items.*.quantidade' => ['required', 'integer', 'min:1'],
             'items.*.preco_unitario' => ['required', 'numeric', 'min:0'],
             'items.*.desconto' => ['nullable', 'numeric', 'min:0'],
+            'items.*.calendar_event_service_id' => ['nullable', 'exists:calendar_event_services,id'],
+            'items.*.service_id' => ['nullable', 'exists:services,id'],
+            'items.*.extra_id' => ['nullable', 'exists:extras,id'],
+            'items.*.fee_id' => ['nullable', 'exists:fees,id'],
             'gorjeta' => ['nullable', 'numeric', 'min:0'],
             'mbway_phone' => ['nullable', 'string', 'max:40'],
+            'invoice_fiscal_mode' => ['sometimes', 'string', 'in:with_nif,consumer'],
+            'billing_nif' => ['nullable', 'string', 'max:32'],
+            'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
+            'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
         $anchorEvent = CalendarEvent::query()
@@ -503,6 +516,9 @@ class CheckoutController extends Controller
                     'agenda_anchor_event_id' => (string) $anchorEvent->id,
                     'agenda_checkout_mode' => $events->count() > 1 ? 'consolidated' : 'single',
                     'agenda_event_ids' => $events->pluck('id')->implode(','),
+                    'agenda_flow' => AgendaMbwayPendingPayment::FLOW_CHECKOUT,
+                    'store_id' => (string) (int) $anchorEvent->store_id,
+                    'organization_id' => (string) CrmSetting::resolveOrganizationId((int) $anchorEvent->store_id),
                 ],
             ]);
         } catch (ApiErrorException $e) {
@@ -516,6 +532,24 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Não foi possível gerar o pedido MB WAY.'], 422);
         }
 
+        app(AgendaMbwayPendingService::class)->remember(
+            (string) $intent->id,
+            AgendaMbwayPendingPayment::FLOW_CHECKOUT,
+            (int) $anchorEvent->store_id,
+            (int) $anchorEvent->id,
+            auth()->id() ? (int) auth()->id() : null,
+            [
+                'event_id' => (int) $anchorEvent->id,
+                'event_ids' => $events->pluck('id')->values()->all(),
+                'items' => $validated['items'],
+                'gorjeta' => $gorjeta,
+                'invoice_fiscal_mode' => (string) ($validated['invoice_fiscal_mode'] ?? 'consumer'),
+                'billing_nif' => $validated['billing_nif'] ?? null,
+                'invoice_delivery' => (string) ($validated['invoice_delivery'] ?? 'print'),
+                'checkout_mode' => (string) ($validated['checkout_mode'] ?? 'faturar'),
+            ],
+        );
+
         return response()->json([
             'success' => true,
             'payment_intent_id' => $intent->id,
@@ -525,6 +559,132 @@ class CheckoutController extends Controller
             'phone' => $phoneE164,
             'selected_event_ids' => $events->pluck('id')->values()->all(),
             'message' => 'Pedido MB WAY enviado para o cliente.',
+        ]);
+    }
+
+    /**
+     * POST agenda/checkout/mbway/status — poll leve (BD + Stripe) para fechar o modal depressa.
+     */
+    public function mbwayStatus(Request $request)
+    {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
+        $validated = $request->validate([
+            'payment_intent_id' => ['required', 'string', 'max:255'],
+            'event_id' => ['required', 'exists:calendar_events,id'],
+        ]);
+
+        CalendarEvent::query()
+            ->forStore(current_store_id())
+            ->findOrFail((int) $validated['event_id']);
+
+        $result = app(AgendaMbwayPendingService::class)->pollForBrowser(
+            (string) $validated['payment_intent_id'],
+            (int) $validated['event_id'],
+        );
+        $http = (int) ($result['http'] ?? 200);
+        unset($result['http']);
+
+        return response()->json($result, $http);
+    }
+
+    /**
+     * POST agenda/checkout/mbway/cancel — anular PaymentIntent pendente (engano / expiração).
+     */
+    public function cancelMbway(Request $request)
+    {
+        if ($denied = $this->denyPrestadorPaymentsJson()) {
+            return $denied;
+        }
+
+        $validated = $request->validate([
+            'payment_intent_id' => ['required', 'string', 'max:255'],
+            'event_id' => ['required', 'exists:calendar_events,id'],
+            'cancellation_reason' => ['sometimes', 'string', 'in:requested_by_customer,abandoned'],
+        ]);
+
+        $anchorEvent = CalendarEvent::query()
+            ->forStore(current_store_id())
+            ->findOrFail((int) $validated['event_id']);
+
+        $storeId = (int) ($anchorEvent->store_id ?: current_store_id());
+        if (! StripeCredentials::isReady($storeId)) {
+            return response()->json([
+                'error' => 'Stripe não está pronto. Configure em Definições → Pagamentos.',
+            ], 422);
+        }
+
+        $this->configureStripeSdk($storeId);
+
+        try {
+            $intent = PaymentIntent::retrieve((string) $validated['payment_intent_id']);
+        } catch (ApiErrorException) {
+            return response()->json(['error' => 'Não foi possível localizar o pedido MB WAY.'], 422);
+        }
+
+        $metaEventId = (int) ($intent->metadata['agenda_event_id']
+            ?? $intent->metadata['agenda_anchor_event_id']
+            ?? 0);
+        if ($metaEventId !== (int) $anchorEvent->id) {
+            return response()->json(['error' => 'Pedido MB WAY não corresponde a esta marcação.'], 422);
+        }
+
+        $status = (string) ($intent->status ?? '');
+        if ($status === 'succeeded') {
+            return response()->json([
+                'success' => true,
+                'status' => 'succeeded',
+                'message' => 'O pagamento já foi confirmado.',
+            ]);
+        }
+        if ($status === 'canceled') {
+            app(AgendaMbwayPendingService::class)->markCanceled((string) $validated['payment_intent_id']);
+
+            return response()->json([
+                'success' => true,
+                'status' => 'canceled',
+                'message' => 'Pedido MB WAY já estava cancelado.',
+            ]);
+        }
+
+        $reason = (string) ($validated['cancellation_reason'] ?? 'requested_by_customer');
+        $cancelable = in_array($status, [
+            'requires_payment_method',
+            'requires_confirmation',
+            'requires_action',
+            'requires_capture',
+            'processing',
+        ], true);
+
+        if (! $cancelable) {
+            return response()->json([
+                'success' => false,
+                'status' => $status !== '' ? $status : 'unknown',
+                'error' => 'O pedido MB WAY já não pode ser cancelado.',
+            ], 422);
+        }
+
+        try {
+            $intent->cancel(['cancellation_reason' => $reason]);
+        } catch (ApiErrorException $e) {
+            Log::warning('Stripe MB WAY PaymentIntent::cancel falhou no checkout da agenda.', [
+                'event_id' => $anchorEvent->id,
+                'payment_intent_id' => $intent->id ?? null,
+                'stripe_code' => $e->getStripeCode(),
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json(['error' => 'Não foi possível cancelar o pedido MB WAY.'], 422);
+        }
+
+        app(AgendaMbwayPendingService::class)->markCanceled((string) $validated['payment_intent_id']);
+
+        return response()->json([
+            'success' => true,
+            'status' => 'canceled',
+            'message' => 'Pedido MB WAY cancelado.',
         ]);
     }
 
@@ -568,6 +728,19 @@ class CheckoutController extends Controller
             'checkout_mode' => ['sometimes', 'string', 'in:faturar,rascunho'],
         ]);
 
+        $alreadyDone = AgendaMbwayPendingPayment::query()
+            ->where('stripe_payment_intent_id', (string) $validated['payment_intent_id'])
+            ->where('status', AgendaMbwayPendingPayment::STATUS_COMPLETED)
+            ->first();
+        if ($alreadyDone) {
+            return response()->json([
+                'success' => true,
+                'sale_id' => $alreadyDone->sale_id,
+                'message' => 'Pagamento MB WAY já confirmado.',
+                'completed_via_webhook' => true,
+            ]);
+        }
+
         $this->configureStripeSdk($storeId);
         try {
             $intent = PaymentIntent::retrieve((string) $validated['payment_intent_id']);
@@ -575,12 +748,23 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Não foi possível validar o pagamento MB WAY.'], 422);
         }
 
-        if ((string) ($intent->status ?? '') !== 'succeeded') {
+        $wait = StripeMbwayWaitStatus::fromIntent($intent);
+        if ($wait['outcome'] === StripeMbwayWaitStatus::OUTCOME_WAITING) {
             return response()->json([
                 'success' => false,
-                'status' => (string) ($intent->status ?? 'unknown'),
-                'message' => 'Pagamento MB WAY ainda não confirmado.',
+                'status' => $wait['status'],
+                'message' => $wait['message'],
             ], 202);
+        }
+        if ($wait['outcome'] === StripeMbwayWaitStatus::OUTCOME_TERMINAL) {
+            app(AgendaMbwayPendingService::class)->markCanceled((string) $validated['payment_intent_id']);
+
+            return response()->json([
+                'success' => false,
+                'terminal' => true,
+                'status' => $wait['status'],
+                'message' => $wait['message'],
+            ], 409);
         }
 
         $anchorEvent = CalendarEvent::query()
@@ -603,7 +787,27 @@ class CheckoutController extends Controller
         $forward = Request::create('/agenda/checkout', 'POST', $validated);
         $forward->setUserResolver(fn () => $request->user());
 
-        return $this->store($forward);
+        $response = $this->store($forward);
+        $data = $response->getData(true);
+        if (is_array($data) && ! empty($data['success'])) {
+            app(AgendaMbwayPendingService::class)->markCompleted(
+                (string) $validated['payment_intent_id'],
+                isset($data['sale_id']) ? (int) $data['sale_id'] : null,
+            );
+        } elseif ($response->getStatusCode() === 422 && is_array($data)) {
+            $err = mb_strtolower((string) ($data['error'] ?? ''));
+            if (str_contains($err, 'já foi faturada')) {
+                app(AgendaMbwayPendingService::class)->markCompleted((string) $validated['payment_intent_id']);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Pagamento MB WAY já confirmado.',
+                    'completed_via_webhook' => true,
+                ]);
+            }
+        }
+
+        return $response;
     }
 
     private function checkoutSubtotalFromItems(array $items): float
