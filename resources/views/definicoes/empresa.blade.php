@@ -16,7 +16,7 @@
     'activeTab' => $activeTab ?? 'dados',
     'formAction' => route('definicoes.empresa.update'),
     'formMethod' => 'post',
-    'submitLabel' => 'Guardar',
+    'submitLabel' => 'Guardar alterações',
   ])
 
 @endsection

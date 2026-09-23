@@ -269,7 +269,13 @@ class BookingController extends Controller
                 }
             }
 
-            $candidateSlots = $this->buildAvailableSlots($winStart, $latestEnd, $duration, []);
+            $candidateSlots = $this->buildAvailableSlots(
+                $winStart,
+                $latestEnd,
+                $duration,
+                [],
+                CrmSetting::bookingSlotIntervalMinutes($this->bookingStoreId()),
+            );
             $slots = array_values(array_filter($candidateSlots, function (string $time) use ($eligibleAgents, $day, $duration, $storeSchedule, $holdSessionToken): bool {
                 [$h, $m] = array_map('intval', explode(':', $time));
                 $slotStartMin = $h * 60 + $m;
@@ -328,7 +334,13 @@ class BookingController extends Controller
         }
 
         $busy = $this->busyIntervalsForUserOnDay((int) $agent->user_id, $day, $holdSessionToken !== '' ? $holdSessionToken : null, $this->bookingStoreId());
-        $slots = $this->buildAvailableSlots($winStart, $winEnd, $duration, $busy);
+        $slots = $this->buildAvailableSlots(
+            $winStart,
+            $winEnd,
+            $duration,
+            $busy,
+            CrmSetting::bookingSlotIntervalMinutes($this->bookingStoreId()),
+        );
 
         return response()->json(['slots' => $slots]);
     }
@@ -737,11 +749,16 @@ class BookingController extends Controller
 
     /**
      * @param  list<array{0: int, 1: int}>  $busyIntervals
-     * @return list<string> Horários HH:MM (incrementos de 15 min).
+     * @return list<string> Horários HH:MM no intervalo configurado (ex.: 15 ou 30 min).
      */
-    private function buildAvailableSlots(int $winStart, int $winEnd, int $durationMinutes, array $busyIntervals): array
-    {
-        $step = 15;
+    private function buildAvailableSlots(
+        int $winStart,
+        int $winEnd,
+        int $durationMinutes,
+        array $busyIntervals,
+        int $step = 15,
+    ): array {
+        $step = max(5, min(60, $step));
         $slots = [];
         $first = (int) (ceil($winStart / $step) * $step);
         for ($m = $first; $m + $durationMinutes <= $winEnd; $m += $step) {

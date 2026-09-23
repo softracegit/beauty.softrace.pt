@@ -163,6 +163,7 @@ class OrganizationStoreController extends Controller
         $defaults = [
             CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED => '1',
             CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES => '6',
+            CrmSetting::KEY_BOOKING_SLOT_INTERVAL_MINUTES => (string) CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_DEFAULT,
             CrmSetting::KEY_BOOKING_ANY_STAFF_RULE => CrmSetting::BOOKING_ANY_STAFF_RULE_A,
         ];
 

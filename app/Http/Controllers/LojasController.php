@@ -223,6 +223,7 @@ class LojasController extends Controller
         $defaults = [
             \App\Models\CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED => '1',
             \App\Models\CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES => '6',
+            \App\Models\CrmSetting::KEY_BOOKING_SLOT_INTERVAL_MINUTES => (string) \App\Models\CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_DEFAULT,
             \App\Models\CrmSetting::KEY_BOOKING_ANY_STAFF_RULE => \App\Models\CrmSetting::BOOKING_ANY_STAFF_RULE_A,
         ];
 

@@ -92,6 +92,8 @@ class DefinicoesController extends Controller
         return view('definicoes.agendamentos', [
             'pageTitle' => 'Booking',
             'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes($storeId),
+            'bookingSlotIntervalMinutes' => CrmSetting::bookingSlotIntervalMinutes($storeId),
+            'bookingSlotIntervalOptions' => CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS,
             'bookingCancellationNoticeHours' => CrmSetting::bookingCancellationNoticeHours($storeId),
             'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRulesUi(),
             'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule($storeId),
@@ -106,6 +108,7 @@ class DefinicoesController extends Controller
         $store = app(CurrentStore::class)->get();
         $before = [
             'slot_hold' => CrmSetting::bookingSlotHoldMinutes($storeId),
+            'slot_interval' => CrmSetting::bookingSlotIntervalMinutes($storeId),
             'cancellation_hours' => CrmSetting::bookingCancellationNoticeHours($storeId),
             'any_staff_rule' => CrmSetting::bookingAnyStaffRule($storeId),
             'theme' => CrmSetting::bookingTheme($storeId),
@@ -117,6 +120,11 @@ class DefinicoesController extends Controller
 
         $validated = $request->validate([
             'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
+            'booking_slot_interval_minutes' => [
+                'required',
+                'integer',
+                'in:'.implode(',', CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS),
+            ],
             'booking_cancellation_notice_hours' => [
                 'required',
                 'integer',
@@ -130,6 +138,7 @@ class DefinicoesController extends Controller
         ], [
             'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
             'booking_slot_hold_minutes.max' => 'O tempo de reserva não pode exceder 240 minutos.',
+            'booking_slot_interval_minutes.in' => 'Escolha um intervalo de blocos válido.',
             'booking_cancellation_notice_hours.min' => 'O aviso mínimo não pode ser negativo.',
             'booking_cancellation_notice_hours.max' => 'O aviso mínimo não pode exceder 168 horas (7 dias).',
             'booking_any_staff_rule_options.max' => 'Selecione apenas uma regra de atribuição.',
@@ -152,6 +161,11 @@ class DefinicoesController extends Controller
             (int) $validated['booking_slot_hold_minutes'],
             $storeId
         );
+        CrmSetting::setInt(
+            CrmSetting::KEY_BOOKING_SLOT_INTERVAL_MINUTES,
+            (int) $validated['booking_slot_interval_minutes'],
+            $storeId
+        );
         CrmSetting::setBookingCancellationNoticeHours(
             (int) $validated['booking_cancellation_notice_hours'],
             $storeId,
@@ -171,6 +185,11 @@ class DefinicoesController extends Controller
                 'Tempo de reserva (min)',
                 $before['slot_hold'],
                 CrmSetting::bookingSlotHoldMinutes($storeId),
+            ),
+            $this->settingsActivityLogger->logScalarChange(
+                'Intervalo de blocos (min)',
+                $before['slot_interval'],
+                CrmSetting::bookingSlotIntervalMinutes($storeId),
             ),
             $this->settingsActivityLogger->logScalarChange(
                 'Aviso mínimo de cancelamento (h)',

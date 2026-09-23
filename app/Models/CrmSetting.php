@@ -28,11 +28,19 @@ class CrmSetting extends Model
 
     public const KEY_BOOKING_SLOT_HOLD_MINUTES = 'booking.slot_hold_minutes';
 
+    /** Intervalo (minutos) entre horários oferecidos no Booking público. */
+    public const KEY_BOOKING_SLOT_INTERVAL_MINUTES = 'booking.slot_interval_minutes';
+
     public const KEY_BOOKING_ANY_STAFF_RULE = 'booking.any_staff_rule';
 
     public const KEY_BOOKING_CANCELLATION_NOTICE_HOURS = 'booking.cancellation_notice_hours';
 
     public const KEY_BOOKING_THEME = 'booking.theme';
+
+    public const BOOKING_SLOT_INTERVAL_MINUTES_DEFAULT = 15;
+
+    /** @var list<int> */
+    public const BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS = [15, 30];
 
     public const KEY_EMAIL_USE_BUSINESS_BRANDING = 'email.use_business_branding';
 
@@ -365,6 +373,25 @@ class CrmSetting extends Model
     public static function bookingSlotHoldMinutes(?int $storeId = null): int
     {
         return max(1, self::getInt(self::KEY_BOOKING_SLOT_HOLD_MINUTES, 6, $storeId));
+    }
+
+    /**
+     * Intervalo entre slots no Booking público (ex.: 15 → 10:00, 10:15…; 30 → 10:00, 10:30…).
+     * Não altera a agenda interna nem a duração dos serviços.
+     */
+    public static function bookingSlotIntervalMinutes(?int $storeId = null): int
+    {
+        $value = self::getInt(
+            self::KEY_BOOKING_SLOT_INTERVAL_MINUTES,
+            self::BOOKING_SLOT_INTERVAL_MINUTES_DEFAULT,
+            $storeId,
+        );
+
+        if (! in_array($value, self::BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS, true)) {
+            return self::BOOKING_SLOT_INTERVAL_MINUTES_DEFAULT;
+        }
+
+        return $value;
     }
 
     public static function bookingCancellationNoticeHours(?int $storeId = null): int
