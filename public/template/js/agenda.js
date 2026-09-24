@@ -4919,6 +4919,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 $id('eventDetailEditEnd').value = agendaFormatLocalDateTimeForInput(deNorm);
             }
         }
+        if (id) {
+            agendaSetEventDeepLink(id);
+            eventDetailOcPersistDraftSnapshot();
+        }
         var statusVal = data.status || 'agendado';
         $id('eventDetailStatus').value = statusVal;
         $id('eventDetailStatusLabel').textContent = STATUS_LABELS[statusVal] || statusVal;
@@ -6046,6 +6050,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetailCurrentData.start_at = $id('eventDetailEditStart').value;
             eventDetailCurrentData.end_at = $id('eventDetailEditEnd').value;
         }
+        eventDetailOcPersistDraftSnapshot();
         var evId = $id('eventDetailEditId') && $id('eventDetailEditId').value;
         if (evId && typeof calendar !== 'undefined') {
             var ev = calendar.getEventById(evId);
@@ -12951,9 +12956,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         populateEventDetailEditModal(data);
                         bootstrap.Offcanvas.getOrCreateInstance($id('eventDetailEditModal')).show();
                     }
-                    if (history.replaceState) {
-                        history.replaceState({}, document.title, window.location.pathname);
-                    }
                 })
                 .catch(function() {
                     showToast('Marcação não encontrada ou sem permissão para ver.', 'error');
@@ -14204,14 +14206,42 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eDetCan) eDetCan.classList.add('d-none');
         eventDetailOriginalStartAt = null;
         eventDetailOriginalEndAt = null;
+        agendaClearEventDeepLink();
+        eventDetailOcClearDraftSnapshot();
     });
 
-    // Voltar da ficha do cliente (bfcache): repor Data/Hora no offcanvas se ficaram vazias.
-    window.addEventListener('pageshow', function(ev) {
+    // Antes de sair para a ficha do cliente: gravar data/hora + ?event= (iOS frequentemente faz reload ao voltar).
+    document.addEventListener('click', function(e) {
+        var a = e.target && e.target.closest
+            ? e.target.closest(
+                '#eventDetailOcClientProfileLink, #eventDetailOcClientProfileIconLink, #eventDetailOcClientProfileAvatarLink, #eventDetailOcClientMarcacoesLink'
+            )
+            : null;
+        if (!a) return;
+        var href = a.getAttribute('href');
+        if (!href || href === '#') return;
+        eventDetailOcPersistDraftSnapshot();
+        var id = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        if (id) agendaSetEventDeepLink(id);
+    }, true);
+
+    window.addEventListener('pagehide', function() {
         var modal = $id('eventDetailEditModal');
         if (!modal || !modal.classList.contains('show')) return;
+        eventDetailOcPersistDraftSnapshot();
+        var id = $id('eventDetailEditId') && $id('eventDetailEditId').value;
+        if (id) agendaSetEventDeepLink(id);
+    });
+
+    // Voltar da ficha do cliente (bfcache / tabs): repor Data/Hora se ficaram vazias.
+    window.addEventListener('pageshow', function(ev) {
         if (ev.persisted || eventDetailOcVisibleDateTimeLooksEmpty()) {
-            eventDetailOcRehydrateVisibleDateTime();
+            eventDetailOcScheduleRehydrateAfterReturn();
+        }
+    });
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            eventDetailOcScheduleRehydrateAfterReturn();
         }
     });
 });
