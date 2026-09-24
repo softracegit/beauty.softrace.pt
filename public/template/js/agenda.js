@@ -264,6 +264,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var marcacoesUrl = url ? (url + '#tab-marcacoes') : '';
         var canLink = !crmPrivacyLockedUi && canViewClientProfile && !!url;
         var hideProfileButton = crmPrivacyLockedUi || !canViewClientProfile;
+        // Mobile: novo separador evita bfcache/reload que esvazia data/hora/cliente no offcanvas.
+        var openInNewTab = false;
+        try {
+            openInNewTab = !!(window.matchMedia && window.matchMedia('(max-width: 991.98px)').matches);
+        } catch (e) { openInNewTab = false; }
 
         [
             prefix + 'ClientProfileLink',
@@ -281,8 +286,17 @@ document.addEventListener('DOMContentLoaded', function() {
             ) {
                 if (canLink) {
                     el.setAttribute('href', elementId === prefix + 'ClientMarcacoesLink' ? marcacoesUrl : url);
+                    if (openInNewTab) {
+                        el.setAttribute('target', '_blank');
+                        el.setAttribute('rel', 'noopener noreferrer');
+                    } else {
+                        el.removeAttribute('target');
+                        el.removeAttribute('rel');
+                    }
                 } else {
                     el.removeAttribute('href');
+                    el.removeAttribute('target');
+                    el.removeAttribute('rel');
                 }
                 el.classList.toggle('d-none', hideProfileButton);
                 return;
@@ -290,11 +304,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (canLink) {
                 el.setAttribute('href', url);
+                if (openInNewTab) {
+                    el.setAttribute('target', '_blank');
+                    el.setAttribute('rel', 'noopener noreferrer');
+                } else {
+                    el.removeAttribute('target');
+                    el.removeAttribute('rel');
+                }
                 el.classList.remove('agenda-oc-client-card__profile-link--static');
                 el.removeAttribute('aria-disabled');
                 el.setAttribute('title', 'Ver ficha do cliente');
             } else {
                 el.removeAttribute('href');
+                el.removeAttribute('target');
+                el.removeAttribute('rel');
                 el.classList.add('agenda-oc-client-card__profile-link--static');
                 el.setAttribute('aria-disabled', 'true');
                 el.removeAttribute('title');
@@ -5646,7 +5669,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetailOcClientProfileEditing = false;
             })
             .catch(function(err) {
-                showToast((err && err.message) ? err.message : 'Não foi possível atualizar o cliente.', 'error');
+                showToast(agendaFriendlyNetworkErrorMessage(err, 'Não foi possível atualizar o cliente.'), 'error');
             })
             .finally(function() {
                 eventDetailOcClientProfileSaving = false;
@@ -5886,10 +5909,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 || (eventDetailCurrentData && eventDetailCurrentData.end_at)
                 || eventDetailOriginalEndAt;
             if (!start) return;
+            var client = null;
+            if (eventDetailSelectedClient && eventDetailSelectedClient.id) {
+                client = {
+                    id: String(eventDetailSelectedClient.id),
+                    name: eventDetailSelectedClient.name || '',
+                    phone: eventDetailSelectedClient.phone || '',
+                    nif: eventDetailSelectedClient.nif || '',
+                    formatted_phone: eventDetailSelectedClient.formatted_phone || '',
+                    email: eventDetailSelectedClient.email || '',
+                    avatar_url: eventDetailSelectedClient.avatar_url || '',
+                    birth_date: eventDetailSelectedClient.birth_date || '',
+                    origem: eventDetailSelectedClient.origem || '',
+                    profissao: eventDetailSelectedClient.profissao || '',
+                    client_since: eventDetailSelectedClient.client_since || '',
+                    client_last_update: eventDetailSelectedClient.client_last_update || '',
+                    tags: eventDetailSelectedClient.tags || []
+                };
+            } else if (eventDetailCurrentData && eventDetailCurrentData.client_id) {
+                client = {
+                    id: String(eventDetailCurrentData.client_id),
+                    name: eventDetailCurrentData.client_name || '',
+                    phone: eventDetailCurrentData.client_phone || '',
+                    nif: eventDetailCurrentData.client_nif || '',
+                    formatted_phone: eventDetailCurrentData.client_formatted_phone || '',
+                    email: eventDetailCurrentData.client_email || '',
+                    avatar_url: eventDetailCurrentData.client_avatar_url || '',
+                    birth_date: eventDetailCurrentData.client_birth_date || '',
+                    origem: eventDetailCurrentData.client_origem || '',
+                    profissao: eventDetailCurrentData.client_profissao || '',
+                    client_since: eventDetailCurrentData.client_since || '',
+                    client_last_update: eventDetailCurrentData.client_last_update || '',
+                    tags: eventDetailCurrentData.client_tags || []
+                };
+            }
             sessionStorage.setItem(AGENDA_EVENT_DETAIL_DRAFT_KEY, JSON.stringify({
                 id: String(id),
                 start_at: String(start),
                 end_at: end ? String(end) : '',
+                client: client,
                 saved_at: Date.now()
             }));
         } catch (e) { /* ignore */ }
@@ -5909,6 +5967,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function eventDetailOcClearDraftSnapshot() {
         try { sessionStorage.removeItem(AGENDA_EVENT_DETAIL_DRAFT_KEY); } catch (e) { /* ignore */ }
+    }
+
+    /** Safari/iOS: TypeError "Load failed" / "Failed to fetch" quando o pedido é cancelado ao navegar. */
+    function agendaFriendlyNetworkErrorMessage(err, fallback) {
+        var msg = err && err.message ? String(err.message) : '';
+        var lower = msg.toLowerCase();
+        if (
+            !msg
+            || lower === 'load failed'
+            || lower.indexOf('failed to fetch') !== -1
+            || lower.indexOf('networkerror') !== -1
+            || lower.indexOf('network request failed') !== -1
+            || lower.indexOf('the internet connection appears to be offline') !== -1
+            || lower.indexOf('cancelled') !== -1
+            || lower.indexOf('canceled') !== -1
+            || lower.indexOf('abort') !== -1
+        ) {
+            return fallback || 'Erro de ligação. Tente novamente.';
+        }
+        if (msg.indexOf('Unexpected') !== -1) {
+            return fallback || 'Erro de ligação. Tente novamente.';
+        }
+        return msg;
+    }
+
+    function eventDetailOcClientSnapshotFromSources() {
+        if (eventDetailSelectedClient && eventDetailSelectedClient.id) {
+            return eventDetailSelectedClient;
+        }
+        var draft = eventDetailOcReadDraftSnapshot();
+        var currentId = ($id('eventDetailEditId') && $id('eventDetailEditId').value)
+            || (eventDetailCurrentData && eventDetailCurrentData.id);
+        if (draft && draft.client && draft.client.id && currentId && String(draft.id) === String(currentId)) {
+            return draft.client;
+        }
+        if (eventDetailCurrentData && eventDetailCurrentData.client_id) {
+            return {
+                id: eventDetailCurrentData.client_id,
+                name: eventDetailCurrentData.client_name || '',
+                phone: eventDetailCurrentData.client_phone || '',
+                nif: eventDetailCurrentData.client_nif || '',
+                formatted_phone: eventDetailCurrentData.client_formatted_phone || '',
+                email: eventDetailCurrentData.client_email || '',
+                avatar_url: eventDetailCurrentData.client_avatar_url || '',
+                birth_date: eventDetailCurrentData.client_birth_date || '',
+                origem: eventDetailCurrentData.client_origem || '',
+                profissao: eventDetailCurrentData.client_profissao || '',
+                client_since: eventDetailCurrentData.client_since || '',
+                client_last_update: eventDetailCurrentData.client_last_update || '',
+                tags: eventDetailCurrentData.client_tags || []
+            };
+        }
+        return null;
+    }
+
+    function eventDetailOcClientLooksEmpty() {
+        var snap = eventDetailOcClientSnapshotFromSources();
+        if (!snap || !snap.id) return false;
+        var card = $id('eventDetailOcClientSelectedCard');
+        var notSel = $id('eventDetailOcClientNotSelectedWrap');
+        var nameEl = $id('eventDetailOcClientSelectedName');
+        var cardHidden = !!(card && card.classList.contains('d-none'));
+        var searchVisible = !!(notSel && !notSel.classList.contains('d-none'));
+        var nameText = nameEl ? String(nameEl.textContent || '').trim() : '';
+        var nameEmpty = !nameText || nameText === '…';
+        return cardHidden || searchVisible || nameEmpty;
+    }
+
+    function eventDetailOcRestoreClientFromMemory() {
+        var snap = eventDetailOcClientSnapshotFromSources();
+        if (!snap || !snap.id) return false;
+        eventDetailOcApplyClientFromApi(snap);
+        return true;
+    }
+
+    function eventDetailOcCancelInlineEditsWithoutSave() {
+        eventDetailOcInlineField = null;
+        eventDetailOcClientProfileEditing = false;
+        eventDetailOcClientProfileSaving = false;
+        agendaOcExitAllProfileInlineEdits('eventDetailOc');
+        if (eventDetailSelectedClient) {
+            eventDetailOcFillClientProfileFields(eventDetailSelectedClient);
+        }
     }
 
     /** Recupera start/end ocultos (memória JS + sessionStorage — iOS/Safari ao voltar atrás). */
@@ -5980,6 +6121,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!modal || !modal.classList.contains('show')) return;
         if (eventDetailOcVisibleDateTimeLooksEmpty()) {
             eventDetailOcRehydrateVisibleDateTime();
+        }
+        if (eventDetailOcClientLooksEmpty()) {
+            eventDetailOcRestoreClientFromMemory();
         }
     }
 
@@ -8851,7 +8995,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.disabled = false;
                 btn.innerHTML = eventDetailSaveBtnDefaultHtml();
             }
-            var msg = (err && err.message && err.message.indexOf('Unexpected') === -1) ? err.message : 'Erro de ligação. Verifique os logs do servidor se o problema persistir.';
+            var msg = agendaFriendlyNetworkErrorMessage(err, 'Erro de ligação. Verifique os logs do servidor se o problema persistir.');
             showToast(msg, 'error');
             if (options.onError) options.onError(err);
         });
@@ -14210,7 +14354,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcClearDraftSnapshot();
     });
 
-    // Antes de sair para a ficha do cliente: gravar data/hora + ?event= (iOS frequentemente faz reload ao voltar).
+    // Antes de sair para a ficha do cliente: gravar data/hora/cliente + ?event= (iOS frequentemente faz reload ao voltar).
     document.addEventListener('click', function(e) {
         var a = e.target && e.target.closest
             ? e.target.closest(
@@ -14220,6 +14364,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!a) return;
         var href = a.getAttribute('href');
         if (!href || href === '#') return;
+        // Evita PUT do nome/campos a meio da navegação (Safari → "Load failed").
+        eventDetailOcCancelInlineEditsWithoutSave();
         eventDetailOcPersistDraftSnapshot();
         var id = $id('eventDetailEditId') && $id('eventDetailEditId').value;
         if (id) agendaSetEventDeepLink(id);
@@ -14228,14 +14374,15 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('pagehide', function() {
         var modal = $id('eventDetailEditModal');
         if (!modal || !modal.classList.contains('show')) return;
+        eventDetailOcCancelInlineEditsWithoutSave();
         eventDetailOcPersistDraftSnapshot();
         var id = $id('eventDetailEditId') && $id('eventDetailEditId').value;
         if (id) agendaSetEventDeepLink(id);
     });
 
-    // Voltar da ficha do cliente (bfcache / tabs): repor Data/Hora se ficaram vazias.
+    // Voltar da ficha do cliente (bfcache / tabs): repor Data/Hora e cliente se ficaram vazios.
     window.addEventListener('pageshow', function(ev) {
-        if (ev.persisted || eventDetailOcVisibleDateTimeLooksEmpty()) {
+        if (ev.persisted || eventDetailOcVisibleDateTimeLooksEmpty() || eventDetailOcClientLooksEmpty()) {
             eventDetailOcScheduleRehydrateAfterReturn();
         }
     });
