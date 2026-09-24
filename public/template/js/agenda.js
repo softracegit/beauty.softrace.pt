@@ -5837,8 +5837,78 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
     }
+    function eventDetailOcParseStartEndSource(raw) {
+        if (!raw) return null;
+        var d = new Date(raw);
+        if (!isNaN(d.getTime())) return d;
+        d = parseAgendaLocalDateTime(String(raw));
+        if (d && !isNaN(d.getTime())) return d;
+        return null;
+    }
+
+    /** Recupera start/end ocultos a partir da memória (bfcache pode limpar inputs). */
+    function eventDetailOcRestoreHiddenStartEndFromMemory() {
+        var startEl = $id('eventDetailEditStart');
+        var endEl = $id('eventDetailEditEnd');
+        var startSrc = (startEl && startEl.value)
+            || (eventDetailCurrentData && eventDetailCurrentData.start_at)
+            || eventDetailOriginalStartAt;
+        var endSrc = (endEl && endEl.value)
+            || (eventDetailCurrentData && eventDetailCurrentData.end_at)
+            || eventDetailOriginalEndAt;
+        var ds = eventDetailOcParseStartEndSource(startSrc);
+        var de = eventDetailOcParseStartEndSource(endSrc);
+        if (!ds) return false;
+        if (!de) {
+            var dur = eventDetailEffectiveDurationMinutes();
+            if (dur < 1) dur = 60;
+            de = new Date(ds.getTime() + dur * 60000);
+        }
+        if (startEl) startEl.value = agendaFormatLocalDateTimeForInput(ds);
+        if (endEl) endEl.value = agendaFormatLocalDateTimeForInput(de);
+        if (eventDetailCurrentData) {
+            eventDetailCurrentData.start_at = startEl ? startEl.value : eventDetailCurrentData.start_at;
+            eventDetailCurrentData.end_at = endEl ? endEl.value : eventDetailCurrentData.end_at;
+        }
+        return true;
+    }
+
+    function eventDetailOcVisibleDateTimeLooksEmpty() {
+        var timeSel = $id('eventDetailOcTime');
+        var timeEmpty = !timeSel || !String(timeSel.value || '').trim() || timeSel.options.length < 2;
+        var dateStr = agendaOcReadDateStr('eventDetailOcDate', eventDetailOcDateFlatpickr);
+        var dateEmpty = !dateStr;
+        if (eventDetailOcDateFlatpickr && eventDetailOcDateFlatpickr.altInput) {
+            if (!String(eventDetailOcDateFlatpickr.altInput.value || '').trim()) {
+                dateEmpty = true;
+            }
+        }
+        return dateEmpty || timeEmpty;
+    }
+
+    /**
+     * Mobile/Safari: ao ir à ficha do cliente e voltar atrás, a página pode restaurar via bfcache
+     * com o offcanvas ainda aberto mas Flatpickr (altInput) e o select de hora vazios.
+     */
+    function eventDetailOcRehydrateVisibleDateTime() {
+        var modal = $id('eventDetailEditModal');
+        if (!modal || !modal.classList.contains('show')) return;
+        if (!eventDetailOcRestoreHiddenStartEndFromMemory()) return;
+        if (eventDetailOcDateFlatpickr) {
+            try { eventDetailOcDateFlatpickr.destroy(); } catch (e) { /* ignore */ }
+            eventDetailOcDateFlatpickr = null;
+        }
+        var dateIn = $id('eventDetailOcDate');
+        if (dateIn) dateIn.value = '';
+        eventDetailOcSyncPickersFromHidden();
+    }
+
     function eventDetailOcSyncPickersFromHidden() {
         var startStr = $id('eventDetailEditStart') && $id('eventDetailEditStart').value;
+        if (!startStr) {
+            eventDetailOcRestoreHiddenStartEndFromMemory();
+            startStr = $id('eventDetailEditStart') && $id('eventDetailEditStart').value;
+        }
         if (!startStr) return;
         var d = parseAgendaLocalDateTime(startStr);
         if (!d || isNaN(d.getTime())) return;
@@ -14051,5 +14121,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eDetCan) eDetCan.classList.add('d-none');
         eventDetailOriginalStartAt = null;
         eventDetailOriginalEndAt = null;
+    });
+
+    // Voltar da ficha do cliente (bfcache): repor Data/Hora no offcanvas se ficaram vazias.
+    window.addEventListener('pageshow', function(ev) {
+        var modal = $id('eventDetailEditModal');
+        if (!modal || !modal.classList.contains('show')) return;
+        if (ev.persisted || eventDetailOcVisibleDateTimeLooksEmpty()) {
+            eventDetailOcRehydrateVisibleDateTime();
+        }
     });
 });
