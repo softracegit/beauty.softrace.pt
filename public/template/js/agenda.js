@@ -5846,16 +5846,83 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
 
-    /** Recupera start/end ocultos a partir da memória (bfcache pode limpar inputs). */
+    var AGENDA_EVENT_DETAIL_DRAFT_KEY = 'agenda.eventDetail.draft';
+
+    function agendaSetEventDeepLink(eventId) {
+        if (!history.replaceState) return;
+        var id = String(eventId || '').trim();
+        if (!id) return;
+        try {
+            var url = new URL(window.location.href);
+            url.searchParams.set('event', id);
+            history.replaceState({}, document.title, url.pathname + url.search + url.hash);
+        } catch (e) { /* ignore */ }
+    }
+
+    function agendaClearEventDeepLink() {
+        if (!history.replaceState) return;
+        try {
+            var url = new URL(window.location.href);
+            if (!url.searchParams.has('event')) return;
+            url.searchParams.delete('event');
+            var search = url.searchParams.toString();
+            history.replaceState({}, document.title, url.pathname + (search ? '?' + search : '') + url.hash);
+        } catch (e) { /* ignore */ }
+    }
+
+    function eventDetailOcPersistDraftSnapshot() {
+        try {
+            var id = ($id('eventDetailEditId') && $id('eventDetailEditId').value)
+                || (eventDetailCurrentData && eventDetailCurrentData.id);
+            if (!id) return;
+            var start = ($id('eventDetailEditStart') && $id('eventDetailEditStart').value)
+                || (eventDetailCurrentData && eventDetailCurrentData.start_at)
+                || eventDetailOriginalStartAt;
+            var end = ($id('eventDetailEditEnd') && $id('eventDetailEditEnd').value)
+                || (eventDetailCurrentData && eventDetailCurrentData.end_at)
+                || eventDetailOriginalEndAt;
+            if (!start) return;
+            sessionStorage.setItem(AGENDA_EVENT_DETAIL_DRAFT_KEY, JSON.stringify({
+                id: String(id),
+                start_at: String(start),
+                end_at: end ? String(end) : '',
+                saved_at: Date.now()
+            }));
+        } catch (e) { /* ignore */ }
+    }
+
+    function eventDetailOcReadDraftSnapshot() {
+        try {
+            var raw = sessionStorage.getItem(AGENDA_EVENT_DETAIL_DRAFT_KEY);
+            if (!raw) return null;
+            var data = JSON.parse(raw);
+            if (!data || !data.id || !data.start_at) return null;
+            return data;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function eventDetailOcClearDraftSnapshot() {
+        try { sessionStorage.removeItem(AGENDA_EVENT_DETAIL_DRAFT_KEY); } catch (e) { /* ignore */ }
+    }
+
+    /** Recupera start/end ocultos (memória JS + sessionStorage — iOS/Safari ao voltar atrás). */
     function eventDetailOcRestoreHiddenStartEndFromMemory() {
         var startEl = $id('eventDetailEditStart');
         var endEl = $id('eventDetailEditEnd');
+        var currentId = ($id('eventDetailEditId') && $id('eventDetailEditId').value)
+            || (eventDetailCurrentData && eventDetailCurrentData.id);
+        var draft = eventDetailOcReadDraftSnapshot();
+        var draftMatches = !!(draft && currentId && String(draft.id) === String(currentId));
         var startSrc = (startEl && startEl.value)
             || (eventDetailCurrentData && eventDetailCurrentData.start_at)
-            || eventDetailOriginalStartAt;
+            || eventDetailOriginalStartAt
+            || (draftMatches ? draft.start_at : null);
         var endSrc = (endEl && endEl.value)
             || (eventDetailCurrentData && eventDetailCurrentData.end_at)
-            || eventDetailOriginalEndAt;
+            || eventDetailOriginalEndAt
+            || (draftMatches ? draft.end_at : null);
         var ds = eventDetailOcParseStartEndSource(startSrc);
         var de = eventDetailOcParseStartEndSource(endSrc);
         if (!ds) return false;
@@ -5901,6 +5968,22 @@ document.addEventListener('DOMContentLoaded', function() {
         var dateIn = $id('eventDetailOcDate');
         if (dateIn) dateIn.value = '';
         eventDetailOcSyncPickersFromHidden();
+        eventDetailOcPersistDraftSnapshot();
+    }
+
+    function eventDetailOcMaybeRehydrateAfterReturn() {
+        var modal = $id('eventDetailEditModal');
+        if (!modal || !modal.classList.contains('show')) return;
+        if (eventDetailOcVisibleDateTimeLooksEmpty()) {
+            eventDetailOcRehydrateVisibleDateTime();
+        }
+    }
+
+    function eventDetailOcScheduleRehydrateAfterReturn() {
+        eventDetailOcMaybeRehydrateAfterReturn();
+        setTimeout(eventDetailOcMaybeRehydrateAfterReturn, 0);
+        setTimeout(eventDetailOcMaybeRehydrateAfterReturn, 120);
+        setTimeout(eventDetailOcMaybeRehydrateAfterReturn, 400);
     }
 
     function eventDetailOcSyncPickersFromHidden() {
