@@ -3153,8 +3153,73 @@ document.addEventListener('DOMContentLoaded', function() {
         return String(method || '').trim() === 'mbway' && paymentModalStripePaymentsEnabled() && paymentModalIsMethodEnabled('mbway');
     }
 
+    /**
+     * MB Way Stripe só aceita móveis PT (+351 9XXXXXXXX).
+     * Números sem indicativo com 9 dígitos a começar por 9 são tratados como portugueses.
+     */
+    function paymentModalPhoneToMbwayE164Candidate(raw) {
+        var s = String(raw || '').trim();
+        if (!s) return '';
+        var compact = s.replace(/[\s\-().]/g, '');
+        if (compact.charAt(0) === '+') {
+            return compact.replace(/[^\d+]/g, '');
+        }
+        var digits = compact.replace(/\D/g, '');
+        if (/^3519\d{8}$/.test(digits)) {
+            return '+' + digits;
+        }
+        if (/^09\d{8}$/.test(digits)) {
+            return '+351' + digits.slice(1);
+        }
+        if (/^9\d{8}$/.test(digits)) {
+            return '+351' + digits;
+        }
+        if (digits.length > 0) {
+            return '+' + digits;
+        }
+        return '';
+    }
+
+    function paymentModalIsPortugueseMbwayPhone(raw) {
+        return /^\+3519\d{8}$/.test(paymentModalPhoneToMbwayE164Candidate(raw));
+    }
+
+    function paymentModalCurrentMbwayPhone() {
+        var phoneInput = $id('paymentMbwayPhone');
+        if (phoneInput && String(phoneInput.value || '').trim() !== '') {
+            return String(phoneInput.value || '').trim();
+        }
+        if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
+            return String(eventDetailSelectedClient.phone || '').trim();
+        }
+        return '';
+    }
+
+    function paymentModalSyncMbwayPhoneValidityUi(method) {
+        var hint = $id('paymentMbwayPhonePtHint');
+        var phoneInput = $id('paymentMbwayPhone');
+        var isMbway = paymentModalIsStripeMbway(method);
+        var phone = paymentModalCurrentMbwayPhone();
+        var ok = !isMbway || paymentModalIsPortugueseMbwayPhone(phone);
+        if (hint) {
+            hint.classList.toggle('d-none', !isMbway || ok);
+        }
+        if (phoneInput) {
+            phoneInput.classList.toggle('is-invalid', isMbway && !ok);
+        }
+        return ok;
+    }
+
+    function paymentModalSyncMbwayPhoneVisibility(method) {
+        var phoneWrap = $id('paymentMbwayPhoneWrap');
+        if (!phoneWrap) return;
+        var show = paymentModalIsStripeMbway(method);
+        phoneWrap.classList.toggle('d-none', !show);
+        paymentModalSyncMbwayPhoneValidityUi(method);
+    }
+
     function paymentModalManualPaymentMethodValues() {
-        return ['dinheiro', 'mbway_manual', 'transferencia'];
+        return ['dinheiro', 'cartao_tpa', 'mbway_manual', 'transferencia'];
     }
 
     function paymentModalIsManualPaymentMethod(method) {
@@ -3166,13 +3231,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return paymentModalManualPaymentMethodValues().indexOf(m) >= 0;
     }
 
-    function paymentModalSyncMbwayPhoneVisibility(method) {
-        var phoneWrap = $id('paymentMbwayPhoneWrap');
-        if (!phoneWrap) return;
-        var show = paymentModalIsStripeMbway(method);
-        phoneWrap.classList.toggle('d-none', !show);
-    }
-
     function paymentModalSyncCatalogTilesVisibility() {
         var channelMethods = paymentModalMethodsForCurrentMode();
         var enabled = {};
@@ -3182,6 +3240,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var map = {
             dinheiro: $id('paymentMethodDinheiroBtn'),
+            cartao_tpa: $id('paymentMethodCartaoTpaBtn'),
             mbway: $id('paymentMethodMbwayBtn'),
             mbway_manual: $id('paymentMethodMbwayManualBtn'),
             transferencia: $id('paymentMethodTransferenciaBtn')
@@ -3190,7 +3249,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var btn = map[code];
             if (!btn) return;
             var show = !!enabled[code];
-            // Cartão e créditos têm regras próprias (saved cards / saldo).
+            // Cartão guardado (Stripe) e créditos têm regras próprias (saved cards / saldo).
             // MB Way Stripe nunca aparece com a integração desligada.
             if (code === 'mbway' && !paymentModalStripePaymentsEnabled()) {
                 show = false;
@@ -3702,6 +3761,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!cartaoBtn) return;
         var cards = paymentModalSavedCards || [];
         var catalogAllows = paymentModalIsMethodEnabled('cartao');
+        var catalogRow = paymentModalMethodConfig('cartao');
+        var nameEl = cartaoBtn.querySelector('.tempo-pessoal-type-card-name');
+        if (nameEl && catalogRow && catalogRow.label) {
+            nameEl.textContent = catalogRow.label;
+        }
         var showCard = catalogAllows
             && paymentModalStripePaymentsEnabled()
             && !paymentModalIsInvoiceOnly()
@@ -9872,6 +9936,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return (paymentModalSavedCards || []).length > 0;
         }
         if (!paymentModalIsManualPaymentMethod(method)) return false;
+        if (paymentModalIsStripeMbway(method) && !paymentModalIsPortugueseMbwayPhone(paymentModalCurrentMbwayPhone())) {
+            return false;
+        }
         if (paymentModalIsReserva() && paymentModalIsStripeMbway(method)) {
             var stripeDue = paymentModalGetStripeDueCents();
             if (stripeDue > 0 && stripeDue < 50) return false;
@@ -9889,6 +9956,8 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentModalSyncFooterButtons();
             return;
         }
+        var method = String(($id('paymentMethodValue') && $id('paymentMethodValue').value) || '').trim();
+        paymentModalSyncMbwayPhoneValidityUi(method);
         btn.disabled = !paymentModalValidateReadyToPay();
         paymentModalSyncFooterButtons();
     }
@@ -10371,6 +10440,16 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentModalSyncReservaWalletUi();
             paymentModalUpdateConfirmLabel();
             paymentModalSetPayButtonEnabled();
+        });
+    })();
+
+    (function() {
+        var phoneInput = $id('paymentMbwayPhone');
+        if (!phoneInput) return;
+        ['input', 'change', 'blur'].forEach(function(evt) {
+            phoneInput.addEventListener(evt, function() {
+                paymentModalSetPayButtonEnabled();
+            });
         });
     })();
 

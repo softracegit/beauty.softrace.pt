@@ -125,6 +125,7 @@ final class VendusPaymentMethodResolver
             Sale::PAYMENT_MULTIBANCO => ['MB', 'CD'],
             Sale::PAYMENT_TRANSFERENCIA => ['TB'],
             Sale::PAYMENT_CARTAO => ['CC', 'CD'],
+            Sale::PAYMENT_CARTAO_TPA => ['CC', 'CD'],
             Sale::PAYMENT_OUTRO => ['OU'],
             default => [],
         };

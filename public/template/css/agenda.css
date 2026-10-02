@@ -4165,9 +4165,9 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     box-shadow: 0 0 0 2px rgba(var(--bs-primary-rgb), 0.25);
 }
 
-/* Modal de pagamento: 3 métodos em linha única com cartões compactos */
+/* Modal de pagamento: 4 métodos em linha única com cartões compactos */
 #paymentMethodToggleGroup.tempo-pessoal-type-toggle-wrapper {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.4rem;
 }
 #paymentMethodToggleGroup .tempo-pessoal-type-card {

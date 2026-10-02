@@ -202,6 +202,7 @@ class AgendaDepositService
 
             $allowedManual = [
                 Sale::PAYMENT_DINHEIRO,
+                Sale::PAYMENT_CARTAO_TPA,
                 Sale::PAYMENT_MBWAY_MANUAL,
                 Sale::PAYMENT_TRANSFERENCIA,
             ];
@@ -210,7 +211,7 @@ class AgendaDepositService
             }
 
             if (! in_array($paymentMethod, $allowedManual, true)) {
-                throw new AgendaDepositException('Para o valor em falta após créditos, use dinheiro, MB Way (registo) ou transferência.');
+                throw new AgendaDepositException('Para o valor em falta após créditos, use dinheiro, cartão (TPA), MB Way (registo) ou transferência.');
             }
         } elseif ($walletApplyCents <= 0) {
             throw new AgendaDepositException('Indique créditos da carteira ou um método de pagamento.');

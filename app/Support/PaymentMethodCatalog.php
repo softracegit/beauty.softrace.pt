@@ -45,9 +45,16 @@ class PaymentMethodCatalog
                 'icon' => 'ph-money',
                 'description' => 'Numerário na caixa (com troco).',
             ],
+            Sale::PAYMENT_CARTAO_TPA => [
+                'code' => Sale::PAYMENT_CARTAO_TPA,
+                'label' => 'Cartão',
+                'provider' => self::PROVIDER_MANUAL,
+                'icon' => 'ph-credit-card',
+                'description' => 'Pagamento com cartão via TPA na loja.',
+            ],
             Sale::PAYMENT_CARTAO => [
                 'code' => Sale::PAYMENT_CARTAO,
-                'label' => 'Cartão',
+                'label' => 'Cartão guardado',
                 'provider' => self::PROVIDER_STRIPE,
                 'icon' => 'ph-credit-card',
                 'description' => 'Cartão guardado via Stripe (agenda e marcações online).',
@@ -262,6 +269,7 @@ class PaymentMethodCatalog
 
         return [
             Sale::PAYMENT_DINHEIRO => ['agenda' => true, 'booking' => false, 'sort' => 10],
+            Sale::PAYMENT_CARTAO_TPA => ['agenda' => true, 'booking' => false, 'sort' => 15],
             Sale::PAYMENT_CARTAO => ['agenda' => true, 'booking' => true, 'sort' => 20],
             Sale::PAYMENT_MBWAY => [
                 'agenda' => $online,

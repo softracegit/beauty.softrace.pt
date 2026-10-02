@@ -70,7 +70,7 @@ class AgendaDepositController extends Controller
         $this->assertMarcacaoInStore($calendarEvent);
 
         $validated = $request->validate([
-            'payment_method' => ['nullable', 'string', 'in:dinheiro,mbway,mbway_manual,transferencia'],
+            'payment_method' => ['nullable', 'string', 'in:dinheiro,cartao_tpa,mbway,mbway_manual,transferencia'],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
             'invoice_delivery' => ['nullable', 'string', 'in:email,print'],

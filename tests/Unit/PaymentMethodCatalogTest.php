@@ -24,6 +24,19 @@ class PaymentMethodCatalogTest extends TestCase
     }
 
     #[Test]
+    public function catalog_defines_in_store_card_tpa_separate_from_stripe_saved_card(): void
+    {
+        $defs = PaymentMethodCatalog::definitions();
+
+        $this->assertArrayHasKey(Sale::PAYMENT_CARTAO_TPA, $defs);
+        $this->assertArrayHasKey(Sale::PAYMENT_CARTAO, $defs);
+        $this->assertSame(PaymentMethodCatalog::PROVIDER_MANUAL, $defs[Sale::PAYMENT_CARTAO_TPA]['provider']);
+        $this->assertSame(PaymentMethodCatalog::PROVIDER_STRIPE, $defs[Sale::PAYMENT_CARTAO]['provider']);
+        $this->assertSame('Cartão', $defs[Sale::PAYMENT_CARTAO_TPA]['label']);
+        $this->assertSame('Cartão guardado', $defs[Sale::PAYMENT_CARTAO]['label']);
+    }
+
+    #[Test]
     public function stripe_and_payment_methods_are_organization_scoped(): void
     {
         $this->assertTrue(CrmSetting::isOrganizationScopedKey(CrmSetting::KEY_PAYMENT_METHODS));

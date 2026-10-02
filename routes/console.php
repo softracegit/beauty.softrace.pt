@@ -62,7 +62,7 @@ Artisan::command('vendus:list-payment-methods', function (VendusPaymentMethodRes
     );
 
     $this->line('');
-    $this->comment('Mapeamento interno: dinheiro→NU, mbway→MBWAY, multibanco→MB, transferencia→TB, cartao→CC/CD, outro→OU.');
+    $this->comment('Mapeamento interno: dinheiro→NU, mbway→MBWAY, multibanco→MB, transferencia→TB, cartao/cartao_tpa→CC/CD, outro→OU.');
     $this->comment('Override fixo no .env: VENDUS_PAYMENT_METHOD_ID=<id>');
 
     return self::SUCCESS;

@@ -30,6 +30,9 @@ class Sale extends Model
 
     public const PAYMENT_CARTAO = 'cartao';
 
+    /** Pagamento com cartão via TPA na loja (registo manual). */
+    public const PAYMENT_CARTAO_TPA = 'cartao_tpa';
+
     public const PAYMENT_OUTRO = 'outro';
 
     public const PAYMENT_CREDITOS_CARTEIRA = 'creditos_carteira';

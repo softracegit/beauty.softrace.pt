@@ -141,10 +141,14 @@
                         <i class="ph ph-money tempo-pessoal-type-card-icon" aria-hidden="true"></i>
                         <span class="fw-semibold tempo-pessoal-type-card-name">Dinheiro</span>
                     </button>
+                    <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="cartao_tpa" aria-pressed="false" id="paymentMethodCartaoTpaBtn">
+                        <i class="ph ph-credit-card tempo-pessoal-type-card-icon" aria-hidden="true"></i>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Cartão</span>
+                    </button>
                     @if(! empty($stripePaymentsEnabled))
                     <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="cartao" aria-pressed="false" id="paymentMethodCartaoBtn">
                         <i class="ph ph-credit-card tempo-pessoal-type-card-icon" aria-hidden="true"></i>
-                        <span class="fw-semibold tempo-pessoal-type-card-name">Cartão</span>
+                        <span class="fw-semibold tempo-pessoal-type-card-name">Cartão guardado</span>
                         <span class="tempo-pessoal-type-card-sub small text-muted d-none" id="paymentMethodCartaoSubtitle"></span>
                     </button>
                     <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="mbway" aria-pressed="false" id="paymentMethodMbwayBtn">
@@ -174,6 +178,7 @@
                     <label for="paymentMbwayPhone" class="form-label">Telemóvel MB WAY</label>
                     <input type="tel" class="form-control" id="paymentMbwayPhone" placeholder="+3519XXXXXXXX">
                     <div class="form-text">Se a ficha do cliente não tiver telemóvel, este número ficará guardado.</div>
+                    <div class="form-text text-danger d-none mb-0" id="paymentMbwayPhonePtHint">O MB Way (Stripe) só funciona com telemóveis portugueses (+351 9XXXXXXXX).</div>
                 </div>
 
                 <div class="mt-4 d-none" id="paymentCashTenderWrap">
