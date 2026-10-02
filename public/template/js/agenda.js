@@ -5128,6 +5128,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 phone: data.client_phone || '',
                 phone_for_payment: data.client_phone_for_payment || '',
                 nif: data.client_nif || '',
+                nif_for_payment: data.client_nif_for_payment || '',
                 formatted_phone: data.client_formatted_phone || '',
                 avatar_url: data.client_avatar_url || '',
                 birth_date: data.client_birth_date || '',
@@ -5375,6 +5376,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? String(c.phone_for_payment)
                 : (String(c.phone || '').indexOf('*') === -1 ? String(c.phone || '') : ''),
             nif: c.nif || '',
+            nif_for_payment: (c.nif_for_payment != null && String(c.nif_for_payment).trim() !== '')
+                ? String(c.nif_for_payment)
+                : (String(c.nif || '').indexOf('*') === -1 ? String(c.nif || '') : ''),
             formatted_phone: c.formatted_phone || '',
             email: c.email || '',
             avatar_url: c.avatar_url || '',
@@ -6003,6 +6007,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     phone: eventDetailSelectedClient.phone || '',
                     phone_for_payment: eventDetailSelectedClient.phone_for_payment || '',
                     nif: eventDetailSelectedClient.nif || '',
+                    nif_for_payment: eventDetailSelectedClient.nif_for_payment || '',
                     formatted_phone: eventDetailSelectedClient.formatted_phone || '',
                     email: eventDetailSelectedClient.email || '',
                     avatar_url: eventDetailSelectedClient.avatar_url || '',
@@ -6020,6 +6025,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     phone: eventDetailCurrentData.client_phone || '',
                     phone_for_payment: eventDetailCurrentData.client_phone_for_payment || '',
                     nif: eventDetailCurrentData.client_nif || '',
+                    nif_for_payment: eventDetailCurrentData.client_nif_for_payment || '',
                     formatted_phone: eventDetailCurrentData.client_formatted_phone || '',
                     email: eventDetailCurrentData.client_email || '',
                     avatar_url: eventDetailCurrentData.client_avatar_url || '',
@@ -9866,9 +9872,29 @@ document.addEventListener('DOMContentLoaded', function() {
         return svc + ' + ' + exPart + ':';
     }
 
+    function paymentModalResolveClientNifForPayment() {
+        var nif = '';
+        if (eventDetailSelectedClient && eventDetailSelectedClient.nif_for_payment) {
+            nif = String(eventDetailSelectedClient.nif_for_payment || '').trim();
+        }
+        if (!nif && eventDetailCurrentData && eventDetailCurrentData.client_nif_for_payment) {
+            nif = String(eventDetailCurrentData.client_nif_for_payment || '').trim();
+        }
+        if (!nif && eventDetailSelectedClient && eventDetailSelectedClient.nif) {
+            nif = String(eventDetailSelectedClient.nif || '').trim();
+        }
+        if (!nif && eventDetailCurrentData && eventDetailCurrentData.client_nif) {
+            nif = String(eventDetailCurrentData.client_nif || '').trim();
+        }
+        if (nif.indexOf('*') !== -1) {
+            return '';
+        }
+        var digits = nif.replace(/\D/g, '');
+        return digits.length === 9 ? digits : '';
+    }
+
     function paymentModalClientNifDigits() {
-        var c = eventDetailSelectedClient;
-        return String((c && c.nif) || '').replace(/\D/g, '');
+        return paymentModalResolveClientNifForPayment();
     }
 
     function paymentModalSyncFiscalFromClient() {
@@ -9882,7 +9908,7 @@ document.addEventListener('DOMContentLoaded', function() {
             c.setAttribute('aria-checked', active ? 'true' : 'false');
         });
         var nifInput = $id('paymentModalBillingNif');
-        if (nifInput) nifInput.value = '';
+        if (nifInput) nifInput.value = digits;
         paymentModalApplyFiscalUi();
     }
 
@@ -9890,9 +9916,13 @@ document.addEventListener('DOMContentLoaded', function() {
         var mode = String(($id('paymentInvoiceFiscalMode') && $id('paymentInvoiceFiscalMode').value) || '').trim();
         var digits = paymentModalClientNifDigits();
         var wrap = $id('paymentModalNifInlineWrap');
+        var nifInput = $id('paymentModalBillingNif');
         if (wrap) {
             var show = mode === 'with_nif' && digits.length !== 9;
             wrap.classList.toggle('d-none', !show);
+            if (show && nifInput && String(nifInput.value || '').replace(/\D/g, '').length !== 9 && digits.length === 9) {
+                nifInput.value = digits;
+            }
         }
     }
 
@@ -10531,6 +10561,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (mode === 'consumer') {
                 var bn = $id('paymentModalBillingNif');
                 if (bn) bn.value = '';
+            } else if (mode === 'with_nif') {
+                var bnWith = $id('paymentModalBillingNif');
+                var digitsNif = paymentModalClientNifDigits();
+                if (bnWith && digitsNif.length === 9) {
+                    bnWith.value = digitsNif;
+                }
             }
             paymentModalApplyFiscalUi();
         });

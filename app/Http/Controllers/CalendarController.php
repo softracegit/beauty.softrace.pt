@@ -2810,16 +2810,22 @@ class CalendarController extends Controller
 
         if ($this->shouldMaskClientContactData($user)) {
             $realPhone = trim((string) ($payload['client_phone'] ?? ''));
+            $realNif = trim((string) ($payload['client_nif'] ?? ''));
             $payload['client_email'] = ClientContactMask::email((string) ($payload['client_email'] ?? ''));
             $payload['client_phone'] = ClientContactMask::phone((string) ($payload['client_phone'] ?? ''));
             $payload['client_nif'] = ClientContactMask::nif((string) ($payload['client_nif'] ?? ''));
             $payload['client_formatted_phone'] = $payload['client_phone'];
             $payload['client_has_email'] = $payload['client_email'] !== '';
-            // Pagamentos (ex.: MB Way) continuam permitidos com o CRM bloqueado — número real só para cobrança.
+            // Pagamentos continuam permitidos com o CRM bloqueado — dados reais só para cobrança/fatura.
             if ($user->canProcessPayments() && $realPhone !== '') {
                 $payload['client_phone_for_payment'] = $realPhone;
             } else {
                 unset($payload['client_phone_for_payment']);
+            }
+            if ($user->canProcessPayments() && $realNif !== '') {
+                $payload['client_nif_for_payment'] = $realNif;
+            } else {
+                unset($payload['client_nif_for_payment']);
             }
         }
 
@@ -2917,6 +2923,7 @@ class CalendarController extends Controller
 
         if ($this->shouldMaskClientContactData($user)) {
             $realPhone = trim((string) ($payload['phone'] ?? ''));
+            $realNif = trim((string) ($payload['nif'] ?? ''));
             $payload['email'] = ClientContactMask::email((string) ($payload['email'] ?? ''));
             $payload['phone'] = ClientContactMask::phone((string) ($payload['phone'] ?? ''));
             $payload['formatted_phone'] = $payload['phone'];
@@ -2926,8 +2933,20 @@ class CalendarController extends Controller
             } else {
                 unset($payload['phone_for_payment']);
             }
+            if ($user->canProcessPayments() && $realNif !== '') {
+                $payload['nif_for_payment'] = $realNif;
+            } else {
+                unset($payload['nif_for_payment']);
+            }
         } elseif (! $user->canViewClientContactDetails()) {
-            unset($payload['email'], $payload['phone'], $payload['formatted_phone'], $payload['nif'], $payload['phone_for_payment']);
+            unset(
+                $payload['email'],
+                $payload['phone'],
+                $payload['formatted_phone'],
+                $payload['nif'],
+                $payload['phone_for_payment'],
+                $payload['nif_for_payment'],
+            );
         }
 
         return $payload;
