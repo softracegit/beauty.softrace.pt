@@ -3187,12 +3187,42 @@ document.addEventListener('DOMContentLoaded', function() {
     function paymentModalCurrentMbwayPhone() {
         var phoneInput = $id('paymentMbwayPhone');
         if (phoneInput && String(phoneInput.value || '').trim() !== '') {
-            return String(phoneInput.value || '').trim();
+            var typed = String(phoneInput.value || '').trim();
+            if (typed.indexOf('*') === -1) {
+                return typed;
+            }
         }
+        return paymentModalResolveClientPhoneForMbway();
+    }
+
+    /** Número real para MB Way (com CRM bloqueado o telefone de UI vem mascarado). */
+    function paymentModalResolveClientPhoneForMbway() {
+        var paymentPhone = '';
+        if (eventDetailSelectedClient && eventDetailSelectedClient.phone_for_payment) {
+            paymentPhone = String(eventDetailSelectedClient.phone_for_payment || '').trim();
+        }
+        if (!paymentPhone && eventDetailCurrentData && eventDetailCurrentData.client_phone_for_payment) {
+            paymentPhone = String(eventDetailCurrentData.client_phone_for_payment || '').trim();
+        }
+        if (paymentPhone && paymentPhone.indexOf('*') === -1) {
+            return paymentPhone;
+        }
+        var phone = '';
         if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
-            return String(eventDetailSelectedClient.phone || '').trim();
+            phone = String(eventDetailSelectedClient.phone || '').trim();
+        } else if (eventDetailCurrentData && eventDetailCurrentData.client_phone) {
+            phone = String(eventDetailCurrentData.client_phone || '').trim();
+        }
+        if (phone && phone.indexOf('*') === -1) {
+            return phone;
         }
         return '';
+    }
+
+    function paymentModalPrefillMbwayPhoneInput() {
+        var phoneInput = $id('paymentMbwayPhone');
+        if (!phoneInput) return;
+        phoneInput.value = paymentModalResolveClientPhoneForMbway();
     }
 
     function paymentModalSyncMbwayPhoneValidityUi(method) {
@@ -3883,11 +3913,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var phoneInput = $id('paymentMbwayPhone');
         if (phoneWrap && phoneInput) {
             phoneWrap.classList.add('d-none');
-            var rawPhone = '';
-            if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
-                rawPhone = String(eventDetailSelectedClient.phone || '');
-            }
-            phoneInput.value = rawPhone;
+            paymentModalPrefillMbwayPhoneInput();
         }
         paymentModalSyncCashTenderVisibility('', { clear: true });
         paymentModalFetchWalletBalance(function() {
@@ -3925,11 +3951,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (phoneWrap && phoneInput) {
             phoneWrap.classList.add('d-none');
             if (paymentModalStripePaymentsEnabled()) {
-                var rawPhone = '';
-                if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
-                    rawPhone = String(eventDetailSelectedClient.phone || '');
-                }
-                phoneInput.value = rawPhone;
+                paymentModalPrefillMbwayPhoneInput();
             }
         }
         paymentModalSyncCashTenderVisibility('', { clear: true });
@@ -4048,11 +4070,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var phoneInput = $id('paymentMbwayPhone');
         if (phoneWrap && phoneInput) {
             phoneWrap.classList.add('d-none');
-            var rawPhone = '';
-            if (eventDetailSelectedClient && eventDetailSelectedClient.phone) {
-                rawPhone = String(eventDetailSelectedClient.phone || '');
-            }
-            phoneInput.value = rawPhone;
+            paymentModalPrefillMbwayPhoneInput();
         }
         paymentModalApplyModeClasses();
         paymentModalUpdateTotals();
@@ -5108,6 +5126,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 name: data.client_name,
                 email: data.client_email || '',
                 phone: data.client_phone || '',
+                phone_for_payment: data.client_phone_for_payment || '',
                 nif: data.client_nif || '',
                 formatted_phone: data.client_formatted_phone || '',
                 avatar_url: data.client_avatar_url || '',
@@ -5352,6 +5371,9 @@ document.addEventListener('DOMContentLoaded', function() {
             id: String(c.id),
             name: c.name || '',
             phone: c.phone || '',
+            phone_for_payment: (c.phone_for_payment != null && String(c.phone_for_payment).trim() !== '')
+                ? String(c.phone_for_payment)
+                : (String(c.phone || '').indexOf('*') === -1 ? String(c.phone || '') : ''),
             nif: c.nif || '',
             formatted_phone: c.formatted_phone || '',
             email: c.email || '',
@@ -5979,6 +6001,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     id: String(eventDetailSelectedClient.id),
                     name: eventDetailSelectedClient.name || '',
                     phone: eventDetailSelectedClient.phone || '',
+                    phone_for_payment: eventDetailSelectedClient.phone_for_payment || '',
                     nif: eventDetailSelectedClient.nif || '',
                     formatted_phone: eventDetailSelectedClient.formatted_phone || '',
                     email: eventDetailSelectedClient.email || '',
@@ -5995,6 +6018,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     id: String(eventDetailCurrentData.client_id),
                     name: eventDetailCurrentData.client_name || '',
                     phone: eventDetailCurrentData.client_phone || '',
+                    phone_for_payment: eventDetailCurrentData.client_phone_for_payment || '',
                     nif: eventDetailCurrentData.client_nif || '',
                     formatted_phone: eventDetailCurrentData.client_formatted_phone || '',
                     email: eventDetailCurrentData.client_email || '',

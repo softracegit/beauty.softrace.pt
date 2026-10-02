@@ -2809,11 +2809,18 @@ class CalendarController extends Controller
         }
 
         if ($this->shouldMaskClientContactData($user)) {
+            $realPhone = trim((string) ($payload['client_phone'] ?? ''));
             $payload['client_email'] = ClientContactMask::email((string) ($payload['client_email'] ?? ''));
             $payload['client_phone'] = ClientContactMask::phone((string) ($payload['client_phone'] ?? ''));
             $payload['client_nif'] = ClientContactMask::nif((string) ($payload['client_nif'] ?? ''));
             $payload['client_formatted_phone'] = $payload['client_phone'];
             $payload['client_has_email'] = $payload['client_email'] !== '';
+            // Pagamentos (ex.: MB Way) continuam permitidos com o CRM bloqueado — número real só para cobrança.
+            if ($user->canProcessPayments() && $realPhone !== '') {
+                $payload['client_phone_for_payment'] = $realPhone;
+            } else {
+                unset($payload['client_phone_for_payment']);
+            }
         }
 
         if (! $user->isPrestador()) {
@@ -2909,12 +2916,18 @@ class CalendarController extends Controller
         }
 
         if ($this->shouldMaskClientContactData($user)) {
+            $realPhone = trim((string) ($payload['phone'] ?? ''));
             $payload['email'] = ClientContactMask::email((string) ($payload['email'] ?? ''));
             $payload['phone'] = ClientContactMask::phone((string) ($payload['phone'] ?? ''));
             $payload['formatted_phone'] = $payload['phone'];
             $payload['nif'] = ClientContactMask::nif((string) ($payload['nif'] ?? ''));
+            if ($user->canProcessPayments() && $realPhone !== '') {
+                $payload['phone_for_payment'] = $realPhone;
+            } else {
+                unset($payload['phone_for_payment']);
+            }
         } elseif (! $user->canViewClientContactDetails()) {
-            unset($payload['email'], $payload['phone'], $payload['formatted_phone'], $payload['nif']);
+            unset($payload['email'], $payload['phone'], $payload['formatted_phone'], $payload['nif'], $payload['phone_for_payment']);
         }
 
         return $payload;
