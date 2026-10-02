@@ -4203,14 +4203,30 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     border-radius: 0.75rem;
 }
 .payment-pos-modal .modal-footer.payment-pos-modal-footer {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.4rem;
     justify-content: stretch;
+    align-items: stretch;
 }
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > .btn {
-    flex: 4 1 0;
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary {
+    grid-column: 1 / span 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
     min-width: 0;
 }
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary:has(#paymentDraftBtn.d-none) {
+    grid-template-columns: 1fr;
+}
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary > .btn {
+    min-width: 0;
+    width: 100%;
+}
 .payment-pos-modal .modal-footer.payment-pos-modal-footer > #paymentConfirmBtn {
-    flex: 8 1 0;
+    grid-column: 3 / span 2;
+    min-width: 0;
+    width: 100%;
 }
 .payment-pos-total-hero {
     border-color: var(--bs-border-color, #dee2e6) !important;

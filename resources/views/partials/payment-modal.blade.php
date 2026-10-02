@@ -200,9 +200,11 @@
                     <div class="form-text text-danger d-none mb-0" id="paymentCashInsufficientHint">Valor insuficiente para o total a pagar.</div>
                 </div>
             </div>
-            <div class="modal-footer pt-2 pb-3 border-top flex-nowrap gap-2 payment-pos-modal-footer">
-                <button type="button" class="btn btn-light" id="paymentCancelBtn">Cancelar</button>
-                <button type="button" class="btn btn-outline-secondary fw-semibold" id="paymentDraftBtn" disabled>Rascunho</button>
+            <div class="modal-footer pt-2 pb-3 border-top payment-pos-modal-footer">
+                <div class="payment-pos-modal-footer__secondary">
+                    <button type="button" class="btn btn-light" id="paymentCancelBtn">Cancelar</button>
+                    <button type="button" class="btn btn-outline-secondary fw-semibold" id="paymentDraftBtn" disabled>Rascunho</button>
+                </div>
                 <button type="button" class="btn btn-success fw-semibold py-2" id="paymentConfirmBtn" disabled>Pagar 0,00 €</button>
             </div>
         </div>
