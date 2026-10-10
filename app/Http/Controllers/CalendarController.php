@@ -522,7 +522,7 @@ class CalendarController extends Controller
             return response()->json(['message' => 'Sem permissão.'], 403);
         }
 
-        if ((int) $client->store_id !== (int) current_store_id()) {
+        if (! $client->belongsToOrganizationOfStore((int) current_store_id())) {
             abort(404);
         }
 
@@ -544,7 +544,7 @@ class CalendarController extends Controller
             return response()->json(['message' => 'Sem permissão.'], 403);
         }
 
-        if ((int) $client->store_id !== (int) current_store_id()) {
+        if (! $client->belongsToOrganizationOfStore((int) current_store_id())) {
             abort(404);
         }
 

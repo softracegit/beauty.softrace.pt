@@ -390,7 +390,7 @@ class BookingController extends Controller
         }
 
         $client = $isBookingClient ? $user->loadMissing('client')->client : null;
-        if ($client && (int) $client->store_id !== $this->bookingStoreId()) {
+        if ($client && ! $client->belongsToOrganizationOfStore($this->bookingStore())) {
             return redirect()->route('booking.index', ['store' => $this->bookingStoreSlug()]);
         }
 
@@ -492,7 +492,7 @@ class BookingController extends Controller
         $user = $request->user();
         $client = $user?->loadMissing('client')->client;
 
-        if ($client && (int) $client->store_id !== $this->bookingStoreId()) {
+        if ($client && ! $client->belongsToOrganizationOfStore($this->bookingStore())) {
             abort(404);
         }
 
@@ -507,7 +507,7 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $client = $user?->loadMissing('client')->client;
-        if ($client && (int) $client->store_id !== $this->bookingStoreId()) {
+        if ($client && ! $client->belongsToOrganizationOfStore($this->bookingStore())) {
             abort(404);
         }
 
@@ -528,7 +528,7 @@ class BookingController extends Controller
     {
         $user = $request->user();
         $client = $user?->loadMissing('client')->client;
-        if ($client && (int) $client->store_id !== $this->bookingStoreId()) {
+        if ($client && ! $client->belongsToOrganizationOfStore($this->bookingStore())) {
             abort(404);
         }
 
@@ -592,7 +592,7 @@ class BookingController extends Controller
             abort(404);
         }
 
-        if ((int) $client->store_id !== $this->bookingStoreId()) {
+        if (! $client->belongsToOrganizationOfStore($this->bookingStore())) {
             abort(404);
         }
 
@@ -636,7 +636,7 @@ class BookingController extends Controller
             abort(404);
         }
 
-        if ((int) $client->store_id !== $this->bookingStoreId()) {
+        if (! $client->belongsToOrganizationOfStore($this->bookingStore())) {
             abort(404);
         }
 

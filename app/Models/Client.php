@@ -428,6 +428,27 @@ class Client extends Model
     }
 
     /**
+     * Cliente da mesma organização que a loja (marcação online partilha clientes entre lojas da org).
+     */
+    public function belongsToOrganizationOfStore(Store|int $store): bool
+    {
+        $storeOrgId = $store instanceof Store
+            ? (int) ($store->organization_id ?? 0)
+            : (int) (Store::query()->whereKey((int) $store)->value('organization_id') ?? 0);
+
+        if ($storeOrgId <= 0) {
+            return false;
+        }
+
+        $clientOrgId = (int) ($this->organization_id ?? 0);
+        if ($clientOrgId <= 0 && $this->store_id) {
+            $clientOrgId = (int) (Store::query()->whereKey((int) $this->store_id)->value('organization_id') ?? 0);
+        }
+
+        return $clientOrgId > 0 && $clientOrgId === $storeOrgId;
+    }
+
+    /**
      * Verifica se já existe cliente com o mesmo número (E.164 quando analisável; senão comparação literal).
      */
     public static function existsWithSamePhoneAs(string $phone, ?int $organizationId = null, ?int $exceptClientId = null): bool

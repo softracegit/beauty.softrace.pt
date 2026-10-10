@@ -70,7 +70,7 @@ class BookingAccountCancelController extends Controller
             abort(404);
         }
 
-        if ((int) $client->store_id !== (int) $store->id) {
+        if (! $client->belongsToOrganizationOfStore($store)) {
             abort(404);
         }
 

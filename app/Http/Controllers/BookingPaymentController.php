@@ -877,7 +877,7 @@ class BookingPaymentController extends Controller
         }
 
         $client = $actor->loadMissing('client')->client;
-        if (! $client instanceof Client || (int) $client->store_id !== $storeId) {
+        if (! $client instanceof Client || ! $client->belongsToOrganizationOfStore($storeId)) {
             return 0;
         }
 

@@ -642,7 +642,13 @@ class OnlineBookingCheckoutService
     public function assertPayableBookingState(?User $actor, array $validated): void
     {
         if ($actor instanceof User && $actor->isBookingClient()) {
-            Client::query()->findOrFail((int) $actor->client_id);
+            $client = Client::query()->findOrFail((int) $actor->client_id);
+            $bookingStoreId = $this->storeIdFromBookingServices($validated['services'] ?? []);
+            if ($bookingStoreId > 0 && ! $client->belongsToOrganizationOfStore($bookingStoreId)) {
+                throw ValidationException::withMessages([
+                    'email' => [__('booking.validation.services_wrong_store')],
+                ]);
+            }
 
             return;
         }
@@ -664,6 +670,12 @@ class OnlineBookingCheckoutService
 
         if ($isBookingClient) {
             $client = Client::query()->findOrFail((int) $actor->client_id);
+            $bookingStoreId = $this->storeIdFromBookingServices($validated['services'] ?? []);
+            if ($bookingStoreId > 0 && ! $client->belongsToOrganizationOfStore($bookingStoreId)) {
+                throw ValidationException::withMessages([
+                    'email' => [__('booking.validation.services_wrong_store')],
+                ]);
+            }
             $name = trim((string) ($validated['name'] ?? ''));
             $emailNorm = strtolower(trim((string) ($validated['email'] ?? '')));
             $phoneE164 = PhoneDisplay::toE164(trim((string) ($validated['phone'] ?? '')));
@@ -754,7 +766,12 @@ class OnlineBookingCheckoutService
         $notesTrim = isset($validated['notes']) ? trim((string) $validated['notes']) : '';
         $description = $notesTrim !== '' ? $notesTrim : null;
 
-        return DB::transaction(function () use ($title, $startForDb, $endForDb, $description, $userId, $client, $firstService, $servicesPayload, $bookingLines) {
+        $storeId = $this->storeIdFromBookingServices($validated['services'] ?? []);
+        if ($storeId <= 0) {
+            $storeId = (int) $client->store_id;
+        }
+
+        return DB::transaction(function () use ($title, $startForDb, $endForDb, $description, $userId, $client, $firstService, $servicesPayload, $bookingLines, $storeId) {
             if ($this->userHasCalendarConflict($userId, $startForDb, $endForDb)) {
                 throw ValidationException::withMessages([
                     'time' => [__('booking.validation.slot_taken_short')],
@@ -762,7 +779,7 @@ class OnlineBookingCheckoutService
             }
 
             $ev = CalendarEvent::create([
-                'store_id' => (int) $client->store_id,
+                'store_id' => $storeId,
                 'title' => $title,
                 'start_at' => $startForDb,
                 'end_at' => $endForDb,

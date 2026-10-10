@@ -55,7 +55,7 @@ class BookingAccountWalletController extends Controller
             abort(404);
         }
 
-        if ((int) $client->store_id !== $this->bookingStoreId()) {
+        if (! $client->belongsToOrganizationOfStore($this->bookingStoreId())) {
             abort(404);
         }
 
