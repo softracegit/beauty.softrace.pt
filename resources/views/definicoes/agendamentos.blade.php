@@ -126,6 +126,32 @@
         <p class="small text-muted mb-0 mt-2 w-100">
           Este tempo é usado no checkout público da marcação para reservar o horário temporariamente.
         </p>
+
+        <div class="row g-3 align-items-end mt-3">
+          <div class="col-12 col-md-4 col-lg-3">
+            <label for="booking_cart_ttl_hours" class="form-label fw-semibold mb-1">Memória dos serviços escolhidos</label>
+            <div class="input-group">
+              <input
+                id="booking_cart_ttl_hours"
+                name="booking_cart_ttl_hours"
+                type="number"
+                min="{{ \App\Models\CrmSetting::BOOKING_CART_TTL_HOURS_MIN }}"
+                max="{{ \App\Models\CrmSetting::BOOKING_CART_TTL_HOURS_MAX }}"
+                step="1"
+                class="form-control @error('booking_cart_ttl_hours') is-invalid @enderror"
+                value="{{ old('booking_cart_ttl_hours', $bookingCartTtlHours ?? \App\Models\CrmSetting::BOOKING_CART_TTL_HOURS_DEFAULT) }}"
+                required
+              >
+              <span class="input-group-text">horas</span>
+              @error('booking_cart_ttl_hours')
+                <div class="invalid-feedback d-block">{{ $message }}</div>
+              @enderror
+            </div>
+          </div>
+        </div>
+        <p class="small text-muted mb-0 mt-2 w-100">
+          Se o cliente voltar ao Booking depois deste tempo, os serviços (e o resto da seleção) guardados no browser são limpos automaticamente. Evita marcações com serviços esquecidos de visitas anteriores. Predefinido: 12 horas.
+        </p>
       </div>
     </div>
 

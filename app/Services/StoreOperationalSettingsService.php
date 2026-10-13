@@ -44,6 +44,7 @@ class StoreOperationalSettingsService
     {
         return [
             'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes($storeId),
+            'bookingCartTtlHours' => CrmSetting::bookingCartTtlHours($storeId),
             'bookingSlotIntervalMinutes' => CrmSetting::bookingSlotIntervalMinutes($storeId),
             'bookingSlotIntervalOptions' => CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS,
             'bookingCancellationNoticeHours' => CrmSetting::bookingCancellationNoticeHours($storeId),
@@ -57,6 +58,7 @@ class StoreOperationalSettingsService
     /**
      * @return array{
      *   booking_slot_hold_minutes: int,
+     *   booking_cart_ttl_hours: int,
      *   booking_slot_interval_minutes: int,
      *   booking_cancellation_notice_hours: int,
      *   booking_any_staff_rule: string,
@@ -67,6 +69,12 @@ class StoreOperationalSettingsService
     {
         $validated = $request->validate([
             'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
+            'booking_cart_ttl_hours' => [
+                'required',
+                'integer',
+                'min:'.CrmSetting::BOOKING_CART_TTL_HOURS_MIN,
+                'max:'.CrmSetting::BOOKING_CART_TTL_HOURS_MAX,
+            ],
             'booking_slot_interval_minutes' => [
                 'required',
                 'integer',
@@ -85,6 +93,8 @@ class StoreOperationalSettingsService
         ], [
             'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
             'booking_slot_hold_minutes.max' => 'O tempo de reserva não pode exceder 240 minutos.',
+            'booking_cart_ttl_hours.min' => 'O tempo de memória do carrinho deve ser pelo menos 1 hora.',
+            'booking_cart_ttl_hours.max' => 'O tempo de memória do carrinho não pode exceder 168 horas (7 dias).',
             'booking_slot_interval_minutes.in' => 'Escolha um intervalo de blocos válido.',
             'booking_cancellation_notice_hours.min' => 'O aviso mínimo não pode ser negativo.',
             'booking_cancellation_notice_hours.max' => 'O aviso mínimo não pode exceder 168 horas (7 dias).',
@@ -103,6 +113,7 @@ class StoreOperationalSettingsService
 
         return [
             'booking_slot_hold_minutes' => (int) $validated['booking_slot_hold_minutes'],
+            'booking_cart_ttl_hours' => (int) $validated['booking_cart_ttl_hours'],
             'booking_slot_interval_minutes' => (int) $validated['booking_slot_interval_minutes'],
             'booking_cancellation_notice_hours' => (int) $validated['booking_cancellation_notice_hours'],
             'booking_any_staff_rule' => $selectedRule,
@@ -115,6 +126,7 @@ class StoreOperationalSettingsService
     /**
      * @param  array{
      *   booking_slot_hold_minutes: int,
+     *   booking_cart_ttl_hours: int,
      *   booking_slot_interval_minutes: int,
      *   booking_cancellation_notice_hours: int,
      *   booking_any_staff_rule: string,
@@ -124,6 +136,7 @@ class StoreOperationalSettingsService
     public function applyBookingToStore(array $data, int $storeId): void
     {
         CrmSetting::setInt(CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES, $data['booking_slot_hold_minutes'], $storeId);
+        CrmSetting::setBookingCartTtlHours($data['booking_cart_ttl_hours'], $storeId);
         CrmSetting::setInt(CrmSetting::KEY_BOOKING_SLOT_INTERVAL_MINUTES, $data['booking_slot_interval_minutes'], $storeId);
         CrmSetting::setBookingCancellationNoticeHours($data['booking_cancellation_notice_hours'], $storeId);
         CrmSetting::setString(CrmSetting::KEY_BOOKING_ANY_STAFF_RULE, $data['booking_any_staff_rule'], $storeId);
@@ -135,6 +148,7 @@ class StoreOperationalSettingsService
     /**
      * @param  array{
      *   booking_slot_hold_minutes: int,
+     *   booking_cart_ttl_hours: int,
      *   booking_slot_interval_minutes: int,
      *   booking_cancellation_notice_hours: int,
      *   booking_any_staff_rule: string,

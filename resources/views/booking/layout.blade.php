@@ -66,6 +66,7 @@
     data-booking-slot-hold-extend-url="{{ route('booking.slot_hold.extend', ['store' => $bookingStoreSlug], false) }}"
     data-booking-slot-hold-release-url="{{ route('booking.slot_hold.release', ['store' => $bookingStoreSlug], false) }}"
     data-booking-slot-hold-seconds="{{ max(10, \App\Models\CrmSetting::bookingSlotHoldMinutes() * 60) }}"
+    data-booking-cart-ttl-hours="{{ \App\Models\CrmSetting::bookingCartTtlHours() }}"
     data-booking-session-ping-url="{{ route('booking.session.ping', ['store' => $bookingStoreSlug], false) }}"
     data-booking-session-keepalive-minutes="{{ config('booking.session_keepalive_interval_minutes') }}"
     data-booking-authenticated-client="{{ (auth()->user() instanceof \App\Models\User && auth()->user()->isBookingClient()) ? '1' : '0' }}"

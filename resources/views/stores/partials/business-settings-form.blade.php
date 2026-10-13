@@ -212,6 +212,7 @@
             'bookingSlotIntervalOptions' => $bookingSlotIntervalOptions ?? [],
             'bookingSlotIntervalMinutes' => $bookingSlotIntervalMinutes ?? null,
             'bookingSlotHoldMinutes' => $bookingSlotHoldMinutes ?? null,
+            'bookingCartTtlHours' => $bookingCartTtlHours ?? null,
             'bookingAnyStaffRules' => $bookingAnyStaffRules ?? [],
             'bookingAnyStaffRule' => $bookingAnyStaffRule ?? null,
             'bookingCancellationNoticeHours' => $bookingCancellationNoticeHours ?? null,

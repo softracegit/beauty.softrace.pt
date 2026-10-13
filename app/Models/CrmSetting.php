@@ -28,6 +28,15 @@ class CrmSetting extends Model
 
     public const KEY_BOOKING_SLOT_HOLD_MINUTES = 'booking.slot_hold_minutes';
 
+    /** Horas até limpar serviços/seleção guardados no browser do cliente (localStorage). */
+    public const KEY_BOOKING_CART_TTL_HOURS = 'booking.cart_ttl_hours';
+
+    public const BOOKING_CART_TTL_HOURS_DEFAULT = 12;
+
+    public const BOOKING_CART_TTL_HOURS_MIN = 1;
+
+    public const BOOKING_CART_TTL_HOURS_MAX = 168;
+
     /** Intervalo (minutos) entre horários oferecidos no Booking público. */
     public const KEY_BOOKING_SLOT_INTERVAL_MINUTES = 'booking.slot_interval_minutes';
 
@@ -373,6 +382,32 @@ class CrmSetting extends Model
     public static function bookingSlotHoldMinutes(?int $storeId = null): int
     {
         return max(1, self::getInt(self::KEY_BOOKING_SLOT_HOLD_MINUTES, 6, $storeId));
+    }
+
+    /**
+     * Tempo máximo (horas) para manter o carrinho/seleção do Booking no browser do cliente.
+     */
+    public static function bookingCartTtlHours(?int $storeId = null): int
+    {
+        $hours = self::getInt(
+            self::KEY_BOOKING_CART_TTL_HOURS,
+            self::BOOKING_CART_TTL_HOURS_DEFAULT,
+            $storeId,
+        );
+
+        return max(
+            self::BOOKING_CART_TTL_HOURS_MIN,
+            min(self::BOOKING_CART_TTL_HOURS_MAX, $hours),
+        );
+    }
+
+    public static function setBookingCartTtlHours(int $hours, ?int $storeId = null): void
+    {
+        $clamped = max(
+            self::BOOKING_CART_TTL_HOURS_MIN,
+            min(self::BOOKING_CART_TTL_HOURS_MAX, $hours),
+        );
+        self::setInt(self::KEY_BOOKING_CART_TTL_HOURS, $clamped, $storeId);
     }
 
     /**

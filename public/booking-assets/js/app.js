@@ -829,6 +829,10 @@
             if (!data || data.id == null) {
                 return null;
             }
+            if (isBookingStoredSelectionExpired(data.updatedAt)) {
+                clearPersistedBookingSelection();
+                return null;
+            }
             return data;
         } catch (e) {
             return null;
@@ -897,6 +901,10 @@
             }
             var data = JSON.parse(raw);
             if (!data || !data.date || !data.time) {
+                return null;
+            }
+            if (isBookingStoredSelectionExpired(data.updatedAt)) {
+                clearPersistedBookingSelection();
                 return null;
             }
             return data;
@@ -2870,13 +2878,66 @@
         }
     }
 
+    function bookingCartTtlMs() {
+        var body = document.body;
+        var hours = 12;
+        if (body) {
+            var raw = parseInt(body.getAttribute('data-booking-cart-ttl-hours') || '', 10);
+            if (Number.isFinite(raw) && raw >= 1) {
+                hours = raw;
+            }
+        }
+        return hours * 60 * 60 * 1000;
+    }
+
+    function isBookingStoredSelectionExpired(updatedAt) {
+        var ts = typeof updatedAt === 'number' ? updatedAt : parseInt(updatedAt, 10);
+        if (!Number.isFinite(ts) || ts <= 0) {
+            // Sem carimbo: tratar como expirado para forçar limpeza de dados antigos.
+            return true;
+        }
+        return Date.now() - ts > bookingCartTtlMs();
+    }
+
+    function clearPersistedBookingSelection() {
+        try {
+            bookingStorage.removeItem(STORAGE_KEY);
+            bookingStorage.removeItem(TECH_STORAGE_KEY);
+            bookingStorage.removeItem(DATETIME_STORAGE_KEY);
+            bookingStorage.removeItem(CONTACT_STORAGE_KEY);
+            bookingStorage.removeItem(STRIPE_CHECKOUT_PUBLIC_ID_KEY);
+            bookingStorage.removeItem(BOOKING_CHECKOUT_INVOICE_OPTS_KEY);
+            bookingStorage.removeItem(SLOT_HOLD_STORAGE_KEY);
+            bookingStorage.removeItem(CHECKOUT_INTENT_CACHE_STORAGE_KEY);
+        } catch (e) {
+            /* ignore */
+        }
+        state.items = [];
+    }
+
     function loadFromStorage() {
         try {
             var raw = bookingStorage.getItem(STORAGE_KEY);
             if (!raw) {
+                // Limpar restos de técnico/data se o carrinho já não existe ou expirou noutro passo.
+                try {
+                    var techRaw = bookingStorage.getItem(TECH_STORAGE_KEY);
+                    if (techRaw) {
+                        var techData = JSON.parse(techRaw);
+                        if (isBookingStoredSelectionExpired(techData && techData.updatedAt)) {
+                            clearPersistedBookingSelection();
+                        }
+                    }
+                } catch (e2) {
+                    /* ignore */
+                }
                 return;
             }
             var data = JSON.parse(raw);
+            if (isBookingStoredSelectionExpired(data && data.updatedAt)) {
+                clearPersistedBookingSelection();
+                return;
+            }
             if (data && Array.isArray(data.items)) {
                 state.items = data.items.filter(function (line) {
                     return line && line.lineId && line.id != null && line.name;
