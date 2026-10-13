@@ -1,6 +1,12 @@
 @extends('definicoes.layout')
 
 @section('definicoes_content')
+  @if (!empty($settingsScopeNote))
+    <div class="alert alert-light border mb-4 small">
+      <i class="ph ph-buildings me-1" aria-hidden="true"></i>{{ $settingsScopeNote }}
+    </div>
+  @endif
+
   <form method="post" action="{{ route('definicoes.marcacoes.update') }}">
     @csrf
 

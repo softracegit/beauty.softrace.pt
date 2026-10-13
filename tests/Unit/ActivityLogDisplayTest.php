@@ -74,4 +74,11 @@ class ActivityLogDisplayTest extends TestCase
 
         $this->assertSame('Beatriz Online (cliente)', ActivityLogDisplay::causerLabel($activity));
     }
+
+    public function test_formats_user_id_and_client_id_as_names_or_fallback(): void
+    {
+        $this->assertSame('#424242', ActivityLogDisplay::formatValue('user_id', 424242));
+        $this->assertSame('#434343', ActivityLogDisplay::formatValue('client_id', '434343'));
+        $this->assertSame('— → #434343', ActivityLogDisplay::formatChange('client_id', null, 434343));
+    }
 }

@@ -217,7 +217,7 @@ class AgendaDepositService
             throw new AgendaDepositException('Indique créditos da carteira ou um método de pagamento.');
         }
 
-        $fiscal = $this->resolveFiscalOptions($client, (string) ($options['invoice_fiscal_mode'] ?? 'consumer'), $options['billing_nif'] ?? null);
+        $fiscal = $this->resolveFiscalOptionsFromCheckoutOptions($client, $options);
 
         return $this->persistDeposit(
             $calendarEvent,
@@ -373,7 +373,7 @@ class AgendaDepositService
             throw new AgendaDepositException('Valor do pagamento MB WAY não coincide com o pré-pagamento esperado.');
         }
 
-        $fiscal = $this->resolveFiscalOptions($client, (string) ($options['invoice_fiscal_mode'] ?? 'consumer'), $options['billing_nif'] ?? null);
+        $fiscal = $this->resolveFiscalOptionsFromCheckoutOptions($client, $options);
 
         return $this->persistDeposit(
             $calendarEvent,
@@ -476,7 +476,7 @@ class AgendaDepositService
             throw new AgendaDepositException('O pagamento com cartão não foi concluído.');
         }
 
-        $fiscal = $this->resolveFiscalOptions($client, (string) ($options['invoice_fiscal_mode'] ?? 'consumer'), $options['billing_nif'] ?? null);
+        $fiscal = $this->resolveFiscalOptionsFromCheckoutOptions($client, $options);
 
         return $this->persistDeposit(
             $calendarEvent,
@@ -550,10 +550,32 @@ class AgendaDepositService
     }
 
     /**
+     * @param  array<string, mixed>  $options
      * @return array{issue_without_fiscal_id: bool, billing_nif_applied: bool}
      */
-    private function resolveFiscalOptions(Client $client, string $fiscalMode, ?string $billingNif): array
+    private function resolveFiscalOptionsFromCheckoutOptions(Client $client, array $options): array
     {
+        return $this->resolveFiscalOptions(
+            $client,
+            (string) ($options['invoice_fiscal_mode'] ?? 'consumer'),
+            isset($options['billing_nif']) ? (string) $options['billing_nif'] : null,
+            isset($options['billing_address']) ? (string) $options['billing_address'] : null,
+            isset($options['billing_postal_code']) ? (string) $options['billing_postal_code'] : null,
+            isset($options['billing_locality']) ? (string) $options['billing_locality'] : null,
+        );
+    }
+
+    /**
+     * @return array{issue_without_fiscal_id: bool, billing_nif_applied: bool}
+     */
+    private function resolveFiscalOptions(
+        Client $client,
+        string $fiscalMode,
+        ?string $billingNif,
+        ?string $billingAddress = null,
+        ?string $billingPostalCode = null,
+        ?string $billingLocality = null,
+    ): array {
         $billingNifDigits = preg_replace('/\D/', '', (string) ($billingNif ?? ''));
         $clientNif = preg_replace('/\D/', '', (string) ($client->nif ?? ''));
 
@@ -561,11 +583,19 @@ class AgendaDepositService
             if (strlen($clientNif) !== 9 && strlen($billingNifDigits) !== 9) {
                 throw new AgendaDepositException('Para faturar com NIF, indique 9 dígitos na ficha do cliente ou no campo «NIF nesta fatura».');
             }
-            if (strlen($clientNif) !== 9 && strlen($billingNifDigits) === 9) {
-                $client->nif = $billingNifDigits;
-                $client->save();
-                $clientNif = $billingNifDigits;
+
+            $billingError = \App\Support\ClientInvoiceBilling::applyToClient(
+                $client,
+                $fiscalMode,
+                $billingNif,
+                $billingAddress,
+                $billingPostalCode,
+                $billingLocality,
+            );
+            if ($billingError !== null) {
+                throw new AgendaDepositException($billingError);
             }
+            $client->refresh();
 
             return [
                 'issue_without_fiscal_id' => false,

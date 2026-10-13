@@ -14,6 +14,7 @@ use App\Services\AgendaDepositService;
 use App\Services\AgendaMbwayPendingService;
 use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
+use App\Support\ClientInvoiceBilling;
 use App\Support\PaymentMethodCatalog;
 use App\Support\StripeCredentials;
 use App\Support\StripeMbwayWaitStatus;
@@ -73,6 +74,7 @@ class AgendaDepositController extends Controller
             'payment_method' => ['nullable', 'string', 'in:dinheiro,cartao_tpa,mbway,mbway_manual,transferencia'],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
+            ...ClientInvoiceBilling::addressValidationRules(),
             'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
             'wallet_apply' => ['sometimes', 'boolean'],
             'wallet_apply_cents' => ['sometimes', 'integer', 'min:0'],
@@ -85,6 +87,9 @@ class AgendaDepositController extends Controller
                 'payment_method' => $validated['payment_method'] ?? null,
                 'invoice_fiscal_mode' => (string) $validated['invoice_fiscal_mode'],
                 'billing_nif' => $validated['billing_nif'] ?? null,
+                'billing_address' => $validated['billing_address'] ?? null,
+                'billing_postal_code' => $validated['billing_postal_code'] ?? null,
+                'billing_locality' => $validated['billing_locality'] ?? null,
                 'wallet_apply' => $request->boolean('wallet_apply'),
                 'wallet_apply_cents' => (int) ($validated['wallet_apply_cents'] ?? 0),
                 'custom_amount' => isset($validated['custom_amount']) ? (float) $validated['custom_amount'] : null,

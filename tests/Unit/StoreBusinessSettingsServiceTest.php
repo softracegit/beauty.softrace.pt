@@ -17,8 +17,12 @@ class StoreBusinessSettingsServiceTest extends TestCase
         $this->assertSame('dados', $svc->resolveActiveTab('xyz'));
         $this->assertSame('logotipos', $svc->resolveActiveTab('logotipos'));
         $this->assertSame('horario', $svc->resolveActiveTab('horario'));
+        $this->assertSame('equipa', $svc->resolveActiveTab('equipa'));
+        $this->assertSame('pagamentos', $svc->resolveActiveTab('pagamentos'));
+        $this->assertSame('booking', $svc->resolveActiveTab('booking'));
         $this->assertSame('privacidade', $svc->resolveActiveTab('privacidade'));
         $this->assertSame('emails', $svc->resolveActiveTab('emails'));
+        $this->assertSame('dados', $svc->resolveActiveTab('equipa', false));
     }
 
     #[Test]
@@ -31,6 +35,9 @@ class StoreBusinessSettingsServiceTest extends TestCase
         $this->assertSame('horario', $svc->tabForFieldName('weekly_schedule.mon.start'));
         $this->assertSame('privacidade', $svc->tabForFieldName('privacy_lock_pin'));
         $this->assertSame('emails', $svc->tabForFieldName('email_use_business_branding'));
+        $this->assertSame('equipa', $svc->tabForFieldName('personal_time_limit_store_hours'));
+        $this->assertSame('pagamentos', $svc->tabForFieldName('pos_gorjeta_enabled'));
+        $this->assertSame('booking', $svc->tabForFieldName('booking_theme'));
     }
 
     #[Test]

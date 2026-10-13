@@ -131,6 +131,9 @@
                         @if($causerLabel)
                             por {{ $causerLabel }}
                         @endif
+                        @if($activity->store?->name)
+                            · <span class="activity-store" title="Loja">{{ $activity->store->name }}</span>
+                        @endif
                     </div>
                 </div>
             </div>

@@ -22,6 +22,9 @@
                         @if($log->user)
                             · {{ $log->user->name }}
                         @endif
+                        @if($log->store?->name)
+                            · <span class="activity-store" title="Loja">{{ $log->store->name }}</span>
+                        @endif
                     </div>
                 </div>
             </div>

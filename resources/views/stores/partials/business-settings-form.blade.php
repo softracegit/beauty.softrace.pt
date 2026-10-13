@@ -36,6 +36,11 @@
       <button type="button" class="uview-tab nav-link {{ $activeTab === 'dados' ? 'active' : '' }}" role="tab" data-bs-toggle="tab" data-bs-target="#tab-dados" data-store-tab="dados">Dados</button>
       <button type="button" class="uview-tab nav-link {{ $activeTab === 'logotipos' ? 'active' : '' }}" role="tab" data-bs-toggle="tab" data-bs-target="#tab-logotipos" data-store-tab="logotipos">Logotipos</button>
       <button type="button" class="uview-tab nav-link {{ $activeTab === 'horario' ? 'active' : '' }}" role="tab" data-bs-toggle="tab" data-bs-target="#tab-horario" data-store-tab="horario">Horário</button>
+      @if ($isStore)
+        <button type="button" class="uview-tab nav-link {{ $activeTab === 'equipa' ? 'active' : '' }}" role="tab" data-bs-toggle="tab" data-bs-target="#tab-equipa" data-store-tab="equipa">Equipa</button>
+        <button type="button" class="uview-tab nav-link {{ $activeTab === 'pagamentos' ? 'active' : '' }}" role="tab" data-bs-toggle="tab" data-bs-target="#tab-pagamentos" data-store-tab="pagamentos">Pagamentos</button>
+        <button type="button" class="uview-tab nav-link {{ $activeTab === 'booking' ? 'active' : '' }}" role="tab" data-bs-toggle="tab" data-bs-target="#tab-booking" data-store-tab="booking">Booking</button>
+      @endif
       <button type="button" class="uview-tab nav-link {{ $activeTab === 'privacidade' ? 'active' : '' }}" role="tab" data-bs-toggle="tab" data-bs-target="#tab-privacidade" data-store-tab="privacidade">Privacidade</button>
       <button type="button" class="uview-tab nav-link {{ $activeTab === 'emails' ? 'active' : '' }}" role="tab" data-bs-toggle="tab" data-bs-target="#tab-emails" data-store-tab="emails">Emails</button>
     </div>
@@ -178,6 +183,42 @@
         @endif
         @include('definicoes.partials.store-weekly-schedule', ['weeklySchedule' => $weeklySchedule])
       </div>
+
+      @if ($isStore)
+        <div class="tab-pane fade {{ $activeTab === 'equipa' ? 'show active' : '' }}" id="tab-equipa" role="tabpanel">
+          @include('stores.partials.operational-equipa-fields', [
+            'agents' => $agents ?? collect(),
+            'roles' => $roles ?? [],
+            'personalTimeLimitStoreHours' => $personalTimeLimitStoreHours ?? false,
+            'storeHoursLabel' => $storeHoursLabel ?? '09:00–20:00',
+            'showStoreColumn' => false,
+            'idPrefix' => 'loja_',
+          ])
+        </div>
+
+        <div class="tab-pane fade {{ $activeTab === 'pagamentos' ? 'show active' : '' }}" id="tab-pagamentos" role="tabpanel">
+          @include('stores.partials.operational-pagamentos-fields', [
+            'posGorjetaEnabled' => $posGorjetaEnabled ?? false,
+            'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired ?? false,
+            'pagamentosNote' => $pagamentosNote ?? null,
+            'idPrefix' => 'loja_',
+          ])
+        </div>
+
+        <div class="tab-pane fade {{ $activeTab === 'booking' ? 'show active' : '' }}" id="tab-booking" role="tabpanel">
+          @include('stores.partials.operational-booking-fields', [
+            'bookingThemes' => $bookingThemes ?? [],
+            'bookingTheme' => $bookingTheme ?? null,
+            'bookingSlotIntervalOptions' => $bookingSlotIntervalOptions ?? [],
+            'bookingSlotIntervalMinutes' => $bookingSlotIntervalMinutes ?? null,
+            'bookingSlotHoldMinutes' => $bookingSlotHoldMinutes ?? null,
+            'bookingAnyStaffRules' => $bookingAnyStaffRules ?? [],
+            'bookingAnyStaffRule' => $bookingAnyStaffRule ?? null,
+            'bookingCancellationNoticeHours' => $bookingCancellationNoticeHours ?? null,
+            'idPrefix' => 'loja_',
+          ])
+        </div>
+      @endif
 
       <div class="tab-pane fade {{ $activeTab === 'privacidade' ? 'show active' : '' }}" id="tab-privacidade" role="tabpanel">
         <div id="privacy-lock-pin" class="uedit-section">

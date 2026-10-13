@@ -7,15 +7,6 @@
 </div>
 
 @include('stores.partials.business-settings-form', [
-    'context' => 'store',
-    'store' => $store,
-    'organization' => $organization ?? $store->organization,
-    'entity' => $store,
-    'weeklySchedule' => $weeklySchedule,
-    'privacyLockIdleMinutes' => $privacyLockIdleMinutes,
-    'privacyLockEnabled' => $privacyLockEnabled,
-    'emailUseBusinessBranding' => $emailUseBusinessBranding,
-    'activeTab' => $activeTab ?? 'dados',
     'formAction' => route('lojas.update', $store),
     'formMethod' => 'put',
     'cancelUrl' => route('lojas.index'),

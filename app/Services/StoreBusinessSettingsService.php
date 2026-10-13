@@ -15,13 +15,30 @@ use Illuminate\Validation\ValidationException;
 
 class StoreBusinessSettingsService
 {
+    public function __construct(
+        private readonly StoreOperationalSettingsService $operationalSettings,
+    ) {}
+
+    /** @return list<string> */
+    public function allowedTabs(bool $forStore): array
+    {
+        if ($forStore) {
+            return ['dados', 'logotipos', 'horario', 'equipa', 'pagamentos', 'booking', 'privacidade', 'emails'];
+        }
+
+        return ['dados', 'logotipos', 'horario', 'privacidade', 'emails'];
+    }
+
     public function viewDataForStore(Store $store, ?string $requestedTab = null): array
     {
         $store->loadMissing('organization');
         $storeId = (int) $store->id;
         $org = $store->organization;
+        $equipa = $this->operationalSettings->equipaViewDataForStore($store);
+        $booking = $this->operationalSettings->bookingViewData($storeId);
+        $paymentFlags = $this->operationalSettings->paymentFlagsViewData($storeId);
 
-        return [
+        return array_merge($equipa, $booking, $paymentFlags, [
             'context' => 'store',
             'store' => $store,
             'organization' => $org,
@@ -40,8 +57,9 @@ class StoreBusinessSettingsService
             'emailUseBusinessBranding' => old('email_use_business_branding') !== null
                 ? filter_var(old('email_use_business_branding'), FILTER_VALIDATE_BOOLEAN)
                 : CrmSetting::emailUseBusinessBranding($storeId),
-            'activeTab' => $this->resolveActiveTab($requestedTab),
-        ];
+            'pagamentosNote' => 'Stripe e métodos de pagamento são da organização (Definições → Pagamentos). Aqui só o comportamento desta loja.',
+            'activeTab' => $this->resolveActiveTab($requestedTab, true),
+        ]);
     }
 
     public function viewDataForOrganization(Organization $organization, ?string $requestedTab = null): array
@@ -62,7 +80,7 @@ class StoreBusinessSettingsService
             'emailUseBusinessBranding' => old('email_use_business_branding') !== null
                 ? filter_var(old('email_use_business_branding'), FILTER_VALIDATE_BOOLEAN)
                 : $this->organizationEmailBranding($orgId),
-            'activeTab' => $this->resolveActiveTab($requestedTab),
+            'activeTab' => $this->resolveActiveTab($requestedTab, false),
         ];
     }
 
@@ -72,11 +90,11 @@ class StoreBusinessSettingsService
         return $this->viewDataForStore($store, $requestedTab);
     }
 
-    public function resolveActiveTab(?string $tab): string
+    public function resolveActiveTab(?string $tab, bool $forStore = true): string
     {
-        $allowed = ['dados', 'logotipos', 'horario', 'privacidade', 'emails'];
+        $allowed = $this->allowedTabs($forStore);
 
-        $fromErrors = $this->tabFromValidationErrors();
+        $fromErrors = $this->tabFromValidationErrors($forStore);
         if ($fromErrors !== null && in_array($fromErrors, $allowed, true)) {
             return $fromErrors;
         }
@@ -95,7 +113,7 @@ class StoreBusinessSettingsService
     /**
      * Tab a abrir quando há erros de validação (ex.: PIN em Privacidade).
      */
-    public function tabFromValidationErrors(): ?string
+    public function tabFromValidationErrors(bool $forStore = true): ?string
     {
         if (! session()->has('errors')) {
             return null;
@@ -109,7 +127,7 @@ class StoreBusinessSettingsService
 
         foreach ($bag->getBags() as $messageBag) {
             foreach ($messageBag->keys() as $key) {
-                $tab = $this->tabForFieldName((string) $key);
+                $tab = $this->tabForFieldName((string) $key, $forStore);
                 if ($tab !== null) {
                     return $tab;
                 }
@@ -119,10 +137,13 @@ class StoreBusinessSettingsService
         return null;
     }
 
-    public function tabForFieldName(string $field): ?string
+    public function tabForFieldName(string $field, bool $forStore = true): ?string
     {
         if (str_starts_with($field, 'weekly_schedule')) {
             return 'horario';
+        }
+        if (str_starts_with($field, 'members.')) {
+            return $forStore ? 'equipa' : null;
         }
 
         return match ($field) {
@@ -132,6 +153,11 @@ class StoreBusinessSettingsService
             'remove_logo', 'remove_logo_email', 'remove_logo_favicon' => 'logotipos',
             'privacy_lock_idle_minutes', 'privacy_lock_pin', 'privacy_lock_pin_confirmation' => 'privacidade',
             'email_use_business_branding' => 'emails',
+            'personal_time_limit_store_hours' => $forStore ? 'equipa' : null,
+            'pos_gorjeta_enabled', 'online_booking_payment_required' => $forStore ? 'pagamentos' : null,
+            'booking_slot_hold_minutes', 'booking_slot_interval_minutes',
+            'booking_cancellation_notice_hours', 'booking_any_staff_rule',
+            'booking_any_staff_rule_options', 'booking_theme' => $forStore ? 'booking' : null,
             default => null,
         };
     }
@@ -166,7 +192,15 @@ class StoreBusinessSettingsService
             'privacy_lock_pin' => ['nullable', 'regex:/^\d{4}$/'],
             'privacy_lock_pin_confirmation' => ['nullable', 'same:privacy_lock_pin'],
             'email_use_business_branding' => ['nullable', 'boolean'],
-            '_active_tab' => ['nullable', 'string', 'in:dados,logotipos,horario,privacidade,emails'],
+            '_active_tab' => ['nullable', 'string', 'in:'.implode(',', $this->allowedTabs(true))],
+            'members' => ['nullable', 'array'],
+            'members.*.role' => ['nullable', 'string', 'in:'.implode(',', array_keys(\App\Models\User::roles()))],
+            'members.*.visible_in_agenda' => ['nullable', 'boolean'],
+            'members.*.visible_in_booking' => ['nullable', 'boolean'],
+            'members.*.agenda_order' => ['nullable', 'integer', 'min:1', 'max:9999'],
+            'personal_time_limit_store_hours' => ['nullable', 'boolean'],
+            'pos_gorjeta_enabled' => ['sometimes', 'boolean'],
+            'online_booking_payment_required' => ['sometimes', 'boolean'],
         ];
 
         if (! CrmSetting::privacyLockEnabled($storeId)) {
@@ -258,6 +292,30 @@ class StoreBusinessSettingsService
             CrmSetting::clearStoreSettingOverride($storeId, CrmSetting::KEY_EMAIL_USE_BUSINESS_BRANDING);
         } else {
             CrmSetting::setEmailUseBusinessBranding($submittedEmailBranding, $storeId);
+        }
+
+        // Separadores operacionais (Equipa / Pagamentos / Booking) — só esta loja.
+        $this->operationalSettings->applyPersonalTimeLimitToStore(
+            $request->boolean('personal_time_limit_store_hours'),
+            $storeId,
+        );
+        $this->operationalSettings->applyEquipaMembers(
+            is_array($validated['members'] ?? null) ? $validated['members'] : [],
+            [$storeId],
+        );
+        $this->operationalSettings->applyPaymentFlagsToStore(
+            $request->boolean('pos_gorjeta_enabled'),
+            $request->boolean('online_booking_payment_required'),
+            $storeId,
+        );
+
+        if ($request->filled('booking_slot_hold_minutes')
+            || $request->filled('booking_slot_interval_minutes')
+            || $request->filled('booking_cancellation_notice_hours')
+            || $request->filled('booking_any_staff_rule')
+            || $request->filled('booking_theme')) {
+            $booking = $this->operationalSettings->validateBooking($request, $storeId);
+            $this->operationalSettings->applyBookingToStore($booking, $storeId);
         }
 
         return ['Loja actualizada'];

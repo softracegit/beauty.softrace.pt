@@ -106,6 +106,24 @@
                     <input type="text" class="form-control form-control-sm" id="paymentModalBillingNif" maxlength="9" inputmode="numeric" pattern="[0-9]*" placeholder="123456789" autocomplete="off">
                     <div class="form-text">Será guardado na ficha do cliente ao concluir o pagamento.</div>
                 </div>
+                <div class="mb-3 d-none" id="paymentModalCompanyAddressWrap">
+                    <p class="small fw-semibold mb-0">Morada da empresa <span class="text-danger">*</span></p>
+                    <p class="form-text mt-0 mb-2">Obrigatória na Vendus para NIF de empresa (começa por 5 ou 6).</p>
+                    <div class="mb-2">
+                        <label for="paymentModalBillingAddress" class="form-label small mb-1">Morada</label>
+                        <input type="text" class="form-control form-control-sm" id="paymentModalBillingAddress" maxlength="255" autocomplete="street-address" placeholder="Rua, nº">
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-5">
+                            <label for="paymentModalBillingPostalCode" class="form-label small mb-1">Cód. postal</label>
+                            <input type="text" class="form-control form-control-sm" id="paymentModalBillingPostalCode" maxlength="20" autocomplete="postal-code" placeholder="1000-001">
+                        </div>
+                        <div class="col-7">
+                            <label for="paymentModalBillingLocality" class="form-label small mb-1">Localidade</label>
+                            <input type="text" class="form-control form-control-sm" id="paymentModalBillingLocality" maxlength="255" autocomplete="address-level2" placeholder="Lisboa">
+                        </div>
+                    </div>
+                </div>
 
                 <div class="payment-pos-wallet-apply-wrap d-none mb-3" id="paymentWalletApplyWrap">
                     <div class="form-check payment-pos-wallet-apply-check mb-0">

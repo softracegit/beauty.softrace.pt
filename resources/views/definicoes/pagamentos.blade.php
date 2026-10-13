@@ -157,10 +157,9 @@
     @csrf
     @php $methodIndex = 0; @endphp
 
-    <div class="alert alert-light border mb-4 small mb-0">
+    <div class="alert alert-light border mb-4 small">
       <i class="ph ph-buildings me-1" aria-hidden="true"></i>
-      <strong>Stripe</strong> e <strong>métodos de pagamento</strong> aplicam-se a <strong>todas as lojas</strong> da organização.
-      Gorjeta na caixa e pagamento online obrigatório continuam só na loja activa.
+      {{ $settingsScopeNote ?? 'Stripe, métodos, gorjeta e pagamento online aplicam-se a todas as lojas da organização. Para ajustar só uma loja, use Lojas → editar → Pagamentos.' }}
     </div>
 
     <div class="card mb-4">
@@ -239,7 +238,7 @@
     <div class="card mb-4">
       <div class="card-header">
         <h5 class="card-title mb-0">Comportamento</h5>
-        <p class="pay-section-lead">Opções da loja activa</p>
+        <p class="pay-section-lead">Aplicado a todas as lojas (pode personalizar por loja em Lojas → editar)</p>
       </div>
       <div class="card-body">
         <div class="py-3 border-bottom">

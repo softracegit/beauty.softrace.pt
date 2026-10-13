@@ -20,6 +20,7 @@ use App\Services\VendusInvoiceEmailService;
 use App\Services\VendusInvoiceService;
 use App\Support\ApplicableFees;
 use App\Support\ClientContactMask;
+use App\Support\ClientInvoiceBilling;
 use App\Support\CrmPrivacyLock;
 use App\Support\PaymentMethodCatalog;
 use App\Support\PhoneDisplay;
@@ -149,6 +150,7 @@ class CheckoutController extends Controller
             'payment_method' => [Rule::requiredIf(fn (): bool => ! $request->boolean('invoice_only')), 'nullable', 'string', 'in:'.implode(',', array_keys(Sale::paymentMethods()))],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
+            ...ClientInvoiceBilling::addressValidationRules(),
             'items' => ['required', 'array', 'min:1'],
             'items.*.tipo' => ['required', 'in:servico,extra,taxa'],
             'items.*.descricao' => ['required', 'string', 'max:255'],
@@ -296,10 +298,18 @@ class CheckoutController extends Controller
 
         try {
             if ($fiscalMode === 'with_nif' && $client instanceof Client) {
-                if (strlen($clientNif) !== 9 && strlen($billingNifDigits) === 9) {
-                    $client->nif = $billingNifDigits;
-                    $client->save();
+                $billingError = ClientInvoiceBilling::applyToClient(
+                    $client,
+                    $fiscalMode,
+                    $validated['billing_nif'] ?? null,
+                    $validated['billing_address'] ?? null,
+                    $validated['billing_postal_code'] ?? null,
+                    $validated['billing_locality'] ?? null,
+                );
+                if ($billingError !== null) {
+                    return response()->json(['error' => $billingError], 422);
                 }
+                $client->refresh();
             }
             $sale = $this->agendaCheckoutService->persistSale(
                 $events,
@@ -712,6 +722,7 @@ class CheckoutController extends Controller
             'event_ids.*' => ['integer', 'exists:calendar_events,id'],
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
+            ...ClientInvoiceBilling::addressValidationRules(),
             'items' => ['required', 'array', 'min:1'],
             'items.*.tipo' => ['required', 'in:servico,extra,taxa'],
             'items.*.descricao' => ['required', 'string', 'max:255'],
@@ -941,6 +952,7 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'invoice_fiscal_mode' => ['required', 'string', 'in:with_nif,consumer'],
             'billing_nif' => ['nullable', 'string', 'max:32'],
+            ...ClientInvoiceBilling::addressValidationRules(),
             'invoice_delivery' => ['nullable', 'string', 'in:email,print'],
         ]);
 
@@ -974,10 +986,20 @@ class CheckoutController extends Controller
             DB::beginTransaction();
 
             if ($fiscalMode === 'with_nif' && $client instanceof Client) {
-                if (strlen($clientNif) !== 9 && strlen($billingNifDigits) === 9) {
-                    $client->nif = $billingNifDigits;
-                    $client->save();
+                $billingError = ClientInvoiceBilling::applyToClient(
+                    $client,
+                    $fiscalMode,
+                    $validated['billing_nif'] ?? null,
+                    $validated['billing_address'] ?? null,
+                    $validated['billing_postal_code'] ?? null,
+                    $validated['billing_locality'] ?? null,
+                );
+                if ($billingError !== null) {
+                    DB::rollBack();
+
+                    return response()->json(['error' => $billingError], 422);
                 }
+                $client->refresh();
                 $sale->issue_without_fiscal_id = false;
             } else {
                 $sale->issue_without_fiscal_id = true;

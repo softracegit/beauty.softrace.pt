@@ -17,6 +17,12 @@ class ActivityLogDisplay
     /** Atributos omitidos na listagem (ex.: título auto-gerado, já não registado). */
     private const HIDDEN_CHANGE_ATTRIBUTES = ['title', 'password', 'synthetic', 'synthetic_causer_label'];
 
+    /** @var array<int, string> */
+    private static array $userNameCache = [];
+
+    /** @var array<int, string> */
+    private static array $clientNameCache = [];
+
     /** @var array<string, string> */
     private const ATTRIBUTE_LABELS = [
         'start_at' => 'Início',
@@ -210,6 +216,14 @@ class ActivityLogDisplay
                 ?? $value;
         }
 
+        if ($attr === 'user_id' && self::isPositiveIntId($value)) {
+            return self::resolveUserName((int) $value);
+        }
+
+        if ($attr === 'client_id' && self::isPositiveIntId($value)) {
+            return self::resolveClientName((int) $value);
+        }
+
         if ($attr === 'role' && is_string($value)) {
             return User::roleLabel($value);
         }
@@ -273,6 +287,51 @@ class ActivityLogDisplay
         }
 
         return self::formatValue($attr, $oldVal, $storeId).' → '.self::formatValue($attr, $newVal, $storeId);
+    }
+
+    private static function isPositiveIntId(mixed $value): bool
+    {
+        if (is_int($value)) {
+            return $value > 0;
+        }
+
+        if (is_string($value) && ctype_digit($value)) {
+            return (int) $value > 0;
+        }
+
+        return false;
+    }
+
+    private static function resolveUserName(int $userId): string
+    {
+        if (array_key_exists($userId, self::$userNameCache)) {
+            return self::$userNameCache[$userId];
+        }
+
+        $fallback = '#'.$userId;
+        try {
+            $name = trim((string) (User::query()->whereKey($userId)->value('name') ?? ''));
+        } catch (\Throwable) {
+            return self::$userNameCache[$userId] = $fallback;
+        }
+
+        return self::$userNameCache[$userId] = ($name !== '' ? $name : $fallback);
+    }
+
+    private static function resolveClientName(int $clientId): string
+    {
+        if (array_key_exists($clientId, self::$clientNameCache)) {
+            return self::$clientNameCache[$clientId];
+        }
+
+        $fallback = '#'.$clientId;
+        try {
+            $name = trim((string) (Client::query()->whereKey($clientId)->value('name') ?? ''));
+        } catch (\Throwable) {
+            return self::$clientNameCache[$clientId] = $fallback;
+        }
+
+        return self::$clientNameCache[$clientId] = ($name !== '' ? $name : $fallback);
     }
 
     private static function looksLikeDateTime(?string $attr, mixed $value): bool

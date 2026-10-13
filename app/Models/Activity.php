@@ -4,10 +4,19 @@ namespace App\Models;
 
 use App\Support\CurrentStore;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Activitylog\Models\Activity as SpatieActivity;
 
 class Activity extends SpatieActivity
 {
+    /**
+     * @return BelongsTo<Store, $this>
+     */
+    public function store(): BelongsTo
+    {
+        return $this->belongsTo(Store::class);
+    }
+
     protected static function booted(): void
     {
         static::creating(function (self $activity) {

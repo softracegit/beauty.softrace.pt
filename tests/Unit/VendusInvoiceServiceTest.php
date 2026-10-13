@@ -314,4 +314,107 @@ class VendusInvoiceServiceTest extends TestCase
                 && (string) $data['items'][0]['title'] === 'Manicure Tradicional 1';
         });
     }
+
+    public function test_sync_sale_blocks_company_nif_without_address(): void
+    {
+        config([
+            'services.vendus.api_key' => 'test-key',
+            'services.vendus.base_url' => 'https://www.vendus.pt/ws/v1.1',
+            'services.vendus.auth_mode' => 'basic',
+            'services.vendus.documents_endpoint' => '/documents/',
+            'services.vendus.document_type' => 'FT',
+            'services.vendus.simulate' => false,
+        ]);
+
+        Http::fake();
+
+        $sale = new Sale();
+        $sale->id = 20;
+        $sale->scope = Sale::SCOPE_CAIXA_LIQUIDACAO;
+        $sale->data_emissao = Carbon::parse('2026-05-05');
+        $sale->desconto = 0;
+        $sale->total = 20;
+        $sale->payment_method = Sale::PAYMENT_DINHEIRO;
+        $sale->vendus_document_id = null;
+        $sale->setRelation('client', new Client([
+            'name' => 'Empresa Lda',
+            'nif' => '500000000',
+        ]));
+        $sale->setRelation('items', new Collection([
+            new SaleItem([
+                'tipo' => 'servico',
+                'descricao' => 'Serviço',
+                'quantidade' => 1,
+                'preco_unitario' => 20,
+                'desconto' => 0,
+            ]),
+        ]));
+
+        $result = app(VendusInvoiceService::class)->syncSale($sale);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame(422, $result['status']);
+        $this->assertStringContainsString('morada', mb_strtolower($result['message']));
+        Http::assertNothingSent();
+    }
+
+    public function test_sync_sale_sends_company_address_to_vendus(): void
+    {
+        config([
+            'services.vendus.api_key' => 'test-key',
+            'services.vendus.base_url' => 'https://www.vendus.pt/ws/v1.1',
+            'services.vendus.auth_mode' => 'basic',
+            'services.vendus.documents_endpoint' => '/documents/',
+            'services.vendus.document_type' => 'FT',
+            'services.vendus.tax_id' => 'NOR',
+            'services.vendus.category_id' => 1,
+            'services.vendus.simulate' => false,
+        ]);
+
+        Http::fake([
+            'https://www.vendus.pt/ws/v1.1/documents/paymentmethods*' => Http::response([
+                ['id' => 1, 'title' => 'Numerário', 'type' => 'NU', 'status' => 'on'],
+            ], 200),
+            'https://www.vendus.pt/ws/v1.1/documents/' => Http::response(['id' => 1001], 201),
+        ]);
+
+        $sale = new Sale();
+        $sale->id = 21;
+        $sale->scope = Sale::SCOPE_CAIXA_LIQUIDACAO;
+        $sale->data_emissao = Carbon::parse('2026-05-05');
+        $sale->desconto = 0;
+        $sale->total = 20;
+        $sale->payment_method = Sale::PAYMENT_DINHEIRO;
+        $sale->vendus_document_id = null;
+        $sale->setRelation('client', new Client([
+            'name' => 'Empresa Lda',
+            'nif' => '500000000',
+            'address' => 'Rua das Flores 10',
+            'postal_code' => '1000-001',
+            'locality' => 'Lisboa',
+        ]));
+        $line = new SaleItem([
+            'tipo' => 'servico',
+            'service_id' => 1,
+            'descricao' => 'Serviço',
+            'quantidade' => 1,
+            'preco_unitario' => 20,
+            'desconto' => 0,
+        ]);
+        $line->setRelation('service', new Service(['id' => 1, 'name' => 'Corte']));
+        $sale->setRelation('items', new Collection([$line]));
+
+        $result = app(VendusInvoiceService::class)->syncSale($sale);
+
+        $this->assertTrue($result['ok']);
+        Http::assertSent(function ($request) {
+            $data = $request->data();
+
+            return $request->url() === 'https://www.vendus.pt/ws/v1.1/documents/'
+                && ($data['client']['fiscal_id'] ?? null) === '500000000'
+                && ($data['client']['address'] ?? null) === 'Rua das Flores 10'
+                && ($data['client']['postalcode'] ?? null) === '1000-001'
+                && ($data['client']['city'] ?? null) === 'Lisboa';
+        });
+    }
 }

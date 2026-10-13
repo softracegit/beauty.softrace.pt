@@ -9,6 +9,7 @@ use App\Models\UserPageViewLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class ActivityLogController extends Controller
 {
@@ -58,6 +59,7 @@ class ActivityLogController extends Controller
         $activities = (clone $baseQuery)
             ->with([
                 'causer',
+                'store:id,name,slug',
                 'subject' => fn (MorphTo $morphTo) => $morphTo->morphWith([
                     CalendarEvent::class => ['client', 'eventServices', 'service'],
                 ]),
@@ -143,7 +145,7 @@ class ActivityLogController extends Controller
         }
 
         $logs = (clone $baseQuery)
-            ->with('user')
+            ->with(['user', 'store:id,name,slug'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(20)
@@ -181,7 +183,11 @@ class ActivityLogController extends Controller
             return $query;
         }
 
-        return $query->where('store_id', current_store_id());
+        $storeIds = $this->accessibleStoreIds($user);
+
+        return $storeIds === []
+            ? $query->whereRaw('0 = 1')
+            : $query->whereIn('store_id', $storeIds);
     }
 
     /**
@@ -195,20 +201,48 @@ class ActivityLogController extends Controller
             return $query;
         }
 
-        return $query->where('store_id', current_store_id());
+        $storeIds = $this->accessibleStoreIds($user);
+
+        return $storeIds === []
+            ? $query->whereRaw('0 = 1')
+            : $query->whereIn('store_id', $storeIds);
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, User>
+     * Lojas visíveis no activity log (todas as acessíveis, não só a loja da sessão).
+     *
+     * @return list<int>
      */
-    protected function filterUserOptions()
+    protected function accessibleStoreIds(?User $user): array
+    {
+        if (! $user instanceof User) {
+            $fallback = current_store_id();
+
+            return $fallback > 0 ? [$fallback] : [];
+        }
+
+        return $user->accessibleStores()
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    protected function filterUserOptions(): Collection
     {
         $user = auth()->user();
-        $storeId = $user instanceof User && $user->isSuperAdmin()
-            ? null
-            : current_store_id();
+        if ($user instanceof User && $user->isSuperAdmin()) {
+            return User::activeStaff(null)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']);
+        }
 
-        return User::activeStaff($storeId)
+        $storeIds = $this->accessibleStoreIds($user instanceof User ? $user : null);
+
+        return User::activeStaff($storeIds !== [] ? $storeIds : null)
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
     }

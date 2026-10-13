@@ -2,18 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Agent;
-use App\Models\CrmSetting;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
 use App\Services\ClientTagService;
 use App\Services\StoreBusinessSettingsService;
+use App\Services\StoreOperationalSettingsService;
 use App\Services\StoreSettingsActivityLogger;
-use App\Support\BookingTheme;
 use App\Support\CurrentStore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -23,6 +20,7 @@ class DefinicoesController extends Controller
         private readonly StoreSettingsActivityLogger $settingsActivityLogger,
         private readonly ClientTagService $clientTagService,
         private readonly StoreBusinessSettingsService $storeBusinessSettings,
+        private readonly StoreOperationalSettingsService $operationalSettings,
     ) {}
 
     public function index(): RedirectResponse
@@ -47,7 +45,7 @@ class DefinicoesController extends Controller
         $organization = \App\Models\Organization::query()->findOrFail($orgId);
         $this->storeBusinessSettings->applyToOrganization($request, $organization);
 
-        $tab = $this->storeBusinessSettings->resolveActiveTab($request->input('_active_tab'));
+        $tab = $this->storeBusinessSettings->resolveActiveTab($request->input('_active_tab'), false);
 
         return redirect()
             ->route('definicoes.empresa', ['tab' => $tab])
@@ -87,163 +85,53 @@ class DefinicoesController extends Controller
 
     public function marcacoes(): View
     {
-        $storeId = current_store_id();
+        $orgId = current_organization_id();
+        $storeId = $this->operationalSettings->representativeStoreId($orgId) ?? current_store_id();
 
-        return view('definicoes.agendamentos', [
-            'pageTitle' => 'Booking',
-            'bookingSlotHoldMinutes' => CrmSetting::bookingSlotHoldMinutes($storeId),
-            'bookingSlotIntervalMinutes' => CrmSetting::bookingSlotIntervalMinutes($storeId),
-            'bookingSlotIntervalOptions' => CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS,
-            'bookingCancellationNoticeHours' => CrmSetting::bookingCancellationNoticeHours($storeId),
-            'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRulesUi(),
-            'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule($storeId),
-            'bookingTheme' => CrmSetting::bookingTheme($storeId),
-            'bookingThemes' => BookingTheme::registry(),
-        ]);
+        return view('definicoes.agendamentos', array_merge(
+            $this->operationalSettings->bookingViewData($storeId),
+            [
+                'pageTitle' => 'Booking',
+                'settingsScopeNote' => 'Estas opções aplicam-se a todas as lojas da organização. Para alterar só uma loja, use Lojas → editar loja → Booking.',
+            ],
+        ));
     }
 
     public function updateMarcacoes(Request $request): RedirectResponse
     {
-        $storeId = current_store_id();
+        $orgId = current_organization_id();
+        $repId = $this->operationalSettings->representativeStoreId($orgId) ?? current_store_id();
+        $data = $this->operationalSettings->validateBooking($request, $repId);
+        $this->operationalSettings->applyBookingToOrganization($data, $orgId);
+
         $store = app(CurrentStore::class)->get();
-        $before = [
-            'slot_hold' => CrmSetting::bookingSlotHoldMinutes($storeId),
-            'slot_interval' => CrmSetting::bookingSlotIntervalMinutes($storeId),
-            'cancellation_hours' => CrmSetting::bookingCancellationNoticeHours($storeId),
-            'any_staff_rule' => CrmSetting::bookingAnyStaffRule($storeId),
-            'theme' => CrmSetting::bookingTheme($storeId),
-        ];
-        $ruleLabels = CrmSetting::bookingAnyStaffRulesUi();
-        $themeLabels = collect(BookingTheme::registry())->mapWithKeys(fn (array $meta, string $key) => [
-            $key => (string) ($meta['label'] ?? $key),
-        ])->all();
-
-        $validated = $request->validate([
-            'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
-            'booking_slot_interval_minutes' => [
-                'required',
-                'integer',
-                'in:'.implode(',', CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS),
-            ],
-            'booking_cancellation_notice_hours' => [
-                'required',
-                'integer',
-                'min:'.CrmSetting::BOOKING_CANCELLATION_NOTICE_HOURS_MIN,
-                'max:'.CrmSetting::BOOKING_CANCELLATION_NOTICE_HOURS_MAX,
-            ],
-            'booking_any_staff_rule' => ['nullable', 'string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
-            'booking_any_staff_rule_options' => ['nullable', 'array', 'min:1', 'max:1'],
-            'booking_any_staff_rule_options.*' => ['string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
-            'booking_theme' => ['nullable', 'string', 'in:'.implode(',', array_keys(BookingTheme::registry()))],
-        ], [
-            'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
-            'booking_slot_hold_minutes.max' => 'O tempo de reserva não pode exceder 240 minutos.',
-            'booking_slot_interval_minutes.in' => 'Escolha um intervalo de blocos válido.',
-            'booking_cancellation_notice_hours.min' => 'O aviso mínimo não pode ser negativo.',
-            'booking_cancellation_notice_hours.max' => 'O aviso mínimo não pode exceder 168 horas (7 dias).',
-            'booking_any_staff_rule_options.max' => 'Selecione apenas uma regra de atribuição.',
-        ]);
-
-        $selectedRule = null;
-        if (! empty($validated['booking_any_staff_rule_options']) && is_array($validated['booking_any_staff_rule_options'])) {
-            $selectedRule = (string) ($validated['booking_any_staff_rule_options'][0] ?? '');
-        } elseif (! empty($validated['booking_any_staff_rule'])) {
-            $selectedRule = (string) $validated['booking_any_staff_rule'];
-        }
-        $storeId = current_store_id();
-
-        if ($selectedRule === null || $selectedRule === '') {
-            $selectedRule = CrmSetting::bookingAnyStaffRule($storeId);
-        }
-
-        CrmSetting::setInt(
-            CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES,
-            (int) $validated['booking_slot_hold_minutes'],
-            $storeId
-        );
-        CrmSetting::setInt(
-            CrmSetting::KEY_BOOKING_SLOT_INTERVAL_MINUTES,
-            (int) $validated['booking_slot_interval_minutes'],
-            $storeId
-        );
-        CrmSetting::setBookingCancellationNoticeHours(
-            (int) $validated['booking_cancellation_notice_hours'],
-            $storeId,
-        );
-        CrmSetting::setString(
-            CrmSetting::KEY_BOOKING_ANY_STAFF_RULE,
-            $selectedRule,
-            $storeId
-        );
-
-        if (array_key_exists('booking_theme', $validated)) {
-            CrmSetting::setBookingTheme((string) $validated['booking_theme'], $storeId);
-        }
-
-        $changes = array_filter([
-            $this->settingsActivityLogger->logScalarChange(
-                'Tempo de reserva (min)',
-                $before['slot_hold'],
-                CrmSetting::bookingSlotHoldMinutes($storeId),
-            ),
-            $this->settingsActivityLogger->logScalarChange(
-                'Intervalo de blocos (min)',
-                $before['slot_interval'],
-                CrmSetting::bookingSlotIntervalMinutes($storeId),
-            ),
-            $this->settingsActivityLogger->logScalarChange(
-                'Aviso mínimo de cancelamento (h)',
-                $before['cancellation_hours'],
-                CrmSetting::bookingCancellationNoticeHours($storeId),
-            ),
-            $this->settingsActivityLogger->logScalarChange(
-                'Regra «qualquer técnico»',
-                $before['any_staff_rule'],
-                CrmSetting::bookingAnyStaffRule($storeId),
-                fn (mixed $value) => $ruleLabels[(string) $value] ?? (string) $value,
-            ),
-            $this->settingsActivityLogger->logScalarChange(
-                'Tema da marcação online',
-                $before['theme'],
-                CrmSetting::bookingTheme($storeId),
-                fn (mixed $value) => $themeLabels[(string) $value] ?? (string) $value,
-            ),
-        ]);
-
         $this->settingsActivityLogger->logSection(
             $store,
             'marcacoes',
-            'Definições de marcações atualizadas',
-            array_values($changes),
+            'Definições de Booking actualizadas (todas as lojas)',
+            ['Booking aplicado a todas as lojas da organização'],
         );
 
         return redirect()
             ->route('definicoes.marcacoes')
-            ->with('status', 'Definições de marcações guardadas.');
+            ->with('status', 'Definições de Booking guardadas para todas as lojas.');
     }
 
     public function equipa(): View
     {
-        $agents = Agent::query()
-            ->activeTeamMembers(current_store_id())
-            ->with('user:id,name,role')
-            ->orderBy('agenda_order')
-            ->orderBy('name')
-            ->get();
+        $orgId = current_organization_id();
+        $data = $this->operationalSettings->equipaViewDataForOrganization($orgId);
 
-        return view('definicoes.equipa', [
+        return view('definicoes.equipa', array_merge($data, [
             'pageTitle' => 'Equipa',
-            'agents' => $agents,
-            'roles' => User::roles(),
-            'personalTimeLimitStoreHours' => CrmSetting::personalTimeLimitStoreHours(current_store_id()),
-            'storeHoursLabel' => app(CurrentStore::class)->get()->hoursDisplayLabel(),
-        ]);
+            'settingsScopeNote' => 'O limite de tempo pessoal aplica-se a todas as lojas. A tabela lista membros de toda a organização; para gerir só uma loja use Lojas → editar → Equipa.',
+        ]));
     }
 
     public function updateEquipa(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'members' => ['required', 'array'],
+            'members' => ['nullable', 'array'],
             'members.*.role' => ['required', 'string', 'in:'.implode(',', array_keys(User::roles()))],
             'members.*.visible_in_agenda' => ['nullable', 'boolean'],
             'members.*.visible_in_booking' => ['nullable', 'boolean'],
@@ -251,128 +139,43 @@ class DefinicoesController extends Controller
             'personal_time_limit_store_hours' => ['nullable', 'boolean'],
         ]);
 
-        $storeId = current_store_id();
-        $beforePersonalTimeLimit = CrmSetting::personalTimeLimitStoreHours($storeId);
-        CrmSetting::setPersonalTimeLimitStoreHours(
-            $request->boolean('personal_time_limit_store_hours'),
-            $storeId,
-        );
-        $personalTimeLimitChange = $this->settingsActivityLogger->logBoolChange(
-            'Limitar tempo pessoal ao horário da loja',
-            $beforePersonalTimeLimit,
-            CrmSetting::personalTimeLimitStoreHours($storeId),
-        );
+        $orgId = current_organization_id();
+        $storeIds = $this->operationalSettings->storeIdsForOrganization($orgId);
+        $limit = $request->boolean('personal_time_limit_store_hours');
+        $this->operationalSettings->applyPersonalTimeLimitToOrganization($limit, $orgId);
 
-        $rows = $validated['members'] ?? [];
-        foreach ($rows as $agentId => $row) {
-            $isVisibleInAgenda = (bool) ($row['visible_in_agenda'] ?? false);
-            $agendaOrder = $row['agenda_order'] ?? null;
-            if ($isVisibleInAgenda && ($agendaOrder === null || $agendaOrder === '')) {
-                return redirect()
-                    ->route('definicoes.equipa')
-                    ->withErrors([
-                        "members.$agentId.agenda_order" => 'Indique a ordem na agenda para membros visíveis na agenda.',
-                    ])
-                    ->withInput();
-            }
+        try {
+            $this->operationalSettings->applyEquipaMembers($validated['members'] ?? [], $storeIds);
+        } catch (ValidationException $e) {
+            return redirect()
+                ->route('definicoes.equipa')
+                ->withErrors($e->errors())
+                ->withInput();
         }
-
-        $agentIds = array_map('intval', array_keys($rows));
-        if ($agentIds === []) {
-            return redirect()->route('definicoes.equipa')->with('status', 'Nada para atualizar.');
-        }
-
-        $agents = Agent::query()
-            ->activeTeamMembers(current_store_id())
-            ->with('user:id,role')
-            ->whereIn('id', $agentIds)
-            ->get()
-            ->keyBy('id');
 
         $store = app(CurrentStore::class)->get();
-
-        DB::transaction(function () use ($rows, $agents, $store, $personalTimeLimitChange): void {
-            $changes = [];
-            foreach ($rows as $agentId => $row) {
-                $agentIdInt = (int) $agentId;
-                $agent = $agents->get($agentIdInt);
-                if (! $agent || ! $agent->user) {
-                    continue;
-                }
-
-                $memberChanges = [];
-                $role = (string) ($row['role'] ?? $agent->user->role);
-                if ($agent->user->role !== $role) {
-                    $roleLabels = User::roles();
-                    $memberChanges[] = 'Tipo: '.($roleLabels[$agent->user->role] ?? $agent->user->role)
-                        .' → '.($roleLabels[$role] ?? $role);
-                    $agent->user->role = $role;
-                    $agent->user->save();
-                }
-
-                $visibleAgenda = (bool) ($row['visible_in_agenda'] ?? false);
-                $visibleBooking = (bool) ($row['visible_in_booking'] ?? false);
-                $agendaOrder = (bool) ($row['visible_in_agenda'] ?? false)
-                    ? (int) ($row['agenda_order'] ?? 0)
-                    : 0;
-
-                if ((bool) $agent->visible_in_agenda !== $visibleAgenda) {
-                    $memberChanges[] = 'Visível na agenda: '.($agent->visible_in_agenda ? 'Sim' : 'Não')
-                        .' → '.($visibleAgenda ? 'Sim' : 'Não');
-                }
-                if ((bool) $agent->visible_in_booking !== $visibleBooking) {
-                    $memberChanges[] = 'Visível na marcação online: '.($agent->visible_in_booking ? 'Sim' : 'Não')
-                        .' → '.($visibleBooking ? 'Sim' : 'Não');
-                }
-                if ((int) $agent->agenda_order !== $agendaOrder) {
-                    $memberChanges[] = 'Ordem na agenda: '.$agent->agenda_order.' → '.$agendaOrder;
-                }
-
-                if ($memberChanges !== []) {
-                    $changes[] = $agent->name.': '.implode('; ', $memberChanges);
-                }
-
-                $agent->update([
-                    'visible_in_agenda' => $visibleAgenda,
-                    'visible_in_booking' => $visibleBooking,
-                    'agenda_order' => $agendaOrder,
-                ]);
-            }
-
-            if ($changes !== []) {
-                $this->settingsActivityLogger->logSection(
-                    $store,
-                    'equipa',
-                    'Configuração da equipa atualizada',
-                    $changes,
-                );
-            }
-
-            if ($personalTimeLimitChange !== null) {
-                $this->settingsActivityLogger->logSection(
-                    $store,
-                    'equipa',
-                    'Tempo pessoal na agenda',
-                    [$personalTimeLimitChange],
-                );
-            }
-        });
+        $this->settingsActivityLogger->logSection(
+            $store,
+            'equipa',
+            'Configuração da equipa actualizada',
+            ['Tempo pessoal aplicado a todas as lojas; membros actualizados'],
+        );
 
         return redirect()
             ->route('definicoes.equipa')
-            ->with('status', 'Configuração da equipa atualizada.');
+            ->with('status', 'Equipa actualizada (tempo pessoal em todas as lojas).');
     }
 
     public function pagamentos(): View
     {
-        $storeId = current_store_id();
+        $orgId = current_organization_id();
+        $storeId = $this->operationalSettings->representativeStoreId($orgId) ?? current_store_id();
         $secret = \App\Support\StripeCredentials::secretKey($storeId);
         $webhook = \App\Support\StripeCredentials::webhookSecret($storeId);
+        $flags = $this->operationalSettings->paymentFlagsViewData($storeId);
 
-        return view('definicoes.pagamentos', [
+        return view('definicoes.pagamentos', array_merge($flags, [
             'pageTitle' => 'Pagamentos',
-            'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired($storeId),
-            'posGorjetaEnabled' => CrmSetting::posGorjetaEnabled($storeId),
             'stripeEnabled' => \App\Support\StripeCredentials::isEnabled($storeId),
             'stripeReady' => \App\Support\StripeCredentials::isReady($storeId),
             'stripePublishableKey' => \App\Support\StripeCredentials::publishableKey($storeId),
@@ -382,15 +185,15 @@ class DefinicoesController extends Controller
             'stripeHasWebhook' => $webhook !== '',
             'stripeWebhookUrl' => url('/stripe/webhook'),
             'paymentMethods' => \App\Support\PaymentMethodCatalog::forStore($storeId),
-        ]);
+            'settingsScopeNote' => 'Stripe, métodos, gorjeta e pagamento online aplicam-se a todas as lojas. Para gorjeta/pagamento online só numa loja, use Lojas → editar → Pagamentos.',
+        ]));
     }
 
     public function updatePagamentos(Request $request): RedirectResponse
     {
-        $storeId = current_store_id();
+        $orgId = current_organization_id();
+        $storeId = $this->operationalSettings->representativeStoreId($orgId) ?? current_store_id();
         $store = app(CurrentStore::class)->get();
-        $beforeGorjeta = CrmSetting::posGorjetaEnabled($storeId);
-        $beforeOnlinePayment = CrmSetting::onlineBookingPaymentRequired($storeId);
 
         $request->validate([
             'pos_gorjeta_enabled' => ['sometimes', 'boolean'],
@@ -402,15 +205,10 @@ class DefinicoesController extends Controller
             'methods.*.booking' => ['sometimes', 'boolean'],
         ]);
 
-        CrmSetting::setBool(
-            CrmSetting::KEY_POS_GORJETA_ENABLED,
+        $this->operationalSettings->applyPaymentFlagsToOrganization(
             $request->boolean('pos_gorjeta_enabled'),
-            $storeId,
-        );
-        CrmSetting::setBool(
-            CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED,
             $request->boolean('online_booking_payment_required'),
-            $storeId,
+            $orgId,
         );
 
         $methodRows = [];
@@ -429,29 +227,16 @@ class DefinicoesController extends Controller
             \App\Support\PaymentMethodCatalog::saveFromRequest($methodRows, $storeId);
         }
 
-        $changes = array_filter([
-            $this->settingsActivityLogger->logBoolChange(
-                'Gorjeta no POS',
-                $beforeGorjeta,
-                CrmSetting::posGorjetaEnabled($storeId),
-            ),
-            $this->settingsActivityLogger->logBoolChange(
-                'Pagamento online obrigatório',
-                $beforeOnlinePayment,
-                CrmSetting::onlineBookingPaymentRequired($storeId),
-            ),
-        ]);
-
         $this->settingsActivityLogger->logSection(
             $store,
             'pagamentos',
-            'Definições de pagamento atualizadas',
-            array_values($changes),
+            'Definições de pagamento actualizadas (organização)',
+            ['Métodos/Stripe e flags de loja aplicados a toda a organização'],
         );
 
         return redirect()
             ->route('definicoes.pagamentos')
-            ->with('status', 'Definições de pagamento guardadas (métodos: toda a organização; gorjeta e booking online: loja activa).');
+            ->with('status', 'Pagamentos guardados para toda a organização (incluindo gorjeta e booking online em todas as lojas).');
     }
 
     public function updatePagamentosStripe(Request $request): RedirectResponse

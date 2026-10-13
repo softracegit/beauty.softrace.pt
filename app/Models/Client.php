@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToOrganization;
 use App\Support\ActivityLogContext;
 use App\Support\DateTimeDisplay;
 use App\Support\PhoneDisplay;
+use App\Support\PortugueseFiscalId;
 use Spatie\Activitylog\Contracts\Activity;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
@@ -425,6 +426,56 @@ class Client extends Model
     public function opportunities(): HasMany
     {
         return $this->hasMany(Opportunity::class);
+    }
+
+    /**
+     * NIF de empresa / pessoa colectiva (Vendus exige morada em fatura).
+     */
+    public function hasCompanyFiscalId(): bool
+    {
+        return PortugueseFiscalId::isCompany($this->nif);
+    }
+
+    /**
+     * Linha de morada para documentos Vendus (rua + porta/andar/lado).
+     */
+    public function vendusAddressLine(): string
+    {
+        $street = trim((string) ($this->address ?? ''));
+        $extras = array_values(array_filter([
+            trim((string) ($this->door ?? '')) !== '' ? 'N.º '.trim((string) $this->door) : null,
+            trim((string) ($this->floor ?? '')) !== '' ? 'Andar '.trim((string) $this->floor) : null,
+            trim((string) ($this->side ?? '')) !== '' ? trim((string) $this->side) : null,
+        ]));
+
+        if ($street === '' && $extras === []) {
+            return '';
+        }
+        if ($extras === []) {
+            return $street;
+        }
+
+        return trim($street.($street !== '' ? ', ' : '').implode(', ', $extras));
+    }
+
+    public function vendusPostalCode(): string
+    {
+        return trim((string) ($this->postal_code ?? ''));
+    }
+
+    public function vendusCity(): string
+    {
+        return trim((string) ($this->locality ?? ''));
+    }
+
+    /**
+     * Morada mínima para fatura com NIF de empresa na Vendus.
+     */
+    public function hasCompleteVendusAddress(): bool
+    {
+        return $this->vendusAddressLine() !== ''
+            && $this->vendusPostalCode() !== ''
+            && $this->vendusCity() !== '';
     }
 
     /**

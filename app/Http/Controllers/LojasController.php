@@ -143,7 +143,7 @@ class LojasController extends Controller
             $changes,
         );
 
-        $tab = $this->storeBusinessSettings->resolveActiveTab($request->input('_active_tab'));
+        $tab = $this->storeBusinessSettings->resolveActiveTab($request->input('_active_tab'), true);
 
         return redirect()
             ->route('lojas.edit', ['loja' => $loja, 'tab' => $tab])

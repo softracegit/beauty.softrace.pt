@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Booking;
+use App\Models\Client;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Support\PortugueseFiscalId;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -66,6 +68,16 @@ final class VendusInvoiceService
             'calendarEvent.eventServiceItems.service',
             'client',
         ]);
+
+        $addressError = $this->companyAddressValidationError($sale);
+        if ($addressError !== null) {
+            return [
+                'ok' => false,
+                'status' => 422,
+                'message' => $addressError,
+                'document_id' => null,
+            ];
+        }
 
         $baseUrl = rtrim((string) config('services.vendus.base_url'), '/');
         $endpoint = trim((string) config('services.vendus.documents_endpoint', '/documents/'));
@@ -313,6 +325,21 @@ final class VendusInvoiceService
             'country' => 'PT',
         ];
 
+        if ($client instanceof Client) {
+            $address = $client->vendusAddressLine();
+            $postalCode = $client->vendusPostalCode();
+            $city = $client->vendusCity();
+            if ($address !== '') {
+                $clientData['address'] = $address;
+            }
+            if ($postalCode !== '') {
+                $clientData['postalcode'] = $postalCode;
+            }
+            if ($city !== '') {
+                $clientData['city'] = $city;
+            }
+        }
+
         if (($clientData['fiscal_id'] ?? '') === '') {
             unset($clientData['fiscal_id']);
         }
@@ -324,6 +351,31 @@ final class VendusInvoiceService
         }
 
         return $clientData;
+    }
+
+    /**
+     * Vendus A001: em fatura com NIF de empresa a morada é obrigatória.
+     */
+    private function companyAddressValidationError(Sale $sale): ?string
+    {
+        if ((bool) ($sale->issue_without_fiscal_id ?? false)) {
+            return null;
+        }
+
+        $client = $sale->client;
+        if (! $client instanceof Client) {
+            return null;
+        }
+
+        if (! PortugueseFiscalId::isCompany($client->nif)) {
+            return null;
+        }
+
+        if ($client->hasCompleteVendusAddress()) {
+            return null;
+        }
+
+        return 'Para faturar com NIF de empresa, indique morada, código postal e localidade na ficha do cliente (obrigatório na Vendus).';
     }
 
     private function buildPayload(Sale $sale, ?int $categoryId): array

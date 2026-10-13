@@ -9912,6 +9912,34 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalApplyFiscalUi();
     }
 
+    function paymentModalIsCompanyNifDigits(digits) {
+        var d = String(digits || '').replace(/\D/g, '');
+        return d.length === 9 && (d.charAt(0) === '5' || d.charAt(0) === '6');
+    }
+
+    function paymentModalEffectiveBillingNifDigits() {
+        var fromClient = paymentModalClientNifDigits();
+        if (fromClient.length === 9) return fromClient;
+        var bill = String(($id('paymentModalBillingNif') && $id('paymentModalBillingNif').value) || '').replace(/\D/g, '');
+        return bill.length === 9 ? bill : '';
+    }
+
+    function paymentModalPrefillCompanyAddressFields() {
+        var d = eventDetailCurrentData || {};
+        var addr = $id('paymentModalBillingAddress');
+        var postal = $id('paymentModalBillingPostalCode');
+        var loc = $id('paymentModalBillingLocality');
+        if (addr && !String(addr.value || '').trim()) {
+            addr.value = String(d.client_address || '').trim();
+        }
+        if (postal && !String(postal.value || '').trim()) {
+            postal.value = String(d.client_postal_code || '').trim();
+        }
+        if (loc && !String(loc.value || '').trim()) {
+            loc.value = String(d.client_locality || '').trim();
+        }
+    }
+
     function paymentModalApplyFiscalUi() {
         var mode = String(($id('paymentInvoiceFiscalMode') && $id('paymentInvoiceFiscalMode').value) || '').trim();
         var digits = paymentModalClientNifDigits();
@@ -9922,6 +9950,14 @@ document.addEventListener('DOMContentLoaded', function() {
             wrap.classList.toggle('d-none', !show);
             if (show && nifInput && String(nifInput.value || '').replace(/\D/g, '').length !== 9 && digits.length === 9) {
                 nifInput.value = digits;
+            }
+        }
+        var companyWrap = $id('paymentModalCompanyAddressWrap');
+        if (companyWrap) {
+            var showCompany = mode === 'with_nif' && paymentModalIsCompanyNifDigits(paymentModalEffectiveBillingNifDigits());
+            companyWrap.classList.toggle('d-none', !showCompany);
+            if (showCompany) {
+                paymentModalPrefillCompanyAddressFields();
             }
         }
     }
@@ -10038,17 +10074,55 @@ document.addEventListener('DOMContentLoaded', function() {
         if (wrap && !wrap.classList.contains('d-none')) {
             billing = String(($id('paymentModalBillingNif') && $id('paymentModalBillingNif').value) || '').replace(/\D/g, '');
         }
-        return { invoice_fiscal_mode: mode, billing_nif: billing.length === 9 ? billing : '' };
+        var payload = { invoice_fiscal_mode: mode, billing_nif: billing.length === 9 ? billing : '' };
+        var companyWrap = $id('paymentModalCompanyAddressWrap');
+        if (companyWrap && !companyWrap.classList.contains('d-none')) {
+            payload.billing_address = String(($id('paymentModalBillingAddress') && $id('paymentModalBillingAddress').value) || '').trim();
+            payload.billing_postal_code = String(($id('paymentModalBillingPostalCode') && $id('paymentModalBillingPostalCode').value) || '').trim();
+            payload.billing_locality = String(($id('paymentModalBillingLocality') && $id('paymentModalBillingLocality').value) || '').trim();
+        }
+        return payload;
+    }
+
+    function paymentModalFiscalFieldsForRequest(fiscal) {
+        var out = {
+            invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
+            billing_nif: fiscal.billing_nif || null,
+        };
+        if (fiscal.billing_address) out.billing_address = fiscal.billing_address;
+        if (fiscal.billing_postal_code) out.billing_postal_code = fiscal.billing_postal_code;
+        if (fiscal.billing_locality) out.billing_locality = fiscal.billing_locality;
+        return out;
     }
 
     function paymentModalValidateFiscalForSubmit() {
         var mode = String(($id('paymentInvoiceFiscalMode') && $id('paymentInvoiceFiscalMode').value) || '').trim();
         if (mode !== 'with_nif') return true;
-        if (paymentModalClientNifDigits().length === 9) return true;
-        var bill = String(($id('paymentModalBillingNif') && $id('paymentModalBillingNif').value) || '').replace(/\D/g, '');
-        if (bill.length === 9) return true;
-        showToast('Para «Com NIF», indique 9 dígitos na ficha do cliente ou no campo «NIF nesta fatura».', 'error');
-        return false;
+        var effective = paymentModalEffectiveBillingNifDigits();
+        if (effective.length !== 9) {
+            if (paymentModalClientNifDigits().length === 9) {
+                // ok
+            } else {
+                var bill = String(($id('paymentModalBillingNif') && $id('paymentModalBillingNif').value) || '').replace(/\D/g, '');
+                if (bill.length !== 9) {
+                    showToast('Para «Com NIF», indique 9 dígitos na ficha do cliente ou no campo «NIF nesta fatura».', 'error');
+                    return false;
+                }
+                effective = bill;
+            }
+        }
+        if (paymentModalIsCompanyNifDigits(effective)) {
+            var addr = String(($id('paymentModalBillingAddress') && $id('paymentModalBillingAddress').value) || '').trim();
+            var postal = String(($id('paymentModalBillingPostalCode') && $id('paymentModalBillingPostalCode').value) || '').trim();
+            var loc = String(($id('paymentModalBillingLocality') && $id('paymentModalBillingLocality').value) || '').trim();
+            if (!addr || !postal || !loc) {
+                showToast('Para NIF de empresa, indique morada, código postal e localidade (obrigatório na Vendus).', 'error');
+                var companyWrap = $id('paymentModalCompanyAddressWrap');
+                if (companyWrap) companyWrap.classList.remove('d-none');
+                return false;
+            }
+        }
+        return true;
     }
 
     function paymentModalUpdateConfirmLabel() {
@@ -10604,6 +10678,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalBillingNifEl.addEventListener('input', function() {
             var v = String(this.value || '').replace(/\D/g, '').slice(0, 9);
             if (this.value !== v) this.value = v;
+            paymentModalApplyFiscalUi();
         });
     }
 
@@ -10642,11 +10717,9 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(baseUrl + '/' + saleId + '/finalize-invoice', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({
-                invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
-                billing_nif: fiscal.billing_nif || null,
+            body: JSON.stringify(Object.assign(paymentModalFiscalFieldsForRequest(fiscal), {
                 invoice_delivery: paymentModalGetInvoiceDelivery(),
-            }),
+            })),
         })
         .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
         .then(function(pack) {
@@ -10731,14 +10804,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (paymentModalIsReserva()) {
             var walletPayload = paymentModalGetWalletApplyPayload();
             var reservaExtras = paymentModalGetReservaPayloadExtras();
-            var depositBase = {
-                invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
-                billing_nif: fiscal.billing_nif || null,
+            var depositBase = Object.assign(paymentModalFiscalFieldsForRequest(fiscal), {
                 invoice_delivery: paymentModalGetInvoiceDelivery(),
                 wallet_apply: walletPayload.wallet_apply,
                 wallet_apply_cents: walletPayload.wallet_apply_cents,
                 checkout_mode: checkoutMode,
-            };
+            });
             Object.keys(reservaExtras).forEach(function(k) { depositBase[k] = reservaExtras[k]; });
 
             if (paymentModalWalletCoversDeposit()) {
@@ -10888,17 +10959,15 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(C.agendaCheckoutMbwayIntentUrl || '', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-                body: JSON.stringify({
+                body: JSON.stringify(Object.assign({
                     event_id: eventId,
                     event_ids: selectedEventIds,
                     gorjeta: gorjeta,
                     items: items,
                     mbway_phone: mbwayPhone,
-                    invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
-                    billing_nif: fiscal.billing_nif || null,
                     invoice_delivery: paymentModalGetInvoiceDelivery(),
                     checkout_mode: checkoutMode
-                })
+                }, paymentModalFiscalFieldsForRequest(fiscal)))
             })
             .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
             .then(function(_) {
@@ -10920,17 +10989,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     mode: 'caixa',
                     eventId: eventId,
                     paymentIntentId: paymentIntentId,
-                    finalizeBody: {
+                    finalizeBody: Object.assign({
                         payment_intent_id: paymentIntentId,
                         event_id: eventId,
                         event_ids: selectedEventIds,
                         gorjeta: gorjeta,
                         items: items,
-                        invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
-                        billing_nif: fiscal.billing_nif || null,
                         invoice_delivery: paymentModalGetInvoiceDelivery(),
                         checkout_mode: checkoutMode
-                    },
+                    }, paymentModalFiscalFieldsForRequest(fiscal)),
                     onSuccess: function(finalRes) {
                         agendaAfterCheckoutPaymentSuccess(finalRes, eventId);
                     }
@@ -10946,18 +11013,16 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(C.agendaCheckoutStoreUrl || '', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({
+            body: JSON.stringify(Object.assign({
                 event_id: eventId,
                 event_ids: selectedEventIds,
                 payment_method: paymentModalIsInvoiceOnly() ? null : method,
                 invoice_only: paymentModalIsInvoiceOnly(),
                 gorjeta: gorjeta,
                 items: items,
-                invoice_fiscal_mode: fiscal.invoice_fiscal_mode,
-                billing_nif: fiscal.billing_nif || null,
                 invoice_delivery: paymentModalGetInvoiceDelivery(),
                 checkout_mode: checkoutMode
-            })
+            }, paymentModalFiscalFieldsForRequest(fiscal)))
         })
         .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
         .then(function(_) {
