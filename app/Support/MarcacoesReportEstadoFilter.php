@@ -114,18 +114,22 @@ class MarcacoesReportEstadoFilter
         return CalendarEvent::statuses()[$event->status] ?? (string) $event->status;
     }
 
-    public static function eventIsCancelledMarcacao(CalendarEvent $event): bool
+    /** Cancelado ou Faltou — estados em que se mostra a data de cancelamento/falta. */
+    public static function eventShowsCancellationDate(CalendarEvent $event): bool
     {
         return ($event->event_type ?? '') === CalendarEvent::TYPE_MARCACAO
-            && ($event->status ?? '') === CalendarEvent::STATUS_CANCELADO;
+            && in_array($event->status ?? '', [
+                CalendarEvent::STATUS_CANCELADO,
+                CalendarEvent::STATUS_FALTOU,
+            ], true);
     }
 
     /**
-     * Data/hora de cancelamento (fuso da loja), ou null se não for cancelada / sem data.
+     * Data/hora de cancelamento ou falta (fuso da loja), ou null se não aplicável / sem data.
      */
     public static function eventRowCancellationDateLabel(CalendarEvent $event): ?string
     {
-        if (! self::eventIsCancelledMarcacao($event)) {
+        if (! self::eventShowsCancellationDate($event)) {
             return null;
         }
 
@@ -137,20 +141,6 @@ class MarcacoesReportEstadoFilter
         $formatted = DateTimeDisplay::formatInstant($raw, $event->store_id, 'd/m/Y H:i');
 
         return $formatted !== '' ? $formatted : null;
-    }
-
-    /**
-     * Célula Estado para Excel: estado + data de cancelamento na linha seguinte.
-     */
-    public static function eventRowStatusExportCell(CalendarEvent $event): string
-    {
-        $label = self::eventRowStatusLabel($event);
-        $cancelledAt = self::eventRowCancellationDateLabel($event);
-        if ($cancelledAt === null) {
-            return $label;
-        }
-
-        return $label."\n".$cancelledAt;
     }
 
     public static function eventRowServicesLabel(CalendarEvent $event): string

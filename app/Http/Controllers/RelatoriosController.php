@@ -372,6 +372,7 @@ class RelatoriosController extends Controller
         $headers = [
             'Data',
             'Estado',
+            'Data cancelamento',
             'Cliente',
             'Técnico',
             'Serviço',
@@ -390,7 +391,8 @@ class RelatoriosController extends Controller
             $sheet->fromArray([
                 [
                     MarcacoesReportEstadoFilter::eventRowDataExportCell($ev),
-                    MarcacoesReportEstadoFilter::eventRowStatusExportCell($ev),
+                    MarcacoesReportEstadoFilter::eventRowStatusLabel($ev),
+                    MarcacoesReportEstadoFilter::eventRowCancellationDateLabel($ev) ?? '',
                     $ev->client?->name ?? '',
                     $ev->user?->name ?? '',
                     MarcacoesReportEstadoFilter::eventRowServicoExportCell($ev),
@@ -410,13 +412,14 @@ class RelatoriosController extends Controller
                 '',
                 '',
                 '',
+                '',
                 'Total',
                 round($totais['preco_total'], 2),
                 $totais['servicos_count'].' serviço(s)',
             ],
         ], null, 'A'.$rowIndex);
 
-        foreach (range('A', 'H') as $col) {
+        foreach (range('A', 'I') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
