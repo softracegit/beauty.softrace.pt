@@ -30,6 +30,7 @@ class CalendarEvent extends Model
                 'end_at',
                 'description',
                 'user_id',
+                'store_id',
                 'client_id',
                 'service_id',
                 'event_type',
@@ -129,11 +130,22 @@ class CalendarEvent extends Model
         if ($changed === ['end_at', 'start_at']) {
             return 'Data e hora da marcação alteradas';
         }
+        if (! array_diff($changed, ['store_id', 'user_id']) && $changed !== []) {
+            if (in_array('store_id', $changed, true) && in_array('user_id', $changed, true)) {
+                return 'Marcação transferida para outra loja e técnico';
+            }
+            if (in_array('store_id', $changed, true)) {
+                return 'Marcação transferida para outra loja';
+            }
+
+            return 'Marcação transferida para outro técnico';
+        }
         if (count($changed) === 1) {
             return match ($changed[0]) {
                 'start_at' => 'Horário de início alterado',
                 'end_at' => 'Horário de fim alterado',
                 'user_id' => 'Marcação transferida para outro técnico',
+                'store_id' => 'Marcação transferida para outra loja',
                 'status' => 'Estado da marcação alterado',
                 'client_id' => 'Cliente da marcação alterado',
                 'description' => 'Observações alteradas',

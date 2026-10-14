@@ -5231,6 +5231,49 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetailOcDateFlatpickr = null;
         }
     }
+    /** Preenche select de técnicos com optgroups por loja (fallback: lista flat da loja atual). */
+    function agendaFillMemberSelectOptions(selectEl, selectedId) {
+        if (!selectEl) return;
+        selectEl.innerHTML = '<option value="">Selecionar</option>';
+        var groups = C.usersForConsultantByStore;
+        if (Array.isArray(groups) && groups.length) {
+            groups.forEach(function(g) {
+                var users = g && g.users ? g.users : [];
+                if (!users.length) return;
+                var og = document.createElement('optgroup');
+                og.label = (g.store_name && String(g.store_name).trim()) || ('Loja #' + (g.store_id || ''));
+                users.forEach(function(u) {
+                    var opt = document.createElement('option');
+                    opt.value = String(u.id);
+                    opt.textContent = u.name || ('#' + u.id);
+                    og.appendChild(opt);
+                });
+                selectEl.appendChild(og);
+            });
+        } else {
+            (C.usersForConsultant || []).forEach(function(u) {
+                var opt = document.createElement('option');
+                opt.value = String(u.id);
+                opt.textContent = u.name || ('#' + u.id);
+                selectEl.appendChild(opt);
+            });
+        }
+        if (selectedId) {
+            selectEl.value = String(selectedId);
+        }
+    }
+
+    function agendaEventMovedToOtherStore(res) {
+        if (!res) return false;
+        if (res.store_transferred) return true;
+        var sid = res.store_id != null ? String(res.store_id) : '';
+        if (!sid && res.event && res.event.extendedProps && res.event.extendedProps.store_id != null) {
+            sid = String(res.event.extendedProps.store_id);
+        }
+        var current = C.currentStoreId != null ? String(C.currentStoreId) : '';
+        return !!sid && !!current && sid !== current;
+    }
+
     function eventDetailOcPopulateMemberSelect(selectedId) {
         var memSel = $id('eventDetailOcMember');
         if (!memSel) return;
@@ -5238,16 +5281,7 @@ document.addEventListener('DOMContentLoaded', function() {
             try { eventDetailOcChoicesInstances.member.destroy(); } catch (e) { /* ignore */ }
             eventDetailOcChoicesInstances.member = null;
         }
-        memSel.innerHTML = '<option value="">Selecionar</option>';
-        (C.usersForConsultant || []).forEach(function(u) {
-            var opt = document.createElement('option');
-            opt.value = String(u.id);
-            opt.textContent = u.name || ('#' + u.id);
-            memSel.appendChild(opt);
-        });
-        if (selectedId) {
-            memSel.value = String(selectedId);
-        }
+        agendaFillMemberSelectOptions(memSel, selectedId);
         eventDetailOcChoicesInstances.member = new Choices(memSel, agendaOcCommonChoicesOpts());
         if (selectedId) {
             try { eventDetailOcChoicesInstances.member.setChoiceByValue(String(selectedId)); } catch (e) { /* ignore */ }
@@ -6553,12 +6587,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (eventDetailOcHydrating) return;
                 $id('eventDetailEditUserId').value = this.value || '';
                 syncEventDetailCalendarEventToSelectedMember();
-                eventDetailSelectedServices = [];
                 eventDetailTrustServicesSumForDuration = false;
-                eventDetailOcShowServicePicker = true;
-                eventDetailOcRenderSelectedServices();
                 eventDetailOcReloadServicesForMember(this.value || '', function() {
+                    var beforeCount = eventDetailSelectedServices.length;
+                    var retained = agendaRetainSelectedServicesOfferedByFlat(
+                        eventDetailSelectedServices,
+                        eventDetailOcServicesFlat
+                    );
+                    eventDetailSelectedServices = retained.kept;
+                    if (retained.dropped > 0 || eventDetailSelectedServices.length !== beforeCount) {
+                        eventDetailMarkServiceListMutated();
+                    }
+                    agendaToastDroppedServicesOnMemberChange(retained.dropped);
+                    eventDetailOcShowServicePicker = eventDetailSelectedServices.length === 0;
                     eventDetailOcRenderSelectedServices();
+                    EventDetail.updateTotal();
+                    EventDetail.updateEndTime();
                     updateEventDetailOutOfHoursWarning();
                 }, { eventId: String($id('eventDetailEditId').value || '') });
             });
@@ -7931,6 +7975,54 @@ document.addEventListener('DOMContentLoaded', function() {
         }) || null;
     }
 
+    /**
+     * Ao mudar de técnica: mantém serviços (e extras) que o novo catálogo também oferece.
+     * @returns {{ kept: Array, dropped: number }}
+     */
+    function agendaRetainSelectedServicesOfferedByFlat(selectedList, flatList) {
+        var kept = [];
+        var dropped = 0;
+        (selectedList || []).forEach(function(item) {
+            var match = (flatList || []).find(function(fs) {
+                return String(fs.service_id) === String(item.service_id)
+                    && String(fs.service_option_id || '') === String(item.service_option_id || '');
+            });
+            if (!match) {
+                dropped++;
+                return;
+            }
+            item.available_extras = match.available_extras || [];
+            if (match.fees) {
+                item.fees = match.fees;
+            }
+            if (match.category_name) {
+                item.category_name = match.category_name;
+            }
+            if (Array.isArray(item.extras) && item.extras.length) {
+                var allowed = {};
+                (item.available_extras || []).forEach(function(ex) {
+                    allowed[String(ex.id)] = true;
+                });
+                item.extras = item.extras.filter(function(ex) {
+                    var eid = ex.id != null ? ex.id : ex.extra_id;
+                    return allowed[String(eid)];
+                });
+            }
+            kept.push(item);
+        });
+        return { kept: kept, dropped: dropped };
+    }
+
+    function agendaToastDroppedServicesOnMemberChange(dropped) {
+        if (!dropped) return;
+        showToast(
+            dropped === 1
+                ? '1 serviço removido: a nova técnica não o oferece.'
+                : dropped + ' serviços removidos: a nova técnica não os oferece.',
+            'warning'
+        );
+    }
+
     function agendaOcFlattenServicesFromCategories(categories) {
         var out = [];
         (categories || []).forEach(function(cat) {
@@ -8336,16 +8428,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         var memSel = $id('agendaOcMember');
-        memSel.innerHTML = '<option value="">Selecionar</option>';
-        (C.usersForConsultant || []).forEach(function(u) {
-            var opt = document.createElement('option');
-            opt.value = String(u.id);
-            opt.textContent = u.name || ('#' + u.id);
-            memSel.appendChild(opt);
-        });
-        if (memberId) {
-            memSel.value = memberId;
-        }
+        agendaFillMemberSelectOptions(memSel, memberId || '');
         lockAgendaMemberSelectIfNeeded(memSel, null);
 
         var ymd = startD.getFullYear() + '-' + String(startD.getMonth() + 1).padStart(2, '0') + '-' + String(startD.getDate()).padStart(2, '0');
@@ -8450,11 +8533,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!agendaOcTestFormBound) {
             agendaOcTestFormBound = true;
             $id('agendaOcMember').addEventListener('change', function() {
-                agendaOcSelectedServices = [];
-                agendaOcShowServicePicker = true;
-                agendaOcRenderSelectedServices();
-                agendaOcReloadServicesForMember(this.value || '', null);
-                updateAgendaOcOutOfHoursWarning();
+                agendaOcReloadServicesForMember(this.value || '', function() {
+                    var retained = agendaRetainSelectedServicesOfferedByFlat(
+                        agendaOcSelectedServices,
+                        agendaOcServicesFlat
+                    );
+                    agendaOcSelectedServices = retained.kept;
+                    agendaToastDroppedServicesOnMemberChange(retained.dropped);
+                    agendaOcShowServicePicker = agendaOcSelectedServices.length === 0;
+                    agendaOcRenderSelectedServices();
+                    updateAgendaOcOutOfHoursWarning();
+                });
             });
             var agendaOcTimeSel = $id('agendaOcTime');
             if (agendaOcTimeSel) {
@@ -8612,9 +8701,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .then(function(res) {
                         if (res.success && res.event) {
-                            showToast('Marcação criada com sucesso!', 'success');
+                            var movedStore = agendaEventMovedToOtherStore(res);
+                            var storeLabel = res.store_name || (res.event.extendedProps && res.event.extendedProps.store_name) || '';
+                            showToast(
+                                movedStore
+                                    ? (res.message || ('Marcação criada em ' + (storeLabel || 'outra loja') + '.'))
+                                    : 'Marcação criada com sucesso!',
+                                'success'
+                            );
                             if (typeof calendar !== 'undefined') {
                                 calendar.refetchEvents();
+                            }
+                            if (movedStore) {
+                                agendaOcReleaseSubmitButton();
+                                bootstrap.Offcanvas.getInstance($id('agendaMarcacaoTestOffcanvas'))?.hide();
+                                return;
                             }
                             var createdId = res.event.id || (res.event.extendedProps && res.event.extendedProps.id);
                             if (createdId) {
@@ -9063,6 +9164,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (res.success && res.event) {
                 eventDetailWasSaved = true;
                 eventDetailMarkPersistedSnapshot(payload);
+                if (agendaEventMovedToOtherStore(res)) {
+                    var movedEv = calendar.getEventById(id);
+                    if (movedEv) {
+                        movedEv.remove();
+                    }
+                    calendar.refetchEvents();
+                    showToast(res.message || ('Marcação transferida para ' + (res.store_name || 'outra loja') + '.'), 'success');
+                    eventDetailAutoSaveClosing = true;
+                    bootstrap.Offcanvas.getInstance($id('eventDetailEditModal'))?.hide();
+                    if (options.onSuccess) options.onSuccess(res);
+                    return;
+                }
                 eventDetailMergeCalendarEventFromSaveResponse(res);
                 var ev = calendar.getEventById(id);
                 if (ev) {

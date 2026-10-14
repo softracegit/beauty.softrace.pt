@@ -573,6 +573,7 @@
     $agendaEventsBase = rtrim(url('agenda/events'), '/');
     $agendaClientsBase = rtrim(url('agenda/clients'), '/');
     $usersForConsultant = ($users ?? collect())->map(fn($u) => ['id' => $u->id, 'name' => $u->name])->values()->all();
+    $usersForConsultantByStore = $usersForConsultantByStore ?? [];
     $memberWeeklySchedules = collect($users ?? [])
         ->filter(fn ($u) => filled($u->agent?->weekly_schedule))
         ->mapWithKeys(fn ($u) => [(string) $u->id => $u->agent->weekly_schedule]);
@@ -623,6 +624,7 @@ window.AGENDA_CONFIG = {
     urlOpportunities: @json(url('opportunities')),
     urlLeads: @json(url('leads')),
     usersForConsultant: @json($usersForConsultant),
+    usersForConsultantByStore: @json($usersForConsultantByStore),
     nationalHolidaysPt: @json($nationalHolidaysPt ?? []),
     nationalHolidayNamesPt: @json($nationalHolidayNamesPt ?? []),
     memberWeeklySchedules: @json($memberWeeklySchedules ?? []),

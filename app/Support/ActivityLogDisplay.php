@@ -7,6 +7,7 @@ use App\Models\Agent;
 use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\Sale;
+use App\Models\Store;
 use App\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
@@ -23,12 +24,16 @@ class ActivityLogDisplay
     /** @var array<int, string> */
     private static array $clientNameCache = [];
 
+    /** @var array<int, string> */
+    private static array $storeNameCache = [];
+
     /** @var array<string, string> */
     private const ATTRIBUTE_LABELS = [
         'start_at' => 'Início',
         'end_at' => 'Fim',
         'status' => 'Estado',
         'user_id' => 'Técnico',
+        'store_id' => 'Loja',
         'client_id' => 'Cliente',
         'title' => 'Título',
         'description' => 'Observações',
@@ -220,6 +225,10 @@ class ActivityLogDisplay
             return self::resolveUserName((int) $value);
         }
 
+        if ($attr === 'store_id' && self::isPositiveIntId($value)) {
+            return self::resolveStoreName((int) $value);
+        }
+
         if ($attr === 'client_id' && self::isPositiveIntId($value)) {
             return self::resolveClientName((int) $value);
         }
@@ -332,6 +341,22 @@ class ActivityLogDisplay
         }
 
         return self::$clientNameCache[$clientId] = ($name !== '' ? $name : $fallback);
+    }
+
+    private static function resolveStoreName(int $storeId): string
+    {
+        if (array_key_exists($storeId, self::$storeNameCache)) {
+            return self::$storeNameCache[$storeId];
+        }
+
+        $fallback = '#'.$storeId;
+        try {
+            $name = trim((string) (Store::query()->whereKey($storeId)->value('name') ?? ''));
+        } catch (\Throwable) {
+            return self::$storeNameCache[$storeId] = $fallback;
+        }
+
+        return self::$storeNameCache[$storeId] = ($name !== '' ? $name : $fallback);
     }
 
     private static function looksLikeDateTime(?string $attr, mixed $value): bool

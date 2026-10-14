@@ -105,6 +105,8 @@ class CalendarController extends Controller
             $users = $users->where('id', auth()->id())->values();
         }
 
+        $usersForConsultantByStore = $this->usersForConsultantGroupedByAccessibleStore($users);
+
         $today = now();
         $holidayYearStart = (int) $today->format('Y') - 1;
         $holidayYearEnd = (int) $today->format('Y') + 2;
@@ -130,6 +132,7 @@ class CalendarController extends Controller
         return view('agenda.index', compact(
             'eventTypes',
             'users',
+            'usersForConsultantByStore',
             'personalTimeTypes',
             'nationalHolidaysPt',
             'nationalHolidayNamesPt',
@@ -434,16 +437,21 @@ class CalendarController extends Controller
 
     /**
      * Get services for a member (user with agent), grouped by category (for event type "Marcação").
+     * Aceita técnicos de qualquer loja acessível (reatribuição cross-store).
      */
     public function memberServices(User $user)
     {
+        $storeIds = $this->accessibleAgendaStoreIds();
         $agent = Agent::query()
-            ->forStore(current_store_id())
+            ->whereIn('store_id', $storeIds)
             ->where('user_id', $user->id)
+            ->where('status', Agent::STATUS_ACTIVE)
             ->first();
         if (! $agent) {
             return response()->json(['categories' => []]);
         }
+
+        $agentStoreId = (int) $agent->store_id;
 
         $services = $agent->services()
             ->with([
@@ -464,8 +472,8 @@ class CalendarController extends Controller
             return $s->category_id ?: 0;
         });
 
-        $categoryNames = \App\Models\Category::forStore(current_store_id())->whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('name', 'id');
-        $categoryColors = \App\Models\Category::forStore(current_store_id())->whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('color', 'id');
+        $categoryNames = \App\Models\Category::forStore($agentStoreId)->whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('name', 'id');
+        $categoryColors = \App\Models\Category::forStore($agentStoreId)->whereIn('id', $byCategory->keys()->filter(fn ($id) => $id !== 0))->pluck('color', 'id');
 
         $categories = [];
         foreach ($byCategory as $categoryId => $items) {
@@ -1167,6 +1175,11 @@ class CalendarController extends Controller
      */
     public function store(Request $request)
     {
+        $eventTypeForUserRule = (string) $request->input('event_type', '');
+        $userIdStoreIds = $eventTypeForUserRule === CalendarEvent::TYPE_MARCACAO
+            ? $this->accessibleAgendaStoreIds()
+            : [(int) current_store_id()];
+
         $rules = [
             'title' => ['required_without:personal_time_type_id', 'nullable', 'string', 'max:255'],
             'personal_time_type_id' => ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
@@ -1174,7 +1187,7 @@ class CalendarController extends Controller
             'end_at' => ['required', 'date', 'after_or_equal:start_at'],
             'description' => ['nullable', 'string'],
             'event_type' => ['required', 'in:manual,outro,marcacao,tempo_pessoal'],
-            'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->whereIn('store_id', $userIdStoreIds)->where('status', Agent::STATUS_ACTIVE))],
             'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'service_id' => ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'services' => ['nullable', 'array'],
@@ -1265,6 +1278,13 @@ class CalendarController extends Controller
         $validated['store_id'] = current_store_id();
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
             $validated['marcacao_source'] = \App\Support\ActivityLogMarcacaoOrigin::AGENDA;
+            $agentStoreId = $this->resolveAgentStoreIdForUser(
+                $validated['user_id'] ? (int) $validated['user_id'] : null,
+                $this->accessibleAgendaStoreIds(),
+            );
+            if ($agentStoreId !== null) {
+                $validated['store_id'] = $agentStoreId;
+            }
         }
 
         $event = CalendarEvent::create($validated);
@@ -1309,10 +1329,24 @@ class CalendarController extends Controller
             $this->notifyClientAppointmentCreated($event);
         }
 
+        $createdStoreId = (int) $event->store_id;
+        $currentStoreId = (int) current_store_id();
+        $createdOnOtherStore = $createdStoreId !== $currentStoreId;
+        $createdStoreName = null;
+        if ($createdOnOtherStore) {
+            $event->loadMissing('store');
+            $createdStoreName = $event->store?->name;
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Evento criado com sucesso.',
+            'message' => $createdOnOtherStore && $createdStoreName
+                ? 'Marcação criada em '.$createdStoreName.'.'
+                : 'Evento criado com sucesso.',
             'event' => $this->formatEventForCalendar($event),
+            'store_transferred' => $createdOnOtherStore,
+            'store_id' => $createdStoreId,
+            'store_name' => $createdStoreName,
         ]);
     }
 
@@ -1355,10 +1389,14 @@ class CalendarController extends Controller
             ], 422);
         }
 
+        $userIdStoreIds = ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO
+            ? $this->accessibleAgendaStoreIds()
+            : [(int) current_store_id()];
+
         $rules = [
             'start_at' => ['sometimes', 'date'],
             'end_at' => ['sometimes', 'date'],
-            'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->whereIn('store_id', $userIdStoreIds)->where('status', Agent::STATUS_ACTIVE))],
             'status' => ['sometimes', 'string', 'in:agendado,notificado,confirmado,chegou,iniciado,terminado,faltou,cancelado'],
             'cancellation_reason' => ['nullable', 'string', 'max:1000'],
             'cancellation_outra_text' => ['nullable', 'string', 'max:1000'],
@@ -1501,6 +1539,10 @@ class CalendarController extends Controller
             }
         }
 
+        $storeTransferred = false;
+        $destinationStoreName = null;
+        $previousStoreId = (int) ($calendarEvent->store_id ?? 0);
+
         if (array_key_exists('user_id', $validated)) {
             $newUserId = $validated['user_id'] ? (int) $validated['user_id'] : null;
             if ($newUserId && User::find($newUserId)?->role === User::ROLE_ADMIN) {
@@ -1517,7 +1559,25 @@ class CalendarController extends Controller
                     $previousTechnicianName = User::query()->find($currentUserId)?->name;
                 }
                 $calendarEvent->user_id = $newUserId;
+
+                if (($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO && $newUserId) {
+                    $agentStoreId = $this->resolveAgentStoreIdForUser($newUserId, $userIdStoreIds);
+                    if ($agentStoreId !== null && $agentStoreId !== (int) $calendarEvent->store_id) {
+                        $calendarEvent->store_id = $agentStoreId;
+                        $storeTransferred = true;
+                    }
+                }
+
                 $calendarEvent->save();
+
+                if ($storeTransferred) {
+                    $calendarEvent->loadMissing('store');
+                    $destinationStoreName = $calendarEvent->store?->name;
+                    $booking = $calendarEvent->onlineBooking;
+                    if ($booking && (int) $booking->store_id !== (int) $calendarEvent->store_id) {
+                        $booking->update(['store_id' => (int) $calendarEvent->store_id]);
+                    }
+                }
             }
         }
 
@@ -1699,10 +1759,20 @@ class CalendarController extends Controller
             }
         }
 
+        $freshForResponse = $calendarEvent->fresh(['eventServices', 'store']);
+        $message = 'Evento atualizado com sucesso.';
+        if ($storeTransferred && $destinationStoreName) {
+            $message = 'Marcação transferida para '.$destinationStoreName.'.';
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Evento atualizado com sucesso.',
-            'event' => $this->formatEventForCalendar($calendarEvent->fresh(['eventServices'])),
+            'message' => $message,
+            'event' => $this->formatEventForCalendar($freshForResponse),
+            'store_transferred' => $storeTransferred,
+            'store_id' => $freshForResponse ? (int) $freshForResponse->store_id : null,
+            'store_name' => $destinationStoreName,
+            'previous_store_id' => $previousStoreId,
         ]);
     }
 
@@ -2102,7 +2172,7 @@ class CalendarController extends Controller
         $classMap = CalendarEvent::typeClassMap();
         $className = $classMap[$event->event_type] ?? 'bg-secondary';
 
-        $event->loadMissing(['client', 'eventServices.category', 'eventServices.fees', 'user.agent', 'personalTimeType', 'sales', 'onlineBooking']);
+        $event->loadMissing(['client', 'eventServices.category', 'eventServices.fees', 'user.agent', 'personalTimeType', 'sales', 'onlineBooking', 'store']);
         $event->eventServices->each(fn ($s) => $s->pivot->load(['extras', 'extras.extra']));
         $isTempoPessoal = $event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL;
         $agentColor = $isTempoPessoal ? null : ($event->user?->agent?->color);
@@ -2234,6 +2304,8 @@ class CalendarController extends Controller
                 'status_icon' => $statusIcon,
                 'user_id' => $event->user_id,
                 'user_name' => $event->user?->name,
+                'store_id' => (int) $event->store_id,
+                'store_name' => $event->store?->name,
                 'service_id' => $event->service_id,
                 'service_name' => $serviceName,
                 'event_services' => $eventServicesData,
@@ -2724,6 +2796,119 @@ class CalendarController extends Controller
         if ($user->isPrestador() && (int) $calendarEvent->user_id !== (int) $user->id) {
             abort(403, 'Sem permissão para aceder a esta marcação.');
         }
+    }
+
+    /**
+     * IDs das lojas em que o utilizador pode escolher técnicos na agenda.
+     *
+     * @return list<int>
+     */
+    private function accessibleAgendaStoreIds(): array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return [(int) current_store_id()];
+        }
+
+        $ids = $user->accessibleStores()->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        return $ids !== [] ? $ids : [(int) current_store_id()];
+    }
+
+    /**
+     * Loja do agent ativo do user, se estiver numa das lojas permitidas.
+     */
+    private function resolveAgentStoreIdForUser(?int $userId, array $allowedStoreIds): ?int
+    {
+        if ($userId === null || $userId <= 0 || $allowedStoreIds === []) {
+            return null;
+        }
+
+        $storeId = Agent::query()
+            ->where('user_id', $userId)
+            ->whereIn('store_id', $allowedStoreIds)
+            ->where('status', Agent::STATUS_ACTIVE)
+            ->value('store_id');
+
+        return $storeId !== null ? (int) $storeId : null;
+    }
+
+    /**
+     * Técnicos para selects de marcação, agrupados por loja acessível (optgroups).
+     *
+     * @param  Collection<int, User>  $currentStoreUsers
+     * @return list<array{store_id: int, store_name: string, users: list<array{id: int, name: string}>}>
+     */
+    private function usersForConsultantGroupedByAccessibleStore(Collection $currentStoreUsers): array
+    {
+        $actor = auth()->user();
+        $currentStoreId = (int) current_store_id();
+        $currentStoreName = (string) (current_store()->get()?->name ?? '');
+
+        if ($actor instanceof User && $actor->isPrestador()) {
+            return [[
+                'store_id' => $currentStoreId,
+                'store_name' => $currentStoreName,
+                'users' => $currentStoreUsers
+                    ->map(fn (User $u) => ['id' => (int) $u->id, 'name' => (string) $u->name])
+                    ->values()
+                    ->all(),
+            ]];
+        }
+
+        $stores = $actor instanceof User
+            ? $actor->accessibleStores()
+            : collect([current_store()->get()])->filter();
+
+        $storeIds = $stores->pluck('id')->map(fn ($id) => (int) $id)->all();
+        if ($storeIds === []) {
+            $storeIds = [$currentStoreId];
+        }
+
+        $allUsers = User::query()
+            ->whereHas('agent', function ($query) use ($storeIds) {
+                $query->whereIn('store_id', $storeIds)
+                    ->where('status', Agent::STATUS_ACTIVE)
+                    ->where('visible_in_agenda', true);
+            })
+            ->with('agent')
+            ->whereNotIn('role', [User::ROLE_ADMIN])
+            ->orderBy('users.name')
+            ->get();
+
+        $sortedStores = $stores
+            ->sortBy([
+                fn ($s) => (int) $s->id === $currentStoreId ? 0 : 1,
+                fn ($s) => mb_strtolower((string) $s->name),
+            ])
+            ->values();
+
+        if ($sortedStores->isEmpty() && $currentStoreName !== '') {
+            $sortedStores = collect([(object) ['id' => $currentStoreId, 'name' => $currentStoreName]]);
+        }
+
+        $groups = [];
+        foreach ($sortedStores as $store) {
+            $sid = (int) $store->id;
+            $storeUsers = $allUsers
+                ->filter(fn (User $u) => (int) ($u->agent?->store_id ?? 0) === $sid)
+                ->sortBy(fn (User $u) => sprintf('%010d-%s', (int) ($u->agent?->agenda_order ?? 999999), mb_strtolower((string) $u->name)))
+                ->values()
+                ->map(fn (User $u) => ['id' => (int) $u->id, 'name' => (string) $u->name])
+                ->all();
+
+            if ($storeUsers === []) {
+                continue;
+            }
+
+            $groups[] = [
+                'store_id' => $sid,
+                'store_name' => (string) ($store->name ?? ''),
+                'users' => $storeUsers,
+            ];
+        }
+
+        return $groups;
     }
 
     private function denyPrestadorRestrictedMarcacaoUpdate(Request $request, CalendarEvent $calendarEvent): ?JsonResponse
