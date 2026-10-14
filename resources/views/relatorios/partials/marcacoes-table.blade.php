@@ -40,6 +40,7 @@
                 return (float) $es->price + $es->extras->sum(fn ($x) => (float) $x->price);
             });
             $statusLabel = \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev);
+            $cancelledAtLabel = \App\Support\MarcacoesReportEstadoFilter::eventRowCancellationDateLabel($ev);
             $servicoNomes = \App\Support\MarcacoesReportEstadoFilter::eventRowServicesLabel($ev);
             $categoria = \App\Support\MarcacoesReportEstadoFilter::eventRowCategoriasLabel($ev);
             $origem = \App\Support\MarcacoesReportEstadoFilter::eventRowOrigemLabel($ev);
@@ -52,7 +53,12 @@
               <div>{{ $startLocal?->locale('pt')->translatedFormat('j F') ?? '—' }}</div>
               <small>{{ $startLocal?->format('Y') ?? '—' }} · {{ $startLocal?->format('H:i') ?? '—' }}</small>
             </td>
-            <td><span class="badge {{ $badgeClass }}">{{ $statusLabel }}</span></td>
+            <td class="text-nowrap">
+              <span class="badge {{ $badgeClass }}">{{ $statusLabel }}</span>
+              @if($cancelledAtLabel)
+                <small class="d-block text-muted mt-1 lh-1" style="font-size: 0.7rem;">{{ $cancelledAtLabel }}</small>
+              @endif
+            </td>
             @if($showClienteColumn)
               <td>
                 @if($ev->client)

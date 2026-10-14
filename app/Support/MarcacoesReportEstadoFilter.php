@@ -114,6 +114,45 @@ class MarcacoesReportEstadoFilter
         return CalendarEvent::statuses()[$event->status] ?? (string) $event->status;
     }
 
+    public static function eventIsCancelledMarcacao(CalendarEvent $event): bool
+    {
+        return ($event->event_type ?? '') === CalendarEvent::TYPE_MARCACAO
+            && ($event->status ?? '') === CalendarEvent::STATUS_CANCELADO;
+    }
+
+    /**
+     * Data/hora de cancelamento (fuso da loja), ou null se não for cancelada / sem data.
+     */
+    public static function eventRowCancellationDateLabel(CalendarEvent $event): ?string
+    {
+        if (! self::eventIsCancelledMarcacao($event)) {
+            return null;
+        }
+
+        $raw = $event->cancellation_evaluated_at ?? $event->updated_at;
+        if ($raw === null) {
+            return null;
+        }
+
+        $formatted = DateTimeDisplay::formatInstant($raw, $event->store_id, 'd/m/Y H:i');
+
+        return $formatted !== '' ? $formatted : null;
+    }
+
+    /**
+     * Célula Estado para Excel: estado + data de cancelamento na linha seguinte.
+     */
+    public static function eventRowStatusExportCell(CalendarEvent $event): string
+    {
+        $label = self::eventRowStatusLabel($event);
+        $cancelledAt = self::eventRowCancellationDateLabel($event);
+        if ($cancelledAt === null) {
+            return $label;
+        }
+
+        return $label."\n".$cancelledAt;
+    }
+
     public static function eventRowServicesLabel(CalendarEvent $event): string
     {
         if ($event->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {

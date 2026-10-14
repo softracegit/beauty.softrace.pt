@@ -390,7 +390,7 @@ class RelatoriosController extends Controller
             $sheet->fromArray([
                 [
                     MarcacoesReportEstadoFilter::eventRowDataExportCell($ev),
-                    MarcacoesReportEstadoFilter::eventRowStatusLabel($ev),
+                    MarcacoesReportEstadoFilter::eventRowStatusExportCell($ev),
                     $ev->client?->name ?? '',
                     $ev->user?->name ?? '',
                     MarcacoesReportEstadoFilter::eventRowServicoExportCell($ev),

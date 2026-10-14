@@ -71,7 +71,16 @@
                 </td>
                 @break
               @case('estado')
-                <td>{{ \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev) }}</td>
+                @php
+                  $pdfStatusLabel = \App\Support\MarcacoesReportEstadoFilter::eventRowStatusLabel($ev);
+                  $pdfCancelledAt = \App\Support\MarcacoesReportEstadoFilter::eventRowCancellationDateLabel($ev);
+                @endphp
+                <td class="text-nowrap">
+                  {{ $pdfStatusLabel }}
+                  @if($pdfCancelledAt)
+                    <br><span style="color:#666;font-size:6px;">{{ $pdfCancelledAt }}</span>
+                  @endif
+                </td>
                 @break
               @case('cliente')
                 <td>{{ $ev->client?->name ?? '—' }}</td>
