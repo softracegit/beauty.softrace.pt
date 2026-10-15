@@ -217,6 +217,16 @@
                     </div>
                     <div class="form-text text-danger d-none mb-0" id="paymentCashInsufficientHint">Valor insuficiente para o total a pagar.</div>
                 </div>
+
+                <div class="mt-4 pt-3 border-top d-none" id="paymentAgendarNovaMarcacaoWrap">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <label class="fw-semibold mb-0" for="paymentAgendarNovaMarcacao">Agendar nova marcação</label>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="paymentAgendarNovaMarcacao">
+                        </div>
+                    </div>
+                    <p class="small text-muted mb-0 mt-1">Após concluir, fica um atalho para marcar de novo com o mesmo cliente.</p>
+                </div>
             </div>
             <div class="modal-footer pt-2 pb-3 border-top payment-pos-modal-footer">
                 <div class="payment-pos-modal-footer__secondary">

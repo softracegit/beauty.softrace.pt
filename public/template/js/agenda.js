@@ -1349,6 +1349,21 @@ document.addEventListener('DOMContentLoaded', function() {
         window._cancelMarcacaoConfirmed = false;
         window._cancelMarcacaoContext = context || 'quick';
         window._cancelMarcacaoPreviousStatus = window._cancelMarcacaoPreviousStatus || 'agendado';
+        window._cancelMarcacaoClientId = null;
+        window._cancelMarcacaoClientName = null;
+        if ((context || 'quick') === 'edit') {
+            window._cancelMarcacaoClientId = (eventDetailSelectedClient && eventDetailSelectedClient.id)
+                || (eventDetailCurrentData && eventDetailCurrentData.client_id)
+                || null;
+            window._cancelMarcacaoClientName = (eventDetailSelectedClient && eventDetailSelectedClient.name)
+                || (eventDetailCurrentData && eventDetailCurrentData.client_name)
+                || '';
+        } else if (eventId && typeof calendar !== 'undefined') {
+            var termEv = calendar.getEventById(eventId);
+            var termExt = termEv && termEv.extendedProps ? termEv.extendedProps : {};
+            window._cancelMarcacaoClientId = termExt.client_id || null;
+            window._cancelMarcacaoClientName = termExt.client_name || '';
+        }
         var modeEl = $id('cancelMarcacaoMode');
         if (modeEl) modeEl.value = mode;
         $id('cancelMarcacaoEventId').value = eventId || '';
@@ -1358,6 +1373,14 @@ document.addEventListener('DOMContentLoaded', function() {
         $id('cancelMarcacaoNotes').value = '';
         $id('cancelMarcacaoOutraWrap').classList.add('d-none');
         $id('cancelMarcacaoNotifyClient').checked = false;
+        var cancelSw = $id('cancelAgendarNovaMarcacao');
+        if (cancelSw) {
+            cancelSw.checked = false;
+        }
+        var cancelSwWrap = $id('cancelAgendarNovaMarcacaoWrap');
+        if (cancelSwWrap) {
+            cancelSwWrap.classList.toggle('d-none', !window._cancelMarcacaoClientId);
+        }
 
         var isFaltou = mode === 'faltou';
         var titleEl = $id('cancelMarcacaoModalLabel');
@@ -3895,6 +3918,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalResetToCaixa();
         paymentMbwayFinalizeSucceeded = false;
         paymentModalStopMbwayFinalizePoll();
+        agendaResetPaymentRemarcacaoSwitch();
         var sub = paymentModalSubtotal();
         $id('paymentSubtotalDisplay').textContent = sub.toFixed(2).replace('.', ',') + ' €';
         var gEl = $id('paymentGorjeta');
@@ -3932,6 +3956,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalReservaCustomAmount = null;
         paymentMbwayFinalizeSucceeded = false;
         paymentModalStopMbwayFinalizePoll();
+        agendaResetPaymentRemarcacaoSwitch();
         paymentModalApplyModeClasses();
         var pl = $id('paymentModalLabel');
         if (pl) pl.textContent = 'Pré-pagamento';
@@ -4023,6 +4048,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 paymentModalCheckoutItems = consolidatedItems;
                 paymentModalConsolidatedEventIds = consolidatedIds;
                 paymentModalConsolidatedAmountDue = Number.isFinite(consolidatedAmountDue) ? Math.max(0, consolidatedAmountDue) : null;
+                agendaResetPaymentRemarcacaoSwitch();
                 var pl = $id('paymentModalLabel');
                 if (pl) pl.textContent = 'Pagamento do dia';
                 var gEl = $id('paymentGorjeta');
@@ -8701,6 +8727,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .then(function(res) {
                         if (res.success && res.event) {
+                            agendaClearPendingRemarcacao();
                             var movedStore = agendaEventMovedToOtherStore(res);
                             var storeLabel = res.store_name || (res.event.extendedProps && res.event.extendedProps.store_name) || '';
                             showToast(
@@ -8935,12 +8962,109 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    /** Cliente pendente para remarcar após pagar / Faltou / Cancelar. */
+    var agendaPendingRemarcacaoClient = null;
+
+    function agendaGetPendingRemarcacaoClientId() {
+        return agendaPendingRemarcacaoClient && agendaPendingRemarcacaoClient.id
+            ? String(agendaPendingRemarcacaoClient.id)
+            : null;
+    }
+
+    function agendaSyncToastsAbovePendingRemarcacaoCard() {
+        var toastBox = document.getElementById('appToastContainer');
+        var card = $id('agendaPendingRemarcacaoCard');
+        if (!toastBox) {
+            return;
+        }
+        var visible = !!(card && !card.classList.contains('d-none') && !card.hasAttribute('hidden'));
+        if (!visible) {
+            toastBox.classList.remove('agenda-toast-above-remarcacao');
+            toastBox.style.removeProperty('bottom');
+            return;
+        }
+        var cardBottom = 16;
+        try {
+            var cs = window.getComputedStyle(card);
+            var parsed = parseFloat(cs.bottom);
+            if (Number.isFinite(parsed)) {
+                cardBottom = parsed;
+            }
+        } catch (e) { /* ignore */ }
+        var gap = 12;
+        var lift = Math.ceil((card.offsetHeight || 48) + cardBottom + gap);
+        toastBox.classList.add('agenda-toast-above-remarcacao');
+        toastBox.style.bottom = lift + 'px';
+    }
+
+    function agendaClearPendingRemarcacao() {
+        agendaPendingRemarcacaoClient = null;
+        var card = $id('agendaPendingRemarcacaoCard');
+        if (card) {
+            card.classList.add('d-none');
+            card.setAttribute('hidden', 'hidden');
+        }
+        agendaSyncToastsAbovePendingRemarcacaoCard();
+    }
+
+    function agendaArmPendingRemarcacaoFromClient(clientId, clientName) {
+        var id = clientId != null ? String(clientId).trim() : '';
+        if (!id) {
+            return;
+        }
+        agendaPendingRemarcacaoClient = {
+            id: id,
+            name: (clientName && String(clientName).trim()) ? String(clientName).trim() : 'Cliente'
+        };
+        var nameEl = $id('agendaPendingRemarcacaoClientName');
+        if (nameEl) {
+            nameEl.textContent = agendaPendingRemarcacaoClient.name;
+        }
+        var card = $id('agendaPendingRemarcacaoCard');
+        if (card) {
+            card.classList.remove('d-none');
+            card.removeAttribute('hidden');
+        }
+        agendaSyncToastsAbovePendingRemarcacaoCard();
+    }
+
+    function agendaMaybeArmPendingRemarcacaoFromPayment() {
+        var sw = $id('paymentAgendarNovaMarcacao');
+        if (!sw || !sw.checked) {
+            return;
+        }
+        var cid = (eventDetailSelectedClient && eventDetailSelectedClient.id)
+            || (eventDetailCurrentData && eventDetailCurrentData.client_id)
+            || null;
+        var cname = (eventDetailSelectedClient && eventDetailSelectedClient.name)
+            || (eventDetailCurrentData && eventDetailCurrentData.client_name)
+            || '';
+        agendaArmPendingRemarcacaoFromClient(cid, cname);
+    }
+
+    function agendaResetPaymentRemarcacaoSwitch() {
+        var sw = $id('paymentAgendarNovaMarcacao');
+        if (sw) {
+            sw.checked = false;
+        }
+        var wrap = $id('paymentAgendarNovaMarcacaoWrap');
+        if (!wrap) {
+            return;
+        }
+        var hasClient = !!(
+            (eventDetailSelectedClient && eventDetailSelectedClient.id)
+            || (eventDetailCurrentData && eventDetailCurrentData.client_id)
+        );
+        wrap.classList.toggle('d-none', !hasClient);
+    }
+
     function openNovaMarcacaoModal(startStr, endStr, resourceId, preSelectedClientId) {
         if (!canCreateMarcacao) {
             showToast('Sem permissão para criar marcações.', 'error');
             return;
         }
-        openAgendaMarcacaoTestOffcanvas(startStr, endStr, resourceId, preSelectedClientId);
+        var clientId = preSelectedClientId || agendaGetPendingRemarcacaoClientId();
+        openAgendaMarcacaoTestOffcanvas(startStr, endStr, resourceId, clientId);
     }
 
     /** intl-tel-input: formulário «Novo cliente» no offcanvas (nova marcação / editar marcação) */
@@ -10503,6 +10627,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function agendaAfterCheckoutPaymentSuccess(res, eventId) {
         paymentModalRestoreConfirmButton();
+        agendaMaybeArmPendingRemarcacaoFromPayment();
         bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
         var delivery = (res && res.invoice_delivery) || 'print';
         var isPrepagamento = paymentModalIsReserva();
@@ -14422,6 +14547,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    $id('agendaPendingRemarcacaoDismiss')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        agendaClearPendingRemarcacao();
+    });
+    $id('agendaPendingRemarcacaoOpen')?.addEventListener('click', function() {
+        var pendingId = agendaGetPendingRemarcacaoClientId();
+        if (!pendingId) {
+            return;
+        }
+        openNovaMarcacaoFromToolbar(pendingId);
+    });
+
     $id('cancelMarcacaoConfirmBtn').addEventListener('click', function() {
         var reasonSelect = $id('cancelMarcacaoReason');
         var preset = (reasonSelect.value || '').trim();
@@ -14464,6 +14602,13 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.innerHTML = confirmDefault;
             if (res.success) {
                 window._cancelMarcacaoConfirmed = true;
+                var cancelSwOn = $id('cancelAgendarNovaMarcacao');
+                if (cancelSwOn && cancelSwOn.checked) {
+                    agendaArmPendingRemarcacaoFromClient(
+                        window._cancelMarcacaoClientId,
+                        window._cancelMarcacaoClientName
+                    );
+                }
                 var ev = typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
                 if (ev) ev.remove();
                 bootstrap.Modal.getInstance($id('cancelMarcacaoModal'))?.hide();

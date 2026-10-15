@@ -33,6 +33,20 @@
     </div>
 </div>
 
+{{-- Atalho pós-pagamento / Faltou-Cancelar: remarcar o mesmo cliente --}}
+<div id="agendaPendingRemarcacaoCard" class="agenda-pending-remarcacao-card d-none" role="status" aria-live="polite" hidden>
+    <button type="button" class="agenda-pending-remarcacao-card__dismiss" id="agendaPendingRemarcacaoDismiss" aria-label="Fechar atalho de remarcação" title="Fechar">
+        <i class="ph ph-x" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="agenda-pending-remarcacao-card__body" id="agendaPendingRemarcacaoOpen" title="Nova marcação para este cliente">
+        <span class="agenda-pending-remarcacao-card__title">
+            <span class="agenda-pending-remarcacao-card__eyebrow">Nova marcação para</span>
+            <span class="agenda-pending-remarcacao-card__name" id="agendaPendingRemarcacaoClientName">—</span>
+        </span>
+        <span class="agenda-pending-remarcacao-card__hint">Escolha o dia e a hora na agenda — o cliente fica já selecionado.</span>
+    </button>
+</div>
+
 <!-- Nova marcação: offcanvas lateral -->
 <div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas agenda-marcacao-test-offcanvas--wide" tabindex="-1" id="agendaMarcacaoTestOffcanvas" aria-labelledby="agendaMarcacaoTestOffcanvasLabel" data-bs-scroll="true">
     <div class="offcanvas-header border-bottom d-flex align-items-center gap-2">
@@ -306,6 +320,15 @@
                 <div class="form-check mb-3" id="cancelMarcacaoNotifyWrap">
                     <input class="form-check-input" type="checkbox" id="cancelMarcacaoNotifyClient">
                     <label class="form-check-label" for="cancelMarcacaoNotifyClient" id="cancelMarcacaoNotifyClientLabel">Avisar cliente do cancelamento</label>
+                </div>
+                <div class="mb-3 d-none" id="cancelAgendarNovaMarcacaoWrap">
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <label class="fw-semibold mb-0" for="cancelAgendarNovaMarcacao">Agendar nova marcação</label>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="cancelAgendarNovaMarcacao">
+                        </div>
+                    </div>
+                    <p class="small text-muted mb-0 mt-1">Após concluir, fica um atalho para marcar de novo com o mesmo cliente.</p>
                 </div>
                 <div class="border rounded p-3 bg-light" id="cancelMarcacaoPolicyBlock">
                     <h6 class="nova-marcacao-section-title mb-2">Política de cancelamento</h6>
