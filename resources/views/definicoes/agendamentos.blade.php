@@ -229,6 +229,11 @@
       </div>
     </div>
 
+    @include('definicoes.partials.stores-with-specific-settings-alert', [
+      'storesWithSpecificSettings' => $storesWithSpecificSettings ?? [],
+      'storesWithSpecificSettingsTab' => $storesWithSpecificSettingsTab ?? 'booking',
+    ])
+
     <div class="uedit-form-actions pt-3">
       <button type="submit" class="btn btn-primary">
         <i class="ph ph-check me-1"></i> Guardar alterações

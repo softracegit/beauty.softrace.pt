@@ -81,7 +81,44 @@ class StoreBusinessSettingsService
                 ? filter_var(old('email_use_business_branding'), FILTER_VALIDATE_BOOLEAN)
                 : $this->organizationEmailBranding($orgId),
             'activeTab' => $this->resolveActiveTab($requestedTab, false),
+            'storesWithSpecificSettings' => $this->storesWithBusinessOverrides($organization),
+            'storesWithSpecificSettingsTab' => null,
         ];
+    }
+
+    /**
+     * Lojas com dados próprios (não herdam tudo da empresa) — não são sobrescritas ao guardar Empresa.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    public function storesWithBusinessOverrides(Organization $organization): array
+    {
+        $orgId = (int) $organization->id;
+        $stores = Store::query()
+            ->where('organization_id', $orgId)
+            ->orderBy('name')
+            ->get();
+
+        $out = [];
+        foreach ($stores as $store) {
+            $storeId = (int) $store->id;
+            $hasOverride = ! $store->usesOrganizationSchedule()
+                || ! $store->usesOrganizationPhone()
+                || ! $store->usesOrganizationEmail()
+                || ! $store->usesOrganizationWebsite()
+                || ! $store->usesOrganizationInstagram()
+                || ! $store->usesOrganizationLogo()
+                || ! $store->usesOrganizationLogoEmail()
+                || ! $store->usesOrganizationLogoFavicon()
+                || CrmSetting::storeHasSettingOverride($storeId, CrmSetting::KEY_PRIVACY_LOCK_IDLE_MINUTES)
+                || CrmSetting::storeHasSettingOverride($storeId, CrmSetting::KEY_EMAIL_USE_BUSINESS_BRANDING);
+
+            if ($hasOverride) {
+                $out[] = ['id' => $storeId, 'name' => (string) $store->name];
+            }
+        }
+
+        return $out;
     }
 
     /** @deprecated use viewDataForStore */

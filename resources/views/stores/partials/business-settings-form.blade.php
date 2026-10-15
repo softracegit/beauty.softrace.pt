@@ -281,6 +281,13 @@
     </div>
   </div>
 
+  @if (! $isStore)
+    @include('definicoes.partials.stores-with-specific-settings-alert', [
+      'storesWithSpecificSettings' => $storesWithSpecificSettings ?? [],
+      'storesWithSpecificSettingsTab' => $storesWithSpecificSettingsTab ?? null,
+    ])
+  @endif
+
   <div class="uedit-form-actions mt-3">
     @if (!empty($cancelUrl))
       <a href="{{ $cancelUrl }}" class="btn btn-secondary">Cancelar</a>

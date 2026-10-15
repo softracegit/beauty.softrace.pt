@@ -92,7 +92,9 @@ class DefinicoesController extends Controller
             $this->operationalSettings->bookingViewData($storeId),
             [
                 'pageTitle' => 'Booking',
-                'settingsScopeNote' => 'Estas opções aplicam-se a todas as lojas da organização. Para alterar só uma loja, use Lojas → editar loja → Booking.',
+                'settingsScopeNote' => 'Estas opções aplicam-se às lojas sem definições próprias. Lojas com Booking específico na ficha não são sobrescritas.',
+                'storesWithSpecificSettings' => $this->operationalSettings->storesWithSpecificBookingSettings($orgId),
+                'storesWithSpecificSettingsTab' => 'booking',
             ],
         ));
     }
@@ -114,7 +116,7 @@ class DefinicoesController extends Controller
 
         return redirect()
             ->route('definicoes.marcacoes')
-            ->with('status', 'Definições de Booking guardadas para todas as lojas.');
+            ->with('status', 'Definições de Booking guardadas (lojas com Booking específico na ficha mantêm-se).');
     }
 
     public function equipa(): View
@@ -124,7 +126,9 @@ class DefinicoesController extends Controller
 
         return view('definicoes.equipa', array_merge($data, [
             'pageTitle' => 'Equipa',
-            'settingsScopeNote' => 'O limite de tempo pessoal aplica-se a todas as lojas. A tabela lista membros de toda a organização; para gerir só uma loja use Lojas → editar → Equipa.',
+            'settingsScopeNote' => 'O limite de tempo pessoal aplica-se às lojas sem definição própria. Lojas com tempo pessoal específico na ficha não são sobrescritas. A tabela lista membros de toda a organização.',
+            'storesWithSpecificSettings' => $this->operationalSettings->storesWithSpecificPersonalTimeSettings($orgId),
+            'storesWithSpecificSettingsTab' => 'equipa',
         ]));
     }
 
@@ -163,7 +167,7 @@ class DefinicoesController extends Controller
 
         return redirect()
             ->route('definicoes.equipa')
-            ->with('status', 'Equipa actualizada (tempo pessoal em todas as lojas).');
+            ->with('status', 'Equipa actualizada (lojas com tempo pessoal específico na ficha mantêm-se).');
     }
 
     public function pagamentos(): View
@@ -185,7 +189,9 @@ class DefinicoesController extends Controller
             'stripeHasWebhook' => $webhook !== '',
             'stripeWebhookUrl' => url('/stripe/webhook'),
             'paymentMethods' => \App\Support\PaymentMethodCatalog::forStore($storeId),
-            'settingsScopeNote' => 'Stripe, métodos, gorjeta e pagamento online aplicam-se a todas as lojas. Para gorjeta/pagamento online só numa loja, use Lojas → editar → Pagamentos.',
+            'settingsScopeNote' => 'Stripe e métodos são da organização. Gorjeta e pagamento online aplicam-se às lojas sem definição própria; lojas com Pagamentos específicos na ficha não são sobrescritas nesses pontos.',
+            'storesWithSpecificSettings' => $this->operationalSettings->storesWithSpecificPaymentFlagSettings($orgId),
+            'storesWithSpecificSettingsTab' => 'pagamentos',
         ]));
     }
 
@@ -236,7 +242,7 @@ class DefinicoesController extends Controller
 
         return redirect()
             ->route('definicoes.pagamentos')
-            ->with('status', 'Pagamentos guardados para toda a organização (incluindo gorjeta e booking online em todas as lojas).');
+            ->with('status', 'Pagamentos guardados (lojas com gorjeta/pagamento online específicos na ficha mantêm-se nesses pontos).');
     }
 
     public function updatePagamentosStripe(Request $request): RedirectResponse

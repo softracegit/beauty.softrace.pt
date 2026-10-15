@@ -2,8 +2,21 @@
 
 namespace App\Support;
 
+use App\Models\Agent;
+use App\Models\Client;
+use App\Models\User;
+
 class NavigationLogDisplay
 {
+    /** @var array<int, string> */
+    private static array $clientNameCache = [];
+
+    /** @var array<int, string> */
+    private static array $userNameCache = [];
+
+    /** @var array<int, string> */
+    private static array $agentNameCache = [];
+
     /** @var array<string, string> */
     private const ROUTE_LABELS = [
         'dashboard' => 'Resumo',
@@ -176,11 +189,110 @@ class NavigationLogDisplay
                 continue;
             }
 
-            $label = self::PARAM_LABELS[(string) $key] ?? self::humanizeSegment((string) $key);
-            $parts[] = $label.' #'.$value;
+            $keyStr = (string) $key;
+            $label = self::PARAM_LABELS[$keyStr] ?? self::humanizeSegment($keyStr);
+            $parts[] = $label.' '.self::formatParamValue($keyStr, $value);
         }
 
         return $parts === [] ? null : implode(' · ', $parts);
+    }
+
+    private static function formatParamValue(string $key, mixed $value): string
+    {
+        $fallback = '#'.$value;
+
+        if (! self::isPositiveIntId($value)) {
+            return $fallback;
+        }
+
+        $id = (int) $value;
+
+        return match ($key) {
+            'cliente', 'client' => self::resolveClientName($id) ?? $fallback,
+            'user', 'utilizador' => self::resolveUserName($id) ?? $fallback,
+            'agente', 'agent', 'equipa' => self::resolveAgentName($id) ?? $fallback,
+            default => $fallback,
+        };
+    }
+
+    private static function isPositiveIntId(mixed $value): bool
+    {
+        if (is_int($value)) {
+            return $value > 0;
+        }
+
+        if (is_string($value) && ctype_digit($value)) {
+            return (int) $value > 0;
+        }
+
+        return false;
+    }
+
+    private static function resolveClientName(int $clientId): ?string
+    {
+        if (array_key_exists($clientId, self::$clientNameCache)) {
+            $cached = self::$clientNameCache[$clientId];
+
+            return $cached !== '' ? $cached : null;
+        }
+
+        try {
+            $name = trim((string) (Client::query()->whereKey($clientId)->value('name') ?? ''));
+        } catch (\Throwable) {
+            self::$clientNameCache[$clientId] = '';
+
+            return null;
+        }
+
+        self::$clientNameCache[$clientId] = $name;
+
+        return $name !== '' ? $name : null;
+    }
+
+    private static function resolveUserName(int $userId): ?string
+    {
+        if (array_key_exists($userId, self::$userNameCache)) {
+            $cached = self::$userNameCache[$userId];
+
+            return $cached !== '' ? $cached : null;
+        }
+
+        try {
+            $name = trim((string) (User::query()->whereKey($userId)->value('name') ?? ''));
+        } catch (\Throwable) {
+            self::$userNameCache[$userId] = '';
+
+            return null;
+        }
+
+        self::$userNameCache[$userId] = $name;
+
+        return $name !== '' ? $name : null;
+    }
+
+    private static function resolveAgentName(int $agentId): ?string
+    {
+        if (array_key_exists($agentId, self::$agentNameCache)) {
+            $cached = self::$agentNameCache[$agentId];
+
+            return $cached !== '' ? $cached : null;
+        }
+
+        try {
+            $agent = Agent::query()->with('user:id,name')->whereKey($agentId)->first(['id', 'name', 'user_id']);
+            $name = trim((string) ($agent?->name ?? ''));
+            if ($name === '') {
+                $name = trim((string) ($agent?->user?->name ?? ''));
+            }
+        } catch (\Throwable) {
+            self::$agentNameCache[$agentId] = '';
+
+            return null;
+        }
+
+        self::$agentNameCache[$agentId] = $name;
+
+        return $name !== '' ? $name : null;
     }
 
     private static function inferRouteLabel(string $routeName): string

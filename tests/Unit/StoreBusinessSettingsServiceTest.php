@@ -26,6 +26,20 @@ class StoreBusinessSettingsServiceTest extends TestCase
     }
 
     #[Test]
+    public function allowed_tabs_for_organization_exclude_operational_tabs(): void
+    {
+        $svc = $this->app->make(StoreBusinessSettingsService::class);
+
+        $this->assertSame(
+            ['dados', 'logotipos', 'horario', 'privacidade', 'emails'],
+            $svc->allowedTabs(false),
+        );
+        $this->assertContains('equipa', $svc->allowedTabs(true));
+        $this->assertContains('pagamentos', $svc->allowedTabs(true));
+        $this->assertContains('booking', $svc->allowedTabs(true));
+    }
+
+    #[Test]
     public function tab_for_field_name_maps_required_fields(): void
     {
         $svc = $this->app->make(StoreBusinessSettingsService::class);

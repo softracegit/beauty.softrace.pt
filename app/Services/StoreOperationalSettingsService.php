@@ -38,6 +38,105 @@ class StoreOperationalSettingsService
     }
 
     /**
+     * Lojas da organização com nome (ordenadas).
+     *
+     * @return \Illuminate\Support\Collection<int, Store>
+     */
+    public function storesForOrganization(int $organizationId)
+    {
+        return Store::query()
+            ->where('organization_id', $organizationId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'organization_id']);
+    }
+
+    /**
+     * Lojas cujas definições desta secção diferem da referência (não serão sobrescritas).
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    public function storesWithSpecificBookingSettings(int $organizationId): array
+    {
+        return $this->storesDivergingFromRepresentative(
+            $organizationId,
+            fn (int $storeId): string => $this->bookingFingerprint($storeId),
+        );
+    }
+
+    /**
+     * @return list<array{id: int, name: string}>
+     */
+    public function storesWithSpecificPaymentFlagSettings(int $organizationId): array
+    {
+        return $this->storesDivergingFromRepresentative(
+            $organizationId,
+            fn (int $storeId): string => $this->paymentFlagsFingerprint($storeId),
+        );
+    }
+
+    /**
+     * @return list<array{id: int, name: string}>
+     */
+    public function storesWithSpecificPersonalTimeSettings(int $organizationId): array
+    {
+        return $this->storesDivergingFromRepresentative(
+            $organizationId,
+            fn (int $storeId): string => $this->personalTimeFingerprint($storeId),
+        );
+    }
+
+    /**
+     * @param  callable(int): string  $fingerprint
+     * @return list<array{id: int, name: string}>
+     */
+    private function storesDivergingFromRepresentative(int $organizationId, callable $fingerprint): array
+    {
+        $repId = $this->representativeStoreId($organizationId);
+        if ($repId === null) {
+            return [];
+        }
+
+        $baseline = $fingerprint($repId);
+        $out = [];
+        foreach ($this->storesForOrganization($organizationId) as $store) {
+            $storeId = (int) $store->id;
+            if ($storeId === $repId) {
+                continue;
+            }
+            if ($fingerprint($storeId) !== $baseline) {
+                $out[] = ['id' => $storeId, 'name' => (string) $store->name];
+            }
+        }
+
+        return $out;
+    }
+
+    private function bookingFingerprint(int $storeId): string
+    {
+        return implode('|', [
+            CrmSetting::bookingSlotHoldMinutes($storeId),
+            CrmSetting::bookingCartTtlHours($storeId),
+            CrmSetting::bookingSlotIntervalMinutes($storeId),
+            CrmSetting::bookingCancellationNoticeHours($storeId),
+            CrmSetting::bookingAnyStaffRule($storeId),
+            CrmSetting::bookingTheme($storeId),
+        ]);
+    }
+
+    private function paymentFlagsFingerprint(int $storeId): string
+    {
+        return implode('|', [
+            CrmSetting::posGorjetaEnabled($storeId) ? '1' : '0',
+            CrmSetting::onlineBookingPaymentRequired($storeId) ? '1' : '0',
+        ]);
+    }
+
+    private function personalTimeFingerprint(int $storeId): string
+    {
+        return CrmSetting::personalTimeLimitStoreHours($storeId) ? '1' : '0';
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function bookingViewData(int $storeId): array
@@ -157,7 +256,15 @@ class StoreOperationalSettingsService
      */
     public function applyBookingToOrganization(array $data, int $organizationId): void
     {
+        $repId = $this->representativeStoreId($organizationId);
+        $baseline = $repId !== null ? $this->bookingFingerprint($repId) : null;
+
         foreach ($this->storeIdsForOrganization($organizationId) as $storeId) {
+            if ($baseline !== null
+                && $storeId !== $repId
+                && $this->bookingFingerprint($storeId) !== $baseline) {
+                continue;
+            }
             $this->applyBookingToStore($data, $storeId);
         }
     }
@@ -181,7 +288,15 @@ class StoreOperationalSettingsService
 
     public function applyPaymentFlagsToOrganization(bool $posGorjetaEnabled, bool $onlineBookingPaymentRequired, int $organizationId): void
     {
+        $repId = $this->representativeStoreId($organizationId);
+        $baseline = $repId !== null ? $this->paymentFlagsFingerprint($repId) : null;
+
         foreach ($this->storeIdsForOrganization($organizationId) as $storeId) {
+            if ($baseline !== null
+                && $storeId !== $repId
+                && $this->paymentFlagsFingerprint($storeId) !== $baseline) {
+                continue;
+            }
             $this->applyPaymentFlagsToStore($posGorjetaEnabled, $onlineBookingPaymentRequired, $storeId);
         }
     }
@@ -193,7 +308,15 @@ class StoreOperationalSettingsService
 
     public function applyPersonalTimeLimitToOrganization(bool $limit, int $organizationId): void
     {
+        $repId = $this->representativeStoreId($organizationId);
+        $baseline = $repId !== null ? $this->personalTimeFingerprint($repId) : null;
+
         foreach ($this->storeIdsForOrganization($organizationId) as $storeId) {
+            if ($baseline !== null
+                && $storeId !== $repId
+                && $this->personalTimeFingerprint($storeId) !== $baseline) {
+                continue;
+            }
             $this->applyPersonalTimeLimitToStore($limit, $storeId);
         }
     }

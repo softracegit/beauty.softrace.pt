@@ -269,6 +269,11 @@
       </div>
     </div>
 
+    @include('definicoes.partials.stores-with-specific-settings-alert', [
+      'storesWithSpecificSettings' => $storesWithSpecificSettings ?? [],
+      'storesWithSpecificSettingsTab' => $storesWithSpecificSettingsTab ?? 'pagamentos',
+    ])
+
     <div class="uedit-form-actions">
       <button type="submit" class="btn btn-primary">
         <i class="ph ph-check me-1"></i> Guardar alterações

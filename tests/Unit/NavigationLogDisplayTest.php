@@ -24,6 +24,7 @@ class NavigationLogDisplayTest extends TestCase
 
     public function test_route_params_summary_uses_friendly_labels(): void
     {
+        // Sem BD nos unit tests: cai no fallback #id.
         $this->assertSame(
             'Cliente #12 · Membro #3',
             NavigationLogDisplay::routeParamsSummary(['cliente' => 12, 'agente' => 3])
