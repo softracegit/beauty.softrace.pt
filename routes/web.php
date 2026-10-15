@@ -297,6 +297,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::post('lojas', [LojasController::class, 'store'])->name('lojas.store');
     Route::get('lojas/{loja}/edit', [LojasController::class, 'edit'])->name('lojas.edit');
     Route::put('lojas/{loja}', [LojasController::class, 'update'])->name('lojas.update');
+    Route::post('lojas/{loja}/reset-settings', [LojasController::class, 'resetSettings'])->name('lojas.reset-settings');
     Route::delete('lojas/{loja}', [LojasController::class, 'destroy'])->name('lojas.destroy');
 
     Route::resource('equipa', AgentController::class)->parameters(['equipa' => 'agente']);

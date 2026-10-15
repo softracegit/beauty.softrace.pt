@@ -24,7 +24,7 @@
   .inherit-hint { font-size: 0.8rem; color: var(--bs-secondary-color); }
 </style>
 
-<form method="post" action="{{ $formAction }}" enctype="multipart/form-data" id="store-business-settings-form">
+<form method="post" action="{{ $formAction }}" enctype="multipart/form-data" id="store-business-settings-form" @if (! $isStore) data-org-settings-form @endif>
   @csrf
   @if ($formMethod === 'put')
     @method('PUT')
@@ -146,30 +146,30 @@
             ['logo', 'Genérico', 'Painel / marcação online', $store?->usesOrganizationLogo() ?? false, $org?->hasOwnLogo() ?? false],
             ['logo_favicon', 'Favicon', 'Ícone do browser no booking', $store?->usesOrganizationLogoFavicon() ?? false, $org?->hasOwnLogoFavicon() ?? false],
             ['logo_email', 'Emails', 'Cabeçalho dos emails', $store?->usesOrganizationLogoEmail() ?? false, $org?->hasOwnLogoEmail() ?? false],
-          ] as [$field, $label, $help, $usesOrg, $orgHasLogo])
+          ] as [$logoField, $logoLabel, $logoHelpBase, $usesOrgLogo, $orgHasLogo])
             @php
-              $previewUrl = $field === 'logo'
+              $previewUrl = $logoField === 'logo'
                 ? $entity->logoGenericUrl()
-                : ($field === 'logo_email' ? $entity->logoEmailUrl() : $entity->logoFaviconUrl());
-              $hasOwnLogo = (bool) $entity->{$field};
-              $logoHelp = $help;
-              if ($isStore && $usesOrg) {
+                : ($logoField === 'logo_email' ? $entity->logoEmailUrl() : $entity->logoFaviconUrl());
+              $hasOwnLogo = (bool) $entity->{$logoField};
+              $logoHelp = $logoHelpBase;
+              if ($isStore && $usesOrgLogo) {
                 $logoHelp = $orgHasLogo
-                  ? $help.' · A mostrar o da empresa — carregue um ficheiro para substituir só nesta loja.'
-                  : $help.' · A empresa ainda não tem este logotipo.';
+                  ? $logoHelpBase.' · A mostrar o da empresa — carregue um ficheiro para substituir só nesta loja.'
+                  : $logoHelpBase.' · A empresa ainda não tem este logotipo.';
               } elseif ($isStore && $hasOwnLogo) {
-                $logoHelp = $help.' · Específico desta loja. Remover volta ao da empresa.';
+                $logoHelp = $logoHelpBase.' · Específico desta loja. Remover volta ao da empresa.';
               }
             @endphp
             <div class="mb-4">
               @include('definicoes.partials.store-logo-field', [
-                'inputName' => $field,
-                'removeName' => 'remove_'.$field,
-                'inputId' => 'store_'.$field,
-                'previewId' => 'preview_'.$field,
+                'inputName' => $logoField,
+                'removeName' => 'remove_'.$logoField,
+                'inputId' => 'store_'.$logoField,
+                'previewId' => 'preview_'.$logoField,
                 'previewUrl' => $previewUrl,
                 'hasLogo' => $hasOwnLogo,
-                'label' => $label,
+                'label' => $logoLabel,
                 'help' => $logoHelp,
               ])
             </div>
@@ -282,19 +282,90 @@
   </div>
 
   @if (! $isStore)
-    @include('definicoes.partials.stores-with-specific-settings-alert', [
+    @include('definicoes.partials.org-save-actions', [
       'storesWithSpecificSettings' => $storesWithSpecificSettings ?? [],
       'storesWithSpecificSettingsTab' => $storesWithSpecificSettingsTab ?? null,
+      'primaryLabel' => $submitLabel,
+      'formId' => 'store-business-settings-form',
     ])
-  @endif
+  @else
+    @php
+      $storeResetActions = array_values(array_filter([
+        !empty($showResetNegocio) ? [
+          'section' => 'negocio',
+          'tabs' => ['dados', 'logotipos', 'horario', 'privacidade', 'emails'],
+          'label' => 'Repor definições gerais',
+          'body' => 'Esta loja volta a herdar da empresa os dados de contacto, logotipos, horário, privacidade e branding de emails.',
+        ] : null,
+        !empty($showResetEquipa) ? [
+          'section' => 'equipa',
+          'tabs' => ['equipa'],
+          'label' => 'Repor definições gerais',
+          'body' => 'O tempo pessoal desta loja volta a usar a definição geral da organização.',
+        ] : null,
+        !empty($showResetPagamentos) ? [
+          'section' => 'pagamentos',
+          'tabs' => ['pagamentos'],
+          'label' => 'Repor definições gerais',
+          'body' => 'Gorjeta e pagamento online desta loja voltam a usar a definição geral da organização.',
+        ] : null,
+        !empty($showResetBooking) ? [
+          'section' => 'booking',
+          'tabs' => ['booking'],
+          'label' => 'Repor definições gerais',
+          'body' => 'As opções de Booking desta loja voltam a usar a definição geral da organização.',
+        ] : null,
+      ]));
+      $activeStoreTab = $activeTab ?? 'dados';
+    @endphp
 
-  <div class="uedit-form-actions mt-3">
-    @if (!empty($cancelUrl))
-      <a href="{{ $cancelUrl }}" class="btn btn-secondary">Cancelar</a>
-    @endif
-    <button type="submit" class="btn btn-primary"><i class="ph ph-check me-1"></i> {{ $submitLabel }}</button>
-  </div>
+    <div class="uedit-form-actions mt-3 d-flex flex-wrap gap-2 align-items-center">
+      @if (!empty($cancelUrl))
+        <a href="{{ $cancelUrl }}" class="btn btn-secondary">Cancelar</a>
+      @endif
+      <button type="submit" class="btn btn-primary"><i class="ph ph-check me-1"></i> {{ $submitLabel }}</button>
+      @foreach ($storeResetActions as $resetAction)
+        @php $visible = in_array($activeStoreTab, $resetAction['tabs'], true); @endphp
+        <button
+          type="button"
+          class="btn btn-outline-secondary store-reset-general-btn{{ $visible ? '' : ' d-none' }}"
+          data-bs-toggle="modal"
+          data-bs-target="#reset-to-general-{{ $resetAction['section'] }}"
+          data-reset-tabs="{{ implode(',', $resetAction['tabs']) }}"
+        >
+          <i class="ph ph-arrow-counter-clockwise me-1"></i> {{ $resetAction['label'] }}
+        </button>
+      @endforeach
+    </div>
+  @endif
 </form>
+
+{{-- Modais fora do form principal (HTML não permite <form> dentro de <form>). --}}
+@foreach (($storeResetActions ?? []) as $resetAction)
+    <div class="modal fade" id="reset-to-general-{{ $resetAction['section'] }}" tabindex="-1" aria-labelledby="reset-to-general-{{ $resetAction['section'] }}-label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="post" action="{{ $resetSettingsUrl }}" id="store-reset-form-{{ $resetAction['section'] }}">
+            @csrf
+            <input type="hidden" name="section" value="{{ $resetAction['section'] }}">
+            <div class="modal-header">
+              <h5 class="modal-title" id="reset-to-general-{{ $resetAction['section'] }}-label">Repor definições gerais?</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-0">{{ $resetAction['body'] }}</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-primary">
+                <i class="ph ph-arrow-counter-clockwise me-1"></i> Repor
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+@endforeach
 
 <script>
 function previewStoreLogoField(input, previewId) {
@@ -369,11 +440,22 @@ document.addEventListener('DOMContentLoaded', function () {
   var form = document.getElementById('store-business-settings-form');
   var tabInput = document.getElementById('store_business_active_tab');
 
+  function storeBusinessSyncResetButtons(activeTab) {
+    document.querySelectorAll('.store-reset-general-btn').forEach(function (resetBtn) {
+      var tabs = (resetBtn.getAttribute('data-reset-tabs') || '').split(',').filter(Boolean);
+      resetBtn.classList.toggle('d-none', tabs.indexOf(activeTab) === -1);
+    });
+  }
+
   document.querySelectorAll('[data-store-tab]').forEach(function (btn) {
     btn.addEventListener('shown.bs.tab', function () {
-      if (tabInput) tabInput.value = btn.getAttribute('data-store-tab') || 'dados';
+      var tab = btn.getAttribute('data-store-tab') || 'dados';
+      if (tabInput) tabInput.value = tab;
+      storeBusinessSyncResetButtons(tab);
     });
   });
+
+  if (tabInput) storeBusinessSyncResetButtons(tabInput.value || 'dados');
 
   if (window.location.hash === '#privacy-lock-pin') {
     var privacyBtn = document.querySelector('[data-store-tab="privacidade"]');

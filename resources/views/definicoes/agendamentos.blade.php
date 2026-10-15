@@ -7,7 +7,7 @@
     </div>
   @endif
 
-  <form method="post" action="{{ route('definicoes.marcacoes.update') }}">
+  <form method="post" action="{{ route('definicoes.marcacoes.update') }}" id="definicoes-booking-form">
     @csrf
 
     <div class="card">
@@ -229,16 +229,11 @@
       </div>
     </div>
 
-    @include('definicoes.partials.stores-with-specific-settings-alert', [
+    @include('definicoes.partials.org-save-actions', [
       'storesWithSpecificSettings' => $storesWithSpecificSettings ?? [],
       'storesWithSpecificSettingsTab' => $storesWithSpecificSettingsTab ?? 'booking',
+      'formId' => 'definicoes-booking-form',
     ])
-
-    <div class="uedit-form-actions pt-3">
-      <button type="submit" class="btn btn-primary">
-        <i class="ph ph-check me-1"></i> Guardar alterações
-      </button>
-    </div>
   </form>
 
   <style>

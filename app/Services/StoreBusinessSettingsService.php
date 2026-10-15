@@ -59,6 +59,11 @@ class StoreBusinessSettingsService
                 : CrmSetting::emailUseBusinessBranding($storeId),
             'pagamentosNote' => 'Stripe e métodos de pagamento são da organização (Definições → Pagamentos). Aqui só o comportamento desta loja.',
             'activeTab' => $this->resolveActiveTab($requestedTab, true),
+            'showResetBooking' => $this->operationalSettings->storeHasSpecificBookingSettings($store),
+            'showResetPagamentos' => $this->operationalSettings->storeHasSpecificPaymentFlagSettings($store),
+            'showResetEquipa' => $this->operationalSettings->storeHasSpecificPersonalTimeSettings($store),
+            'showResetNegocio' => $this->storeHasBusinessOverrides($store),
+            'resetSettingsUrl' => route('lojas.reset-settings', $store),
         ]);
     }
 
@@ -93,32 +98,89 @@ class StoreBusinessSettingsService
      */
     public function storesWithBusinessOverrides(Organization $organization): array
     {
-        $orgId = (int) $organization->id;
         $stores = Store::query()
-            ->where('organization_id', $orgId)
+            ->where('organization_id', (int) $organization->id)
             ->orderBy('name')
             ->get();
 
         $out = [];
         foreach ($stores as $store) {
-            $storeId = (int) $store->id;
-            $hasOverride = ! $store->usesOrganizationSchedule()
-                || ! $store->usesOrganizationPhone()
-                || ! $store->usesOrganizationEmail()
-                || ! $store->usesOrganizationWebsite()
-                || ! $store->usesOrganizationInstagram()
-                || ! $store->usesOrganizationLogo()
-                || ! $store->usesOrganizationLogoEmail()
-                || ! $store->usesOrganizationLogoFavicon()
-                || CrmSetting::storeHasSettingOverride($storeId, CrmSetting::KEY_PRIVACY_LOCK_IDLE_MINUTES)
-                || CrmSetting::storeHasSettingOverride($storeId, CrmSetting::KEY_EMAIL_USE_BUSINESS_BRANDING);
-
-            if ($hasOverride) {
-                $out[] = ['id' => $storeId, 'name' => (string) $store->name];
+            if ($this->storeHasBusinessOverrides($store)) {
+                $out[] = ['id' => (int) $store->id, 'name' => (string) $store->name];
             }
         }
 
         return $out;
+    }
+
+    public function storeHasBusinessOverrides(Store $store): bool
+    {
+        $storeId = (int) $store->id;
+
+        return ! $store->usesOrganizationSchedule()
+            || ! $store->usesOrganizationPhone()
+            || ! $store->usesOrganizationEmail()
+            || ! $store->usesOrganizationWebsite()
+            || ! $store->usesOrganizationInstagram()
+            || ! $store->usesOrganizationLogo()
+            || ! $store->usesOrganizationLogoEmail()
+            || ! $store->usesOrganizationLogoFavicon()
+            || CrmSetting::storeHasSettingOverride($storeId, CrmSetting::KEY_PRIVACY_LOCK_IDLE_MINUTES)
+            || CrmSetting::storeHasSettingOverride($storeId, CrmSetting::KEY_EMAIL_USE_BUSINESS_BRANDING);
+    }
+
+    /**
+     * Repõe contactos, horário, logotipos, privacidade e emails para herdar da empresa.
+     */
+    public function resetStoreBusinessToOrganization(Store $store): bool
+    {
+        if (! $this->storeHasBusinessOverrides($store)) {
+            return false;
+        }
+
+        $storeId = (int) $store->id;
+        foreach (['logo', 'logo_email', 'logo_favicon'] as $field) {
+            $path = $store->{$field} ?? null;
+            if (is_string($path) && $path !== '') {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
+        $store->update([
+            'phone' => null,
+            'email' => null,
+            'website_url' => null,
+            'instagram_url' => null,
+            'timezone' => null,
+            'logo' => null,
+            'logo_email' => null,
+            'logo_favicon' => null,
+            'weekly_schedule' => null,
+        ]);
+
+        CrmSetting::clearStoreSettingOverride($storeId, CrmSetting::KEY_PRIVACY_LOCK_IDLE_MINUTES);
+        CrmSetting::clearStoreSettingOverride($storeId, CrmSetting::KEY_EMAIL_USE_BUSINESS_BRANDING);
+
+        return true;
+    }
+
+    /**
+     * Após guardar a empresa: força todas as lojas a herdar (overwrite).
+     */
+    public function forceAllStoresInheritOrganization(Organization $organization): int
+    {
+        $count = 0;
+        $stores = Store::query()
+            ->where('organization_id', (int) $organization->id)
+            ->get();
+
+        foreach ($stores as $store) {
+            if ($this->resetStoreBusinessToOrganization($store)) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     /** @deprecated use viewDataForStore */

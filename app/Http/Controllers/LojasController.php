@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Store;
 use App\Services\StoreBusinessSettingsService;
+use App\Services\StoreOperationalSettingsService;
 use App\Services\StoreSettingsActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class LojasController extends Controller
 {
     public function __construct(
         private readonly StoreBusinessSettingsService $storeBusinessSettings,
+        private readonly StoreOperationalSettingsService $operationalSettings,
         private readonly StoreSettingsActivityLogger $settingsActivityLogger,
     ) {}
     public function index(Request $request): View
@@ -148,6 +150,60 @@ class LojasController extends Controller
         return redirect()
             ->route('lojas.edit', ['loja' => $loja, 'tab' => $tab])
             ->with('success', 'Loja actualizada.');
+    }
+
+    public function resetSettings(Request $request, Store $loja): RedirectResponse
+    {
+        $this->authorize('update', $loja);
+
+        $validated = $request->validate([
+            'section' => ['required', 'string', 'in:booking,pagamentos,equipa,negocio'],
+        ]);
+
+        $section = $validated['section'];
+        $didReset = match ($section) {
+            'booking' => $this->operationalSettings->resetBookingToGeneral($loja),
+            'pagamentos' => $this->operationalSettings->resetPaymentFlagsToGeneral($loja),
+            'equipa' => $this->operationalSettings->resetPersonalTimeToGeneral($loja),
+            'negocio' => $this->storeBusinessSettings->resetStoreBusinessToOrganization($loja),
+        };
+
+        $tab = match ($section) {
+            'booking' => 'booking',
+            'pagamentos' => 'pagamentos',
+            'equipa' => 'equipa',
+            default => 'dados',
+        };
+
+        if (! $didReset) {
+            // Reavalia: se ainda diverge, o repor falhou; senão já estava alinhada.
+            $stillSpecific = match ($section) {
+                'booking' => $this->operationalSettings->storeHasSpecificBookingSettings($loja->fresh()),
+                'pagamentos' => $this->operationalSettings->storeHasSpecificPaymentFlagSettings($loja->fresh()),
+                'equipa' => $this->operationalSettings->storeHasSpecificPersonalTimeSettings($loja->fresh()),
+                'negocio' => $this->storeBusinessSettings->storeHasBusinessOverrides($loja->fresh()),
+            };
+
+            return redirect()
+                ->route('lojas.edit', ['loja' => $loja, 'tab' => $tab])
+                ->with(
+                    $stillSpecific ? 'error' : 'success',
+                    $stillSpecific
+                        ? 'Não foi possível repor as definições gerais nesta secção. Tente novamente.'
+                        : 'Esta loja já usa as definições gerais nesta secção.',
+                );
+        }
+
+        $this->settingsActivityLogger->logSection(
+            $loja,
+            'negocio',
+            'Loja reposta às definições gerais',
+            ['Secção: '.$section],
+        );
+
+        return redirect()
+            ->route('lojas.edit', ['loja' => $loja, 'tab' => $tab])
+            ->with('success', 'Definições gerais repostas nesta loja.');
     }
 
     public function destroy(Store $loja): RedirectResponse

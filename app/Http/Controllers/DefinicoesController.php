@@ -45,11 +45,18 @@ class DefinicoesController extends Controller
         $organization = \App\Models\Organization::query()->findOrFail($orgId);
         $this->storeBusinessSettings->applyToOrganization($request, $organization);
 
+        $overwriteAll = $request->boolean('overwrite_all_stores');
+        if ($overwriteAll) {
+            $this->storeBusinessSettings->forceAllStoresInheritOrganization($organization);
+        }
+
         $tab = $this->storeBusinessSettings->resolveActiveTab($request->input('_active_tab'), false);
 
         return redirect()
             ->route('definicoes.empresa', ['tab' => $tab])
-            ->with('status', 'Dados da empresa guardados.');
+            ->with('status', $overwriteAll
+                ? 'Dados da empresa guardados e aplicados a todas as lojas.'
+                : 'Dados da empresa guardados.');
     }
 
     public function negocio(Request $request): RedirectResponse
@@ -103,20 +110,27 @@ class DefinicoesController extends Controller
     {
         $orgId = current_organization_id();
         $repId = $this->operationalSettings->representativeStoreId($orgId) ?? current_store_id();
+        $overwriteAll = $request->boolean('overwrite_all_stores');
         $data = $this->operationalSettings->validateBooking($request, $repId);
-        $this->operationalSettings->applyBookingToOrganization($data, $orgId);
+        $this->operationalSettings->applyBookingToOrganization($data, $orgId, $overwriteAll);
 
         $store = app(CurrentStore::class)->get();
         $this->settingsActivityLogger->logSection(
             $store,
             'marcacoes',
-            'Definições de Booking actualizadas (todas as lojas)',
-            ['Booking aplicado a todas as lojas da organização'],
+            $overwriteAll
+                ? 'Definições de Booking aplicadas a todas as lojas'
+                : 'Definições de Booking actualizadas',
+            [$overwriteAll
+                ? 'Booking sobrescrito em todas as lojas da organização'
+                : 'Booking aplicado às lojas sem definições específicas'],
         );
 
         return redirect()
             ->route('definicoes.marcacoes')
-            ->with('status', 'Definições de Booking guardadas (lojas com Booking específico na ficha mantêm-se).');
+            ->with('status', $overwriteAll
+                ? 'Definições de Booking guardadas em todas as lojas.'
+                : 'Definições de Booking guardadas (lojas com Booking específico na ficha mantêm-se).');
     }
 
     public function equipa(): View
@@ -145,8 +159,9 @@ class DefinicoesController extends Controller
 
         $orgId = current_organization_id();
         $storeIds = $this->operationalSettings->storeIdsForOrganization($orgId);
+        $overwriteAll = $request->boolean('overwrite_all_stores');
         $limit = $request->boolean('personal_time_limit_store_hours');
-        $this->operationalSettings->applyPersonalTimeLimitToOrganization($limit, $orgId);
+        $this->operationalSettings->applyPersonalTimeLimitToOrganization($limit, $orgId, $overwriteAll);
 
         try {
             $this->operationalSettings->applyEquipaMembers($validated['members'] ?? [], $storeIds);
@@ -162,12 +177,16 @@ class DefinicoesController extends Controller
             $store,
             'equipa',
             'Configuração da equipa actualizada',
-            ['Tempo pessoal aplicado a todas as lojas; membros actualizados'],
+            [$overwriteAll
+                ? 'Tempo pessoal sobrescrito em todas as lojas; membros actualizados'
+                : 'Tempo pessoal aplicado às lojas sem definição específica; membros actualizados'],
         );
 
         return redirect()
             ->route('definicoes.equipa')
-            ->with('status', 'Equipa actualizada (lojas com tempo pessoal específico na ficha mantêm-se).');
+            ->with('status', $overwriteAll
+                ? 'Equipa actualizada em todas as lojas.'
+                : 'Equipa actualizada (lojas com tempo pessoal específico na ficha mantêm-se).');
     }
 
     public function pagamentos(): View
@@ -211,10 +230,12 @@ class DefinicoesController extends Controller
             'methods.*.booking' => ['sometimes', 'boolean'],
         ]);
 
+        $overwriteAll = $request->boolean('overwrite_all_stores');
         $this->operationalSettings->applyPaymentFlagsToOrganization(
             $request->boolean('pos_gorjeta_enabled'),
             $request->boolean('online_booking_payment_required'),
             $orgId,
+            $overwriteAll,
         );
 
         $methodRows = [];
@@ -237,12 +258,16 @@ class DefinicoesController extends Controller
             $store,
             'pagamentos',
             'Definições de pagamento actualizadas (organização)',
-            ['Métodos/Stripe e flags de loja aplicados a toda a organização'],
+            [$overwriteAll
+                ? 'Métodos/Stripe e flags aplicados a todas as lojas (overwrite)'
+                : 'Métodos/Stripe da organização; flags só em lojas sem definição específica'],
         );
 
         return redirect()
             ->route('definicoes.pagamentos')
-            ->with('status', 'Pagamentos guardados (lojas com gorjeta/pagamento online específicos na ficha mantêm-se nesses pontos).');
+            ->with('status', $overwriteAll
+                ? 'Pagamentos guardados em todas as lojas.'
+                : 'Pagamentos guardados (lojas com gorjeta/pagamento online específicos na ficha mantêm-se nesses pontos).');
     }
 
     public function updatePagamentosStripe(Request $request): RedirectResponse

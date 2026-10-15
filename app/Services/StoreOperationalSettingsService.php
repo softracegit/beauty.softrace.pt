@@ -254,10 +254,10 @@ class StoreOperationalSettingsService
      *   booking_theme: string|null
      * }  $data
      */
-    public function applyBookingToOrganization(array $data, int $organizationId): void
+    public function applyBookingToOrganization(array $data, int $organizationId, bool $overwriteAll = false): void
     {
         $repId = $this->representativeStoreId($organizationId);
-        $baseline = $repId !== null ? $this->bookingFingerprint($repId) : null;
+        $baseline = (! $overwriteAll && $repId !== null) ? $this->bookingFingerprint($repId) : null;
 
         foreach ($this->storeIdsForOrganization($organizationId) as $storeId) {
             if ($baseline !== null
@@ -267,6 +267,49 @@ class StoreOperationalSettingsService
             }
             $this->applyBookingToStore($data, $storeId);
         }
+    }
+
+    /**
+     * Copia as definições gerais de Booking (loja de referência / Definições) para esta loja.
+     */
+    public function resetBookingToGeneral(Store $store): bool
+    {
+        $orgId = (int) $store->organization_id;
+        $storeId = (int) $store->id;
+        $repId = $this->representativeStoreId($orgId);
+        if ($repId === null || $repId === $storeId) {
+            return false;
+        }
+
+        $before = $this->bookingFingerprint($storeId);
+        $general = $this->bookingFingerprint($repId);
+        if ($before === $general) {
+            return false;
+        }
+
+        $this->applyBookingToStore([
+            'booking_slot_hold_minutes' => CrmSetting::bookingSlotHoldMinutes($repId),
+            'booking_cart_ttl_hours' => CrmSetting::bookingCartTtlHours($repId),
+            'booking_slot_interval_minutes' => CrmSetting::bookingSlotIntervalMinutes($repId),
+            'booking_cancellation_notice_hours' => CrmSetting::bookingCancellationNoticeHours($repId),
+            'booking_any_staff_rule' => CrmSetting::bookingAnyStaffRule($repId),
+            'booking_theme' => CrmSetting::bookingTheme($repId),
+        ], $storeId);
+
+        // Confirma que ficou igual às gerais (senão o alerta nas Definições continuaria).
+        return $this->bookingFingerprint($storeId) === $general;
+    }
+
+    public function storeHasSpecificBookingSettings(Store $store): bool
+    {
+        $orgId = (int) $store->organization_id;
+        $storeId = (int) $store->id;
+        $repId = $this->representativeStoreId($orgId);
+        if ($repId === null || $repId === $storeId) {
+            return false;
+        }
+
+        return $this->bookingFingerprint($storeId) !== $this->bookingFingerprint($repId);
     }
 
     /**
@@ -286,10 +329,14 @@ class StoreOperationalSettingsService
         CrmSetting::setBool(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, $onlineBookingPaymentRequired, $storeId);
     }
 
-    public function applyPaymentFlagsToOrganization(bool $posGorjetaEnabled, bool $onlineBookingPaymentRequired, int $organizationId): void
-    {
+    public function applyPaymentFlagsToOrganization(
+        bool $posGorjetaEnabled,
+        bool $onlineBookingPaymentRequired,
+        int $organizationId,
+        bool $overwriteAll = false,
+    ): void {
         $repId = $this->representativeStoreId($organizationId);
-        $baseline = $repId !== null ? $this->paymentFlagsFingerprint($repId) : null;
+        $baseline = (! $overwriteAll && $repId !== null) ? $this->paymentFlagsFingerprint($repId) : null;
 
         foreach ($this->storeIdsForOrganization($organizationId) as $storeId) {
             if ($baseline !== null
@@ -301,15 +348,48 @@ class StoreOperationalSettingsService
         }
     }
 
+    public function resetPaymentFlagsToGeneral(Store $store): bool
+    {
+        $orgId = (int) $store->organization_id;
+        $storeId = (int) $store->id;
+        $repId = $this->representativeStoreId($orgId);
+        if ($repId === null || $repId === $storeId) {
+            return false;
+        }
+        if ($this->paymentFlagsFingerprint($storeId) === $this->paymentFlagsFingerprint($repId)) {
+            return false;
+        }
+
+        $this->applyPaymentFlagsToStore(
+            CrmSetting::posGorjetaEnabled($repId),
+            CrmSetting::onlineBookingPaymentRequired($repId),
+            $storeId,
+        );
+
+        return true;
+    }
+
+    public function storeHasSpecificPaymentFlagSettings(Store $store): bool
+    {
+        $orgId = (int) $store->organization_id;
+        $storeId = (int) $store->id;
+        $repId = $this->representativeStoreId($orgId);
+        if ($repId === null || $repId === $storeId) {
+            return false;
+        }
+
+        return $this->paymentFlagsFingerprint($storeId) !== $this->paymentFlagsFingerprint($repId);
+    }
+
     public function applyPersonalTimeLimitToStore(bool $limit, int $storeId): void
     {
         CrmSetting::setPersonalTimeLimitStoreHours($limit, $storeId);
     }
 
-    public function applyPersonalTimeLimitToOrganization(bool $limit, int $organizationId): void
+    public function applyPersonalTimeLimitToOrganization(bool $limit, int $organizationId, bool $overwriteAll = false): void
     {
         $repId = $this->representativeStoreId($organizationId);
-        $baseline = $repId !== null ? $this->personalTimeFingerprint($repId) : null;
+        $baseline = (! $overwriteAll && $repId !== null) ? $this->personalTimeFingerprint($repId) : null;
 
         foreach ($this->storeIdsForOrganization($organizationId) as $storeId) {
             if ($baseline !== null
@@ -319,6 +399,38 @@ class StoreOperationalSettingsService
             }
             $this->applyPersonalTimeLimitToStore($limit, $storeId);
         }
+    }
+
+    public function resetPersonalTimeToGeneral(Store $store): bool
+    {
+        $orgId = (int) $store->organization_id;
+        $storeId = (int) $store->id;
+        $repId = $this->representativeStoreId($orgId);
+        if ($repId === null || $repId === $storeId) {
+            return false;
+        }
+        if ($this->personalTimeFingerprint($storeId) === $this->personalTimeFingerprint($repId)) {
+            return false;
+        }
+
+        $this->applyPersonalTimeLimitToStore(
+            CrmSetting::personalTimeLimitStoreHours($repId),
+            $storeId,
+        );
+
+        return true;
+    }
+
+    public function storeHasSpecificPersonalTimeSettings(Store $store): bool
+    {
+        $orgId = (int) $store->organization_id;
+        $storeId = (int) $store->id;
+        $repId = $this->representativeStoreId($orgId);
+        if ($repId === null || $repId === $storeId) {
+            return false;
+        }
+
+        return $this->personalTimeFingerprint($storeId) !== $this->personalTimeFingerprint($repId);
     }
 
     /**

@@ -153,7 +153,7 @@
     }
   </style>
 
-  <form method="post" action="{{ route('definicoes.pagamentos.update') }}" class="pay-settings">
+  <form method="post" action="{{ route('definicoes.pagamentos.update') }}" class="pay-settings" id="definicoes-pagamentos-form">
     @csrf
     @php $methodIndex = 0; @endphp
 
@@ -269,16 +269,11 @@
       </div>
     </div>
 
-    @include('definicoes.partials.stores-with-specific-settings-alert', [
+    @include('definicoes.partials.org-save-actions', [
       'storesWithSpecificSettings' => $storesWithSpecificSettings ?? [],
       'storesWithSpecificSettingsTab' => $storesWithSpecificSettingsTab ?? 'pagamentos',
+      'formId' => 'definicoes-pagamentos-form',
     ])
-
-    <div class="uedit-form-actions">
-      <button type="submit" class="btn btn-primary">
-        <i class="ph ph-check me-1"></i> Guardar alterações
-      </button>
-    </div>
   </form>
 
   {{-- Modal Stripe --}}
