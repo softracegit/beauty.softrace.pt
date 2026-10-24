@@ -11,25 +11,27 @@
     <div class="d-flex align-items-center justify-content-between gap-3 w-100 flex-wrap">
       <div class="dash-welcome-content flex-grow-1 min-w-0">
         <h2 class="dash-welcome-title mb-0">SMS</h2>
-        @include('relatorios.partials.store-context')
         <p class="text-muted small mb-0 mt-1">Histórico de envios (OTP, lembretes de marcação e campanhas). Período da tabela: {{ $periodLabel ?? '—' }}.</p>
       </div>
-      <form method="GET" action="{{ route('relatorios.sms') }}" class="d-flex align-items-center gap-2 flex-shrink-0">
-        @include('relatorios.partials.store-context-hidden')
-        <select name="month" class="form-select form-select-sm" style="min-width: 10rem;" aria-label="Mês">
-          @foreach($monthOptions ?? [] as $monthValue => $monthLabel)
-            <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>
-          @endforeach
-        </select>
-        <select name="year" class="form-select form-select-sm" style="min-width: 6rem;" aria-label="Ano">
-          @foreach($availableYears ?? [now()->year] as $yearValue)
-            <option value="{{ $yearValue }}" {{ (int) ($year ?? now()->year) === (int) $yearValue ? 'selected' : '' }}>{{ $yearValue }}</option>
-          @endforeach
-        </select>
-        <button type="submit" class="btn btn-primary btn-sm text-nowrap">
-          <i class="ph ph-funnel me-1"></i> Filtrar
-        </button>
-      </form>
+      <div class="relatorio-header-actions">
+        @include('relatorios.partials.store-context')
+        <form method="GET" action="{{ route('relatorios.sms') }}" class="d-flex align-items-center gap-2 flex-shrink-0 m-0">
+          @include('relatorios.partials.store-context-hidden')
+          <select name="month" class="form-select form-select-sm" style="min-width: 10rem;" aria-label="Mês">
+            @foreach($monthOptions ?? [] as $monthValue => $monthLabel)
+              <option value="{{ $monthValue }}" {{ (int) ($month ?? now()->month) === (int) $monthValue ? 'selected' : '' }}>{{ $monthLabel }}</option>
+            @endforeach
+          </select>
+          <select name="year" class="form-select form-select-sm" style="min-width: 6rem;" aria-label="Ano">
+            @foreach($availableYears ?? [now()->year] as $yearValue)
+              <option value="{{ $yearValue }}" {{ (int) ($year ?? now()->year) === (int) $yearValue ? 'selected' : '' }}>{{ $yearValue }}</option>
+            @endforeach
+          </select>
+          <button type="submit" class="btn btn-primary btn-sm text-nowrap">
+            <i class="ph ph-funnel me-1"></i> Filtrar
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 

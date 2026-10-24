@@ -218,42 +218,67 @@
 </div>
 
 @php
+    use App\Models\CalendarEvent;
+    use App\Support\CrmPrivacyLock;
+    use App\Support\MarcacoesReportEstadoFilter;
+
     $periodTabs = [
-        'hoje' => 'Hoje',
         'ontem' => 'Ontem',
+        'hoje' => 'Hoje',
         'amanha' => 'Amanhã',
         'semana' => 'Esta semana',
         'mes' => 'Este mês',
     ];
+    $activePeriod = 'hoje';
+
+    $privacyLocked = app()->bound(CrmPrivacyLock::class) && app(CrmPrivacyLock::class)->isActive();
+    $canLinkMarcacoesReport = ! $privacyLocked
+        && (bool) (auth()->user()?->canAccessRoute('relatorios.marcacoes'));
+    $reportDateWeekStart = $reportDateWeekStart ?? now()->toDateString();
+    $reportDateWeekEnd = $reportDateWeekEnd ?? $reportDateWeekStart;
+    $reportDateMonthStart = $reportDateMonthStart ?? now()->toDateString();
+    $reportDateMonthEnd = $reportDateMonthEnd ?? $reportDateMonthStart;
+    $marcacoesReportUrl = static function (string $desde, string $ate, string $estado): string {
+        return route('relatorios.marcacoes', [
+            'marcacoes_desde' => $desde,
+            'marcacoes_ate' => $ate,
+            'marcacoes_estado' => $estado,
+        ]);
+    };
+    $ocupacaoDashHref = auth()->user()?->canAccessRoute('dashboard.ocupacao')
+        ? route('dashboard.ocupacao')
+        : null;
 @endphp
 
 <ul class="nav nav-tabs nav-tabs-bordered mb-4" id="resumoPeriodTabs" role="tablist">
     @foreach($periodTabs as $periodKey => $periodLabel)
+        @php $isActive = $periodKey === $activePeriod; @endphp
         <li class="nav-item" role="presentation">
             <button
-                class="nav-link {{ $loop->first ? 'active' : '' }}"
+                class="nav-link {{ $isActive ? 'active' : '' }}"
                 id="resumo-tab-{{ $periodKey }}"
                 data-bs-toggle="tab"
                 data-bs-target="#resumo-pane-{{ $periodKey }}"
                 type="button"
                 role="tab"
                 aria-controls="resumo-pane-{{ $periodKey }}"
-                aria-selected="{{ $loop->first ? 'true' : 'false' }}"
+                aria-selected="{{ $isActive ? 'true' : 'false' }}"
             >{{ $periodLabel }}</button>
         </li>
     @endforeach
 </ul>
 
 <div class="tab-content mb-4" id="resumoPeriodTabContent">
-    @php
-        $ocupacaoDashHref = auth()->user()?->canAccessRoute('dashboard.ocupacao')
-            ? route('dashboard.ocupacao')
-            : null;
-    @endphp
     @foreach($periodTabs as $periodKey => $periodLabel)
-        @php $kpi = $kpiPorPeriodo[$periodKey] ?? ['vendas_previsto' => 0, 'vendas_feitas' => 0, 'vendas_por_fazer' => 0, 'clientes_atendidos' => 0, 'taxa_ocupacao' => 0, 'ocupacao_label' => 'Ocupação']; @endphp
+        @php
+            $isActive = $periodKey === $activePeriod;
+            $kpi = $kpiPorPeriodo[$periodKey] ?? ['vendas_previsto' => 0, 'vendas_feitas' => 0, 'vendas_por_fazer' => 0, 'clientes_atendidos' => 0, 'taxa_ocupacao' => 0, 'ocupacao_label' => 'Ocupação'];
+            $ops = $opsPorPeriodo[$periodKey] ?? ['total' => 0, 'concluidas' => 0, 'faltas' => 0, 'canceladas' => 0, 'desde' => now()->toDateString(), 'ate' => now()->toDateString()];
+            $opsDesde = $ops['desde'] ?? now()->toDateString();
+            $opsAte = $ops['ate'] ?? $opsDesde;
+        @endphp
         <div
-            class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
+            class="tab-pane fade {{ $isActive ? 'show active' : '' }}"
             id="resumo-pane-{{ $periodKey }}"
             role="tabpanel"
             aria-labelledby="resumo-tab-{{ $periodKey }}"
@@ -319,47 +344,43 @@
                     @endif
                 </div>
             </div>
+
+            <div class="dash-kpi-strip mt-3 mb-0">
+                @include('dashboard.partials.ops-kpi-card', [
+                    'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($opsDesde, $opsAte, MarcacoesReportEstadoFilter::TUDO) : null,
+                    'iconClass' => 'primary',
+                    'icon' => 'ph-duotone ph-calendar-dot',
+                    'value' => $ops['total'] ?? 0,
+                    'label' => 'Total marcações',
+                ])
+                @include('dashboard.partials.ops-kpi-card', [
+                    'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($opsDesde, $opsAte, CalendarEvent::STATUS_TERMINADO) : null,
+                    'iconClass' => 'success',
+                    'icon' => 'ph-duotone ph-check-circle',
+                    'value' => $ops['concluidas'] ?? 0,
+                    'label' => 'Já concluídas',
+                ])
+                @include('dashboard.partials.ops-kpi-card', [
+                    'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($opsDesde, $opsAte, CalendarEvent::STATUS_FALTOU) : null,
+                    'iconClass' => 'danger',
+                    'icon' => 'ph-duotone ph-user-minus',
+                    'value' => $ops['faltas'] ?? 0,
+                    'label' => 'Faltas',
+                ])
+                @include('dashboard.partials.ops-kpi-card', [
+                    'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($opsDesde, $opsAte, CalendarEvent::STATUS_CANCELADO) : null,
+                    'iconClass' => 'warning',
+                    'icon' => 'ph-duotone ph-x-circle',
+                    'value' => $ops['canceladas'] ?? 0,
+                    'label' => 'Canceladas',
+                ])
+            </div>
         </div>
     @endforeach
 </div>
 
-@php
-    use App\Models\CalendarEvent;
-    use App\Support\CrmPrivacyLock;
-    use App\Support\MarcacoesReportEstadoFilter;
-
-    $privacyLocked = app()->bound(CrmPrivacyLock::class) && app(CrmPrivacyLock::class)->isActive();
-    $canLinkMarcacoesReport = ! $privacyLocked
-        && (bool) (auth()->user()?->canAccessRoute('relatorios.marcacoes'));
-    $reportDateToday = $reportDateToday ?? now()->toDateString();
-    $reportDateWeekStart = $reportDateWeekStart ?? $reportDateToday;
-    $reportDateWeekEnd = $reportDateWeekEnd ?? $reportDateToday;
-    $reportDateMonthStart = $reportDateMonthStart ?? $reportDateToday;
-    $reportDateMonthEnd = $reportDateMonthEnd ?? $reportDateToday;
-    $marcacoesReportUrl = static function (string $desde, string $ate, string $estado): string {
-        return route('relatorios.marcacoes', [
-            'marcacoes_desde' => $desde,
-            'marcacoes_ate' => $ate,
-            'marcacoes_estado' => $estado,
-        ]);
-    };
-@endphp
-
+<div class="dash-resumo-ops-section-title text-muted small fw-semibold text-uppercase mb-2 mt-5" style="letter-spacing: 0.04em;">Semana / Mês</div>
 <div class="dash-kpi-strip mb-4">
-    @include('dashboard.partials.ops-kpi-card', [
-        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateToday, $reportDateToday, MarcacoesReportEstadoFilter::ATIVAS) : null,
-        'iconClass' => 'primary',
-        'icon' => 'ph-duotone ph-calendar-dot',
-        'value' => $marcacoesHoje ?? 0,
-        'label' => 'Marcações hoje',
-    ])
-    @include('dashboard.partials.ops-kpi-card', [
-        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateToday, $reportDateToday, CalendarEvent::STATUS_FALTOU) : null,
-        'iconClass' => 'danger',
-        'icon' => 'ph-duotone ph-user-minus',
-        'value' => $faltasHoje ?? 0,
-        'label' => 'Faltas hoje',
-    ])
     @include('dashboard.partials.ops-kpi-card', [
         'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateWeekStart, $reportDateWeekEnd, MarcacoesReportEstadoFilter::ATIVAS) : null,
         'iconClass' => 'primary',
@@ -368,11 +389,25 @@
         'label' => 'Marcações esta semana',
     ])
     @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateWeekStart, $reportDateWeekEnd, CalendarEvent::STATUS_FALTOU) : null,
+        'iconClass' => 'danger',
+        'icon' => 'ph-duotone ph-user-minus',
+        'value' => $faltasEstaSemana ?? 0,
+        'label' => 'Faltas esta semana',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
         'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateMonthStart, $reportDateMonthEnd, MarcacoesReportEstadoFilter::ATIVAS) : null,
         'iconClass' => 'success',
         'icon' => 'ph-duotone ph-calendar-check',
         'value' => $marcacoesEsteMes ?? 0,
         'label' => 'Marcações este mês',
+    ])
+    @include('dashboard.partials.ops-kpi-card', [
+        'href' => $canLinkMarcacoesReport ? $marcacoesReportUrl($reportDateMonthStart, $reportDateMonthEnd, CalendarEvent::STATUS_FALTOU) : null,
+        'iconClass' => 'danger',
+        'icon' => 'ph-duotone ph-prohibit',
+        'value' => $faltasEsteMes ?? 0,
+        'label' => 'Faltas este mês',
     ])
 </div>
 

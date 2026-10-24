@@ -49,6 +49,14 @@
             <span id="{{ $pfx }}ClientBirthdayText" class="agenda-client-birthday-banner__text"></span>
         </div>
 
+        <div id="{{ $pfx }}ClientTechnicalAlertBanner" class="agenda-client-tech-alert d-none" role="status" aria-live="polite">
+            <i class="ph ph-warning-circle agenda-client-tech-alert__icon" aria-hidden="true"></i>
+            <div class="agenda-client-tech-alert__body">
+                <span id="{{ $pfx }}ClientTechnicalAlertText" class="agenda-client-tech-alert__text"></span>
+                <button type="button" class="agenda-client-tech-alert__more d-none" id="{{ $pfx }}ClientTechnicalAlertMore" aria-expanded="false">ver mais</button>
+            </div>
+        </div>
+
         <div class="agenda-oc-client-panel__details" id="{{ $pfx }}ClientDetails">
             <div class="agenda-oc-client-panel__fields" id="{{ $pfx }}ClientProfileView">
                 <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientPhoneViewField" data-profile-field="phone">
@@ -111,16 +119,18 @@
                         <input type="text" id="{{ $pfx }}ClientProfissaoInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="255" placeholder="Ex: Designer, Médica…" autocomplete="organization-title">
                     </div>
                 </div>
+                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientAllergiesViewField" data-profile-field="allergies">
+                    <div class="form-label agenda-oc-client-panel__label">Alertas</div>
+                    <div class="agenda-oc-client-panel__value">
+                        <span id="{{ $pfx }}ClientSelectedAllergies" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientAllergiesAddBtn">Adicionar</button>
+                        <input type="text" id="{{ $pfx }}ClientAllergiesInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="2000" placeholder="Alergias, sensibilidades, avisos…">
+                    </div>
+                </div>
                 <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row agenda-oc-client-panel__field--readonly" id="{{ $pfx }}ClientSinceViewField">
                     <div class="form-label agenda-oc-client-panel__label">Cliente desde</div>
                     <div class="agenda-oc-client-panel__value">
                         <span id="{{ $pfx }}ClientSelectedSince" class="agenda-oc-client-panel__value-text agenda-oc-client-panel__value-text--readonly">—</span>
-                    </div>
-                </div>
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row agenda-oc-client-panel__field--readonly" id="{{ $pfx }}ClientLastUpdateViewField">
-                    <div class="form-label agenda-oc-client-panel__label">Atualizado em</div>
-                    <div class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedLastUpdate" class="agenda-oc-client-panel__value-text agenda-oc-client-panel__value-text--readonly">—</span>
                     </div>
                 </div>
             </div>

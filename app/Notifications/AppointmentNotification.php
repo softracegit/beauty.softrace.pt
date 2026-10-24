@@ -146,7 +146,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
             ? 'A seguinte marcação foi criada'
             : 'A seguinte marcação foi criada para si.';
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject($subject)
             ->greeting($this->greeting($name))
             ->line($intro)
@@ -158,7 +158,9 @@ class AppointmentNotification extends Notification implements ShouldQueue
                 'Cliente: '.MarcacaoMailCopy::clientName($event),
                 'Serviço: '.MarcacaoMailCopy::servicesLine($event),
                 'Origem: '.MarcacaoMailCopy::originLabel($event),
-            ]))
+            ]));
+
+        return $this->appendAlertsBox($mail, $event)
             ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
     }
 
@@ -169,7 +171,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
         string $name,
     ): MailMessage {
         if ($this->forReception) {
-            return (new MailMessage)
+            $mail = (new MailMessage)
                 ->subject(MarcacaoMailCopy::subject('Marcação transferida de técnica', $store))
                 ->greeting($this->greeting($name))
                 ->line('A seguinte marcação foi transferida de técnica.')
@@ -182,11 +184,13 @@ class AppointmentNotification extends Notification implements ShouldQueue
                     'Serviço: '.MarcacaoMailCopy::servicesLine($event),
                     'Técnica anterior: '.$this->previousTechnicianLabel(),
                     'Nova técnica: '.$this->currentTechnicianLabel($event),
-                ]))
+                ]));
+
+            return $this->appendAlertsBox($mail, $event)
                 ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
         }
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(MarcacaoMailCopy::subject('Marcação transferida para si', $store))
             ->greeting($this->greeting($name))
             ->line('A seguinte marcação foi transferida para si.')
@@ -197,7 +201,9 @@ class AppointmentNotification extends Notification implements ShouldQueue
             ->line(MarcacaoMailCopy::block([
                 'Cliente: '.MarcacaoMailCopy::clientName($event),
                 'Serviço: '.MarcacaoMailCopy::servicesLine($event),
-            ]))
+            ]));
+
+        return $this->appendAlertsBox($mail, $event)
             ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
     }
 
@@ -227,13 +233,26 @@ class AppointmentNotification extends Notification implements ShouldQueue
             'Serviço: '.MarcacaoMailCopy::servicesLine($event),
         ];
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject(MarcacaoMailCopy::subject('Marcação alterada', $store))
             ->greeting($this->greeting($name))
             ->line('A seguinte marcação foi alterada.')
             ->line(MarcacaoMailCopy::block($scheduleLines))
-            ->line(MarcacaoMailCopy::block($detailLines))
+            ->line(MarcacaoMailCopy::block($detailLines));
+
+        return $this->appendAlertsBox($mail, $event)
             ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+    }
+
+    private function appendAlertsBox(MailMessage $mail, CalendarEvent $event): MailMessage
+    {
+        $event->loadMissing('client');
+        $box = MarcacaoMailCopy::alertsBox($event->client);
+        if ($box) {
+            $mail->line($box);
+        }
+
+        return $mail;
     }
 
     private function mailStatusTerminal(

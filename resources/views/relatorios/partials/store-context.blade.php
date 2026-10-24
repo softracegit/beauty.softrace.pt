@@ -1,6 +1,7 @@
 {{--
   Filtro de loja nos relatórios (?loja=ID|todas).
   Expects $reportStoreFilter from RelatoriosController::resolveReportStoreContext().
+  Colocar na barra de ações (à esquerda do Exportar), não sob o título.
 --}}
 @php
   use App\Support\StoreContextPreference;
@@ -10,12 +11,14 @@
       $selected = StoreContextPreference::SCOPE_ALL;
   }
 @endphp
-<div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+<div class="relatorio-store-context d-flex align-items-center">
   @include('partials.store-context-filter', [
       'selected' => $selected,
       'allowAll' => true,
       'allLabel' => 'Todas as lojas',
       'inputId' => $storeContextInputId ?? 'relatorio_store_context_filter',
+      'class' => 'relatorio-store-context__select',
+      'style' => 'min-width: 11rem; max-width: 16rem;',
   ])
   @if (! ($canChooseStoreContext ?? false) || ($selectableStores ?? collect())->count() <= 1)
     @php
@@ -26,7 +29,7 @@
       }
     @endphp
     @if ($relatorioLojaNome)
-      <p class="text-muted small mb-0">{{ $relatorioLojaNome }}</p>
+      <span class="relatorio-store-context__label text-muted small mb-0">{{ $relatorioLojaNome }}</span>
     @endif
   @endif
 </div>

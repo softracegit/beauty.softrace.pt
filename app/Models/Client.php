@@ -25,7 +25,7 @@ class Client extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'origem', 'profissao', 'address', 'door', 'floor', 'side', 'postal_code', 'locality', 'type', 'preferred_schedule', 'preferences_notes'])
+            ->logOnly(['name', 'email', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'origem', 'profissao', 'address', 'door', 'floor', 'side', 'postal_code', 'locality', 'type', 'preferred_schedule', 'preferences_notes', 'allergies', 'contraindications'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
@@ -73,6 +73,8 @@ class Client extends Model
         'avatar',
         'preferred_schedule',
         'preferences_notes',
+        'allergies',
+        'contraindications',
         'stripe_customer_id',
         'notify_email_booking_updates',
         'notify_email_booking_reminders',

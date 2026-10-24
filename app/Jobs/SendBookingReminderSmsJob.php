@@ -35,7 +35,11 @@ class SendBookingReminderSmsJob implements ShouldQueue
 
         try {
             $event = CalendarEvent::query()
-                ->with(['client:id,phone,notify_sms_booking_reminders', 'store:id,name,slug'])
+                ->with([
+                    'client:id,phone,notify_sms_booking_reminders',
+                    'store:id,name,slug,organization_id',
+                    'store.organization:id,name',
+                ])
                 ->find($this->calendarEventId);
 
             if (! $event) {
@@ -79,7 +83,11 @@ class SendBookingReminderSmsJob implements ShouldQueue
 
             $tz = (string) config('booking.business_timezone', config('app.timezone'));
             $startAt = $event->start_at->copy()->timezone($tz);
-            $storeName = trim((string) ($event->store?->name ?? config('app.name', 'A sua loja')));
+            // Marca (Definições → Empresa → Nome da empresa), não o nome da loja.
+            $brandName = trim((string) ($event->store?->organization?->name ?? ''));
+            if ($brandName === '') {
+                $brandName = trim((string) ($event->store?->name ?? config('app.name', 'A sua loja')));
+            }
             $expiresAt = $event->start_at->copy();
             $actionLink = BookingSmsActionLink::query()
                 ->where('calendar_event_id', $event->id)
@@ -103,7 +111,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 BookingLocale::apply(BookingLocale::fromPhone($client->phone));
                 $whenLabel = $this->formatWhenLabel($startAt, $tz);
                 $body = __('booking.sms.reminder_body', [
-                    'store' => $storeName,
+                    'store' => $brandName,
                     'when' => $whenLabel,
                     'url' => $manageUrl,
                 ]);

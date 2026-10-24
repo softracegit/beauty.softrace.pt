@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\CalendarEvent;
+use App\Models\Client;
 use App\Models\Store;
 use Carbon\Carbon;
 use DateTimeInterface;
@@ -89,6 +90,31 @@ final class MarcacaoMailCopy
     }
 
     /**
+     * Ex.: «17:00» no fuso da loja.
+     */
+    public static function timeOnly(?DateTimeInterface $dateTime, ?int $storeId, string $fallback = '-'): string
+    {
+        $carbon = DateTimeDisplay::inBusiness($dateTime, $storeId);
+
+        return $carbon ? $carbon->format('H:i') : $fallback;
+    }
+
+    /**
+     * Ex.: «23 de outubro de 2026» (relógio de parede já no fuso pretendido).
+     */
+    public static function dayLabel(?DateTimeInterface $dateTime, string $fallback = '-'): string
+    {
+        if (! $dateTime) {
+            return $fallback;
+        }
+
+        $carbon = Carbon::instance($dateTime);
+        $month = self::MONTHS_PT[(int) $carbon->month] ?? $carbon->format('F');
+
+        return $carbon->day.' de '.$month.' de '.$carbon->year;
+    }
+
+    /**
      * Ex.: «1h 30min», «45min», «2h».
      */
     public static function duration(
@@ -130,7 +156,27 @@ final class MarcacaoMailCopy
                 ->filter()
                 ->implode(', ');
 
-            return $line !== '' ? $line : $fallback;
+            if ($line !== '') {
+                return $line;
+            }
+        }
+
+        if ($event->eventServiceItems->isNotEmpty()) {
+            $line = $event->eventServiceItems
+                ->map(function ($item) {
+                    $optionName = trim((string) ($item->option_name ?? ''));
+                    if ($optionName !== '') {
+                        return $optionName;
+                    }
+
+                    return trim((string) ($item->service?->name ?? ''));
+                })
+                ->filter()
+                ->implode(', ');
+
+            if ($line !== '') {
+                return $line;
+            }
         }
 
         $name = trim((string) ($event->service?->name ?? ''));
@@ -143,6 +189,115 @@ final class MarcacaoMailCopy
         $name = trim((string) ($event->client?->name ?? ''));
 
         return $name !== '' ? $name : $fallback;
+    }
+
+    /**
+     * Bloco de uma marcação no digest diário da técnica.
+     *
+     * @param  bool  $withBottomGap  Spacer de 15px abaixo do card (exceto no último).
+     */
+    public static function digestEventBlock(CalendarEvent $event, ?int $storeId, bool $withBottomGap = false): HtmlString
+    {
+        $statusKey = (string) ($event->status ?? CalendarEvent::STATUS_AGENDADO);
+        $statusLabel = CalendarEvent::statuses()[$statusKey] ?? ($statusKey !== '' ? $statusKey : '—');
+        $hora = self::timeOnly($event->start_at, $storeId);
+        $cliente = self::clientName($event);
+        $servico = self::servicesLine($event);
+        $duracao = self::duration($event->start_at, $event->end_at);
+        $marcadaEm = $event->created_at
+            ? DateTimeDisplay::formatInstant($event->created_at, $storeId, 'd/m/Y H:i')
+            : null;
+
+        $linha1 = '<strong style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.4;color:#111827;">'
+            .e($hora)
+            .'</strong>'
+            .' <span style="color:#94a3b8;">&bull;</span> '
+            .'<span style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.4;color:#111827;">'
+            .e($servico)
+            .'</span>'
+            .' <span style="color:#94a3b8;">&bull;</span> '
+            .'<span style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.4;color:#111827;">'
+            .e($duracao)
+            .'</span>';
+
+        $meta = e($statusLabel);
+        if ($marcadaEm && $marcadaEm !== '—') {
+            $meta .= ' <span style="color:#94a3b8;">&bull;</span> Marcada em '.e($marcadaEm);
+        }
+
+        $inner = $linha1
+            .'<br>'
+            .'<span style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.45;font-weight:600;color:#111827;">'
+            .e($cliente)
+            .'</span><br>'
+            .'<span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;color:#64748b;">'
+            .$meta
+            .'</span>';
+
+        $alerts = self::alertsBox($event->client, withTitle: false, withBorder: false);
+        if ($alerts !== null) {
+            $inner .= '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;margin:0;mso-table-lspace:0pt;mso-table-rspace:0pt;">'
+                .'<tr><td style="padding:6px 0 0 0;font-size:0;line-height:0;">'.$alerts.'</td></tr>'
+                .'</table>';
+        }
+
+        $html = '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:separate;border-spacing:0;margin:0;mso-table-lspace:0pt;mso-table-rspace:0pt;">'
+            .'<tr>'
+            .'<td style="border:1px solid #e5e7eb;border-radius:6px;-webkit-border-radius:6px;padding:12px 14px;font-family:Arial,Helvetica,sans-serif;">'
+            .$inner
+            .'</td>'
+            .'</tr>'
+            .'</table>';
+
+        if ($withBottomGap) {
+            $html .= '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;margin:0;">'
+                .'<tr><td height="15" style="height:15px;line-height:15px;font-size:15px;">&nbsp;</td></tr>'
+                .'</table>';
+        }
+
+        return new HtmlString($html);
+    }
+
+    /**
+     * Caixa vermelha com alertas do cliente (alergias / contraindicações) para emails à equipa.
+     * HTML em tabela + atributos legados para renderizar bem no Outlook.
+     */
+    public static function alertsBox(?Client $client, bool $withTitle = true, bool $withBorder = true): ?HtmlString
+    {
+        if (! $client) {
+            return null;
+        }
+
+        $parts = collect([
+            $client->allergies,
+            $client->contraindications,
+        ])
+            ->map(fn ($v) => trim((string) $v))
+            ->filter()
+            ->values();
+
+        if ($parts->isEmpty()) {
+            return null;
+        }
+
+        $body = $parts->map(fn (string $t) => nl2br(e($t)))->implode('<br>');
+        $titleHtml = $withTitle
+            ? '<strong style="display:block;margin:0 0 4px 0;color:#991b1b;">Alertas</strong>'
+            : '';
+        $borderCss = $withBorder
+            ? 'border:1px solid #fecaca;'
+            : 'border:0;';
+
+        return new HtmlString(
+            '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:separate;border-spacing:0;margin:0;">'
+            .'<tr>'
+            .'<td bgcolor="#fef2f2" style="background-color:#fef2f2;'.$borderCss.'border-radius:4px;-webkit-border-radius:4px;padding:8px 10px;color:#991b1b;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.45;">'
+            .$titleHtml
+            .$body
+            .'</td>'
+            .'</tr>'
+            .'</table>'
+        );
     }
 
     public static function firstName(?string $fullName): string

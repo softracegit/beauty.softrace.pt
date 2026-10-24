@@ -297,7 +297,9 @@ class ClientController extends Controller
             'id_parish' => ['nullable', 'integer'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'preferred_schedule' => ['nullable', Rule::in(array_keys(Client::preferredSchedules()))],
-            'preferences_notes' => ['nullable', 'string', 'max:1000'],
+            'preferences_notes' => ['nullable', 'string', 'max:2000'],
+            'allergies' => ['nullable', 'string', 'max:2000'],
+            'contraindications' => ['nullable', 'string', 'max:2000'],
         ], $this->clientContactValidationMessages());
 
         $data = collect($validated)->except('avatar')->all();
@@ -336,10 +338,13 @@ class ClientController extends Controller
         $vendasDefaultDesde = now()->copy()->startOfMonth()->toDateString();
         $vendasDefaultAte = now()->copy()->endOfMonth()->toDateString();
 
-        $validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
-        $activeTab = $request->get('active_tab', 'tab-details');
+        $validTabs = ['tab-resumo', 'tab-ficha-tecnica', 'tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
+        $activeTab = $request->get('active_tab', 'tab-resumo');
+        if ($activeTab === 'tab-ficha-tecnica') {
+            $activeTab = 'tab-resumo';
+        }
         if (! in_array($activeTab, $validTabs, true)) {
-            $activeTab = 'tab-details';
+            $activeTab = 'tab-resumo';
         }
 
         // Filtros Marcações (independentes dos de vendas)
@@ -392,7 +397,14 @@ class ClientController extends Controller
         }
 
         $marcacoes = $marcacoesQuery
-            ->with(['client', 'user', 'eventServiceItems.service.category', 'eventServiceItems.extras.extra'])
+            ->with([
+                'client',
+                'user',
+                'onlineBooking',
+                'sales',
+                'eventServiceItems.service.category',
+                'eventServiceItems.extras.extra',
+            ])
             ->orderByDesc('start_at')
             ->limit(200)
             ->get();
@@ -614,7 +626,9 @@ class ClientController extends Controller
             'id_parish' => ['nullable', 'integer'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'preferred_schedule' => ['nullable', Rule::in(array_keys(Client::preferredSchedules()))],
-            'preferences_notes' => ['nullable', 'string', 'max:1000'],
+            'preferences_notes' => ['nullable', 'string', 'max:2000'],
+            'allergies' => ['nullable', 'string', 'max:2000'],
+            'contraindications' => ['nullable', 'string', 'max:2000'],
         ], $this->clientContactValidationMessages());
 
         if ($request->hasFile('avatar')) {
@@ -736,7 +750,7 @@ class ClientController extends Controller
             ->selectRaw('services.name as service_name, count(*) as total')
             ->groupBy('services.id', 'services.name')
             ->orderByDesc('total')
-            ->limit(5)
+            ->limit(1)
             ->get();
 
         $tecnicoPreferidoRow = CalendarEvent::query()

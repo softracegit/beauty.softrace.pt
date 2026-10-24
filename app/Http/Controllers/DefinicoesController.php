@@ -356,17 +356,19 @@ class DefinicoesController extends Controller
     {
         $user = auth()->user();
         $meta = UserNotificationPreference::marcacaoTypesMeta();
+        $keys = UserNotificationPreference::preferenceKeys();
         $saved = $user->notificationPreferences()
-            ->whereIn('category', UserNotificationPreference::MARCACAO_NOTIFICATION_KEYS)
+            ->whereIn('category', $keys)
             ->get()
             ->keyBy('category');
 
         $matrix = [];
-        foreach (UserNotificationPreference::MARCACAO_NOTIFICATION_KEYS as $key) {
+        foreach ($keys as $key) {
             $row = $saved->get($key);
             $matrix[$key] = [
                 'label' => $meta[$key]['label'],
                 'description' => $meta[$key]['description'],
+                'email_only' => (bool) ($meta[$key]['email_only'] ?? false),
                 'bell' => $row ? $row->bell_enabled : true,
                 'email' => $row ? $row->email_enabled : true,
             ];
@@ -386,15 +388,19 @@ class DefinicoesController extends Controller
         $bellInput = $request->input('bell', []);
         /** @var array<string, mixed> $emailInput */
         $emailInput = $request->input('email', []);
+        $meta = UserNotificationPreference::marcacaoTypesMeta();
 
-        foreach (UserNotificationPreference::MARCACAO_NOTIFICATION_KEYS as $key) {
+        foreach (UserNotificationPreference::preferenceKeys() as $key) {
+            $emailOnly = (bool) ($meta[$key]['email_only'] ?? false);
             UserNotificationPreference::query()->updateOrCreate(
                 [
                     'user_id' => $user->id,
                     'category' => $key,
                 ],
                 [
-                    'bell_enabled' => self::notificationToggleFromInput($bellInput[$key] ?? null),
+                    'bell_enabled' => $emailOnly
+                        ? false
+                        : self::notificationToggleFromInput($bellInput[$key] ?? null),
                     'email_enabled' => self::notificationToggleFromInput($emailInput[$key] ?? null),
                 ]
             );

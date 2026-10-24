@@ -411,6 +411,7 @@ class CalendarController extends Controller
                     'client_id' => $event->client_id,
                     'client_tags' => $this->clientTagsPayload($event->client),
                     'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
+                    'client_has_alerts' => $this->clientHasTechnicalAlerts($event->client),
                     ...$this->clientBirthdayMetaForEvent($event->client, $event->start_at, (int) $event->store_id),
                 ],
             ];
@@ -702,6 +703,10 @@ class CalendarController extends Controller
             'birth_date' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
             'origem' => ['sometimes', 'nullable', 'string', 'max:255'],
             'profissao' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'allergies' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'contraindications' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'preferences_notes' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'service_preferences' => ['sometimes', 'nullable', 'string', 'max:2000'],
         ], [
             'name.required' => 'Indique o nome.',
             'nif.digits' => 'O NIF deve ter 9 dígitos.',
@@ -737,6 +742,19 @@ class CalendarController extends Controller
         if (array_key_exists('profissao', $validated)) {
             $profissao = is_string($validated['profissao'] ?? null) ? trim($validated['profissao']) : '';
             $client->profissao = $profissao !== '' ? $profissao : null;
+        }
+        if (array_key_exists('allergies', $validated)) {
+            $allergies = is_string($validated['allergies'] ?? null) ? trim($validated['allergies']) : '';
+            $client->allergies = $allergies !== '' ? $allergies : null;
+        }
+        if (array_key_exists('contraindications', $validated)) {
+            $contraindications = is_string($validated['contraindications'] ?? null) ? trim($validated['contraindications']) : '';
+            $client->contraindications = $contraindications !== '' ? $contraindications : null;
+        }
+        if (array_key_exists('preferences_notes', $validated) || array_key_exists('service_preferences', $validated)) {
+            $prefsRaw = $validated['preferences_notes'] ?? $validated['service_preferences'] ?? null;
+            $prefs = is_string($prefsRaw) ? trim($prefsRaw) : '';
+            $client->preferences_notes = $prefs !== '' ? $prefs : null;
         }
 
         try {
@@ -781,6 +799,9 @@ class CalendarController extends Controller
             'birth_date' => $client->birth_date?->format('Y-m-d'),
             'origem' => $client->origem,
             'profissao' => $client->profissao,
+            'allergies' => $client->allergies,
+            'contraindications' => $client->contraindications,
+            'service_preferences' => $client->preferences_notes,
             'client_since' => $client->created_at
                 ? \App\Support\DateTimeDisplay::formatInstant($client->created_at, $client->store_id ? (int) $client->store_id : null, 'd/m/Y')
                 : null,
@@ -829,6 +850,9 @@ class CalendarController extends Controller
                 'start_at' => $calendarEvent->start_at ? $calendarEvent->start_at->toIso8601String() : null,
                 'end_at' => $calendarEvent->end_at ? $calendarEvent->end_at->toIso8601String() : null,
                 'description' => $calendarEvent->description,
+                'technical_formula' => $calendarEvent->technical_formula,
+                'technical_products' => $calendarEvent->technical_products,
+                'technical_notes' => $calendarEvent->technical_notes,
                 'event_type' => $calendarEvent->event_type ?? 'manual',
                 'event_type_label' => CalendarEvent::eventTypes()[$calendarEvent->event_type] ?? ($calendarEvent->event_type ?? 'Manual'),
                 'marcacao_source' => $calendarEvent->resolvedMarcacaoSource(),
@@ -859,6 +883,10 @@ class CalendarController extends Controller
                 'client_birth_date' => $calendarEvent->client?->birth_date?->format('Y-m-d'),
                 'client_origem' => $calendarEvent->client?->origem,
                 'client_profissao' => $calendarEvent->client?->profissao,
+                'client_allergies' => $calendarEvent->client?->allergies,
+                'client_contraindications' => $calendarEvent->client?->contraindications,
+                'client_has_alerts' => $this->clientHasTechnicalAlerts($calendarEvent->client),
+                'client_service_preferences' => $calendarEvent->client?->preferences_notes,
                 'client_since' => $calendarEvent->client?->created_at
                     ? \App\Support\DateTimeDisplay::formatInstant(
                         $calendarEvent->client->created_at,
@@ -1186,6 +1214,9 @@ class CalendarController extends Controller
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after_or_equal:start_at'],
             'description' => ['nullable', 'string'],
+            'technical_formula' => ['nullable', 'string', 'max:5000'],
+            'technical_products' => ['nullable', 'string', 'max:5000'],
+            'technical_notes' => ['nullable', 'string', 'max:5000'],
             'event_type' => ['required', 'in:manual,outro,marcacao,tempo_pessoal'],
             'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->whereIn('store_id', $userIdStoreIds)->where('status', Agent::STATUS_ACTIVE))],
             'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
@@ -1428,6 +1459,9 @@ class CalendarController extends Controller
             $rules['title'] = ['sometimes', 'string', 'max:255'];
             $rules['personal_time_type_id'] = ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))];
             $rules['description'] = ['nullable', 'string'];
+            $rules['technical_formula'] = ['nullable', 'string', 'max:5000'];
+            $rules['technical_products'] = ['nullable', 'string', 'max:5000'];
+            $rules['technical_notes'] = ['nullable', 'string', 'max:5000'];
             $rules['event_type'] = ['sometimes', 'in:manual,outro,marcacao,tempo_pessoal'];
             $rules['service_id'] = ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))];
         }
@@ -1604,7 +1638,7 @@ class CalendarController extends Controller
         }
 
         if ($calendarEvent->isSourceEditable()) {
-            $allowed = ['title', 'description', 'event_type', 'service_id', 'client_id', 'personal_time_type_id'];
+            $allowed = ['title', 'description', 'technical_formula', 'technical_products', 'technical_notes', 'event_type', 'service_id', 'client_id', 'personal_time_type_id'];
             $toUpdate = array_filter($validated, fn ($k) => in_array($k, $allowed, true), ARRAY_FILTER_USE_KEY);
             if (isset($toUpdate['personal_time_type_id']) && $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {
                 $type = PersonalTimeType::forStore(current_store_id())->find($toUpdate['personal_time_type_id']);
@@ -2093,6 +2127,9 @@ class CalendarController extends Controller
                     }
                     break;
                 case 'description':
+                case 'technical_formula':
+                case 'technical_products':
+                case 'technical_notes':
                     if (trim((string) ($cur ?? '')) !== trim((string) ($val ?? ''))) {
                         $out[$key] = $val;
                     }
@@ -2276,9 +2313,13 @@ class CalendarController extends Controller
                 'client_phone' => $event->client?->phone,
                 'client_formatted_phone' => $event->client?->formatted_phone,
                 'client_has_email' => (bool) ($event->client_id && $event->client?->email && filter_var($event->client->email, FILTER_VALIDATE_EMAIL)),
+                'client_has_alerts' => $this->clientHasTechnicalAlerts($event->client),
                 'client_birth_date' => $event->client?->birth_date?->format('Y-m-d'),
                 'client_origem' => $event->client?->origem,
                 'client_profissao' => $event->client?->profissao,
+                'client_allergies' => $event->client?->allergies,
+                'client_contraindications' => $event->client?->contraindications,
+                'client_service_preferences' => $event->client?->preferences_notes,
                 'client_since' => $event->client?->created_at
                     ? \App\Support\DateTimeDisplay::formatInstant(
                         $event->client->created_at,
@@ -2295,6 +2336,9 @@ class CalendarController extends Controller
                     : null,
                 ...$this->clientBirthdayMetaForEvent($event->client, $event->start_at, (int) $event->store_id),
                 'description' => $event->description,
+                'technical_formula' => $event->technical_formula,
+                'technical_products' => $event->technical_products,
+                'technical_notes' => $event->technical_notes,
                 'event_type' => $event->event_type,
                 'event_type_label' => CalendarEvent::eventTypes()[$event->event_type] ?? $event->event_type,
                 'marcacao_source' => $event->resolvedMarcacaoSource(),
@@ -2343,6 +2387,16 @@ class CalendarController extends Controller
         }
 
         return $arr;
+    }
+
+    private function clientHasTechnicalAlerts(?Client $client): bool
+    {
+        if (! $client) {
+            return false;
+        }
+
+        return trim((string) ($client->allergies ?? '')) !== ''
+            || trim((string) ($client->contraindications ?? '')) !== '';
     }
 
     /**

@@ -176,13 +176,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (profissaoField) {
             profissaoField.classList.toggle('d-none', !canViewClientContacts);
         }
+        var allergiesField = $id(prefix + 'ClientAllergiesViewField');
+        if (allergiesField) {
+            allergiesField.classList.toggle('d-none', !canViewClientContacts);
+        }
         [
             prefix + 'ClientPhoneAddBtn',
             prefix + 'ClientEmailAddBtn',
             prefix + 'ClientBirthDateAddBtn',
             prefix + 'ClientNifAddBtn',
             prefix + 'ClientOrigemAddBtn',
-            prefix + 'ClientProfissaoAddBtn'
+            prefix + 'ClientProfissaoAddBtn',
+            prefix + 'ClientAllergiesAddBtn'
         ].forEach(function(id) {
             var btn = $id(id);
             if (btn) {
@@ -223,6 +228,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 profissaoInput.disabled = true;
             } else {
                 profissaoInput.disabled = false;
+            }
+        }
+        var allergiesInputPrivacy = $id(prefix + 'ClientAllergiesInput');
+        if (allergiesInputPrivacy) {
+            if (crmPrivacyLockedUi || !canViewClientContacts) {
+                allergiesInputPrivacy.value = '';
+                allergiesInputPrivacy.disabled = true;
+            } else {
+                allergiesInputPrivacy.disabled = false;
             }
         }
         var profileFooter = null;
@@ -2802,7 +2816,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (addBtn) addBtn.classList.toggle('d-none', v !== '');
     }
-    var AGENDA_OC_PROFILE_FIELD_KEYS = ['name', 'phone', 'email', 'birth_date', 'nif', 'origem', 'profissao'];
+    var AGENDA_OC_PROFILE_FIELD_KEYS = ['name', 'phone', 'email', 'birth_date', 'nif', 'origem', 'profissao', 'allergies'];
     function agendaOcProfileFieldSuffix(fieldKey) {
         return ({
             name: 'Name',
@@ -2811,7 +2825,8 @@ document.addEventListener('DOMContentLoaded', function() {
             birth_date: 'BirthDate',
             nif: 'Nif',
             origem: 'Origem',
-            profissao: 'Profissao'
+            profissao: 'Profissao',
+            allergies: 'Allergies'
         })[fieldKey] || '';
     }
     function agendaOcProfileFieldRow(prefix, fieldKey) {
@@ -2912,6 +2927,31 @@ document.addEventListener('DOMContentLoaded', function() {
         var t = agendaEscAttr(title || 'Aniversário do cliente');
         return '<span class="agenda-event-birthday-badge" title="' + t + '" aria-label="' + t + '"><i class="ri-gift-2-fill" aria-hidden="true"></i></span>';
     }
+    function agendaClientAlertIconHtml() {
+        var t = 'Alertas do cliente';
+        return '<i class="ph ph-warning-circle fc-event-client-alert" title="' + t + '" aria-label="' + t + '"></i>';
+    }
+    function agendaClientHasAlertsFromPayload(client) {
+        if (!client) return false;
+        return String(client.allergies || '').trim() !== ''
+            || String(client.contraindications || '').trim() !== '';
+    }
+    function agendaSyncClientAlertsOnCalendar(clientId, hasAlerts) {
+        if (clientId == null || clientId === '') return;
+        var id = String(clientId);
+        var flag = !!hasAlerts;
+        if (typeof eventDetailCurrentData !== 'undefined' && eventDetailCurrentData
+            && String(eventDetailCurrentData.client_id || '') === id) {
+            eventDetailCurrentData.client_has_alerts = flag;
+        }
+        if (!calendar || typeof calendar.getEvents !== 'function') return;
+        calendar.getEvents().forEach(function(ev) {
+            var ext = ev.extendedProps || {};
+            if (String(ext.client_id || '') !== id) return;
+            if (!!ext.client_has_alerts === flag) return;
+            ev.setExtendedProp('client_has_alerts', flag);
+        });
+    }
     function agendaClientBirthdayScope(birthDateStr, appointmentDate) {
         if (!birthDateStr || !appointmentDate) return null;
         var parts = String(birthDateStr).trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -2954,6 +2994,95 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isNaN(d.getTime())) return null;
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
+    function agendaOcResetTechnicalAlertMore(banner, moreBtn) {
+        if (banner) {
+            banner.classList.remove('is-expanded');
+            banner.classList.remove('is-multiline');
+        }
+        if (!moreBtn) return;
+        moreBtn.textContent = 'ver mais';
+        moreBtn.setAttribute('aria-expanded', 'false');
+        moreBtn.classList.add('d-none');
+    }
+
+    function agendaOcRefreshTechnicalAlertClamp(pfx) {
+        var banner = $id(pfx + 'ClientTechnicalAlertBanner');
+        var textEl = $id(pfx + 'ClientTechnicalAlertText');
+        var moreBtn = $id(pfx + 'ClientTechnicalAlertMore');
+        if (!banner || !textEl || !moreBtn || banner.classList.contains('d-none')) return;
+        if (banner.classList.contains('is-expanded')) {
+            moreBtn.classList.remove('d-none');
+            banner.classList.add('is-multiline');
+            return;
+        }
+        var overflows = textEl.scrollHeight > textEl.clientHeight + 1;
+        moreBtn.classList.toggle('d-none', !overflows);
+        var cs = window.getComputedStyle(textEl);
+        var lineHeight = parseFloat(cs.lineHeight);
+        if (!lineHeight || isNaN(lineHeight)) {
+            lineHeight = (parseFloat(cs.fontSize) || 11) * 1.5;
+        }
+        var multiline = overflows || textEl.scrollHeight > lineHeight * 1.4;
+        banner.classList.toggle('is-multiline', multiline);
+    }
+
+    function agendaOcBindTechnicalAlertMore(pfx) {
+        var banner = $id(pfx + 'ClientTechnicalAlertBanner');
+        var moreBtn = $id(pfx + 'ClientTechnicalAlertMore');
+        if (!banner || !moreBtn || moreBtn.dataset.bound === '1') return;
+        moreBtn.dataset.bound = '1';
+        moreBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var expanded = banner.classList.toggle('is-expanded');
+            moreBtn.textContent = expanded ? 'ver menos' : 'ver mais';
+            moreBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            if (!expanded) {
+                requestAnimationFrame(function() {
+                    agendaOcRefreshTechnicalAlertClamp(pfx);
+                });
+            }
+        });
+    }
+
+    function agendaOcApplyClientTechnicalSheet(pfx, c) {
+        var alerts = String((c && c.allergies) || '').trim();
+        agendaOcSetProfileValueDisplay(
+            $id(pfx + 'ClientSelectedAllergies'),
+            $id(pfx + 'ClientAllergiesAddBtn'),
+            alerts
+        );
+        var alertsEl = $id(pfx + 'ClientSelectedAllergies');
+        if (alertsEl) {
+            if (alerts) alertsEl.setAttribute('title', alerts);
+            else alertsEl.setAttribute('title', 'Clique para editar');
+        }
+        var allergiesInput = $id(pfx + 'ClientAllergiesInput');
+        if (allergiesInput && !allergiesInput.disabled) allergiesInput.value = alerts;
+        var banner = $id(pfx + 'ClientTechnicalAlertBanner');
+        var textEl = $id(pfx + 'ClientTechnicalAlertText');
+        var moreBtn = $id(pfx + 'ClientTechnicalAlertMore');
+        if (!banner) return;
+        agendaOcBindTechnicalAlertMore(pfx);
+        agendaOcResetTechnicalAlertMore(banner, moreBtn);
+        if (alerts) {
+            if (textEl) {
+                textEl.textContent = alerts;
+                textEl.removeAttribute('title');
+            }
+            banner.classList.remove('d-none');
+            requestAnimationFrame(function() {
+                agendaOcRefreshTechnicalAlertClamp(pfx);
+            });
+        } else {
+            banner.classList.add('d-none');
+            if (textEl) {
+                textEl.textContent = '';
+                textEl.removeAttribute('title');
+            }
+        }
+    }
+
     function eventDetailOcUpdateBirthdayBanner() {
         var banner = $id('eventDetailOcClientBirthdayBanner');
         var textEl = $id('eventDetailOcClientBirthdayText');
@@ -3045,6 +3174,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventDetailOriginalStartAt = null;
     var eventDetailOriginalEndAt = null;
     var eventDetailOriginalDescription = '';
+    var eventDetailOriginalTechnicalFormula = '';
+    var eventDetailOriginalTechnicalProducts = '';
+    var eventDetailOriginalTechnicalNotes = '';
     var eventDetailOriginalUserId = '';
     var eventDetailOriginalClientId = null;
     var eventDetailOriginalStatus = 'agendado';
@@ -4855,13 +4987,16 @@ document.addEventListener('DOMContentLoaded', function() {
         var ocClientProfissaoInput = $id('eventDetailOcClientProfissaoInput');
         if (ocClientOrigemInput) ocClientOrigemInput.disabled = lockClientFields;
         if (ocClientProfissaoInput) ocClientProfissaoInput.disabled = lockClientFields;
+        var eventDetailAllergiesInput = $id('eventDetailOcClientAllergiesInput');
+        if (eventDetailAllergiesInput) eventDetailAllergiesInput.disabled = lockClientFields;
         [
             'eventDetailOcClientPhoneAddBtn',
             'eventDetailOcClientEmailAddBtn',
             'eventDetailOcClientBirthDateAddBtn',
             'eventDetailOcClientNifAddBtn',
             'eventDetailOcClientOrigemAddBtn',
-            'eventDetailOcClientProfissaoAddBtn'
+            'eventDetailOcClientProfissaoAddBtn',
+            'eventDetailOcClientAllergiesAddBtn'
         ].forEach(function(id) {
             var btn = $id(id);
             if (!btn) return;
@@ -5025,6 +5160,9 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOriginalStartAt = data.start_at || null;
         eventDetailOriginalEndAt = data.end_at || null;
         eventDetailOriginalDescription = data.description || '';
+        eventDetailOriginalTechnicalFormula = data.technical_formula || '';
+        eventDetailOriginalTechnicalProducts = data.technical_products || '';
+        eventDetailOriginalTechnicalNotes = data.technical_notes || '';
         eventDetailOriginalUserId = String(data.user_id || '');
         eventDetailOriginalClientId = data.client_id || null;
         eventDetailOriginalStatus = data.status || 'agendado';
@@ -5105,6 +5243,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         var obsEl = $id('eventDetailOcObs');
         if (obsEl) obsEl.value = data.description || '';
+        var techFormulaEl = $id('eventDetailOcTechnicalFormula');
+        if (techFormulaEl) techFormulaEl.value = data.technical_formula || '';
+        var techProductsEl = $id('eventDetailOcTechnicalProducts');
+        if (techProductsEl) techProductsEl.value = data.technical_products || '';
+        var techNotesEl = $id('eventDetailOcTechnicalNotes');
+        if (techNotesEl) techNotesEl.value = data.technical_notes || '';
 
         var hasVisitLead = !!(data.visit || data.lead);
         var isVisitMode = hasVisitLead || data.event_type !== 'marcacao';
@@ -5160,6 +5304,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 birth_date: data.client_birth_date || '',
                 origem: data.client_origem || '',
                 profissao: data.client_profissao || '',
+                allergies: data.client_allergies || '',
+                contraindications: data.client_contraindications || '',
+                service_preferences: data.client_service_preferences || '',
                 client_since: data.client_since || '',
                 client_last_update: data.client_last_update || '',
                 tags: data.client_tags || []
@@ -5425,6 +5572,7 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOcShowClientSearchMode();
         var birthdayBanner = $id('eventDetailOcClientBirthdayBanner');
         if (birthdayBanner) birthdayBanner.classList.add('d-none');
+        agendaOcApplyClientTechnicalSheet('eventDetailOc', null);
     }
     function eventDetailOcApplyClientFromApi(c) {
         if (!c) return;
@@ -5445,6 +5593,9 @@ document.addEventListener('DOMContentLoaded', function() {
             birth_date: c.birth_date || '',
             origem: c.origem || '',
             profissao: c.profissao || '',
+            allergies: c.allergies || '',
+            contraindications: c.contraindications || '',
+            service_preferences: c.service_preferences || c.preferences_notes || '',
             client_since: c.client_since || '',
             client_last_update: c.client_last_update || '',
             tags: c.tags || []
@@ -5563,11 +5714,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (inputWrap) inputWrap.classList.toggle('d-none', !enabled);
         eventDetailOcClientNifEditing = !!enabled;
     }
-    function eventDetailOcFormatBirthDateDisplay(raw) {
+    function agendaFormatBirthDateWithAge(raw) {
         var bd = String(raw || '').trim();
         var m = bd.match(/^(\d{4})-(\d{2})-(\d{2})/);
         if (!m) return '—';
-        return m[3] + '/' + m[2] + '/' + m[1];
+        var y = parseInt(m[1], 10);
+        var mo = parseInt(m[2], 10);
+        var d = parseInt(m[3], 10);
+        var label = m[3] + '/' + m[2] + '/' + m[1];
+        if (isNaN(y) || isNaN(mo) || isNaN(d)) return label;
+        var today = new Date();
+        var age = today.getFullYear() - y;
+        var hadBirthday =
+            today.getMonth() + 1 > mo
+            || (today.getMonth() + 1 === mo && today.getDate() >= d);
+        if (!hadBirthday) age -= 1;
+        if (age < 0 || age > 130) return label;
+        return label + ' (' + age + ' anos)';
+    }
+    function eventDetailOcFormatBirthDateDisplay(raw) {
+        return agendaFormatBirthDateWithAge(raw);
     }
     function eventDetailOcFillClientProfileFields(c) {
         agendaOcExitAllProfileInlineEdits('eventDetailOc');
@@ -5668,6 +5834,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (profissaoInput && !profissaoInput.disabled) {
             profissaoInput.value = String((c && c.profissao) || '');
         }
+        agendaOcApplyClientTechnicalSheet('eventDetailOc', c);
     }
     var eventDetailOcClientProfileEditing = false;
     var eventDetailOcClientProfileSaving = false;
@@ -5726,6 +5893,8 @@ document.addEventListener('DOMContentLoaded', function() {
             agendaOcEnsureOrigemOption(input, c.origem);
         } else if (fieldKey === 'profissao') {
             input.value = String(c.profissao || '');
+        } else if (fieldKey === 'allergies') {
+            input.value = String(c.allergies || '');
         }
         setTimeout(function() {
             agendaFocusInputCaretEnd(input);
@@ -5808,15 +5977,24 @@ document.addEventListener('DOMContentLoaded', function() {
             payload.origem = raw;
         } else if (fieldKey === 'profissao') {
             payload.profissao = raw;
+        } else if (fieldKey === 'allergies') {
+            payload.allergies = raw;
         } else {
             return;
         }
         eventDetailOcClientProfileSaving = true;
         input.disabled = true;
         eventDetailOcSaveClientProfileField(payload, null)
-            .then(function() {
+            .then(function(client) {
                 eventDetailOcInlineField = null;
                 eventDetailOcClientProfileEditing = false;
+                if (eventDetailCurrentData && client) {
+                    eventDetailCurrentData.client_allergies = client.allergies || '';
+                    eventDetailCurrentData.client_contraindications = client.contraindications || '';
+                }
+                if (client && (fieldKey === 'allergies' || Object.prototype.hasOwnProperty.call(payload, 'allergies'))) {
+                    agendaSyncClientAlertsOnCalendar(client.id, agendaClientHasAlertsFromPayload(client));
+                }
             })
             .catch(function(err) {
                 showToast(agendaFriendlyNetworkErrorMessage(err, 'Não foi possível atualizar o cliente.'), 'error');
@@ -6074,6 +6252,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     birth_date: eventDetailSelectedClient.birth_date || '',
                     origem: eventDetailSelectedClient.origem || '',
                     profissao: eventDetailSelectedClient.profissao || '',
+                    allergies: eventDetailSelectedClient.allergies || '',
+                    contraindications: eventDetailSelectedClient.contraindications || '',
+                    service_preferences: eventDetailSelectedClient.service_preferences || '',
                     client_since: eventDetailSelectedClient.client_since || '',
                     client_last_update: eventDetailSelectedClient.client_last_update || '',
                     tags: eventDetailSelectedClient.tags || []
@@ -6092,6 +6273,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     birth_date: eventDetailCurrentData.client_birth_date || '',
                     origem: eventDetailCurrentData.client_origem || '',
                     profissao: eventDetailCurrentData.client_profissao || '',
+                    allergies: eventDetailCurrentData.client_allergies || '',
+                    contraindications: eventDetailCurrentData.client_contraindications || '',
+                    service_preferences: eventDetailCurrentData.client_service_preferences || '',
                     client_since: eventDetailCurrentData.client_since || '',
                     client_last_update: eventDetailCurrentData.client_last_update || '',
                     tags: eventDetailCurrentData.client_tags || []
@@ -6168,6 +6352,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 birth_date: eventDetailCurrentData.client_birth_date || '',
                 origem: eventDetailCurrentData.client_origem || '',
                 profissao: eventDetailCurrentData.client_profissao || '',
+                allergies: eventDetailCurrentData.client_allergies || '',
+                contraindications: eventDetailCurrentData.client_contraindications || '',
+                service_preferences: eventDetailCurrentData.client_service_preferences || '',
                 client_since: eventDetailCurrentData.client_since || '',
                 client_last_update: eventDetailCurrentData.client_last_update || '',
                 tags: eventDetailCurrentData.client_tags || []
@@ -6730,7 +6917,8 @@ document.addEventListener('DOMContentLoaded', function() {
             { field: 'birth_date', add: 'eventDetailOcClientBirthDateAddBtn', text: 'eventDetailOcClientSelectedBirthDate', input: 'eventDetailOcClientBirthDateInput' },
             { field: 'nif', add: 'eventDetailOcClientNifAddBtn', text: 'eventDetailOcClientSelectedNif', input: 'eventDetailOcClientNifInput' },
             { field: 'origem', add: 'eventDetailOcClientOrigemAddBtn', text: 'eventDetailOcClientSelectedOrigem', input: 'eventDetailOcClientOrigemInput' },
-            { field: 'profissao', add: 'eventDetailOcClientProfissaoAddBtn', text: 'eventDetailOcClientSelectedProfissao', input: 'eventDetailOcClientProfissaoInput' }
+            { field: 'profissao', add: 'eventDetailOcClientProfissaoAddBtn', text: 'eventDetailOcClientSelectedProfissao', input: 'eventDetailOcClientProfissaoInput' },
+            { field: 'allergies', add: 'eventDetailOcClientAllergiesAddBtn', text: 'eventDetailOcClientSelectedAllergies', input: 'eventDetailOcClientAllergiesInput' }
         ];
         eventDetailOcProfileFieldBind.forEach(function(cfg) {
             var start = function() { eventDetailOcStartProfileInlineEdit(cfg.field); };
@@ -7452,10 +7640,7 @@ document.addEventListener('DOMContentLoaded', function() {
         agendaOcClientNifEditing = !!enabled;
     }
     function agendaOcFormatBirthDateDisplay(raw) {
-        var bd = String(raw || '').trim();
-        var m = bd.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (!m) return '—';
-        return m[3] + '/' + m[2] + '/' + m[1];
+        return agendaFormatBirthDateWithAge(raw);
     }
     function agendaOcFillClientProfileFields(c) {
         agendaOcExitAllProfileInlineEdits('agendaOc');
@@ -7555,6 +7740,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (profissaoInput && !profissaoInput.disabled) {
             profissaoInput.value = String((c && c.profissao) || '');
         }
+        agendaOcApplyClientTechnicalSheet('agendaOc', c);
     }
     var agendaOcClientProfileEditing = false;
     var agendaOcClientProfileSaving = false;
@@ -7612,6 +7798,8 @@ document.addEventListener('DOMContentLoaded', function() {
             agendaOcEnsureOrigemOption(input, c.origem);
         } else if (fieldKey === 'profissao') {
             input.value = String(c.profissao || '');
+        } else if (fieldKey === 'allergies') {
+            input.value = String(c.allergies || '');
         }
         setTimeout(function() {
             agendaFocusInputCaretEnd(input);
@@ -7694,15 +7882,20 @@ document.addEventListener('DOMContentLoaded', function() {
             payload.origem = raw;
         } else if (fieldKey === 'profissao') {
             payload.profissao = raw;
+        } else if (fieldKey === 'allergies') {
+            payload.allergies = raw;
         } else {
             return;
         }
         agendaOcClientProfileSaving = true;
         input.disabled = true;
         agendaOcSaveClientProfileField(payload, null)
-            .then(function() {
+            .then(function(client) {
                 agendaOcInlineField = null;
                 agendaOcClientProfileEditing = false;
+                if (client && (fieldKey === 'allergies' || Object.prototype.hasOwnProperty.call(payload, 'allergies'))) {
+                    agendaSyncClientAlertsOnCalendar(client.id, agendaClientHasAlertsFromPayload(client));
+                }
             })
             .catch(function(err) {
                 showToast((err && err.message) ? err.message : 'Não foi possível atualizar o cliente.', 'error');
@@ -7826,6 +8019,9 @@ document.addEventListener('DOMContentLoaded', function() {
             birth_date: c.birth_date || '',
             origem: c.origem || '',
             profissao: c.profissao || '',
+            allergies: c.allergies || '',
+            contraindications: c.contraindications || '',
+            service_preferences: c.service_preferences || c.preferences_notes || '',
             client_since: c.client_since || '',
             client_last_update: c.client_last_update || '',
             tags: c.tags || []
@@ -8500,9 +8696,16 @@ document.addEventListener('DOMContentLoaded', function() {
         updateAgendaOcOutOfHoursWarning();
 
         $id('agendaOcObs').value = '';
+        var agendaTechFormula = $id('agendaOcTechnicalFormula');
+        if (agendaTechFormula) agendaTechFormula.value = '';
+        var agendaTechProducts = $id('agendaOcTechnicalProducts');
+        if (agendaTechProducts) agendaTechProducts.value = '';
+        var agendaTechNotes = $id('agendaOcTechnicalNotes');
+        if (agendaTechNotes) agendaTechNotes.value = '';
         agendaOcSelectedServices = [];
         agendaOcShowServicePicker = true;
         agendaOcRenderSelectedServices();
+        agendaOcApplyClientTechnicalSheet('agendaOc', null);
 
         var clientSel = $id('agendaOcClient');
         clientSel.innerHTML = '<option value="">A carregar clientes…</option>';
@@ -8692,6 +8895,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     start_at: agendaLocalInputToUtcIso(startLocal),
                     end_at: agendaLocalInputToUtcIso(endLocal),
                     description: $id('agendaOcObs').value,
+                    technical_formula: ($id('agendaOcTechnicalFormula') && $id('agendaOcTechnicalFormula').value) || '',
+                    technical_products: ($id('agendaOcTechnicalProducts') && $id('agendaOcTechnicalProducts').value) || '',
+                    technical_notes: ($id('agendaOcTechnicalNotes') && $id('agendaOcTechnicalNotes').value) || '',
                     event_type: 'marcacao',
                     user_id: mid,
                     client_id: cid,
@@ -8813,7 +9019,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     { field: 'birth_date', add: 'agendaOcClientBirthDateAddBtn', text: 'agendaOcClientSelectedBirthDate', input: 'agendaOcClientBirthDateInput' },
                     { field: 'nif', add: 'agendaOcClientNifAddBtn', text: 'agendaOcClientSelectedNif', input: 'agendaOcClientNifInput' },
                     { field: 'origem', add: 'agendaOcClientOrigemAddBtn', text: 'agendaOcClientSelectedOrigem', input: 'agendaOcClientOrigemInput' },
-                    { field: 'profissao', add: 'agendaOcClientProfissaoAddBtn', text: 'agendaOcClientSelectedProfissao', input: 'agendaOcClientProfissaoInput' }
+                    { field: 'profissao', add: 'agendaOcClientProfissaoAddBtn', text: 'agendaOcClientSelectedProfissao', input: 'agendaOcClientProfissaoInput' },
+                    { field: 'allergies', add: 'agendaOcClientAllergiesAddBtn', text: 'agendaOcClientSelectedAllergies', input: 'agendaOcClientAllergiesInput' }
                 ];
                 agendaOcProfileFieldBind.forEach(function(cfg) {
                     var start = function() { agendaOcStartProfileInlineEdit(cfg.field); };
@@ -9143,11 +9350,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         var obsVal = ($id('eventDetailOcObs') && $id('eventDetailOcObs').value) || '';
+        var techFormulaVal = ($id('eventDetailOcTechnicalFormula') && $id('eventDetailOcTechnicalFormula').value) || '';
+        var techProductsVal = ($id('eventDetailOcTechnicalProducts') && $id('eventDetailOcTechnicalProducts').value) || '';
+        var techNotesVal = ($id('eventDetailOcTechnicalNotes') && $id('eventDetailOcTechnicalNotes').value) || '';
         var payload = {
             title: title,
             start_at: agendaLocalInputToUtcIso(startStr),
             end_at: agendaLocalInputToUtcIso(endStr),
             description: obsVal,
+            technical_formula: techFormulaVal,
+            technical_products: techProductsVal,
+            technical_notes: techNotesVal,
             status: $id('eventDetailStatus').value
         };
         if (eventDetailCurrentData?.event_type === 'marcacao') {
@@ -9180,6 +9393,9 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOriginalStartAt = payload.start_at;
         eventDetailOriginalEndAt = payload.end_at;
         eventDetailOriginalDescription = payload.description || '';
+        eventDetailOriginalTechnicalFormula = payload.technical_formula || '';
+        eventDetailOriginalTechnicalProducts = payload.technical_products || '';
+        eventDetailOriginalTechnicalNotes = payload.technical_notes || '';
         eventDetailOriginalUserId = String(payload.user_id || '').trim();
         eventDetailOriginalClientId = payload.client_id || null;
         eventDetailOriginalStatus = payload.status || eventDetailOriginalStatus;
@@ -9191,6 +9407,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (eventDetailIsStillHydrating()) return false;
         var desc = ($id('eventDetailOcObs') && $id('eventDetailOcObs').value) || '';
         if (desc !== eventDetailOriginalDescription) return true;
+        var techFormula = ($id('eventDetailOcTechnicalFormula') && $id('eventDetailOcTechnicalFormula').value) || '';
+        if (techFormula !== eventDetailOriginalTechnicalFormula) return true;
+        var techProducts = ($id('eventDetailOcTechnicalProducts') && $id('eventDetailOcTechnicalProducts').value) || '';
+        if (techProducts !== eventDetailOriginalTechnicalProducts) return true;
+        var techNotes = ($id('eventDetailOcTechnicalNotes') && $id('eventDetailOcTechnicalNotes').value) || '';
+        if (techNotes !== eventDetailOriginalTechnicalNotes) return true;
         var member = String(($id('eventDetailOcMember') && $id('eventDetailOcMember').value) || '').trim();
         if (member !== eventDetailOriginalUserId) return true;
         var clientId = eventDetailSelectedClient ? eventDetailSelectedClient.id : null;
@@ -11879,7 +12101,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if ((extProps.event_type || '') === 'marcacao' && extProps.marcacao_source === 'online') {
                 clientNameText += ' <span class="agenda-online-at-mark" aria-hidden="true">@</span>';
             }
-            var badgesWrapHtml = birthdayHtml ? '<span class="fc-event-client-badges">' + birthdayHtml + '</span>' : '';
+            var alertHtml = (extProps.client_has_alerts && !isTempoPessoal) ? agendaClientAlertIconHtml() : '';
+            var badgesInner = alertHtml + birthdayHtml;
+            var badgesWrapHtml = badgesInner ? '<span class="fc-event-client-badges">' + badgesInner + '</span>' : '';
             const line1 = iconHtml + '<span class="fc-event-client-row"><strong class="fc-event-client">' + clientNameText + '</strong>' + badgesWrapHtml + '</span>';
 
             // Linha 2: serviço + extras

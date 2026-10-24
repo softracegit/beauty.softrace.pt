@@ -73,10 +73,9 @@
                                                         <div class="mb-2"><span class="text-dark fw-medium">{{ $bookingClient->email ?: '—' }}</span></div>
                                                         <div class="mb-0"><span class="text-dark fw-medium">{{ $bookingClient->formatted_phone ?? $bookingClient->phone ?? '—' }}</span></div>
                                                     </div>
-                                                    <div class="mb-0">
-                                                        <label for="booking-contact-notes" class="form-label small text-muted mb-1">{{ __('booking.flow.notes_label') }}</label>
-                                                        <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="{{ __('booking.flow.notes_placeholder_logged_in') }}"></textarea>
-                                                    </div>
+                                                    @include('booking.partials.checkout-notes-fields', [
+                                                        'notesPlaceholder' => __('booking.flow.notes_placeholder_logged_in'),
+                                                    ])
                                                 </form>
                                             @else
                                                 <form id="booking-checkout-form" novalidate>
@@ -100,10 +99,7 @@
                                                         </div>
                                                     </div>
 
-                                                    <div class="mb-0">
-                                                        <label for="booking-contact-notes" class="form-label small text-muted mb-1">{{ __('booking.flow.notes_label') }}</label>
-                                                        <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="{{ __('booking.flow.notes_placeholder') }}"></textarea>
-                                                    </div>
+                                                    @include('booking.partials.checkout-notes-fields')
                                                 </form>
                                             @endif
                                         @else
@@ -126,10 +122,7 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="mb-0">
-                                                    <label for="booking-contact-notes" class="form-label small text-muted mb-1">{{ __('booking.flow.notes_label') }}</label>
-                                                    <textarea id="booking-contact-notes" name="notes" class="form-control" rows="4" placeholder="{{ __('booking.flow.notes_placeholder') }}"></textarea>
-                                                </div>
+                                                @include('booking.partials.checkout-notes-fields')
                                             </form>
 
                                             <p class="small text-muted mt-3 mb-0">

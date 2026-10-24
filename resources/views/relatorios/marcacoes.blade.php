@@ -13,9 +13,9 @@
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 w-100">
       <div class="dash-welcome-content mb-0 flex-grow-1 min-w-0">
         <h2 class="dash-welcome-title mb-0">Marcações</h2>
-        @include('relatorios.partials.store-context')
       </div>
-      <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+      <div class="relatorio-header-actions">
+        @include('relatorios.partials.store-context')
         <a href="{{ route('relatorios.marcacoes.export', request()->query()) }}" class="btn btn-outline-primary btn-sm">
           <i class="ph ph-download-simple me-1"></i> Exportar
         </a>

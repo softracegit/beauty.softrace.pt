@@ -1041,6 +1041,7 @@
                     phoneDisplay: payload.phoneDisplay || '',
                     email: payload.email || '',
                     notes: payload.notes || '',
+                    allergies: payload.allergies || '',
                     updatedAt: Date.now(),
                 })
             );
@@ -1099,12 +1100,14 @@
             var emailEl = form.querySelector('input[name="email"]');
             var phoneEl = form.querySelector('input[name="phone"]');
             var notesEl = document.getElementById('booking-contact-notes');
+            var allergiesEl = document.getElementById('booking-contact-allergies');
             return mergeInvoiceSupplementEmailIntoContactPayload({
                 name: nameEl ? nameEl.value.trim() : '',
                 email: emailEl ? emailEl.value.trim() : '',
                 phone: phoneEl ? phoneEl.value.trim() : '',
                 phoneDisplay: phoneEl ? phoneEl.value.trim() : '',
                 notes: notesEl ? notesEl.value.trim() : '',
+                allergies: allergiesEl ? allergiesEl.value.trim() : '',
             });
         }
         /** Convidado: ler sempre o DOM (sessionStorage pode estar vazio ou desatualizado). */
@@ -1113,6 +1116,7 @@
         var phoneHidden = document.getElementById('booking-contact-phone-e164');
         var phoneInput = document.getElementById('booking-contact-phone');
         var notesInput = document.getElementById('booking-contact-notes');
+        var allergiesInput = document.getElementById('booking-contact-allergies');
         if (nameInput || emailInput || phoneHidden || phoneInput) {
             var phoneE164 = phoneHidden && phoneHidden.value ? phoneHidden.value.trim() : '';
             if (!phoneE164 && phoneInput && typeof window.intlTelInput === 'function') {
@@ -1130,6 +1134,7 @@
                 phone: phoneE164 || stored.phone || '',
                 phoneDisplay: (phoneInput && phoneInput.value.trim()) || stored.phoneDisplay || '',
                 notes: (notesInput && notesInput.value.trim()) || stored.notes || '',
+                allergies: (allergiesInput && allergiesInput.value.trim()) || stored.allergies || '',
             });
         }
         return mergeInvoiceSupplementEmailIntoContactPayload(getContactSelection());
@@ -1608,6 +1613,7 @@
             email: contact.email,
             phone: contact.phone,
             notes: contact.notes || '',
+            allergies: contact.allergies || '',
             date: dt.date,
             time: dt.time,
             agent_id: String(tech.id),
@@ -3918,32 +3924,37 @@
         var phoneE164Input = document.getElementById('booking-contact-phone-e164');
         var emailInput = document.getElementById('booking-contact-email');
         var notesInput = document.getElementById('booking-contact-notes');
+        var allergiesInput = document.getElementById('booking-contact-allergies');
 
         if (isBookingCheckoutProfileMode()) {
             var hName = form.querySelector('input[name="name"]');
             var hEmail = form.querySelector('input[name="email"]');
             var hPhone = form.querySelector('input[name="phone"]');
-            saveContactSelection({
-                name: hName ? hName.value.trim() : '',
-                phone: hPhone ? hPhone.value.trim() : '',
-                phoneDisplay: hPhone ? hPhone.value.trim() : '',
-                email: hEmail ? hEmail.value.trim() : '',
-                notes: notesInput ? notesInput.value.trim() : '',
-            });
-            if (notesInput) {
-                ['input', 'blur', 'change'].forEach(function (evt) {
-                    notesInput.addEventListener(evt, function () {
-                        saveContactSelection({
-                            name: hName ? hName.value.trim() : '',
-                            phone: hPhone ? hPhone.value.trim() : '',
-                            phoneDisplay: hPhone ? hPhone.value.trim() : '',
-                            email: hEmail ? hEmail.value.trim() : '',
-                            notes: notesInput ? notesInput.value.trim() : '',
-                        });
-                        renderSummary();
-                    });
+            function saveProfileContactNotes() {
+                saveContactSelection({
+                    name: hName ? hName.value.trim() : '',
+                    phone: hPhone ? hPhone.value.trim() : '',
+                    phoneDisplay: hPhone ? hPhone.value.trim() : '',
+                    email: hEmail ? hEmail.value.trim() : '',
+                    notes: notesInput ? notesInput.value.trim() : '',
+                    allergies: allergiesInput ? allergiesInput.value.trim() : '',
                 });
             }
+            saveProfileContactNotes();
+            ['input', 'blur', 'change'].forEach(function (evt) {
+                if (notesInput) {
+                    notesInput.addEventListener(evt, function () {
+                        saveProfileContactNotes();
+                        renderSummary();
+                    });
+                }
+                if (allergiesInput) {
+                    allergiesInput.addEventListener(evt, function () {
+                        saveProfileContactNotes();
+                        renderSummary();
+                    });
+                }
+            });
             renderSummary();
             return;
         }
@@ -3963,6 +3974,7 @@
                     phoneDisplay: phoneInput ? phoneInput.value.trim() : '',
                     email: lockedEmail,
                     notes: notesInput ? notesInput.value.trim() : '',
+                    allergies: allergiesInput ? allergiesInput.value.trim() : '',
                 });
             }
         }
@@ -3972,6 +3984,10 @@
             if (phoneE164Input) phoneE164Input.value = existing.phone || '';
             if (emailInput && !emailInput.readOnly) emailInput.value = existing.email || '';
             if (notesInput) notesInput.value = existing.notes || '';
+            // Não limpar alergias já pré-preenchidas no servidor se o storage estiver vazio.
+            if (allergiesInput && existing.allergies) {
+                allergiesInput.value = existing.allergies;
+            }
         }
 
         function syncContactState() {
@@ -3997,6 +4013,7 @@
                 phoneDisplay: phoneInput ? phoneInput.value.trim() : '',
                 email: emailInput ? emailInput.value.trim() : '',
                 notes: notesInput ? notesInput.value.trim() : '',
+                allergies: allergiesInput ? allergiesInput.value.trim() : '',
             });
             renderSummary();
         }
@@ -4005,6 +4022,7 @@
             if (nameInput) nameInput.addEventListener(evt, syncContactState);
             if (emailInput) emailInput.addEventListener(evt, syncContactState);
             if (notesInput) notesInput.addEventListener(evt, syncContactState);
+            if (allergiesInput) allergiesInput.addEventListener(evt, syncContactState);
         });
 
         if (!phoneInput || typeof window.intlTelInput !== 'function') {

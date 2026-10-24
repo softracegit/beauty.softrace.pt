@@ -28,10 +28,14 @@
             <div class="d-flex align-items-center ms-md-auto">
               <div class="d-flex flex-column align-items-end" style="width: 5.25rem;">
                 <span class="d-md-none text-muted small mb-1">CRM</span>
-                <div class="form-check form-switch m-0 d-flex justify-content-end">
-                  {{-- Sem hidden: o mesmo nome hidden+checkbox pode gerar array em PHP e estragar o guardado --}}
-                  <input class="form-check-input" type="checkbox" name="bell[{{ $key }}]" value="1" id="bell_{{ $key }}" @checked($row['bell'])>
-                </div>
+                @if(empty($row['email_only']))
+                  <div class="form-check form-switch m-0 d-flex justify-content-end">
+                    {{-- Sem hidden: o mesmo nome hidden+checkbox pode gerar array em PHP e estragar o guardado --}}
+                    <input class="form-check-input" type="checkbox" name="bell[{{ $key }}]" value="1" id="bell_{{ $key }}" @checked($row['bell'])>
+                  </div>
+                @else
+                  <span class="text-muted small" title="Só por email">—</span>
+                @endif
               </div>
               <div class="d-flex flex-column align-items-end" style="width: 5.25rem;">
                 <span class="d-md-none text-muted small mb-1">Email</span>

@@ -4,7 +4,272 @@
 @section('css')
 <link rel="stylesheet" href="{{ asset('template/css/payment-pos-modal.css') }}?v={{ file_exists(public_path('template/css/payment-pos-modal.css')) ? filemtime(public_path('template/css/payment-pos-modal.css')) : time() }}">
 <link rel="stylesheet" href="{{ asset('template/css/client-tags.css') }}?v={{ file_exists(public_path('template/css/client-tags.css')) ? filemtime(public_path('template/css/client-tags.css')) : time() }}">
+<link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
 @include('relatorios.partials.vendas-table-styles', ['showClienteColumn' => false])
+<style>
+.uview-header .uview-phone { margin: 0; font-size: 0.9rem; }
+.uview-header .uview-phone a { color: inherit; text-decoration: none; }
+.uview-header .uview-phone a:hover { text-decoration: underline; }
+/* Resumo — card de alertas */
+.client-ficha-alert-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.65rem;
+    border: 1px solid #fecaca;
+    background: linear-gradient(135deg, #fff7ed 0%, #fef2f2 55%, #fff 100%);
+    color: #9a3412;
+    box-shadow: 0 1px 0 rgba(154, 52, 18, 0.04);
+}
+.client-ficha-alert-card__head {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.client-ficha-alert-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    background: #fff;
+    color: #ea580c;
+    font-size: 1.15rem;
+    box-shadow: 0 0 0 1px rgba(234, 88, 12, 0.12);
+    flex-shrink: 0;
+}
+.client-ficha-alert-card__title {
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: 0.01em;
+}
+.client-ficha-alert-card__edit {
+    margin-left: auto;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #c2410c;
+    text-decoration: none;
+}
+.client-ficha-alert-card__edit:hover { color: #9a3412; text-decoration: underline; }
+.client-ficha-alert-card__body { padding-left: 2.2rem; }
+.client-ficha-alert-card__line {
+    font-size: 0.88rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.client-ficha-alert-card__line + .client-ficha-alert-card__line { margin-top: 0.25rem; }
+
+/* Resumo — KPI cards */
+.client-resumo-kpis .card-body {
+    padding: 0.85rem 1rem 0.7rem;
+}
+
+/* Resumo — timeline */
+.client-ficha-timeline-wrap--spaced {
+    margin-top: 2.25rem;
+}
+.client-ficha-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin-top: 0.5rem;
+}
+.client-ficha-timeline__item {
+    --timeline-icon-size: 2.25rem;
+    --timeline-icon-gap: 0.55rem;
+    --timeline-item-gap: 1.75rem;
+    display: grid;
+    grid-template-columns: var(--timeline-icon-size) minmax(0, 1fr);
+    gap: 0.85rem 1.1rem;
+    align-items: start;
+    position: relative;
+    padding: 0 0 var(--timeline-item-gap);
+}
+.client-ficha-timeline__item:last-child {
+    padding-bottom: 0.25rem;
+}
+.client-ficha-timeline__item:not(:last-child) .client-ficha-timeline__rail::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: calc(0.15rem + var(--timeline-icon-size) + var(--timeline-icon-gap));
+    bottom: calc(-1 * var(--timeline-item-gap) + var(--timeline-icon-gap));
+    width: 2px;
+    transform: translateX(-50%);
+    background: color-mix(in srgb, var(--accent-color, #0d6efd) 28%, transparent);
+}
+.client-ficha-timeline__rail {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-self: stretch;
+    padding-top: 0.15rem;
+}
+.client-ficha-timeline__icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--timeline-icon-size);
+    height: var(--timeline-icon-size);
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.05);
+    z-index: 1;
+}
+.client-ficha-timeline__status-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #6c757d;
+}
+.client-ficha-timeline__status-icon.agenda-status-icon-agendado { color: #6c757d; }
+.client-ficha-timeline__status-icon.agenda-status-icon-notificado { color: #eab308; }
+.client-ficha-timeline__status-icon.agenda-status-icon-confirmado { color: #16a34a; }
+.client-ficha-timeline__status-icon.agenda-status-icon-chegou,
+.client-ficha-timeline__status-icon.agenda-status-icon-iniciado { color: var(--accent-color, #0d6efd); }
+.client-ficha-timeline__status-icon.ri-forbid-fill,
+.client-ficha-timeline__status-icon.ri-close-circle-fill { color: #dc2626; }
+.client-ficha-timeline__status-icon.agenda-status-icon-iniciado.ri { font-size: 1.35rem; }
+.client-ficha-timeline__content {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+}
+.client-ficha-timeline__item:last-child .client-ficha-timeline__content {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+.client-ficha-timeline__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+}
+.client-ficha-timeline__main {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.client-ficha-timeline__headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.55rem;
+    min-width: 0;
+}
+.client-ficha-timeline__date {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #475569;
+}
+.client-ficha-timeline__hour {
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #475569;
+}
+.client-ficha-timeline__services {
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.35;
+    min-width: 0;
+}
+.client-ficha-timeline__status-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 0.35rem;
+    font-size: 0.84rem;
+    color: #64748b;
+}
+.client-ficha-timeline__status {
+    font-weight: 600;
+    color: #1e293b;
+}
+.client-ficha-timeline__meta {
+    color: #64748b;
+}
+.client-ficha-timeline__meta-sep {
+    color: #cbd5e1;
+}
+.client-ficha-timeline__agenda-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.45rem;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    background: #f8fafc;
+    color: #475569;
+    text-decoration: none;
+    flex-shrink: 0;
+}
+.client-ficha-timeline__agenda-btn:hover {
+    background: #eff6ff;
+    border-color: rgba(37, 99, 235, 0.25);
+    color: var(--accent-color, #0d6efd);
+}
+.client-ficha-timeline__agenda-btn .ph { font-size: 1.15rem; }
+.client-ficha-timeline__facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 1.15rem;
+    margin-top: 0.1rem;
+}
+.client-ficha-timeline__fact {
+    font-size: 0.78rem;
+    color: #334155;
+    line-height: 1.35;
+}
+.client-ficha-timeline__fact-label {
+    display: inline-block;
+    margin-right: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+.client-ficha-timeline__tech {
+    margin-top: 0.35rem;
+    padding: 0.65rem 0.8rem;
+    background: var(--bs-tertiary-bg, #f8fafc);
+    border: 1px solid var(--bs-border-color, #eef2f7);
+    border-radius: 0.45rem;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.client-ficha-timeline__tech-label {
+    display: inline-block;
+    min-width: 4.5rem;
+    margin-right: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+@media (max-width: 767.98px) {
+    .client-ficha-timeline__agenda-btn {
+        align-self: flex-start;
+    }
+}
+</style>
 @endsection
 
 @section('content')
@@ -38,7 +303,14 @@
     @endif
     <div class="uview-info">
         <h2 class="uview-name">{{ $cliente->name }}</h2>
-        <p class="uview-email uview-email--profile mb-0">{{ $cliente->email }}</p>
+        @if($cliente->email)
+            <p class="uview-email uview-email--profile mb-0"><a href="mailto:{{ $cliente->email }}">{{ $cliente->email }}</a></p>
+        @endif
+        @if($cliente->phone)
+            <p class="uview-phone uview-email--profile mb-0">
+                <a href="{{ \App\Support\PhoneDisplay::telHref($cliente->phone) }}">{{ $cliente->formatted_phone }}</a>
+            </p>
+        @endif
         <div class="uview-header-tags">
             @include('clientes.partials.tags-inline', [
                 'client' => $cliente,
@@ -81,7 +353,8 @@
     <div>
         <div class="card">
             <div class="uview-tabs" role="tablist">
-                <button type="button" class="uview-tab nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#tab-details">Detalhes</button>
+                <button type="button" class="uview-tab nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#tab-resumo">Resumo</button>
+                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-details">Detalhes</button>
                 <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-marcacoes">Marcações</button>
                 <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-vendas">Vendas</button>
                 <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-estatisticas">Estatísticas</button>
@@ -90,8 +363,17 @@
             </div>
             <div class="card-body tab-content">
 
-                <!-- Details Tab -->
-                <div class="tab-pane fade show active" id="tab-details">
+                <!-- Resumo Tab -->
+                <div class="tab-pane fade show active" id="tab-resumo">
+                    @include('clientes.partials.ficha-tecnica', [
+                        'cliente' => $cliente,
+                        'marcacoes' => $marcacoes ?? collect(),
+                        'stats' => $stats ?? null,
+                    ])
+                </div>
+
+                <!-- Details Tab — perfil completo (mesmo que também apareça no header / resumo / ficha técnica) -->
+                <div class="tab-pane fade" id="tab-details">
                     <div class="uview-detail-group">
                         <div class="uview-detail-title">Informação Pessoal</div>
                         <div class="uview-detail-row">
@@ -100,14 +382,24 @@
                         </div>
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Email</div>
-                            <div class="uview-detail-value"><a href="mailto:{{ $cliente->email }}">{{ $cliente->email }}</a></div>
+                            <div class="uview-detail-value">
+                                @if($cliente->email)
+                                    <a href="mailto:{{ $cliente->email }}">{{ $cliente->email }}</a>
+                                @else
+                                    —
+                                @endif
+                            </div>
                         </div>
-                        @if($cliente->phone)
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Telefone</div>
-                            <div class="uview-detail-value"><a href="{{ \App\Support\PhoneDisplay::telHref($cliente->phone) }}">{{ $cliente->formatted_phone }}</a></div>
+                            <div class="uview-detail-value">
+                                @if($cliente->phone)
+                                    <a href="{{ \App\Support\PhoneDisplay::telHref($cliente->phone) }}">{{ $cliente->formatted_phone }}</a>
+                                @else
+                                    —
+                                @endif
+                            </div>
                         </div>
-                        @endif
                         @if($cliente->nif)
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">NIF</div>
@@ -167,22 +459,19 @@
                         @endif
                     </div>
 
-                    {{-- Preferências --}}
-                    @if($cliente->preferred_schedule || $cliente->preferences_notes)
+                    @php
+                        $detalheAlertas = collect([
+                            $cliente->allergies,
+                            $cliente->contraindications,
+                        ])->map(fn ($v) => trim((string) $v))->filter()->implode(' · ');
+                    @endphp
+                    @if($detalheAlertas !== '')
                     <div class="uview-detail-group">
-                        <div class="uview-detail-title">Preferências</div>
-                        @if($cliente->preferred_schedule)
+                        <div class="uview-detail-title">Alertas</div>
                         <div class="uview-detail-row">
-                            <div class="uview-detail-label">Horário preferido</div>
-                            <div class="uview-detail-value">{{ \App\Models\Client::preferredSchedules()[$cliente->preferred_schedule] ?? $cliente->preferred_schedule }}</div>
+                            <div class="uview-detail-label">Alertas</div>
+                            <div class="uview-detail-value text-danger">{{ $detalheAlertas }}</div>
                         </div>
-                        @endif
-                        @if($cliente->preferences_notes)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Observações</div>
-                            <div class="uview-detail-value">{{ $cliente->preferences_notes }}</div>
-                        </div>
-                        @endif
                     </div>
                     @endif
 
@@ -223,11 +512,11 @@
                         </div>
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Data de Registo</div>
-                            <div class="uview-detail-value">{{ $cliente->created_at->format('d/m/Y H:i') }}</div>
+                            <div class="uview-detail-value">{{ \App\Support\DateTimeDisplay::formatInstant($cliente->created_at, $cliente->store_id ? (int) $cliente->store_id : null, 'd/m/Y H:i') }}</div>
                         </div>
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Última Atualização</div>
-                            <div class="uview-detail-value">{{ $cliente->updated_at->format('d/m/Y H:i') }}</div>
+                            <div class="uview-detail-value">{{ \App\Support\DateTimeDisplay::formatInstant($cliente->updated_at, $cliente->store_id ? (int) $cliente->store_id : null, 'd/m/Y H:i') }}</div>
                         </div>
                     </div>
                 </div>
@@ -388,14 +677,11 @@
                                 <div class="card-body">
                                     <div class="d-flex align-items-center gap-2 mb-2">
                                         <i class="ph ph-scissors fs-4 text-primary"></i>
-                                        <span class="fw-semibold">Serviços mais usados</span>
+                                        <span class="fw-semibold">Serviço mais usado</span>
                                     </div>
                                     @if($s->topServicos->isNotEmpty())
-                                        <ol class="mb-0 ps-3">
-                                            @foreach($s->topServicos as $sv)
-                                                <li>{{ $sv->service_name }} <span class="text-muted">({{ $sv->total }})</span></li>
-                                            @endforeach
-                                        </ol>
+                                        @php $sv = $s->topServicos->first(); @endphp
+                                        <p class="mb-0">{{ $sv->service_name }} <span class="text-muted">({{ $sv->total }})</span></p>
                                     @else
                                         <p class="text-muted mb-0">Nenhum serviço registado.</p>
                                     @endif
@@ -514,15 +800,10 @@
                 <h5 class="card-title mb-0">Resumo</h5>
             </div>
             <div class="card-body">
+                @php
+                    $sidebarStoreId = $cliente->store_id ? (int) $cliente->store_id : null;
+                @endphp
                 <div class="uview-status-list">
-                <div class="uview-status-item">
-                        <span class="uview-status-label">ID Cliente</span>
-                        <span class="uview-status-value">{{ $cliente->client_id }}</span>
-                    </div>
-                    <div class="uview-status-item">
-                        <span class="uview-status-label">Registado em</span>
-                        <span class="uview-status-value">{{ $cliente->created_at->format('d/m/Y') }}</span>
-                    </div>
                     <div class="uview-status-item">
                         <span class="uview-status-label">Cliente desde</span>
                         <span class="uview-status-value">{{ $cliente->created_at->locale('pt')->diffForHumans() }}</span>
@@ -541,7 +822,7 @@
                     </div>
                     <div class="uview-status-item">
                         <span class="uview-status-label">Última visita</span>
-                        <span class="uview-status-value">{{ ($s?->ultimaVisita ?? null) ? \Carbon\Carbon::parse($s->ultimaVisita)->format('d/m/Y') : '—' }}</span>
+                        <span class="uview-status-value">{{ ($s?->ultimaVisita ?? null) ? \App\Support\DateTimeDisplay::marcacao(\Carbon\Carbon::parse($s->ultimaVisita), $sidebarStoreId, 'd/m/Y') : '—' }}</span>
                     </div>
                     <div class="uview-status-item">
                         <span class="uview-status-label">Marcações</span>
@@ -552,8 +833,52 @@
                         <span class="uview-status-value">{{ $s?->marcacoesFuturas ?? 0 }}</span>
                     </div>
                     <div class="uview-status-item">
-                        <span class="uview-status-label">Notas</span>
-                        <span class="uview-status-value">{{ $clientNotes->count() }}</span>
+                        <span class="uview-status-label">Horário preferido</span>
+                        <span class="uview-status-value">{{ $cliente->preferred_schedule ? (\App\Models\Client::preferredSchedules()[$cliente->preferred_schedule] ?? $cliente->preferred_schedule) : '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Data de nascimento</span>
+                        <span class="uview-status-value">{{ $cliente->birth_date ? $cliente->birth_date->format('d/m/Y') : '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Idade</span>
+                        <span class="uview-status-value">{{ $cliente->birth_date && $cliente->age !== null ? $cliente->age.' anos' : '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Género</span>
+                        <span class="uview-status-value">{{ $cliente->gender ? (\App\Models\Client::genders()[$cliente->gender] ?? $cliente->gender) : '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">NIF</span>
+                        <span class="uview-status-value">{{ $cliente->nif ?: '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Nacionalidade</span>
+                        <span class="uview-status-value">{{ $cliente->nationality ?: '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Estado Civil</span>
+                        <span class="uview-status-value">{{ $cliente->marital_status ? (\App\Models\Client::maritalStatuses()[$cliente->marital_status] ?? $cliente->marital_status) : '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Origem</span>
+                        <span class="uview-status-value">{{ $cliente->origem ?: '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Profissão</span>
+                        <span class="uview-status-value">{{ $cliente->profissao ?: '—' }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">ID Cliente</span>
+                        <span class="uview-status-value">{{ $cliente->client_id }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Data de registo</span>
+                        <span class="uview-status-value">{{ \App\Support\DateTimeDisplay::formatInstant($cliente->created_at, $sidebarStoreId, 'd/m/Y') }}</span>
+                    </div>
+                    <div class="uview-status-item">
+                        <span class="uview-status-label">Última actualização</span>
+                        <span class="uview-status-value">{{ \App\Support\DateTimeDisplay::formatInstant($cliente->updated_at, $sidebarStoreId, 'd/m/Y H:i') }}</span>
                     </div>
                 </div>
             </div>
@@ -578,10 +903,13 @@
     const hash = window.location.hash;
     const params = new URLSearchParams(window.location.search);
     const activeTabParam = params.get('active_tab');
-    const validTabs = ['tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
+    const validTabs = ['tab-resumo', 'tab-ficha-tecnica', 'tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
     var tabId = hash && validTabs.includes(hash.slice(1)) ? hash.slice(1) : null;
     if (!tabId && activeTabParam && validTabs.includes(activeTabParam)) {
         tabId = activeTabParam;
+    }
+    if (tabId === 'tab-ficha-tecnica') {
+        tabId = 'tab-resumo';
     }
 
     document.addEventListener('DOMContentLoaded', function() {

@@ -78,10 +78,11 @@ class DashboardController extends Controller
 
         $clientesContacto = $this->resumoClientesContactoStats();
         $vendasMesCorrente = $this->resumoVendasDiariasDoMes($today);
-        $opsKpis = $this->resumoOpsKpisAcrossStores($prestadorDashboard, $user instanceof User ? $user : null);
+        $opsPorPeriodo = $this->resumoMarcacoesOpsPorPeriodo($today);
 
         return view('dashboard.resumo', array_merge([
             'kpiPorPeriodo' => $kpiPorPeriodo,
+            'opsPorPeriodo' => $opsPorPeriodo,
             'monthLabels' => $monthLabels,
             'vendasAnoAtual' => $vendasAnoAtual,
             'vendasAnoAnterior' => $vendasAnoAnterior,
@@ -91,15 +92,14 @@ class DashboardController extends Controller
             'previousYear' => $previousYear,
             'clientesContacto' => $clientesContacto,
             'vendasMesCorrente' => $vendasMesCorrente,
-            'marcacoesHoje' => $opsKpis['marcacoesHoje'],
-            'faltasHoje' => $opsKpis['faltasHoje'],
-            'marcacoesEstaSemana' => $opsKpis['marcacoesEstaSemana'],
-            'marcacoesEsteMes' => $opsKpis['marcacoesEsteMes'],
-            'reportDateToday' => $opsKpis['reportDateToday'],
-            'reportDateWeekStart' => $opsKpis['reportDateWeekStart'],
-            'reportDateWeekEnd' => $opsKpis['reportDateWeekEnd'],
-            'reportDateMonthStart' => $opsKpis['reportDateMonthStart'],
-            'reportDateMonthEnd' => $opsKpis['reportDateMonthEnd'],
+            'marcacoesEstaSemana' => $opsPorPeriodo['semana']['ativas'] ?? 0,
+            'faltasEstaSemana' => $opsPorPeriodo['semana']['faltas'] ?? 0,
+            'marcacoesEsteMes' => $opsPorPeriodo['mes']['ativas'] ?? 0,
+            'faltasEsteMes' => $opsPorPeriodo['mes']['faltas'] ?? 0,
+            'reportDateWeekStart' => $opsPorPeriodo['semana']['desde'] ?? $today->toDateString(),
+            'reportDateWeekEnd' => $opsPorPeriodo['semana']['ate'] ?? $today->toDateString(),
+            'reportDateMonthStart' => $opsPorPeriodo['mes']['desde'] ?? $today->toDateString(),
+            'reportDateMonthEnd' => $opsPorPeriodo['mes']['ate'] ?? $today->toDateString(),
         ], $this->dashStoreViewData($filter)));
     }
 
@@ -678,6 +678,104 @@ class DashboardController extends Controller
                 $today->copy()->endOfDay(),
             ],
         };
+    }
+
+    /**
+     * Contagens de marcações por tab do Resumo (total / concluídas / faltas / canceladas).
+     *
+     * @return array<string, array{total: int, concluidas: int, faltas: int, canceladas: int, ativas: int, desde: string, ate: string}>
+     */
+    private function resumoMarcacoesOpsPorPeriodo(Carbon $today): array
+    {
+        $periods = ['ontem', 'hoje', 'amanha', 'semana', 'mes'];
+        /** @var array<string, array{0: Carbon, 1: Carbon}> $bounds */
+        $bounds = [];
+        foreach ($periods as $period) {
+            $bounds[$period] = $this->resumoPeriodBounds($period, $today);
+        }
+
+        $coverStart = $bounds['hoje'][0]->copy();
+        $coverEnd = $bounds['hoje'][1]->copy();
+        foreach ($bounds as [$start, $end]) {
+            if ($start->lt($coverStart)) {
+                $coverStart = $start->copy();
+            }
+            if ($end->gt($coverEnd)) {
+                $coverEnd = $end->copy();
+            }
+        }
+
+        [$coverStartUtc, $coverEndUtc] = $this->ocupacaoUtcQueryBounds($coverStart, $coverEnd);
+        /** @var array<string, array{0: Carbon, 1: Carbon}> $boundsUtc */
+        $boundsUtc = [];
+        foreach ($bounds as $period => [$start, $end]) {
+            $boundsUtc[$period] = $this->ocupacaoUtcQueryBounds($start, $end);
+        }
+
+        $nowUtc = StoreBusinessTime::nowUtcForStore($this->primaryDashboardStoreId());
+
+        $empty = [
+            'total' => 0,
+            'concluidas' => 0,
+            'faltas' => 0,
+            'canceladas' => 0,
+            'ativas' => 0,
+        ];
+        $stats = [];
+        foreach ($periods as $period) {
+            [$start, $end] = $bounds[$period];
+            $stats[$period] = array_merge($empty, [
+                'desde' => $start->toDateString(),
+                'ate' => $end->toDateString(),
+            ]);
+        }
+
+        $events = $this->calendarEventsQuery()
+            ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+            ->whereBetween('start_at', [$coverStartUtc, $coverEndUtc])
+            ->get(['id', 'start_at', 'end_at', 'status']);
+
+        foreach ($events as $event) {
+            $status = (string) ($event->status ?? CalendarEvent::STATUS_AGENDADO);
+            if ($status === CalendarEvent::STATUS_ANULADO) {
+                continue;
+            }
+
+            $startAt = $event->start_at;
+            if ($startAt === null) {
+                continue;
+            }
+
+            $isFalta = $status === CalendarEvent::STATUS_FALTOU;
+            $isCancelada = $status === CalendarEvent::STATUS_CANCELADO;
+            $isAtiva = ! $isFalta && ! $isCancelada;
+            $passed = ($event->end_at !== null && $event->end_at->lte($nowUtc))
+                || ($event->end_at === null && $startAt->lt($nowUtc));
+            $isConcluida = in_array($status, [
+                CalendarEvent::STATUS_TERMINADO,
+                CalendarEvent::STATUS_COMPLETO,
+            ], true) || ($isAtiva && $passed);
+
+            foreach ($boundsUtc as $period => [$pStart, $pEnd]) {
+                if (! $startAt->betweenIncluded($pStart, $pEnd)) {
+                    continue;
+                }
+
+                $stats[$period]['total']++;
+                if ($isFalta) {
+                    $stats[$period]['faltas']++;
+                } elseif ($isCancelada) {
+                    $stats[$period]['canceladas']++;
+                } else {
+                    $stats[$period]['ativas']++;
+                    if ($isConcluida) {
+                        $stats[$period]['concluidas']++;
+                    }
+                }
+            }
+        }
+
+        return $stats;
     }
 
     /**

@@ -243,6 +243,11 @@ class BookingController extends Controller
         $minLeadStart = null;
         if ($isToday) {
             $leadMoment = $nowLocal->copy()->addMinutes($minLeadMinutes);
+            // Se agora + antecedência já cai no dia seguinte, não há slots válidos hoje
+            // (senão minLeadStart fica "00:xx" e volta a mostrar manhã/tarde de hoje).
+            if (! $leadMoment->isSameDay($day)) {
+                return response()->json(['slots' => []]);
+            }
             $minLeadStart = ((int) $leadMoment->hour * 60) + (int) $leadMoment->minute;
         }
 

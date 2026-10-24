@@ -29,6 +29,9 @@ class CalendarEvent extends Model
                 'start_at',
                 'end_at',
                 'description',
+                'technical_formula',
+                'technical_products',
+                'technical_notes',
                 'user_id',
                 'store_id',
                 'client_id',
@@ -149,6 +152,9 @@ class CalendarEvent extends Model
                 'status' => 'Estado da marcação alterado',
                 'client_id' => 'Cliente da marcação alterado',
                 'description' => 'Observações alteradas',
+                'technical_formula' => 'Fórmula técnica alterada',
+                'technical_products' => 'Produtos técnicos alterados',
+                'technical_notes' => 'Notas técnicas alteradas',
                 'event_type' => 'Tipo de evento alterado',
                 'service_id' => 'Serviço principal alterado',
                 'personal_time_type_id' => 'Tipo de tempo pessoal alterado',
@@ -160,6 +166,11 @@ class CalendarEvent extends Model
 
         if (! array_diff($changed, ['start_at', 'end_at']) && count($changed) <= 2) {
             return 'Data e hora da marcação alteradas';
+        }
+
+        $technicalFields = ['technical_formula', 'technical_products', 'technical_notes'];
+        if ($changed !== [] && ! array_diff($changed, $technicalFields)) {
+            return 'Registo técnico da marcação alterado';
         }
 
         return 'Marcação atualizada';
@@ -256,6 +267,9 @@ class CalendarEvent extends Model
         'start_at',
         'end_at',
         'description',
+        'technical_formula',
+        'technical_products',
+        'technical_notes',
         'user_id',
         'client_id',
         'service_id',

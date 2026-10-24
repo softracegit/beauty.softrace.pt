@@ -156,6 +156,11 @@ Schedule::command('booking:dispatch-sms-reminders')
     // (default do Laravel é 1440 min = 24h — causa «No scheduled commands are ready to run»).
     ->withoutOverlapping(5);
 
+Schedule::command('staff:send-daily-appointment-digest')
+    ->dailyAt('08:30')
+    ->timezone((string) config('booking.business_timezone', 'Europe/Lisbon'))
+    ->withoutOverlapping(30);
+
 Artisan::command('wallet:reconcile {--store=} {--fix}', function (ClientWalletService $wallet) {
     $storeId = $this->option('store');
     $fix = (bool) $this->option('fix');

@@ -19,6 +19,9 @@ class UserNotificationPreference extends Model
     /** Estado da marcação alterado (inclui fluxo rápido de estado). */
     public const TYPE_STATUS_CHANGED = 'status_changed';
 
+    /** Email matinal com a agenda do dia (só email; sem sininho CRM). */
+    public const TYPE_DAILY_DIGEST = 'daily_digest';
+
     /**
      * Tipos emitidos por {@see \App\Notifications\AppointmentNotification} (coluna `category` na BD).
      *
@@ -29,6 +32,15 @@ class UserNotificationPreference extends Model
         self::TYPE_REASSIGNED,
         self::TYPE_RESCHEDULED,
         self::TYPE_STATUS_CHANGED,
+    ];
+
+    /**
+     * Preferências de email (sem sininho) — resumos agendados.
+     *
+     * @var list<string>
+     */
+    public const DIGEST_NOTIFICATION_KEYS = [
+        self::TYPE_DAILY_DIGEST,
     ];
 
     protected $fillable = [
@@ -110,7 +122,7 @@ class UserNotificationPreference extends Model
     }
 
     /**
-     * @return array<string, array{label: string, description: string}>
+     * @return array<string, array{label: string, description: string, email_only?: bool}>
      */
     public static function marcacaoTypesMeta(): array
     {
@@ -131,6 +143,37 @@ class UserNotificationPreference extends Model
                 'label' => 'Cancelamento / falta',
                 'description' => 'Sininho só em cancelamento; email em cancelamento e falta.',
             ],
+            self::TYPE_DAILY_DIGEST => [
+                'label' => 'Resumo diário da agenda',
+                'description' => 'Email às 08:30 com as marcações do dia (só se tiver pelo menos uma).',
+                'email_only' => true,
+            ],
         ];
+    }
+
+    /**
+     * Chaves mostradas na página de preferências (eventos + digests).
+     *
+     * @return list<string>
+     */
+    public static function preferenceKeys(): array
+    {
+        return array_values(array_unique([
+            ...self::MARCACAO_NOTIFICATION_KEYS,
+            ...self::DIGEST_NOTIFICATION_KEYS,
+        ]));
+    }
+
+    /**
+     * Digest matinal: sem registo = ativo; com registo respeita email_enabled.
+     */
+    public static function wantsDailyDigestEmail(User $user): bool
+    {
+        $pref = self::query()
+            ->where('user_id', $user->getKey())
+            ->where('category', self::TYPE_DAILY_DIGEST)
+            ->first();
+
+        return $pref === null ? true : (bool) $pref->email_enabled;
     }
 }

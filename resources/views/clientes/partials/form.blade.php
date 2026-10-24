@@ -269,12 +269,19 @@
             </div>
         </div>
 
-        <!-- Preferências -->
-        <div class="card">
+        <!-- Ficha técnica / Preferências -->
+        <div class="card" id="preferencias">
             <div class="card-body">
                 <div class="uedit-section">
-                    <div class="uedit-section-title">Preferências</div>
+                    <div class="uedit-section-title">Ficha técnica</div>
                     <div class="row">
+                        <div class="col-12 mb-3">
+                            <label class="form-label">Alertas</label>
+                            <textarea name="allergies" class="form-control @error('allergies') is-invalid @enderror" rows="2" placeholder="Alergias, sensibilidades, contraindicações, avisos…">{{ $v('allergies') }}</textarea>
+                            @error('allergies')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Horário preferido</label>
                             <select name="preferred_schedule" class="form-select @error('preferred_schedule') is-invalid @enderror">
@@ -284,13 +291,6 @@
                                 @endforeach
                             </select>
                             @error('preferred_schedule')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-12 mb-3">
-                            <label class="form-label">Observações das preferências</label>
-                            <textarea name="preferences_notes" class="form-control @error('preferences_notes') is-invalid @enderror" rows="3" placeholder="Ex: Prefere corte seco, evita horário de almoço...">{{ $v('preferences_notes') }}</textarea>
-                            @error('preferences_notes')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

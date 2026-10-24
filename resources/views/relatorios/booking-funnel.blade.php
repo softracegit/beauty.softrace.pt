@@ -41,12 +41,16 @@
   @endphp
 
   <div class="dash-welcome mb-4">
-    <div class="dash-welcome-content">
-      <h2 class="dash-welcome-title mb-0">Funil Booking</h2>
-      @include('relatorios.partials.store-context')
-      <p class="text-muted small mb-0 mt-1">
-        Abandonos e bloqueios no fluxo público de marcação (OTP, contas online e horários temporários). Histórico completo.
-      </p>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 w-100">
+      <div class="dash-welcome-content mb-0 flex-grow-1 min-w-0">
+        <h2 class="dash-welcome-title mb-0">Funil Booking</h2>
+        <p class="text-muted small mb-0 mt-1">
+          Abandonos e bloqueios no fluxo público de marcação (OTP, contas online e horários temporários). Histórico completo.
+        </p>
+      </div>
+      <div class="relatorio-header-actions">
+        @include('relatorios.partials.store-context')
+      </div>
     </div>
   </div>
 

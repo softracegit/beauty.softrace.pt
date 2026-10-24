@@ -41,3 +41,29 @@ body.page-relatorios .relatorio-tab-filters .uview-filter-field.uview-filter-est
 .vendas-tfoot-total td {
     border-top-width: 2px;
 }
+
+/* Filtro de loja na barra do título (altura alinhada ao btn-sm Exportar) */
+body.page-relatorios .relatorio-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+body.page-relatorios .relatorio-store-context {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+}
+body.page-relatorios .relatorio-store-context__select.form-select-sm,
+body.page-relatorios .relatorio-store-context .form-select-sm {
+    min-height: 31px;
+    height: 31px;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    line-height: 1.5;
+}
+body.page-relatorios .relatorio-store-context__label {
+    line-height: 31px;
+    white-space: nowrap;
+}
