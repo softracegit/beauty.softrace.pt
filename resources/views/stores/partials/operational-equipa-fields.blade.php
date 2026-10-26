@@ -1,11 +1,12 @@
-{{-- agents, roles, personalTimeLimitStoreHours, storeHoursLabel, showStoreColumn --}}
+{{-- agents, roles, personalTimeLimitStoreHours, storeHoursLabel, showStoreColumn, showPersonalTimeSection --}}
 @php
   $showStoreColumn = (bool) ($showStoreColumn ?? false);
+  $showPersonalTimeSection = (bool) ($showPersonalTimeSection ?? true);
   $idPrefix = $idPrefix ?? '';
   $colspan = $showStoreColumn ? 7 : 6;
 @endphp
 
-<div class="uedit-section mb-4">
+<div class="uedit-section {{ $showPersonalTimeSection ? 'mb-4' : 'mb-0' }}">
   <div class="uedit-section-title">Membros</div>
   <p class="text-muted small mb-3">Nível de acesso, visibilidade e ordem na Agenda / Booking.</p>
   <div class="table-responsive">
@@ -75,6 +76,7 @@
   </div>
 </div>
 
+@if ($showPersonalTimeSection)
 <div class="uedit-section mb-0">
   <div class="uedit-section-title">Tempo pessoal</div>
   <div class="d-flex align-items-center justify-content-between gap-3">
@@ -93,3 +95,4 @@
     (atualmente {{ $storeHoursLabel ?? '09:00–20:00' }}).
   </p>
 </div>
+@endif

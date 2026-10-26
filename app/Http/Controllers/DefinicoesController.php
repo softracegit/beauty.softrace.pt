@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PersonalTimeType;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
 use App\Services\ClientTagService;
@@ -9,8 +10,10 @@ use App\Services\StoreBusinessSettingsService;
 use App\Services\StoreOperationalSettingsService;
 use App\Services\StoreSettingsActivityLogger;
 use App\Support\CurrentStore;
+use App\Support\PersonalTimeTypeIcons;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -135,12 +138,18 @@ class DefinicoesController extends Controller
 
     public function equipa(): View
     {
-        $orgId = current_organization_id();
+        $orgId = (int) current_organization_id();
         $data = $this->operationalSettings->equipaViewDataForOrganization($orgId);
+        PersonalTimeType::ensureDefaultsForOrganization($orgId);
+        $personalTimeTypes = PersonalTimeType::forOrganization($orgId)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
         return view('definicoes.equipa', array_merge($data, [
             'pageTitle' => 'Equipa',
-            'settingsScopeNote' => 'O limite de tempo pessoal aplica-se às lojas sem definição própria. Lojas com tempo pessoal específico na ficha não são sobrescritas. A tabela lista membros de toda a organização.',
+            'personalTimeTypes' => $personalTimeTypes,
+            'personalTimeTypeIcons' => PersonalTimeTypeIcons::options(),
             'storesWithSpecificSettings' => $this->operationalSettings->storesWithSpecificPersonalTimeSettings($orgId),
             'storesWithSpecificSettingsTab' => 'equipa',
         ]));
@@ -178,15 +187,121 @@ class DefinicoesController extends Controller
             'equipa',
             'Configuração da equipa actualizada',
             [$overwriteAll
-                ? 'Tempo pessoal sobrescrito em todas as lojas; membros actualizados'
-                : 'Tempo pessoal aplicado às lojas sem definição específica; membros actualizados'],
+                ? 'Membros e limite de tempo pessoal sobrescritos em todas as lojas'
+                : 'Membros e limite de tempo pessoal actualizados'],
         );
 
         return redirect()
             ->route('definicoes.equipa')
             ->with('status', $overwriteAll
                 ? 'Equipa actualizada em todas as lojas.'
-                : 'Equipa actualizada (lojas com tempo pessoal específico na ficha mantêm-se).');
+                : 'Equipa actualizada.');
+    }
+
+    public function storePersonalTimeType(Request $request): RedirectResponse
+    {
+        $orgId = (int) current_organization_id();
+        $validated = $this->validatePersonalTimeTypePayload($request, $orgId);
+
+        $maxOrder = (int) PersonalTimeType::forOrganization($orgId)->max('sort_order');
+
+        PersonalTimeType::query()->create([
+            'organization_id' => $orgId,
+            'name' => $validated['name'],
+            'icon' => $validated['icon'],
+            'duration' => $validated['duration'],
+            'sort_order' => $maxOrder + 1,
+            'is_active' => true,
+        ]);
+
+        return redirect()
+            ->route('definicoes.equipa')
+            ->with('status', 'Tipo de tempo pessoal criado.');
+    }
+
+    public function updatePersonalTimeType(Request $request, PersonalTimeType $personalTimeType): RedirectResponse
+    {
+        $orgId = (int) current_organization_id();
+        if ((int) $personalTimeType->organization_id !== $orgId) {
+            abort(404);
+        }
+
+        $validated = $this->validatePersonalTimeTypePayload($request, $orgId, (int) $personalTimeType->id);
+
+        $personalTimeType->update([
+            'name' => $validated['name'],
+            'icon' => $validated['icon'],
+            'duration' => $validated['duration'],
+            'is_active' => $validated['is_active'],
+        ]);
+
+        return redirect()
+            ->route('definicoes.equipa')
+            ->with('status', 'Tipo de tempo pessoal actualizado.');
+    }
+
+    public function destroyPersonalTimeType(PersonalTimeType $personalTimeType): RedirectResponse
+    {
+        $orgId = (int) current_organization_id();
+        if ((int) $personalTimeType->organization_id !== $orgId) {
+            abort(404);
+        }
+
+        if (PersonalTimeType::isReservedOutroName($personalTimeType->name)) {
+            return redirect()
+                ->route('definicoes.equipa')
+                ->with('error', 'O tipo «Outro» não pode ser eliminado.');
+        }
+
+        $inUse = $personalTimeType->calendarEvents()->exists();
+        if ($inUse) {
+            $personalTimeType->update(['is_active' => false]);
+
+            return redirect()
+                ->route('definicoes.equipa')
+                ->with('status', 'Tipo desactivado (já usado em marcações).');
+        }
+
+        $personalTimeType->delete();
+
+        return redirect()
+            ->route('definicoes.equipa')
+            ->with('status', 'Tipo de tempo pessoal eliminado.');
+    }
+
+    /**
+     * @return array{name: string, icon: string, duration: int, is_active: bool}
+     */
+    private function validatePersonalTimeTypePayload(Request $request, int $organizationId, ?int $ignoreId = null): array
+    {
+        $validated = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:80',
+                Rule::unique('personal_time_types', 'name')
+                    ->where(fn ($q) => $q->where('organization_id', $organizationId))
+                    ->ignore($ignoreId),
+            ],
+            'icon' => ['required', 'string', Rule::in(PersonalTimeTypeIcons::values())],
+            'duration' => ['required', 'integer', 'min:5', 'max:480'],
+            'is_active' => ['nullable', 'boolean'],
+        ], [
+            'name.unique' => 'Já existe um tipo com este nome.',
+        ]);
+
+        if (PersonalTimeType::isReservedOutroName($validated['name'])) {
+            throw ValidationException::withMessages([
+                'name' => 'O nome «Outro» está reservado (está sempre disponível na agenda).',
+            ]);
+        }
+
+        return [
+            'name' => trim($validated['name']),
+            'icon' => $validated['icon'],
+            'duration' => (int) $validated['duration'],
+            'is_active' => $request->boolean('is_active', true),
+        ];
     }
 
     public function pagamentos(): View

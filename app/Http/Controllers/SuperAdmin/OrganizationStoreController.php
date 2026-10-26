@@ -119,9 +119,6 @@ class OrganizationStoreController extends Controller
         if ($store->sales()->exists()) {
             $labels[] = 'vendas';
         }
-        if ($store->personalTimeTypes()->exists()) {
-            $labels[] = 'tipos de tempo pessoal';
-        }
         if ($store->bookingSlotHolds()->exists()) {
             $labels[] = 'reservas temporárias de horário';
         }

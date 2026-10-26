@@ -270,6 +270,9 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
         Route::post('marcacoes', [DefinicoesController::class, 'updateMarcacoes'])->name('marcacoes.update');
         Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');
         Route::post('equipa', [DefinicoesController::class, 'updateEquipa'])->name('equipa.update');
+        Route::post('equipa/tempo-pessoal', [DefinicoesController::class, 'storePersonalTimeType'])->name('equipa.tempo-pessoal.store');
+        Route::put('equipa/tempo-pessoal/{personalTimeType}', [DefinicoesController::class, 'updatePersonalTimeType'])->name('equipa.tempo-pessoal.update');
+        Route::delete('equipa/tempo-pessoal/{personalTimeType}', [DefinicoesController::class, 'destroyPersonalTimeType'])->name('equipa.tempo-pessoal.destroy');
         Route::get('emails', [DefinicoesController::class, 'emails'])->name('emails');
         Route::post('emails', [DefinicoesController::class, 'updateEmails'])->name('emails.update');
         Route::get('etiquetas', [DefinicoesController::class, 'etiquetas'])->name('etiquetas');

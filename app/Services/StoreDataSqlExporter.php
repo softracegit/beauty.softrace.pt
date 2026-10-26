@@ -115,7 +115,9 @@ class StoreDataSqlExporter
         $this->idSets['stores'] = [$storeId];
 
         $this->idSets['agents'] = $this->pluckIds('agents', 'store_id', $storeId);
-        $this->idSets['personal_time_types'] = $this->pluckIds('personal_time_types', 'store_id', $storeId);
+        $this->idSets['personal_time_types'] = $orgId > 0
+            ? $this->pluckIds('personal_time_types', 'organization_id', $orgId)
+            : [];
         $this->idSets['clients'] = $this->pluckIds('clients', 'store_id', $storeId);
         $this->idSets['calendar_events'] = $this->pluckIds('calendar_events', 'store_id', $storeId);
         $this->idSets['sales'] = $this->pluckIds('sales', 'store_id', $storeId);

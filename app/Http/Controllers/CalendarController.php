@@ -88,7 +88,13 @@ class CalendarController extends Controller
     public function index()
     {
         $eventTypes = CalendarEvent::eventTypes();
-        $personalTimeTypes = PersonalTimeType::forStore(current_store_id())->where('is_active', true)->orderBy('sort_order')->get();
+        $orgId = (int) current_organization_id();
+        PersonalTimeType::ensureDefaultsForOrganization($orgId);
+        $personalTimeTypes = PersonalTimeType::forOrganization($orgId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
         // Mostrar apenas users com agent ativo e visível na agenda; excluir Administradores.
         $users = User::whereHas('agent', function ($query) {
             $query->where('store_id', current_store_id())
@@ -1210,7 +1216,7 @@ class CalendarController extends Controller
 
         $rules = [
             'title' => ['required_without:personal_time_type_id', 'nullable', 'string', 'max:255'],
-            'personal_time_type_id' => ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))],
+            'personal_time_type_id' => ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after_or_equal:start_at'],
             'description' => ['nullable', 'string'],
@@ -1248,7 +1254,7 @@ class CalendarController extends Controller
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL) {
             $personalTypeId = $validated['personal_time_type_id'] ?? null;
             if ($personalTypeId) {
-                $type = PersonalTimeType::forStore(current_store_id())->find($personalTypeId);
+                $type = PersonalTimeType::forOrganization((int) current_organization_id())->find($personalTypeId);
                 $validated['title'] = $type?->name ?? $validated['title'] ?? 'Tempo pessoal';
                 $validated['personal_time_type_id'] = (int) $personalTypeId;
             } else {
@@ -1457,7 +1463,7 @@ class CalendarController extends Controller
 
         if ($calendarEvent->isSourceEditable()) {
             $rules['title'] = ['sometimes', 'string', 'max:255'];
-            $rules['personal_time_type_id'] = ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('store_id', current_store_id()))];
+            $rules['personal_time_type_id'] = ['nullable', Rule::exists('personal_time_types', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))];
             $rules['description'] = ['nullable', 'string'];
             $rules['technical_formula'] = ['nullable', 'string', 'max:5000'];
             $rules['technical_products'] = ['nullable', 'string', 'max:5000'];
@@ -1641,7 +1647,7 @@ class CalendarController extends Controller
             $allowed = ['title', 'description', 'technical_formula', 'technical_products', 'technical_notes', 'event_type', 'service_id', 'client_id', 'personal_time_type_id'];
             $toUpdate = array_filter($validated, fn ($k) => in_array($k, $allowed, true), ARRAY_FILTER_USE_KEY);
             if (isset($toUpdate['personal_time_type_id']) && $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {
-                $type = PersonalTimeType::forStore(current_store_id())->find($toUpdate['personal_time_type_id']);
+                $type = PersonalTimeType::forOrganization((int) current_organization_id())->find($toUpdate['personal_time_type_id']);
                 if ($type) {
                     $toUpdate['title'] = $type->name;
                 }

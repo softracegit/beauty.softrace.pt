@@ -134,11 +134,13 @@ class Store extends Model
     }
 
     /**
+     * Tipos de tempo pessoal da organização (partilhados entre lojas).
+     *
      * @return HasMany<PersonalTimeType, $this>
      */
     public function personalTimeTypes(): HasMany
     {
-        return $this->hasMany(PersonalTimeType::class);
+        return $this->hasMany(PersonalTimeType::class, 'organization_id', 'organization_id');
     }
 
     /**

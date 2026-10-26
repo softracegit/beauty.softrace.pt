@@ -187,9 +187,7 @@ SQL,
             'Agentes' => <<<'SQL'
 DELETE FROM agents WHERE store_id = @store_id
 SQL,
-            'Tipos de tempo pessoal' => <<<'SQL'
-DELETE FROM personal_time_types WHERE store_id = @store_id
-SQL,
+            // Tipos de tempo pessoal são por organização — não apagar ao limpar uma loja.
             'Definições CRM' => <<<'SQL'
 DELETE FROM crm_settings WHERE store_id = @store_id
 SQL,
