@@ -29,7 +29,7 @@ final class PersonalTimeTypeIcons
             ['value' => 'ph-book-open', 'label' => 'Estudo'],
             ['value' => 'ph-heartbeat', 'label' => 'Saúde'],
             ['value' => 'ph-first-aid', 'label' => 'Médico'],
-            ['value' => 'ph-dumbbell', 'label' => 'Treino'],
+            ['value' => 'ph-barbell', 'label' => 'Treino'],
             ['value' => 'ph-person-simple-walk', 'label' => 'Passeio'],
             ['value' => 'ph-phone', 'label' => 'Telefone'],
             ['value' => 'ph-envelope-simple', 'label' => 'Email'],
