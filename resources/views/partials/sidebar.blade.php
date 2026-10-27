@@ -397,13 +397,23 @@
           </a>
         </li>
         <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.equipa') ? 'active' : '' }}" href="{{ route('definicoes.equipa') }}">
+            Equipa
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.tempo-pessoal', 'definicoes.tempo-pessoal.*') ? 'active' : '' }}" href="{{ route('definicoes.tempo-pessoal') }}">
+            Tempo pessoal
+          </a>
+        </li>
+        <li>
           <a class="panel-link {{ request()->routeIs('definicoes.marcacoes') ? 'active' : '' }}" href="{{ route('definicoes.marcacoes') }}">
             Booking
           </a>
         </li>
         <li>
-          <a class="panel-link {{ request()->routeIs('definicoes.equipa') ? 'active' : '' }}" href="{{ route('definicoes.equipa') }}">
-            Equipa
+          <a class="panel-link {{ request()->routeIs('definicoes.pagamentos') ? 'active' : '' }}" href="{{ route('definicoes.pagamentos') }}">
+            Pagamentos
           </a>
         </li>
         <li>
@@ -414,11 +424,6 @@
         <li>
           <a class="panel-link {{ request()->routeIs('definicoes.notificacoes') ? 'active' : '' }}" href="{{ route('definicoes.notificacoes') }}">
             Notificações
-          </a>
-        </li>
-        <li>
-          <a class="panel-link {{ request()->routeIs('definicoes.pagamentos') ? 'active' : '' }}" href="{{ route('definicoes.pagamentos') }}">
-            Pagamentos
           </a>
         </li>
         <li>

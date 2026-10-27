@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Notifications\ResetPasswordNotification;
 use App\Support\ActivityLogContext;
 use App\Support\CrmPrivacyLock;
 use Spatie\Activitylog\Contracts\Activity;
@@ -83,6 +84,11 @@ class User extends Authenticatable
             'password' => 'hashed',
             'must_set_password' => 'boolean',
         ];
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordNotification($token));
     }
 
     // Roles (Tipo de Membro - focado em serviços: nails, barbeiros, pets, etc.)

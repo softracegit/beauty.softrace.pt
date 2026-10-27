@@ -1,12 +1,6 @@
 @extends('definicoes.layout')
 
 @section('definicoes_content')
-  @if (!empty($settingsScopeNote))
-    <div class="alert alert-light border mb-4 small">
-      <i class="ph ph-buildings me-1" aria-hidden="true"></i>{{ $settingsScopeNote }}
-    </div>
-  @endif
-
   <form method="post" action="{{ route('definicoes.marcacoes.update') }}" id="definicoes-booking-form">
     @csrf
 
@@ -67,7 +61,7 @@
 
     <div class="card mt-3">
       <div class="card-header">
-        <h5 class="card-title mb-0">Marcações</h5>
+        <h5 class="card-title mb-0">Horários e checkout</h5>
       </div>
       <div class="card-body">
         <p class="text-muted small mb-4">

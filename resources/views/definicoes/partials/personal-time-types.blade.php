@@ -156,7 +156,7 @@
           data-icon="{{ $type->icon }}"
           data-duration="{{ $type->duration }}"
           data-active="{{ $type->is_active ? '1' : '0' }}"
-          data-action="{{ route('definicoes.equipa.tempo-pessoal.update', $type) }}">
+          data-action="{{ route('definicoes.tempo-pessoal.tipos.update', $type) }}">
           <i class="ph ph-pencil-simple" aria-hidden="true"></i>
         </button>
         <button type="submit"
@@ -191,7 +191,7 @@
   @foreach($personalTimeTypes as $type)
     <form id="pt-destroy-{{ $type->id }}"
       method="post"
-      action="{{ route('definicoes.equipa.tempo-pessoal.destroy', $type) }}"
+      action="{{ route('definicoes.tempo-pessoal.tipos.destroy', $type) }}"
       class="d-none">
       @csrf
       @method('DELETE')
@@ -201,7 +201,7 @@
   {{-- Modal criar --}}
   <div class="modal fade" id="personalTimeTypeCreateModal" tabindex="-1" aria-labelledby="personalTimeTypeCreateModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <form method="post" action="{{ route('definicoes.equipa.tempo-pessoal.store') }}" class="modal-content">
+      <form method="post" action="{{ route('definicoes.tempo-pessoal.tipos.store') }}" class="modal-content">
         @csrf
         <div class="modal-header">
           <h5 class="modal-title" id="personalTimeTypeCreateModalLabel">Novo tipo de tempo pessoal</h5>

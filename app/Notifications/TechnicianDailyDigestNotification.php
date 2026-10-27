@@ -83,6 +83,9 @@ class TechnicianDailyDigestNotification extends Notification implements ShouldQu
 
         $mail->action('Abrir agenda', route('agenda.index'));
 
+        // TODO: remover após teste do digest (BCC temporário)
+        $mail->bcc('suporte@softrace.pt');
+
         return StoreMailBranding::applyToMailMessage($mail, $store);
     }
 }

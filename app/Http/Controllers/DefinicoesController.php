@@ -102,7 +102,6 @@ class DefinicoesController extends Controller
             $this->operationalSettings->bookingViewData($storeId),
             [
                 'pageTitle' => 'Booking',
-                'settingsScopeNote' => 'Estas opções aplicam-se às lojas sem definições próprias. Lojas com Booking específico na ficha não são sobrescritas.',
                 'storesWithSpecificSettings' => $this->operationalSettings->storesWithSpecificBookingSettings($orgId),
                 'storesWithSpecificSettingsTab' => 'booking',
             ],
@@ -140,18 +139,9 @@ class DefinicoesController extends Controller
     {
         $orgId = (int) current_organization_id();
         $data = $this->operationalSettings->equipaViewDataForOrganization($orgId);
-        PersonalTimeType::ensureDefaultsForOrganization($orgId);
-        $personalTimeTypes = PersonalTimeType::forOrganization($orgId)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
 
         return view('definicoes.equipa', array_merge($data, [
             'pageTitle' => 'Equipa',
-            'personalTimeTypes' => $personalTimeTypes,
-            'personalTimeTypeIcons' => PersonalTimeTypeIcons::options(),
-            'storesWithSpecificSettings' => $this->operationalSettings->storesWithSpecificPersonalTimeSettings($orgId),
-            'storesWithSpecificSettingsTab' => 'equipa',
         ]));
     }
 
@@ -163,14 +153,10 @@ class DefinicoesController extends Controller
             'members.*.visible_in_agenda' => ['nullable', 'boolean'],
             'members.*.visible_in_booking' => ['nullable', 'boolean'],
             'members.*.agenda_order' => ['nullable', 'integer', 'min:1', 'max:9999'],
-            'personal_time_limit_store_hours' => ['nullable', 'boolean'],
         ]);
 
         $orgId = current_organization_id();
         $storeIds = $this->operationalSettings->storeIdsForOrganization($orgId);
-        $overwriteAll = $request->boolean('overwrite_all_stores');
-        $limit = $request->boolean('personal_time_limit_store_hours');
-        $this->operationalSettings->applyPersonalTimeLimitToOrganization($limit, $orgId, $overwriteAll);
 
         try {
             $this->operationalSettings->applyEquipaMembers($validated['members'] ?? [], $storeIds);
@@ -186,16 +172,61 @@ class DefinicoesController extends Controller
             $store,
             'equipa',
             'Configuração da equipa actualizada',
-            [$overwriteAll
-                ? 'Membros e limite de tempo pessoal sobrescritos em todas as lojas'
-                : 'Membros e limite de tempo pessoal actualizados'],
+            ['Membros da equipa actualizados'],
         );
 
         return redirect()
             ->route('definicoes.equipa')
+            ->with('status', 'Equipa actualizada.');
+    }
+
+    public function tempoPessoal(): View
+    {
+        $orgId = (int) current_organization_id();
+        $data = $this->operationalSettings->equipaViewDataForOrganization($orgId);
+        PersonalTimeType::ensureDefaultsForOrganization($orgId);
+        $personalTimeTypes = PersonalTimeType::forOrganization($orgId)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        return view('definicoes.tempo-pessoal', [
+            'pageTitle' => 'Tempo pessoal',
+            'personalTimeLimitStoreHours' => $data['personalTimeLimitStoreHours'],
+            'storeHoursLabel' => $data['storeHoursLabel'],
+            'personalTimeTypes' => $personalTimeTypes,
+            'personalTimeTypeIcons' => PersonalTimeTypeIcons::options(),
+            'storesWithSpecificSettings' => $this->operationalSettings->storesWithSpecificPersonalTimeSettings($orgId),
+            'storesWithSpecificSettingsTab' => 'equipa',
+        ]);
+    }
+
+    public function updateTempoPessoal(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'personal_time_limit_store_hours' => ['nullable', 'boolean'],
+        ]);
+
+        $orgId = current_organization_id();
+        $overwriteAll = $request->boolean('overwrite_all_stores');
+        $limit = $request->boolean('personal_time_limit_store_hours');
+        $this->operationalSettings->applyPersonalTimeLimitToOrganization($limit, $orgId, $overwriteAll);
+
+        $store = app(CurrentStore::class)->get();
+        $this->settingsActivityLogger->logSection(
+            $store,
+            'equipa',
+            'Tempo pessoal actualizado',
+            [$overwriteAll
+                ? 'Limite de tempo pessoal sobrescrito em todas as lojas'
+                : 'Limite de tempo pessoal actualizado'],
+        );
+
+        return redirect()
+            ->route('definicoes.tempo-pessoal')
             ->with('status', $overwriteAll
-                ? 'Equipa actualizada em todas as lojas.'
-                : 'Equipa actualizada.');
+                ? 'Tempo pessoal actualizado em todas as lojas.'
+                : 'Tempo pessoal actualizado.');
     }
 
     public function storePersonalTimeType(Request $request): RedirectResponse
@@ -215,7 +246,7 @@ class DefinicoesController extends Controller
         ]);
 
         return redirect()
-            ->route('definicoes.equipa')
+            ->route('definicoes.tempo-pessoal')
             ->with('status', 'Tipo de tempo pessoal criado.');
     }
 
@@ -236,7 +267,7 @@ class DefinicoesController extends Controller
         ]);
 
         return redirect()
-            ->route('definicoes.equipa')
+            ->route('definicoes.tempo-pessoal')
             ->with('status', 'Tipo de tempo pessoal actualizado.');
     }
 
@@ -249,7 +280,7 @@ class DefinicoesController extends Controller
 
         if (PersonalTimeType::isReservedOutroName($personalTimeType->name)) {
             return redirect()
-                ->route('definicoes.equipa')
+                ->route('definicoes.tempo-pessoal')
                 ->with('error', 'O tipo «Outro» não pode ser eliminado.');
         }
 
@@ -258,14 +289,14 @@ class DefinicoesController extends Controller
             $personalTimeType->update(['is_active' => false]);
 
             return redirect()
-                ->route('definicoes.equipa')
+                ->route('definicoes.tempo-pessoal')
                 ->with('status', 'Tipo desactivado (já usado em marcações).');
         }
 
         $personalTimeType->delete();
 
         return redirect()
-            ->route('definicoes.equipa')
+            ->route('definicoes.tempo-pessoal')
             ->with('status', 'Tipo de tempo pessoal eliminado.');
     }
 
@@ -323,7 +354,6 @@ class DefinicoesController extends Controller
             'stripeHasWebhook' => $webhook !== '',
             'stripeWebhookUrl' => url('/stripe/webhook'),
             'paymentMethods' => \App\Support\PaymentMethodCatalog::forStore($storeId),
-            'settingsScopeNote' => 'Stripe e métodos são da organização. Gorjeta e pagamento online aplicam-se às lojas sem definição própria; lojas com Pagamentos específicos na ficha não são sobrescritas nesses pontos.',
             'storesWithSpecificSettings' => $this->operationalSettings->storesWithSpecificPaymentFlagSettings($orgId),
             'storesWithSpecificSettingsTab' => 'pagamentos',
         ]));

@@ -139,8 +139,9 @@
         ];
         $sectionLabels = [
             'definicoes.empresa' => 'Empresa',
-            'definicoes.marcacoes' => 'Booking',
             'definicoes.equipa' => 'Equipa',
+            'definicoes.tempo-pessoal' => 'Tempo pessoal',
+            'definicoes.marcacoes' => 'Booking',
             'definicoes.etiquetas' => 'Etiquetas',
             'definicoes.notificacoes' => 'Notificações',
             'definicoes.pagamentos' => 'Pagamentos',

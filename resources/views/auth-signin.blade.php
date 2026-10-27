@@ -12,6 +12,10 @@
     <div class="auth-alert auth-alert-error" role="alert">{{ session('error') }}</div>
   @endif
 
+  @if (session('status'))
+    <div class="auth-alert auth-alert-success" role="alert">{{ session('status') }}</div>
+  @endif
+
   @if ($errors->any())
     <div class="auth-alert auth-alert-error">
       <ul class="mb-0" style="list-style: none; padding-left: 0;">

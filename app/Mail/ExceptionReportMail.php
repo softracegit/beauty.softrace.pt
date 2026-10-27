@@ -43,7 +43,7 @@ class ExceptionReportMail extends Mailable
                 'url' => $this->request?->fullUrl(),
                 'method' => $this->request?->method(),
                 'userId' => $this->request?->user()?->getAuthIdentifier(),
-                'storeId' => function_exists('current_store_id') ? current_store_id() : null,
+                'storeId' => function_exists('current_store') ? current_store()->tryId() : null,
                 'input' => $this->safeInput(),
                 'userAgent' => $this->request?->userAgent(),
                 'ip' => $this->request?->ip(),

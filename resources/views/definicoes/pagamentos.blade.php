@@ -157,11 +157,6 @@
     @csrf
     @php $methodIndex = 0; @endphp
 
-    <div class="alert alert-light border mb-4 small">
-      <i class="ph ph-buildings me-1" aria-hidden="true"></i>
-      {{ $settingsScopeNote ?? 'Stripe, métodos, gorjeta e pagamento online aplicam-se a todas as lojas da organização. Para ajustar só uma loja, use Lojas → editar → Pagamentos.' }}
-    </div>
-
     <div class="card mb-4">
       <div class="card-header">
         <h5 class="card-title mb-0">Métodos de pagamento manuais</h5>
