@@ -46,6 +46,18 @@
     font-size: 0.92rem;
     letter-spacing: 0.01em;
 }
+.client-ficha-alert-card__chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #9a3412;
+    background: #fff;
+    border: 1px solid #fed7aa;
+}
 .client-ficha-alert-card__edit {
     margin-left: auto;
     font-size: 0.8rem;
@@ -467,7 +479,7 @@
                     @endphp
                     @if($detalheAlertas !== '')
                     <div class="uview-detail-group">
-                        <div class="uview-detail-title">Alertas</div>
+                        <div class="uview-detail-title">Alertas do cliente <span class="text-muted fw-normal" style="font-size: 0.75rem;">· Booking</span></div>
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Alertas</div>
                             <div class="uview-detail-value text-danger">{{ $detalheAlertas }}</div>

@@ -42,19 +42,12 @@
     </div>
   @endif
 
-  @if(!empty($usesHistoricalFooter))
-    <div class="nota">
-      <strong>Nota:</strong> o total de comissões a pagar inclui valores históricos do Zappy (até 31/05/2026).
-      As linhas individuais reflectem o cálculo CRM; a partir de 01/06/2026 linhas e total coincidem.
-    </div>
-  @endif
-
   <table>
     <thead>
       <tr>
         @foreach($columns as $colKey)
           <th @class([
-            'text-end text-nowrap' => in_array($colKey, ['valor_servico', 'comissao_taxa', 'valor_comissao'], true),
+            'text-end text-nowrap' => in_array($colKey, ['valor_servico', 'comissao_taxa', 'retencao_taxa', 'valor_comissao'], true),
           ])>{{ $labels[$colKey] ?? $colKey }}</th>
         @endforeach
       </tr>
@@ -84,6 +77,9 @@
                 @break
               @case('comissao_taxa')
                 <td class="text-end text-nowrap">{{ $linha->comissao_taxa ?? '—' }}</td>
+                @break
+              @case('retencao_taxa')
+                <td class="text-end text-nowrap">{{ $linha->retencao_taxa ?? '—' }}</td>
                 @break
               @case('valor_comissao')
                 <td class="text-end text-nowrap">{{ number_format((float) ($comIva ? $linha->comissao_com_iva : $linha->comissao_sem_iva), 2, ',', ' ') }}€</td>

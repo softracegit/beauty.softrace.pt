@@ -15,6 +15,7 @@ class ComissoesReportPdfColumns
         'servico' => 'Serviço',
         'valor_servico' => 'Valor serviço',
         'comissao_taxa' => 'Comissão (%)',
+        'retencao_taxa' => 'Retenção',
         'valor_comissao' => 'Valor comissão',
     ];
 

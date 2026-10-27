@@ -20,6 +20,8 @@ class SendBookingReminderSmsJob implements ShouldQueue
 
     public int $timeout = 30;
 
+    public int $tries = 1;
+
     public function __construct(public int $calendarEventId)
     {
         $this->tries = max(1, (int) config('booking.sms_reminder_max_attempts', 1));

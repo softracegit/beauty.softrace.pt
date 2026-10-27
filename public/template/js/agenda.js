@@ -2994,57 +2994,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isNaN(d.getTime())) return null;
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
-    function agendaOcResetTechnicalAlertMore(banner, moreBtn) {
-        if (banner) {
-            banner.classList.remove('is-expanded');
-            banner.classList.remove('is-multiline');
-        }
-        if (!moreBtn) return;
-        moreBtn.textContent = 'ver mais';
-        moreBtn.setAttribute('aria-expanded', 'false');
-        moreBtn.classList.add('d-none');
-    }
-
-    function agendaOcRefreshTechnicalAlertClamp(pfx) {
-        var banner = $id(pfx + 'ClientTechnicalAlertBanner');
-        var textEl = $id(pfx + 'ClientTechnicalAlertText');
-        var moreBtn = $id(pfx + 'ClientTechnicalAlertMore');
-        if (!banner || !textEl || !moreBtn || banner.classList.contains('d-none')) return;
-        if (banner.classList.contains('is-expanded')) {
-            moreBtn.classList.remove('d-none');
-            banner.classList.add('is-multiline');
-            return;
-        }
-        var overflows = textEl.scrollHeight > textEl.clientHeight + 1;
-        moreBtn.classList.toggle('d-none', !overflows);
-        var cs = window.getComputedStyle(textEl);
-        var lineHeight = parseFloat(cs.lineHeight);
-        if (!lineHeight || isNaN(lineHeight)) {
-            lineHeight = (parseFloat(cs.fontSize) || 11) * 1.5;
-        }
-        var multiline = overflows || textEl.scrollHeight > lineHeight * 1.4;
-        banner.classList.toggle('is-multiline', multiline);
-    }
-
-    function agendaOcBindTechnicalAlertMore(pfx) {
-        var banner = $id(pfx + 'ClientTechnicalAlertBanner');
-        var moreBtn = $id(pfx + 'ClientTechnicalAlertMore');
-        if (!banner || !moreBtn || moreBtn.dataset.bound === '1') return;
-        moreBtn.dataset.bound = '1';
-        moreBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var expanded = banner.classList.toggle('is-expanded');
-            moreBtn.textContent = expanded ? 'ver menos' : 'ver mais';
-            moreBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-            if (!expanded) {
-                requestAnimationFrame(function() {
-                    agendaOcRefreshTechnicalAlertClamp(pfx);
-                });
-            }
-        });
-    }
-
     function agendaOcApplyClientTechnicalSheet(pfx, c) {
         var alerts = String((c && c.allergies) || '').trim();
         agendaOcSetProfileValueDisplay(
@@ -3059,28 +3008,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var allergiesInput = $id(pfx + 'ClientAllergiesInput');
         if (allergiesInput && !allergiesInput.disabled) allergiesInput.value = alerts;
-        var banner = $id(pfx + 'ClientTechnicalAlertBanner');
-        var textEl = $id(pfx + 'ClientTechnicalAlertText');
-        var moreBtn = $id(pfx + 'ClientTechnicalAlertMore');
-        if (!banner) return;
-        agendaOcBindTechnicalAlertMore(pfx);
-        agendaOcResetTechnicalAlertMore(banner, moreBtn);
-        if (alerts) {
-            if (textEl) {
-                textEl.textContent = alerts;
-                textEl.removeAttribute('title');
-            }
-            banner.classList.remove('d-none');
-            requestAnimationFrame(function() {
-                agendaOcRefreshTechnicalAlertClamp(pfx);
-            });
-        } else {
-            banner.classList.add('d-none');
-            if (textEl) {
-                textEl.textContent = '';
-                textEl.removeAttribute('title');
-            }
-        }
+        var alertsWrap = $id(pfx + 'ClientAllergiesViewField');
+        if (alertsWrap) alertsWrap.classList.toggle('has-allergies', !!alerts);
     }
 
     function eventDetailOcUpdateBirthdayBanner() {

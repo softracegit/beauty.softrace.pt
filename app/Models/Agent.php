@@ -44,7 +44,7 @@ class Agent extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'status', 'visible_in_agenda', 'visible_in_booking', 'booking_slug', 'agenda_order', 'weekly_schedule'])
+            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'retention_fee_rate', 'retention_fee_unit', 'retention_fee_effective_from', 'status', 'visible_in_agenda', 'visible_in_booking', 'booking_slug', 'agenda_order', 'weekly_schedule'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
@@ -86,6 +86,9 @@ class Agent extends Model
         'specialization',
         'commission_rate',
         'commission_unit',
+        'retention_fee_rate',
+        'retention_fee_unit',
+        'retention_fee_effective_from',
         'status',
         'visible_in_agenda',
         'visible_in_booking',
@@ -99,6 +102,8 @@ class Agent extends Model
     protected $casts = [
         'birth_date' => 'date',
         'commission_rate' => 'decimal:2',
+        'retention_fee_rate' => 'decimal:2',
+        'retention_fee_effective_from' => 'date',
         'visible_in_agenda' => 'boolean',
         'visible_in_booking' => 'boolean',
         'agenda_order' => 'integer',
@@ -375,12 +380,25 @@ class Agent extends Model
      */
     public function formatCommissionDisplay(): ?string
     {
-        if ($this->commission_rate === null) {
+        return $this->formatRateUnitDisplay($this->commission_rate, $this->commission_unit);
+    }
+
+    /**
+     * Texto da taxa de retenção (ex.: "1,50 €" ou "5,00 %").
+     */
+    public function formatRetentionFeeDisplay(): ?string
+    {
+        return $this->formatRateUnitDisplay($this->retention_fee_rate, $this->retention_fee_unit);
+    }
+
+    private function formatRateUnitDisplay(mixed $rate, mixed $unit): ?string
+    {
+        if ($rate === null) {
             return null;
         }
 
-        $num = number_format((float) $this->commission_rate, 2, ',', ' ');
-        $unit = $this->commission_unit ?? self::COMMISSION_UNIT_PERCENT;
+        $num = number_format((float) $rate, 2, ',', ' ');
+        $unit = $unit ?? self::COMMISSION_UNIT_PERCENT;
 
         return $unit === self::COMMISSION_UNIT_EURO
             ? $num.' €'

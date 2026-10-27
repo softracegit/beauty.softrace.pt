@@ -957,7 +957,6 @@ class RelatoriosController extends Controller
             'tecnicosOpts' => $this->membrosOptsForRelatorios($storeCtx['store_ids']),
             'clientesOpts' => $this->comissoesReportService->clientesOpts($storeCtx['store_ids']),
             'comissoesTotais' => $report['totais'],
-            'comissoesTotalHistorico' => $report['usesHistoricalFooter'],
             'comissoesPdfColumnOptions' => ComissoesReportPdfColumns::labels(),
         ]);
     }
@@ -982,6 +981,7 @@ class RelatoriosController extends Controller
             'Valor serviço c/ IVA (€)',
             'Valor serviço s/ IVA (€)',
             'Comissão (%)',
+            'Retenção',
             'Valor comissão c/ IVA (€)',
             'Valor comissão s/ IVA (€)',
         ];
@@ -999,6 +999,7 @@ class RelatoriosController extends Controller
                     round((float) $linha->valor_com_iva, 2),
                     round((float) $linha->valor_sem_iva, 2),
                     $linha->comissao_taxa ?? '',
+                    $linha->retencao_taxa ?? '—',
                     round((float) $linha->comissao_com_iva, 2),
                     round((float) $linha->comissao_sem_iva, 2),
                 ],
@@ -1007,14 +1008,6 @@ class RelatoriosController extends Controller
         }
 
         $totais = $report['totais'];
-        if ($report['usesHistoricalFooter']) {
-            $sheet->fromArray([
-                [
-                    'Nota: total c/ IVA alinhado ao Zappy (até 31/05/2026). Linhas = cálculo CRM.',
-                ],
-            ], null, 'A'.$rowIndex);
-            $rowIndex++;
-        }
 
         $sheet->fromArray([
             [
@@ -1026,12 +1019,13 @@ class RelatoriosController extends Controller
                 '',
                 '',
                 '',
+                '',
                 round((float) ($totais['total_comissao_com_iva'] ?? 0), 2),
                 round((float) ($totais['total_comissao_sem_iva'] ?? 0), 2),
             ],
         ], null, 'A'.$rowIndex);
 
-        foreach (range('A', 'J') as $col) {
+        foreach (range('A', 'K') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -1058,7 +1052,6 @@ class RelatoriosController extends Controller
             'appName' => config('app.name'),
             'totalLinhas' => $report['lines']->count(),
             'comissoesTotais' => $report['totais'],
-            'usesHistoricalFooter' => $report['usesHistoricalFooter'],
             'comissoesComIva' => $this->comissoesComIvaPreference($request),
             'pdfColumns' => $pdfColumns,
             'pdfColumnLabels' => ComissoesReportPdfColumns::labels(),

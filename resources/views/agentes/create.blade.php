@@ -135,6 +135,11 @@
                                 'commissionRate' => old('commission_rate'),
                                 'commissionUnit' => old('commission_unit', \App\Models\Agent::COMMISSION_UNIT_PERCENT),
                             ])
+                            @include('agentes.partials.retention-fee-field', [
+                                'retentionFeeRate' => old('retention_fee_rate'),
+                                'retentionFeeUnit' => old('retention_fee_unit', \App\Models\Agent::COMMISSION_UNIT_EURO),
+                                'retentionFeeEffectiveFrom' => old('retention_fee_effective_from', now()->toDateString()),
+                            ])
                         </div>
                     </div>
                 </div>
@@ -386,6 +391,35 @@
         });
     });
     setUnit(hidden.value || '{{ \App\Models\Agent::COMMISSION_UNIT_PERCENT }}');
+})();
+(function() {
+    var input = document.getElementById('retentionFeeRateInput');
+    var hidden = document.getElementById('retentionFeeUnitHidden');
+    var btns = document.querySelectorAll('.retention-fee-unit-btn');
+    if (!input || !hidden || !btns.length) return;
+    function syncMax() {
+        if (hidden.value === '{{ \App\Models\Agent::COMMISSION_UNIT_PERCENT }}') {
+            input.setAttribute('max', '100');
+        } else {
+            input.removeAttribute('max');
+        }
+    }
+    function setUnit(unit) {
+        hidden.value = unit;
+        btns.forEach(function(b) {
+            var on = b.getAttribute('data-unit') === unit;
+            b.classList.toggle('btn-primary', on);
+            b.classList.toggle('btn-outline-secondary', !on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        syncMax();
+    }
+    btns.forEach(function(b) {
+        b.addEventListener('click', function() {
+            setUnit(b.getAttribute('data-unit'));
+        });
+    });
+    setUnit(hidden.value || '{{ \App\Models\Agent::COMMISSION_UNIT_EURO }}');
 })();
 </script>
 @endsection

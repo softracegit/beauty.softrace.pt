@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mockup — Offcanvas marcação (proposta)</title>
+  <style>
+    :root {
+      --bg: #e8eaef;
+      --panel: #fff;
+      --border: #e5e7eb;
+      --muted: #9ca3af;
+      --text: #111827;
+      --text-soft: #1f2937;
+      --label: #9ca3af;
+      --accent: #4f46e5;
+      --allergy-bg: #fffbf7;
+      --allergy-border: #fed7aa;
+      --allergy-icon: #ea580c;
+      --info-bg: #eff6ff;
+      --info-border: #bfdbfe;
+      --info-label: #64748b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .page {
+      padding: 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .page-note {
+      margin: 0 0 1rem;
+      padding: 0.75rem 1rem;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      color: #92400e;
+      line-height: 1.45;
+    }
+    .page-note code {
+      font-size: 0.8em;
+      background: rgba(0,0,0,.06);
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.25rem;
+    }
+
+    /* Offcanvas shell */
+    .oc {
+      background: var(--panel);
+      border-radius: 0.75rem;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 640px;
+      max-height: 90vh;
+    }
+    .oc-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .oc-header h1 {
+      margin: 0;
+      flex: 1;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .oc-header .btn-ghost {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 0.375rem;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      cursor: default;
+    }
+    .oc-header .btn-close {
+      width: 1.75rem;
+      height: 1.75rem;
+      border: 0;
+      background: transparent;
+      font-size: 1.25rem;
+      line-height: 1;
+      color: #6b7280;
+      cursor: default;
+    }
+    .oc-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(240px, 280px) 1fr;
+      min-height: 0;
+    }
+    @media (max-width: 800px) {
+      .oc-body { grid-template-columns: 1fr; }
+    }
+
+    /* Left: client */
+    .col-client {
+      border-right: 1px solid var(--border);
+      padding: 1.15rem 1rem 1.25rem;
+      overflow: auto;
+      background: #fafafa;
+    }
+    .hero {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+    }
+    .avatar {
+      width: 3.25rem;
+      height: 3.25rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #c7d2fe, #a5b4fc);
+      color: #312e81;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+    .hero-meta { flex: 1; min-width: 0; }
+    .hero-name {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .hero-phone {
+      margin: 0.15rem 0 0;
+      font-size: 0.8125rem;
+      color: #4b5563;
+    }
+    .hero-actions {
+      margin-top: 0.35rem;
+      display: flex;
+      gap: 0.5rem;
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.55rem;
+    }
+    .tag {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
+    .details-toggle {
+      margin-top: 0.65rem;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 0;
+      background: transparent;
+      padding: 0.35rem 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #6b7280;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+    }
+
+    .birthday {
+      margin-top: 0.65rem;
+      padding: 0.4rem 0.65rem;
+      border-radius: 0.375rem;
+      background: linear-gradient(135deg, #fffbeb, #fef3c7);
+      border: 1px solid #fcd34d;
+      color: #92400e;
+      font-size: 0.72rem;
+    }
+
+    .allergy {
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.7rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--allergy-border);
+      background: var(--allergy-bg);
+    }
+    .allergy-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+    }
+    .allergy-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #111827;
+    }
+    .allergy-title .ico { color: var(--allergy-icon); font-size: 1.05rem; }
+    .allergy-text {
+      margin: 0;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      line-height: 1.4;
+      color: #1f2937;
+      white-space: pre-wrap;
+    }
+    .allergy-hint {
+      margin: 0.4rem 0 0;
+      font-size: 0.72rem;
+      line-height: 1.35;
+      color: #9ca3af;
+    }
+
+    .crm {
+      margin-top: 0.35rem;
+      border-top: 1px dashed #e5e7eb;
+      padding-top: 0.35rem;
+    }
+    .crm.collapsed .crm-fields { display: none; }
+    .crm-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      padding: 0.35rem 0;
+      font-size: 0.8125rem;
+    }
+    .crm-row .k {
+      width: 5.25rem;
+      flex-shrink: 0;
+      color: #4b5563;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .crm-row .v {
+      flex: 1;
+      text-align: right;
+      font-weight: 500;
+      color: var(--text);
+      min-width: 0;
+    }
+    .profile-link {
+      display: block;
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #4b5563;
+      text-decoration: none;
+    }
+
+    /* Right: appointment */
+    .col-appt {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .col-appt-body {
+      flex: 1;
+      overflow: auto;
+      padding: 1.25rem 1.875rem;
+    }
+    .block {
+      margin-bottom: 1.75rem;
+    }
+    .block:last-child { margin-bottom: 0; }
+    .field-label {
+      display: block;
+      color: var(--label);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 0.55rem;
+    }
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 0.5rem;
+    }
+    .control {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      padding: 0.45rem 0.65rem;
+      font-size: 0.875rem;
+      background: #fff;
+      color: var(--text);
+    }
+    .control-sm {
+      padding: 0.35rem 0.55rem;
+      font-size: 0.8125rem;
+    }
+    .services-list {
+      margin-top: 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    .service-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      font-size: 0.8125rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .service-item:last-child { border-bottom: 0; }
+    .service-item .name { font-weight: 600; }
+    .service-item .meta { color: #6b7280; font-size: 0.75rem; margin-top: 0.15rem; }
+    .service-item .price { font-weight: 600; white-space: nowrap; }
+
+    .info-card {
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--info-border);
+      background: var(--info-bg);
+    }
+    .info-card .field-label,
+    .info-card .sub-label {
+      color: var(--info-label) !important;
+    }
+    .info-card .sub-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin: 0 0 0.2rem;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #64748b;
+    }
+    .info-card .section { margin-top: 0.85rem; }
+    .info-card .section:first-child { margin-top: 0; }
+    .info-card textarea.control {
+      min-height: 4.5rem;
+      resize: vertical;
+      font-family: inherit;
+      line-height: 1.4;
+    }
+    .info-card textarea.control-sm {
+      min-height: 2.75rem;
+    }
+    .tech-field { margin-bottom: 0.75rem; }
+    .tech-field:last-child { margin-bottom: 0; }
+
+    .oc-footer {
+      border-top: 1px solid var(--border);
+      padding: 0.85rem 1.25rem 1rem;
+      background: #fff;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding-bottom: 0.65rem;
+      margin-bottom: 0.65rem;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 0.875rem;
+    }
+    .total-row strong { font-size: 1rem; }
+    .footer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: space-between;
+    }
+    .btn {
+      border-radius: 0.375rem;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: default;
+    }
+    .btn-outline {
+      background: #fff;
+      border-color: #c7d2fe;
+      color: #3730a3;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-light {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .legend {
+      margin-top: 1.25rem;
+      display: grid;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: #4b5563;
+    }
+    .legend span {
+      display: inline-block;
+      width: 0.85rem;
+      height: 0.85rem;
+      border-radius: 0.2rem;
+      vertical-align: -0.1rem;
+      margin-right: 0.35rem;
+      border: 1px solid transparent;
+    }
+    .legend .l-allergy { background: var(--allergy-bg); border-color: var(--allergy-border); }
+    .legend .l-info { background: var(--info-bg); border-color: var(--info-border); }
+    .legend .l-crm { background: #fafafa; border-color: #d1d5db; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <p class="page-note">
+      <strong>Mockup estático</strong> da proposta de reorganização do offcanvas — não altera a app.
+      Abre este ficheiro no browser. Se não gostar, apaga o ficheiro
+      <code>docs/mockups/agenda-offcanvas-reorg-preview.html</code>.
+    </p>
+
+    <div class="oc" role="dialog" aria-label="Detalhe da marcação (mockup)">
+      <div class="oc-header">
+        <h1>Detalhe da marcação</h1>
+        <button type="button" class="btn-ghost">Guardar alterações</button>
+        <button type="button" class="btn-close" aria-label="Fechar">×</button>
+      </div>
+
+      <div class="oc-body">
+        <!-- COLUNA CLIENTE -->
+        <aside class="col-client">
+          <div class="hero">
+            <div class="avatar" aria-hidden="true">MS</div>
+            <div class="hero-meta">
+              <p class="hero-name">Maria Santos</p>
+              <p class="hero-phone">912 345 678</p>
+              <div class="hero-actions" aria-label="Ações do cliente">
+                <span title="Ver perfil">👁</span>
+                <span title="Alterar cliente">⇄</span>
+              </div>
+              <div class="tags">
+                <span class="tag">VIP</span>
+                <span class="tag">Cor</span>
+              </div>
+              <button type="button" class="details-toggle" id="crmToggle" aria-expanded="false">
+                <span>Dados do cliente</span>
+                <span id="crmCaret">▾</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="birthday">🎂 Aniversário esta semana · 29 out</div>
+
+          <div class="allergy">
+            <div class="allergy-head">
+              <div class="allergy-title">
+                <span class="ico" aria-hidden="true">⚠</span>
+                <span>Tem alergias?</span>
+              </div>
+            </div>
+            <p class="allergy-text">Sensibilidade a amónia · evitar PPD</p>
+          </div>
+          <p class="allergy-hint">Este campo é visível para o cliente quando marca através do Booking - não usar para notas internas!</p>
+
+          <div class="crm collapsed" id="crmBlock">
+            <div class="crm-fields">
+              <div class="crm-row"><span class="k">Telemóvel</span><span class="v">912 345 678</span></div>
+              <div class="crm-row"><span class="k">Email</span><span class="v">maria@email.pt</span></div>
+              <div class="crm-row"><span class="k">D. Nasc.</span><span class="v">29/10/1988</span></div>
+              <div class="crm-row"><span class="k">NIF</span><span class="v">123456789</span></div>
+              <div class="crm-row"><span class="k">Origem</span><span class="v">Instagram</span></div>
+              <div class="crm-row"><span class="k">Profissão</span><span class="v">Designer</span></div>
+              <div class="crm-row"><span class="k">Cliente desde</span><span class="v">mar 2022</span></div>
+            </div>
+          </div>
+
+          <a class="profile-link" href="#">Ver perfil completo →</a>
+        </aside>
+
+        <!-- COLUNA MARCAÇÃO -->
+        <div class="col-appt">
+          <div class="col-appt-body">
+            <!-- Bloco 1: Agenda -->
+            <section class="block" aria-label="Agenda">
+              <div class="row-2" style="margin-bottom: 1.25rem;">
+                <div>
+                  <label class="field-label" for="demoDate">Data</label>
+                  <input id="demoDate" class="control" type="text" value="27/10/2026" readonly>
+                </div>
+                <div>
+                  <label class="field-label" for="demoTime">Hora</label>
+                  <input id="demoTime" class="control" type="text" value="14:30" readonly>
+                </div>
+              </div>
+              <div>
+                <label class="field-label" for="demoMember">Prestador(a) do serviço</label>
+                <select id="demoMember" class="control control-sm" disabled>
+                  <option>Ana Ferreira</option>
+                </select>
+              </div>
+            </section>
+
+            <!-- Bloco 2: Serviços -->
+            <section class="block" aria-label="Serviços">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.55rem;">
+                <label class="field-label" style="margin:0;" for="demoService">Serviços</label>
+                <span style="font-size:.75rem;font-weight:600;color:var(--accent);">+ Adicionar serviços</span>
+              </div>
+              <select id="demoService" class="control control-sm" disabled>
+                <option>Escolher serviço…</option>
+              </select>
+              <div class="services-list">
+                <div class="service-item">
+                  <div>
+                    <div class="name">Coloração completa</div>
+                    <div class="meta">90 min</div>
+                  </div>
+                  <div class="price">65,00 €</div>
+                </div>
+                <div class="service-item">
+                  <div>
+                    <div class="name">Brushing</div>
+                    <div class="meta">30 min</div>
+                  </div>
+                  <div class="price">18,00 €</div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Bloco 3: Notas desta visita (card info) -->
+            <section class="block" aria-label="Notas desta visita">
+              <div class="info-card">
+                <div class="section">
+                  <label class="field-label" for="demoNotes">Notas da marcação</label>
+                  <textarea id="demoNotes" class="control" readonly>Chega ~10 min tarde · avisar receção</textarea>
+                </div>
+                <div class="section">
+                  <div class="tech-field">
+                    <label class="sub-label" for="demoFormula">Fórmula</label>
+                    <textarea id="demoFormula" class="control control-sm" readonly>6.1 + 7.0 / ox 20 vol / 35 min</textarea>
+                  </div>
+                  <div class="tech-field">
+                    <label class="sub-label" for="demoProducts">Produtos</label>
+                    <textarea id="demoProducts" class="control control-sm" readonly>Wella Koleston · Olaplex nº2</textarea>
+                  </div>
+                  <div class="tech-field">
+                    <label class="sub-label" for="demoTechNotes">Notas técnicas</label>
+                    <textarea id="demoTechNotes" class="control control-sm" readonly>Raiz mais escura que o comprimento; reforçar mid-lengths</textarea>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="oc-footer">
+            <div class="total-row">
+              <span class="small" style="color:#6b7280;">Total:</span>
+              <strong>83,00 €</strong>
+            </div>
+            <div class="footer-actions">
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                <button type="button" class="btn btn-outline">Pré-pagamento</button>
+                <button type="button" class="btn btn-outline">Pagar</button>
+              </div>
+              <div style="display:flex;gap:.5rem;">
+                <button type="button" class="btn btn-light">Cancelar</button>
+                <button type="button" class="btn btn-primary">Guardar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div><span class="l-allergy"></span> Cliente · alergias (visível no Booking)</div>
+      <div><span class="l-crm"></span> Cliente · dados CRM (colapsáveis)</div>
+      <div><span class="l-info"></span> Marcação · notas desta visita (só staff)</div>
+    </div>
+  </div>
+
+  <script>
+    var toggle = document.getElementById('crmToggle');
+    var block = document.getElementById('crmBlock');
+    var caret = document.getElementById('crmCaret');
+    toggle.addEventListener('click', function () {
+      var open = block.classList.toggle('collapsed') === false;
+      // classList.toggle returns boolean for presence after toggle when 2nd arg omitted... actually returns true if class is now present
+      var collapsed = block.classList.contains('collapsed');
+      toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      caret.textContent = collapsed ? '▾' : '▴';
+    });
+  </script>
+</body>
+</html>

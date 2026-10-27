@@ -49,12 +49,22 @@
             <span id="{{ $pfx }}ClientBirthdayText" class="agenda-client-birthday-banner__text"></span>
         </div>
 
-        <div id="{{ $pfx }}ClientTechnicalAlertBanner" class="agenda-client-tech-alert d-none" role="status" aria-live="polite">
-            <i class="ph ph-warning-circle agenda-client-tech-alert__icon" aria-hidden="true"></i>
-            <div class="agenda-client-tech-alert__body">
-                <span id="{{ $pfx }}ClientTechnicalAlertText" class="agenda-client-tech-alert__text"></span>
-                <button type="button" class="agenda-client-tech-alert__more d-none" id="{{ $pfx }}ClientTechnicalAlertMore" aria-expanded="false">ver mais</button>
+        {{-- Alergias: ficam no cliente (não nesta marcação) e o cliente vê no Booking --}}
+        <div class="agenda-oc-client-alerts-wrap" id="{{ $pfx }}ClientAllergiesViewField" data-profile-field="allergies">
+            <div class="agenda-oc-client-alerts">
+                <div class="agenda-oc-client-alerts__head">
+                    <div class="agenda-oc-client-alerts__title">
+                        <i class="ph ph-warning-circle" aria-hidden="true"></i>
+                        <span>Tem alergias?</span>
+                    </div>
+                    <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add agenda-oc-client-alerts__add d-none" id="{{ $pfx }}ClientAllergiesAddBtn">Adicionar</button>
+                </div>
+                <div class="agenda-oc-client-alerts__value">
+                    <span id="{{ $pfx }}ClientSelectedAllergies" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                    <input type="text" id="{{ $pfx }}ClientAllergiesInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="2000" placeholder="Alergias, sensibilidades, avisos…">
+                </div>
             </div>
+            <p class="agenda-oc-field-hint agenda-oc-client-alerts__hint mb-0">Este campo é visível para o cliente quando marca através do Booking - não usar para notas internas!</p>
         </div>
 
         <div class="agenda-oc-client-panel__details" id="{{ $pfx }}ClientDetails">
@@ -117,14 +127,6 @@
                         <span id="{{ $pfx }}ClientSelectedProfissao" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
                         <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientProfissaoAddBtn">Adicionar</button>
                         <input type="text" id="{{ $pfx }}ClientProfissaoInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="255" placeholder="Ex: Designer, Médica…" autocomplete="organization-title">
-                    </div>
-                </div>
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientAllergiesViewField" data-profile-field="allergies">
-                    <div class="form-label agenda-oc-client-panel__label">Alertas</div>
-                    <div class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedAllergies" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
-                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientAllergiesAddBtn">Adicionar</button>
-                        <input type="text" id="{{ $pfx }}ClientAllergiesInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="2000" placeholder="Alergias, sensibilidades, avisos…">
                     </div>
                 </div>
                 <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row agenda-oc-client-panel__field--readonly" id="{{ $pfx }}ClientSinceViewField">

@@ -9,6 +9,7 @@ use App\Services\ZappyImport\ZappyImportService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -106,6 +107,7 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
 
     $count = 0;
     $skippedSameDay = 0;
+    $failed = 0;
 
     CalendarEvent::query()
         ->where('event_type', CalendarEvent::TYPE_MARCACAO)
@@ -121,7 +123,7 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
         })
         ->select(['id', 'start_at', 'created_at'])
         ->orderBy('id')
-        ->chunkById(100, function ($events) use (&$count, &$skippedSameDay, $maxPerRun, $sameDayCreationSkip): bool {
+        ->chunkById(100, function ($events) use (&$count, &$skippedSameDay, &$failed, $maxPerRun, $sameDayCreationSkip): bool {
             foreach ($events as $event) {
                 if ($count >= $maxPerRun) {
                     return false;
@@ -131,20 +133,29 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
 
                     continue;
                 }
-                SendBookingReminderSmsJob::dispatch((int) $event->id);
-                $count++;
+                try {
+                    SendBookingReminderSmsJob::dispatch((int) $event->id);
+                    $count++;
+                } catch (\Throwable $e) {
+                    $failed++;
+                    Log::warning('booking_sms_reminder_dispatch_failed', [
+                        'calendar_event_id' => (int) $event->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
             }
 
             return true;
         });
 
     $this->info(sprintf(
-        'SMS lembretes despachados: %d (dia da marcação = amanhã %s; TZ=%s; máx/run=%d; ignorados marcação-no-mesmo-dia=%d)',
+        'SMS lembretes despachados: %d (dia da marcação = amanhã %s; TZ=%s; máx/run=%d; ignorados marcação-no-mesmo-dia=%d; falhas=%d)',
         $count,
         $tomorrowStartLocal->format('Y-m-d'),
         $tz,
         $maxPerRun,
-        $skippedSameDay
+        $skippedSameDay,
+        $failed
     ));
 
     return self::SUCCESS;

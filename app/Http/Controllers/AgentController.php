@@ -166,6 +166,9 @@ class AgentController extends Controller
             'specialization' => $this->specializationRules($request),
             'commission_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
             'commission_rate' => $this->commissionRateRules($request),
+            'retention_fee_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
+            'retention_fee_rate' => $this->retentionFeeRateRules($request),
+            'retention_fee_effective_from' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
@@ -176,6 +179,7 @@ class AgentController extends Controller
 
         $validated = $this->applySpecializationByRole($validated);
         $validated = $this->normalizeCommission($validated);
+        $validated = $this->normalizeRetentionFee($validated);
         $validated = $this->normalizeBookingSlugInput($validated);
 
         $storeId = current_store_id();
@@ -397,6 +401,9 @@ class AgentController extends Controller
             'specialization' => $this->specializationRules($request),
             'commission_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
             'commission_rate' => $this->commissionRateRules($request),
+            'retention_fee_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
+            'retention_fee_rate' => $this->retentionFeeRateRules($request),
+            'retention_fee_effective_from' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['active', 'inactive', 'on_leave'])],
             'color' => ['nullable', 'string', 'max:20'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
@@ -407,6 +414,7 @@ class AgentController extends Controller
 
         $validated = $this->applySpecializationByRole($validated);
         $validated = $this->normalizeCommission($validated);
+        $validated = $this->normalizeRetentionFee($validated);
         $validated = $this->normalizeBookingSlugInput($validated);
 
         // Handle avatar upload
@@ -542,6 +550,12 @@ class AgentController extends Controller
     {
         if ($request->input('commission_rate') === '') {
             $request->merge(['commission_rate' => null]);
+        }
+        if ($request->input('retention_fee_rate') === '') {
+            $request->merge(['retention_fee_rate' => null]);
+        }
+        if ($request->input('retention_fee_effective_from') === '') {
+            $request->merge(['retention_fee_effective_from' => null]);
         }
     }
 
@@ -687,20 +701,60 @@ class AgentController extends Controller
      */
     private function normalizeCommission(array $validated): array
     {
-        $rate = $validated['commission_rate'] ?? null;
-        if ($rate === null || $rate === '') {
-            $validated['commission_rate'] = null;
-            $validated['commission_unit'] = null;
+        return $this->normalizeRateUnitPair(
+            $validated,
+            'commission_rate',
+            'commission_unit',
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function normalizeRetentionFee(array $validated): array
+    {
+        $validated = $this->normalizeRateUnitPair(
+            $validated,
+            'retention_fee_rate',
+            'retention_fee_unit',
+        );
+
+        if (($validated['retention_fee_rate'] ?? null) === null) {
+            $validated['retention_fee_effective_from'] = null;
 
             return $validated;
         }
 
-        $unit = $validated['commission_unit'] ?? Agent::COMMISSION_UNIT_PERCENT;
+        $from = $validated['retention_fee_effective_from'] ?? null;
+        if ($from === null || $from === '') {
+            // Sem data = não aplica a nada no passado; assume início hoje.
+            $validated['retention_fee_effective_from'] = now()->toDateString();
+        }
+
+        return $validated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function normalizeRateUnitPair(array $validated, string $rateKey, string $unitKey): array
+    {
+        $rate = $validated[$rateKey] ?? null;
+        if ($rate === null || $rate === '') {
+            $validated[$rateKey] = null;
+            $validated[$unitKey] = null;
+
+            return $validated;
+        }
+
+        $unit = $validated[$unitKey] ?? Agent::COMMISSION_UNIT_PERCENT;
         if (! in_array($unit, [Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO], true)) {
             $unit = Agent::COMMISSION_UNIT_PERCENT;
         }
-        $validated['commission_unit'] = $unit;
-        $validated['commission_rate'] = round((float) $rate, 2);
+        $validated[$unitKey] = $unit;
+        $validated[$rateKey] = round((float) $rate, 2);
 
         return $validated;
     }
@@ -728,17 +782,37 @@ class AgentController extends Controller
     /** @return array<int, \Illuminate\Contracts\Validation\ValidationRule|string> */
     private function commissionRateRules(Request $request): array
     {
+        return $this->rateUnitRules(
+            $request,
+            'commission_unit',
+            'A percentagem de comissão não pode ser superior a 100%.',
+        );
+    }
+
+    /** @return array<int, \Illuminate\Contracts\Validation\ValidationRule|string> */
+    private function retentionFeeRateRules(Request $request): array
+    {
+        return $this->rateUnitRules(
+            $request,
+            'retention_fee_unit',
+            'A percentagem de retenção não pode ser superior a 100%.',
+        );
+    }
+
+    /** @return array<int, \Illuminate\Contracts\Validation\ValidationRule|string> */
+    private function rateUnitRules(Request $request, string $unitField, string $percentFailMessage): array
+    {
         return [
             'nullable',
             'numeric',
             'min:0',
-            function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+            function (string $attribute, mixed $value, \Closure $fail) use ($request, $unitField, $percentFailMessage): void {
                 if ($value === null || $value === '') {
                     return;
                 }
-                $unit = $request->input('commission_unit') ?: Agent::COMMISSION_UNIT_PERCENT;
+                $unit = $request->input($unitField) ?: Agent::COMMISSION_UNIT_PERCENT;
                 if ($unit === Agent::COMMISSION_UNIT_PERCENT && (float) $value > 100) {
-                    $fail('A percentagem de comissão não pode ser superior a 100%.');
+                    $fail($percentFailMessage);
                 }
             },
         ];

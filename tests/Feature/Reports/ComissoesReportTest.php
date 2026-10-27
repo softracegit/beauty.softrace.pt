@@ -166,4 +166,49 @@ class ComissoesReportTest extends TestCase
 
         $this->assertCount(0, $salesOut);
     }
+
+    public function test_commission_applies_euro_retention_before_percent(): void
+    {
+        $fx = $this->singleSaleFixture();
+        session([\App\Http\Middleware\SetCurrentStore::SESSION_KEY => $fx['store']->id]);
+
+        Agent::query()->where('user_id', $fx['tech']->id)->update([
+            'commission_rate' => 60,
+            'commission_unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'retention_fee_rate' => 1.5,
+            'retention_fee_unit' => Agent::COMMISSION_UNIT_EURO,
+            'retention_fee_effective_from' => '2026-06-01',
+        ]);
+
+        // 27€ c/ IVA → ~21,95€ s/ IVA; retenção 1,50€ depois da % (diferença exacta de 1,50€).
+        $fx['sale']->update(['total' => 27, 'iva_total' => 5.05, 'valor_pago' => 27]);
+        $fx['sale']->items()->update([
+            'preco_unitario' => 27,
+            'subtotal' => 27,
+        ]);
+
+        $sale = $fx['sale']->fresh()->load([
+            'client',
+            'items.service',
+            'items.calendarEventService.event.user',
+            'calendarEvent.user',
+        ]);
+
+        $lines = app(ComissoesReportService::class)->linesCollection(collect([$sale]));
+        $line = $lines->first();
+
+        $this->assertSame(27.0, (float) $line->valor_com_iva);
+        $this->assertSame(14.7, (float) $line->comissao_com_iva); // 60% de 27 − 1,50
+        $this->assertEqualsWithDelta(21.95, (float) $line->valor_sem_iva, 0.01);
+        $this->assertEqualsWithDelta(11.67, (float) $line->comissao_sem_iva, 0.01); // 60% de 21,95 − 1,50
+        $this->assertSame('1,50 €', $line->retencao_taxa);
+
+        // Antes da data de início: sem retenção.
+        Agent::query()->where('user_id', $fx['tech']->id)->update([
+            'retention_fee_effective_from' => '2026-07-01',
+        ]);
+        $linesBefore = app(ComissoesReportService::class)->linesCollection(collect([$sale]));
+        $this->assertNull($linesBefore->first()->retencao_taxa);
+        $this->assertSame(16.2, (float) $linesBefore->first()->comissao_com_iva); // 60% de 27
+    }
 }

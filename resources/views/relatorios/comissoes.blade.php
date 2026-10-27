@@ -165,11 +165,6 @@
   </form>
 
   @if($linhas->count() > 0)
-    @if(!empty($comissoesTotalHistorico))
-      <p class="small text-muted mb-2">
-        O total de comissões inclui valores históricos do Zappy (até 31/05/2026). A partir de junho/2026, linhas e total coincidem.
-      </p>
-    @endif
     <div class="table-responsive">
       <table class="table table-sm table-hover" id="comissoesTable">
         <thead>
@@ -181,6 +176,7 @@
             <th>Serviço</th>
             <th class="text-end text-nowrap">Valor serviço</th>
             <th class="text-end text-nowrap">Comissão (%)</th>
+            <th class="text-end text-nowrap" title="Taxa de retenção usada nesta linha (ou sem retenção)">Retenção</th>
             <th class="text-end text-nowrap">Valor comissão</th>
           </tr>
         </thead>
@@ -198,6 +194,13 @@
               <td>{{ $linha->servico }}</td>
               <td class="text-end text-nowrap js-comissao-valor-servico">{{ number_format($linha->valor_com_iva, 2, ',', ' ') }}€</td>
               <td class="text-end text-nowrap">{{ $linha->comissao_taxa ?? '—' }}</td>
+              <td class="text-end text-nowrap">
+                @if(!empty($linha->retencao_taxa))
+                  <span class="badge bg-secondary-subtle text-secondary border" title="Retenção aplicada nesta venda">{{ $linha->retencao_taxa }}</span>
+                @else
+                  <span class="text-muted" title="Sem taxa de retenção nesta venda">—</span>
+                @endif
+              </td>
               <td class="text-end text-nowrap js-comissao-valor-comissao">{{ number_format($linha->comissao_com_iva, 2, ',', ' ') }}€</td>
             </tr>
           @endforeach
@@ -206,7 +209,7 @@
           <tr class="fw-bold" id="comissoesTotaisRow"
             data-total-com-iva="{{ $comissoesTotais['total_comissao_com_iva'] ?? 0 }}"
             data-total-sem-iva="{{ $comissoesTotais['total_comissao_sem_iva'] ?? 0 }}">
-            <td colspan="7" class="text-end">Total comissões a pagar</td>
+            <td colspan="8" class="text-end">Total comissões a pagar</td>
             <td class="text-end text-nowrap" id="comissoesTotalComissao">{{ number_format($comissoesTotais['total_comissao_com_iva'] ?? 0, 2, ',', ' ') }}€</td>
           </tr>
         </tfoot>

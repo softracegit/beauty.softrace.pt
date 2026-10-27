@@ -151,8 +151,18 @@
                             @endif
                         </td>
                         <td>
-                            @if($agent->commission_rate !== null)
-                                <span class="users-cell-meta">{{ $agent->formatCommissionDisplay() }}</span>
+                            @if($agent->commission_rate !== null || $agent->retention_fee_rate !== null)
+                                <span class="users-cell-meta">
+                                  @if($agent->commission_rate !== null)
+                                    {{ $agent->formatCommissionDisplay() }}
+                                  @endif
+                                  @if($agent->commission_rate !== null && $agent->retention_fee_rate !== null)
+                                    ·
+                                  @endif
+                                  @if($agent->retention_fee_rate !== null)
+                                    ret. {{ $agent->formatRetentionFeeDisplay() }}
+                                  @endif
+                                </span>
                             @else
                                 <span class="users-cell-meta text-muted">—</span>
                             @endif

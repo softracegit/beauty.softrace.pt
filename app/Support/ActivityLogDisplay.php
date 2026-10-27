@@ -66,6 +66,9 @@ class ActivityLogDisplay
         'weekly_schedule' => 'Horário semanal',
         'commission_rate' => 'Comissão',
         'commission_unit' => 'Unidade comissão',
+        'retention_fee_rate' => 'Taxa de retenção',
+        'retention_fee_unit' => 'Unidade retenção',
+        'retention_fee_effective_from' => 'Retenção a partir de',
         'specialization' => 'Especialização',
     ];
 
@@ -242,7 +245,7 @@ class ActivityLogDisplay
             return User::roleLabel($value);
         }
 
-        if ($attr === 'commission_unit' && is_string($value)) {
+        if (in_array($attr, ['commission_unit', 'retention_fee_unit'], true) && is_string($value)) {
             return match ($value) {
                 Agent::COMMISSION_UNIT_PERCENT => 'Percentagem',
                 Agent::COMMISSION_UNIT_EURO => 'Euro',
@@ -250,7 +253,7 @@ class ActivityLogDisplay
             };
         }
 
-        if ($attr === 'commission_rate' && is_numeric($value)) {
+        if (in_array($attr, ['commission_rate', 'retention_fee_rate'], true) && is_numeric($value)) {
             return number_format((float) $value, 2, ',', ' ');
         }
 

@@ -148,7 +148,7 @@
                     @php
                         $showEspecializacao = $agente->specialization && in_array($agente->user->role ?? '', \App\Models\User::rolesWithSpecialization(), true);
                     @endphp
-                    @if($showEspecializacao || $agente->commission_rate !== null)
+                    @if($showEspecializacao || $agente->commission_rate !== null || $agente->retention_fee_rate !== null)
                     <div class="uview-detail-group">
                         <div class="uview-detail-title">Dados Profissionais</div>
                         @if($showEspecializacao)
@@ -161,6 +161,17 @@
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Taxa de Comissão</div>
                             <div class="uview-detail-value">{{ $agente->formatCommissionDisplay() }}</div>
+                        </div>
+                        @endif
+                        @if($agente->retention_fee_rate !== null)
+                        <div class="uview-detail-row">
+                            <div class="uview-detail-label">Taxa de retenção</div>
+                            <div class="uview-detail-value">
+                              {{ $agente->formatRetentionFeeDisplay() }}
+                              @if($agente->retention_fee_effective_from)
+                                <span class="text-muted small">· desde {{ $agente->retention_fee_effective_from->format('d/m/Y') }}</span>
+                              @endif
+                            </div>
                         </div>
                         @endif
                     </div>

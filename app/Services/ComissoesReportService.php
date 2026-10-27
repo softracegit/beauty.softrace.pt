@@ -171,15 +171,23 @@ class ComissoesReportService
         $agents = Agent::query()
             ->whereIn('store_id', $storeIds)
             ->whereIn('user_id', array_keys($userIds))
-            ->get(['user_id', 'commission_rate', 'commission_unit'])
+            ->get([
+                'user_id',
+                'commission_rate',
+                'commission_unit',
+                'retention_fee_rate',
+                'retention_fee_unit',
+                'retention_fee_effective_from',
+            ])
             ->keyBy('user_id');
 
         $lines = collect();
         $euroCounted = [];
+        $retentionEuroCounted = [];
 
         foreach ($sales as $sale) {
             $lines = $lines->merge(
-                $this->linesForSale($sale, $agents, $servicoFilter, $tecnicoFilter, $euroCounted)
+                $this->linesForSale($sale, $agents, $servicoFilter, $tecnicoFilter, $euroCounted, $retentionEuroCounted)
             );
         }
 
@@ -202,6 +210,7 @@ class ComissoesReportService
     /**
      * @param  Collection<int, Agent>  $agents
      * @param  array<string, true>  $euroCounted
+     * @param  array<string, true>  $retentionEuroCounted
      * @return Collection<int, object>
      */
     private function linesForSale(
@@ -210,6 +219,7 @@ class ComissoesReportService
         ?int $servicoFilter,
         ?int $tecnicoFilter,
         array &$euroCounted,
+        array &$retentionEuroCounted,
     ): Collection {
         $anchorEventId = (int) ($sale->calendar_event_id ?? 0);
         if ($anchorEventId <= 0) {
@@ -265,6 +275,11 @@ class ComissoesReportService
             $unit = (string) ($agent?->commission_unit ?: Agent::COMMISSION_UNIT_PERCENT);
             $comissaoTaxa = $agent ? $agent->formatCommissionDisplay() : null;
 
+            $saleDate = $sale->data_emissao;
+            $retentionApplies = $this->retentionAppliesOnSaleDate($agent, $saleDate);
+            $retencaoTaxa = $retentionApplies ? $agent?->formatRetentionFeeDisplay() : null;
+
+            // 1) Comissão sobre o valor (c/ ou s/ IVA). 2) Retenção descontada depois, no valor a pagar.
             [$comissaoComIva, $comissaoSemIva] = $this->commissionAmounts(
                 $valorComIva,
                 $valorSemIva,
@@ -274,6 +289,20 @@ class ComissoesReportService
                 $userId,
                 $euroCounted,
             );
+
+            if ($retentionApplies) {
+                [$comissaoComIva, $comissaoSemIva] = $this->subtractRetentionFromCommission(
+                    $comissaoComIva,
+                    $comissaoSemIva,
+                    $valorComIva,
+                    $valorSemIva,
+                    $agent?->retention_fee_rate,
+                    (string) ($agent?->retention_fee_unit ?: Agent::COMMISSION_UNIT_EURO),
+                    (int) $sale->id,
+                    $userId,
+                    $retentionEuroCounted,
+                );
+            }
 
             $out->push((object) [
                 'sale_id' => (int) $sale->id,
@@ -287,12 +316,88 @@ class ComissoesReportService
                 'valor_com_iva' => $valorComIva,
                 'valor_sem_iva' => $valorSemIva,
                 'comissao_taxa' => $comissaoTaxa,
+                'retencao_taxa' => $retencaoTaxa,
                 'comissao_com_iva' => $comissaoComIva,
                 'comissao_sem_iva' => $comissaoSemIva,
             ]);
         }
 
         return $out;
+    }
+
+    private function retentionAppliesOnSaleDate(?Agent $agent, mixed $saleDate): bool
+    {
+        if (! $agent instanceof Agent) {
+            return false;
+        }
+        if ($agent->retention_fee_rate === null || $agent->retention_fee_rate === '') {
+            return false;
+        }
+        if ($agent->retention_fee_effective_from === null) {
+            return false;
+        }
+        if ($saleDate === null) {
+            return false;
+        }
+
+        try {
+            $saleDay = Carbon::parse($saleDate)->startOfDay();
+            $from = $agent->retention_fee_effective_from->copy()->startOfDay();
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return $saleDay->greaterThanOrEqualTo($from);
+    }
+
+    /**
+     * Deduz a retenção ao valor da comissão (depois da %), não ao valor do serviço.
+     * Ex.: 21,95 × 60% − 1,50 = 11,67. Não afecta o que o cliente paga.
+     *
+     * @param  array<string, true>  $retentionEuroCounted
+     * @return array{0: float, 1: float}
+     */
+    private function subtractRetentionFromCommission(
+        float $comissaoComIva,
+        float $comissaoSemIva,
+        float $valorComIva,
+        float $valorSemIva,
+        mixed $rate,
+        string $unit,
+        int $saleId,
+        int $userId,
+        array &$retentionEuroCounted,
+    ): array {
+        if ($rate === null || $rate === '') {
+            return [$comissaoComIva, $comissaoSemIva];
+        }
+
+        $rate = (float) $rate;
+        if ($rate <= 0) {
+            return [$comissaoComIva, $comissaoSemIva];
+        }
+
+        if ($unit === Agent::COMMISSION_UNIT_EURO) {
+            $key = $saleId.':'.$userId;
+            if (isset($retentionEuroCounted[$key])) {
+                return [$comissaoComIva, $comissaoSemIva];
+            }
+            $retentionEuroCounted[$key] = true;
+
+            // 1,50 € nominais em ambos os caminhos (c/ e s/ IVA).
+            return [
+                max(0, round($comissaoComIva - $rate, 2)),
+                max(0, round($comissaoSemIva - $rate, 2)),
+            ];
+        }
+
+        $retCom = round($valorComIva * ($rate / 100), 2);
+        $retSem = round($valorSemIva * ($rate / 100), 2);
+
+        return [
+            max(0, round($comissaoComIva - $retCom, 2)),
+            max(0, round($comissaoSemIva - $retSem, 2)),
+        ];
     }
 
     /**

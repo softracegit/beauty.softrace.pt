@@ -110,25 +110,7 @@
                             </div>
                             <div id="agendaOcSelectedServicesList" class="mt-2 d-none"></div>
                         </div>
-                        <div class="agenda-oc-field">
-                            <label class="form-label fw-semibold mb-1" for="agendaOcObs">Notas da marcação</label>
-                            <textarea class="form-control form-control-sm" id="agendaOcObs" name="description" rows="3" placeholder="Notas internas desta marcação (logística, avisos… — não é ficha técnica)"></textarea>
-                        </div>
-                        <div class="agenda-oc-field agenda-oc-field--technical">
-                            <div class="form-label fw-semibold mb-2">Registo técnico</div>
-                            <div class="agenda-oc-tech-field">
-                                <label class="form-label small text-muted" for="agendaOcTechnicalFormula">Fórmula</label>
-                                <textarea class="form-control form-control-sm" id="agendaOcTechnicalFormula" name="technical_formula" rows="2" placeholder="Ex: cor / oxidante / tempo de pose"></textarea>
-                            </div>
-                            <div class="agenda-oc-tech-field">
-                                <label class="form-label small text-muted" for="agendaOcTechnicalProducts">Produtos</label>
-                                <textarea class="form-control form-control-sm" id="agendaOcTechnicalProducts" name="technical_products" rows="2" placeholder="Produtos usados nesta visita"></textarea>
-                            </div>
-                            <div class="agenda-oc-tech-field">
-                                <label class="form-label small text-muted" for="agendaOcTechnicalNotes">Notas técnicas</label>
-                                <textarea class="form-control form-control-sm" id="agendaOcTechnicalNotes" name="technical_notes" rows="2" placeholder="Observações técnicas desta visita"></textarea>
-                            </div>
-                        </div>
+                        @include('agenda.partials.oc-visit-notes', ['prefix' => 'agendaOc'])
                     </div>
                     <div class="agenda-marcacao-test-offcanvas-footer border-top d-flex flex-wrap gap-2 justify-content-between align-items-center">
                         <small id="agendaOcPastStartHint" class="text-danger d-none mb-0">Não é possível criar marcações no passado.</small>
@@ -486,25 +468,7 @@
                                 <div id="eventDetailOcSelectedServicesList" class="mt-2 d-none"></div>
                                 <div id="eventDetailOcFeesList" class="mt-2 d-none"></div>
                             </div>
-                            <div class="agenda-oc-field">
-                                <label class="form-label fw-semibold mb-1" for="eventDetailOcObs">Notas da marcação</label>
-                                <textarea class="form-control form-control-sm" id="eventDetailOcObs" name="description" rows="3" placeholder="Notas internas desta marcação (logística, avisos… — não é ficha técnica)"></textarea>
-                            </div>
-                            <div class="agenda-oc-field agenda-oc-field--technical">
-                                <div class="form-label fw-semibold mb-2">Registo técnico</div>
-                                <div class="agenda-oc-tech-field">
-                                    <label class="form-label small text-muted" for="eventDetailOcTechnicalFormula">Fórmula</label>
-                                    <textarea class="form-control form-control-sm" id="eventDetailOcTechnicalFormula" name="technical_formula" rows="2" placeholder="Ex: cor / oxidante / tempo de pose"></textarea>
-                                </div>
-                                <div class="agenda-oc-tech-field">
-                                    <label class="form-label small text-muted" for="eventDetailOcTechnicalProducts">Produtos</label>
-                                    <textarea class="form-control form-control-sm" id="eventDetailOcTechnicalProducts" name="technical_products" rows="2" placeholder="Produtos usados nesta visita"></textarea>
-                                </div>
-                                <div class="agenda-oc-tech-field">
-                                    <label class="form-label small text-muted" for="eventDetailOcTechnicalNotes">Notas técnicas</label>
-                                    <textarea class="form-control form-control-sm" id="eventDetailOcTechnicalNotes" name="technical_notes" rows="2" placeholder="Observações técnicas desta visita"></textarea>
-                                </div>
-                            </div>
+                            @include('agenda.partials.oc-visit-notes', ['prefix' => 'eventDetailOc'])
                             @if(auth()->user()->isAdmin())
                             <div class="agenda-oc-field d-none" id="eventDetailActivityLogWrap">
                                 <button type="button" class="btn btn-link btn-sm px-0 text-decoration-none d-inline-flex align-items-center gap-1" id="eventDetailViewLogsBtn">

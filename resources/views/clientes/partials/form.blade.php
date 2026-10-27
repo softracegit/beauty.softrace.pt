@@ -276,8 +276,12 @@
                     <div class="uedit-section-title">Ficha técnica</div>
                     <div class="row">
                         <div class="col-12 mb-3">
-                            <label class="form-label">Alertas</label>
-                            <textarea name="allergies" class="form-control @error('allergies') is-invalid @enderror" rows="2" placeholder="Alergias, sensibilidades, contraindicações, avisos…">{{ $v('allergies') }}</textarea>
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <label class="form-label mb-0" for="client_allergies">Alertas do cliente</label>
+                                <span class="rounded-pill border px-2 py-0" style="font-size: 0.65rem; font-weight: 700; color: #9a3412; background: #fff7ed; border-color: #fed7aa !important;">Booking</span>
+                            </div>
+                            <div class="form-text mt-0 mb-1">Ficha do cliente · visível e editável no Booking. Não usar para notas internas da marcação.</div>
+                            <textarea id="client_allergies" name="allergies" class="form-control @error('allergies') is-invalid @enderror" rows="2" placeholder="Alergias, sensibilidades, contraindicações, avisos…">{{ $v('allergies') }}</textarea>
                             @error('allergies')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
