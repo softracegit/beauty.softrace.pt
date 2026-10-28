@@ -149,6 +149,14 @@ class User extends Authenticatable
         ];
     }
 
+    /** Comissão e taxa de retenção: apenas Prestador(a) de Serviços. */
+    public static function rolesWithCommission(): array
+    {
+        return [
+            self::ROLE_PRESTADOR,
+        ];
+    }
+
     /** Papéis de prestador de serviços (inclui legado técnico). */
     public static function serviceProviderRoles(): array
     {

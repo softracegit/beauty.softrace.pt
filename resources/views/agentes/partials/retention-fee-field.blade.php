@@ -2,8 +2,10 @@
     $ru = $retentionFeeUnit ?? \App\Models\Agent::COMMISSION_UNIT_PERCENT;
     $effectiveFrom = $retentionFeeEffectiveFrom ?? '';
     $history = collect($retentionFeeHistory ?? []);
+    $rolesWithCommission = \App\Models\User::rolesWithCommission();
+    $showRetention = in_array($currentRole ?? '', $rolesWithCommission, true);
 @endphp
-<div class="col-md-6 mb-3">
+<div id="agentRetentionFeeFieldWrap" class="col-md-6 mb-3 {{ $showRetention ? '' : 'd-none' }}">
     <label class="form-label">Taxa de retenção</label>
     <div class="input-group">
         <input type="number"

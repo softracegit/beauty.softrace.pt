@@ -219,8 +219,7 @@ class AgentController extends Controller
         }
 
         $agent = Agent::create($agentData);
-        $this->syncCommissionPeriod($agent, $validated);
-        $this->syncRetentionFeePeriod($agent, $validated);
+        $this->syncCommissionAndRetentionForRole($agent, $validated);
         $user->stores()->sync([$storeId]);
         $agent->services()->sync($request->input('service_ids', []));
 
@@ -463,8 +462,7 @@ class AgentController extends Controller
         );
         $agentData['weekly_schedule'] = $this->validatedWeeklySchedule($request);
         $agente->update($agentData);
-        $this->syncCommissionPeriod($agente, $validated);
-        $this->syncRetentionFeePeriod($agente, $validated);
+        $this->syncCommissionAndRetentionForRole($agente, $validated);
 
         // Update user data
         if ($agente->user) {
@@ -774,6 +772,31 @@ class AgentController extends Controller
             'commission_rate',
             'commission_unit',
         );
+    }
+
+    /**
+     * Comissão/retenção só para Prestador; outros papéis limpam o cache (histórico mantém-se).
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function syncCommissionAndRetentionForRole(Agent $agent, array $validated): void
+    {
+        $role = (string) ($validated['role'] ?? '');
+        if (! in_array($role, User::rolesWithCommission(), true)) {
+            $agent->forceFill([
+                'commission_rate' => null,
+                'commission_unit' => null,
+                'commission_effective_from' => null,
+                'retention_fee_rate' => null,
+                'retention_fee_unit' => null,
+                'retention_fee_effective_from' => null,
+            ])->save();
+
+            return;
+        }
+
+        $this->syncCommissionPeriod($agent, $validated);
+        $this->syncRetentionFeePeriod($agent, $validated);
     }
 
     /**

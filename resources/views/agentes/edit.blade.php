@@ -130,6 +130,7 @@
                                 'specializationValue' => old('specialization', $agente->specialization),
                             ])
                             @include('agentes.partials.commission-field', [
+                                'currentRole' => old('role', $agente->user->role ?? 'prestador'),
                                 'commissionRate' => old('commission_rate', $agente->commission_rate),
                                 'commissionUnit' => old('commission_unit', $agente->commission_unit ?? \App\Models\Agent::COMMISSION_UNIT_PERCENT),
                                 'commissionEffectiveFrom' => old(
@@ -141,6 +142,7 @@
                                 'canDeleteHistory' => true,
                             ])
                             @include('agentes.partials.retention-fee-field', [
+                                'currentRole' => old('role', $agente->user->role ?? 'prestador'),
                                 'retentionFeeRate' => old('retention_fee_rate', $agente->retention_fee_rate),
                                 'retentionFeeUnit' => old('retention_fee_unit', $agente->retention_fee_unit ?? \App\Models\Agent::COMMISSION_UNIT_EURO),
                                 'retentionFeeEffectiveFrom' => old(
@@ -494,12 +496,39 @@
     var roleSel = document.querySelector('select[name="role"]');
     var wrap = document.getElementById('agentSpecializationFieldWrap');
     var specSel = wrap ? wrap.querySelector('select[name="specialization"]') : null;
-    var rolesWith = @json(\App\Models\User::rolesWithSpecialization());
+    var commissionWrap = document.getElementById('agentCommissionFieldWrap');
+    var retentionWrap = document.getElementById('agentRetentionFeeFieldWrap');
+    var rolesWithSpec = @json(\App\Models\User::rolesWithSpecialization());
+    var rolesWithCommission = @json(\App\Models\User::rolesWithCommission());
+    function clearCommissionFields() {
+        var rate = document.getElementById('commissionRateInput');
+        var from = document.getElementById('commissionEffectiveFrom');
+        if (rate) rate.value = '';
+        if (from) from.value = '';
+    }
+    function clearRetentionFields() {
+        var rate = document.getElementById('retentionFeeRateInput');
+        var from = document.getElementById('retentionFeeEffectiveFrom');
+        if (rate) rate.value = '';
+        if (from) from.value = '';
+    }
     function sync() {
-        if (!roleSel || !wrap) return;
-        var show = rolesWith.indexOf(roleSel.value) !== -1;
-        wrap.classList.toggle('d-none', !show);
-        if (!show && specSel) specSel.value = '';
+        if (!roleSel) return;
+        var role = roleSel.value;
+        var showSpec = rolesWithSpec.indexOf(role) !== -1;
+        var showCommission = rolesWithCommission.indexOf(role) !== -1;
+        if (wrap) {
+            wrap.classList.toggle('d-none', !showSpec);
+            if (!showSpec && specSel) specSel.value = '';
+        }
+        if (commissionWrap) {
+            commissionWrap.classList.toggle('d-none', !showCommission);
+            if (!showCommission) clearCommissionFields();
+        }
+        if (retentionWrap) {
+            retentionWrap.classList.toggle('d-none', !showCommission);
+            if (!showCommission) clearRetentionFields();
+        }
     }
     if (roleSel) { roleSel.addEventListener('change', sync); sync(); }
 })();

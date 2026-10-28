@@ -151,7 +151,7 @@
                             @endif
                         </td>
                         <td>
-                            @if($agent->commission_rate !== null || $agent->retention_fee_rate !== null)
+                            @if(in_array($agent->user->role ?? '', \App\Models\User::rolesWithCommission(), true) && ($agent->commission_rate !== null || $agent->retention_fee_rate !== null))
                                 <span class="users-cell-meta">
                                   @if($agent->commission_rate !== null)
                                     {{ $agent->formatCommissionDisplay() }}

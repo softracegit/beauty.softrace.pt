@@ -146,9 +146,11 @@
                     @endif
 
                     @php
-                        $showEspecializacao = $agente->specialization && in_array($agente->user->role ?? '', \App\Models\User::rolesWithSpecialization(), true);
+                        $memberRole = $agente->user->role ?? '';
+                        $showEspecializacao = $agente->specialization && in_array($memberRole, \App\Models\User::rolesWithSpecialization(), true);
+                        $showCommissionFields = in_array($memberRole, \App\Models\User::rolesWithCommission(), true);
                     @endphp
-                    @if($showEspecializacao || $agente->commission_rate !== null || $agente->commissionPeriods->isNotEmpty() || $agente->retention_fee_rate !== null || $agente->retentionFeePeriods->isNotEmpty())
+                    @if($showEspecializacao || ($showCommissionFields && ($agente->commission_rate !== null || $agente->commissionPeriods->isNotEmpty() || $agente->retention_fee_rate !== null || $agente->retentionFeePeriods->isNotEmpty())))
                     <div class="uview-detail-group">
                         <div class="uview-detail-title">Dados Profissionais</div>
                         @if($showEspecializacao)
@@ -157,7 +159,7 @@
                             <div class="uview-detail-value">{{ \App\Models\Agent::specializationLabel($agente->specialization) }}</div>
                         </div>
                         @endif
-                        @if($agente->commission_rate !== null || $agente->commissionPeriods->isNotEmpty())
+                        @if($showCommissionFields && ($agente->commission_rate !== null || $agente->commissionPeriods->isNotEmpty()))
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Taxa de Comissão</div>
                             <div class="uview-detail-value">
@@ -182,7 +184,7 @@
                             </div>
                         </div>
                         @endif
-                        @if($agente->retention_fee_rate !== null || $agente->retentionFeePeriods->isNotEmpty())
+                        @if($showCommissionFields && ($agente->retention_fee_rate !== null || $agente->retentionFeePeriods->isNotEmpty()))
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Taxa de retenção</div>
                             <div class="uview-detail-value">

@@ -2,8 +2,10 @@
     $cu = $commissionUnit ?? \App\Models\Agent::COMMISSION_UNIT_PERCENT;
     $effectiveFrom = $commissionEffectiveFrom ?? '';
     $history = collect($commissionHistory ?? []);
+    $rolesWithCommission = \App\Models\User::rolesWithCommission();
+    $showCommission = in_array($currentRole ?? '', $rolesWithCommission, true);
 @endphp
-<div class="col-md-6 mb-3">
+<div id="agentCommissionFieldWrap" class="col-md-6 mb-3 {{ $showCommission ? '' : 'd-none' }}">
     <label class="form-label">Taxa de Comissão</label>
     <div class="input-group">
         <input type="number"
