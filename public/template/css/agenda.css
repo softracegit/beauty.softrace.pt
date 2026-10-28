@@ -147,7 +147,7 @@
 /* Shell: cliente 35% | marcação 65%; separador full-height; rodapé só à direita */
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__grid {
     display: grid;
-    grid-template-columns: minmax(0, 35%) minmax(0, 65%);
+    grid-template-columns: minmax(0, 28%) minmax(0, 72%);
     align-items: stretch;
     min-width: 0;
     min-height: 0;
@@ -168,8 +168,8 @@
     flex-direction: column;
     overflow-x: hidden;
     overflow-y: auto;
-    /* Mesmo padding-top que .agenda-oc-shell__right-body para alinhar avatar com o label Data */
-    padding: 1.25rem 1.35rem;
+    /* Ligeiramente acima para alinhar avatar/nome com a label Data à direita */
+    padding: 1.05rem 1rem 1.25rem;
     border-right: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
     background: #F6F7FA;
 }
@@ -203,9 +203,9 @@
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-split__client .agenda-oc-client-edit-btn {
     color: #4b5563;
 }
-/* Cliente seleccionado: topo alinhado com o label Data (sem título "Cliente") */
+/* Cliente seleccionado: topo alinhado com a label Data */
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-split__client:has(.agenda-oc-client-selected-card--panel:not(.d-none)) {
-    padding-top: 1.25rem;
+    padding-top: 1.05rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right {
     min-width: 0;
@@ -224,7 +224,7 @@
     flex-shrink: 0;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-field {
-    margin-bottom: 2rem;
+    margin-bottom: 1.15rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-field .form-label {
     color: #9ca3af !important;
@@ -232,7 +232,18 @@
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    margin-bottom: 0.75rem !important;
+    margin-bottom: 0.25rem !important;
+}
+/* Data + Hora na mesma linha (hora mais estreita); Prestador fica noutra linha */
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-schedule-row__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(5.25rem, 0.7fr);
+    gap: 0.5rem;
+    align-items: end;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-schedule-row__date,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-schedule-row__time {
+    min-width: 0;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-tech-field {
     margin-bottom: 0.85rem;
@@ -245,10 +256,31 @@
     margin-bottom: 0.2rem !important;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-services-head {
-    margin-bottom: 0.75rem !important;
+    position: relative;
+    align-items: baseline !important;
+    min-height: 0 !important;
+    margin-bottom: 0.25rem !important;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-services-head .form-label {
     margin-bottom: 0 !important;
+}
+/* Link «Adicionar serviços» não aumenta a distância label → select */
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-services-head [id$="AddMoreServicesWrap"] {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    line-height: 1;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-services-head .agenda-oc-add-services-btn {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+/* Choices / select wrapping: label continua colada ao controlo */
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .choices {
+    margin-bottom: 0;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-field .form-label .text-danger {
     letter-spacing: 0;
@@ -295,19 +327,12 @@
         position: static;
         z-index: auto;
     }
-    /* Mobile: ficha colapsável (layout horizontal já é o default mobile-first) */
     .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-selected-card--panel {
         overflow: visible;
         padding-top: 0;
     }
     .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel {
         padding-bottom: 0.15rem;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details {
-        display: none;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel.is-details-open .agenda-oc-client-panel__details {
-        display: block;
     }
     .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__profile-footer {
         margin-top: 0.75rem;
@@ -379,7 +404,7 @@
     line-height: 1.25;
     letter-spacing: -0.01em;
     color: var(--heading-color, #111827);
-    text-align: left;
+    text-align: center;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__name-row .agenda-oc-client-name {
     display: block;
@@ -390,7 +415,7 @@
     /* anula tipografia de __value-text nestes campos */
     font-size: 1rem;
     font-weight: 700;
-    text-align: left;
+    text-align: center;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__name-row .agenda-oc-client-name:hover {
     border-color: #d1d5db;
@@ -433,17 +458,10 @@
     height: 100%;
     margin: 0;
 }
-@media (min-width: 992px) {
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__name-row > .agenda-oc-client-name,
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__name-row > .agenda-oc-client-panel__name-input {
-        font-size: 1.2rem;
-        text-align: center;
-    }
-}
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero-actions {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     gap: 0.45rem;
     margin-top: 0.15rem;
 }
@@ -462,113 +480,37 @@
     font-size: 0.8125rem;
     color: #4b5563;
     margin-bottom: 0;
-    text-align: left;
+    text-align: center;
 }
 @media (min-width: 992px) {
     .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero-phone {
         display: none !important;
     }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero-actions {
-        justify-content: center;
-    }
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero {
     display: flex;
-    /* Mobile-first: avatar à esquerda, dados à direita */
-    flex-direction: row;
-    align-items: flex-start;
-    text-align: left;
-    gap: 0.75rem;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.45rem;
     padding: 0;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero-meta {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     min-width: 0;
-    flex: 1 1 auto;
-    width: auto;
+    width: 100%;
     gap: 0.15rem;
 }
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.3rem;
-    width: auto;
-    max-width: 100%;
-    margin-top: 0.25rem;
-    padding: 0.15rem 0;
-    border: 0;
-    background: transparent;
-    color: #4b5563;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    line-height: 1.25;
-    text-align: left;
-}
-
-/* Mobile: ícones topo-direito; nome e etiquetas continuam à esquerda */
-@media (max-width: 991.98px) {
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero-meta {
-        position: relative;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.15rem;
-        padding-right: 2.25rem; /* espaço para ícones no canto superior direito */
-        box-sizing: border-box;
-    }
-
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__name-row {
-        justify-items: start;
-        width: 100%;
-    }
-
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero-actions {
-        position: absolute;
-        top: 0;
-        right: 0;
-        margin-top: 0;
-        justify-content: flex-end;
-    }
-
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero-phone {
-        width: 100%;
-        text-align: left;
-    }
-
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__tags {
-        width: 100%;
-        justify-content: flex-start;
-        margin-top: 0.2rem;
-    }
-
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details-toggle {
-        width: 100%;
-        justify-content: flex-start;
-        text-align: left;
-    }
-}
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details-toggle:hover,
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details-toggle:focus {
-    color: var(--accent-color, #4f46e5);
-    outline: none;
-}
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details-toggle-icon {
-    font-size: 0.95rem;
-    line-height: 1;
-    transition: transform 0.15s ease;
-}
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel.is-details-open .agenda-oc-client-panel__details-toggle-icon {
-    transform: rotate(180deg);
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__name-row {
+    justify-items: center;
+    width: 100%;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-card__avatar-link {
     display: inline-flex;
     margin: 0;
     flex-shrink: 0;
-    align-self: flex-start;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .uview-avatar.agenda-oc-client-card__avatar-media {
     width: 66px;
@@ -596,52 +538,22 @@
     letter-spacing: -0.01em;
     color: var(--heading-color, #111827);
     word-break: break-word;
-    text-align: left;
+    text-align: center;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-phone {
     font-size: 0.8125rem;
     color: #4b5563;
     margin-bottom: 0;
-    text-align: left;
-}
-@media (min-width: 992px) {
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 0.3rem;
-        padding: 0;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero-meta {
-        align-items: center;
-        width: 100%;
-        gap: 0.3rem;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details-toggle {
-        display: none !important;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-card__avatar-link {
-        margin: 0 0 0.45rem;
-        align-self: center;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .uview-avatar.agenda-oc-client-card__avatar-media {
-        width: 72px;
-        height: 72px;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-card__avatar-initials {
-        font-size: 1.35rem;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-name {
-        font-size: 1.2rem;
-        text-align: center;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-phone {
-        text-align: center;
-    }
+    text-align: center;
 }
 /* Campos da ficha do cliente */
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details {
-    margin-top: 1rem;
+    margin-top: 0.45rem;
+}
+@media (min-width: 992px) {
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details {
+        margin-top: 1.25rem;
+    }
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__fields {
     display: flex;
@@ -660,12 +572,12 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.45rem;
-    min-height: 2.25rem;
-    padding: 0.55rem 0;
-    border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
-}
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row:last-child {
+    min-height: 1.75rem;
+    padding: 0.28rem 0;
     border-bottom: 0;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row.is-editing {
+    align-items: center;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__label,
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field .form-label {
@@ -680,9 +592,9 @@
     width: 5.25rem;
     margin-bottom: 0;
     padding-top: 0;
-    color: #4b5563;
+    color: #6b7280;
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: 400;
     line-height: 1.2;
 }
 /* Valor em leitura: alinhado à direita, 1 linha com ellipsis */
@@ -696,10 +608,10 @@
     min-height: 1.5rem;
     gap: 0.35rem;
     padding: 0;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     line-height: 1.35;
-    color: var(--heading-color, #111827);
+    color: #111827;
     text-align: right;
     background: transparent;
     border: 0;
@@ -716,9 +628,10 @@
     min-width: 0;
     flex: 1 1 auto;
     max-width: 100%;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     line-height: 1.35;
+    color: #111827;
     border: 1px dashed transparent;
     border-radius: 3px;
     box-sizing: border-box;
@@ -739,8 +652,8 @@
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__value-text--readonly {
     cursor: default;
     border-color: transparent !important;
-    color: #4b5563;
-    font-weight: 500;
+    color: #6b7280;
+    font-weight: 400;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--readonly .agenda-oc-client-panel__value-text:hover,
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--readonly .agenda-oc-client-panel__value-text:focus,
@@ -749,8 +662,8 @@
     border-color: transparent !important;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__add {
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     line-height: 1.35;
     text-decoration: none;
     white-space: nowrap;
@@ -773,18 +686,18 @@
     box-sizing: border-box;
     background: transparent;
     box-shadow: none;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     line-height: 1.35;
     text-align: right;
-    color: var(--heading-color, #111827);
+    color: #111827;
     appearance: none;
     -webkit-appearance: none;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__inline-input::placeholder {
     color: #9ca3af;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     opacity: 1;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__inline-input:focus {
@@ -803,8 +716,8 @@
     max-width: 100%;
     min-width: 0;
     flex: 1 1 auto;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     height: auto;
     min-height: 0;
     margin: -0.1rem -0.25rem;
@@ -829,16 +742,17 @@
     box-sizing: border-box;
     background: transparent;
     box-shadow: none;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     line-height: 1.35;
     text-align: right;
+    color: #111827;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row .flatpickr-input.form-control::placeholder,
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row input.flatpickr-input.agenda-oc-client-panel__inline-input::placeholder {
     color: #9ca3af;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     opacity: 1;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row .flatpickr-input.form-control:focus,
@@ -903,61 +817,58 @@
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .uview-header-tags {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     flex-wrap: wrap;
     gap: 0.35rem;
     margin-top: 0.2rem;
     min-height: 0;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-oc-client-card__tags {
-    justify-content: flex-start;
+    justify-content: center;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline--profile .client-tags-inline__row,
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline__row {
-    justify-content: flex-start;
+    justify-content: center;
 }
-@media (min-width: 992px) {
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-panel__tags,
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-card__tags,
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .uview-header-tags {
-        justify-content: center;
-        margin-top: 0.15rem;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-oc-client-card__tags {
-        justify-content: center;
-    }
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline--profile .client-tags-inline__row,
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline__row {
-        justify-content: center;
-    }
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-panel__tags,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .agenda-oc-client-card__tags,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .uview-header-tags,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-oc-client-card__tags {
+    justify-content: center;
+    width: 100%;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline--profile .client-tags-inline__row,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline__row {
+    justify-content: center;
+    width: 100%;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tag-chip,
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline__add {
     border-radius: 999px;
-    padding: 0.28rem 0.65rem;
-    min-height: 1.6rem;
-    font-size: 0.75rem;
+    padding: 0.12rem 0.45rem 0.12rem 0.5rem;
+    min-height: 0;
+    font-size: 0.68rem;
     line-height: 1.2;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline__add {
-    padding: 0.28rem 0.6rem;
+    padding: 0.12rem 0.45rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline__add-label {
-    font-size: 0.75rem;
+    font-size: 0.68rem;
     line-height: 1.2;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tags-inline__add .ph {
-    font-size: 0.9rem;
+    font-size: 0.75rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tag-chip__remove {
-    width: 0.95rem;
-    height: 0.95rem;
+    width: 0.85rem;
+    height: 0.85rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero .client-tag-chip__remove .ph {
     font-size: 0.78rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-client-birthday-banner {
-    margin-top: 0.75rem;
+    margin-top: 1.75rem;
     flex-shrink: 0;
 }
 
@@ -1601,7 +1512,7 @@
     font-size: 0.95em;
 }
 .agenda-marcacao-test-offcanvas .agenda-oc-services-head {
-    min-height: 1.375rem;
+    min-height: 0;
 }
 /* Cliente escolhido: mesmo aspeto da ficha (uview-header) */
 .agenda-marcacao-test-offcanvas .agenda-oc-client-selected-card {
@@ -2081,44 +1992,41 @@ body.page-agenda .app-wrapper .container-fluid {
 }
 .agenda-client-birthday-banner {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.7rem;
-    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-    border: 1px solid #fdba74;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding: 0.55rem 0.65rem;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
     border-radius: 0.5rem;
-    color: #9a3412;
-    font-size: 0.8rem;
-    line-height: 1.2;
+    color: #1e3a8a;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
 }
 .agenda-client-birthday-banner__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     flex-shrink: 0;
-    width: 1.45rem;
-    height: 1.45rem;
-    border-radius: 50%;
-    background: #fff;
-    color: #f97316;
-    font-size: 0.88rem;
+    margin-top: 0.1rem;
+    font-size: 0.95rem;
     line-height: 1;
-    box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.25);
+    color: #2563eb;
 }
 .agenda-client-birthday-banner__text {
-    line-height: 1.2;
+    line-height: 1.3;
     min-width: 0;
+    font-weight: 600;
+    color: #111827;
 }
 .agenda-client-birthday-banner__text strong {
-    color: #c2410c;
+    color: #1e3a8a;
+    font-weight: 700;
 }
 .agenda-client-birthday-banner--month {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-    border-color: #fcd34d;
-    color: #92400e;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1e3a8a;
 }
 .agenda-client-birthday-banner--month .agenda-client-birthday-banner__text strong {
-    color: #b45309;
+    color: #1e40af;
 }
 .agenda-client-tech-alert {
     display: flex;
@@ -2263,44 +2171,116 @@ body.page-agenda .app-wrapper .container-fluid {
     color: #64748b !important;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-visit-block__section > .form-label {
-    margin-bottom: 0.35rem !important;
+    margin-bottom: 0.25rem !important;
+}
+/* Dados do cliente: em desktop tudo visível; em mobile collapse completo */
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__details {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__more-toggle {
+    display: none;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__more {
+    display: flex;
+    flex-direction: column;
+}
+@media (max-width: 991.98px) {
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__more-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+        align-self: center;
+        width: auto;
+        margin: 0.1rem 0 0.1rem;
+        padding: 0.15rem 0;
+        border: 0;
+        background: transparent;
+        color: #4b5563;
+        font-size: 0.75rem;
+        font-weight: 500;
+        line-height: 1.25;
+    }
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__more-toggle:hover,
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__more-toggle:focus {
+        color: var(--accent-color, #4f46e5);
+        outline: none;
+    }
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__more-toggle-icon {
+        font-size: 0.9rem;
+        line-height: 1;
+        transition: transform 0.15s ease;
+    }
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel.is-details-open .agenda-oc-client-panel__more-toggle-icon {
+        transform: rotate(180deg);
+    }
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__more {
+        display: none;
+    }
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel.is-details-open .agenda-oc-client-panel__more {
+        display: flex;
+        flex-direction: column;
+    }
 }
 .agenda-oc-info-card .form-control,
 .agenda-oc-info-card .form-control:focus {
     background-color: #fff;
 }
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero + .agenda-client-birthday-banner:not(.d-none) {
+    margin-top: 1.75rem;
+}
+/* Espaço após etiquetas/hero — mesmo com o banner de aniversário oculto no DOM */
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-oc-client-alerts-wrap {
+    margin-top: 1.75rem;
+    margin-bottom: 0;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-client-birthday-banner:not(.d-none) + .agenda-oc-client-alerts-wrap {
+    margin-top: 0.85rem;
+}
 .agenda-oc-client-alerts-wrap {
     margin-top: 0.65rem;
-    margin-bottom: 0.15rem;
+    margin-bottom: 0;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap + .agenda-oc-client-panel__details {
+    margin-top: 0.45rem;
+}
+@media (min-width: 992px) {
+    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap + .agenda-oc-client-panel__details {
+        margin-top: 1.25rem;
+    }
 }
 .agenda-oc-client-alerts {
-    padding: 0.65rem 0.7rem;
+    padding: 0.55rem 0.65rem;
     border-radius: 0.5rem;
     border: 1px solid #fed7aa;
     background: #fffbf7;
 }
 .agenda-oc-client-alerts__head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 0.5rem;
     margin-bottom: 0;
 }
 .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts__head {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.35rem;
 }
 .agenda-oc-client-alerts__title {
     display: inline-flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.35rem;
     min-width: 0;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 600;
-    line-height: 1.25;
+    line-height: 1.3;
     color: #111827;
 }
 .agenda-oc-client-alerts__title .ph {
-    font-size: 1.05rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    font-size: 0.95rem;
     line-height: 1;
     color: #ea580c;
 }
@@ -2311,6 +2291,9 @@ body.page-agenda .app-wrapper .container-fluid {
 .agenda-oc-client-alerts__hint {
     margin-top: 0.4rem !important;
     margin-bottom: 0 !important;
+    font-size: 0.68rem !important;
+    line-height: 1.35;
+    color: #4b5563 !important;
 }
 .agenda-oc-client-alerts__value {
     display: flex;
@@ -2330,8 +2313,8 @@ body.page-agenda .app-wrapper .container-fluid {
     overflow: visible;
     text-overflow: unset;
     word-break: break-word;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     line-height: 1.4;
     color: #1f2937;
     cursor: pointer;
@@ -2354,8 +2337,8 @@ body.page-agenda .app-wrapper .container-fluid {
     text-align: left;
     color: #1f2937;
     border-color: #9ca3af;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: 0.75rem;
+    font-weight: 400;
     line-height: 1.4;
     padding: 0.25rem 0.35rem;
     margin: 0;

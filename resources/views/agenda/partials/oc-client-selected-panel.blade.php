@@ -19,6 +19,7 @@
                     <strong id="{{ $pfx }}ClientSelectedName" class="agenda-oc-client-name agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">…</strong>
                     <input type="text" id="{{ $pfx }}ClientNameInput" class="agenda-oc-client-panel__name-input d-none" maxlength="255" autocomplete="name" placeholder="Nome e apelido" aria-label="Nome do cliente">
                 </div>
+                {{-- Visível em mobile (dados colapsados); oculto em desktop (está na lista de dados) --}}
                 <div id="{{ $pfx }}ClientHeroPhone" class="agenda-oc-client-phone agenda-oc-client-panel__hero-phone">…</div>
                 <div class="agenda-oc-client-panel__hero-actions" role="group" aria-label="Ações do cliente">
                     <a id="{{ $pfx }}ClientProfileIconLink" href="#" class="btn btn-link p-0 lh-1 text-body-secondary agenda-oc-client-profile-btn text-decoration-none{{ $crmPrivacyLocked ? ' d-none' : '' }}" title="Ver perfil" aria-label="Ver perfil">
@@ -31,25 +32,15 @@
                 <div class="uview-header-tags agenda-oc-client-card__tags agenda-oc-client-panel__tags">
                     <span id="{{ $pfx }}ClientTagsMount" class="agenda-oc-client-tags-mount"></span>
                 </div>
-                <button
-                    type="button"
-                    class="agenda-oc-client-panel__details-toggle"
-                    id="{{ $pfx }}ClientDetailsToggle"
-                    aria-expanded="false"
-                    aria-controls="{{ $pfx }}ClientDetails"
-                >
-                    <span class="agenda-oc-client-panel__details-toggle-label">Dados do cliente</span>
-                    <i class="ph ph-caret-down agenda-oc-client-panel__details-toggle-icon" aria-hidden="true"></i>
-                </button>
             </div>
         </div>
 
         <div id="{{ $pfx }}ClientBirthdayBanner" class="agenda-client-birthday-banner d-none" role="status" aria-live="polite">
-            <span class="agenda-client-birthday-banner__icon" aria-hidden="true"><i class="ri-gift-2-fill"></i></span>
+            <i class="ph ph-gift agenda-client-birthday-banner__icon" aria-hidden="true"></i>
             <span id="{{ $pfx }}ClientBirthdayText" class="agenda-client-birthday-banner__text"></span>
         </div>
 
-        {{-- Alergias: ficam no cliente (não nesta marcação) e o cliente vê no Booking --}}
+        {{-- Alergias: ficam no cliente (não nesta marcação); só a equipa edita — o cliente no Booking só deixa notas --}}
         <div class="agenda-oc-client-alerts-wrap" id="{{ $pfx }}ClientAllergiesViewField" data-profile-field="allergies">
             <div class="agenda-oc-client-alerts">
                 <div class="agenda-oc-client-alerts__head">
@@ -64,87 +55,113 @@
                     <input type="text" id="{{ $pfx }}ClientAllergiesInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="2000" placeholder="Alergias, sensibilidades, avisos…">
                 </div>
             </div>
-            <p class="agenda-oc-field-hint agenda-oc-client-alerts__hint mb-0">Este campo é visível para o cliente quando marca através do Booking - não usar para notas internas!</p>
         </div>
 
         <div class="agenda-oc-client-panel__details" id="{{ $pfx }}ClientDetails">
-            <div class="agenda-oc-client-panel__fields" id="{{ $pfx }}ClientProfileView">
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientPhoneViewField" data-profile-field="phone">
-                    <div class="form-label agenda-oc-client-panel__label">Telemóvel</div>
-                    <div class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedPhone" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
-                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientPhoneAddBtn">Adicionar</button>
-                        <input type="tel" id="{{ $pfx }}ClientPhoneInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="50" placeholder="Telemóvel" autocomplete="tel">
+            <button
+                type="button"
+                class="agenda-oc-client-panel__more-toggle"
+                id="{{ $pfx }}ClientDetailsToggle"
+                aria-expanded="false"
+                aria-controls="{{ $pfx }}ClientProfileView"
+            >
+                <span class="agenda-oc-client-panel__more-toggle-label">Ver mais dados</span>
+                <i class="ph ph-caret-down agenda-oc-client-panel__more-toggle-icon" aria-hidden="true"></i>
+            </button>
+
+            <div class="agenda-oc-client-panel__fields agenda-oc-client-panel__more" id="{{ $pfx }}ClientProfileView">
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientPhoneViewField" data-profile-field="phone">
+                        <div class="form-label agenda-oc-client-panel__label">Telemóvel</div>
+                        <div class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedPhone" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientPhoneAddBtn">Adicionar</button>
+                            <input type="tel" id="{{ $pfx }}ClientPhoneInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="50" placeholder="Telemóvel" autocomplete="tel">
+                        </div>
                     </div>
-                </div>
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientEmailViewField" data-profile-field="email">
-                    <div class="form-label agenda-oc-client-panel__label">Email</div>
-                    <div class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedEmail" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
-                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientEmailAddBtn">Adicionar</button>
-                        <input type="email" id="{{ $pfx }}ClientEmailInput" class="agenda-oc-client-panel__inline-input d-none" placeholder="email@exemplo.com" autocomplete="email">
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientEmailViewField" data-profile-field="email">
+                        <div class="form-label agenda-oc-client-panel__label">Email</div>
+                        <div class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedEmail" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientEmailAddBtn">Adicionar</button>
+                            <input type="email" id="{{ $pfx }}ClientEmailInput" class="agenda-oc-client-panel__inline-input d-none" placeholder="email@exemplo.com" autocomplete="email">
+                        </div>
                     </div>
-                </div>
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientBirthDateViewField" data-profile-field="birth_date">
-                    <div class="form-label agenda-oc-client-panel__label">D. Nasc.</div>
-                    <div class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedBirthDate" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
-                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientBirthDateAddBtn">Adicionar</button>
-                        <input type="text" id="{{ $pfx }}ClientBirthDateInput" class="agenda-oc-client-panel__inline-input d-none" data-crm-datepicker data-max-date="{{ date('Y-m-d') }}" placeholder="dd/mm/aaaa" autocomplete="off">
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row agenda-oc-client-nif-row" data-profile-field="nif">
+                        <div class="form-label agenda-oc-client-panel__label">NIF</div>
+                        <div id="{{ $pfx }}ClientNifDisplayWrap" class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedNif" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientNifAddBtn">Adicionar</button>
+                            <input type="text" id="{{ $pfx }}ClientNifInput" class="agenda-oc-client-panel__inline-input agenda-oc-client-nif-input d-none" maxlength="9" inputmode="numeric" pattern="[0-9]*" placeholder="9 dígitos" autocomplete="off">
+                            <button type="button" class="d-none" id="{{ $pfx }}ClientNifEditBtn" tabindex="-1" aria-hidden="true"></button>
+                            <button type="button" class="d-none" id="{{ $pfx }}ClientNifSaveBtn" tabindex="-1" aria-hidden="true"></button>
+                            <button type="button" class="d-none" id="{{ $pfx }}ClientNifCancelBtn" tabindex="-1" aria-hidden="true"></button>
+                        </div>
                     </div>
-                </div>
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row agenda-oc-client-nif-row" data-profile-field="nif">
-                    <div class="form-label agenda-oc-client-panel__label">NIF</div>
-                    <div id="{{ $pfx }}ClientNifDisplayWrap" class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedNif" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
-                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientNifAddBtn">Adicionar</button>
-                        <input type="text" id="{{ $pfx }}ClientNifInput" class="agenda-oc-client-panel__inline-input agenda-oc-client-nif-input d-none" maxlength="9" inputmode="numeric" pattern="[0-9]*" placeholder="9 dígitos" autocomplete="off">
-                        <button type="button" class="d-none" id="{{ $pfx }}ClientNifEditBtn" tabindex="-1" aria-hidden="true"></button>
-                        <button type="button" class="d-none" id="{{ $pfx }}ClientNifSaveBtn" tabindex="-1" aria-hidden="true"></button>
-                        <button type="button" class="d-none" id="{{ $pfx }}ClientNifCancelBtn" tabindex="-1" aria-hidden="true"></button>
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientBirthDateViewField" data-profile-field="birth_date">
+                        <div class="form-label agenda-oc-client-panel__label">D. Nasc.</div>
+                        <div class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedBirthDate" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientBirthDateAddBtn">Adicionar</button>
+                            <input type="text" id="{{ $pfx }}ClientBirthDateInput" class="agenda-oc-client-panel__inline-input d-none" data-crm-datepicker data-max-date="{{ date('Y-m-d') }}" placeholder="dd/mm/aaaa" autocomplete="off">
+                        </div>
                     </div>
-                </div>
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientOrigemViewField" data-profile-field="origem">
-                    <div class="form-label agenda-oc-client-panel__label">Origem</div>
-                    <div class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedOrigem" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
-                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientOrigemAddBtn">Adicionar</button>
-                        <select id="{{ $pfx }}ClientOrigemInput" class="agenda-oc-client-panel__inline-input agenda-oc-client-panel__inline-select d-none" aria-label="Origem do cliente">
-                            <option value="">— Selecionar —</option>
-                            @foreach(\App\Models\Client::origemGroups() as $group => $options)
-                                <optgroup label="{{ $group }}">
-                                    @foreach($options as $opt)
-                                        <option value="{{ $opt }}">{{ $opt }}</option>
-                                    @endforeach
-                                </optgroup>
-                            @endforeach
-                        </select>
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientOrigemViewField" data-profile-field="origem">
+                        <div class="form-label agenda-oc-client-panel__label">Origem</div>
+                        <div class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedOrigem" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientOrigemAddBtn">Adicionar</button>
+                            <select id="{{ $pfx }}ClientOrigemInput" class="agenda-oc-client-panel__inline-input agenda-oc-client-panel__inline-select d-none" aria-label="Origem do cliente">
+                                <option value="">— Selecionar —</option>
+                                @foreach(\App\Models\Client::origemGroups() as $group => $options)
+                                    <optgroup label="{{ $group }}">
+                                        @foreach($options as $opt)
+                                            <option value="{{ $opt }}">{{ $opt }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
-                </div>
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientProfissaoViewField" data-profile-field="profissao">
-                    <div class="form-label agenda-oc-client-panel__label">Profissão</div>
-                    <div class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedProfissao" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
-                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientProfissaoAddBtn">Adicionar</button>
-                        <input type="text" id="{{ $pfx }}ClientProfissaoInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="255" placeholder="Ex: Designer, Médica…" autocomplete="organization-title">
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientProfissaoViewField" data-profile-field="profissao">
+                        <div class="form-label agenda-oc-client-panel__label">Profissão</div>
+                        <div class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedProfissao" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientProfissaoAddBtn">Adicionar</button>
+                            <input type="text" id="{{ $pfx }}ClientProfissaoInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="255" placeholder="Ex: Designer, Médica…" autocomplete="organization-title">
+                        </div>
                     </div>
-                </div>
-                <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row agenda-oc-client-panel__field--readonly" id="{{ $pfx }}ClientSinceViewField">
-                    <div class="form-label agenda-oc-client-panel__label">Cliente desde</div>
-                    <div class="agenda-oc-client-panel__value">
-                        <span id="{{ $pfx }}ClientSelectedSince" class="agenda-oc-client-panel__value-text agenda-oc-client-panel__value-text--readonly">—</span>
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientNationalityViewField" data-profile-field="nationality">
+                        <div class="form-label agenda-oc-client-panel__label">Nacionalidade</div>
+                        <div class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedNationality" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientNationalityAddBtn">Adicionar</button>
+                            <input type="text" id="{{ $pfx }}ClientNationalityInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="100" placeholder="Ex: Portuguesa" autocomplete="country-name">
+                        </div>
                     </div>
-                </div>
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row" id="{{ $pfx }}ClientPreferredScheduleViewField" data-profile-field="preferred_schedule">
+                        <div class="form-label agenda-oc-client-panel__label">Horário pref.</div>
+                        <div class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedPreferredSchedule" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                            <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add d-none" id="{{ $pfx }}ClientPreferredScheduleAddBtn">Adicionar</button>
+                            <select id="{{ $pfx }}ClientPreferredScheduleInput" class="agenda-oc-client-panel__inline-input agenda-oc-client-panel__inline-select d-none" aria-label="Horário preferido">
+                                <option value="">— Selecionar —</option>
+                                @foreach(\App\Models\Client::preferredSchedules() as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="agenda-oc-client-panel__field agenda-oc-client-panel__field--row agenda-oc-client-panel__field--readonly" id="{{ $pfx }}ClientSinceViewField">
+                        <div class="form-label agenda-oc-client-panel__label">Cliente desde</div>
+                        <div class="agenda-oc-client-panel__value">
+                            <span id="{{ $pfx }}ClientSelectedSince" class="agenda-oc-client-panel__value-text agenda-oc-client-panel__value-text--readonly">—</span>
+                        </div>
+                    </div>
             </div>
 
-            <div class="agenda-oc-client-panel__profile-footer{{ $crmPrivacyLocked ? ' d-none' : '' }}">
-                <a id="{{ $pfx }}ClientProfileLink" href="#" class="agenda-oc-client-panel__profile-full-link text-decoration-none">
-                    <span>Ver perfil completo</span>
-                    <i class="ph ph-arrow-right" aria-hidden="true"></i>
-                </a>
-                {{-- Mantido oculto para compatibilidade com links de marcações --}}
-                <a id="{{ $pfx }}ClientMarcacoesLink" href="#" class="d-none" tabindex="-1" aria-hidden="true"></a>
-            </div>
+            {{-- Links ocultos: JS de perfil / marcações ainda referencia estes IDs --}}
+            <a id="{{ $pfx }}ClientProfileLink" href="#" class="d-none" tabindex="-1" aria-hidden="true"></a>
+            <a id="{{ $pfx }}ClientMarcacoesLink" href="#" class="d-none" tabindex="-1" aria-hidden="true"></a>
         </div>
     </div>
 </div>

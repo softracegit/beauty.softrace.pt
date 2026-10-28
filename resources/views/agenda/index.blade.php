@@ -69,26 +69,26 @@
                 </div>
                 <div class="agenda-oc-shell__right">
                     <div class="agenda-oc-shell__right-body">
-                        <div class="agenda-oc-field">
+                        <div class="agenda-oc-field agenda-oc-schedule-row">
                             <div class="mb-2 d-none" id="agendaOcHorarioAvisoWrap">
                                 <div class="alert alert-warning mb-0 py-2 small" id="agendaOcHorarioAviso" role="alert">
                                     <i class="ph ph-warning-circle me-1"></i>
                                     Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
                                 </div>
                             </div>
-                            <div class="row g-2">
-                                <div class="col-7">
-                                    <label class="form-label fw-semibold mb-1" for="agendaOcDate">Data</label>
+                            <div class="agenda-oc-schedule-row__grid">
+                                <div class="agenda-oc-schedule-row__date">
+                                    <label class="form-label fw-semibold" for="agendaOcDate">Data</label>
                                     <input type="text" id="agendaOcDate" class="form-control" placeholder="Selecionar data">
                                 </div>
-                                <div class="col-5">
-                                    <label class="form-label fw-semibold mb-1" for="agendaOcTime">Hora</label>
+                                <div class="agenda-oc-schedule-row__time">
+                                    <label class="form-label fw-semibold" for="agendaOcTime">Hora</label>
                                     <select id="agendaOcTime" class="form-select"></select>
                                 </div>
                             </div>
                         </div>
                         <div class="agenda-oc-field">
-                            <label class="form-label fw-semibold mb-1" for="agendaOcMember">Prestador(a) do serviço</label>
+                            <label class="form-label fw-semibold" for="agendaOcMember">Prestador(a) do serviço</label>
                             <select id="agendaOcMember" class="form-select form-select-sm">
                                 <option value="">Selecionar</option>
                             </select>
@@ -426,26 +426,26 @@
                     <div class="agenda-oc-shell__right-body">
                         <div id="eventDetailVisitLeadBlock" class="d-none mb-3"></div>
                         <div id="eventDetailOcBookingFields">
-                            <div class="agenda-oc-field">
+                            <div class="agenda-oc-field agenda-oc-schedule-row">
                                 <div class="mb-2 d-none" id="eventDetailHorarioAvisoWrap">
                                     <div class="alert alert-warning mb-0 py-2 small" id="eventDetailHorarioAviso" role="alert">
                                         <i class="ph ph-warning-circle me-1"></i>
                                         Horário fora do período habitual da loja ({{ $storeHoursLabel ?? '09:00–20:00' }}) ou do membro. Pode guardar na mesma, se for excecional.
                                     </div>
                                 </div>
-                                <div class="row g-2">
-                                    <div class="col-7">
-                                        <label class="form-label fw-semibold mb-1" for="eventDetailOcDate">Data</label>
+                                <div class="agenda-oc-schedule-row__grid">
+                                    <div class="agenda-oc-schedule-row__date">
+                                        <label class="form-label fw-semibold" for="eventDetailOcDate">Data</label>
                                         <input type="text" id="eventDetailOcDate" class="form-control" placeholder="Selecionar data" autocomplete="off">
                                     </div>
-                                    <div class="col-5">
-                                        <label class="form-label fw-semibold mb-1" for="eventDetailOcTime">Hora</label>
+                                    <div class="agenda-oc-schedule-row__time">
+                                        <label class="form-label fw-semibold" for="eventDetailOcTime">Hora</label>
                                         <select id="eventDetailOcTime" class="form-select"></select>
                                     </div>
                                 </div>
                             </div>
                             <div class="agenda-oc-field">
-                                <label class="form-label fw-semibold mb-1" for="eventDetailOcMember">Prestador(a) do serviço</label>
+                                <label class="form-label fw-semibold" for="eventDetailOcMember">Prestador(a) do serviço</label>
                                 <select id="eventDetailOcMember" class="form-select form-select-sm">
                                     <option value="">Selecionar</option>
                                 </select>

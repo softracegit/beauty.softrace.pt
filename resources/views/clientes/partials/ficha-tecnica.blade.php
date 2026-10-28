@@ -69,7 +69,6 @@
     <div class="client-ficha-alert-card__head">
         <span class="client-ficha-alert-card__icon" aria-hidden="true"><i class="ph ph-warning-circle"></i></span>
         <span class="client-ficha-alert-card__title">Alertas do cliente</span>
-        <span class="client-ficha-alert-card__chip">Booking</span>
         <a href="{{ route('clientes.edit', $cliente) }}#preferencias" class="client-ficha-alert-card__edit">Editar</a>
     </div>
     <div class="client-ficha-alert-card__body">

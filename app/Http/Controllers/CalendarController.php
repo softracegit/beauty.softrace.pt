@@ -709,6 +709,8 @@ class CalendarController extends Controller
             'birth_date' => ['sometimes', 'nullable', 'date', 'before_or_equal:today'],
             'origem' => ['sometimes', 'nullable', 'string', 'max:255'],
             'profissao' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'nationality' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'preferred_schedule' => ['sometimes', 'nullable', Rule::in(array_keys(Client::preferredSchedules()))],
             'allergies' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'contraindications' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'preferences_notes' => ['sometimes', 'nullable', 'string', 'max:2000'],
@@ -748,6 +750,14 @@ class CalendarController extends Controller
         if (array_key_exists('profissao', $validated)) {
             $profissao = is_string($validated['profissao'] ?? null) ? trim($validated['profissao']) : '';
             $client->profissao = $profissao !== '' ? $profissao : null;
+        }
+        if (array_key_exists('nationality', $validated)) {
+            $nationality = is_string($validated['nationality'] ?? null) ? trim($validated['nationality']) : '';
+            $client->nationality = $nationality !== '' ? $nationality : null;
+        }
+        if (array_key_exists('preferred_schedule', $validated)) {
+            $schedule = is_string($validated['preferred_schedule'] ?? null) ? trim($validated['preferred_schedule']) : '';
+            $client->preferred_schedule = $schedule !== '' ? $schedule : null;
         }
         if (array_key_exists('allergies', $validated)) {
             $allergies = is_string($validated['allergies'] ?? null) ? trim($validated['allergies']) : '';
@@ -796,6 +806,8 @@ class CalendarController extends Controller
      */
     private function clientAgendaPayload(Client $client): array
     {
+        $storeId = $client->store_id ? (int) $client->store_id : null;
+
         return [
             'id' => (string) $client->id,
             'name' => $client->name,
@@ -805,18 +817,39 @@ class CalendarController extends Controller
             'birth_date' => $client->birth_date?->format('Y-m-d'),
             'origem' => $client->origem,
             'profissao' => $client->profissao,
+            'nationality' => $client->nationality,
+            'preferred_schedule' => $client->preferred_schedule,
             'allergies' => $client->allergies,
             'contraindications' => $client->contraindications,
             'service_preferences' => $client->preferences_notes,
             'client_since' => $client->created_at
-                ? \App\Support\DateTimeDisplay::formatInstant($client->created_at, $client->store_id ? (int) $client->store_id : null, 'd/m/Y')
+                ? $client->created_at->locale('pt')->diffForHumans()
+                : null,
+            'client_since_date' => $client->created_at
+                ? \App\Support\DateTimeDisplay::formatInstant($client->created_at, $storeId, 'd/m/Y')
                 : null,
             'client_last_update' => $client->updated_at
-                ? \App\Support\DateTimeDisplay::formatInstant($client->updated_at, $client->store_id ? (int) $client->store_id : null, 'd/m/Y H:i')
+                ? \App\Support\DateTimeDisplay::formatInstant($client->updated_at, $storeId, 'd/m/Y H:i')
                 : null,
             'formatted_phone' => $client->formatted_phone,
             'avatar_url' => $client->avatar ? asset('storage/'.$client->avatar) : null,
             'tags' => $this->clientTagsPayload($client),
+        ];
+    }
+
+    /**
+     * @return array{client_since: ?string, client_since_date: ?string}
+     */
+    private function clientSincePayload(?Client $client, ?int $fallbackStoreId = null): array
+    {
+        if (! $client?->created_at) {
+            return ['client_since' => null, 'client_since_date' => null];
+        }
+        $storeId = $client->store_id ? (int) $client->store_id : $fallbackStoreId;
+
+        return [
+            'client_since' => $client->created_at->locale('pt')->diffForHumans(),
+            'client_since_date' => \App\Support\DateTimeDisplay::formatInstant($client->created_at, $storeId, 'd/m/Y'),
         ];
     }
 
@@ -889,17 +922,16 @@ class CalendarController extends Controller
                 'client_birth_date' => $calendarEvent->client?->birth_date?->format('Y-m-d'),
                 'client_origem' => $calendarEvent->client?->origem,
                 'client_profissao' => $calendarEvent->client?->profissao,
+                'client_nationality' => $calendarEvent->client?->nationality,
+                'client_preferred_schedule' => $calendarEvent->client?->preferred_schedule,
                 'client_allergies' => $calendarEvent->client?->allergies,
                 'client_contraindications' => $calendarEvent->client?->contraindications,
                 'client_has_alerts' => $this->clientHasTechnicalAlerts($calendarEvent->client),
                 'client_service_preferences' => $calendarEvent->client?->preferences_notes,
-                'client_since' => $calendarEvent->client?->created_at
-                    ? \App\Support\DateTimeDisplay::formatInstant(
-                        $calendarEvent->client->created_at,
-                        $calendarEvent->client->store_id ? (int) $calendarEvent->client->store_id : (int) $calendarEvent->store_id,
-                        'd/m/Y'
-                    )
-                    : null,
+                ...$this->clientSincePayload(
+                    $calendarEvent->client,
+                    $calendarEvent->client?->store_id ? (int) $calendarEvent->client->store_id : (int) $calendarEvent->store_id
+                ),
                 'client_last_update' => $calendarEvent->client?->updated_at
                     ? \App\Support\DateTimeDisplay::formatInstant(
                         $calendarEvent->client->updated_at,
@@ -2323,16 +2355,15 @@ class CalendarController extends Controller
                 'client_birth_date' => $event->client?->birth_date?->format('Y-m-d'),
                 'client_origem' => $event->client?->origem,
                 'client_profissao' => $event->client?->profissao,
+                'client_nationality' => $event->client?->nationality,
+                'client_preferred_schedule' => $event->client?->preferred_schedule,
                 'client_allergies' => $event->client?->allergies,
                 'client_contraindications' => $event->client?->contraindications,
                 'client_service_preferences' => $event->client?->preferences_notes,
-                'client_since' => $event->client?->created_at
-                    ? \App\Support\DateTimeDisplay::formatInstant(
-                        $event->client->created_at,
-                        $event->client->store_id ? (int) $event->client->store_id : (int) $event->store_id,
-                        'd/m/Y'
-                    )
-                    : null,
+                ...$this->clientSincePayload(
+                    $event->client,
+                    $event->client?->store_id ? (int) $event->client->store_id : (int) $event->store_id
+                ),
                 'client_last_update' => $event->client?->updated_at
                     ? \App\Support\DateTimeDisplay::formatInstant(
                         $event->client->updated_at,

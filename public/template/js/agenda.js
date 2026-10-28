@@ -2816,7 +2816,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (addBtn) addBtn.classList.toggle('d-none', v !== '');
     }
-    var AGENDA_OC_PROFILE_FIELD_KEYS = ['name', 'phone', 'email', 'birth_date', 'nif', 'origem', 'profissao', 'allergies'];
+    var AGENDA_OC_PROFILE_FIELD_KEYS = ['name', 'phone', 'email', 'birth_date', 'nif', 'origem', 'profissao', 'nationality', 'preferred_schedule', 'allergies'];
     function agendaOcProfileFieldSuffix(fieldKey) {
         return ({
             name: 'Name',
@@ -2826,8 +2826,31 @@ document.addEventListener('DOMContentLoaded', function() {
             nif: 'Nif',
             origem: 'Origem',
             profissao: 'Profissao',
+            nationality: 'Nationality',
+            preferred_schedule: 'PreferredSchedule',
             allergies: 'Allergies'
         })[fieldKey] || '';
+    }
+    function agendaOcPreferredScheduleLabel(prefix, value) {
+        var v = String(value || '').trim();
+        if (!v) return '';
+        var select = $id(prefix + 'ClientPreferredScheduleInput');
+        if (select) {
+            for (var i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === v) return select.options[i].textContent || v;
+            }
+        }
+        return v;
+    }
+    function agendaOcSetClientSinceDisplay(prefix, c) {
+        var sinceEl = $id(prefix + 'ClientSelectedSince');
+        if (!sinceEl) return;
+        var sinceVal = String((c && c.client_since) || '').trim();
+        var sinceDate = String((c && c.client_since_date) || '').trim();
+        sinceEl.textContent = sinceVal || '—';
+        sinceEl.removeAttribute('title');
+        if (sinceDate) sinceEl.setAttribute('title', sinceDate);
+        else if (sinceVal) sinceEl.setAttribute('title', sinceVal);
     }
     function agendaOcProfileFieldRow(prefix, fieldKey) {
         var card = $id(prefix + 'ClientSelectedCard');
@@ -2890,7 +2913,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var toggle = $id(prefix + 'ClientDetailsToggle');
         var isOpen = !!open;
         if (panel) panel.classList.toggle('is-details-open', isOpen);
-        if (toggle) toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            var label = toggle.querySelector('.agenda-oc-client-panel__more-toggle-label');
+            if (label) label.textContent = isOpen ? 'Ver menos' : 'Ver mais dados';
+        }
     }
     function agendaOcBindClientDetailsToggle(prefix) {
         var toggle = $id(prefix + 'ClientDetailsToggle');
@@ -2994,6 +3021,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isNaN(d.getTime())) return null;
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     }
+    function agendaOcResolveAppointmentDateForBirthday() {
+        return agendaOcReadDateStr('agendaOcDate', agendaOcDateFlatpickr) || null;
+    }
     function agendaOcApplyClientTechnicalSheet(pfx, c) {
         var alerts = String((c && c.allergies) || '').trim();
         agendaOcSetProfileValueDisplay(
@@ -3012,41 +3042,33 @@ document.addEventListener('DOMContentLoaded', function() {
         if (alertsWrap) alertsWrap.classList.toggle('has-allergies', !!alerts);
     }
 
-    function eventDetailOcUpdateBirthdayBanner() {
-        var banner = $id('eventDetailOcClientBirthdayBanner');
-        var textEl = $id('eventDetailOcClientBirthdayText');
-        if (!banner) return;
-        var birthDate = (eventDetailSelectedClient && eventDetailSelectedClient.birth_date)
-            || (eventDetailCurrentData && eventDetailCurrentData.client_birth_date)
-            || null;
-        var apptDate = eventDetailOcResolveAppointmentDateForBirthday();
+    function agendaOcRenderBirthdayBanner(prefix, birthDate, apptDate, clientName, fallback) {
+        var banner = $id(prefix + 'ClientBirthdayBanner');
+        var textEl = $id(prefix + 'ClientBirthdayText');
+        if (!banner) return null;
         var apptInstant = apptDate ? (apptDate + 'T12:00:00') : null;
         var scope = agendaClientBirthdayScope(birthDate, apptInstant);
-        if (!scope && eventDetailCurrentData) {
-            if (eventDetailCurrentData.client_birthday_on_appointment_day) scope = 'day';
-            else if (eventDetailCurrentData.client_birthday_on_appointment_month) scope = 'month';
+        // Flags do servidor só quando ainda não há birth_date local (evita banner stale após editar)
+        if (!scope && !birthDate && fallback) {
+            if (fallback.onDay) scope = 'day';
+            else if (fallback.onMonth) scope = 'month';
         }
         if (!scope) {
             banner.classList.add('d-none');
             banner.classList.remove('agenda-client-birthday-banner--month');
-            return;
+            return null;
         }
         var tense = agendaClientBirthdayTense(birthDate, apptInstant, scope);
-        if (!birthDate && eventDetailCurrentData && eventDetailCurrentData.client_birthday_tense) {
-            tense = eventDetailCurrentData.client_birthday_tense;
-        }
+        if (!birthDate && fallback && fallback.tense) tense = fallback.tense;
         var verb = agendaBirthdayVerb(tense);
-        var clientName = (eventDetailSelectedClient && eventDetailSelectedClient.name)
-            || (eventDetailCurrentData && eventDetailCurrentData.client_name)
-            || 'o cliente';
-        var nameEsc = clientName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var nameEsc = String(clientName || 'o cliente').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         var age = null;
         if (birthDate && apptDate) {
             var by = parseInt(birthDate.slice(0, 4), 10);
             var ay = parseInt(apptDate.slice(0, 4), 10);
             if (!isNaN(by) && !isNaN(ay)) age = ay - by;
-        } else if (eventDetailCurrentData && eventDetailCurrentData.client_birthday_age != null) {
-            age = parseInt(eventDetailCurrentData.client_birthday_age, 10);
+        } else if (fallback && fallback.age != null) {
+            age = parseInt(fallback.age, 10);
         }
         var agePart = (age != null && !isNaN(age) && age > 0)
             ? (' <strong>' + age + ' anos</strong>')
@@ -3062,6 +3084,42 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         banner.classList.remove('d-none');
+        return scope;
+    }
+    function eventDetailOcSyncBirthdayFlags(scope) {
+        if (!eventDetailCurrentData) return;
+        eventDetailCurrentData.client_birthday_on_appointment_day = scope === 'day';
+        eventDetailCurrentData.client_birthday_on_appointment_month = scope === 'day' || scope === 'month';
+        if (!scope) {
+            eventDetailCurrentData.client_birthday_tense = null;
+            eventDetailCurrentData.client_birthday_age = null;
+        }
+    }
+    function eventDetailOcUpdateBirthdayBanner() {
+        var birthDate = (eventDetailSelectedClient && eventDetailSelectedClient.birth_date)
+            || (eventDetailCurrentData && eventDetailCurrentData.client_birth_date)
+            || null;
+        if (eventDetailCurrentData && eventDetailSelectedClient) {
+            eventDetailCurrentData.client_birth_date = eventDetailSelectedClient.birth_date || '';
+            birthDate = eventDetailCurrentData.client_birth_date || null;
+        }
+        var apptDate = eventDetailOcResolveAppointmentDateForBirthday();
+        var clientName = (eventDetailSelectedClient && eventDetailSelectedClient.name)
+            || (eventDetailCurrentData && eventDetailCurrentData.client_name)
+            || 'o cliente';
+        var scope = agendaOcRenderBirthdayBanner('eventDetailOc', birthDate, apptDate, clientName, {
+            onDay: !!(eventDetailCurrentData && eventDetailCurrentData.client_birthday_on_appointment_day),
+            onMonth: !!(eventDetailCurrentData && eventDetailCurrentData.client_birthday_on_appointment_month),
+            tense: eventDetailCurrentData && eventDetailCurrentData.client_birthday_tense,
+            age: eventDetailCurrentData && eventDetailCurrentData.client_birthday_age
+        });
+        eventDetailOcSyncBirthdayFlags(scope);
+    }
+    function agendaOcUpdateBirthdayBanner() {
+        var birthDate = (agendaOcSelectedClient && agendaOcSelectedClient.birth_date) || null;
+        var apptDate = agendaOcResolveAppointmentDateForBirthday();
+        var clientName = (agendaOcSelectedClient && agendaOcSelectedClient.name) || 'o cliente';
+        agendaOcRenderBirthdayBanner('agendaOc', birthDate, apptDate, clientName, null);
     }
     /** Mensagem a partir da resposta 422 do POST de cliente rápido (agenda). */
     function agendaStoreClientCreateErrorMessage(data) {
@@ -5233,10 +5291,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 birth_date: data.client_birth_date || '',
                 origem: data.client_origem || '',
                 profissao: data.client_profissao || '',
+                nationality: data.client_nationality || '',
+                preferred_schedule: data.client_preferred_schedule || '',
                 allergies: data.client_allergies || '',
                 contraindications: data.client_contraindications || '',
                 service_preferences: data.client_service_preferences || '',
                 client_since: data.client_since || '',
+                client_since_date: data.client_since_date || '',
                 client_last_update: data.client_last_update || '',
                 tags: data.client_tags || []
             };
@@ -5522,10 +5583,13 @@ document.addEventListener('DOMContentLoaded', function() {
             birth_date: c.birth_date || '',
             origem: c.origem || '',
             profissao: c.profissao || '',
+            nationality: c.nationality || '',
+            preferred_schedule: c.preferred_schedule || '',
             allergies: c.allergies || '',
             contraindications: c.contraindications || '',
             service_preferences: c.service_preferences || c.preferences_notes || '',
             client_since: c.client_since || '',
+            client_since_date: c.client_since_date || '',
             client_last_update: c.client_last_update || '',
             tags: c.tags || []
         };
@@ -5719,13 +5783,17 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('eventDetailOcClientProfissaoAddBtn'),
             (c && c.profissao) || ''
         );
-        var sinceEl = $id('eventDetailOcClientSelectedSince');
-        if (sinceEl) {
-            var sinceVal = String((c && c.client_since) || '').trim();
-            sinceEl.textContent = sinceVal || '—';
-            sinceEl.removeAttribute('title');
-            if (sinceVal) sinceEl.setAttribute('title', sinceVal);
-        }
+        agendaOcSetProfileValueDisplay(
+            $id('eventDetailOcClientSelectedNationality'),
+            $id('eventDetailOcClientNationalityAddBtn'),
+            (c && c.nationality) || ''
+        );
+        agendaOcSetProfileValueDisplay(
+            $id('eventDetailOcClientSelectedPreferredSchedule'),
+            $id('eventDetailOcClientPreferredScheduleAddBtn'),
+            agendaOcPreferredScheduleLabel('eventDetailOc', c && c.preferred_schedule)
+        );
+        agendaOcSetClientSinceDisplay('eventDetailOc', c);
         var lastUpdateEl = $id('eventDetailOcClientSelectedLastUpdate');
         if (lastUpdateEl) {
             var lastUpdateVal = String((c && c.client_last_update) || '').trim();
@@ -5762,6 +5830,14 @@ document.addEventListener('DOMContentLoaded', function() {
         var profissaoInput = $id('eventDetailOcClientProfissaoInput');
         if (profissaoInput && !profissaoInput.disabled) {
             profissaoInput.value = String((c && c.profissao) || '');
+        }
+        var nationalityInput = $id('eventDetailOcClientNationalityInput');
+        if (nationalityInput && !nationalityInput.disabled) {
+            nationalityInput.value = String((c && c.nationality) || '');
+        }
+        var preferredScheduleInput = $id('eventDetailOcClientPreferredScheduleInput');
+        if (preferredScheduleInput && !preferredScheduleInput.disabled) {
+            preferredScheduleInput.value = String((c && c.preferred_schedule) || '');
         }
         agendaOcApplyClientTechnicalSheet('eventDetailOc', c);
     }
@@ -5822,6 +5898,10 @@ document.addEventListener('DOMContentLoaded', function() {
             agendaOcEnsureOrigemOption(input, c.origem);
         } else if (fieldKey === 'profissao') {
             input.value = String(c.profissao || '');
+        } else if (fieldKey === 'nationality') {
+            input.value = String(c.nationality || '');
+        } else if (fieldKey === 'preferred_schedule') {
+            input.value = String(c.preferred_schedule || '');
         } else if (fieldKey === 'allergies') {
             input.value = String(c.allergies || '');
         }
@@ -5906,6 +5986,10 @@ document.addEventListener('DOMContentLoaded', function() {
             payload.origem = raw;
         } else if (fieldKey === 'profissao') {
             payload.profissao = raw;
+        } else if (fieldKey === 'nationality') {
+            payload.nationality = raw;
+        } else if (fieldKey === 'preferred_schedule') {
+            payload.preferred_schedule = raw !== '' ? raw : null;
         } else if (fieldKey === 'allergies') {
             payload.allergies = raw;
         } else {
@@ -6181,10 +6265,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     birth_date: eventDetailSelectedClient.birth_date || '',
                     origem: eventDetailSelectedClient.origem || '',
                     profissao: eventDetailSelectedClient.profissao || '',
+                    nationality: eventDetailSelectedClient.nationality || '',
+                    preferred_schedule: eventDetailSelectedClient.preferred_schedule || '',
                     allergies: eventDetailSelectedClient.allergies || '',
                     contraindications: eventDetailSelectedClient.contraindications || '',
                     service_preferences: eventDetailSelectedClient.service_preferences || '',
                     client_since: eventDetailSelectedClient.client_since || '',
+                    client_since_date: eventDetailSelectedClient.client_since_date || '',
                     client_last_update: eventDetailSelectedClient.client_last_update || '',
                     tags: eventDetailSelectedClient.tags || []
                 };
@@ -6202,10 +6289,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     birth_date: eventDetailCurrentData.client_birth_date || '',
                     origem: eventDetailCurrentData.client_origem || '',
                     profissao: eventDetailCurrentData.client_profissao || '',
+                    nationality: eventDetailCurrentData.client_nationality || '',
+                    preferred_schedule: eventDetailCurrentData.client_preferred_schedule || '',
                     allergies: eventDetailCurrentData.client_allergies || '',
                     contraindications: eventDetailCurrentData.client_contraindications || '',
                     service_preferences: eventDetailCurrentData.client_service_preferences || '',
                     client_since: eventDetailCurrentData.client_since || '',
+                    client_since_date: eventDetailCurrentData.client_since_date || '',
                     client_last_update: eventDetailCurrentData.client_last_update || '',
                     tags: eventDetailCurrentData.client_tags || []
                 };
@@ -6281,10 +6371,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 birth_date: eventDetailCurrentData.client_birth_date || '',
                 origem: eventDetailCurrentData.client_origem || '',
                 profissao: eventDetailCurrentData.client_profissao || '',
+                nationality: eventDetailCurrentData.client_nationality || '',
+                preferred_schedule: eventDetailCurrentData.client_preferred_schedule || '',
                 allergies: eventDetailCurrentData.client_allergies || '',
                 contraindications: eventDetailCurrentData.client_contraindications || '',
                 service_preferences: eventDetailCurrentData.client_service_preferences || '',
                 client_since: eventDetailCurrentData.client_since || '',
+                client_since_date: eventDetailCurrentData.client_since_date || '',
                 client_last_update: eventDetailCurrentData.client_last_update || '',
                 tags: eventDetailCurrentData.client_tags || []
             };
@@ -6847,6 +6940,8 @@ document.addEventListener('DOMContentLoaded', function() {
             { field: 'nif', add: 'eventDetailOcClientNifAddBtn', text: 'eventDetailOcClientSelectedNif', input: 'eventDetailOcClientNifInput' },
             { field: 'origem', add: 'eventDetailOcClientOrigemAddBtn', text: 'eventDetailOcClientSelectedOrigem', input: 'eventDetailOcClientOrigemInput' },
             { field: 'profissao', add: 'eventDetailOcClientProfissaoAddBtn', text: 'eventDetailOcClientSelectedProfissao', input: 'eventDetailOcClientProfissaoInput' },
+            { field: 'nationality', add: 'eventDetailOcClientNationalityAddBtn', text: 'eventDetailOcClientSelectedNationality', input: 'eventDetailOcClientNationalityInput' },
+            { field: 'preferred_schedule', add: 'eventDetailOcClientPreferredScheduleAddBtn', text: 'eventDetailOcClientSelectedPreferredSchedule', input: 'eventDetailOcClientPreferredScheduleInput' },
             { field: 'allergies', add: 'eventDetailOcClientAllergiesAddBtn', text: 'eventDetailOcClientSelectedAllergies', input: 'eventDetailOcClientAllergiesInput' }
         ];
         eventDetailOcProfileFieldBind.forEach(function(cfg) {
@@ -6879,9 +6974,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         eventDetailOcSetClientProfileEditMode(false);
                     }
                 });
-                if (cfg.field === 'origem') {
+                if (cfg.field === 'origem' || cfg.field === 'preferred_schedule') {
                     input.addEventListener('change', function() {
-                        eventDetailOcSaveProfileInlineField('origem');
+                        eventDetailOcSaveProfileInlineField(cfg.field);
                     });
                 }
             }
@@ -7625,13 +7720,17 @@ document.addEventListener('DOMContentLoaded', function() {
             $id('agendaOcClientProfissaoAddBtn'),
             (c && c.profissao) || ''
         );
-        var sinceEl = $id('agendaOcClientSelectedSince');
-        if (sinceEl) {
-            var sinceVal = String((c && c.client_since) || '').trim();
-            sinceEl.textContent = sinceVal || '—';
-            sinceEl.removeAttribute('title');
-            if (sinceVal) sinceEl.setAttribute('title', sinceVal);
-        }
+        agendaOcSetProfileValueDisplay(
+            $id('agendaOcClientSelectedNationality'),
+            $id('agendaOcClientNationalityAddBtn'),
+            (c && c.nationality) || ''
+        );
+        agendaOcSetProfileValueDisplay(
+            $id('agendaOcClientSelectedPreferredSchedule'),
+            $id('agendaOcClientPreferredScheduleAddBtn'),
+            agendaOcPreferredScheduleLabel('agendaOc', c && c.preferred_schedule)
+        );
+        agendaOcSetClientSinceDisplay('agendaOc', c);
         var lastUpdateEl = $id('agendaOcClientSelectedLastUpdate');
         if (lastUpdateEl) {
             var lastUpdateVal = String((c && c.client_last_update) || '').trim();
@@ -7668,6 +7767,14 @@ document.addEventListener('DOMContentLoaded', function() {
         var profissaoInput = $id('agendaOcClientProfissaoInput');
         if (profissaoInput && !profissaoInput.disabled) {
             profissaoInput.value = String((c && c.profissao) || '');
+        }
+        var nationalityInput = $id('agendaOcClientNationalityInput');
+        if (nationalityInput && !nationalityInput.disabled) {
+            nationalityInput.value = String((c && c.nationality) || '');
+        }
+        var preferredScheduleInput = $id('agendaOcClientPreferredScheduleInput');
+        if (preferredScheduleInput && !preferredScheduleInput.disabled) {
+            preferredScheduleInput.value = String((c && c.preferred_schedule) || '');
         }
         agendaOcApplyClientTechnicalSheet('agendaOc', c);
     }
@@ -7727,6 +7834,10 @@ document.addEventListener('DOMContentLoaded', function() {
             agendaOcEnsureOrigemOption(input, c.origem);
         } else if (fieldKey === 'profissao') {
             input.value = String(c.profissao || '');
+        } else if (fieldKey === 'nationality') {
+            input.value = String(c.nationality || '');
+        } else if (fieldKey === 'preferred_schedule') {
+            input.value = String(c.preferred_schedule || '');
         } else if (fieldKey === 'allergies') {
             input.value = String(c.allergies || '');
         }
@@ -7811,6 +7922,10 @@ document.addEventListener('DOMContentLoaded', function() {
             payload.origem = raw;
         } else if (fieldKey === 'profissao') {
             payload.profissao = raw;
+        } else if (fieldKey === 'nationality') {
+            payload.nationality = raw;
+        } else if (fieldKey === 'preferred_schedule') {
+            payload.preferred_schedule = raw !== '' ? raw : null;
         } else if (fieldKey === 'allergies') {
             payload.allergies = raw;
         } else {
@@ -7933,6 +8048,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var ceditCancel = $id('agendaOcClientCancelEditBtn');
         if (ceditCancel) ceditCancel.classList.add('d-none');
         agendaOcSetClientDetailsOpen('agendaOc', false);
+        var birthdayBanner = $id('agendaOcClientBirthdayBanner');
+        if (birthdayBanner) birthdayBanner.classList.add('d-none');
     }
 
     function agendaOcApplyClientFromApi(c) {
@@ -7948,10 +8065,13 @@ document.addEventListener('DOMContentLoaded', function() {
             birth_date: c.birth_date || '',
             origem: c.origem || '',
             profissao: c.profissao || '',
+            nationality: c.nationality || '',
+            preferred_schedule: c.preferred_schedule || '',
             allergies: c.allergies || '',
             contraindications: c.contraindications || '',
             service_preferences: c.service_preferences || c.preferences_notes || '',
             client_since: c.client_since || '',
+            client_since_date: c.client_since_date || '',
             client_last_update: c.client_last_update || '',
             tags: c.tags || []
         };
@@ -7995,6 +8115,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ceditCancel) ceditCancel.classList.add('d-none');
         agendaOcClientBeforeEdit = null;
         agendaOcSetClientDetailsOpen('agendaOc', false);
+        agendaOcUpdateBirthdayBanner();
         agendaSyncClientDisplayOnCalendar(agendaOcSelectedClient);
     }
 
@@ -8598,6 +8719,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     disableMobile: true,
                     onChange: function() {
                         updateAgendaOcOutOfHoursWarning();
+                        agendaOcUpdateBirthdayBanner();
                     }
                 });
                 if (agendaOcDateFlatpickr && agendaOcDateFlatpickr.altInput) {
@@ -8949,6 +9071,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     { field: 'nif', add: 'agendaOcClientNifAddBtn', text: 'agendaOcClientSelectedNif', input: 'agendaOcClientNifInput' },
                     { field: 'origem', add: 'agendaOcClientOrigemAddBtn', text: 'agendaOcClientSelectedOrigem', input: 'agendaOcClientOrigemInput' },
                     { field: 'profissao', add: 'agendaOcClientProfissaoAddBtn', text: 'agendaOcClientSelectedProfissao', input: 'agendaOcClientProfissaoInput' },
+                    { field: 'nationality', add: 'agendaOcClientNationalityAddBtn', text: 'agendaOcClientSelectedNationality', input: 'agendaOcClientNationalityInput' },
+                    { field: 'preferred_schedule', add: 'agendaOcClientPreferredScheduleAddBtn', text: 'agendaOcClientSelectedPreferredSchedule', input: 'agendaOcClientPreferredScheduleInput' },
                     { field: 'allergies', add: 'agendaOcClientAllergiesAddBtn', text: 'agendaOcClientSelectedAllergies', input: 'agendaOcClientAllergiesInput' }
                 ];
                 agendaOcProfileFieldBind.forEach(function(cfg) {
@@ -8981,9 +9105,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 agendaOcSetClientProfileEditMode(false);
                             }
                         });
-                        if (cfg.field === 'origem') {
+                        if (cfg.field === 'origem' || cfg.field === 'preferred_schedule') {
                             input.addEventListener('change', function() {
-                                agendaOcSaveProfileInlineField('origem');
+                                agendaOcSaveProfileInlineField(cfg.field);
                             });
                         }
                     }

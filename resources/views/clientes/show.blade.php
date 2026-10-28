@@ -479,7 +479,7 @@
                     @endphp
                     @if($detalheAlertas !== '')
                     <div class="uview-detail-group">
-                        <div class="uview-detail-title">Alertas do cliente <span class="text-muted fw-normal" style="font-size: 0.75rem;">· Booking</span></div>
+                        <div class="uview-detail-title">Alertas do cliente</div>
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Alertas</div>
                             <div class="uview-detail-value text-danger">{{ $detalheAlertas }}</div>

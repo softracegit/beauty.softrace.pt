@@ -52,7 +52,6 @@ class OnlineBookingCheckoutService
             'email' => ['required', 'email', 'max:255'],
             'phone' => ['required', 'string', 'max:40'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'allergies' => ['nullable', 'string', 'max:2000'],
             'date' => ['required', 'date_format:Y-m-d'],
             'time' => ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
             'agent_id' => ['required', 'string'],
@@ -702,8 +701,6 @@ class OnlineBookingCheckoutService
                 $client->nif = $nifDigits;
             }
             $this->mergeOnlineBookingNotes($client, $validated['notes'] ?? null);
-            // Cliente autenticado vê o campo pré-preenchido: o valor enviado é a fonte de verdade.
-            $this->mergeOnlineBookingAllergies($client, $validated['allergies'] ?? null, replace: true);
             $client->save();
             $actor->save();
 
@@ -715,7 +712,6 @@ class OnlineBookingCheckoutService
             $validated['email'],
             $validated['phone'],
             $validated['notes'] ?? null,
-            $validated['allergies'] ?? null,
             $this->storeIdFromBookingServices($validated['services']),
         );
         $client = $resolved['client'];
@@ -1119,7 +1115,7 @@ class OnlineBookingCheckoutService
     /**
      * @return array{client: Client, created_booking_user: bool}
      */
-    private function resolveGuestBookingClient(string $name, string $email, string $phoneRaw, ?string $notes, ?string $allergies, int $storeId): array
+    private function resolveGuestBookingClient(string $name, string $email, string $phoneRaw, ?string $notes, int $storeId): array
     {
         $phoneE164 = PhoneDisplay::toE164(trim($phoneRaw));
         if ($phoneE164 === null || $phoneE164 === '') {
@@ -1187,26 +1183,23 @@ class OnlineBookingCheckoutService
                 $this->throwRequiresBookingLogin();
             }
 
-            $this->attachBookingUserToLegacyClient($client, $name, $emailNorm, $phoneE164, $notes, $allergies);
+            $this->attachBookingUserToLegacyClient($client, $name, $emailNorm, $phoneE164, $notes);
 
             return ['client' => $client->fresh(), 'created_booking_user' => true];
         }
 
-        return $this->createNewClientAndBookingUser($name, $emailNorm, $phoneE164, $notes, $allergies, $storeId);
+        return $this->createNewClientAndBookingUser($name, $emailNorm, $phoneE164, $notes, $storeId);
     }
 
     /**
      * @return array{client: Client, created_booking_user: bool}
      */
-    private function createNewClientAndBookingUser(string $name, string $emailNorm, string $phoneE164, ?string $notes, ?string $allergies, int $storeId): array
+    private function createNewClientAndBookingUser(string $name, string $emailNorm, string $phoneE164, ?string $notes, int $storeId): array
     {
         $this->assertEmailAvailableForBookingUser($emailNorm);
 
         $notesBlock = ($notes !== null && trim($notes) !== '')
             ? '[Marcação online] '.trim($notes)
-            : null;
-        $allergiesTrim = ($allergies !== null && trim($allergies) !== '')
-            ? trim($allergies)
             : null;
 
         $organizationId = Store::query()->whereKey($storeId)->value('organization_id');
@@ -1219,7 +1212,6 @@ class OnlineBookingCheckoutService
                 'email' => $emailNorm,
                 'phone' => $phoneE164,
                 'preferences_notes' => $notesBlock,
-                'allergies' => $allergiesTrim,
                 'type' => Client::TYPE_POTENCIAL_CLIENTE,
             ]);
         } catch (QueryException $e) {
@@ -1245,7 +1237,7 @@ class OnlineBookingCheckoutService
         return ['client' => $client, 'created_booking_user' => true];
     }
 
-    private function attachBookingUserToLegacyClient(Client $client, string $name, string $emailNorm, string $phoneE164, ?string $notes, ?string $allergies = null): void
+    private function attachBookingUserToLegacyClient(Client $client, string $name, string $emailNorm, string $phoneE164, ?string $notes): void
     {
         $this->assertEmailAvailableForBookingUser($emailNorm);
 
@@ -1257,7 +1249,6 @@ class OnlineBookingCheckoutService
             $prev = (string) ($client->preferences_notes ?? '');
             $client->preferences_notes = trim($prev !== '' ? $prev."\n\n".$notesBlock : $notesBlock);
         }
-        $this->mergeOnlineBookingAllergies($client, $allergies);
 
         $client->name = $name;
         $client->phone = $phoneE164;
@@ -1323,27 +1314,6 @@ class OnlineBookingCheckoutService
         $notesBlock = '[Marcação online] '.$notesTrim;
         $prev = (string) ($client->preferences_notes ?? '');
         $client->preferences_notes = trim($prev !== '' ? $prev."\n\n".$notesBlock : $notesBlock);
-    }
-
-    private function mergeOnlineBookingAllergies(Client $client, ?string $allergies, bool $replace = false): void
-    {
-        $allergiesTrim = isset($allergies) ? trim((string) $allergies) : '';
-        if ($allergiesTrim === '') {
-            return;
-        }
-
-        $prev = trim((string) ($client->allergies ?? ''));
-        if ($replace || $prev === '') {
-            $client->allergies = $allergiesTrim;
-
-            return;
-        }
-
-        if (mb_stripos($prev, $allergiesTrim) !== false) {
-            return;
-        }
-
-        $client->allergies = $prev."\n".$allergiesTrim;
     }
 
     private function phonesMatchClient(Client $client, string $phoneE164): bool
