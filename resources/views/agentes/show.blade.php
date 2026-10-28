@@ -148,7 +148,7 @@
                     @php
                         $showEspecializacao = $agente->specialization && in_array($agente->user->role ?? '', \App\Models\User::rolesWithSpecialization(), true);
                     @endphp
-                    @if($showEspecializacao || $agente->commission_rate !== null || $agente->retention_fee_rate !== null)
+                    @if($showEspecializacao || $agente->commission_rate !== null || $agente->commissionPeriods->isNotEmpty() || $agente->retention_fee_rate !== null || $agente->retentionFeePeriods->isNotEmpty())
                     <div class="uview-detail-group">
                         <div class="uview-detail-title">Dados Profissionais</div>
                         @if($showEspecializacao)
@@ -157,19 +157,52 @@
                             <div class="uview-detail-value">{{ \App\Models\Agent::specializationLabel($agente->specialization) }}</div>
                         </div>
                         @endif
-                        @if($agente->commission_rate !== null)
+                        @if($agente->commission_rate !== null || $agente->commissionPeriods->isNotEmpty())
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Taxa de Comissão</div>
-                            <div class="uview-detail-value">{{ $agente->formatCommissionDisplay() }}</div>
+                            <div class="uview-detail-value">
+                              @if($agente->commission_rate !== null)
+                                {{ $agente->formatCommissionDisplay() }}
+                                @if($agente->commission_effective_from)
+                                  <span class="text-muted small">· desde {{ $agente->commission_effective_from->format('d/m/Y') }}</span>
+                                @endif
+                              @else
+                                <span class="text-muted">Sem comissão actual</span>
+                              @endif
+                              @if($agente->commissionPeriods->count() > 1)
+                                <ul class="list-unstyled small text-muted mb-0 mt-1">
+                                  @foreach($agente->commissionPeriods as $period)
+                                    <li>
+                                      {{ optional($period->effective_from)?->format('d/m/Y') ?? '—' }}:
+                                      {{ $period->hasCommission() ? $period->formatDisplay() : 'sem comissão' }}
+                                    </li>
+                                  @endforeach
+                                </ul>
+                              @endif
+                            </div>
                         </div>
                         @endif
-                        @if($agente->retention_fee_rate !== null)
+                        @if($agente->retention_fee_rate !== null || $agente->retentionFeePeriods->isNotEmpty())
                         <div class="uview-detail-row">
                             <div class="uview-detail-label">Taxa de retenção</div>
                             <div class="uview-detail-value">
-                              {{ $agente->formatRetentionFeeDisplay() }}
-                              @if($agente->retention_fee_effective_from)
-                                <span class="text-muted small">· desde {{ $agente->retention_fee_effective_from->format('d/m/Y') }}</span>
+                              @if($agente->retention_fee_rate !== null)
+                                {{ $agente->formatRetentionFeeDisplay() }}
+                                @if($agente->retention_fee_effective_from)
+                                  <span class="text-muted small">· desde {{ $agente->retention_fee_effective_from->format('d/m/Y') }}</span>
+                                @endif
+                              @else
+                                <span class="text-muted">Sem retenção actual</span>
+                              @endif
+                              @if($agente->retentionFeePeriods->count() > 1)
+                                <ul class="list-unstyled small text-muted mb-0 mt-1">
+                                  @foreach($agente->retentionFeePeriods as $period)
+                                    <li>
+                                      {{ optional($period->effective_from)?->format('d/m/Y') ?? '—' }}:
+                                      {{ $period->hasRetention() ? $period->formatDisplay() : 'sem retenção' }}
+                                    </li>
+                                  @endforeach
+                                </ul>
                               @endif
                             </div>
                         </div>

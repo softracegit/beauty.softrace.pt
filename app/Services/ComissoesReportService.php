@@ -171,10 +171,13 @@ class ComissoesReportService
         $agents = Agent::query()
             ->whereIn('store_id', $storeIds)
             ->whereIn('user_id', array_keys($userIds))
+            ->with(['commissionPeriods', 'retentionFeePeriods'])
             ->get([
+                'id',
                 'user_id',
                 'commission_rate',
                 'commission_unit',
+                'commission_effective_from',
                 'retention_fee_rate',
                 'retention_fee_unit',
                 'retention_fee_effective_from',
@@ -271,13 +274,14 @@ class ComissoesReportService
             $valorSemIva = round($valorComIva * $netFactor, 2);
 
             $agent = $agents->get($userId);
-            $rate = $agent?->commission_rate;
-            $unit = (string) ($agent?->commission_unit ?: Agent::COMMISSION_UNIT_PERCENT);
-            $comissaoTaxa = $agent ? $agent->formatCommissionDisplay() : null;
-
             $saleDate = $sale->data_emissao;
-            $retentionApplies = $this->retentionAppliesOnSaleDate($agent, $saleDate);
-            $retencaoTaxa = $retentionApplies ? $agent?->formatRetentionFeeDisplay() : null;
+            $commissionPeriod = $agent?->commissionPeriodForDate($saleDate);
+            $rate = $commissionPeriod?->rate;
+            $unit = (string) ($commissionPeriod?->unit ?: Agent::COMMISSION_UNIT_PERCENT);
+            $comissaoTaxa = $commissionPeriod?->formatDisplay();
+
+            $retentionPeriod = $agent?->retentionFeePeriodForDate($saleDate);
+            $retencaoTaxa = $retentionPeriod?->formatDisplay();
 
             // 1) Comissão sobre o valor (c/ ou s/ IVA). 2) Retenção descontada depois, no valor a pagar.
             [$comissaoComIva, $comissaoSemIva] = $this->commissionAmounts(
@@ -290,14 +294,14 @@ class ComissoesReportService
                 $euroCounted,
             );
 
-            if ($retentionApplies) {
+            if ($retentionPeriod !== null) {
                 [$comissaoComIva, $comissaoSemIva] = $this->subtractRetentionFromCommission(
                     $comissaoComIva,
                     $comissaoSemIva,
                     $valorComIva,
                     $valorSemIva,
-                    $agent?->retention_fee_rate,
-                    (string) ($agent?->retention_fee_unit ?: Agent::COMMISSION_UNIT_EURO),
+                    $retentionPeriod->rate,
+                    (string) ($retentionPeriod->unit ?: Agent::COMMISSION_UNIT_EURO),
                     (int) $sale->id,
                     $userId,
                     $retentionEuroCounted,
@@ -323,31 +327,6 @@ class ComissoesReportService
         }
 
         return $out;
-    }
-
-    private function retentionAppliesOnSaleDate(?Agent $agent, mixed $saleDate): bool
-    {
-        if (! $agent instanceof Agent) {
-            return false;
-        }
-        if ($agent->retention_fee_rate === null || $agent->retention_fee_rate === '') {
-            return false;
-        }
-        if ($agent->retention_fee_effective_from === null) {
-            return false;
-        }
-        if ($saleDate === null) {
-            return false;
-        }
-
-        try {
-            $saleDay = Carbon::parse($saleDate)->startOfDay();
-            $from = $agent->retention_fee_effective_from->copy()->startOfDay();
-        } catch (\Throwable) {
-            return false;
-        }
-
-        return $saleDay->greaterThanOrEqualTo($from);
     }
 
     /**

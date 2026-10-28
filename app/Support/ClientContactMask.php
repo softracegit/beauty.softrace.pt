@@ -16,6 +16,10 @@ class ClientContactMask
         return '******'.$last3;
     }
 
+    /**
+     * Mostra a primeira e a última letra da parte local; domínio parcialmente mascarado.
+     * Ex.: joana@empresa.pt → j***a@e***.pt
+     */
     public static function email(?string $email): string
     {
         $email = trim((string) $email);
@@ -32,7 +36,9 @@ class ClientContactMask
         $domainHead = (string) ($domainParts[0] ?? '');
         $domainTld = count($domainParts) > 1 ? '.'.implode('.', array_slice($domainParts, 1)) : '';
 
-        $localMasked = substr($local, 0, 1).'***';
+        $first = substr($local, 0, 1);
+        $last = strlen($local) > 1 ? substr($local, -1) : '';
+        $localMasked = $first.'***'.$last;
         $domainMasked = ($domainHead !== '' ? substr($domainHead, 0, 1) : 'x').'***';
 
         return $localMasked.'@'.$domainMasked.$domainTld;

@@ -1,6 +1,7 @@
 @php
     $ru = $retentionFeeUnit ?? \App\Models\Agent::COMMISSION_UNIT_PERCENT;
     $effectiveFrom = $retentionFeeEffectiveFrom ?? '';
+    $history = collect($retentionFeeHistory ?? []);
 @endphp
 <div class="col-md-6 mb-3">
     <label class="form-label">Taxa de retenção</label>
@@ -43,8 +44,37 @@
            id="retentionFeeEffectiveFrom"
            class="form-control @error('retention_fee_effective_from') is-invalid @enderror"
            value="{{ $effectiveFrom }}">
-    <div class="form-text">Descontada ao valor da comissão (depois da %), não ao cliente. Só em vendas com data ≥ este dia — ao mudar a taxa, actualize a data para não afectar o passado.</div>
     @error('retention_fee_effective_from')
         <div class="invalid-feedback d-block">{{ $message }}</div>
     @enderror
+
+    @if($history->isNotEmpty())
+        <div class="mt-3">
+            <div class="form-label small text-muted mb-1">Histórico</div>
+            <ul class="list-unstyled small mb-0">
+                @foreach($history as $period)
+                    <li class="d-flex align-items-center justify-content-between gap-2 py-1 border-bottom border-light">
+                        <span>desde {{ optional($period->effective_from)?->format('d/m/Y') ?? '—' }}</span>
+                        <span class="d-flex align-items-center gap-2 text-nowrap">
+                            @if($period->hasRetention())
+                                {{ $period->formatDisplay() }}
+                            @else
+                                <span class="text-muted">sem retenção</span>
+                            @endif
+                            @if(!empty($canDeleteHistory) && !empty($agente) && $period->id)
+                                <button type="submit"
+                                        form="destroy-retention-fee-period-{{ $period->id }}"
+                                        class="btn btn-link btn-sm p-0 text-danger"
+                                        title="Eliminar"
+                                        aria-label="Eliminar registo"
+                                        onclick="return confirm('Eliminar este registo do histórico de retenção?');">
+                                    <i class="ph ph-trash" aria-hidden="true"></i>
+                                </button>
+                            @endif
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 </div>

@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mockup — Ficha clínica / estética do cliente</title>
+  <style>
+    :root {
+      --bg: #eef0f4;
+      --panel: #fff;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --label: #9ca3af;
+      --text: #111827;
+      --accent: #4f46e5;
+      --accent-soft: #eef2ff;
+      --ok: #16a34a;
+      --ok-bg: #ecfdf5;
+      --warn: #ea580c;
+      --warn-bg: #fff7ed;
+      --warn-border: #fed7aa;
+      --info-bg: #eff6ff;
+      --info-border: #bfdbfe;
+      --radius: 0.6rem;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .page { padding: 1.25rem; max-width: 1180px; margin: 0 auto; }
+    .page-note {
+      margin: 0 0 1rem;
+      padding: 0.85rem 1rem;
+      background: #ecfdf5;
+      border: 1px solid #6ee7b7;
+      border-radius: var(--radius);
+      font-size: 0.84rem;
+      color: #065f46;
+    }
+    .page-note strong { color: #047857; }
+    .page-note ul { margin: 0.4rem 0 0; padding-left: 1.15rem; }
+    .page-note li + li { margin-top: 0.2rem; }
+
+    .shell {
+      background: var(--panel);
+      border-radius: 0.85rem;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    /* Hero */
+    .hero {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 1rem 1.25rem;
+      padding: 1.25rem 1.35rem 1rem;
+      border-bottom: 1px solid var(--border);
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: auto 1fr; }
+      .hero-stats { grid-column: 1 / -1; }
+    }
+    .avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, #c7d2fe, #a5b4fc);
+      color: #312e81; font-weight: 700; font-size: 1.4rem;
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .hero-meta h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 0.12rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .badge-ok { background: var(--ok-bg); color: var(--ok); }
+    .badge-done { background: #f3f4f6; color: #374151; }
+    .hero-contacts {
+      display: flex; flex-wrap: wrap; gap: 0.35rem 1rem;
+      color: var(--muted); font-size: 0.82rem; margin-top: 0.2rem;
+    }
+    .hero-contacts span { white-space: nowrap; }
+    .hero-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.55rem; }
+    .tag {
+      background: #f3f4f6; color: #374151;
+      border-radius: 999px; padding: 0.15rem 0.55rem;
+      font-size: 0.72rem; font-weight: 600;
+    }
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(7.5rem, 1fr));
+      gap: 0.55rem 1rem;
+      min-width: 15rem;
+    }
+    .stat-label { font-size: 0.68rem; color: var(--label); text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-value { font-size: 0.84rem; font-weight: 600; margin-top: 0.1rem; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 0.15rem; padding: 0 1rem;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .tab {
+      appearance: none; border: 0; background: transparent;
+      padding: 0.85rem 0.9rem; font: inherit; font-weight: 600;
+      font-size: 0.84rem; color: var(--muted); cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      white-space: nowrap;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.is-active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .panels { padding: 1.1rem 1.25rem 1.4rem; }
+    .panel { display: none; }
+    .panel.is-active { display: block; }
+
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.75rem; margin-bottom: 0.85rem; flex-wrap: wrap;
+    }
+    .section-head h2 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    .section-head p { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.8rem; }
+    .btn {
+      appearance: none; border: 1px solid var(--border); background: #fff;
+      border-radius: 0.45rem; padding: 0.4rem 0.75rem;
+      font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      color: var(--text);
+    }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-ghost { background: transparent; }
+    .btn-sm { padding: 0.28rem 0.6rem; font-size: 0.75rem; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+    @media (max-width: 900px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 0.85rem 0.95rem;
+    }
+    .card h3 {
+      margin: 0 0 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .card .big { font-size: 0.95rem; font-weight: 650; }
+    .card .sub { color: var(--muted); font-size: 0.8rem; margin-top: 0.15rem; }
+
+    .alert-card {
+      border: 1px solid var(--warn-border);
+      background: var(--warn-bg);
+      border-radius: var(--radius);
+      padding: 0.75rem 0.9rem;
+      margin: 0.85rem 0;
+    }
+    .alert-card__title {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-weight: 700; color: #9a3412; font-size: 0.86rem;
+    }
+    .alert-card__body { margin-top: 0.35rem; color: #9a3412; font-size: 0.84rem; }
+
+    .info-box {
+      border: 1px solid var(--info-border);
+      background: var(--info-bg);
+      border-radius: var(--radius);
+      padding: 0.7rem 0.85rem;
+      color: #1e3a8a;
+      font-size: 0.8rem;
+    }
+
+    /* Activity / history rows */
+    .row-list { display: flex; flex-direction: column; gap: 0.65rem; }
+    .session-row {
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      gap: 0.75rem;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.65rem 0.75rem;
+    }
+    .thumb {
+      width: 56px; height: 56px; border-radius: 0.45rem;
+      background: linear-gradient(145deg, #fce7f3, #e9d5ff);
+      display: grid; place-items: center;
+      color: #7e22ce; font-size: 0.7rem; font-weight: 700;
+    }
+    .session-row__title { font-weight: 650; }
+    .session-row__meta { color: var(--muted); font-size: 0.78rem; margin-top: 0.15rem; }
+    .session-row__products { font-size: 0.76rem; color: #4b5563; margin-top: 0.2rem; }
+
+    /* Preferências */
+    .pref-tile {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem;
+      background: #fafafa;
+      min-height: 5.5rem;
+    }
+    .pref-tile__label { font-size: 0.72rem; color: var(--muted); font-weight: 650; text-transform: uppercase; letter-spacing: 0.03em; }
+    .pref-tile__value { margin-top: 0.4rem; font-weight: 650; font-size: 0.95rem; }
+    .swatches { display: flex; gap: 0.35rem; margin-top: 0.45rem; }
+    .swatch {
+      width: 1.35rem; height: 1.35rem; border-radius: 50%;
+      border: 1px solid rgba(0,0,0,.08);
+    }
+    .checklist { list-style: none; margin: 0; padding: 0; }
+    .checklist li {
+      display: flex; gap: 0.45rem; align-items: flex-start;
+      padding: 0.35rem 0; font-size: 0.84rem;
+    }
+    .checklist li::before {
+      content: "✓"; color: var(--ok); font-weight: 700; flex-shrink: 0;
+    }
+
+    /* Ficha técnica sessão */
+    .ficha-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 1rem;
+      align-items: start;
+    }
+    @media (max-width: 980px) {
+      .ficha-layout { grid-template-columns: 1fr; }
+    }
+    .ficha-main { min-width: 0; }
+    .ficha-side { display: flex; flex-direction: column; gap: 0.75rem; }
+    .block {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.9rem 1rem;
+      margin-bottom: 0.85rem;
+    }
+    .block__num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.35rem; height: 1.35rem; border-radius: 50%;
+      background: var(--accent-soft); color: var(--accent);
+      font-size: 0.75rem; font-weight: 800; margin-right: 0.4rem;
+    }
+    .block__title {
+      margin: 0 0 0.75rem;
+      font-size: 0.92rem;
+      font-weight: 700;
+      display: flex; align-items: center;
+    }
+    .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem 0.85rem; }
+    .fields .full { grid-column: 1 / -1; }
+    @media (max-width: 700px) { .fields { grid-template-columns: 1fr; } }
+    label.field {
+      display: flex; flex-direction: column; gap: 0.25rem;
+      font-size: 0.72rem; font-weight: 650; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    label.field input,
+    label.field select,
+    label.field textarea {
+      font: inherit; font-size: 0.86rem; font-weight: 500;
+      color: var(--text); text-transform: none; letter-spacing: 0;
+      border: 1px solid var(--border); border-radius: 0.4rem;
+      padding: 0.45rem 0.55rem; background: #fff;
+    }
+    label.field textarea { min-height: 4rem; resize: vertical; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.15rem; }
+    .chip {
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 0.28rem 0.65rem; font-size: 0.78rem; font-weight: 600;
+      background: #fff; cursor: default;
+    }
+    .chip.is-on { background: var(--accent-soft); border-color: #c7d2fe; color: #3730a3; }
+    .size-row { display: flex; gap: 0.35rem; }
+    .size-btn {
+      width: 2.1rem; height: 2.1rem; border-radius: 0.4rem;
+      border: 1px solid var(--border); display: grid; place-items: center;
+      font-weight: 700; font-size: 0.78rem; background: #fff;
+    }
+    .size-btn.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .photo-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;
+    }
+    .photo {
+      aspect-ratio: 1; border-radius: 0.45rem;
+      background: linear-gradient(160deg, #fdf2f8, #ede9fe);
+      border: 1px dashed #d1d5db;
+      display: grid; place-items: center;
+      color: #7c3aed; font-size: 0.72rem; font-weight: 650;
+    }
+    .photo.add { background: #f9fafb; color: var(--muted); }
+
+    .family-switch {
+      display: inline-flex; gap: 0.25rem; background: #f3f4f6;
+      padding: 0.2rem; border-radius: 999px; margin-bottom: 0.85rem;
+    }
+    .family-switch button {
+      appearance: none; border: 0; background: transparent;
+      padding: 0.35rem 0.75rem; border-radius: 999px;
+      font: inherit; font-size: 0.78rem; font-weight: 650;
+      color: var(--muted); cursor: pointer;
+    }
+    .family-switch button.is-on { background: #fff; color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+    .schema-note {
+      font-size: 0.75rem; color: var(--muted);
+      margin: -0.35rem 0 0.85rem; padding: 0.55rem 0.7rem;
+      background: #f8fafc; border-radius: 0.45rem; border: 1px dashed #cbd5e1;
+    }
+
+    .now-vs {
+      margin-top: 1rem;
+      padding: 0.75rem 0.9rem;
+      border-radius: var(--radius);
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      font-size: 0.8rem;
+      color: #92400e;
+    }
+    .now-vs strong { color: #78350f; }
+
+    .side-mini h4 { margin: 0 0 0.45rem; font-size: 0.8rem; }
+    .side-mini .muted { color: var(--muted); font-size: 0.78rem; }
+    .kpi-mini { display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.8rem; }
+    .kpi-mini div { display: flex; justify-content: space-between; gap: 0.5rem; }
+    .kpi-mini span:last-child { font-weight: 650; text-align: right; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="page-note">
+      <strong>Mockup de proposta</strong> — ficha clínica / estética do cliente (inspirado nas imagens + ficha actual).
+      <ul>
+        <li><strong>Hoje:</strong> Resumo com KPIs + alertas (<code>allergies</code>) + timeline de marcações; por visita só texto livre (<code>technical_formula</code>, <code>technical_products</code>, <code>technical_notes</code>); preferências = texto (<code>preferences_notes</code>).</li>
+        <li><strong>Proposta:</strong> tabs Resumo / Ficha Técnica (por sessão) / Histórico / Preferências (perfil estável), com campos estruturados que <em>variam por família de serviço</em> (ex.: Unhas ≠ Coloração ≠ Depilação).</li>
+        <li>Objectivo: a técnica consulta histórico + preferências + alergias antes / durante a nova marcação.</li>
+      </ul>
+    </div>
+
+    <div class="shell">
+      <header class="hero">
+        <div class="avatar" aria-hidden="true">AS</div>
+        <div class="hero-meta">
+          <h1>
+            Ana Silva
+            <span class="badge badge-ok">Ativa</span>
+          </h1>
+          <div class="hero-contacts">
+            <span>📞 912 345 678</span>
+            <span>✉️ ana.silva@email.com</span>
+            <span>🎂 12/03/1990 · 36 anos</span>
+          </div>
+          <div class="hero-tags">
+            <span class="tag">VIP</span>
+            <span class="tag">Unhas</span>
+            <span class="tag">Prefere manhã</span>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div>
+            <div class="stat-label">Cliente desde</div>
+            <div class="stat-value">março 2025</div>
+          </div>
+          <div>
+            <div class="stat-label">Total visitas</div>
+            <div class="stat-value">12</div>
+          </div>
+          <div>
+            <div class="stat-label">Última visita</div>
+            <div class="stat-value">12/10/2026</div>
+          </div>
+          <div>
+            <div class="stat-label">Próxima</div>
+            <div class="stat-value">28/10 · 10:00</div>
+          </div>
+        </div>
+      </header>
+
+      <nav class="tabs" role="tablist" aria-label="Secções da ficha">
+        <button type="button" class="tab is-active" data-tab="resumo" role="tab" aria-selected="true">Resumo</button>
+        <button type="button" class="tab" data-tab="ficha" role="tab" aria-selected="false">Ficha Técnica</button>
+        <button type="button" class="tab" data-tab="historico" role="tab" aria-selected="false">Histórico</button>
+        <button type="button" class="tab" data-tab="preferencias" role="tab" aria-selected="false">Preferências</button>
+      </nav>
+
+      <div class="panels">
+        <!-- RESUMO -->
+        <section class="panel is-active" id="panel-resumo" role="tabpanel">
+          <div class="grid-2">
+            <div class="card">
+              <h3>Próxima marcação</h3>
+              <div class="big">28/10/2026 · 10:00</div>
+              <div class="sub">Manicure + Unhas de Gel · Carolina Mendes</div>
+            </div>
+            <div class="card">
+              <h3>Última visita</h3>
+              <div class="big">12/10/2026 · 11:30</div>
+              <div class="sub">Manicure + Unhas de Gel · Concluída · 60 min</div>
+            </div>
+          </div>
+
+          <div class="alert-card">
+            <div class="alert-card__title">⚠ Alertas do cliente</div>
+            <div class="alert-card__body">
+              Evita acetona agressiva · Unhas sensíveis no inverno · Sem alergias a gel conhecidas
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0.85rem;">
+            <div class="section-head" style="margin-bottom: 0.4rem;">
+              <div>
+                <h3 style="margin:0; text-transform:none; letter-spacing:0; font-size:0.95rem; color:var(--text);">Notas / preferências rápidas</h3>
+              </div>
+              <button type="button" class="btn btn-sm">Editar</button>
+            </div>
+            <p style="margin:0; font-size:0.86rem;">Prefere tons neutros e estilo discreto. Gosta de acabamento natural. Evitar comprimentos XL.</p>
+          </div>
+
+          <div class="section-head">
+            <div>
+              <h2>Atividade recente</h2>
+              <p>Últimas sessões — atalho para o histórico completo</p>
+            </div>
+            <button type="button" class="btn btn-sm" data-goto="historico">Ver histórico</button>
+          </div>
+          <div class="row-list">
+            <article class="session-row">
+              <div class="thumb">12/10</div>
+              <div>
+                <div class="session-row__title">Manicure + Unhas de Gel</div>
+                <div class="session-row__meta">Carolina Mendes · 60 min</div>
+                <div class="session-row__products">OPI Gel · Bubble Bath · Top Coat</div>
+              </div>
+              <span class="badge badge-done">Concluída</span>
+            </article>
+            <article class="session-row">
+              <div class="thumb">24/09</div>
+              <div>
+                <div class="session-row__title">Manutenção Gel</div>
+                <div class="session-row__meta">Carolina Mendes · 45 min</div>
+                <div class="session-row__products">OPI · Nude · Óleo cutículas</div>
+              </div>
+              <span class="badge badge-done">Concluída</span>
+            </article>
+            <article class="session-row">
+              <div class="thumb">02/09</div>
+              <div>
+                <div class="session-row__title">Manicure + Unhas de Gel</div>
+                <div class="session-row__meta">Inês Rocha · 70 min</div>
+                <div class="session-row__products">CND · Rosa claro · Brilho</div>
+              </div>
+              <span class="badge badge-done">Concluída</span>
+            </article>
+          </div>
+
+          <div class="grid-3" style="margin-top: 0.95rem;">
+            <div class="card">
+              <h3>Serviço mais feito</h3>
+              <div class="big">Manicure + Gel</div>
+              <div class="sub">9 vezes</div>
+            </div>
+            <div class="card">
+              <h3>Produto preferido</h3>
+              <div class="big">OPI Gel</div>
+              <div class="sub">4 vezes</div>
+            </div>
+            <div class="card">
+              <h3>Média entre visitas</h3>
+              <div class="big">18 dias</div>
+              <div class="sub">Ritmo habitual</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- FICHA TÉCNICA (por sessão) -->
+        <section class="panel" id="panel-ficha" role="tabpanel" hidden>
+          <div class="section-head">
+            <div>
+              <h2>Ficha Técnica — sessão</h2>
+              <p>Registo do que foi feito nesta marcação (consultável nas próximas visitas)</p>
+            </div>
+            <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm">Duplicar última sessão</button>
+              <button type="button" class="btn btn-primary btn-sm">Guardar</button>
+            </div>
+          </div>
+
+          <div class="family-switch" role="group" aria-label="Família de serviço">
+            <button type="button" class="is-on" data-family="unhas">Unhas</button>
+            <button type="button" data-family="cor">Coloração</button>
+            <button type="button" data-family="geral">Genérico</button>
+          </div>
+          <p class="schema-note">
+            Os campos abaixo mudam conforme a <strong>família do serviço</strong> da marcação.
+            Ex.: unhas → formato/cor/produtos; coloração → fórmula/oxidante/tempo de pose (o que hoje é texto livre em «Esta visita»).
+          </p>
+
+          <div class="ficha-layout">
+            <div class="ficha-main">
+              <!-- UNHAS -->
+              <div data-family-panel="unhas">
+                <div class="block">
+                  <h3 class="block__title"><span class="block__num">1</span> Dados da sessão</h3>
+                  <div class="fields">
+                    <label class="field">Data
+                      <input value="12/10/2026" readonly>
+                    </label>
+                    <label class="field">Duração
+                      <input value="60 min">
+                    </label>
+                    <label class="field">Serviço realizado
+                      <select><option>Manicure + Unhas de Gel</option><option>Manutenção Gel</option></select>
+                    </label>
+                    <label class="field">Profissional
+                      <select><option>Carolina Mendes</option><option>Inês Rocha</option></select>
+                    </label>
+                    <label class="field">Estado das unhas
+                      <input value="Manicure simples + Gel">
+                    </label>
+                    <label class="field full">Resultado / observações
+                      <textarea>Acabamento natural, cliente satisfeita. Cutículas hidratadas.</textarea>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="block">
+                  <h3 class="block__title"><span class="block__num">2</span> Produtos e materiais</h3>
+                  <div class="fields">
+                    <label class="field">Marca / linha
+                      <select><option>OPI</option><option>CND</option><option>Alessandro</option></select>
+                    </label>
+                    <label class="field">Base
+                      <input value="OPI Gel Base">
+                    </label>
+                    <label class="field">Cor / referência
+                      <input value="Bubble Bath ISL T02">
+                    </label>
+                    <label class="field">Top coat
+                      <input value="OPI Gel Top Coat">
+                    </label>
+                    <div class="full">
+                      <div class="field" style="text-transform:uppercase;font-size:0.72rem;font-weight:650;color:var(--muted);margin-bottom:0.35rem;">Produtos adicionais</div>
+                      <div class="chips">
+                        <span class="chip is-on">Primer</span>
+                        <span class="chip is-on">Óleo de cutículas</span>
+                        <span class="chip is-on">Creme hidratante</span>
+                        <span class="chip"> fortificante</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="info-box" style="margin-top:0.75rem;">
+                    Tip: registar marca + referência ajuda a repetir o resultado na próxima visita e a cruzar com «produtos que prefere / não tolera».
+                  </div>
+                </div>
+
+                <div class="block">
+                  <h3 class="block__title"><span class="block__num">3</span> Formato e comprimento</h3>
+                  <div class="fields">
+                    <label class="field">Formato
+                      <select><option>Amêndoa</option><option>Quadrado</option><option>Oval</option><option>Stiletto</option></select>
+                    </label>
+                    <label class="field">Comprimento
+                      <select><option>Médio</option><option>Curto</option><option>Longo</option></select>
+                    </label>
+                    <div class="full">
+                      <div class="field" style="text-transform:uppercase;font-size:0.72rem;font-weight:650;color:var(--muted);margin-bottom:0.35rem;">Tamanho</div>
+                      <div class="size-row">
+                        <span class="size-btn">XS</span>
+                        <span class="size-btn">S</span>
+                        <span class="size-btn is-on">M</span>
+                        <span class="size-btn">L</span>
+                        <span class="size-btn">XL</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="block">
+                  <h3 class="block__title"><span class="block__num">4</span> Cor e decoração</h3>
+                  <div class="fields">
+                    <label class="field">Cor principal
+                      <input value="Rosa claro / Nude">
+                    </label>
+                    <label class="field">Efeito / decoração
+                      <select><option>Brilho</option><option>Mate</option><option>Francesa</option><option>Minimalista</option></select>
+                    </label>
+                    <label class="field full">Detalhes
+                      <textarea>Sem nail art elaborada — só brilho suave.</textarea>
+                    </label>
+                    <div class="full">
+                      <div class="field" style="text-transform:uppercase;font-size:0.72rem;font-weight:650;color:var(--muted);margin-bottom:0.35rem;">Fotos do resultado</div>
+                      <div class="photo-grid">
+                        <div class="photo">Resultado 1</div>
+                        <div class="photo">Resultado 2</div>
+                        <div class="photo add">+ Adicionar</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="block">
+                  <h3 class="block__title"><span class="block__num">5</span> Antes / depois</h3>
+                  <div class="photo-grid" style="grid-template-columns:1fr 1fr 1fr;">
+                    <div class="photo">Antes</div>
+                    <div class="photo">Depois</div>
+                    <div class="photo add">+ Foto (máx. 5)</div>
+                  </div>
+                </div>
+
+                <div class="block" style="margin-bottom:0;">
+                  <h3 class="block__title"><span class="block__num">6</span> Próximas recomendações</h3>
+                  <ul class="checklist">
+                    <li>Usar óleo de cutículas diariamente</li>
+                    <li>Evitar acetona agressiva em casa</li>
+                    <li>Manutenção sugerida daqui a ~3 semanas</li>
+                  </ul>
+                  <button type="button" class="btn btn-sm" style="margin-top:0.5rem;">+ Adicionar recomendação</button>
+                </div>
+              </div>
+
+              <!-- COLORAÇÃO -->
+              <div data-family-panel="cor" class="hidden">
+                <div class="block">
+                  <h3 class="block__title"><span class="block__num">1</span> Dados da sessão</h3>
+                  <div class="fields">
+                    <label class="field">Serviço
+                      <input value="Coloração + Brushing">
+                    </label>
+                    <label class="field">Profissional
+                      <input value="Carolina Mendes">
+                    </label>
+                    <label class="field full">Estado do cabelo
+                      <input value="Raiz 2 cm · comprimentos desbotados">
+                    </label>
+                  </div>
+                </div>
+                <div class="block">
+                  <h3 class="block__title"><span class="block__num">2</span> Fórmula (hoje ≈ technical_formula)</h3>
+                  <div class="fields">
+                    <label class="field">Fórmula raiz
+                      <input value="6N + 20 vol · 30 min">
+                    </label>
+                    <label class="field">Fórmula comprimentos
+                      <input value="7.1 + 10 vol · 20 min">
+                    </label>
+                    <label class="field">Marca
+                      <input value="Wella Koleston">
+                    </label>
+                    <label class="field">Oxidante
+                      <input value="20 vol">
+                    </label>
+                    <label class="field full">Notas técnicas
+                      <textarea>Boa cobertura. Não aplicar nos comprimentos já tratados.</textarea>
+                    </label>
+                  </div>
+                </div>
+                <div class="block" style="margin-bottom:0;">
+                  <h3 class="block__title"><span class="block__num">3</span> Produtos (hoje ≈ technical_products)</h3>
+                  <div class="fields">
+                    <label class="field full">Produtos usados
+                      <textarea>Wella Koleston · Oxidante 20 vol · Máscara Color Motion</textarea>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- GENÉRICO -->
+              <div data-family-panel="geral" class="hidden">
+                <div class="block" style="margin-bottom:0;">
+                  <h3 class="block__title"><span class="block__num">1</span> Registo genérico (fallback)</h3>
+                  <p class="schema-note" style="margin-top:0;">Para serviços sem schema específico — equivalente aos 3 textareas actuais em «Esta visita».</p>
+                  <div class="fields">
+                    <label class="field full">Fórmula / procedimento
+                      <textarea placeholder="Ex: cor / oxidante / tempo de pose"></textarea>
+                    </label>
+                    <label class="field full">Produtos usados
+                      <textarea placeholder="Produtos desta visita"></textarea>
+                    </label>
+                    <label class="field full">Notas técnicas
+                      <textarea placeholder="Observações desta visita"></textarea>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="now-vs">
+                <strong>Ligação ao produto actual:</strong>
+                a sessão grava-se na marcação (<code>CalendarEvent</code>).
+                Hoje os 3 campos de texto livre continuam a servir de fallback;
+                a proposta acrescenta campos estruturados + fotos + recomendações, indexáveis no histórico.
+              </div>
+            </div>
+
+            <aside class="ficha-side">
+              <div class="card side-mini">
+                <h4>Próxima marcação</h4>
+                <div class="big" style="font-size:0.9rem;">28/10 · 10:00</div>
+                <div class="muted">Manicure + Gel</div>
+              </div>
+              <div class="card side-mini">
+                <h4>Alergias &amp; sensibilidades</h4>
+                <ul class="checklist">
+                  <li>Sem alergia a gel conhecida</li>
+                  <li>Evita acetona agressiva</li>
+                  <li>Sensível no inverno</li>
+                </ul>
+              </div>
+              <div class="card side-mini">
+                <h4>Preferências (perfil)</h4>
+                <div class="muted" style="margin-bottom:0.35rem;">Resumo estável — tab Preferências</div>
+                <div class="chips">
+                  <span class="chip is-on">Amêndoa</span>
+                  <span class="chip is-on">Médio</span>
+                  <span class="chip is-on">Nude</span>
+                  <span class="chip is-on">OPI</span>
+                </div>
+              </div>
+              <div class="card side-mini">
+                <h4>Resumo rápido</h4>
+                <div class="kpi-mini">
+                  <div><span class="muted">Sessões</span><span>12</span></div>
+                  <div><span class="muted">Última</span><span>12/10</span></div>
+                  <div><span class="muted">Top serviço</span><span>Gel</span></div>
+                  <div><span class="muted">Cor</span><span>Nude / Rosa</span></div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- HISTÓRICO -->
+        <section class="panel" id="panel-historico" role="tabpanel" hidden>
+          <div class="section-head">
+            <div>
+              <h2>Histórico de sessões</h2>
+              <p>O que foi feito — para decidir a próxima marcação</p>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm">+ Nova sessão</button>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.85rem;">
+            <select class="btn" style="padding:0.35rem 0.55rem;"><option>Últimos 6 meses</option></select>
+            <select class="btn" style="padding:0.35rem 0.55rem;"><option>Todos os serviços</option><option>Unhas</option><option>Coloração</option></select>
+            <select class="btn" style="padding:0.35rem 0.55rem;"><option>Todas as profissionais</option></select>
+          </div>
+
+          <div class="row-list">
+            <article class="session-row">
+              <div class="thumb">foto</div>
+              <div>
+                <div class="session-row__title">12/10/2026 · Manicure + Unhas de Gel</div>
+                <div class="session-row__meta">Carolina Mendes · 60 min</div>
+                <div class="session-row__products"><strong>Produtos:</strong> OPI Gel, Bubble Bath, Top Coat · <strong>Formato:</strong> Amêndoa M</div>
+              </div>
+              <span class="badge badge-done">Concluída</span>
+            </article>
+            <article class="session-row">
+              <div class="thumb">foto</div>
+              <div>
+                <div class="session-row__title">24/09/2026 · Manutenção Gel</div>
+                <div class="session-row__meta">Carolina Mendes · 45 min</div>
+                <div class="session-row__products"><strong>Produtos:</strong> OPI, Nude · Óleo cutículas</div>
+              </div>
+              <span class="badge badge-done">Concluída</span>
+            </article>
+            <article class="session-row">
+              <div class="thumb">foto</div>
+              <div>
+                <div class="session-row__title">02/09/2026 · Manicure + Unhas de Gel</div>
+                <div class="session-row__meta">Inês Rocha · 70 min</div>
+                <div class="session-row__products"><strong>Produtos:</strong> CND · Rosa claro · Brilho</div>
+              </div>
+              <span class="badge badge-done">Concluída</span>
+            </article>
+            <article class="session-row">
+              <div class="thumb">—</div>
+              <div>
+                <div class="session-row__title">15/08/2026 · Manicure</div>
+                <div class="session-row__meta">Carolina Mendes · 40 min</div>
+                <div class="session-row__products">Sem ficha estruturada (só notas livres — caso legado)</div>
+              </div>
+              <span class="badge badge-done">Concluída</span>
+            </article>
+          </div>
+
+          <div class="grid-4" style="margin-top:1rem;">
+            <div class="card"><h3>Sessões</h3><div class="big">12</div></div>
+            <div class="card"><h3>Manicures</h3><div class="big">6</div></div>
+            <div class="card"><h3>Unhas de Gel</h3><div class="big">4</div></div>
+            <div class="card"><h3>Manutenção</h3><div class="big">2</div></div>
+          </div>
+        </section>
+
+        <!-- PREFERÊNCIAS (perfil do cliente) -->
+        <section class="panel" id="panel-preferencias" role="tabpanel" hidden>
+          <div class="section-head">
+            <div>
+              <h2>Preferências da cliente</h2>
+              <p>Perfil estável (não é de uma visita) — alimenta a coluna lateral na ficha técnica</p>
+            </div>
+            <button type="button" class="btn btn-sm">Editar</button>
+          </div>
+
+          <div class="family-switch" role="group" aria-label="Preferências por família">
+            <button type="button" class="is-on" data-pref-family="unhas">Unhas</button>
+            <button type="button" data-pref-family="cor">Cabelo / cor</button>
+            <button type="button" data-pref-family="geral">Geral</button>
+          </div>
+
+          <div data-pref-panel="unhas">
+            <div class="grid-3" style="margin-bottom:0.85rem;">
+              <div class="pref-tile">
+                <div class="pref-tile__label">Formato</div>
+                <div class="pref-tile__value">Amendoado</div>
+              </div>
+              <div class="pref-tile">
+                <div class="pref-tile__label">Comprimento</div>
+                <div class="pref-tile__value">Médio</div>
+              </div>
+              <div class="pref-tile">
+                <div class="pref-tile__label">Cor preferida</div>
+                <div class="pref-tile__value">Nude / Rosa</div>
+                <div class="swatches">
+                  <span class="swatch" style="background:#e8d5c4"></span>
+                  <span class="swatch" style="background:#f2c4ce"></span>
+                  <span class="swatch" style="background:#f8e7e7"></span>
+                </div>
+              </div>
+              <div class="pref-tile">
+                <div class="pref-tile__label">Estilo</div>
+                <div class="pref-tile__value">Minimalista</div>
+              </div>
+              <div class="pref-tile">
+                <div class="pref-tile__label">Produtos que prefere</div>
+                <div class="chips" style="margin-top:0.45rem;">
+                  <span class="chip is-on">OPI</span>
+                  <span class="chip is-on">CND</span>
+                  <span class="chip is-on">Alessandro</span>
+                </div>
+              </div>
+              <div class="pref-tile">
+                <div class="pref-tile__label">Não tolera / evitar</div>
+                <div class="pref-tile__value" style="font-size:0.86rem;font-weight:500;">Acetona agressiva · comprimentos XL</div>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="card">
+                <h3>Cuidados em casa</h3>
+                <ul class="checklist">
+                  <li>Hidrata cutículas diariamente</li>
+                  <li>Usa luvas em tarefas domésticas</li>
+                  <li>Não usa removedor com acetona forte</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Objectivos</h3>
+                <ul class="checklist">
+                  <li>Manter unhas fortes</li>
+                  <li>Acabamento natural / discreto</li>
+                  <li>Manutenção a cada ~3 semanas</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top:0.85rem;">
+              <div class="card">
+                <h3>Preferências adicionais</h3>
+                <p style="margin:0;font-size:0.86rem;">Prefere tons neutros e estilo discreto. Evitar nail art elaborada excepto em ocasiões especiais (avisar).</p>
+              </div>
+              <div class="info-box">
+                <strong>Info relevante</strong><br>
+                Tende a ter as unhas mais sensíveis no inverno. Recomendar sempre base fortalecedora.
+              </div>
+            </div>
+          </div>
+
+          <div data-pref-panel="cor" class="hidden">
+            <div class="grid-3">
+              <div class="pref-tile">
+                <div class="pref-tile__label">Nível natural</div>
+                <div class="pref-tile__value">6</div>
+              </div>
+              <div class="pref-tile">
+                <div class="pref-tile__label">Tom preferido</div>
+                <div class="pref-tile__value">Castanho frio</div>
+              </div>
+              <div class="pref-tile">
+                <div class="pref-tile__label">Evitar</div>
+                <div class="pref-tile__value" style="font-size:0.86rem;font-weight:500;">Amónia alta · loiros platinados</div>
+              </div>
+            </div>
+            <div class="card" style="margin-top:0.85rem;">
+              <h3>Notas de cor</h3>
+              <p style="margin:0;font-size:0.86rem;">Última fórmula bem sucedida: 6N + 20vol na raiz. Não gosta de reflectos quentes.</p>
+            </div>
+          </div>
+
+          <div data-pref-panel="geral" class="hidden">
+            <div class="card">
+              <h3>Preferências gerais (hoje ≈ preferences_notes)</h3>
+              <p style="margin:0;font-size:0.86rem;">Prefere manhãs. Horário preferido: manhã. Técnico preferido: Carolina. Comunicação por WhatsApp.</p>
+            </div>
+            <div class="alert-card" style="margin-top:0.85rem;">
+              <div class="alert-card__title">⚠ Alergias (perfil)</div>
+              <div class="alert-card__body">Campo de equipa — não editável no Booking. O cliente só deixa observações da marcação.</div>
+            </div>
+          </div>
+
+          <div class="now-vs">
+            <strong>Modelo mental:</strong>
+            Preferências = perfil do cliente (estável, por família de serviço).
+            Ficha Técnica = registo de cada sessão (histórico consultável).
+            Alertas = sempre visíveis no Resumo e na coluna lateral da sessão.
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var tabs = document.querySelectorAll('.tab[data-tab]');
+      var panels = {
+        resumo: document.getElementById('panel-resumo'),
+        ficha: document.getElementById('panel-ficha'),
+        historico: document.getElementById('panel-historico'),
+        preferencias: document.getElementById('panel-preferencias')
+      };
+
+      function showTab(id) {
+        tabs.forEach(function (t) {
+          var on = t.getAttribute('data-tab') === id;
+          t.classList.toggle('is-active', on);
+          t.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        Object.keys(panels).forEach(function (key) {
+          var p = panels[key];
+          var on = key === id;
+          p.classList.toggle('is-active', on);
+          if (on) p.removeAttribute('hidden');
+          else p.setAttribute('hidden', '');
+        });
+      }
+
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () { showTab(t.getAttribute('data-tab')); });
+      });
+
+      document.querySelectorAll('[data-goto]').forEach(function (btn) {
+        btn.addEventListener('click', function () { showTab(btn.getAttribute('data-goto')); });
+      });
+
+      function bindFamily(switchSel, panelAttr) {
+        var root = document.querySelector(switchSel);
+        if (!root) return;
+        var buttons = root.querySelectorAll('button');
+        buttons.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var fam = btn.getAttribute(panelAttr === 'data-family-panel' ? 'data-family' : 'data-pref-family');
+            buttons.forEach(function (b) { b.classList.toggle('is-on', b === btn); });
+            var scope = root.closest('.panel') || document;
+            scope.querySelectorAll('[' + panelAttr + ']').forEach(function (panel) {
+              panel.classList.toggle('hidden', panel.getAttribute(panelAttr) !== fam);
+            });
+          });
+        });
+      }
+
+      bindFamily('#panel-ficha .family-switch', 'data-family-panel');
+      bindFamily('#panel-preferencias .family-switch', 'data-pref-panel');
+    })();
+  </script>
+</body>
+</html>

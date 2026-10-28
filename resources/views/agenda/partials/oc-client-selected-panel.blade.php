@@ -46,7 +46,7 @@
                 <div class="agenda-oc-client-alerts__head">
                     <div class="agenda-oc-client-alerts__title">
                         <i class="ph ph-warning-circle" aria-hidden="true"></i>
-                        <span>Tem alergias?</span>
+                        <span>Alergias ou contraindicações?</span>
                     </div>
                     <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add agenda-oc-client-alerts__add d-none" id="{{ $pfx }}ClientAllergiesAddBtn">Adicionar</button>
                 </div>

@@ -3092,7 +3092,10 @@ class CalendarController extends Controller
             $realNif = trim((string) ($payload['client_nif'] ?? ''));
             $payload['client_email'] = ClientContactMask::email((string) ($payload['client_email'] ?? ''));
             $payload['client_phone'] = ClientContactMask::phone((string) ($payload['client_phone'] ?? ''));
-            $payload['client_nif'] = ClientContactMask::nif((string) ($payload['client_nif'] ?? ''));
+            // Prestador vê NIF completo; com CRM bloqueado o NIF continua mascarado.
+            if ($this->shouldMaskClientNif()) {
+                $payload['client_nif'] = ClientContactMask::nif((string) ($payload['client_nif'] ?? ''));
+            }
             $payload['client_formatted_phone'] = $payload['client_phone'];
             $payload['client_has_email'] = $payload['client_email'] !== '';
             // Pagamentos continuam permitidos com o CRM bloqueado — dados reais só para cobrança/fatura.
@@ -3206,7 +3209,9 @@ class CalendarController extends Controller
             $payload['email'] = ClientContactMask::email((string) ($payload['email'] ?? ''));
             $payload['phone'] = ClientContactMask::phone((string) ($payload['phone'] ?? ''));
             $payload['formatted_phone'] = $payload['phone'];
-            $payload['nif'] = ClientContactMask::nif((string) ($payload['nif'] ?? ''));
+            if ($this->shouldMaskClientNif()) {
+                $payload['nif'] = ClientContactMask::nif((string) ($payload['nif'] ?? ''));
+            }
             if ($user->canProcessPayments() && $realPhone !== '') {
                 $payload['phone_for_payment'] = $realPhone;
             } else {
@@ -3256,5 +3261,11 @@ class CalendarController extends Controller
         }
 
         return ! $user->canViewClientContactDetails();
+    }
+
+    /** NIF completo para prestador; mascarado só com CRM bloqueado. */
+    private function shouldMaskClientNif(): bool
+    {
+        return app(CrmPrivacyLock::class)->isActive();
     }
 }

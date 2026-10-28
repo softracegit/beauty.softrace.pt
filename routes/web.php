@@ -310,6 +310,10 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
 
     Route::resource('equipa', AgentController::class)->parameters(['equipa' => 'agente']);
     Route::post('equipa/{agente}/notes', [AgentController::class, 'storeNote'])->name('equipa.storeNote');
+    Route::delete('equipa/{agente}/commission-periods/{period}', [AgentController::class, 'destroyCommissionPeriod'])
+        ->name('equipa.commission-periods.destroy');
+    Route::delete('equipa/{agente}/retention-fee-periods/{period}', [AgentController::class, 'destroyRetentionFeePeriod'])
+        ->name('equipa.retention-fee-periods.destroy');
     Route::get('equipa/{agente}/migrar-loja', [AgentController::class, 'migrateStoreForm'])->name('equipa.migrate-store-form');
     Route::post('equipa/{agente}/migrar-loja', [AgentController::class, 'migrateStore'])->name('equipa.migrate-store');
 

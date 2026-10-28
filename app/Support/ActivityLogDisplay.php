@@ -66,6 +66,7 @@ class ActivityLogDisplay
         'weekly_schedule' => 'Horário semanal',
         'commission_rate' => 'Comissão',
         'commission_unit' => 'Unidade comissão',
+        'commission_effective_from' => 'Comissão a partir de',
         'retention_fee_rate' => 'Taxa de retenção',
         'retention_fee_unit' => 'Unidade retenção',
         'retention_fee_effective_from' => 'Retenção a partir de',

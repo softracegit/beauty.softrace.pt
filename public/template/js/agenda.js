@@ -69,6 +69,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const canViewClientContacts = agendaPerms.canViewClientContacts !== false;
     const canViewClientProfile = agendaPerms.canViewClientProfile !== false;
     const crmPrivacyLockedUi = !!(document.body && document.body.classList.contains('crm-privacy-locked'));
+    // Prestador: vê campos do cliente (telemóvel/email já vêm mascarados da API); não edita.
+    const showClientProfileFields = (canViewClientContacts || isPrestadorStaff) && !crmPrivacyLockedUi;
+    const canEditClientContacts = canViewClientContacts && !crmPrivacyLockedUi;
     const canViewInvoices = agendaPerms.canViewInvoices !== false;
     const canReassignMarcacao = agendaPerms.canReassignMarcacao !== false;
     const canChangeMarcacaoClient = agendaPerms.canChangeMarcacaoClient !== false;
@@ -84,19 +87,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyAgendaClientPrivacyUi(prefix) {
         var phoneEl = $id(prefix + 'ClientSelectedPhone');
         if (phoneEl) {
-            phoneEl.classList.toggle('d-none', !canViewClientContacts);
+            phoneEl.classList.toggle('d-none', !showClientProfileFields);
         }
         var heroPhone = $id(prefix + 'ClientHeroPhone');
         if (heroPhone) {
-            heroPhone.classList.toggle('d-none', !canViewClientContacts);
+            heroPhone.classList.toggle('d-none', !showClientProfileFields);
         }
         var phoneField = $id(prefix + 'ClientPhoneViewField');
         if (phoneField) {
-            phoneField.classList.toggle('d-none', !canViewClientContacts);
+            phoneField.classList.toggle('d-none', !showClientProfileFields);
         }
         var nifRow = document.querySelector('#' + prefix + 'ClientSelectedCard .agenda-oc-client-nif-row');
         if (nifRow) {
-            nifRow.classList.toggle('d-none', !canViewClientContacts);
+            nifRow.classList.toggle('d-none', !showClientProfileFields);
         }
         var nifEdit = $id(prefix + 'ClientNifEditBtn');
         if (nifEdit) {
@@ -106,13 +109,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isPanel) {
                 nifEdit.classList.add('d-none');
             } else {
-                nifEdit.classList.toggle('d-none', crmPrivacyLockedUi || !canViewClientContacts);
+                nifEdit.classList.toggle('d-none', !canEditClientContacts);
             }
         }
         var nifInput = $id(prefix + 'ClientNifInput');
         if (nifInput) {
             // Valores mascarados (***123) quebram pattern=[0-9]* em campos hidden → "invalid form control is not focusable"
-            if (crmPrivacyLockedUi || !canViewClientContacts) {
+            if (!canEditClientContacts) {
                 nifInput.value = '';
                 nifInput.disabled = true;
             } else {
@@ -121,11 +124,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var nifSave = $id(prefix + 'ClientNifSaveBtn');
         if (nifSave) {
-            nifSave.disabled = crmPrivacyLockedUi || !canViewClientContacts;
+            nifSave.disabled = !canEditClientContacts;
         }
         var emailInput = $id(prefix + 'ClientEmailInput');
         if (emailInput) {
-            if (crmPrivacyLockedUi || !canViewClientContacts) {
+            if (!canEditClientContacts) {
                 emailInput.value = '';
                 emailInput.disabled = true;
             } else {
@@ -134,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var phoneInput = $id(prefix + 'ClientPhoneInput');
         if (phoneInput) {
-            if (crmPrivacyLockedUi || !canViewClientContacts) {
+            if (!canEditClientContacts) {
                 phoneInput.value = '';
                 phoneInput.disabled = true;
             } else {
@@ -143,11 +146,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var emailSave = $id(prefix + 'ClientEmailSaveBtn');
         if (emailSave) {
-            emailSave.disabled = crmPrivacyLockedUi || !canViewClientContacts;
+            emailSave.disabled = !canEditClientContacts;
         }
         var birthInput = $id(prefix + 'ClientBirthDateInput');
         if (birthInput) {
-            if (crmPrivacyLockedUi || !canViewClientContacts) {
+            if (!canEditClientContacts) {
                 birthInput.value = '';
                 birthInput.disabled = true;
             } else {
@@ -156,29 +159,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var birthSave = $id(prefix + 'ClientBirthDateSaveBtn');
         if (birthSave) {
-            birthSave.disabled = crmPrivacyLockedUi || !canViewClientContacts;
+            birthSave.disabled = !canEditClientContacts;
         }
         var emailField = $id(prefix + 'ClientEmailViewField')
             || (emailInput && emailInput.closest('.agenda-oc-client-panel__field'));
         if (emailField) {
-            emailField.classList.toggle('d-none', !canViewClientContacts);
+            emailField.classList.toggle('d-none', !showClientProfileFields);
         }
         var birthField = $id(prefix + 'ClientBirthDateViewField')
             || (birthInput && birthInput.closest('.agenda-oc-client-panel__field'));
         if (birthField) {
-            birthField.classList.toggle('d-none', !canViewClientContacts);
+            birthField.classList.toggle('d-none', !showClientProfileFields);
         }
         var origemField = $id(prefix + 'ClientOrigemViewField');
         if (origemField) {
-            origemField.classList.toggle('d-none', !canViewClientContacts);
+            origemField.classList.toggle('d-none', !showClientProfileFields);
         }
         var profissaoField = $id(prefix + 'ClientProfissaoViewField');
         if (profissaoField) {
-            profissaoField.classList.toggle('d-none', !canViewClientContacts);
+            profissaoField.classList.toggle('d-none', !showClientProfileFields);
         }
         var allergiesField = $id(prefix + 'ClientAllergiesViewField');
         if (allergiesField) {
-            allergiesField.classList.toggle('d-none', !canViewClientContacts);
+            allergiesField.classList.toggle('d-none', !showClientProfileFields);
         }
         [
             prefix + 'ClientPhoneAddBtn',
@@ -191,8 +194,8 @@ document.addEventListener('DOMContentLoaded', function() {
         ].forEach(function(id) {
             var btn = $id(id);
             if (btn) {
-                btn.disabled = crmPrivacyLockedUi || !canViewClientContacts;
-                if (crmPrivacyLockedUi || !canViewClientContacts) {
+                btn.disabled = !canEditClientContacts;
+                if (!canEditClientContacts) {
                     btn.classList.add('d-none');
                 }
             }
@@ -200,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
         AGENDA_OC_PROFILE_FIELD_KEYS.forEach(function(fieldKey) {
             var textEl = $id(prefix + 'ClientSelected' + agendaOcProfileFieldSuffix(fieldKey));
             if (!textEl) return;
-            var locked = crmPrivacyLockedUi || !canViewClientContacts;
+            var locked = !canEditClientContacts;
             textEl.classList.toggle('agenda-oc-client-panel__value-text--readonly', locked);
             textEl.tabIndex = locked ? -1 : 0;
             if (locked) {
@@ -209,12 +212,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 textEl.setAttribute('role', 'button');
             }
         });
-        if (crmPrivacyLockedUi || !canViewClientContacts) {
+        if (!canEditClientContacts) {
             agendaOcExitAllProfileInlineEdits(prefix);
         }
         var origemInput = $id(prefix + 'ClientOrigemInput');
         if (origemInput) {
-            if (crmPrivacyLockedUi || !canViewClientContacts) {
+            if (!canEditClientContacts) {
                 origemInput.value = '';
                 origemInput.disabled = true;
             } else {
@@ -223,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var profissaoInput = $id(prefix + 'ClientProfissaoInput');
         if (profissaoInput) {
-            if (crmPrivacyLockedUi || !canViewClientContacts) {
+            if (!canEditClientContacts) {
                 profissaoInput.value = '';
                 profissaoInput.disabled = true;
             } else {
@@ -232,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var allergiesInputPrivacy = $id(prefix + 'ClientAllergiesInput');
         if (allergiesInputPrivacy) {
-            if (crmPrivacyLockedUi || !canViewClientContacts) {
+            if (!canEditClientContacts) {
                 allergiesInputPrivacy.value = '';
                 allergiesInputPrivacy.disabled = true;
             } else {
@@ -2124,7 +2127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nameSpan.className = 'agenda-quickview-client-name';
         nameSpan.textContent = clientName;
         clientTextWrap.appendChild(nameSpan);
-        if (clientPhone && canViewClientContacts) {
+        if (clientPhone && showClientProfileFields) {
             var phoneSpan = document.createElement('span');
             phoneSpan.className = 'agenda-quickview-client-phone';
             phoneSpan.textContent = clientPhone;
@@ -2724,7 +2727,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var phoneText = String((snap && snap.phone) || '').trim();
         var phoneEl = qv.querySelector('.agenda-quickview-client-phone');
         var textWrap = qv.querySelector('.agenda-quickview-client-text');
-        if (phoneText && canViewClientContacts) {
+        if (phoneText && showClientProfileFields) {
             if (!phoneEl && textWrap) {
                 phoneEl = document.createElement('span');
                 phoneEl.className = 'agenda-quickview-client-phone';
@@ -4897,7 +4900,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var lockMarcacaoClient = eventDetailMarcacaoClientLocked();
         // Mesmo quando a marcação está “read-only” (paga / não editável),
         // permitir editar os dados do cliente (contatos) — só bloqueia por privacidade/permissions.
-        var lockClientFields = crmPrivacyLockedUi || !canViewClientContacts;
+        var lockClientFields = !canEditClientContacts;
         if (statusWrap) statusWrap.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
         if (observacoes) observacoes.disabled = lockServicesExceptNif;
         if (addMoreBtn) { addMoreBtn.disabled = lockServicesExceptNif; addMoreBtn.style.display = lockServicesExceptNif ? 'none' : ''; }
@@ -13461,6 +13464,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 '<label class="form-label small text-muted mb-2">Vista</label>' +
                                 '<div class="list-group list-group-flush" id="agendaMobileViewList"></div>' +
                             '</div>' +
+                            '<div class="agenda-mobile-option-group" id="agendaMobileStoreGroup" hidden>' +
+                                '<label class="form-label small text-muted mb-2" for="agendaMobileStoreSelect">Loja</label>' +
+                                '<select id="agendaMobileStoreSelect" class="form-select form-select-sm"></select>' +
+                            '</div>' +
                             '<div class="agenda-mobile-option-group">' +
                                 '<label class="form-label small text-muted mb-2">Equipa</label>' +
                                 '<select id="agendaMobileConsultantSelect" class="form-select form-select-sm"></select>' +
@@ -13475,6 +13482,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     '</div>' +
                 '</div>';
             document.body.appendChild(viewModal);
+        }
+
+        // Modal já criado (ex.: cache antigo): garantir o seletor de loja no sheet do cog.
+        if (!document.getElementById('agendaMobileStoreGroup')) {
+            var viewBody = document.querySelector('#agendaMobileViewModal .modal-body');
+            var consultantGroup = document.getElementById('agendaMobileConsultantSelect')?.closest('.agenda-mobile-option-group');
+            if (viewBody) {
+                var storeGroup = document.createElement('div');
+                storeGroup.className = 'agenda-mobile-option-group';
+                storeGroup.id = 'agendaMobileStoreGroup';
+                storeGroup.hidden = true;
+                storeGroup.innerHTML =
+                    '<label class="form-label small text-muted mb-2" for="agendaMobileStoreSelect">Loja</label>' +
+                    '<select id="agendaMobileStoreSelect" class="form-select form-select-sm"></select>';
+                if (consultantGroup && consultantGroup.parentNode === viewBody) {
+                    viewBody.insertBefore(storeGroup, consultantGroup);
+                } else {
+                    viewBody.insertBefore(storeGroup, viewBody.firstChild?.nextSibling || null);
+                }
+            }
         }
 
         if (!document.getElementById('agendaMobileAddModal')) {
@@ -13533,10 +13560,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function updateAgendaMobileStoreOptions() {
+        var group = document.getElementById('agendaMobileStoreGroup');
+        var select = document.getElementById('agendaMobileStoreSelect');
+        if (!group || !select) return;
+
+        var stores = C.selectableStores || [];
+        var canChoose = !!C.canChooseStore && stores.length > 1;
+        group.hidden = !canChoose;
+        if (!canChoose) {
+            select.innerHTML = '';
+            return;
+        }
+
+        var currentId = String(C.currentStoreId || '');
+        select.innerHTML = '';
+        stores.forEach(function (s) {
+            var opt = document.createElement('option');
+            opt.value = String(s.id);
+            opt.textContent = s.name;
+            select.appendChild(opt);
+        });
+        select.value = currentId;
+    }
+
     function updateAgendaMobileFilterOptions() {
         var select = document.getElementById('agendaMobileConsultantSelect');
         var toggle24h = document.getElementById('agendaMobileSlot24hToggle');
         if (!select || !toggle24h) return;
+
+        updateAgendaMobileStoreOptions();
 
         var supportsFilter = viewSupportsConsultantFilter(calendar.view.type);
         select.innerHTML = '';
@@ -13580,6 +13633,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         document.getElementById('agendaMobileAddBtn')?.addEventListener('click', function() {
             bootstrap.Modal.getOrCreateInstance(document.getElementById('agendaMobileAddModal')).show();
+        });
+
+        document.getElementById('agendaMobileStoreSelect')?.addEventListener('change', function() {
+            var selectedId = String(this.value || '');
+            var currentId = String(C.currentStoreId || '');
+            if (!selectedId || selectedId === currentId) return;
+            var url = new URL(window.location.href);
+            url.searchParams.set('loja', selectedId);
+            window.location.href = url.toString();
         });
 
         document.getElementById('agendaMobileConsultantSelect')?.addEventListener('change', function() {

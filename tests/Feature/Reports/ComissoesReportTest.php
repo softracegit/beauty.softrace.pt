@@ -3,6 +3,8 @@
 namespace Tests\Feature\Reports;
 
 use App\Models\Agent;
+use App\Models\AgentCommissionPeriod;
+use App\Models\AgentRetentionFeePeriod;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Category;
@@ -63,13 +65,20 @@ class ComissoesReportTest extends TestCase
             'role' => User::ROLE_ADMIN,
             'organization_id' => $org->id,
         ]);
-        Agent::query()->create([
+        $agent = Agent::query()->create([
             'user_id' => $tech->id,
             'store_id' => $store->id,
             'name' => 'Laissa Osto',
             'status' => Agent::STATUS_ACTIVE,
             'commission_rate' => 70,
             'commission_unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'commission_effective_from' => '2026-01-01',
+        ]);
+        AgentCommissionPeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 70,
+            'unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'effective_from' => '2026-01-01',
         ]);
 
         $day = Carbon::parse('2026-06-20 21:45:00');
@@ -167,18 +176,27 @@ class ComissoesReportTest extends TestCase
         $this->assertCount(0, $salesOut);
     }
 
-    public function test_commission_applies_euro_retention_before_percent(): void
+    public function test_commission_applies_euro_retention_after_percent(): void
     {
         $fx = $this->singleSaleFixture();
         session([\App\Http\Middleware\SetCurrentStore::SESSION_KEY => $fx['store']->id]);
 
-        Agent::query()->where('user_id', $fx['tech']->id)->update([
-            'commission_rate' => 60,
-            'commission_unit' => Agent::COMMISSION_UNIT_PERCENT,
-            'retention_fee_rate' => 1.5,
-            'retention_fee_unit' => Agent::COMMISSION_UNIT_EURO,
-            'retention_fee_effective_from' => '2026-06-01',
+        $agent = Agent::query()->where('user_id', $fx['tech']->id)->firstOrFail();
+        AgentCommissionPeriod::query()->where('agent_id', $agent->id)->delete();
+        AgentCommissionPeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 60,
+            'unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'effective_from' => '2026-01-01',
         ]);
+        $agent->refreshCommissionCache();
+        AgentRetentionFeePeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 1.5,
+            'unit' => Agent::COMMISSION_UNIT_EURO,
+            'effective_from' => '2026-06-01',
+        ]);
+        $agent->refreshRetentionFeeCache();
 
         // 27€ c/ IVA → ~21,95€ s/ IVA; retenção 1,50€ depois da % (diferença exacta de 1,50€).
         $fx['sale']->update(['total' => 27, 'iva_total' => 5.05, 'valor_pago' => 27]);
@@ -204,11 +222,238 @@ class ComissoesReportTest extends TestCase
         $this->assertSame('1,50 €', $line->retencao_taxa);
 
         // Antes da data de início: sem retenção.
-        Agent::query()->where('user_id', $fx['tech']->id)->update([
-            'retention_fee_effective_from' => '2026-07-01',
+        AgentRetentionFeePeriod::query()->where('agent_id', $agent->id)->delete();
+        AgentRetentionFeePeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 1.5,
+            'unit' => Agent::COMMISSION_UNIT_EURO,
+            'effective_from' => '2026-07-01',
         ]);
+        $agent->refreshRetentionFeeCache();
+
         $linesBefore = app(ComissoesReportService::class)->linesCollection(collect([$sale]));
         $this->assertNull($linesBefore->first()->retencao_taxa);
         $this->assertSame(16.2, (float) $linesBefore->first()->comissao_com_iva); // 60% de 27
+    }
+
+    public function test_retention_fee_history_uses_rate_in_force_on_sale_date(): void
+    {
+        $fx = $this->singleSaleFixture();
+        session([\App\Http\Middleware\SetCurrentStore::SESSION_KEY => $fx['store']->id]);
+
+        $agent = Agent::query()->where('user_id', $fx['tech']->id)->firstOrFail();
+        AgentCommissionPeriod::query()->where('agent_id', $agent->id)->delete();
+        AgentCommissionPeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 60,
+            'unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'effective_from' => '2026-01-01',
+        ]);
+        $agent->refreshCommissionCache();
+        AgentRetentionFeePeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 1.5,
+            'unit' => Agent::COMMISSION_UNIT_EURO,
+            'effective_from' => '2026-06-01',
+        ]);
+        AgentRetentionFeePeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 2.0,
+            'unit' => Agent::COMMISSION_UNIT_EURO,
+            'effective_from' => '2026-11-01',
+        ]);
+        $agent->refreshRetentionFeeCache();
+
+        $fx['sale']->update([
+            'total' => 27,
+            'iva_total' => 5.05,
+            'valor_pago' => 27,
+            'data_emissao' => '2026-10-15',
+        ]);
+        $fx['sale']->items()->update([
+            'preco_unitario' => 27,
+            'subtotal' => 27,
+        ]);
+
+        $saleOct = $fx['sale']->fresh()->load([
+            'client',
+            'items.service',
+            'items.calendarEventService.event.user',
+            'calendarEvent.user',
+        ]);
+        $lineOct = app(ComissoesReportService::class)->linesCollection(collect([$saleOct]))->first();
+        $this->assertSame('1,50 €', $lineOct->retencao_taxa);
+        $this->assertSame(14.7, (float) $lineOct->comissao_com_iva); // 16,20 − 1,50
+
+        $saleNov = $saleOct->replicate();
+        $saleNov->numero_fatura = 'FR CAIXA1/38/4';
+        $saleNov->data_emissao = Carbon::parse('2026-11-05');
+        $saleNov->save();
+        foreach ($saleOct->items as $item) {
+            $saleNov->items()->create($item->only([
+                'tipo',
+                'service_id',
+                'descricao',
+                'quantidade',
+                'preco_unitario',
+                'subtotal',
+                'calendar_event_service_id',
+            ]));
+        }
+        $saleNov = $saleNov->fresh()->load([
+            'client',
+            'items.service',
+            'items.calendarEventService.event.user',
+            'calendarEvent.user',
+        ]);
+
+        $lineNov = app(ComissoesReportService::class)->linesCollection(collect([$saleNov]))->first();
+        $this->assertSame('2,00 €', $lineNov->retencao_taxa);
+        $this->assertSame(14.2, (float) $lineNov->comissao_com_iva); // 16,20 − 2,00
+    }
+
+    public function test_retention_fee_cleared_from_date_keeps_earlier_sales(): void
+    {
+        $fx = $this->singleSaleFixture();
+        session([\App\Http\Middleware\SetCurrentStore::SESSION_KEY => $fx['store']->id]);
+
+        $agent = Agent::query()->where('user_id', $fx['tech']->id)->firstOrFail();
+        AgentCommissionPeriod::query()->where('agent_id', $agent->id)->delete();
+        AgentCommissionPeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 60,
+            'unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'effective_from' => '2026-01-01',
+        ]);
+        $agent->refreshCommissionCache();
+        AgentRetentionFeePeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 1.5,
+            'unit' => Agent::COMMISSION_UNIT_EURO,
+            'effective_from' => '2026-06-01',
+        ]);
+        AgentRetentionFeePeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => null,
+            'unit' => null,
+            'effective_from' => '2026-10-01',
+        ]);
+        $agent->refreshRetentionFeeCache();
+
+        $fx['sale']->update([
+            'total' => 27,
+            'iva_total' => 5.05,
+            'valor_pago' => 27,
+            'data_emissao' => '2026-06-20',
+        ]);
+        $fx['sale']->items()->update([
+            'preco_unitario' => 27,
+            'subtotal' => 27,
+        ]);
+
+        $saleJun = $fx['sale']->fresh()->load([
+            'client',
+            'items.service',
+            'items.calendarEventService.event.user',
+            'calendarEvent.user',
+        ]);
+        $lineJun = app(ComissoesReportService::class)->linesCollection(collect([$saleJun]))->first();
+        $this->assertSame('1,50 €', $lineJun->retencao_taxa);
+        $this->assertSame(14.7, (float) $lineJun->comissao_com_iva);
+
+        $saleOct = $saleJun->replicate();
+        $saleOct->numero_fatura = 'FR CAIXA1/38/5';
+        $saleOct->data_emissao = Carbon::parse('2026-10-15');
+        $saleOct->save();
+        foreach ($saleJun->items as $item) {
+            $saleOct->items()->create($item->only([
+                'tipo',
+                'service_id',
+                'descricao',
+                'quantidade',
+                'preco_unitario',
+                'subtotal',
+                'calendar_event_service_id',
+            ]));
+        }
+        $saleOct = $saleOct->fresh()->load([
+            'client',
+            'items.service',
+            'items.calendarEventService.event.user',
+            'calendarEvent.user',
+        ]);
+
+        $lineOct = app(ComissoesReportService::class)->linesCollection(collect([$saleOct]))->first();
+        $this->assertNull($lineOct->retencao_taxa);
+        $this->assertSame(16.2, (float) $lineOct->comissao_com_iva);
+    }
+
+    public function test_commission_history_uses_rate_in_force_on_sale_date(): void
+    {
+        $fx = $this->singleSaleFixture();
+        session([\App\Http\Middleware\SetCurrentStore::SESSION_KEY => $fx['store']->id]);
+
+        $agent = Agent::query()->where('user_id', $fx['tech']->id)->firstOrFail();
+        AgentCommissionPeriod::query()->where('agent_id', $agent->id)->delete();
+        AgentCommissionPeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 50,
+            'unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'effective_from' => '2026-06-01',
+        ]);
+        AgentCommissionPeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 55,
+            'unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'effective_from' => '2026-11-01',
+        ]);
+        $agent->refreshCommissionCache();
+
+        $fx['sale']->update([
+            'total' => 100,
+            'iva_total' => 0,
+            'valor_pago' => 100,
+            'data_emissao' => '2026-10-15',
+        ]);
+        $fx['sale']->items()->update([
+            'preco_unitario' => 100,
+            'subtotal' => 100,
+        ]);
+
+        $saleOct = $fx['sale']->fresh()->load([
+            'client',
+            'items.service',
+            'items.calendarEventService.event.user',
+            'calendarEvent.user',
+        ]);
+        $lineOct = app(ComissoesReportService::class)->linesCollection(collect([$saleOct]))->first();
+        $this->assertSame('50,00 %', $lineOct->comissao_taxa);
+        $this->assertSame(50.0, (float) $lineOct->comissao_com_iva);
+
+        $saleNov = $saleOct->replicate();
+        $saleNov->numero_fatura = 'FR CAIXA1/38/6';
+        $saleNov->data_emissao = Carbon::parse('2026-11-05');
+        $saleNov->save();
+        foreach ($saleOct->items as $item) {
+            $saleNov->items()->create($item->only([
+                'tipo',
+                'service_id',
+                'descricao',
+                'quantidade',
+                'preco_unitario',
+                'subtotal',
+                'calendar_event_service_id',
+            ]));
+        }
+        $saleNov = $saleNov->fresh()->load([
+            'client',
+            'items.service',
+            'items.calendarEventService.event.user',
+            'calendarEvent.user',
+        ]);
+
+        $lineNov = app(ComissoesReportService::class)->linesCollection(collect([$saleNov]))->first();
+        $this->assertSame('55,00 %', $lineNov->comissao_taxa);
+        $this->assertSame(55.0, (float) $lineNov->comissao_com_iva);
     }
 }

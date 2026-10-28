@@ -44,7 +44,7 @@ class Agent extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'retention_fee_rate', 'retention_fee_unit', 'retention_fee_effective_from', 'status', 'visible_in_agenda', 'visible_in_booking', 'booking_slug', 'agenda_order', 'weekly_schedule'])
+            ->logOnly(['name', 'phone', 'nif', 'birth_date', 'gender', 'nationality', 'marital_status', 'address', 'postal_code', 'locality', 'specialization', 'commission_rate', 'commission_unit', 'commission_effective_from', 'retention_fee_rate', 'retention_fee_unit', 'retention_fee_effective_from', 'status', 'visible_in_agenda', 'visible_in_booking', 'booking_slug', 'agenda_order', 'weekly_schedule'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
@@ -86,6 +86,7 @@ class Agent extends Model
         'specialization',
         'commission_rate',
         'commission_unit',
+        'commission_effective_from',
         'retention_fee_rate',
         'retention_fee_unit',
         'retention_fee_effective_from',
@@ -102,6 +103,7 @@ class Agent extends Model
     protected $casts = [
         'birth_date' => 'date',
         'commission_rate' => 'decimal:2',
+        'commission_effective_from' => 'date',
         'retention_fee_rate' => 'decimal:2',
         'retention_fee_effective_from' => 'date',
         'visible_in_agenda' => 'boolean',
@@ -389,6 +391,216 @@ class Agent extends Model
     public function formatRetentionFeeDisplay(): ?string
     {
         return $this->formatRateUnitDisplay($this->retention_fee_rate, $this->retention_fee_unit);
+    }
+
+    public function commissionPeriods(): HasMany
+    {
+        return $this->hasMany(AgentCommissionPeriod::class)->orderByDesc('effective_from');
+    }
+
+    public function retentionFeePeriods(): HasMany
+    {
+        return $this->hasMany(AgentRetentionFeePeriod::class)->orderByDesc('effective_from');
+    }
+
+    /**
+     * Período de comissão vigente na data (maior effective_from ≤ data).
+     * Sem período / rate null → sem comissão. Fallback aos campos cache do agente se ainda não houver histórico.
+     */
+    public function commissionPeriodForDate(mixed $date): ?AgentCommissionPeriod
+    {
+        if ($date === null) {
+            return null;
+        }
+
+        try {
+            $day = \Carbon\Carbon::parse($date)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $periods = $this->relationLoaded('commissionPeriods')
+            ? $this->commissionPeriods
+            : $this->commissionPeriods()->get();
+
+        if ($periods->isEmpty()) {
+            return $this->legacyCommissionPeriodForDate($day);
+        }
+
+        $match = $periods
+            ->filter(function (AgentCommissionPeriod $period) use ($day): bool {
+                return $period->effective_from !== null
+                    && $period->effective_from->toDateString() <= $day;
+            })
+            ->sortByDesc(fn (AgentCommissionPeriod $period) => $period->effective_from->toDateString())
+            ->first();
+
+        if (! $match instanceof AgentCommissionPeriod || ! $match->hasCommission()) {
+            return null;
+        }
+
+        return $match;
+    }
+
+    private function legacyCommissionPeriodForDate(string $day): ?AgentCommissionPeriod
+    {
+        if ($this->commission_rate === null || $this->commission_rate === '') {
+            return null;
+        }
+
+        $from = $this->commission_effective_from;
+        if ($from === null) {
+            // Legado sem data: aplica sempre (comportamento antigo).
+            $period = new AgentCommissionPeriod([
+                'agent_id' => $this->id,
+                'rate' => $this->commission_rate,
+                'unit' => $this->commission_unit,
+                'effective_from' => $day,
+            ]);
+            $period->exists = false;
+
+            return $period;
+        }
+
+        if ($from->toDateString() > $day) {
+            return null;
+        }
+
+        $period = new AgentCommissionPeriod([
+            'agent_id' => $this->id,
+            'rate' => $this->commission_rate,
+            'unit' => $this->commission_unit,
+            'effective_from' => $from,
+        ]);
+        $period->exists = false;
+
+        return $period;
+    }
+
+    /** Actualiza os campos cache do agente a partir do período de comissão vigente (≤ hoje). */
+    public function refreshCommissionCache(): void
+    {
+        $today = now()->toDateString();
+        $periods = $this->commissionPeriods()->orderByDesc('effective_from')->get();
+
+        $current = $periods->first(function (AgentCommissionPeriod $period) use ($today): bool {
+            return $period->effective_from !== null
+                && $period->effective_from->toDateString() <= $today;
+        });
+
+        if (! $current instanceof AgentCommissionPeriod) {
+            $current = $periods->sortBy(fn (AgentCommissionPeriod $p) => $p->effective_from?->toDateString() ?? '')->first();
+        }
+
+        if (! $current instanceof AgentCommissionPeriod || ! $current->hasCommission()) {
+            $this->forceFill([
+                'commission_rate' => null,
+                'commission_unit' => null,
+                'commission_effective_from' => null,
+            ])->save();
+
+            return;
+        }
+
+        $this->forceFill([
+            'commission_rate' => $current->rate,
+            'commission_unit' => $current->unit,
+            'commission_effective_from' => $current->effective_from,
+        ])->save();
+    }
+
+    /**
+     * Período de retenção vigente na data (maior effective_from ≤ data).
+     * Sem período / rate null → sem retenção. Fallback aos campos cache do agente se ainda não houver histórico.
+     */
+    public function retentionFeePeriodForDate(mixed $date): ?AgentRetentionFeePeriod
+    {
+        if ($date === null) {
+            return null;
+        }
+
+        try {
+            $day = \Carbon\Carbon::parse($date)->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $periods = $this->relationLoaded('retentionFeePeriods')
+            ? $this->retentionFeePeriods
+            : $this->retentionFeePeriods()->get();
+
+        if ($periods->isEmpty()) {
+            return $this->legacyRetentionFeePeriodForDate($day);
+        }
+
+        $match = $periods
+            ->filter(function (AgentRetentionFeePeriod $period) use ($day): bool {
+                return $period->effective_from !== null
+                    && $period->effective_from->toDateString() <= $day;
+            })
+            ->sortByDesc(fn (AgentRetentionFeePeriod $period) => $period->effective_from->toDateString())
+            ->first();
+
+        if (! $match instanceof AgentRetentionFeePeriod || ! $match->hasRetention()) {
+            return null;
+        }
+
+        return $match;
+    }
+
+    private function legacyRetentionFeePeriodForDate(string $day): ?AgentRetentionFeePeriod
+    {
+        if ($this->retention_fee_rate === null || $this->retention_fee_rate === '') {
+            return null;
+        }
+        if ($this->retention_fee_effective_from === null) {
+            return null;
+        }
+        if ($this->retention_fee_effective_from->toDateString() > $day) {
+            return null;
+        }
+
+        $period = new AgentRetentionFeePeriod([
+            'agent_id' => $this->id,
+            'rate' => $this->retention_fee_rate,
+            'unit' => $this->retention_fee_unit,
+            'effective_from' => $this->retention_fee_effective_from,
+        ]);
+        $period->exists = false;
+
+        return $period;
+    }
+
+    /** Actualiza os campos cache do agente a partir do período vigente (≤ hoje). */
+    public function refreshRetentionFeeCache(): void
+    {
+        $today = now()->toDateString();
+        $periods = $this->retentionFeePeriods()->orderByDesc('effective_from')->get();
+
+        $current = $periods->first(function (AgentRetentionFeePeriod $period) use ($today): bool {
+            return $period->effective_from !== null
+                && $period->effective_from->toDateString() <= $today;
+        });
+
+        if (! $current instanceof AgentRetentionFeePeriod) {
+            $current = $periods->sortBy(fn (AgentRetentionFeePeriod $p) => $p->effective_from?->toDateString() ?? '')->first();
+        }
+
+        if (! $current instanceof AgentRetentionFeePeriod || ! $current->hasRetention()) {
+            $this->forceFill([
+                'retention_fee_rate' => null,
+                'retention_fee_unit' => null,
+                'retention_fee_effective_from' => null,
+            ])->save();
+
+            return;
+        }
+
+        $this->forceFill([
+            'retention_fee_rate' => $current->rate,
+            'retention_fee_unit' => $current->unit,
+            'retention_fee_effective_from' => $current->effective_from,
+        ])->save();
     }
 
     private function formatRateUnitDisplay(mixed $rate, mixed $unit): ?string

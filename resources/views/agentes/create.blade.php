@@ -134,11 +134,12 @@
                             @include('agentes.partials.commission-field', [
                                 'commissionRate' => old('commission_rate'),
                                 'commissionUnit' => old('commission_unit', \App\Models\Agent::COMMISSION_UNIT_PERCENT),
+                                'commissionEffectiveFrom' => old('commission_effective_from'),
                             ])
                             @include('agentes.partials.retention-fee-field', [
                                 'retentionFeeRate' => old('retention_fee_rate'),
                                 'retentionFeeUnit' => old('retention_fee_unit', \App\Models\Agent::COMMISSION_UNIT_EURO),
-                                'retentionFeeEffectiveFrom' => old('retention_fee_effective_from', now()->toDateString()),
+                                'retentionFeeEffectiveFrom' => old('retention_fee_effective_from'),
                             ])
                         </div>
                     </div>

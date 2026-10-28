@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Middleware\SetCurrentStore;
 use App\Models\Agent;
+use App\Models\AgentCommissionPeriod;
+use App\Models\AgentRetentionFeePeriod;
 use App\Models\CalendarEvent;
 use App\Models\Category;
 use App\Models\Note;
@@ -166,6 +168,7 @@ class AgentController extends Controller
             'specialization' => $this->specializationRules($request),
             'commission_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
             'commission_rate' => $this->commissionRateRules($request),
+            'commission_effective_from' => ['nullable', 'date'],
             'retention_fee_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
             'retention_fee_rate' => $this->retentionFeeRateRules($request),
             'retention_fee_effective_from' => ['nullable', 'date'],
@@ -193,7 +196,20 @@ class AgentController extends Controller
             'organization_id' => $organizationId,
         ]);
 
-        $agentData = collect($validated)->except(['email', 'password', 'password_confirmation', 'role', 'avatar', 'service_ids'])->all();
+        $agentData = collect($validated)->except([
+            'email',
+            'password',
+            'password_confirmation',
+            'role',
+            'avatar',
+            'service_ids',
+            'commission_rate',
+            'commission_unit',
+            'commission_effective_from',
+            'retention_fee_rate',
+            'retention_fee_unit',
+            'retention_fee_effective_from',
+        ])->all();
         $agentData['user_id'] = $user->id;
         $agentData['store_id'] = $storeId;
         $agentData['weekly_schedule'] = $this->validatedWeeklySchedule($request);
@@ -203,6 +219,8 @@ class AgentController extends Controller
         }
 
         $agent = Agent::create($agentData);
+        $this->syncCommissionPeriod($agent, $validated);
+        $this->syncRetentionFeePeriod($agent, $validated);
         $user->stores()->sync([$storeId]);
         $agent->services()->sync($request->input('service_ids', []));
 
@@ -223,6 +241,8 @@ class AgentController extends Controller
         $agente->load([
             'notes.user',
             'user',
+            'commissionPeriods',
+            'retentionFeePeriods',
             'services' => function ($q) use ($organizationId) {
                 $q->where('services.organization_id', $organizationId)->with('category');
             },
@@ -357,7 +377,7 @@ class AgentController extends Controller
     {
         $this->authorize('update', $agente);
         $this->alignStoreContextToAgent($agente);
-        $agente->load('services');
+        $agente->load(['services', 'commissionPeriods', 'retentionFeePeriods']);
         $categories = Category::forOrganization(current_organization_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
@@ -401,6 +421,7 @@ class AgentController extends Controller
             'specialization' => $this->specializationRules($request),
             'commission_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
             'commission_rate' => $this->commissionRateRules($request),
+            'commission_effective_from' => ['nullable', 'date'],
             'retention_fee_unit' => ['nullable', Rule::in([Agent::COMMISSION_UNIT_PERCENT, Agent::COMMISSION_UNIT_EURO])],
             'retention_fee_rate' => $this->retentionFeeRateRules($request),
             'retention_fee_effective_from' => ['nullable', 'date'],
@@ -429,9 +450,21 @@ class AgentController extends Controller
 
         // Update agent data
         $agentData = $validated;
-        unset($agentData['email'], $agentData['role'], $agentData['password']);
+        unset(
+            $agentData['email'],
+            $agentData['role'],
+            $agentData['password'],
+            $agentData['commission_rate'],
+            $agentData['commission_unit'],
+            $agentData['commission_effective_from'],
+            $agentData['retention_fee_rate'],
+            $agentData['retention_fee_unit'],
+            $agentData['retention_fee_effective_from'],
+        );
         $agentData['weekly_schedule'] = $this->validatedWeeklySchedule($request);
         $agente->update($agentData);
+        $this->syncCommissionPeriod($agente, $validated);
+        $this->syncRetentionFeePeriod($agente, $validated);
 
         // Update user data
         if ($agente->user) {
@@ -467,6 +500,38 @@ class AgentController extends Controller
 
         return redirect()->route('equipa.index')
             ->with('success', 'Membro removido com sucesso.');
+    }
+
+    public function destroyCommissionPeriod(Agent $agente, AgentCommissionPeriod $period): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('update', $agente);
+        $this->alignStoreContextToAgent($agente);
+
+        if ((int) $period->agent_id !== (int) $agente->id) {
+            abort(404);
+        }
+
+        $period->delete();
+        $agente->refreshCommissionCache();
+
+        return redirect()->route('equipa.edit', $agente)
+            ->with('success', 'Registo de comissão removido do histórico.');
+    }
+
+    public function destroyRetentionFeePeriod(Agent $agente, AgentRetentionFeePeriod $period): \Illuminate\Http\RedirectResponse
+    {
+        $this->authorize('update', $agente);
+        $this->alignStoreContextToAgent($agente);
+
+        if ((int) $period->agent_id !== (int) $agente->id) {
+            abort(404);
+        }
+
+        $period->delete();
+        $agente->refreshRetentionFeeCache();
+
+        return redirect()->route('equipa.edit', $agente)
+            ->with('success', 'Registo de retenção removido do histórico.');
     }
 
     /**
@@ -550,6 +615,9 @@ class AgentController extends Controller
     {
         if ($request->input('commission_rate') === '') {
             $request->merge(['commission_rate' => null]);
+        }
+        if ($request->input('commission_effective_from') === '') {
+            $request->merge(['commission_effective_from' => null]);
         }
         if ($request->input('retention_fee_rate') === '') {
             $request->merge(['retention_fee_rate' => null]);
@@ -709,6 +777,115 @@ class AgentController extends Controller
     }
 
     /**
+     * Grava/actualiza o período de comissão e sincroniza o cache no agente.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function syncCommissionPeriod(Agent $agent, array $validated): void
+    {
+        $newRate = $validated['commission_rate'] ?? null;
+        $newUnit = $validated['commission_unit'] ?? null;
+        $newFrom = $validated['commission_effective_from'] ?? null;
+        if ($newFrom === '') {
+            $newFrom = null;
+        }
+
+        $hadAnyPeriod = $agent->commissionPeriods()->exists();
+        $oldRate = $agent->commission_rate !== null ? round((float) $agent->commission_rate, 2) : null;
+        $oldUnit = $agent->commission_unit;
+        $oldFrom = optional($agent->commission_effective_from)?->toDateString();
+
+        if ($newRate === null) {
+            if ($oldRate === null && ! $hadAnyPeriod) {
+                $agent->refreshCommissionCache();
+
+                return;
+            }
+
+            $clearFrom = $newFrom ?: now()->toDateString();
+            $existingOnDate = AgentCommissionPeriod::query()
+                ->where('agent_id', $agent->id)
+                ->whereDate('effective_from', $clearFrom)
+                ->first();
+            if ($existingOnDate instanceof AgentCommissionPeriod && $existingOnDate->hasCommission()) {
+                $clearFrom = now()->toDateString();
+            }
+
+            AgentCommissionPeriod::query()->updateOrCreate(
+                [
+                    'agent_id' => $agent->id,
+                    'effective_from' => $clearFrom,
+                ],
+                [
+                    'rate' => null,
+                    'unit' => null,
+                ],
+            );
+            $agent->refreshCommissionCache();
+
+            return;
+        }
+
+        $newRate = round((float) $newRate, 2);
+        // 1.º registo sem histórico: cobre todo o passado (desde a criação do membro).
+        // Alterações seguintes sem data → a partir de hoje.
+        if ($newFrom === null) {
+            $newFrom = $hadAnyPeriod
+                ? now()->toDateString()
+                : $this->defaultRateHistoryStartDate($agent);
+        }
+
+        $unchanged = $hadAnyPeriod
+            && $oldRate === $newRate
+            && $oldUnit === $newUnit
+            && $oldFrom === $newFrom;
+
+        if ($unchanged) {
+            return;
+        }
+
+        // Taxa já existia sem períodos (legado): só gravar histórico sem criar
+        // um corte em "hoje" se a data implícita for a de cobertura do passado.
+        if (! $hadAnyPeriod && $oldRate === $newRate && $oldUnit === $newUnit && $oldFrom === null) {
+            AgentCommissionPeriod::query()->updateOrCreate(
+                [
+                    'agent_id' => $agent->id,
+                    'effective_from' => $this->defaultRateHistoryStartDate($agent),
+                ],
+                [
+                    'rate' => $newRate,
+                    'unit' => $newUnit,
+                ],
+            );
+            $agent->refreshCommissionCache();
+
+            return;
+        }
+
+        AgentCommissionPeriod::query()->updateOrCreate(
+            [
+                'agent_id' => $agent->id,
+                'effective_from' => $newFrom,
+            ],
+            [
+                'rate' => $newRate,
+                'unit' => $newUnit,
+            ],
+        );
+        $agent->refreshCommissionCache();
+    }
+
+    /** Data de início do 1.º período histórico (cobre vendas antigas). */
+    private function defaultRateHistoryStartDate(Agent $agent): string
+    {
+        if ($agent->created_at) {
+            return $agent->created_at->copy()->toDateString();
+        }
+
+        return '2020-01-01';
+    }
+
+    /**
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
@@ -720,19 +897,103 @@ class AgentController extends Controller
             'retention_fee_unit',
         );
 
-        if (($validated['retention_fee_rate'] ?? null) === null) {
-            $validated['retention_fee_effective_from'] = null;
-
-            return $validated;
-        }
-
-        $from = $validated['retention_fee_effective_from'] ?? null;
-        if ($from === null || $from === '') {
-            // Sem data = não aplica a nada no passado; assume início hoje.
-            $validated['retention_fee_effective_from'] = now()->toDateString();
-        }
-
         return $validated;
+    }
+
+    /**
+     * Grava/actualiza o período de retenção e sincroniza o cache no agente.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function syncRetentionFeePeriod(Agent $agent, array $validated): void
+    {
+        $newRate = $validated['retention_fee_rate'] ?? null;
+        $newUnit = $validated['retention_fee_unit'] ?? null;
+        $newFrom = $validated['retention_fee_effective_from'] ?? null;
+        if ($newFrom === '') {
+            $newFrom = null;
+        }
+
+        $hadAnyPeriod = $agent->retentionFeePeriods()->exists();
+        $oldRate = $agent->retention_fee_rate !== null ? round((float) $agent->retention_fee_rate, 2) : null;
+        $oldUnit = $agent->retention_fee_unit;
+        $oldFrom = optional($agent->retention_fee_effective_from)?->toDateString();
+
+        if ($newRate === null) {
+            if ($oldRate === null && ! $hadAnyPeriod) {
+                $agent->refreshRetentionFeeCache();
+
+                return;
+            }
+
+            // Não reutilizar a data de início antiga do formulário — senão apagava o histórico.
+            $clearFrom = $newFrom ?: now()->toDateString();
+            $existingOnDate = AgentRetentionFeePeriod::query()
+                ->where('agent_id', $agent->id)
+                ->whereDate('effective_from', $clearFrom)
+                ->first();
+            if ($existingOnDate instanceof AgentRetentionFeePeriod && $existingOnDate->hasRetention()) {
+                $clearFrom = now()->toDateString();
+            }
+
+            AgentRetentionFeePeriod::query()->updateOrCreate(
+                [
+                    'agent_id' => $agent->id,
+                    'effective_from' => $clearFrom,
+                ],
+                [
+                    'rate' => null,
+                    'unit' => null,
+                ],
+            );
+            $agent->refreshRetentionFeeCache();
+
+            return;
+        }
+
+        $newRate = round((float) $newRate, 2);
+        if ($newFrom === null) {
+            $newFrom = $hadAnyPeriod
+                ? now()->toDateString()
+                : $this->defaultRateHistoryStartDate($agent);
+        }
+
+        $unchanged = $hadAnyPeriod
+            && $oldRate === $newRate
+            && $oldUnit === $newUnit
+            && $oldFrom === $newFrom;
+
+        if ($unchanged) {
+            return;
+        }
+
+        if (! $hadAnyPeriod && $oldRate === $newRate && $oldUnit === $newUnit && $oldFrom === null) {
+            AgentRetentionFeePeriod::query()->updateOrCreate(
+                [
+                    'agent_id' => $agent->id,
+                    'effective_from' => $this->defaultRateHistoryStartDate($agent),
+                ],
+                [
+                    'rate' => $newRate,
+                    'unit' => $newUnit,
+                ],
+            );
+            $agent->refreshRetentionFeeCache();
+
+            return;
+        }
+
+        AgentRetentionFeePeriod::query()->updateOrCreate(
+            [
+                'agent_id' => $agent->id,
+                'effective_from' => $newFrom,
+            ],
+            [
+                'rate' => $newRate,
+                'unit' => $newUnit,
+            ],
+        );
+        $agent->refreshRetentionFeeCache();
     }
 
     /**

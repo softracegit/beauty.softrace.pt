@@ -132,6 +132,13 @@
                             @include('agentes.partials.commission-field', [
                                 'commissionRate' => old('commission_rate', $agente->commission_rate),
                                 'commissionUnit' => old('commission_unit', $agente->commission_unit ?? \App\Models\Agent::COMMISSION_UNIT_PERCENT),
+                                'commissionEffectiveFrom' => old(
+                                    'commission_effective_from',
+                                    optional($agente->commission_effective_from)?->format('Y-m-d')
+                                ),
+                                'commissionHistory' => $agente->commissionPeriods,
+                                'agente' => $agente,
+                                'canDeleteHistory' => true,
                             ])
                             @include('agentes.partials.retention-fee-field', [
                                 'retentionFeeRate' => old('retention_fee_rate', $agente->retention_fee_rate),
@@ -140,6 +147,9 @@
                                     'retention_fee_effective_from',
                                     optional($agente->retention_fee_effective_from)?->format('Y-m-d')
                                 ),
+                                'retentionFeeHistory' => $agente->retentionFeePeriods,
+                                'agente' => $agente,
+                                'canDeleteHistory' => true,
                             ])
                         </div>
                     </div>
@@ -382,6 +392,30 @@
         </div>
     </div>
 </form>
+
+{{-- Forms de eliminar histórico fora do form principal (HTML não permite forms aninhados) --}}
+@foreach($agente->commissionPeriods as $period)
+    @if($period->id)
+        <form id="destroy-commission-period-{{ $period->id }}"
+              method="POST"
+              action="{{ route('equipa.commission-periods.destroy', [$agente, $period]) }}"
+              class="d-none">
+            @csrf
+            @method('DELETE')
+        </form>
+    @endif
+@endforeach
+@foreach($agente->retentionFeePeriods as $period)
+    @if($period->id)
+        <form id="destroy-retention-fee-period-{{ $period->id }}"
+              method="POST"
+              action="{{ route('equipa.retention-fee-periods.destroy', [$agente, $period]) }}"
+              class="d-none">
+            @csrf
+            @method('DELETE')
+        </form>
+    @endif
+@endforeach
 
 @endsection
 
