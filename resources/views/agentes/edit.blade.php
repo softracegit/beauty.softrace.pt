@@ -223,14 +223,16 @@
                     @php
                         $bookingSlugValue = old('booking_slug', $agente->booking_slug);
                         $bookingStoreSlug = $bookingStoreSlug ?? current_store()->get()->slug;
-                        $bookingLinkPreview = $bookingSlugValue
-                            ? url('/booking/'.$bookingStoreSlug.'/'.\Illuminate\Support\Str::slug((string) $bookingSlugValue))
+                        $bookingSlugNormalized = \Illuminate\Support\Str::slug((string) $bookingSlugValue);
+                        $bookingLinkPrefix = \App\Support\BookingPublicUrl::storeBase($bookingStoreSlug).'/';
+                        $bookingLinkPreview = $bookingSlugNormalized !== ''
+                            ? $bookingLinkPrefix.$bookingSlugNormalized
                             : null;
                     @endphp
                     <div class="mb-3">
                         <label for="agentBookingSlug" class="form-label">Slug do link</label>
                         <div class="input-group">
-                            <span class="input-group-text text-muted small">/booking/{{ $bookingStoreSlug }}/</span>
+                            <span class="input-group-text text-muted small">{{ $bookingLinkPrefix }}</span>
                             <input
                                 type="text"
                                 name="booking_slug"
@@ -595,12 +597,11 @@
     var previewInput = document.getElementById('agentBookingLinkPreview');
     var copyBtn = document.getElementById('agentBookingLinkCopy');
     if (!slugInput || !previewInput) return;
-    var storeSlug = @json($bookingStoreSlug ?? current_store()->get()->slug);
-    var baseUrl = @json(url('/booking'));
+    var baseUrl = @json(\App\Support\BookingPublicUrl::storeBase($bookingStoreSlug ?? current_store()->get()->slug));
     function syncBookingLinkPreview() {
         var raw = (slugInput.value || '').trim().toLowerCase();
         var slug = raw.replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        var full = slug ? (baseUrl + '/' + storeSlug + '/' + slug) : '';
+        var full = slug ? (baseUrl + '/' + slug) : '';
         previewInput.value = full;
         if (copyBtn) copyBtn.disabled = !full;
     }

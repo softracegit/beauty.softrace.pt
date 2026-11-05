@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\CrmSetting;
 use App\Models\Organization;
 use App\Models\Store;
+use App\Support\BookingPublicUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -256,7 +257,7 @@ class StoreBusinessSettingsService
             'pos_gorjeta_enabled', 'online_booking_payment_required' => $forStore ? 'pagamentos' : null,
             'booking_slot_hold_minutes', 'booking_cart_ttl_hours', 'booking_slot_interval_minutes',
             'booking_cancellation_notice_hours', 'booking_any_staff_rule',
-            'booking_any_staff_rule_options', 'booking_theme' => $forStore ? 'booking' : null,
+            'booking_any_staff_rule_options', 'booking_theme', 'booking_domain' => $forStore ? 'booking' : null,
             default => null,
         };
     }
@@ -269,6 +270,15 @@ class StoreBusinessSettingsService
         $storeId = (int) $store->id;
         $store->loadMissing('organization');
         $org = $store->organization;
+
+        if ($request->exists('booking_domain')) {
+            $rawDomain = $request->input('booking_domain');
+            $request->merge([
+                'booking_domain' => is_string($rawDomain) && trim($rawDomain) !== ''
+                    ? BookingPublicUrl::normalizeHost($rawDomain)
+                    : null,
+            ]);
+        }
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
@@ -300,6 +310,7 @@ class StoreBusinessSettingsService
             'personal_time_limit_store_hours' => ['nullable', 'boolean'],
             'pos_gorjeta_enabled' => ['sometimes', 'boolean'],
             'online_booking_payment_required' => ['sometimes', 'boolean'],
+            'booking_domain' => ['nullable', 'string', 'max:255', 'regex:/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/'],
         ];
 
         if (! CrmSetting::privacyLockEnabled($storeId)) {
@@ -322,6 +333,7 @@ class StoreBusinessSettingsService
             'email.email' => 'Indique um email válido.',
             'website_url.url' => 'O site deve ser um URL válido.',
             'instagram_url.url' => 'O Instagram deve ser um URL válido.',
+            'booking_domain.regex' => 'Indique só o domínio, por exemplo booking.empresa.pt.',
         ]);
 
         $submittedSchedule = $this->validatedWeeklySchedule($request);
@@ -355,6 +367,7 @@ class StoreBusinessSettingsService
         $store->update([
             'name' => $validated['name'],
             'slug' => Str::slug((string) $validated['slug']),
+            'booking_domain' => $validated['booking_domain'] ?? null,
             'address_line' => $validated['address_line'],
             'city' => $validated['city'],
             'postal_code' => $validated['postal_code'],

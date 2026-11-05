@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Aplicar middleware para garantir que apenas users com agent podem aceder
+        $middleware->append(\App\Http\Middleware\RewriteBookingPublicHost::class);
+
         $middleware->alias([
             'has.agent' => \App\Http\Middleware\EnsureUserHasAgent::class,
             'set.current.store' => \App\Http\Middleware\SetCurrentStore::class,

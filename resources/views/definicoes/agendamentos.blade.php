@@ -9,10 +9,6 @@
         <h5 class="card-title mb-0">Aparência do Booking</h5>
       </div>
       <div class="card-body">
-        <p class="text-muted small mb-4">
-          Escolhe o tema visual da página pública de marcações desta loja. O tema clássico mantém o aspeto atual; o tema elegante aplica um estilo minimalista inspirado em salões de beleza.
-        </p>
-
         <div class="row g-3">
           @foreach(($bookingThemes ?? []) as $theme)
             @php
@@ -219,6 +215,32 @@
         <p class="small text-muted mb-0 mt-2 w-100">
           O cliente pode cancelar sem perder o pré-pagamento se o pedido for feito pelo menos este número de horas antes da marcação
           (fuso horário da loja). Com 0 horas, o prazo é até ao início da marcação.
+        </p>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">Domínio de marcação</h5>
+      </div>
+      <div class="card-body">
+        <label for="booking_domain" class="form-label fw-semibold">Domínio público</label>
+        <input
+          type="text"
+          id="booking_domain"
+          name="booking_domain"
+          class="form-control @error('booking_domain') is-invalid @enderror"
+          value="{{ old('booking_domain', $bookingDomain ?? '') }}"
+          placeholder="booking.fadastudio.pt"
+          maxlength="255"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        @error('booking_domain')<div class="invalid-feedback">{{ $message }}</div>@enderror
+        <p class="form-text mb-0">
+          Só o domínio, sem https e sem caminho. Exemplo: booking.fadastudio.pt.
+          A marcação abre em https://esse-domínio/slug-da-loja e cada técnica em https://esse-domínio/slug-da-loja/slug-da-tecnica.
+          Vazio mantém o endereço do CRM, com /booking no caminho.
         </p>
       </div>
     </div>

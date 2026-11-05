@@ -161,10 +161,10 @@ class BookingController extends Controller
             'slug' => (string) Agent::normalizeBookingSlug($agent->booking_slug),
             'specialization' => Agent::specializationLabel($agent->specialization) ?? __('booking.flow.default_specialization'),
             'avatar' => $agent->avatar ? asset('storage/'.$agent->avatar) : null,
-            'url' => (string) ($agent->publicBookingPath($store) ?? route('booking.agent', [
+            'url' => route('booking.agent', [
                 'store' => $store->slug,
                 'agent' => Agent::normalizeBookingSlug($agent->booking_slug),
-            ], false)),
+            ], false),
         ];
     }
 

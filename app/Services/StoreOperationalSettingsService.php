@@ -6,6 +6,7 @@ use App\Models\Agent;
 use App\Models\CrmSetting;
 use App\Models\Store;
 use App\Models\User;
+use App\Support\BookingPublicUrl;
 use App\Support\BookingTheme;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -120,6 +121,7 @@ class StoreOperationalSettingsService
             CrmSetting::bookingCancellationNoticeHours($storeId),
             CrmSetting::bookingAnyStaffRule($storeId),
             CrmSetting::bookingTheme($storeId),
+            (string) (Store::query()->whereKey($storeId)->value('booking_domain') ?? ''),
         ]);
     }
 
@@ -151,6 +153,7 @@ class StoreOperationalSettingsService
             'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule($storeId),
             'bookingTheme' => CrmSetting::bookingTheme($storeId),
             'bookingThemes' => BookingTheme::registry(),
+            'bookingDomain' => (string) (Store::query()->whereKey($storeId)->value('booking_domain') ?? ''),
         ];
     }
 
@@ -166,6 +169,15 @@ class StoreOperationalSettingsService
      */
     public function validateBooking(Request $request, int $fallbackStoreIdForRule): array
     {
+        if ($request->exists('booking_domain')) {
+            $rawDomain = $request->input('booking_domain');
+            $request->merge([
+                'booking_domain' => is_string($rawDomain) && trim($rawDomain) !== ''
+                    ? BookingPublicUrl::normalizeHost($rawDomain)
+                    : null,
+            ]);
+        }
+
         $validated = $request->validate([
             'booking_slot_hold_minutes' => ['required', 'integer', 'min:1', 'max:240'],
             'booking_cart_ttl_hours' => [
@@ -189,6 +201,7 @@ class StoreOperationalSettingsService
             'booking_any_staff_rule_options' => ['nullable', 'array', 'min:1', 'max:1'],
             'booking_any_staff_rule_options.*' => ['string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
             'booking_theme' => ['nullable', 'string', 'in:'.implode(',', array_keys(BookingTheme::registry()))],
+            'booking_domain' => ['nullable', 'string', 'max:255', 'regex:/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/'],
         ], [
             'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
             'booking_slot_hold_minutes.max' => 'O tempo de reserva não pode exceder 240 minutos.',
@@ -198,6 +211,7 @@ class StoreOperationalSettingsService
             'booking_cancellation_notice_hours.min' => 'O aviso mínimo não pode ser negativo.',
             'booking_cancellation_notice_hours.max' => 'O aviso mínimo não pode exceder 168 horas (7 dias).',
             'booking_any_staff_rule_options.max' => 'Selecione apenas uma regra de atribuição.',
+            'booking_domain.regex' => 'Indique só o domínio, por exemplo booking.empresa.pt.',
         ]);
 
         $selectedRule = null;
@@ -219,6 +233,7 @@ class StoreOperationalSettingsService
             'booking_theme' => array_key_exists('booking_theme', $validated)
                 ? (string) $validated['booking_theme']
                 : null,
+            'booking_domain' => $validated['booking_domain'] ?? null,
         ];
     }
 
@@ -241,6 +256,14 @@ class StoreOperationalSettingsService
         CrmSetting::setString(CrmSetting::KEY_BOOKING_ANY_STAFF_RULE, $data['booking_any_staff_rule'], $storeId);
         if ($data['booking_theme'] !== null) {
             CrmSetting::setBookingTheme($data['booking_theme'], $storeId);
+        }
+        if (array_key_exists('booking_domain', $data)) {
+            $store = Store::query()->find($storeId);
+            if ($store instanceof Store) {
+                $domain = $data['booking_domain'];
+                $store->booking_domain = is_string($domain) && $domain !== '' ? $domain : null;
+                $store->save();
+            }
         }
     }
 
@@ -294,6 +317,7 @@ class StoreOperationalSettingsService
             'booking_cancellation_notice_hours' => CrmSetting::bookingCancellationNoticeHours($repId),
             'booking_any_staff_rule' => CrmSetting::bookingAnyStaffRule($repId),
             'booking_theme' => CrmSetting::bookingTheme($repId),
+            'booking_domain' => Store::query()->whereKey($repId)->value('booking_domain'),
         ], $storeId);
 
         // Confirma que ficou igual às gerais (senão o alerta nas Definições continuaria).

@@ -16,6 +16,7 @@ class Store extends Model
         'organization_id',
         'name',
         'slug',
+        'booking_domain',
         'timezone',
         'weekly_schedule',
         'phone',
@@ -34,6 +35,16 @@ class Store extends Model
     protected $casts = [
         'weekly_schedule' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        $forgetPublicHosts = static function (): void {
+            \Illuminate\Support\Facades\Cache::forget('booking.public_hosts');
+        };
+
+        static::saved($forgetPublicHosts);
+        static::deleted($forgetPublicHosts);
+    }
 
     /**
      * @return BelongsTo<Organization, $this>

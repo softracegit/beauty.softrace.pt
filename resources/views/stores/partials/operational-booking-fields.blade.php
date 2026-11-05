@@ -5,7 +5,6 @@
 
 <div class="uedit-section mb-4">
   <div class="uedit-section-title">Aparência do Booking</div>
-  <p class="text-muted small mb-3">Tema visual da página pública de marcações.</p>
   <div class="row g-3">
     @foreach(($bookingThemes ?? []) as $theme)
       @php
@@ -121,7 +120,7 @@
   @error('booking_any_staff_rule')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
 </div>
 
-<div class="uedit-section mb-0 mt-5">
+<div class="uedit-section mb-4 mt-5">
   <div class="uedit-section-title">Cancelamento</div>
   <div class="row g-3 align-items-end">
     <div class="col-12 col-md-5">
@@ -138,6 +137,28 @@
     </div>
   </div>
   <p class="small text-muted mb-0 mt-2">Prazo mínimo antes da marcação para cancelar sem perder o pré-pagamento.</p>
+</div>
+
+<div class="uedit-section mb-0">
+  <div class="uedit-section-title">Domínio de marcação</div>
+  <label class="form-label" for="{{ $idPrefix }}booking_domain">Domínio público</label>
+  <input
+    type="text"
+    id="{{ $idPrefix }}booking_domain"
+    name="booking_domain"
+    class="form-control @error('booking_domain') is-invalid @enderror"
+    value="{{ old('booking_domain', $store->booking_domain ?? '') }}"
+    placeholder="booking.fadastudio.pt"
+    maxlength="255"
+    autocomplete="off"
+    spellcheck="false"
+  >
+  @error('booking_domain')<div class="invalid-feedback">{{ $message }}</div>@enderror
+  <p class="form-text mb-0">
+    Só o domínio, sem https e sem caminho. Exemplo: booking.fadastudio.pt.
+    A marcação desta loja fica https://esse-domínio/{{ $store->slug }} e cada técnica https://esse-domínio/{{ $store->slug }}/slug-da-tecnica.
+    Vazio mantém o endereço do CRM, com /booking no caminho.
+  </p>
 </div>
 
 <style>
