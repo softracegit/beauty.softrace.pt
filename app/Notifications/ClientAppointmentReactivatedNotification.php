@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\CalendarEvent;
+use App\Support\BookingPublicUrl;
 use App\Support\MarcacaoMailCopy;
 use App\Support\StoreMailBranding;
 use Illuminate\Bus\Queueable;
@@ -53,7 +54,7 @@ class ClientAppointmentReactivatedNotification extends Notification implements S
 
         $storeSlug = $store?->slug;
         if (is_string($storeSlug) && $storeSlug !== '') {
-            $mail->action('Marcações online', route('booking.conta.marcacoes', ['store' => $storeSlug]));
+            $mail->action('Marcações online', BookingPublicUrl::clientUrl('booking.conta.marcacoes', $storeSlug));
         }
 
         return StoreMailBranding::applyToMailMessage($mail, $store);

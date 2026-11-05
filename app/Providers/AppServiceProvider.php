@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\BookingSmsActionController;
 use App\Models\Agent;
 use App\Models\Organization;
 use App\Models\Service;
@@ -49,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         $this->registerBookingMailer();
+        $this->registerBookingSmsShortLink();
 
         View::composer(['booking.*', 'booking.partials.*'], BookingStoreComposer::class);
 
@@ -135,6 +137,18 @@ class AppServiceProvider extends ServiceProvider
                 'to' => null,
             ]),
         ]);
+    }
+
+    /**
+     * Link curto da SMS (/c/{token}), no mesmo controlador de /r/{token}.
+     */
+    protected function registerBookingSmsShortLink(): void
+    {
+        Route::middleware(['web', 'throttle:60,1'])->group(function () {
+            Route::get('/c/{token}', [BookingSmsActionController::class, 'manage']);
+            Route::post('/c/{token}/confirm', [BookingSmsActionController::class, 'confirm']);
+            Route::post('/c/{token}/cancel', [BookingSmsActionController::class, 'cancel']);
+        });
     }
 
     /**

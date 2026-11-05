@@ -81,6 +81,7 @@ final class BookingPublicUrl
             'stripe',
             'legal',
             'r',
+            'c',
         ], true);
     }
 
@@ -133,6 +134,38 @@ final class BookingPublicUrl
         }
 
         return url('/booking/'.$storeSlug);
+    }
+
+    public static function smsConfirmUrl(string $token, ?string $storeSlug, ?string $domain = null): string
+    {
+        $domain = $domain !== null
+            ? self::normalizeHost($domain)
+            : (is_string($storeSlug) && $storeSlug !== '' ? self::domainForSlug($storeSlug) : null);
+
+        if ($domain !== null && $domain !== '') {
+            return 'https://'.$domain.'/c/'.$token;
+        }
+
+        return route('booking.sms.manage', ['token' => $token]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $parameters
+     */
+    public static function clientUrl(string $routeName, string $storeSlug, array $parameters = [], ?string $domain = null): string
+    {
+        $parameters['store'] = $storeSlug;
+        $domain = $domain !== null ? self::normalizeHost($domain) : self::domainForSlug($storeSlug);
+        if ($domain === null || $domain === '') {
+            return route($routeName, $parameters);
+        }
+
+        $path = self::stripBookingPrefix(route($routeName, $parameters, false));
+        if ($path === '' || $path === '/') {
+            $path = '/';
+        }
+
+        return 'https://'.$domain.$path;
     }
 
     public static function agentLink(string $storeSlug, string $agentSlug, ?string $domain = null): string

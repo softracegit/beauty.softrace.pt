@@ -75,7 +75,24 @@ class BookingPublicHostTest extends TestCase
         });
 
         $this->assertSame('up', $seen);
+        $this->assertTrue(BookingPublicUrl::isPassThroughPath('/c/abc123'));
         $this->assertTrue(BookingPublicUrl::isPassThroughPath('/booking-assets/css/app.css'));
+    }
+
+    public function test_sms_confirm_url_is_short_on_the_store_domain(): void
+    {
+        $this->assertSame(
+            'https://booking.fadastudio.pt/c/abc123',
+            BookingPublicUrl::smsConfirmUrl('abc123', 'fada', 'booking.fadastudio.pt')
+        );
+    }
+
+    public function test_client_account_url_uses_the_store_domain(): void
+    {
+        $this->assertSame(
+            'https://booking.fadastudio.pt/fada/conta/marcacoes',
+            BookingPublicUrl::clientUrl('booking.conta.marcacoes', 'fada', domain: 'booking.fadastudio.pt')
+        );
     }
 
     public function test_agent_link_uses_the_store_domain(): void

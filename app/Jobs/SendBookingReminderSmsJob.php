@@ -7,11 +7,11 @@ use App\Models\CalendarEvent;
 use App\Models\SmsMessage;
 use App\Services\TwilioSmsService;
 use App\Support\BookingLocale;
+use App\Support\BookingPublicUrl;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 class SendBookingReminderSmsJob implements ShouldQueue
@@ -106,7 +106,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 $actionLink->expires_at = $expiresAt;
                 $actionLink->save();
             }
-            $manageUrl = URL::route('booking.sms.manage', ['token' => $actionLink->token]);
+            $manageUrl = BookingPublicUrl::smsConfirmUrl($actionLink->token, $event->store?->slug);
 
             $previousLocale = app()->getLocale();
             try {
