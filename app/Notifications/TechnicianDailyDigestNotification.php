@@ -6,6 +6,7 @@ use App\Models\CalendarEvent;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
+use App\Support\BookingPublicUrl;
 use App\Support\MarcacaoMailCopy;
 use App\Support\StoreMailBranding;
 use Carbon\CarbonInterface;
@@ -81,7 +82,7 @@ class TechnicianDailyDigestNotification extends Notification implements ShouldQu
         }
         $mail->line(new HtmlString(implode('', $cards)));
 
-        $mail->action('Abrir agenda', route('agenda.index'));
+        $mail->action('Abrir agenda', BookingPublicUrl::crmUrl('agenda.index'));
 
         // TODO: remover após teste do digest (BCC temporário)
         $mail->bcc('suporte@softrace.pt');

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\BookingPublicUrl;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -26,10 +27,10 @@ class ResetPasswordNotification extends Notification
             60
         );
 
-        $url = url(route('password.reset', [
+        $url = BookingPublicUrl::crmUrl('password.reset', [
             'token' => $this->token,
             'email' => $notifiable->getEmailForPasswordReset(),
-        ], false));
+        ]);
 
         $appName = (string) config('app.name', 'SoftTrace');
 

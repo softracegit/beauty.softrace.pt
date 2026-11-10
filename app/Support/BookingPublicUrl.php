@@ -136,6 +136,24 @@ final class BookingPublicUrl
         return url('/booking/'.$storeSlug);
     }
 
+    /**
+     * Link do CRM (agenda, redefinição de palavra-passe). Usa sempre APP_URL,
+     * mesmo quando o pedido atual está no domínio público de marcação.
+     *
+     * @param  array<string, mixed>  $parameters
+     */
+    public static function crmUrl(string $routeName, array $parameters = []): string
+    {
+        $path = route($routeName, $parameters, false);
+        $root = rtrim((string) config('app.url'), '/');
+
+        if ($path === '' || $path === '/') {
+            return $root.'/';
+        }
+
+        return $root.'/'.ltrim($path, '/');
+    }
+
     public static function smsConfirmUrl(string $token, ?string $storeSlug, ?string $domain = null): string
     {
         $domain = $domain !== null

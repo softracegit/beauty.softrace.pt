@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Models\CalendarEvent;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
+use App\Support\BookingPublicUrl;
 use App\Support\DateTimeDisplay;
 use App\Support\MarcacaoMailCopy;
 use App\Support\StoreMailBranding;
@@ -107,7 +108,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
         return [
             'title' => $this->buildTitle($event),
             'body' => $this->buildBellBody($event),
-            'url' => route('agenda.index', ['event' => $event->id]),
+            'url' => $this->agendaUrl($event),
             'calendar_event_id' => $event->id,
             'type' => $this->type,
         ];
@@ -161,7 +162,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
             ]));
 
         return $this->appendAlertsBox($mail, $event)
-            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+            ->action('Abrir agenda', $this->agendaUrl($event));
     }
 
     private function mailReassigned(
@@ -187,7 +188,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
                 ]));
 
             return $this->appendAlertsBox($mail, $event)
-                ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+                ->action('Abrir agenda', $this->agendaUrl($event));
         }
 
         $mail = (new MailMessage)
@@ -204,7 +205,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
             ]));
 
         return $this->appendAlertsBox($mail, $event)
-            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+            ->action('Abrir agenda', $this->agendaUrl($event));
     }
 
     private function mailRescheduled(
@@ -241,7 +242,7 @@ class AppointmentNotification extends Notification implements ShouldQueue
             ->line(MarcacaoMailCopy::block($detailLines));
 
         return $this->appendAlertsBox($mail, $event)
-            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+            ->action('Abrir agenda', $this->agendaUrl($event));
     }
 
     private function appendAlertsBox(MailMessage $mail, CalendarEvent $event): MailMessage
@@ -280,9 +281,14 @@ class AppointmentNotification extends Notification implements ShouldQueue
                 'Cliente: '.MarcacaoMailCopy::clientName($event),
                 'Serviço: '.MarcacaoMailCopy::servicesLine($event),
             ]))
-            ->action('Abrir agenda', route('agenda.index', ['event' => $event->id]));
+            ->action('Abrir agenda', $this->agendaUrl($event));
 
         return $mail;
+    }
+
+    private function agendaUrl(CalendarEvent $event): string
+    {
+        return BookingPublicUrl::crmUrl('agenda.index', ['event' => $event->id]);
     }
 
     private function greeting(string $name): string

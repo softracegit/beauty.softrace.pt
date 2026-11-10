@@ -95,6 +95,20 @@ class BookingPublicHostTest extends TestCase
         );
     }
 
+    public function test_crm_agenda_url_stays_on_the_app_host(): void
+    {
+        $request = Request::create('http://booking.test/fada-host/vanessa', 'GET');
+        $this->bindRequest($request);
+        app(RewriteBookingPublicHost::class)->handle($request, fn () => response('ok'));
+
+        config(['app.url' => 'https://beauty.softrace.pt']);
+
+        $this->assertSame(
+            'https://beauty.softrace.pt/agenda?event=5',
+            BookingPublicUrl::crmUrl('agenda.index', ['event' => 5])
+        );
+    }
+
     public function test_agent_link_uses_the_store_domain(): void
     {
         $this->assertSame(
