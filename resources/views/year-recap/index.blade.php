@@ -6,6 +6,9 @@
 <link rel="stylesheet" href="{{ asset('template/css/year-recap.css') }}?v={{ filemtime(public_path('template/css/year-recap.css')) }}">
 <link rel="stylesheet" href="{{ asset('template/css/year-recap-aurora.css') }}?v={{ filemtime(public_path('template/css/year-recap-aurora.css')) }}">
 <link rel="stylesheet" href="{{ asset('template/css/year-recap-lava.css') }}?v={{ filemtime(public_path('template/css/year-recap-lava.css')) }}">
+@if(($recap['template'] ?? '') === 'gloss')
+<link rel="stylesheet" href="{{ asset('template/css/year-recap-gloss.css') }}?v={{ filemtime(public_path('template/css/year-recap-gloss.css')) }}">
+@endif
 @endsection
 
 @section('content')
@@ -21,6 +24,7 @@
   id="yearRecap"
   data-fx="{{ $firstTheme }}"
   @if($template === 'lava') data-bg="lilac" @endif
+  @if($template === 'gloss') data-bg="cherry" @endif
   role="region"
   aria-label="Year Recap {{ $recap['year'] }}"
 >
@@ -46,6 +50,7 @@
         <a href="{{ route('year-recap.show', ['template' => 'nocturne']) }}" class="{{ $template === 'nocturne' ? 'is-active' : '' }}">Nocturne</a>
         <a href="{{ route('year-recap.show', ['template' => 'aurora']) }}" class="{{ $template === 'aurora' ? 'is-active' : '' }}">Aurora</a>
         <a href="{{ route('year-recap.show', ['template' => 'lava']) }}" class="{{ $template === 'lava' ? 'is-active' : '' }}">Lava</a>
+        <a href="{{ route('year-recap.show', ['template' => 'gloss']) }}" class="{{ $template === 'gloss' ? 'is-active' : '' }}">Gloss</a>
       </nav>
     </div>
     <div class="yr__chrome-actions">
@@ -79,7 +84,10 @@
     <button type="button" class="yr__hit yr__hit--next" data-yr-hit-next aria-label="Seguinte"></button>
 
     @foreach($slides as $i => $slide)
-      @php $id = $slide['id'] ?? ('slide-'.$i); @endphp
+      @php
+        $id = $slide['id'] ?? ('slide-'.$i);
+        $type = $slide['type'] ?? (in_array($id, ['cover', 'finale'], true) ? $id : ($id === 'canais' ? 'split' : 'stat'));
+      @endphp
       <article
         class="yr__slide {{ $i === 0 ? 'is-active' : '' }}"
         data-id="{{ $id }}"
@@ -91,7 +99,7 @@
             <div class="yr__kicker">{{ $slide['kicker'] }}</div>
           @endif
 
-          @if($id === 'cover')
+          @if($type === 'cover')
             <h1 class="yr__title">{{ $slide['title'] ?? $recap['year'] }}</h1>
             @if(!empty($slide['subtitle']))
               <p class="yr__subtitle">{{ $slide['subtitle'] }}</p>
@@ -105,7 +113,7 @@
               </button>
             </div>
 
-          @elseif($id === 'finale')
+          @elseif($type === 'finale')
             <h2 class="yr__title" style="font-size: clamp(2.2rem, 7vw, 3.5rem);">{{ $slide['title'] ?? 'Foi um ano cheio.' }}</h2>
             @if(!empty($slide['body']))
               <p class="yr__body">{{ $slide['body'] }}</p>
@@ -129,7 +137,7 @@
               </a>
             </div>
 
-          @elseif($id === 'canais')
+          @elseif($type === 'split')
             @if(!empty($slide['label']))
               <p class="yr__label">{{ $slide['label'] }}</p>
             @endif
@@ -209,5 +217,8 @@
 @endsection
 
 @section('js')
+@if(($recap['template'] ?? '') === 'gloss')
+<script src="{{ asset('template/js/year-recap-gloss.js') }}?v={{ filemtime(public_path('template/js/year-recap-gloss.js')) }}"></script>
+@endif
 <script src="{{ asset('template/js/year-recap.js') }}?v={{ filemtime(public_path('template/js/year-recap.js')) }}"></script>
 @endsection

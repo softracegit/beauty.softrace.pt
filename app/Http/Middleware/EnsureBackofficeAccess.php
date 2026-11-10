@@ -53,6 +53,7 @@ class EnsureBackofficeAccess
         $allowedPrefixes = [
             'agenda.',
             'notifications.',
+            'year-recap.',
         ];
 
         foreach ($allowedPrefixes as $prefix) {

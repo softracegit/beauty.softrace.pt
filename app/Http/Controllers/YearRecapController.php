@@ -2,33 +2,67 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\YearRecap\YearRecapBuilder;
+use App\Support\CurrentStore;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * Protótipo do Recap anual (estilo Spotify Wrapped).
- * Dados de demonstração — a ligar depois às métricas reais do dashboard.
+ * Year Recap (estilo Spotify Wrapped).
+ *
+ * - Admin e receção: o ano da loja. Prestadoras: o próprio ano.
+ * - O que cada perfil vê está em config/year-recap.php e é validado slide a slide.
+ * - ?demo=1 mostra os dados de demonstração (para afinar o design).
+ * - ?refresh=1 (só admin) recalcula, ignorando a cache.
  */
 class YearRecapController extends Controller
 {
-    public function show(Request $request): View
-    {
-        $year = (int) $request->integer('year', now()->year);
-        $storeName = session('current_store_name')
-            ?? auth()->user()?->agent?->store?->name
-            ?? 'A vossa loja';
+    private const TEMPLATES = ['nocturne', 'aurora', 'lava', 'gloss'];
 
-        $template = $request->query('template', 'nocturne');
-        if (! in_array($template, ['nocturne', 'aurora', 'lava'], true)) {
-            $template = 'nocturne';
+    public function show(Request $request, YearRecapBuilder $builder): View
+    {
+        $user = $request->user();
+        $store = app(CurrentStore::class)->get();
+        $storeName = (string) ($store->name ?? 'A vossa loja');
+        $currentYear = now()->year;
+
+        $year = (int) $request->integer('year', $currentYear);
+        $year = max(2020, min($currentYear, $year));
+
+        $template = (string) $request->query('template', 'gloss');
+        if (! in_array($template, self::TEMPLATES, true)) {
+            $template = 'gloss';
         }
 
+        if ($request->boolean('demo')) {
+            $recap = $this->demo($year, $storeName, $template);
+
+            return view('year-recap.index', compact('recap'));
+        }
+
+        $recap = $builder->build(
+            viewer: $user,
+            storeId: (int) $store->id,
+            storeName: $storeName,
+            year: $year,
+            refresh: $request->boolean('refresh') && $user->isAdmin(),
+        );
+        $recap['template'] = $template;
+        $recap['is_demo'] = false;
+
+        return view('year-recap.index', compact('recap'));
+    }
+
+    /** Dados de demonstração (protótipo original). */
+    private function demo(int $year, string $storeName, string $template): array
+    {
         // Demo — substituir por queries reais (CalendarEvent, Sale, Client, …)
         $recap = [
             'year' => $year,
             'store_name' => $storeName,
             'is_demo' => true,
             'template' => $template,
+            'audience' => 'admin',
             'slides' => [
                 [
                     'id' => 'cover',
@@ -152,6 +186,6 @@ class YearRecapController extends Controller
             ],
         ];
 
-        return view('year-recap.index', compact('recap'));
+        return $recap;
     }
 }

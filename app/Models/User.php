@@ -543,6 +543,7 @@ class User extends Authenticatable
         if ($this->isPrestador()) {
             return str_starts_with($routeName, 'agenda.')
                 || str_starts_with($routeName, 'notifications.')
+                || str_starts_with($routeName, 'year-recap.')
                 || $routeName === 'dashboard';
         }
 

@@ -14,8 +14,11 @@
   var pauseIcon = root.querySelector('[data-yr-pause-icon]');
   var autoMs = 10000;
   // Pico de cobertura ~62% de 1.05s ≈ 650ms; fim ≈ 1050ms
-  var morphMs = 650;
-  var morphEndMs = 1000;
+  var isLava = root.classList.contains('yr--lava');
+  var isGloss = root.classList.contains('yr--gloss');
+  // Gloss: a 3ª pincelada cobre o ecrã aos ~700ms e termina aos ~880ms
+  var morphMs = isGloss ? 720 : 650;
+  var morphEndMs = isGloss ? 920 : 1000;
   var index = 0;
   var timer = null;
   var morphTimer = null;
@@ -23,12 +26,37 @@
   var paused = false;
   var busy = false;
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var useLavaMorph = root.classList.contains('yr--lava') && !reduced;
+  // Templates com fundo por slide (data-bg) e transição em overlay (.yr__morph)
+  var hasBg = isLava || isGloss;
+  var useLavaMorph = hasBg && !reduced;
 
-  var morphVariants = ['bloom', 'corner-tl', 'rise', 'side', 'corner-br', 'drip', 'splash'];
-  var morphColors = ['coral', 'violet', 'aqua', 'magenta', 'indigo', 'peach'];
+  var morphVariants = isGloss
+    ? ['swipe-r', 'swipe-up', 'swipe-l', 'swipe-down']
+    : ['bloom', 'corner-tl', 'rise', 'side', 'corner-br', 'drip', 'splash'];
+  var morphColors = isGloss
+    ? ['lime', 'cobalt', 'fuchsia', 'butter', 'tangerine', 'lilac', 'cherry']
+    : ['coral', 'violet', 'aqua', 'magenta', 'indigo', 'peach'];
   var lastMorph = -1;
   var pendingBg = null;
+
+  function bgFor(i) {
+    if (isGloss) {
+      if (i === 0) return 'cherry';
+      if (i === slides.length - 1) return 'plum';
+      return morphColors[(i - 1) % morphColors.length];
+    }
+    return i === 0 ? 'lilac' : morphColors[i % morphColors.length];
+  }
+
+  function emit(name, i) {
+    var ev;
+    try {
+      ev = new CustomEvent(name, { detail: { index: i } });
+    } catch (err) {
+      return;
+    }
+    root.dispatchEvent(ev);
+  }
 
   function pickMorph(nextIndex) {
     var i = nextIndex % morphVariants.length;
@@ -36,9 +64,7 @@
       i = (i + 1) % morphVariants.length;
     }
     lastMorph = i;
-    pendingBg = nextIndex === 0
-      ? 'lilac'
-      : morphColors[nextIndex % morphColors.length];
+    pendingBg = bgFor(nextIndex);
     root.setAttribute('data-morph', morphVariants[i]);
     root.setAttribute('data-morph-color', pendingBg);
   }
@@ -126,6 +152,8 @@
     if (activeSlide) {
       root.setAttribute('data-fx', activeSlide.getAttribute('data-theme') || 'ink');
     }
+
+    emit('yr:slide', index);
   }
 
   function setActive(nextIndex, opts) {
@@ -137,13 +165,11 @@
     var skipMorph = opts.instant || opts.keepTimer || !useLavaMorph;
 
     if (skipMorph) {
-      if (useLavaMorph || root.classList.contains('yr--lava')) {
-        root.setAttribute(
-          'data-bg',
-          nextIndex === 0 ? 'lilac' : morphColors[nextIndex % morphColors.length]
-        );
+      if (hasBg) {
+        root.setAttribute('data-bg', bgFor(nextIndex));
       }
       applySlide(nextIndex);
+      emit('yr:shown', nextIndex);
       if (!opts.keepTimer) restartAuto();
       return;
     }
@@ -167,6 +193,7 @@
     morphEndTimer = setTimeout(function () {
       root.classList.remove('is-morphing');
       busy = false;
+      emit('yr:shown', nextIndex);
       restartAuto();
     }, morphEndMs);
   }
@@ -234,8 +261,8 @@
   document.addEventListener('keydown', onKey);
 
   syncPauseUi();
-  if (useLavaMorph || root.classList.contains('yr--lava')) {
-    root.setAttribute('data-bg', 'lilac');
+  if (hasBg) {
+    root.setAttribute('data-bg', bgFor(0));
   }
   setActive(0, { keepTimer: true, instant: true, force: true });
   restartAuto();
