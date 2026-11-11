@@ -718,3 +718,22 @@
     width: 100%;
   }
 }
+
+/* Logo na capa */
+.yr--gloss:not(.is-morphing) .yr__slide.is-active .yr__logo-wrap {
+  animation: yrGlossRise 0.6s var(--g-ease) backwards;
+}
+
+@media (max-width: 640px) {
+  /* O rodapé (.yr__nav) ficava por cima do seletor de template e engolia os toques */
+  .yr--gloss .yr__nav { pointer-events: none; }
+  .yr--gloss .yr__nav-btns { pointer-events: auto; }
+
+  .yr.yr--gloss .yr__template-switch {
+    z-index: 6;
+    max-width: calc(100vw - 9.2rem);
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+}

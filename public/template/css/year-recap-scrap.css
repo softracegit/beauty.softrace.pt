@@ -1,0 +1,462 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Caveat:wght@700&family=Space+Mono:wght@400;700&display=swap');
+
+/* Year Recap — Scrapbook
+   Papel quadriculado, polaroids, fita-cola, autocolantes e letra à mão.
+   Cada elemento é "colado" à vez quando o slide entra. Só CSS (sem JS próprio). */
+
+.yr--scrap {
+  --s-paper: #f4ecdc;
+  --s-line: #e2d6bd;
+  --s-ink: #2b2233;
+  --s-accent: #ff7fa8;
+  --s-accent-ink: #ffffff;
+  --s-hand: 'Caveat', 'Segoe Print', 'Bradley Hand', cursive;
+  --s-mono: 'Space Mono', ui-monospace, Menlo, monospace;
+  --s-display: 'Bricolage Grotesque', 'Outfit', system-ui, sans-serif;
+  --s-ease: cubic-bezier(0.2, 0.9, 0.2, 1);
+  --s-shadow: 0 12px 24px rgba(60, 40, 20, 0.22);
+
+  --yr-paper: var(--s-ink);
+  --yr-foam: var(--s-ink);
+  --yr-muted: rgba(43, 34, 51, 0.62);
+  --yr-font-display: var(--s-display);
+  --yr-font-ui: var(--s-display);
+
+  background-color: var(--s-paper);
+  background-image:
+    linear-gradient(var(--s-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--s-line) 1px, transparent 1px);
+  background-size: 22px 22px;
+  color: var(--s-ink);
+  overflow: hidden;
+}
+
+/* Cor da "fotografia" muda a cada slide */
+.yr--scrap .yr__slide:nth-of-type(5n+1) { --s-accent: #ff7fa8; --s-accent-ink: #ffffff; }
+.yr--scrap .yr__slide:nth-of-type(5n+2) { --s-accent: #7a5cff; --s-accent-ink: #ffffff; }
+.yr--scrap .yr__slide:nth-of-type(5n+3) { --s-accent: #d4ff3a; --s-accent-ink: #2b2233; }
+.yr--scrap .yr__slide:nth-of-type(5n+4) { --s-accent: #ff6a3d; --s-accent-ink: #ffffff; }
+.yr--scrap .yr__slide:nth-of-type(5n+5) { --s-accent: #35c9a5; --s-accent-ink: #2b2233; }
+
+/* ---- Chrome ---- */
+
+.yr--scrap .yr__brand { color: var(--s-ink); font-weight: 700; }
+.yr--scrap .yr__brand-dot { background: #ff4f8b; box-shadow: none; }
+.yr--scrap .yr__demo-badge { border-color: var(--s-ink); color: var(--s-ink); background: #fff; }
+
+.yr--scrap .yr__icon-btn,
+.yr--scrap .yr__close,
+.yr--scrap .yr__nav-btn {
+  background: #fff;
+  color: var(--s-ink);
+  border: 1.5px solid var(--s-ink);
+  box-shadow: 3px 3px 0 var(--s-ink);
+}
+
+.yr--scrap .yr__icon-btn:hover,
+.yr--scrap .yr__close:hover,
+.yr--scrap .yr__nav-btn:hover:not(:disabled) { background: #ffe66b; color: var(--s-ink); }
+
+.yr--scrap .yr__progress-seg { background: rgba(43, 34, 51, 0.16); }
+.yr--scrap .yr__progress-seg > span { background: var(--s-ink); }
+.yr--scrap .yr__nav { background: none; }
+
+.yr.yr--scrap .yr__template-switch { background: #fff; border: 1.5px solid var(--s-ink); }
+.yr.yr--scrap .yr__template-switch a { color: var(--s-ink); font-weight: 600; }
+.yr.yr--scrap .yr__template-switch a.is-active { background: var(--s-ink); color: #fff; }
+
+/* ---- Slides ---- */
+
+.yr--scrap .yr__stage { z-index: 1; }
+
+.yr--scrap .yr__slide,
+.yr--scrap .yr__slide[data-theme] {
+  background: transparent;
+  transition: none;
+  transform: none;
+}
+
+.yr--scrap .yr__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: min(430px, 100%);
+}
+
+/* Etiqueta tipo rotuladora */
+.yr--scrap .yr__kicker {
+  order: 0;
+  background: var(--s-ink);
+  color: #fff;
+  font-family: var(--s-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  padding: 0.4rem 0.8rem;
+  rotate: -3deg;
+  margin-bottom: 2.1rem;
+}
+
+/* Polaroid */
+.yr--scrap .yr__value {
+  order: 1;
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 9.5rem;
+  margin: 0 0.4rem;
+  padding: 1.4rem 0.7rem;
+  text-align: center;
+  background: var(--s-accent);
+  color: var(--s-accent-ink);
+  border: 0.85rem solid #fff;
+  border-bottom-width: 4rem;
+  box-shadow: var(--s-shadow);
+  rotate: -3deg;
+  font-family: var(--s-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  font-size: clamp(3rem, 15.5vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.yr--scrap .yr__value--text {
+  font-size: clamp(2rem, 9.5vw, 3rem);
+  white-space: normal;
+}
+
+/* Fita-cola */
+.yr--scrap .yr__value::before {
+  content: "";
+  position: absolute;
+  top: -2rem;
+  left: 50%;
+  width: 7rem;
+  height: 1.9rem;
+  margin-left: -3.5rem;
+  background: repeating-linear-gradient(45deg, rgba(255, 205, 70, 0.88) 0 8px, rgba(255, 225, 130, 0.88) 8px 16px);
+  rotate: -6deg;
+}
+
+.yr--scrap .yr__label {
+  order: 2;
+  font-family: var(--s-hand);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--s-ink);
+  margin: 0 0 0.6rem;
+}
+
+/* Com polaroid, a legenda vai escrita na margem branca da fotografia */
+.yr--scrap .yr__card:has(.yr__value) .yr__label {
+  position: relative;
+  z-index: 1;
+  align-self: stretch;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 1.4rem;
+  font-size: clamp(1.3rem, 6vw, 1.65rem);
+  line-height: 1.2;
+  margin: -3.25rem 0 1.7rem;
+  rotate: -3deg;
+}
+
+.yr--scrap .yr__body {
+  order: 3;
+  font-family: var(--s-hand);
+  font-size: 1.55rem;
+  line-height: 1.1;
+  color: var(--s-ink);
+  rotate: -1.5deg;
+  max-width: 24ch;
+}
+
+/* Autocolante redondo */
+.yr--scrap .yr__footnote {
+  order: 3;
+  position: absolute;
+  top: 2.3rem;
+  right: -0.4rem;
+  z-index: 3;
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 999px;
+  border: 4px solid #fff;
+  background: #d4ff3a;
+  color: var(--s-ink);
+  font-family: var(--s-display);
+  font-weight: 800;
+  font-size: 0.9rem;
+  box-shadow: 0 5px 10px rgba(60, 40, 20, 0.25);
+  rotate: 9deg;
+}
+
+/* Post-it */
+.yr--scrap .yr__secondary {
+  order: 4;
+  align-self: flex-start;
+  min-width: 9.5rem;
+  margin-top: 1.2rem;
+  padding: 0.8rem 1rem 0.95rem;
+  border: 0;
+  background: #ffe66b;
+  box-shadow: 3px 7px 12px rgba(60, 40, 20, 0.2);
+  rotate: 2deg;
+}
+
+.yr--scrap .yr__secondary-label { font-family: var(--s-mono); font-size: 0.64rem; color: var(--s-ink); }
+.yr--scrap .yr__secondary-value { font-family: var(--s-display); font-weight: 800; font-stretch: 75%; font-size: 1.8rem; line-height: 1.05; }
+
+/* Folha de bloco */
+.yr--scrap .yr__list {
+  order: 4;
+  align-self: stretch;
+  gap: 0;
+  margin: 1.2rem 0.3rem 0;
+  padding: 0.2rem 1rem;
+  background: #fff;
+  box-shadow: var(--s-shadow);
+  rotate: 1deg;
+}
+
+.yr--scrap .yr__list li {
+  padding: 0.45rem 0;
+  background: none;
+  border: 0;
+  border-bottom: 1.5px dashed #cbbfa8;
+  border-radius: 0;
+}
+
+.yr--scrap .yr__list li:last-child { border-bottom: 0; }
+.yr--scrap .yr__list-name { font-family: var(--s-hand); font-size: 1.5rem; line-height: 1; }
+.yr--scrap .yr__list-count { font-family: var(--s-display); font-weight: 800; font-stretch: 75%; font-size: 1.25rem; color: var(--s-ink); }
+
+.yr--scrap .yr__split {
+  order: 3;
+  align-self: stretch;
+  margin: 0.6rem 0 1.2rem;
+  padding: 1.1rem 1rem 1.2rem;
+  background: #fff;
+  box-shadow: var(--s-shadow);
+  rotate: -1.5deg;
+}
+
+.yr--scrap .yr__split-meta { align-items: baseline; font-family: var(--s-hand); font-size: 1.4rem; line-height: 1; }
+.yr--scrap .yr__split-meta strong { font-family: var(--s-display); font-weight: 800; font-stretch: 75%; font-size: 2rem; }
+.yr--scrap .yr__split-bar { height: 1rem; border-radius: 3px; background: rgba(43, 34, 51, 0.1); }
+.yr--scrap .yr__split-bar > span { background: #ff7fa8; border-radius: 3px; }
+.yr--scrap .yr__split-row:nth-child(2) .yr__split-bar > span { background: #7a5cff; }
+
+/* Capa e final */
+.yr--scrap .yr__title {
+  order: 1;
+  font-family: var(--s-display);
+  font-weight: 800;
+  font-stretch: 75%;
+  letter-spacing: -0.04em;
+  color: var(--s-ink);
+  padding: 0 0.12em;
+  background: linear-gradient(transparent 58%, #ff7fa8 58% 90%, transparent 90%);
+  rotate: -3deg;
+}
+
+.yr--scrap .yr__slide[data-id="cover"] .yr__title {
+  font-size: clamp(6rem, 34vw, 10.5rem);
+  line-height: 0.88;
+  margin: 0 0 1rem;
+}
+
+.yr--scrap .yr__slide[data-id="finale"] .yr__title {
+  font-size: clamp(2.6rem, 12vw, 4rem) !important;
+  line-height: 1;
+  margin: 0 0 1.1rem;
+  background: linear-gradient(transparent 55%, #d4ff3a 55% 92%, transparent 92%);
+}
+
+.yr--scrap .yr__subtitle {
+  order: 2;
+  font-family: var(--s-hand);
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--s-ink);
+  margin: 0 0 0.7rem;
+}
+
+.yr--scrap .yr__logo-wrap {
+  order: -1;
+  position: relative;
+  margin: 0 0 1.6rem 0.3rem;
+  padding: 0.9rem 1.2rem;
+  background: #fff;
+  box-shadow: var(--s-shadow);
+  rotate: 3deg;
+}
+
+.yr--scrap .yr__logo-wrap::before {
+  content: "";
+  position: absolute;
+  top: -0.8rem;
+  left: 50%;
+  width: 4.4rem;
+  height: 1.4rem;
+  margin-left: -2.2rem;
+  background: rgba(122, 92, 255, 0.55);
+  rotate: -5deg;
+}
+
+.yr--scrap .yr__logo { margin: 0; }
+
+.yr--scrap .yr__highlights { order: 4; align-self: stretch; gap: 0.8rem; margin-top: 1.2rem; }
+
+.yr--scrap .yr__highlight {
+  border: 0;
+  border-radius: 0;
+  padding: 0.75rem 0.9rem 0.85rem;
+  background: #ff7fa8;
+  color: #fff;
+  box-shadow: 3px 7px 12px rgba(60, 40, 20, 0.2);
+  rotate: -2deg;
+}
+
+.yr--scrap .yr__highlight:nth-child(2) { background: #d4ff3a; color: var(--s-ink); rotate: 2deg; }
+.yr--scrap .yr__highlight:nth-child(3) { background: #ffe66b; color: var(--s-ink); rotate: 1.5deg; }
+.yr--scrap .yr__highlight:nth-child(4) { background: #7a5cff; color: #fff; rotate: -1.5deg; }
+.yr--scrap .yr__highlight span { font-family: var(--s-mono); font-size: 0.62rem; color: inherit; }
+.yr--scrap .yr__highlight strong { font-family: var(--s-display); font-weight: 800; font-stretch: 75%; font-size: 1.8rem; line-height: 1.05; }
+
+.yr--scrap .yr__actions-inline { order: 5; position: relative; z-index: 4; margin-top: 1.6rem; }
+
+.yr--scrap .yr__btn { border-radius: 0.4rem; font-weight: 800; }
+.yr--scrap .yr__btn--primary { background: var(--s-ink); color: #fff; box-shadow: 4px 4px 0 #ff4f8b; }
+.yr--scrap .yr__btn--primary:hover { background: var(--s-ink); translate: -1px -1px; box-shadow: 5px 5px 0 #ff4f8b; }
+.yr--scrap .yr__btn--ghost { background: #fff; color: var(--s-ink); border: 1.5px dashed var(--s-ink); }
+.yr--scrap .yr__btn--ghost:hover { background: #ffe66b; color: var(--s-ink); }
+
+/* ---- Autocolantes soltos no fundo ---- */
+
+.yr--scrap .yr__fx-ring,
+.yr--scrap .yr__fx-dot,
+.yr--scrap .yr__fx-blob--c { display: none; }
+
+.yr--scrap .yr__fx-blob {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  opacity: 1;
+  border: 4px solid #fff;
+  box-shadow: 0 5px 10px rgba(60, 40, 20, 0.25);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  animation: none;
+  transition: translate 0.7s var(--s-ease), rotate 0.7s var(--s-ease);
+}
+
+.yr--scrap .yr__fx-blob--a { top: 5.6rem; right: 1.3rem; bottom: auto; left: auto; background: #7a5cff; rotate: -10deg; }
+.yr--scrap .yr__fx-blob--a::after { content: "✦"; }
+.yr--scrap .yr__fx-blob--b { bottom: 6.2rem; right: 2.2rem; top: auto; left: auto; width: 3rem; height: 3rem; background: #ff4f8b; rotate: 8deg; }
+.yr--scrap .yr__fx-blob--b::after { content: "♥"; }
+
+.yr--scrap[data-fx="rose"] .yr__fx-blob--a { translate: -1.2rem 0.8rem; rotate: 14deg; }
+.yr--scrap[data-fx="rose"] .yr__fx-blob--b { translate: -3rem 0.6rem; rotate: -12deg; }
+.yr--scrap[data-fx="sage"] .yr__fx-blob--a { translate: 0.3rem 1.6rem; rotate: -24deg; }
+.yr--scrap[data-fx="sage"] .yr__fx-blob--b { translate: 0.8rem -1rem; rotate: 20deg; }
+.yr--scrap[data-fx="amber"] .yr__fx-blob--a { translate: -2.2rem 0.2rem; rotate: 6deg; }
+.yr--scrap[data-fx="amber"] .yr__fx-blob--b { translate: -1.4rem 1rem; rotate: -4deg; }
+
+/* ---- Entrada: cada peça é colada à vez ---- */
+
+.yr--scrap .yr__slide.is-active .yr__logo-wrap { animation: yrScrapStick 0.5s var(--s-ease) backwards; }
+.yr--scrap .yr__slide.is-active .yr__kicker { animation: yrScrapStick 0.45s var(--s-ease) 0.05s backwards; }
+.yr--scrap .yr__slide.is-active .yr__value,
+.yr--scrap .yr__slide.is-active .yr__title { animation: yrScrapStick 0.55s var(--s-ease) 0.15s backwards; }
+.yr--scrap .yr__slide.is-active .yr__value::before { animation: yrScrapTape 0.3s var(--s-ease) 0.55s backwards; }
+.yr--scrap .yr__slide.is-active .yr__label,
+.yr--scrap .yr__slide.is-active .yr__subtitle { animation: yrScrapWrite 0.5s ease-out 0.45s backwards; }
+.yr--scrap .yr__slide.is-active .yr__split { animation: yrScrapStick 0.55s var(--s-ease) 0.3s backwards; }
+.yr--scrap .yr__slide.is-active .yr__body { animation: yrScrapWrite 0.5s ease-out 0.65s backwards; }
+.yr--scrap .yr__slide.is-active .yr__footnote { animation: yrScrapStick 0.45s var(--s-ease) 0.8s backwards; }
+.yr--scrap .yr__slide.is-active .yr__secondary,
+.yr--scrap .yr__slide.is-active .yr__list { animation: yrScrapStick 0.5s var(--s-ease) 0.85s backwards; }
+.yr--scrap .yr__slide.is-active .yr__highlight { animation: yrScrapStick 0.45s var(--s-ease) 0.7s backwards; }
+.yr--scrap .yr__slide.is-active .yr__highlight:nth-child(2) { animation-delay: 0.82s; }
+.yr--scrap .yr__slide.is-active .yr__highlight:nth-child(3) { animation-delay: 0.94s; }
+.yr--scrap .yr__slide.is-active .yr__highlight:nth-child(4) { animation-delay: 1.06s; }
+.yr--scrap .yr__slide.is-active .yr__actions-inline { animation: yrScrapWrite 0.5s ease-out 1s backwards; }
+
+@keyframes yrScrapStick {
+  0% { opacity: 0; scale: 1.3; translate: 0 -18px; }
+  60% { opacity: 1; scale: 0.97; translate: 0 0; }
+  100% { scale: 1; }
+}
+
+@keyframes yrScrapTape {
+  from { opacity: 0; translate: 0 -12px; }
+}
+
+@keyframes yrScrapWrite {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(-20% -5% -20% 0); }
+}
+
+@media (max-height: 700px) {
+  .yr--scrap .yr__slide { padding-top: 5rem; padding-bottom: 5.2rem; }
+  .yr--scrap .yr__kicker { margin-bottom: 1.7rem; }
+  .yr--scrap .yr__value { min-height: 6rem; padding: 0.8rem 0.6rem; border-bottom-width: 3.4rem; font-size: clamp(2.6rem, 14vw, 4rem); }
+  .yr--scrap .yr__value--text { font-size: clamp(1.7rem, 8.5vw, 2.4rem); }
+  .yr--scrap .yr__card:has(.yr__value) .yr__label { margin: -2.85rem 0 1.4rem; }
+  .yr--scrap .yr__body { font-size: 1.3rem; }
+  .yr--scrap .yr__list li { padding: 0.28rem 0; }
+  .yr--scrap .yr__list-name { font-size: 1.3rem; }
+  .yr--scrap .yr__secondary { margin-top: 0.8rem; padding: 0.55rem 0.9rem 0.65rem; }
+  .yr--scrap .yr__secondary-value { font-size: 1.45rem; }
+  .yr--scrap .yr__slide[data-id="cover"] .yr__title { font-size: clamp(4.6rem, 26vw, 7rem); }
+  .yr--scrap .yr__subtitle { font-size: 1.8rem; }
+  .yr--scrap .yr__logo-wrap { margin-bottom: 1.1rem; padding: 0.6rem 0.9rem; }
+  .yr--scrap .yr__highlight { padding: 0.5rem 0.8rem 0.6rem; }
+  .yr--scrap .yr__highlight strong { font-size: 1.45rem; }
+  .yr--scrap .yr__actions-inline { margin-top: 1.1rem; }
+  .yr--scrap .yr__fx-blob--b { display: none; }
+}
+
+@media (max-width: 640px) {
+  /* Barra de progresso no topo (como nas stories); cabeçalho por baixo */
+  .yr--scrap .yr__progress { top: 0.7rem; }
+  .yr--scrap .yr__chrome { padding-top: 1.45rem; align-items: flex-start; }
+  .yr--scrap .yr__brand { padding-top: 0.5rem; }
+
+  /* O rodapé não pode tapar o seletor de template */
+  .yr--scrap .yr__nav { justify-content: flex-end; pointer-events: none; }
+  .yr--scrap .yr__nav-btns { pointer-events: auto; }
+
+  .yr.yr--scrap .yr__template-switch {
+    position: fixed;
+    left: 1rem;
+    bottom: 1.85rem;
+    z-index: 6;
+    gap: 0.1rem;
+    max-width: calc(100vw - 9.2rem);
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .yr.yr--scrap .yr__template-switch a { font-size: 0.55rem; letter-spacing: 0; padding: 0.28rem 0.34rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yr--scrap *,
+  .yr--scrap *::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}

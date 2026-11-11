@@ -565,3 +565,17 @@ body.page-year-recap .main-content {
     width: 100%;
   }
 }
+
+/* Logo da marca na capa (pintado com a cor do texto do tema) */
+.yr__logo-wrap {
+  margin: 0 0 1.4rem;
+}
+
+.yr__logo {
+  display: block;
+  width: clamp(110px, 34vw, 160px);
+  aspect-ratio: 239 / 100;
+  background: currentColor;
+  -webkit-mask: center / contain no-repeat;
+  mask: center / contain no-repeat;
+}

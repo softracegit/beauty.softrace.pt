@@ -17,7 +17,7 @@ use Illuminate\View\View;
  */
 class YearRecapController extends Controller
 {
-    private const TEMPLATES = ['nocturne', 'aurora', 'lava', 'gloss'];
+    private const TEMPLATES = ['nocturne', 'aurora', 'lava', 'gloss', 'scrap'];
 
     public function show(Request $request, YearRecapBuilder $builder): View
     {

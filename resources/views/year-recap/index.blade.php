@@ -6,6 +6,9 @@
 <link rel="stylesheet" href="{{ asset('template/css/year-recap.css') }}?v={{ filemtime(public_path('template/css/year-recap.css')) }}">
 <link rel="stylesheet" href="{{ asset('template/css/year-recap-aurora.css') }}?v={{ filemtime(public_path('template/css/year-recap-aurora.css')) }}">
 <link rel="stylesheet" href="{{ asset('template/css/year-recap-lava.css') }}?v={{ filemtime(public_path('template/css/year-recap-lava.css')) }}">
+@if(($recap['template'] ?? '') === 'scrap')
+<link rel="stylesheet" href="{{ asset('template/css/year-recap-scrap.css') }}?v={{ filemtime(public_path('template/css/year-recap-scrap.css')) }}">
+@endif
 @if(($recap['template'] ?? '') === 'gloss')
 <link rel="stylesheet" href="{{ asset('template/css/year-recap-gloss.css') }}?v={{ filemtime(public_path('template/css/year-recap-gloss.css')) }}">
 @endif
@@ -17,6 +20,9 @@
   $total = count($slides);
   $template = $recap['template'] ?? 'nocturne';
   $firstTheme = $slides[0]['theme'] ?? 'cover';
+  // Logo da marca na capa
+  $logoPath = 'booking-assets/img/logo-fada.png';
+  $logoUrl = file_exists(public_path($logoPath)) ? asset($logoPath) : null;
 @endphp
 
 <div
@@ -51,6 +57,7 @@
         <a href="{{ route('year-recap.show', ['template' => 'aurora']) }}" class="{{ $template === 'aurora' ? 'is-active' : '' }}">Aurora</a>
         <a href="{{ route('year-recap.show', ['template' => 'lava']) }}" class="{{ $template === 'lava' ? 'is-active' : '' }}">Lava</a>
         <a href="{{ route('year-recap.show', ['template' => 'gloss']) }}" class="{{ $template === 'gloss' ? 'is-active' : '' }}">Gloss</a>
+        <a href="{{ route('year-recap.show', ['template' => 'scrap']) }}" class="{{ $template === 'scrap' ? 'is-active' : '' }}">Scrap</a>
       </nav>
     </div>
     <div class="yr__chrome-actions">
@@ -95,6 +102,11 @@
         aria-hidden="{{ $i === 0 ? 'false' : 'true' }}"
       >
         <div class="yr__card">
+          @if($type === 'cover' && $logoUrl)
+            <div class="yr__logo-wrap">
+              <span class="yr__logo" role="img" aria-label="Fada Studio" style="-webkit-mask-image: url('{{ $logoUrl }}'); mask-image: url('{{ $logoUrl }}');"></span>
+            </div>
+          @endif
           @if(!empty($slide['kicker']))
             <div class="yr__kicker">{{ $slide['kicker'] }}</div>
           @endif
