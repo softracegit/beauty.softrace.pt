@@ -6,6 +6,7 @@ use App\Services\ClientWalletService;
 use App\Services\VendusApiService;
 use App\Services\VendusPaymentMethodResolver;
 use App\Services\ZappyImport\ZappyImportService;
+use App\Support\PhoneDisplay;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -72,9 +73,12 @@ Artisan::command('vendus:list-payment-methods', function (VendusPaymentMethodRes
 Artisan::command('booking:dispatch-sms-reminders', function () {
     $tz = (string) config('booking.business_timezone', config('app.timezone', 'UTC'));
     $nowLocal = CarbonImmutable::now($tz);
-    $startHour = (int) config('booking.sms_reminder_day_before_send_start_hour', 8);
-    $endHour = (int) config('booking.sms_reminder_day_before_send_end_hour', 22);
+    $nowUtc = CarbonImmutable::now('UTC');
+    $startHour = (int) config('booking.sms_reminder_day_before_send_start_hour', 9);
+    $endHour = (int) config('booking.sms_reminder_day_before_send_end_hour', 20);
+    $minMinutesAfterCreated = max(0, (int) config('booking.sms_reminder_min_minutes_after_created', 45));
     $maxPerRun = max(1, (int) config('booking.sms_reminder_max_per_run', 15));
+    $createdBeforeUtc = $nowUtc->subMinutes($minMinutesAfterCreated);
 
     if ($endHour > $startHour) {
         $hour = (int) $nowLocal->format('G');
@@ -96,17 +100,9 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
     $windowStartUtc = $tomorrowStartLocal->utc();
     $windowEndUtc = $tomorrowEndLocal->utc();
 
-    $sameDayCreationSkip = static function (CalendarEvent $event) use ($tz): bool {
-        if ($event->start_at === null || $event->created_at === null) {
-            return false;
-        }
-
-        return $event->start_at->copy()->timezone($tz)->toDateString()
-            === $event->created_at->copy()->timezone($tz)->toDateString();
-    };
-
     $count = 0;
-    $skippedSameDay = 0;
+    $skippedTooSoon = 0;
+    $blockedCountry = 0;
     $failed = 0;
 
     CalendarEvent::query()
@@ -121,15 +117,42 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
                 ->whereNotNull('phone')
                 ->where('phone', '!=', '');
         })
-        ->select(['id', 'start_at', 'created_at'])
+        ->with(['client:id,phone'])
+        ->select(['id', 'start_at', 'created_at', 'client_id'])
         ->orderBy('id')
-        ->chunkById(100, function ($events) use (&$count, &$skippedSameDay, &$failed, $maxPerRun, $sameDayCreationSkip): bool {
+        ->chunkById(100, function ($events) use (
+            &$count,
+            &$skippedTooSoon,
+            &$blockedCountry,
+            &$failed,
+            $maxPerRun,
+            $createdBeforeUtc,
+            $minMinutesAfterCreated
+        ): bool {
             foreach ($events as $event) {
                 if ($count >= $maxPerRun) {
                     return false;
                 }
-                if ($sameDayCreationSkip($event)) {
-                    $skippedSameDay++;
+                if ($minMinutesAfterCreated > 0
+                    && ($event->created_at === null || $event->created_at->gt($createdBeforeUtc))) {
+                    $skippedTooSoon++;
+
+                    continue;
+                }
+                $phone = $event->client?->phone;
+                if (is_string($phone) && PhoneDisplay::isBlockedForAlphanumericSender($phone)) {
+                    $updated = CalendarEvent::query()
+                        ->whereKey($event->id)
+                        ->whereNull('booking_sms_reminder_sent_at')
+                        ->whereNull('booking_sms_reminder_failed_at')
+                        ->update(['booking_sms_reminder_failed_at' => now()]);
+                    if ($updated > 0) {
+                        $blockedCountry++;
+                        Log::info('booking_sms_reminder_blocked_destination_country', [
+                            'calendar_event_id' => (int) $event->id,
+                            'reason' => 'blocked_destination_country',
+                        ]);
+                    }
 
                     continue;
                 }
@@ -149,12 +172,13 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
         });
 
     $this->info(sprintf(
-        'SMS lembretes despachados: %d (dia da marcação = amanhã %s; TZ=%s; máx/run=%d; ignorados marcação-no-mesmo-dia=%d; falhas=%d)',
+        'SMS lembretes despachados: %d (dia da marcação = amanhã %s; TZ=%s; máx/run=%d; adiados delay=%d; país bloqueado=%d; falhas=%d)',
         $count,
         $tomorrowStartLocal->format('Y-m-d'),
         $tz,
         $maxPerRun,
-        $skippedSameDay,
+        $skippedTooSoon,
+        $blockedCountry,
         $failed
     ));
 

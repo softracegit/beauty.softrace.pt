@@ -5632,6 +5632,8 @@ document.addEventListener('DOMContentLoaded', function() {
         var amountDueForPay = eventDetailEffectiveAmountDueEur();
         var pendingFinalOnly = !!(eventDetailCurrentData && eventDetailCurrentData.pending_final_invoice);
         var paymentBlockedStatus = status === 'faltou' || status === 'cancelado' || status === 'anulado';
+        var canMarkPaid = !(eventDetailCurrentData && eventDetailCurrentData.can_mark_paid === false);
+        var payDayBlockedMsg = 'Só disponível no dia da marcação';
         var isFaturar = (status === 'completo' && amountDueForPay > 0.00001);
         var showPagoBadge = eventType === 'marcacao'
             && servicesCount > 0
@@ -5641,6 +5643,7 @@ document.addEventListener('DOMContentLoaded', function() {
             && servicesCount > 0
             && amountDueForPay > 0.00001
             && !paymentBlockedStatus;
+        var finalPayEnabled = showPayBtn && (canMarkPaid || isFaturar);
         var sameDayRows = (eventDetailSameDayPayable && Array.isArray(eventDetailSameDayPayable.rows)) ? eventDetailSameDayPayable.rows : [];
         var sameDayOthers = sameDayRows.filter(function(r) { return String(r.id) !== String($id('eventDetailEditId').value || ''); });
         var cashRegisterOpen = agendaCashRegisterOpenFromData(eventDetailCurrentData);
@@ -5669,7 +5672,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         var unsaved = !eventId;
-        var payActionsLocked = (showPayBtn || canShowReserva) && !cashRegisterOpen && !isFaturar;
+        var payActionsLocked = (finalPayEnabled || canShowReserva) && !cashRegisterOpen && !isFaturar;
         var showPayMenu = paymentsUiEnabled && (canShowReserva || showPayBtn);
         if (payDropup) {
             payDropup.classList.toggle('d-none', !showPayMenu);
@@ -5714,28 +5717,53 @@ document.addEventListener('DOMContentLoaded', function() {
         if (payMenuDividerLi) {
             payMenuDividerLi.classList.toggle('d-none', !(canShowReserva && showPayBtn));
         }
+        var payDayBlocked = showPayBtn && !canMarkPaid && !isFaturar;
+        var payBtnDayHint = $id('eventDetailPaymentBtnDayHint');
         if (payBtn) {
             if (payBtnLabel) {
                 payBtnLabel.textContent = isFaturar ? 'Faturar' : 'Pagamento final';
             }
             payBtn.dataset.paymentFlowLabel = isFaturar ? 'Faturar' : 'Pagamento final';
-            payBtn.disabled = showPayBtn && !cashRegisterOpen && !isFaturar;
-            if (showPayBtn && !cashRegisterOpen && !isFaturar) {
+            payBtn.disabled = payDayBlocked || (finalPayEnabled && !cashRegisterOpen && !isFaturar);
+            if (payDayBlocked) {
+                payBtn.setAttribute('title', payDayBlockedMsg);
+            } else if (finalPayEnabled && !cashRegisterOpen && !isFaturar) {
                 payBtn.setAttribute('title', agendaCashRegisterClosedMessage());
             } else {
                 payBtn.removeAttribute('title');
             }
+        }
+        if (payBtnDayHint) {
+            payBtnDayHint.classList.toggle('d-none', !payDayBlocked);
         }
         if (payBtnAmount) {
             payBtnAmount.textContent = eventDetailMoney(amountDueForPay);
         }
         var payCurrentBtn = $id('eventDetailPayCurrentBtn');
         var payAllBtn = $id('eventDetailPayAllBtn');
+        var payCurrentDayHint = $id('eventDetailPayCurrentDayHint');
+        var payAllDayHint = $id('eventDetailPayAllDayHint');
         if (payCurrentBtn) {
-            payCurrentBtn.disabled = hasSameDayOptions && !cashRegisterOpen && !isFaturar;
+            payCurrentBtn.disabled = payDayBlocked || (hasSameDayOptions && finalPayEnabled && !cashRegisterOpen && !isFaturar);
+            if (payDayBlocked) {
+                payCurrentBtn.setAttribute('title', payDayBlockedMsg);
+            } else {
+                payCurrentBtn.removeAttribute('title');
+            }
         }
         if (payAllBtn) {
-            payAllBtn.disabled = hasSameDayOptions && !cashRegisterOpen && !isFaturar;
+            payAllBtn.disabled = payDayBlocked || (hasSameDayOptions && finalPayEnabled && !cashRegisterOpen && !isFaturar);
+            if (payDayBlocked) {
+                payAllBtn.setAttribute('title', payDayBlockedMsg);
+            } else {
+                payAllBtn.removeAttribute('title');
+            }
+        }
+        if (payCurrentDayHint) {
+            payCurrentDayHint.classList.toggle('d-none', !payDayBlocked || !hasSameDayOptions);
+        }
+        if (payAllDayHint) {
+            payAllDayHint.classList.toggle('d-none', !payDayBlocked || !hasSameDayOptions);
         }
         if (payCurrentAmount) {
             payCurrentAmount.textContent = eventDetailMoney(amountDueForPay);
@@ -5753,7 +5781,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 && !cashRegisterOpen
                 && !hideSaveClose
                 && !paymentBlockedStatus
-                && (showPayBtn || canShowReserva);
+                && (finalPayEnabled || canShowReserva);
             openCashBtn.classList.toggle('d-none', !paymentsUiEnabled || !showOpenCashShortcut);
         }
         if (hasSameDayOptions && paymentsUiEnabled) {
@@ -12017,11 +12045,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function eventDetailFinalPayDisabledToast() {
+        if (eventDetailCurrentData && eventDetailCurrentData.can_mark_paid === false) {
+            return 'Só disponível no dia da marcação';
+        }
+        return agendaCashRegisterClosedMessage();
+    }
+
     var eventDetailPaymentBtnEl = $id('eventDetailPaymentBtn');
     if (eventDetailPaymentBtnEl) {
         eventDetailPaymentBtnEl.addEventListener('click', function() {
             if (eventDetailPaymentBtnEl.disabled) {
-                showToast(agendaCashRegisterClosedMessage(), 'warning');
+                showToast(eventDetailFinalPayDisabledToast(), 'warning');
                 return;
             }
             eventDetailHidePaymentDropup();
@@ -12033,7 +12068,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (payCurrentBtn) {
         payCurrentBtn.addEventListener('click', function() {
             if (payCurrentBtn.disabled) {
-                showToast(agendaCashRegisterClosedMessage(), 'warning');
+                showToast(eventDetailFinalPayDisabledToast(), 'warning');
                 return;
             }
             eventDetailHidePaymentDropup();
@@ -12044,7 +12079,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (payAllBtn) {
         payAllBtn.addEventListener('click', function() {
             if (payAllBtn.disabled) {
-                showToast(agendaCashRegisterClosedMessage(), 'warning');
+                showToast(eventDetailFinalPayDisabledToast(), 'warning');
                 return;
             }
             eventDetailHidePaymentDropup();
@@ -15866,7 +15901,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             showToast('Estado atualizado.', 'success');
                         } else {
                             eventDetailSyncStatusSelect(previousStatus);
-                            showToast(res.message || 'Erro ao atualizar estado.', 'error');
+                            showToast(res.error || res.message || 'Erro ao atualizar estado.', 'error');
                         }
                     })
                     .catch(function() {

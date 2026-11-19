@@ -39,6 +39,17 @@ final class TwilioSmsService
             throw new \InvalidArgumentException('Número de telefone inválido. Use formato internacional ou um número português.');
         }
 
+        if (PhoneDisplay::isBlockedForAlphanumericSender($toRaw) || PhoneDisplay::isBlockedForAlphanumericSender($to)) {
+            Log::info('twilio_sms_blocked_destination_country', [
+                'to' => $to,
+                'type' => $logContext['type'] ?? null,
+                'store_id' => $logContext['store_id'] ?? null,
+                'calendar_event_id' => $logContext['calendar_event_id'] ?? null,
+            ]);
+
+            throw new \InvalidArgumentException('Destino SMS bloqueado para este remetente (país não suportado).');
+        }
+
         $sid = config('services.twilio.account_sid');
         $token = config('services.twilio.auth_token');
         $from = config('services.twilio.sms_from');

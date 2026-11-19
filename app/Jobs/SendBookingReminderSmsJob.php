@@ -8,6 +8,7 @@ use App\Models\SmsMessage;
 use App\Services\TwilioSmsService;
 use App\Support\BookingLocale;
 use App\Support\BookingPublicUrl;
+use App\Support\PhoneDisplay;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
@@ -79,6 +80,12 @@ class SendBookingReminderSmsJob implements ShouldQueue
 
             if (! is_string($client->phone) || trim($client->phone) === '') {
                 $this->markReminderFailed('missing_phone');
+
+                return;
+            }
+
+            if (PhoneDisplay::isBlockedForAlphanumericSender($client->phone)) {
+                $this->markReminderFailed('blocked_destination_country');
 
                 return;
             }

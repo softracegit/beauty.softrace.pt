@@ -73,6 +73,11 @@
 .event-detail-payment-menu .event-detail-pay-menu-item--primary #eventDetailPayCurrentAmount {
     font-weight: 700 !important;
 }
+.event-detail-payment-menu .event-detail-pay-menu-item--primary .small.event-detail-pay-day-hint,
+.event-detail-payment-menu .small.event-detail-pay-day-hint {
+    font-weight: 200 !important;
+    opacity: 0.85;
+}
 
 /* Layer da ficha técnica: cobre só a coluna da direita (slide from right) */
 .agenda-oc-clinical-layer {

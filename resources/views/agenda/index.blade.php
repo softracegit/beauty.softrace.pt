@@ -484,19 +484,28 @@
                                         <li class="d-none" id="eventDetailPayMenuDividerLi"><hr class="dropdown-divider"></li>
                                         <li class="d-none" id="eventDetailPayMenuSimpleLi">
                                             <button type="button" class="dropdown-item d-flex justify-content-between align-items-center gap-3 event-detail-pay-menu-item--primary" id="eventDetailPaymentBtn" data-payment-flow-label="Pagamento final">
-                                                <span id="eventDetailPaymentBtnLabel">Pagamento final</span>
+                                                <span class="d-flex flex-column align-items-start text-start min-w-0">
+                                                    <span id="eventDetailPaymentBtnLabel">Pagamento final</span>
+                                                    <span class="small text-muted event-detail-pay-day-hint d-none" id="eventDetailPaymentBtnDayHint">Só disponível no dia da marcação</span>
+                                                </span>
                                                 <span class="small fw-bold text-nowrap" id="eventDetailPaymentBtnAmount">0,00 €</span>
                                             </button>
                                         </li>
                                         <li class="d-none" id="eventDetailPayMenuCurrentLi">
                                             <button type="button" class="dropdown-item d-flex justify-content-between align-items-center gap-3 event-detail-pay-menu-item--primary" id="eventDetailPayCurrentBtn" data-payment-flow-label="Pagamento final">
-                                                <span>Pagar esta marcação</span>
+                                                <span class="d-flex flex-column align-items-start text-start min-w-0">
+                                                    <span>Pagar esta marcação</span>
+                                                    <span class="small text-muted event-detail-pay-day-hint d-none" id="eventDetailPayCurrentDayHint">Só disponível no dia da marcação</span>
+                                                </span>
                                                 <span class="small fw-bold text-nowrap" id="eventDetailPayCurrentAmount">0,00 €</span>
                                             </button>
                                         </li>
                                         <li class="d-none" id="eventDetailPayMenuAllLi">
                                             <button type="button" class="dropdown-item d-flex justify-content-between align-items-center gap-3" id="eventDetailPayAllBtn" data-payment-flow-label="Pagar todas do dia">
-                                                <span>Pagar todas do dia</span>
+                                                <span class="d-flex flex-column align-items-start text-start min-w-0">
+                                                    <span>Pagar todas do dia</span>
+                                                    <span class="small text-muted event-detail-pay-day-hint d-none" id="eventDetailPayAllDayHint">Só disponível no dia da marcação</span>
+                                                </span>
                                                 <span class="small fw-semibold text-nowrap" id="eventDetailPayAllAmount">0,00 €</span>
                                             </button>
                                         </li>

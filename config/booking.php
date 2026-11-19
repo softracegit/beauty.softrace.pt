@@ -77,13 +77,13 @@ return [
     | ao início da marcação (na timezone de negócio). Evita lembretes à
     | madrugada por antecedência em horas e cobre marcações cedo ou tarde.
     |
-    | Exceção: marcações criadas no mesmo dia civil que o início não recebem
-    | lembrete (marcação para o próprio dia — assume-se que o cliente já sabe).
+    | Delay: só após N minutos desde created_at (anti-SMS imediato). Quem marca
+    | à tarde para amanhã ainda pode receber no mesmo dia (janela até 20h).
     |
     | Só marcações em estado «Agendado» (exclui Notificado, Confirmado, etc.).
     |
     | Janela horária (hora local da loja): só despacha dentro desse intervalo
-    | nesse dia anterior (ex.: 9–14 = entre 09:00 e 13:59). Use início 0 e
+    | nesse dia anterior (ex.: 9–20 = entre 09:00 e 19:59). Use início 0 e
     | fim 24 para permitir qualquer hora.
     |
     | Máximo por execução: espalha envios quando há muitas marcações (cron
@@ -101,10 +101,25 @@ return [
     'sms_reminder_day_before_send_start_hour' => max(0, min(23, (int) env('BOOKING_SMS_REMINDER_DAY_SEND_START_HOUR', 9))),
 
     /**
-     * Hora local exclusiva de fim (1–24). Ex.: 14 = último minuto permitido 13:59.
+     * Hora local exclusiva de fim (1–24). Ex.: 20 = último minuto permitido 19:59.
      * Se fim <= início, a janela horária é ignorada (envio a qualquer hora do dia anterior).
      */
-    'sms_reminder_day_before_send_end_hour' => max(1, min(24, (int) env('BOOKING_SMS_REMINDER_DAY_SEND_END_HOUR', 14))),
+    'sms_reminder_day_before_send_end_hour' => max(1, min(24, (int) env('BOOKING_SMS_REMINDER_DAY_SEND_END_HOUR', 20))),
+
+    /**
+     * Atraso mínimo (minutos) após created_at antes de despachar o lembrete.
+     * Evita SMS imediato quando a marcação é criada no dia anterior (ex.: à tarde para amanhã).
+     */
+    'sms_reminder_min_minutes_after_created' => max(0, (int) env('BOOKING_SMS_REMINDER_MIN_MINUTES_AFTER_CREATED', 45)),
+
+    /**
+     * Calling codes bloqueados para SMS com Alphanumeric Sender ID (Twilio).
+     * Ex.: 1 (NANP), 34 (ES), 55 (BR).
+     */
+    'sms_blocked_calling_codes' => array_values(array_filter(array_map(
+        static fn ($c): int => (int) $c,
+        explode(',', (string) env('BOOKING_SMS_BLOCKED_CALLING_CODES', '1,34,55'))
+    ), static fn (int $c): bool => $c > 0)),
 
     /** Máximo de SMS despachados por execução do comando (o resto fica para o minuto seguinte). */
     'sms_reminder_max_per_run' => max(1, (int) env('BOOKING_SMS_REMINDER_MAX_PER_RUN', 3)),

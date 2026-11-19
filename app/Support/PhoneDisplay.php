@@ -113,6 +113,39 @@ final class PhoneDisplay
     }
 
     /**
+     * Destinos incompatíveis com Alphanumeric Sender ID Twilio (ex.: +1, +34, +55).
+     * Usa o calling code mesmo que o número não passe isValidNumber (pré-filtro).
+     */
+    public static function isBlockedForAlphanumericSender(?string $phone): bool
+    {
+        if ($phone === null || trim($phone) === '') {
+            return false;
+        }
+        $phone = trim($phone);
+        try {
+            $util = PhoneNumberUtil::getInstance();
+            $parsed = str_starts_with($phone, '+')
+                ? $util->parse($phone, null)
+                : $util->parse($phone, 'PT');
+
+            $normalized = self::normalizeBrazilLegacyMobile($util, $parsed);
+            if ($normalized !== null) {
+                $parsed = $normalized;
+            }
+
+            $code = (int) $parsed->getCountryCode();
+            $blocked = array_map(
+                static fn ($c): int => (int) $c,
+                (array) config('booking.sms_blocked_calling_codes', [1, 34, 55])
+            );
+
+            return in_array($code, $blocked, true);
+        } catch (NumberParseException) {
+            return false;
+        }
+    }
+
+    /**
      * Números móveis BR antigos (DDD + 8 dígitos começados por 6–9) passaram a ter um 9 extra após o DDD.
      * Ex.: +55 35 9722-2330 → +55 35 99722-2330
      */

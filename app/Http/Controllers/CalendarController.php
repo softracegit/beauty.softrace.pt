@@ -40,6 +40,7 @@ use App\Support\BookingLocale;
 use App\Support\ClientContactMask;
 use App\Support\CrmPrivacyLock;
 use App\Support\MarcacaoMoneyBatch;
+use App\Support\MarcacaoPaymentGate;
 use App\Support\MarcacaoTerminalReasons;
 use App\Support\PortugueseNationalHolidays;
 use App\Support\StoreBusinessTime;
@@ -416,6 +417,7 @@ class CalendarController extends Controller
                     'booking_paid_amount' => $bookingPaidAmount,
                     'amount_due' => $amountDue,
                     'pending_final_invoice' => $pendingFinalInvoice,
+                    'can_mark_paid' => MarcacaoPaymentGate::canMarkPaid($event),
                     'same_day_payable_count' => (int) ($sameDayPayableCounts[(int) ($event->client_id ?? 0).'|'.optional($event->start_at)->format('Y-m-d')] ?? 0),
                     'payment_lines' => $paymentLines,
                     'client_id' => $event->client_id,
@@ -1117,6 +1119,7 @@ class CalendarController extends Controller
                 && $servicesSubtotal > 0.00001
                 && $activeCaixaSaleRecord === null
                 && $amountDue <= 0.00001;
+            $payload['can_mark_paid'] = MarcacaoPaymentGate::canMarkPaid($calendarEvent);
             // Fatura final anulada: guarda o valor original (para re-emitir) e, se houver, o link da nota de crédito.
             $cancelledCaixaSaleRecord = Sale::query()
                 ->where(function ($q) use ($calendarEvent, $pivotSaleIds): void {
@@ -1679,9 +1682,11 @@ class CalendarController extends Controller
         }
 
         $tz = config('app.timezone');
+        $storeTz = StoreBusinessTime::timezoneForStore((int) ($calendarEvent->store_id ?? 0));
 
         if ($calendarEvent->isTimeEditable() && (isset($validated['start_at']) || isset($validated['end_at']))) {
             $updates = [];
+            $oldStartDay = $calendarEvent->start_at?->copy()->timezone($storeTz)->toDateString();
             if (isset($validated['start_at'])) {
                 $newStart = Carbon::parse($validated['start_at'])->timezone($tz)->format('Y-m-d H:i:s');
                 $oldStart = $calendarEvent->start_at?->copy()->timezone($tz)->format('Y-m-d H:i:s');
@@ -1694,6 +1699,18 @@ class CalendarController extends Controller
                 $oldEnd = $calendarEvent->end_at?->copy()->timezone($tz)->format('Y-m-d H:i:s');
                 if ($newEnd !== $oldEnd) {
                     $updates['end_at'] = $validated['end_at'];
+                }
+            }
+            if (isset($updates['start_at'])
+                && ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO
+                && $oldStartDay !== null) {
+                $newStartDay = Carbon::parse($updates['start_at'])->timezone($storeTz)->toDateString();
+                if ($newStartDay !== $oldStartDay) {
+                    $updates['booking_sms_reminder_sent_at'] = null;
+                    $updates['booking_sms_reminder_failed_at'] = null;
+                    if ((string) $calendarEvent->status === CalendarEvent::STATUS_NOTIFICADO) {
+                        $updates['status'] = CalendarEvent::STATUS_AGENDADO;
+                    }
                 }
             }
             if ($updates !== []) {
@@ -2050,6 +2067,10 @@ class CalendarController extends Controller
         $newStatus = $validated['status'];
         $marcacao = ($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO;
         $previousStatus = $calendarEvent->status ?? CalendarEvent::STATUS_AGENDADO;
+
+        if ($marcacao && $newStatus === CalendarEvent::STATUS_COMPLETO && ! MarcacaoPaymentGate::canMarkPaid($calendarEvent)) {
+            return MarcacaoPaymentGate::jsonDenied();
+        }
 
         if ($marcacao && in_array($newStatus, [CalendarEvent::STATUS_FALTOU, CalendarEvent::STATUS_CANCELADO], true)) {
             $terminal = $this->resolveTerminalMarcacaoFields($request, $calendarEvent, $newStatus);
@@ -2543,6 +2564,7 @@ class CalendarController extends Controller
                 'booking_paid_amount' => $bookingPaidAmount,
                 'amount_due' => $amountDue,
                 'pending_final_invoice' => $pendingFinalInvoice,
+                'can_mark_paid' => MarcacaoPaymentGate::canMarkPaid($event),
                 'payment_lines' => $paymentLines,
             ],
         ];

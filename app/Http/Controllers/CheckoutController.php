@@ -22,6 +22,7 @@ use App\Support\ApplicableFees;
 use App\Support\ClientContactMask;
 use App\Support\ClientInvoiceBilling;
 use App\Support\CrmPrivacyLock;
+use App\Support\MarcacaoPaymentGate;
 use App\Support\PaymentMethodCatalog;
 use App\Support\PhoneDisplay;
 use App\Support\StripeCredentials;
@@ -73,6 +74,11 @@ class CheckoutController extends Controller
             ->all();
 
         $events = $this->agendaCheckoutService->resolveEventsForCheckout($calendarEvent, $requestedEventIds);
+        foreach ($events as $eventToPay) {
+            if (! MarcacaoPaymentGate::canMarkPaid($eventToPay)) {
+                return MarcacaoPaymentGate::jsonDenied();
+            }
+        }
         $context = $this->agendaCheckoutService->buildCheckoutContext($events);
         $subtotalItens = (float) ($context['subtotal'] ?? 0);
         $alreadyPaid = (float) ($context['already_paid'] ?? 0);
@@ -180,6 +186,13 @@ class CheckoutController extends Controller
         }
 
         $events = $this->agendaCheckoutService->resolveEventsForCheckout($anchorEvent, (array) ($validated['event_ids'] ?? []));
+        if (! $request->boolean('invoice_only')) {
+            foreach ($events as $eventToPay) {
+                if (! MarcacaoPaymentGate::canMarkPaid($eventToPay)) {
+                    return MarcacaoPaymentGate::jsonDenied();
+                }
+            }
+        }
         $anchorEvent->loadMissing('client');
         $client = $anchorEvent->client;
         $fiscalMode = (string) ($validated['invoice_fiscal_mode'] ?? 'consumer');
@@ -465,6 +478,11 @@ class CheckoutController extends Controller
             return response()->json(['error' => 'Esta marcação não pode ser paga.'], 422);
         }
         $events = $this->agendaCheckoutService->resolveEventsForCheckout($anchorEvent, (array) ($validated['event_ids'] ?? []));
+        foreach ($events as $eventToPay) {
+            if (! MarcacaoPaymentGate::canMarkPaid($eventToPay)) {
+                return MarcacaoPaymentGate::jsonDenied();
+            }
+        }
 
         $subtotalItens = $this->checkoutSubtotalFromItems($validated['items']);
         $gorjeta = isset($validated['gorjeta']) ? max(0, (float) $validated['gorjeta']) : 0.0;
