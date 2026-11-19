@@ -144,6 +144,7 @@ class ServiceOptionAddonTest extends TestCase
             }
             file_put_contents(str_replace('.html', '-auth.html', $dump), $this->get(route('booking.index', ['store' => $fx['store']->slug]))->getContent());
             file_put_contents(str_replace('.html', '-conta-flash.html', $dump), $this->withSession(['success' => __('booking.messages.cancel_success')])->get(route('booking.conta.marcacoes', ['store' => $fx['store']->slug]))->getContent());
+            file_put_contents(str_replace('.html', '-conta-perfil.html', $dump), $this->get(route('booking.conta.index', ['store' => $fx['store']->slug]))->getContent());
             file_put_contents(str_replace('.html', '-conta-confirmada.html', $dump), $this->get(route('booking.conta.marcacoes', ['store' => $fx['store']->slug, 'marcacao_confirmada' => 1, 'primeira_marcacao' => 1]))->getContent());
             CrmSetting::setBool(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, false, $fx['store']->id);
             file_put_contents(str_replace('.html', '-step3.html', $dump), $this->get(route('booking.step3', ['store' => $fx['store']->slug]))->getContent());

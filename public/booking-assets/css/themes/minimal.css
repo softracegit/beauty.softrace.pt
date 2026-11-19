@@ -1172,7 +1172,7 @@ body[data-booking-theme="minimal"] .booking-legal-footer--minimal {
     }
 
     /* Iniciar sessão */
-    [data-booking-theme="minimal"] #booking-auth-modal .modal-dialog {
+    [data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-dialog {
         position: fixed;
         left: 0;
         right: 0;
@@ -1186,11 +1186,11 @@ body[data-booking-theme="minimal"] .booking-legal-footer--minimal {
         transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
     }
 
-    [data-booking-theme="minimal"] #booking-auth-modal.show .modal-dialog {
+    [data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal).show .modal-dialog {
         transform: none;
     }
 
-    [data-booking-theme="minimal"] #booking-auth-modal .modal-content {
+    [data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-content {
         max-height: 88vh;
         max-height: 88dvh;
         overflow-y: auto;
@@ -1202,7 +1202,7 @@ body[data-booking-theme="minimal"] .booking-legal-footer--minimal {
 @media (max-width: 991.98px) and (prefers-reduced-motion: reduce) {
     body[data-booking-theme="minimal"] .booking-summary-mobile-drawer,
     body[data-booking-theme="minimal"] .booking-offcanvas,
-    [data-booking-theme="minimal"] #booking-auth-modal .modal-dialog {
+    [data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-dialog {
         transition: none;
     }
 }
@@ -1227,7 +1227,7 @@ body[data-booking-theme="minimal"] {
 }
 
 /* Cantos */
-body[data-booking-theme="minimal"] #booking-auth-modal .modal-content,
+body[data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-content,
 body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-content,
 body[data-booking-theme="minimal"] .booking-offcanvas {
     border: 0;
@@ -1235,7 +1235,7 @@ body[data-booking-theme="minimal"] .booking-offcanvas {
 }
 
 @media (max-width: 991.98px) {
-    body[data-booking-theme="minimal"] #booking-auth-modal .modal-content,
+    body[data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-content,
     body[data-booking-theme="minimal"] .booking-offcanvas,
     body[data-booking-theme="minimal"] .booking-summary-mobile-drawer {
         border-radius: var(--booking-sheet-radius) var(--booking-sheet-radius) 0 0 !important;
@@ -1255,7 +1255,7 @@ body[data-booking-theme="minimal"] #bookingModal .modal-header::before {
 
 /* Margens */
 body[data-booking-theme="minimal"] #bookingModal .modal-header,
-body[data-booking-theme="minimal"] #booking-auth-modal .modal-header,
+body[data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-header,
 body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-header {
     position: static;
     align-items: flex-start;
@@ -1267,13 +1267,13 @@ body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-heade
 }
 
 body[data-booking-theme="minimal"] #bookingModal .modal-body,
-body[data-booking-theme="minimal"] #booking-auth-modal .modal-body,
+body[data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-body,
 body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-body {
     padding-left: var(--booking-sheet-pad-x) !important;
     padding-right: var(--booking-sheet-pad-x) !important;
 }
 
-body[data-booking-theme="minimal"] #booking-auth-modal .modal-body {
+body[data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-body {
     padding-bottom: var(--booking-sheet-pad-bottom) !important;
 }
 
@@ -1288,7 +1288,7 @@ body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-foote
 }
 
 body[data-booking-theme="minimal"] #bookingModal .modal-title,
-body[data-booking-theme="minimal"] #booking-auth-modal .modal-header h2,
+body[data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .modal-header h2,
 body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-header h2,
 body[data-booking-theme="minimal"] .booking-summary-drawer__title,
 body[data-booking-theme="minimal"] .booking-offcanvas__agency-head .booking-offcanvas__agency-title {
@@ -1342,7 +1342,7 @@ body[data-booking-theme="minimal"] .booking-offcanvas__agency-head .booking-offc
 
 /* "Fechar": sempre no mesmo sítio, alinhado com a margem direita e com o título */
 body[data-booking-theme="minimal"] #bookingModal .btn-close,
-body[data-booking-theme="minimal"] #booking-auth-modal .btn-close,
+body[data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .btn-close,
 body[data-booking-theme="minimal"] .booking-offcanvas .btn-close,
 body[data-booking-theme="minimal"] .booking-summary-mobile-drawer .btn-close {
     position: absolute;
@@ -1360,7 +1360,7 @@ body[data-booking-theme="minimal"] .booking-summary-mobile-drawer .btn-close {
 }
 
 body[data-booking-theme="minimal"] #bookingModal .btn-close:hover,
-body[data-booking-theme="minimal"] #booking-auth-modal .btn-close:hover,
+body[data-booking-theme="minimal"] :is(#booking-auth-modal, .booking-sheet-modal) .btn-close:hover,
 body[data-booking-theme="minimal"] .booking-offcanvas .btn-close:hover,
 body[data-booking-theme="minimal"] .booking-summary-mobile-drawer .btn-close:hover {
     background-color: var(--booking-min-soft);
@@ -1565,4 +1565,35 @@ body[data-booking-theme="minimal"] .booking-summary-mobile-drawer .btn-close:hov
     [data-booking-theme="minimal"] .booking-account-content {
         padding-top: 1.75rem;
     }
+}
+
+/* Modais da área de conta (dados pessoais, verificar contacto, cancelar marcação):
+   mesmo estilo do login — folha de baixo em mobile, mesmo título, cantos e "fechar" */
+body[data-booking-theme="minimal"] .booking-sheet-modal .modal-header {
+    border-bottom: 0;
+}
+
+body[data-booking-theme="minimal"] .booking-sheet-modal .modal-header .modal-title,
+body[data-booking-theme="minimal"] .booking-sheet-modal .modal-header h2,
+body[data-booking-theme="minimal"] .booking-sheet-modal .modal-header h4 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+
+body[data-booking-theme="minimal"] .booking-sheet-modal .modal-footer {
+    padding: 0 var(--booking-sheet-pad-x) var(--booking-sheet-pad-bottom) !important;
+    border-top: 0;
+    gap: 0.5rem;
+}
+
+body[data-booking-theme="minimal"] .booking-sheet-modal .modal-footer > * {
+    margin: 0;
+}
+
+body[data-booking-theme="minimal"] .booking-sheet-modal .form-control,
+body[data-booking-theme="minimal"] .booking-sheet-modal .form-select {
+    border-radius: 12px;
 }

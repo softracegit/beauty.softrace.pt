@@ -80,7 +80,7 @@
                             </div>
 
                             @if ($profilePercent < 100)
-                                <div class="modal fade booking-auth-modal" id="booking-profile-completion-suggestions-modal" tabindex="-1" aria-labelledby="booking-profile-completion-suggestions-title" aria-hidden="true">
+                                <div class="modal fade booking-auth-modal booking-sheet-modal" id="booking-profile-completion-suggestions-modal" tabindex="-1" aria-labelledby="booking-profile-completion-suggestions-title" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                                         <div class="modal-content border-0 shadow">
                                             <div class="modal-header border-0 pb-0">
@@ -190,7 +190,7 @@
         </div>
     </div>
 
-    <div class="modal fade booking-auth-modal" id="booking-profile-personal-modal" tabindex="-1" aria-labelledby="booking-profile-personal-title" aria-hidden="true">
+    <div class="modal fade booking-auth-modal booking-sheet-modal" id="booking-profile-personal-modal" tabindex="-1" aria-labelledby="booking-profile-personal-title" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header border-0 pb-0">
@@ -246,7 +246,7 @@
         </div>
     </div>
 
-    <div class="modal fade booking-auth-modal" id="booking-contact-verification-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade booking-auth-modal booking-sheet-modal" id="booking-contact-verification-modal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header border-0 pb-0">

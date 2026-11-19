@@ -131,7 +131,7 @@
 
                     @if($showPayAtStoreNote ?? false)
                         {{-- Sem pré-pagamento online: o cliente sabe que hoje não paga nada --}}
-                        <div class="booking-summary-pay-note" role="note">
+                        <div class="booking-summary-pay-note d-none d-lg-flex" role="note">
                             <i class="bi bi-check-circle booking-summary-pay-note__icon" aria-hidden="true"></i>
                             <div class="booking-summary-pay-note__text">
                                 <span class="booking-summary-pay-note__title">{{ __('booking.partials.pay_at_store_title') }}</span>

@@ -219,6 +219,17 @@
                                 </div>
                             </section>
 
+                            @if (! ($onlineBookingPaymentRequired ?? true))
+                                {{-- Mobile: a nota "Hoje não paga nada" fica no conteúdo (em desktop está no resumo, junto ao botão) --}}
+                                <div class="booking-summary-pay-note booking-summary-pay-note--content d-lg-none" role="note">
+                                    <i class="bi bi-check-circle booking-summary-pay-note__icon" aria-hidden="true"></i>
+                                    <div class="booking-summary-pay-note__text">
+                                        <span class="booking-summary-pay-note__title">{{ __('booking.partials.pay_at_store_title') }}</span>
+                                        <span class="booking-summary-pay-note__body">{{ __('booking.partials.pay_at_store_body') }}</span>
+                                    </div>
+                                </div>
+                            @endif
+
                             <section class="booking-category-section mb-4 pb-1" aria-label="{{ __('booking.flow.cancellation_heading') }}">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">

@@ -4060,31 +4060,6 @@ body:has(#booking-slot-hold-expired-modal.show) .modal-backdrop:last-of-type {
     font-size: 0.8125rem;
 }
 
-@media (max-width: 991.98px) {
-    /* Na barra fixa do mobile, a nota ocupa a linha de cima, por cima do total e do botão */
-    .booking-summary-footer-bar:has(.booking-summary-pay-note) {
-        flex-wrap: wrap;
-    }
-
-    .booking-summary-footer-bar .booking-summary-pay-note {
-        order: -1;
-        flex: 1 0 100%;
-        /* Abaixo do círculo da seta que abre o resumo */
-        margin: 1.1rem 0 0;
-        font-size: 0.8125rem;
-    }
-
-    .booking-summary-footer-bar .booking-summary-pay-note__text {
-        flex-direction: row;
-        flex-wrap: wrap;
-        column-gap: 0.35rem;
-    }
-
-    .booking-summary-footer-bar .booking-summary-pay-note__body {
-        font-size: 0.8125rem;
-    }
-}
-
 /* Rodapé: "Powered by softrace.pt" — segunda linha, discreta */
 .booking-legal-footer__powered {
     margin: 0.5rem 0 0;
@@ -4235,4 +4210,13 @@ body:has(#booking-slot-hold-expired-modal.show) .modal-backdrop:last-of-type {
         height: 2.25rem;
         font-size: 1.1rem;
     }
+}
+
+/* Mobile: nota "Hoje não paga nada" no conteúdo do passo de confirmação */
+.booking-summary-pay-note--content {
+    margin: 0 0 1.5rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #bbf7d0;
+    border-radius: 0.75rem;
+    background: #f0fdf4;
 }

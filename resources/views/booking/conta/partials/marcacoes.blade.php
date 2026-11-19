@@ -434,7 +434,7 @@
     </div>
 
 @if ($enableClientCancel && $bookingStoreSlug !== '')
-    <div class="modal fade" id="accountCancelMarcacaoModal" tabindex="-1" aria-labelledby="accountCancelMarcacaoModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal fade booking-sheet-modal" id="accountCancelMarcacaoModal" tabindex="-1" aria-labelledby="accountCancelMarcacaoModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header pb-3">
