@@ -1203,5 +1203,5 @@
 
 @section('js')
 <script src="{{ asset('template/vendor/dragula/dragula.min.js') }}"></script>
-<script src="{{ asset('js/services.js') }}"></script>
+<script src="{{ static_asset('js/services.js') }}"></script>
 @endsection
