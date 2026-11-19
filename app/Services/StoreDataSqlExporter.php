@@ -94,6 +94,7 @@ class StoreDataSqlExporter
             'stores',
             'agents',
             'agent_service',
+            'agent_service_extra',
             'personal_time_types',
             'crm_settings',
         ];
@@ -101,7 +102,7 @@ class StoreDataSqlExporter
         return match ($this->mode) {
             StoreDataSqlPurger::MODE_FULL => array_merge($storeTeam, $data),
             // MODE_CATALOG: dados + pivots agent_service (sem entidades de catálogo)
-            StoreDataSqlPurger::MODE_CATALOG => array_merge(['agent_service'], $data),
+            StoreDataSqlPurger::MODE_CATALOG => array_merge(['agent_service', 'agent_service_extra'], $data),
             default => $data,
         };
     }
@@ -163,6 +164,14 @@ class StoreDataSqlExporter
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
+
+        $this->idSets['agent_service_extra'] = Schema::hasTable('agent_service_extra')
+            ? DB::table('agent_service_extra')
+                ->whereIn('agent_id', $this->idSets['agents'])
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all()
+            : [];
 
         $this->idSets['calendar_event_services'] = DB::table('calendar_event_services')
             ->whereIn('calendar_event_id', $this->idSets['calendar_events'])

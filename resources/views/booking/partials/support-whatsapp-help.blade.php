@@ -1,5 +1,6 @@
 @php
-    $supportWhatsappDigits = preg_replace('/\D+/', '', (string) config('booking.support_whatsapp', ''));
+    // Mesmo número do botão de WhatsApp do Booking (com o número de suporte como recurso)
+    $supportWhatsappDigits = preg_replace('/\D+/', '', (string) (config('booking.booking_whatsapp') ?: config('booking.support_whatsapp', '')));
 @endphp
 @if ($supportWhatsappDigits !== '')
     <div class="modal-footer border-0 pt-0 booking-auth-modal__support">

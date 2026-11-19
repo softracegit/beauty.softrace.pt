@@ -3,8 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Models\ExtraCategory;
-use App\Models\Agent;
-use App\Models\User;
 use App\Support\ServiceOptionValidation;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -49,19 +47,6 @@ class StoreServiceRequest extends FormRequest
             'has_options' => ['sometimes', 'boolean'],
             'sync_extras' => ['sometimes', 'boolean'],
             'sync_fees' => ['sometimes', 'boolean'],
-            'agent_ids' => ['nullable', 'array'],
-            'agent_ids.*' => [
-                'integer',
-                Rule::exists('agents', 'id')->where(function ($query): void {
-                    $query->where('store_id', current_store_id())
-                        ->where('status', Agent::STATUS_ACTIVE)
-                        ->whereIn('user_id', function ($q): void {
-                            $q->select('id')
-                                ->from((new User)->getTable())
-                                ->whereIn('role', User::serviceProviderRoles());
-                        });
-                }),
-            ],
             'extra_ids' => ['nullable', 'array'],
             'extra_ids.*' => [
                 Rule::exists('extras', 'id')->where(fn ($q) => $q->whereIn(
@@ -119,6 +104,9 @@ class StoreServiceRequest extends FormRequest
                 if (! empty($row['is_baseline'])) {
                     $baselineCount++;
                 }
+            }
+            if (ServiceOptionValidation::baselineIsAddon($options)) {
+                $validator->errors()->add('options', 'A opção base não pode ser do tipo adicional.');
             }
             if ($baselineCount !== 1) {
                 $validator->errors()->add('options', 'Deve existir exatamente uma opção base (duração e preços alinhados ao serviço no catálogo).');

@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\MigrateAgentToStoreService;
 use App\Services\VendasReportService;
 use App\Support\ActivityLogUserTimeline;
+use App\Support\AgentServiceExtras;
 use App\Support\CurrentStore;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -221,7 +222,9 @@ class AgentController extends Controller
         $agent = Agent::create($agentData);
         $this->syncCommissionAndRetentionForRole($agent, $validated);
         $user->stores()->sync([$storeId]);
-        $agent->services()->sync($request->input('service_ids', []));
+        $serviceIds = array_values(array_unique(array_map('intval', (array) $request->input('service_ids', []))));
+        $agent->services()->sync($serviceIds);
+        AgentServiceExtras::syncForAgent((int) $agent->id, [], $serviceIds);
 
         return redirect()->route('equipa.index')
             ->with('success', 'Membro criado com sucesso.');
@@ -479,7 +482,10 @@ class AgentController extends Controller
             $agente->user->update($userData);
         }
 
-        $agente->services()->sync($request->input('service_ids', []));
+        $previousServiceIds = $agente->services()->pluck('services.id')->map(fn ($id) => (int) $id)->all();
+        $serviceIds = array_values(array_unique(array_map('intval', (array) $request->input('service_ids', []))));
+        $agente->services()->sync($serviceIds);
+        AgentServiceExtras::syncForAgent((int) $agente->id, $previousServiceIds, $serviceIds);
 
         return redirect()->route('equipa.show', $agente)
             ->with('success', 'Membro atualizado com sucesso.');

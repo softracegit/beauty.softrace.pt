@@ -1,0 +1,1561 @@
+/*
+ * Tema Minimal — preto e branco.
+ * Navbar: nome da empresa + loja à esquerda, sessão à direita.
+ * Serviços em cartões. Painel de opções: sobe de baixo (mobile) ou abre à direita (desktop).
+ */
+[data-booking-theme="minimal"] {
+    --booking-bg: #ffffff;
+    --booking-text: #17171a;
+    --booking-muted: #77757d;
+    --booking-border: #e7e7ea;
+    --booking-accent: #17171a;
+    --booking-surface: #ffffff;
+    --booking-elegant-summary-box-bg: #f4f4f5;
+    --booking-min-soft: #f4f4f5;
+    --booking-min-radius: 14px;
+}
+
+[data-booking-theme="minimal"].booking-body,
+[data-booking-theme="minimal"] .booking-body,
+[data-booking-theme="minimal"] .modal,
+[data-booking-theme="minimal"] .offcanvas {
+    font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ---- Navbar ---- */
+
+[data-booking-theme="minimal"] .booking-navbar__cell--center {
+    display: none;
+}
+
+[data-booking-theme="minimal"] .booking-navbar__inner {
+    flex-wrap: nowrap;
+}
+
+[data-booking-theme="minimal"] .booking-navbar__cell--start {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 0.6rem;
+}
+
+[data-booking-theme="minimal"] .booking-navbar__cell--end {
+    flex: 0 0 auto;
+}
+
+[data-booking-theme="minimal"] .booking-navbar__lead-spacer {
+    display: none;
+}
+
+[data-booking-theme="minimal"] .booking-navbar__brand--minimal {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--booking-text);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+}
+
+@media (min-width: 992px) {
+    [data-booking-theme="minimal"] .booking-navbar__lead {
+        display: none;
+    }
+}
+
+[data-booking-theme="minimal"] .booking-navbar-store__toggle {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 100%;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--booking-border);
+    border-radius: 999px;
+    background: var(--booking-surface);
+    color: var(--booking-text);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+[data-booking-theme="minimal"] .booking-navbar-store__toggle:hover {
+    border-color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-navbar-store__toggle:focus-visible {
+    outline: 2px solid var(--booking-accent);
+    outline-offset: 2px;
+}
+
+[data-booking-theme="minimal"] .booking-navbar-store__dot {
+    flex: 0 0 auto;
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: #b8b6bd;
+}
+
+[data-booking-theme="minimal"] .booking-navbar-store__dot.booking-offcanvas__status-open { background: #2aa765; }
+[data-booking-theme="minimal"] .booking-navbar-store__dot.booking-offcanvas__status-warning { background: #e0a020; }
+[data-booking-theme="minimal"] .booking-navbar-store__dot.booking-offcanvas__status-closed { background: #d2504a; }
+
+[data-booking-theme="minimal"] .booking-navbar-store__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+[data-booking-theme="minimal"] .booking-navbar-store__caret {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+}
+
+/* Sessão: botão preto em desktop; em mobile mantém-se o ícone simples */
+@media (min-width: 992px) {
+    body[data-booking-theme="minimal"] .booking-navbar .booking-navbar__auth-open {
+        width: auto;
+        border-radius: 999px;
+        padding: 0 0.95rem;
+        background: var(--booking-text);
+        border-color: var(--booking-text);
+        color: #fff;
+        font-weight: 600;
+    }
+}
+
+/* ---- Títulos e passos ---- */
+
+[data-booking-theme="minimal"] .booking-elegant-flow-header__title {
+    font-size: clamp(1.35rem, 1.8vw, 1.65rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* "Voltar" numa linha própria, antes do título */
+[data-booking-theme="minimal"] .booking-minimal-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 1rem;
+    padding: 0.3rem 0.7rem 0.3rem 0.5rem;
+    border-radius: 999px;
+    background: var(--booking-min-soft);
+    color: var(--booking-text);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+[data-booking-theme="minimal"] .booking-minimal-back:hover {
+    background: var(--booking-text);
+    color: #fff;
+}
+
+/* Sem passos numerados no cabeçalho */
+[data-booking-theme="minimal"] .booking-elegant-steps {
+    display: none !important;
+}
+
+/* ---- Respiração: mais espaço entre a navbar, o título e os blocos ---- */
+[data-booking-theme="minimal"] {
+    --booking-elegant-main-padding-top: 2.5rem;
+    --booking-elegant-summary-padding-top: 2.5rem;
+    --booking-elegant-main-padding-bottom: clamp(2.5rem, 4vw, 3.5rem);
+}
+
+[data-booking-theme="minimal"] .booking-elegant-flow-header {
+    margin-bottom: 2rem;
+}
+
+[data-booking-theme="minimal"] .booking-category-section {
+    margin-bottom: 2.5rem !important;
+}
+
+[data-booking-theme="minimal"] .booking-category-section--chips {
+    margin-bottom: 2.25rem !important;
+}
+
+[data-booking-theme="minimal"] .booking-category-card__header {
+    padding-bottom: 0.9rem;
+}
+
+@media (max-width: 991.98px) {
+    [data-booking-theme="minimal"] .booking-elegant-main > main {
+        padding-top: 1.5rem !important;
+    }
+
+    [data-booking-theme="minimal"] .booking-services-heading,
+    [data-booking-theme="minimal"] .booking-page-main-heading {
+        margin-bottom: 1.5rem !important;
+    }
+}
+
+/* ---- Categorias ---- */
+
+[data-booking-theme="minimal"] .booking-category-card--chips {
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+[data-booking-theme="minimal"] .booking-category-chip {
+    border: 0;
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    background: var(--booking-min-soft);
+    color: var(--booking-text);
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+[data-booking-theme="minimal"] .booking-category-chip.is-active,
+[data-booking-theme="minimal"] .booking-category-chip.active,
+[data-booking-theme="minimal"] .booking-category-chip[aria-current="true"] {
+    background: var(--booking-text);
+    color: #fff;
+}
+
+/* ---- Serviços em cartões ---- */
+
+[data-booking-theme="minimal"] .booking-category-card:not(.booking-category-card--chips) {
+    border: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow: visible !important;
+}
+
+[data-booking-theme="minimal"] .booking-category-card__header {
+    padding-left: 0.15rem;
+    padding-right: 0;
+    background: transparent;
+    border: 0;
+}
+
+[data-booking-theme="minimal"] .booking-category-heading {
+    font-size: 0.75rem !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+[data-booking-theme="minimal"] .booking-category-card .list-group {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+    background: transparent;
+}
+
+@media (min-width: 992px) {
+    [data-booking-theme="minimal"] .booking-category-card .list-group {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+[data-booking-theme="minimal"] .booking-category-card .list-group-item {
+    border: 0 !important;
+    background: transparent;
+}
+
+[data-booking-theme="minimal"] .booking-row {
+    height: 100%;
+    padding: 1.15rem 1.25rem;
+    border: 1px solid var(--booking-border);
+    border-radius: var(--booking-min-radius);
+    background: var(--booking-surface);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-booking-theme="minimal"] .booking-row:hover {
+    background: var(--booking-surface);
+    border-color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-row__name {
+    font-weight: 700;
+}
+
+[data-booking-theme="minimal"] .booking-row__tag {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: var(--booking-min-soft);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+[data-booking-theme="minimal"] .booking-row__price {
+    margin-right: 0.7rem;
+}
+
+/* A seta passa a um botão "+" */
+[data-booking-theme="minimal"] .booking-row__chevron {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background: var(--booking-min-soft);
+    color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-row__chevron .bi {
+    display: none;
+}
+
+[data-booking-theme="minimal"] .booking-row__chevron::before {
+    content: "+";
+    font-size: 1.15rem;
+    font-weight: 500;
+    line-height: 1;
+}
+
+[data-booking-theme="minimal"] .booking-row:hover .booking-row__chevron {
+    background: var(--booking-text);
+    color: #fff;
+}
+
+/* ---- Resumo ----
+   Ordem: serviços → tempo da reserva → técnica → dia e hora. A loja está na navbar. */
+
+[data-booking-theme="minimal"] .booking-summary-store {
+    display: none;
+}
+
+[data-booking-theme="minimal"] .booking-summary-scroll {
+    display: flex;
+    flex-direction: column;
+}
+
+[data-booking-theme="minimal"] .booking-summary-scroll > .booking-elegant-summary-services-box {
+    order: 1;
+}
+
+[data-booking-theme="minimal"] .booking-summary-scroll > .booking-summary-slot-hold {
+    order: 2;
+    /* a linha separadora fica depois do tempo, não antes */
+    margin-top: 0.25rem;
+    padding: 0.65rem 0;
+    border-top: 0;
+    border-bottom: 1px solid var(--booking-border);
+}
+
+[data-booking-theme="minimal"] .booking-summary-panel__title--elegant {
+    margin-bottom: 0.6rem !important;
+}
+
+[data-booking-theme="minimal"] .booking-summary-scroll > .booking-elegant-summary-scheduling {
+    order: 3;
+}
+
+[data-booking-theme="minimal"] .booking-summary-next-btn {
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+/* ---- Painel de opções ---- */
+
+[data-booking-theme="minimal"] #bookingModal .modal-content {
+    border-radius: 22px 22px 0 0 !important;
+    box-shadow: 0 -10px 40px rgba(20, 20, 30, 0.18) !important;
+}
+
+[data-booking-theme="minimal"] #bookingModal .modal-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* Mobile: folha que sobe de baixo */
+[data-booking-theme="minimal"] #bookingModal .modal-dialog {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    max-height: 88vh;
+    max-height: 88dvh;
+    min-height: 0;
+    margin: 0;
+    align-items: flex-end;
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+[data-booking-theme="minimal"] #bookingModal.show .modal-dialog {
+    transform: none;
+}
+
+[data-booking-theme="minimal"] #bookingModal .modal-content {
+    max-height: 88vh;
+    max-height: 88dvh;
+}
+
+[data-booking-theme="minimal"] #bookingModal .modal-header::before {
+    content: "";
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    width: 2.4rem;
+    height: 4px;
+    margin-left: -1.2rem;
+    border-radius: 99px;
+    background: var(--booking-border);
+}
+
+[data-booking-theme="minimal"] #bookingModal .modal-header {
+    position: relative;
+    padding-top: 1.4rem;
+}
+
+/* Desktop: painel à direita, a toda a altura */
+@media (min-width: 992px) {
+    [data-booking-theme="minimal"] #bookingModal .modal-dialog {
+        left: auto;
+        top: 0;
+        width: min(32rem, 46vw);
+        height: 100%;
+        max-height: none;
+        align-items: stretch;
+        transform: translateX(100%);
+    }
+
+    [data-booking-theme="minimal"] #bookingModal .modal-content {
+        height: 100%;
+        max-height: none;
+        border-radius: 0 !important;
+        box-shadow: -12px 0 40px rgba(20, 20, 30, 0.14) !important;
+    }
+
+    [data-booking-theme="minimal"] #bookingModal .modal-header::before {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-booking-theme="minimal"] #bookingModal .modal-dialog {
+        transition: none;
+    }
+}
+
+[data-booking-theme="minimal"] .booking-modal-stepper {
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}
+
+[data-booking-theme="minimal"] .booking-modal-stepper__item {
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    background: var(--booking-min-soft);
+    color: var(--booking-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+[data-booking-theme="minimal"] .booking-modal-stepper__item.is-current {
+    background: var(--booking-text);
+    color: #fff;
+}
+
+[data-booking-theme="minimal"] .booking-modal-stepper__item.is-done {
+    color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-modal-stepper__item.is-done::after {
+    content: " ✓";
+}
+
+/* Opções em cartões soltos */
+[data-booking-theme="minimal"] .booking-modal-options {
+    gap: 0.45rem;
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+    background: transparent;
+}
+
+[data-booking-theme="minimal"] .booking-modal-option {
+    padding: 0.8rem 0.9rem;
+    border: 1px solid var(--booking-border);
+    border-radius: 12px;
+    background: var(--booking-surface);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+[data-booking-theme="minimal"] .booking-modal-option:last-child {
+    border-bottom: 1px solid var(--booking-border);
+}
+
+[data-booking-theme="minimal"] .booking-modal-option:hover {
+    background: var(--booking-surface);
+    border-color: var(--booking-text);
+}
+
+/* Selecionada: contorno de 1px (o botão marcado já indica a escolha) */
+[data-booking-theme="minimal"] .booking-modal-option:has(input:checked) {
+    border-color: var(--booking-text);
+    box-shadow: none;
+    background: var(--booking-min-soft);
+}
+
+[data-booking-theme="minimal"] .booking-modal-option__name {
+    font-weight: 600;
+}
+
+[data-booking-theme="minimal"] .booking-modal-option__radio input {
+    accent-color: var(--booking-text);
+}
+
+/* Adicionais: linha com resposta Sim / Não */
+[data-booking-theme="minimal"] .booking-modal-addons {
+    margin-top: 0.9rem !important;
+}
+
+[data-booking-theme="minimal"] .booking-modal-option--addon {
+    border-color: transparent;
+    background: var(--booking-min-soft);
+}
+
+[data-booking-theme="minimal"] .booking-modal-option--addon:last-child {
+    border-bottom-color: transparent;
+}
+
+/* Ligada: só o interruptor muda (sem contorno), para se distinguir das opções de escolha única */
+[data-booking-theme="minimal"] .booking-modal-option--addon:has(input:checked) {
+    border-color: transparent;
+    box-shadow: none;
+    background: var(--booking-min-soft);
+}
+
+[data-booking-theme="minimal"] .booking-modal-option--addon:hover {
+    border-color: transparent;
+    background: var(--booking-min-soft);
+}
+
+[data-booking-theme="minimal"] .booking-modal-option--disabled:hover {
+    border-color: transparent;
+}
+
+[data-booking-theme="minimal"] .booking-modal-option__switch input {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    width: 2.5rem;
+    height: 1.45rem;
+    border-radius: 999px;
+    background: #cfcdd4;
+    transition: background-color 0.18s ease;
+}
+
+[data-booking-theme="minimal"] .booking-modal-option__switch input::after {
+    content: "";
+    position: absolute;
+    top: 0.175rem;
+    left: 0.175rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform 0.18s ease;
+}
+
+[data-booking-theme="minimal"] .booking-modal-option__switch input:checked {
+    background: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-modal-option__switch input:checked::after {
+    transform: translateX(1.05rem);
+}
+
+[data-booking-theme="minimal"] .booking-modal-option__switch input:focus-visible {
+    outline: 2px solid var(--booking-accent);
+    outline-offset: 2px;
+}
+
+/* Rodapé do painel */
+[data-booking-theme="minimal"] .booking-modal-footer {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    border-top: 1px solid var(--booking-border) !important;
+}
+
+/* Mesmo espaço por cima e por baixo dos botões */
+[data-booking-theme="minimal"] #bookingModal .modal-footer.booking-modal-footer {
+    padding-top: 1.1rem !important;
+    padding-bottom: 1.1rem !important;
+}
+
+[data-booking-theme="minimal"] #bookingModal .modal-footer.booking-modal-footer > * {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+[data-booking-theme="minimal"] .booking-modal-footer .btn {
+    border-radius: 999px;
+    padding: 0.75rem 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back {
+    width: 3rem;
+    padding-left: 0;
+    padding-right: 0;
+    border-color: var(--booking-border);
+    background: var(--booking-surface);
+    color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back:hover,
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back:focus-visible,
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back:active {
+    border-color: var(--booking-text);
+    background: var(--booking-min-soft);
+    color: var(--booking-text);
+}
+
+/* Editar: "Remover" e "Guardar" lado a lado */
+[data-booking-theme="minimal"] .booking-modal-footer__pane--edit {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+}
+
+[data-booking-theme="minimal"] .booking-modal-footer__pane--edit .btn {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+[data-booking-theme="minimal"] .booking-modal-footer__pane--edit #booking-modal-remove-line {
+    flex: 0 1 auto;
+}
+
+[data-booking-theme="minimal"] .booking-modal-footer__pane {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* ---- Detalhes da loja: abre como modal centrado (inclui "Mudar de loja") ---- */
+
+body[data-booking-theme="minimal"] .booking-offcanvas {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    width: min(30rem, calc(100vw - 1.5rem));
+    height: auto;
+    max-height: min(88vh, 46rem);
+    max-height: min(88dvh, 46rem);
+    border: 0;
+    border-radius: 20px;
+    box-shadow: 0 24px 60px rgba(20, 20, 30, 0.25);
+    opacity: 0;
+    transform: translate(-50%, -46%) !important;
+    transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.2, 1), opacity 0.18s ease;
+}
+
+body[data-booking-theme="minimal"] .booking-offcanvas.showing,
+body[data-booking-theme="minimal"] .booking-offcanvas.show:not(.hiding) {
+    opacity: 1;
+    transform: translate(-50%, -50%) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body[data-booking-theme="minimal"] .booking-offcanvas {
+        transition: none;
+    }
+}
+
+/* Fechar igual ao dos restantes modais e folhas: "X" simples no canto superior direito */
+body[data-booking-theme="minimal"] .booking-offcanvas .booking-offcanvas__header {
+    justify-content: flex-end;
+    padding: 1.4rem 1.5rem 0 !important;
+}
+
+body[data-booking-theme="minimal"] .booking-offcanvas .booking-offcanvas__header .btn-close {
+    margin: 0;
+}
+
+body[data-booking-theme="minimal"] .booking-offcanvas .booking-offcanvas__body {
+    padding-top: 0.6rem !important;
+}
+
+/* "Mudar loja": botão pequeno ao lado do nome da loja */
+[data-booking-theme="minimal"] .booking-offcanvas__agency-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Nome e "Mudar loja" sempre na mesma linha */
+[data-booking-theme="minimal"] .booking-offcanvas__agency-head .booking-offcanvas__agency-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+@media (max-width: 575.98px) {
+    [data-booking-theme="minimal"] .booking-offcanvas__agency-head .booking-offcanvas__agency-title {
+        font-size: 1.15rem;
+    }
+}
+
+[data-booking-theme="minimal"] .booking-offcanvas__stores-dropdown {
+    flex: 0 0 auto;
+}
+
+[data-booking-theme="minimal"] .booking-offcanvas__store-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--booking-border);
+    border-radius: 999px;
+    background: var(--booking-surface);
+    color: var(--booking-text);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+[data-booking-theme="minimal"] .booking-offcanvas__store-toggle .bi {
+    font-size: 0.7rem;
+}
+
+[data-booking-theme="minimal"] .booking-offcanvas__store-toggle:hover,
+[data-booking-theme="minimal"] .booking-offcanvas__store-toggle[aria-expanded="true"] {
+    border-color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-offcanvas__store-toggle:focus-visible {
+    outline: 2px solid var(--booking-accent);
+    outline-offset: 2px;
+}
+
+[data-booking-theme="minimal"] .booking-offcanvas__stores-menu {
+    min-width: 13rem;
+    margin-top: 0.4rem !important;
+    padding: 0.4rem;
+    border: 1px solid var(--booking-border);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(20, 20, 30, 0.12);
+    font-size: 0.9375rem;
+}
+
+[data-booking-theme="minimal"] .booking-offcanvas__stores-menu .dropdown-item {
+    border-radius: 8px;
+    padding: 0.55rem 0.65rem;
+}
+
+[data-booking-theme="minimal"] .booking-offcanvas__stores-menu .dropdown-item.active,
+[data-booking-theme="minimal"] .booking-offcanvas__stores-menu .dropdown-item:active {
+    background: var(--booking-text);
+    color: #fff;
+}
+
+/* A conta e a sessão ficam na navbar: saem do modal da loja */
+[data-booking-theme="minimal"] .booking-offcanvas__footer {
+    display: none;
+}
+
+body[data-booking-theme="minimal"] .booking-offcanvas__body {
+    padding-bottom: 1.6rem !important;
+}
+
+/* ---- Largura "Estreito" (definição da loja no CRM): conteúdo e navbar centrados ---- */
+
+body[data-booking-theme="minimal"][data-booking-width="narrow"] {
+    --booking-min-max-width: 1180px;
+}
+
+body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-navbar .container,
+body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-navbar .booking-container-wide {
+    max-width: var(--booking-min-max-width) !important;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (min-width: 992px) {
+    body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-elegant-split {
+        max-width: var(--booking-min-max-width);
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    /* O resumo é fixo: acompanha a margem direita do conteúdo centrado */
+    body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-elegant-summary .booking-summary-panel,
+    body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-elegant-split > .booking-summary-column .booking-summary-panel {
+        right: max(0px, calc((100% - var(--booking-min-max-width)) / 2));
+        border-right: 1px solid var(--booking-border);
+    }
+}
+
+/* ---- Margens iguais à esquerda e à direita (ecrãs grandes) ----
+   A mesma margem (a do conteúdo) nos dois lados: nome/logo e títulos à esquerda,
+   botão de sessão/perfil e conteúdo do resumo à direita, em todas as páginas. */
+@media (min-width: 992px) {
+    body[data-booking-theme="minimal"] {
+        /* O resumo ganha a margem extra à direita sem ficar mais apertado */
+        --booking-elegant-summary-width: calc(clamp(17rem, 24vw, 22rem) + var(--booking-elegant-main-padding-x) - 1.5rem);
+    }
+
+    body[data-booking-theme="minimal"] .booking-navbar .booking-navbar__inner {
+        padding-left: var(--booking-elegant-main-padding-x) !important;
+        padding-right: var(--booking-elegant-main-padding-x) !important;
+    }
+
+    body[data-booking-theme="minimal"] .booking-elegant-summary .booking-summary-panel,
+    body[data-booking-theme="minimal"] .booking-elegant-split > .booking-summary-column .booking-summary-panel {
+        padding-right: var(--booking-elegant-main-padding-x);
+    }
+}
+
+/* Os separadores de categoria alinham com o título (compensa a margem interna do scroll) */
+[data-booking-theme="minimal"] .booking-category-chips__scroll {
+    margin-left: -2px;
+}
+
+/* ---- Serviços em lista (definição da loja): um por linha ---- */
+@media (min-width: 992px) {
+    body[data-booking-theme="minimal"][data-booking-services="list"] .booking-category-card .list-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---- Rodapé: à esquerda, sem linha, com línguas e WhatsApp ---- */
+body[data-booking-theme="minimal"] .booking-legal-footer--minimal {
+    padding: 1.5rem 1rem;
+    border-top: 0;
+    background: transparent;
+    text-align: left;
+}
+
+[data-booking-theme="minimal"] .booking-legal-footer__nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.25rem;
+    font-size: 0.8125rem;
+}
+
+[data-booking-theme="minimal"] .booking-legal-footer__nav a {
+    color: var(--booking-muted);
+    text-decoration: none;
+}
+
+[data-booking-theme="minimal"] .booking-legal-footer__nav a:hover {
+    color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-legal-footer__langs {
+    display: inline-flex;
+    gap: 0.75rem;
+}
+
+[data-booking-theme="minimal"] .booking-legal-footer__langs a.is-current {
+    color: var(--booking-text);
+    font-weight: 700;
+}
+
+[data-booking-theme="minimal"] .booking-legal-footer__whatsapp {
+    display: inline-flex;
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+@media (min-width: 992px) {
+    /* Alinha com o conteúdo e não passa por baixo do resumo fixo */
+    body[data-booking-theme="minimal"] .booking-legal-footer--minimal {
+        padding-left: var(--booking-elegant-main-padding-x);
+        padding-right: calc(var(--booking-elegant-summary-width) + 1.5rem);
+    }
+}
+
+@media (min-width: 1200px) {
+    body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-legal-footer--minimal {
+        max-width: var(--booking-min-max-width);
+        margin-left: auto;
+        margin-right: auto;
+    }
+}
+
+/* ---- Resumo: linha entre a técnica e o dia/hora ---- */
+[data-booking-theme="minimal"] .booking-elegant-summary-scheduling__item:not(.is-hidden) + .booking-elegant-summary-scheduling__item {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--booking-border);
+}
+
+/* ---- "Remover serviço": só o ícone do caixote ---- */
+[data-booking-theme="minimal"] .booking-modal-remove__icon {
+    display: inline-block;
+}
+
+[data-booking-theme="minimal"] .booking-modal-remove__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+[data-booking-theme="minimal"] .booking-modal-footer__pane--edit #booking-modal-remove-line {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 3rem;
+    width: 3rem;
+    padding: 0;
+}
+
+[data-booking-theme="minimal"] .booking-modal-remove__icon {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+[data-booking-theme="minimal"] .booking-modal-remove__icon::before {
+    display: block;
+    vertical-align: 0;
+}
+
+/* ---- Categorias: começam à altura da lista de serviços do resumo (ecrãs grandes) ---- */
+@media (min-width: 992px) {
+    [data-booking-theme="minimal"] .booking-category-section--chips {
+        margin-top: -1.8rem;
+    }
+}
+
+/* ---- Botões: todos arredondados, no mesmo estilo ---- */
+[data-booking-theme="minimal"] .btn {
+    border-radius: 999px;
+}
+
+[data-booking-theme="minimal"] .btn-dark,
+[data-booking-theme="minimal"] .btn-outline-dark,
+[data-booking-theme="minimal"] .btn-outline-secondary {
+    font-weight: 700;
+}
+
+[data-booking-theme="minimal"] .btn-outline-secondary {
+    border-color: var(--booking-border);
+    background: var(--booking-surface);
+    color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .btn-outline-secondary:hover,
+[data-booking-theme="minimal"] .btn-outline-secondary:focus-visible,
+[data-booking-theme="minimal"] .btn-outline-secondary:active {
+    border-color: var(--booking-text);
+    background: var(--booking-min-soft);
+    color: var(--booking-text);
+}
+
+/* "Precisa de mais tempo?": dois botões lado a lado */
+[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-content {
+    border-radius: 20px;
+}
+
+[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-footer > * {
+    margin: 0;
+}
+
+[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-footer .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.75rem 0.75rem;
+    font-size: 0.95rem;
+    white-space: nowrap;
+}
+
+/* ================= Mobile ================= */
+@media (max-width: 991.98px) {
+    /* Navbar: voltar à esquerda, nome ao centro com a loja por baixo, sessão à direita */
+    body[data-booking-theme="minimal"] .booking-navbar .booking-navbar__inner {
+        display: grid;
+        grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+        align-items: center;
+        row-gap: 0.05rem;
+        padding-top: 0.4rem !important;
+        padding-bottom: 0.4rem !important;
+    }
+
+    [data-booking-theme="minimal"] .booking-navbar__cell--start {
+        display: contents;
+    }
+
+    [data-booking-theme="minimal"] .booking-navbar__lead {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        display: flex;
+        align-items: center;
+    }
+
+    [data-booking-theme="minimal"] .booking-navbar__brand--minimal {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: center;
+        max-width: 100%;
+        line-height: 1.2;
+    }
+
+    [data-booking-theme="minimal"] .booking-navbar-store__toggle {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: center;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        color: var(--booking-muted);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    [data-booking-theme="minimal"] .booking-navbar-store__toggle:hover {
+        color: var(--booking-text);
+    }
+
+    [data-booking-theme="minimal"] .booking-navbar__cell--end {
+        grid-column: 3;
+        grid-row: 1 / span 2;
+        justify-self: end;
+    }
+
+    /* O "Voltar" está na navbar */
+    [data-booking-theme="minimal"] .booking-minimal-back {
+        display: none;
+    }
+
+    /* Título "Resumo da marcação" solto no conteúdo */
+    body[data-booking-theme="minimal"] .booking-summary-panel__title {
+        display: none !important;
+    }
+
+    /* Rodapé: visível por cima da barra fixa do resumo */
+    body[data-booking-theme="minimal"] .booking-legal-footer--minimal {
+        padding: 1.25rem 1rem 1.5rem;
+    }
+
+    body[data-booking-theme="minimal"]:has(#booking-summary-total:not(.is-hidden)) .booking-legal-footer--minimal {
+        padding-bottom: 6.75rem;
+    }
+
+    /* Folhas que sobem de baixo: resumo, loja e sessão (mesmo estilo do painel de serviço) */
+    body[data-booking-theme="minimal"] .booking-summary-mobile-drawer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1046 !important;
+        display: flex;
+        flex-direction: column;
+        max-height: 88vh;
+        max-height: 88dvh;
+        overflow-y: auto;
+        padding: 1.4rem 1.25rem max(1.25rem, env(safe-area-inset-bottom, 0px));
+        border-radius: 22px 22px 0 0;
+        background: var(--booking-surface);
+        box-shadow: 0 -10px 40px rgba(20, 20, 30, 0.18);
+        visibility: hidden;
+        transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1), visibility 0s linear 0.28s;
+    }
+
+    body[data-booking-theme="minimal"] .booking-summary-footer.is-drawer-open .booking-summary-mobile-drawer {
+        max-height: 88vh;
+        max-height: 88dvh;
+        visibility: visible;
+        transform: none;
+        transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
+    }
+
+    body[data-booking-theme="minimal"] .booking-summary-mobile-overlay {
+        z-index: 1045 !important;
+    }
+
+    /* A folha vive dentro da barra fixa: a barra sobe acima do fundo escuro enquanto está aberta */
+    body[data-booking-theme="minimal"] .booking-summary-footer.is-drawer-open {
+        z-index: 1046 !important;
+    }
+
+    [data-booking-theme="minimal"] .booking-summary-drawer__head {
+        order: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 0.6rem;
+    }
+
+    [data-booking-theme="minimal"] .booking-summary-drawer__title {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    body[data-booking-theme="minimal"] .booking-summary-mobile-drawer .booking-summary-scroll {
+        order: 1;
+        max-height: none;
+        padding: 0;
+        overflow: visible;
+        background: transparent;
+    }
+
+    [data-booking-theme="minimal"] .booking-summary-drawer__help {
+        order: 99;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--booking-border);
+        color: var(--booking-text);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    [data-booking-theme="minimal"] .booking-summary-drawer__help .bi {
+        font-size: 1.1rem;
+    }
+
+    /* Dados da loja */
+    body[data-booking-theme="minimal"] .booking-offcanvas {
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-height: 88vh;
+        max-height: 88dvh;
+        border-radius: 22px 22px 0 0;
+        box-shadow: 0 -10px 40px rgba(20, 20, 30, 0.18);
+        opacity: 1;
+        transform: translateY(100%) !important;
+        transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
+    }
+
+    body[data-booking-theme="minimal"] .booking-offcanvas.showing,
+    body[data-booking-theme="minimal"] .booking-offcanvas.show:not(.hiding) {
+        transform: none !important;
+    }
+
+    /* Iniciar sessão */
+    [data-booking-theme="minimal"] #booking-auth-modal .modal-dialog {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-width: none;
+        min-height: 0;
+        margin: 0;
+        align-items: flex-end;
+        transform: translateY(100%);
+        transition: transform 0.28s cubic-bezier(0.2, 0.9, 0.2, 1);
+    }
+
+    [data-booking-theme="minimal"] #booking-auth-modal.show .modal-dialog {
+        transform: none;
+    }
+
+    [data-booking-theme="minimal"] #booking-auth-modal .modal-content {
+        max-height: 88vh;
+        max-height: 88dvh;
+        overflow-y: auto;
+        border-radius: 22px 22px 0 0 !important;
+        box-shadow: 0 -10px 40px rgba(20, 20, 30, 0.18) !important;
+    }
+}
+
+@media (max-width: 991.98px) and (prefers-reduced-motion: reduce) {
+    body[data-booking-theme="minimal"] .booking-summary-mobile-drawer,
+    body[data-booking-theme="minimal"] .booking-offcanvas,
+    [data-booking-theme="minimal"] #booking-auth-modal .modal-dialog {
+        transition: none;
+    }
+}
+
+/* ================================================================
+   Modais e folhas: mesmas margens, cantos e posição do "fechar"
+   (painel de serviço, resumo, dados da loja, sessão, "mais tempo")
+   ================================================================ */
+body[data-booking-theme="minimal"] {
+    --booking-sheet-radius: 22px;
+    --booking-sheet-pad-x: 1.4rem;
+    --booking-sheet-pad-top: 1.5rem;
+    --booking-sheet-pad-bottom: 1.5rem;
+}
+
+@media (min-width: 992px) {
+    body[data-booking-theme="minimal"] {
+        --booking-sheet-pad-x: 2rem;
+        --booking-sheet-pad-top: 1.75rem;
+        --booking-sheet-pad-bottom: 1.75rem;
+    }
+}
+
+/* Cantos */
+body[data-booking-theme="minimal"] #booking-auth-modal .modal-content,
+body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-content,
+body[data-booking-theme="minimal"] .booking-offcanvas {
+    border: 0;
+    border-radius: var(--booking-sheet-radius) !important;
+}
+
+@media (max-width: 991.98px) {
+    body[data-booking-theme="minimal"] #booking-auth-modal .modal-content,
+    body[data-booking-theme="minimal"] .booking-offcanvas,
+    body[data-booking-theme="minimal"] .booking-summary-mobile-drawer {
+        border-radius: var(--booking-sheet-radius) var(--booking-sheet-radius) 0 0 !important;
+    }
+}
+
+@media (min-width: 992px) {
+    /* Painel lateral: cantos arredondados do lado de dentro */
+    body[data-booking-theme="minimal"] #bookingModal .modal-content {
+        border-radius: var(--booking-sheet-radius) 0 0 var(--booking-sheet-radius) !important;
+    }
+}
+
+body[data-booking-theme="minimal"] #bookingModal .modal-header::before {
+    display: none;
+}
+
+/* Margens */
+body[data-booking-theme="minimal"] #bookingModal .modal-header,
+body[data-booking-theme="minimal"] #booking-auth-modal .modal-header,
+body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-header {
+    position: static;
+    align-items: flex-start;
+    padding: var(--booking-sheet-pad-top) calc(var(--booking-sheet-pad-x) + 2.25rem) 0 var(--booking-sheet-pad-x) !important;
+}
+
+body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-header {
+    padding-right: var(--booking-sheet-pad-x) !important;
+}
+
+body[data-booking-theme="minimal"] #bookingModal .modal-body,
+body[data-booking-theme="minimal"] #booking-auth-modal .modal-body,
+body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-body {
+    padding-left: var(--booking-sheet-pad-x) !important;
+    padding-right: var(--booking-sheet-pad-x) !important;
+}
+
+body[data-booking-theme="minimal"] #booking-auth-modal .modal-body {
+    padding-bottom: var(--booking-sheet-pad-bottom) !important;
+}
+
+body[data-booking-theme="minimal"] #bookingModal .modal-footer,
+body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-footer {
+    padding-left: var(--booking-sheet-pad-x) !important;
+    padding-right: var(--booking-sheet-pad-x) !important;
+}
+
+body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-footer {
+    padding-bottom: var(--booking-sheet-pad-bottom) !important;
+}
+
+body[data-booking-theme="minimal"] #bookingModal .modal-title,
+body[data-booking-theme="minimal"] #booking-auth-modal .modal-header h2,
+body[data-booking-theme="minimal"] #booking-slot-hold-expired-modal .modal-header h2,
+body[data-booking-theme="minimal"] .booking-summary-drawer__title,
+body[data-booking-theme="minimal"] .booking-offcanvas__agency-head .booking-offcanvas__agency-title {
+    font-size: 1.35rem;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+
+/* Dados da loja: o cabeçalho só tem o "fechar"; o nome começa no topo como os outros títulos */
+body[data-booking-theme="minimal"] .booking-offcanvas .booking-offcanvas__header {
+    min-height: 0;
+    padding: 0 !important;
+}
+
+body[data-booking-theme="minimal"] .booking-offcanvas .booking-offcanvas__body {
+    padding: var(--booking-sheet-pad-top) var(--booking-sheet-pad-x) var(--booking-sheet-pad-bottom) !important;
+}
+
+body[data-booking-theme="minimal"] .booking-offcanvas__agency-head {
+    justify-content: flex-start;
+    padding-right: 2.25rem;
+}
+
+body[data-booking-theme="minimal"] .booking-offcanvas__agency-head .booking-offcanvas__agency-title {
+    flex: 0 1 auto;
+}
+
+/* O botão "Mudar loja" não empurra o nome para baixo */
+body[data-booking-theme="minimal"] .booking-offcanvas__agency-head .booking-offcanvas__stores-dropdown {
+    margin-top: -0.25rem;
+    margin-bottom: -0.25rem;
+}
+
+@media (max-width: 575.98px) {
+    /* Nomes compridos: quebram em vez de cortar */
+    body[data-booking-theme="minimal"] .booking-offcanvas__agency-head .booking-offcanvas__agency-title {
+        white-space: normal;
+    }
+}
+
+@media (max-width: 991.98px) {
+    body[data-booking-theme="minimal"] .booking-summary-mobile-drawer {
+        padding: var(--booking-sheet-pad-top) var(--booking-sheet-pad-x) max(var(--booking-sheet-pad-bottom), env(safe-area-inset-bottom, 0px));
+    }
+
+    body[data-booking-theme="minimal"] .booking-summary-drawer__head {
+        padding-right: 2.25rem;
+    }
+}
+
+/* "Fechar": sempre no mesmo sítio, alinhado com a margem direita e com o título */
+body[data-booking-theme="minimal"] #bookingModal .btn-close,
+body[data-booking-theme="minimal"] #booking-auth-modal .btn-close,
+body[data-booking-theme="minimal"] .booking-offcanvas .btn-close,
+body[data-booking-theme="minimal"] .booking-summary-mobile-drawer .btn-close {
+    position: absolute;
+    top: calc(var(--booking-sheet-pad-top) - 0.15rem);
+    right: calc(var(--booking-sheet-pad-x) - 0.5rem);
+    z-index: 2;
+    box-sizing: content-box;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    padding: 0.5rem;
+    background-size: 1rem;
+    border-radius: 999px;
+    opacity: 0.75;
+}
+
+body[data-booking-theme="minimal"] #bookingModal .btn-close:hover,
+body[data-booking-theme="minimal"] #booking-auth-modal .btn-close:hover,
+body[data-booking-theme="minimal"] .booking-offcanvas .btn-close:hover,
+body[data-booking-theme="minimal"] .booking-summary-mobile-drawer .btn-close:hover {
+    background-color: var(--booking-min-soft);
+    opacity: 1;
+}
+
+/* Resumo em mobile: fundo escuro por cima de tudo (navbar incluída), como nos restantes */
+@media (max-width: 991.98px) {
+    body[data-booking-theme="minimal"] .booking-summary-panel:has(.booking-summary-footer.is-drawer-open) {
+        z-index: 1046;
+    }
+
+    body[data-booking-theme="minimal"] .booking-summary-mobile-overlay {
+        background: rgba(0, 0, 0, 0.5);
+        transition: opacity 0.15s linear, visibility 0s linear 0.15s;
+    }
+
+    body[data-booking-theme="minimal"] .booking-summary-mobile-overlay.is-visible {
+        transition: opacity 0.15s linear;
+    }
+
+    body[data-booking-theme="minimal"]:has(.booking-summary-footer.is-drawer-open) {
+        overflow: hidden;
+    }
+}
+
+/* Horas: a hora escolhida fica a preto (o estilo geral dos botões secundários não a pode apagar) */
+[data-booking-theme="minimal"] .btn.booking-slot-pill {
+    font-weight: 500;
+}
+
+[data-booking-theme="minimal"] .btn.booking-slot-pill.is-active,
+[data-booking-theme="minimal"] .btn.booking-slot-pill.is-active:hover,
+[data-booking-theme="minimal"] .btn.booking-slot-pill.is-active:focus-visible,
+[data-booking-theme="minimal"] .btn.booking-slot-pill.is-active:active {
+    border-color: var(--booking-text);
+    background: var(--booking-text);
+    color: #fff;
+    font-weight: 600;
+}
+
+/* ---- Menu do perfil (navbar): mesma linha do tema, sem azul ---- */
+[data-booking-theme="minimal"] .booking-navbar-account__menu {
+    min-width: 14rem;
+    margin-top: 0.5rem !important;
+    padding: 0.4rem;
+    border: 1px solid var(--booking-border);
+    border-radius: 18px;
+    background: var(--booking-surface);
+    box-shadow: 0 16px 40px rgba(20, 20, 30, 0.14);
+    --bs-dropdown-link-hover-bg: var(--booking-min-soft);
+    --bs-dropdown-link-hover-color: var(--booking-text);
+    --bs-dropdown-link-active-bg: var(--booking-min-soft);
+    --bs-dropdown-link-active-color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item {
+    padding: 0.6rem 0.75rem;
+    border-radius: 12px;
+    color: var(--booking-text);
+    font-size: 0.925rem;
+    font-weight: 500;
+}
+
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item:hover,
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item:focus,
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item:focus-visible,
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item:active,
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item.active {
+    outline: 0;
+    background: var(--booking-min-soft);
+    color: var(--booking-text);
+}
+
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item.text-danger,
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item.text-danger:hover,
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item.text-danger:focus,
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-item.text-danger:active {
+    color: #b42318 !important;
+}
+
+[data-booking-theme="minimal"] .booking-navbar-account__menu .dropdown-divider {
+    margin: 0.35rem 0.25rem;
+    border-color: var(--booking-border);
+    opacity: 1;
+}
+
+/* ---- Área de conta ---- */
+[data-booking-theme="minimal"] .booking-account-nav__link {
+    border-radius: 12px;
+}
+
+[data-booking-theme="minimal"] .booking-account-nav__link--danger {
+    border-radius: 0;
+}
+
+/* "Nova marcação" separada do resto do menu */
+[data-booking-theme="minimal"] .booking-account-nav__link--new {
+    margin-bottom: 0.6rem;
+    border-color: var(--booking-border);
+    font-weight: 600;
+}
+
+[data-booking-theme="minimal"] .booking-account-resume {
+    border-radius: 16px;
+}
+
+@media (min-width: 992px) {
+    /* O nome no menu alinha com o topo do conteúdo ("A minha conta") */
+    [data-booking-theme="minimal"] .booking-account-sidebar--elegant .booking-account-sidebar__inner {
+        padding-top: 0 !important;
+    }
+
+    [data-booking-theme="minimal"] .booking-account-sidebar--elegant .booking-account-sidebar__user {
+        margin-top: 0 !important;
+    }
+
+    /* O menu (caixas incluídas) começa na mesma margem do logo na navbar */
+    [data-booking-theme="minimal"] .booking-account-sidebar--elegant {
+        padding-left: var(--booking-elegant-main-padding-x);
+    }
+
+    /* Largura "Estreito": a área de conta segue a mesma largura do resto */
+    body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-elegant-account-layout {
+        max-width: var(--booking-min-max-width);
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+}
+
+/* O "+" de nova marcação sai da navbar: a opção está no menu do perfil e no menu da conta */
+[data-booking-theme="minimal"] .booking-navbar-new-booking {
+    display: none !important;
+}
+
+/* Adicionais: a resposta Sim / Não não muda o fundo da linha */
+[data-booking-theme="minimal"] .booking-modal-option--addon:has(.booking-modal-addon-choice__input:checked) {
+    border-color: transparent;
+    box-shadow: none;
+    background: var(--booking-min-soft);
+}
+
+[data-booking-theme="minimal"] .booking-modal-addon-choice {
+    border-color: var(--booking-border);
+}
+
+/* Logotipo "Genérico" no lugar do nome da empresa */
+[data-booking-theme="minimal"] .booking-navbar__brand--logo {
+    display: inline-flex;
+    align-items: center;
+    overflow: visible;
+    line-height: 0;
+}
+
+[data-booking-theme="minimal"] .booking-navbar__brand-logo {
+    display: block;
+    width: auto;
+    height: 1.6rem;
+    max-width: 11rem;
+    object-fit: contain;
+    object-position: left center;
+}
+
+@media (max-width: 991.98px) {
+    [data-booking-theme="minimal"] .booking-navbar__brand-logo {
+        height: 1.3rem;
+        max-width: 9rem;
+        object-position: center;
+    }
+
+    /* Um pouco de ar entre o logo e o link da loja por baixo */
+    [data-booking-theme="minimal"] .booking-navbar__brand--logo {
+        margin-bottom: 0.2rem;
+    }
+}
+
+@media (min-width: 992px) {
+    /* O nome no menu da conta começa na margem, como as caixas dos itens */
+    [data-booking-theme="minimal"] .booking-account-sidebar--elegant .booking-account-sidebar__user {
+        margin-left: 0 !important;
+    }
+}
+
+/* Estreito: o resumo é um painel dentro das margens (a linha direita alinha com o botão de perfil) */
+@media (min-width: 992px) {
+    body[data-booking-theme="minimal"][data-booking-width="narrow"] {
+        --booking-min-summary-panel-width: clamp(17rem, 24vw, 22rem);
+        /* A coluna reserva o painel + a margem direita */
+        --booking-elegant-summary-width: calc(var(--booking-min-summary-panel-width) + var(--booking-elegant-main-padding-x));
+    }
+
+    body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-elegant-summary .booking-summary-panel,
+    body[data-booking-theme="minimal"][data-booking-width="narrow"] .booking-elegant-split > .booking-summary-column .booking-summary-panel {
+        right: calc(max(0px, calc((100% - var(--booking-min-max-width)) / 2)) + var(--booking-elegant-main-padding-x));
+        width: var(--booking-min-summary-panel-width);
+        padding-right: 1.5rem;
+    }
+}

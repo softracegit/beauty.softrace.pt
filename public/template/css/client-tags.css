@@ -37,26 +37,38 @@
     min-width: 10rem;
 }
 
-.client-tag-chip {
+.client-tag-chip,
+.client-tags-inline__add {
+    box-sizing: border-box;
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    max-width: 8rem;
-    padding: 0.12rem 0.45rem 0.12rem 0.5rem;
+    justify-content: center;
+    gap: 0.25rem;
+    height: 1.35rem;
+    min-height: 1.35rem;
+    max-height: 1.35rem;
+    padding: 0 0.45rem;
     border-radius: 50rem;
     font-size: 0.68rem;
     line-height: 1;
     font-weight: 500;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.client-tag-chip {
+    gap: 0.3rem;
+    max-width: 8rem;
+    padding: 0 0.35rem 0 0.5rem;
     color: #1e40af;
     background: rgba(219, 234, 254, 0.35);
     border: 1px dashed #93c5fd;
-    white-space: nowrap;
 }
 
 .client-tag-chip__label {
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.2;
+    line-height: 1;
 }
 
 .client-tag-chip__remove {
@@ -64,8 +76,8 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 0.85rem;
-    height: 0.85rem;
+    width: 0.75rem;
+    height: 0.75rem;
     border: 0;
     background: transparent;
     padding: 0;
@@ -77,7 +89,7 @@
 }
 
 .client-tag-chip__remove .ph {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     line-height: 1;
     display: block;
 }
@@ -88,28 +100,21 @@
 }
 
 .client-tags-inline__add {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
     width: auto;
-    height: auto;
-    padding: 0.12rem 0.42rem;
     border: 1px dashed #93c5fd;
-    border-radius: 50rem;
     background: rgba(219, 234, 254, 0.35);
     color: #1e40af;
-    flex-shrink: 0;
     cursor: pointer;
 }
 
 .client-tags-inline__add .ph {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     line-height: 1;
+    display: block;
 }
 
 .client-tags-inline__add--empty {
-    padding: 0.1rem 0.4rem 0.1rem 0.35rem;
+    padding: 0 0.45rem 0 0.4rem;
     color: var(--bs-secondary-color, #6c757d);
     border: 1px dashed var(--bs-border-color, #ced4da);
     background: rgba(108, 117, 125, 0.06);
@@ -234,7 +239,7 @@
 .uview-header-tags {
     display: flex;
     align-items: center;
-    margin-top: 0.45rem;
+    margin-top: 0.85rem;
     min-width: 0;
 }
 

@@ -95,8 +95,8 @@
                 </a>
               @else
                 <button type="button"
-                  class="btn btn-sm btn-light js-marcacao-modal-trigger"
-                  data-bs-toggle="modal"
+                  class="btn btn-sm btn-light js-marcacao-modal-trigger js-marcacao-detail-trigger"
+                  data-bs-toggle="offcanvas"
                   data-bs-target="#marcacaoDetalheModal"
                   data-template-id="marcacao-detail-{{ $ev->id }}"
                   title="Detalhes">

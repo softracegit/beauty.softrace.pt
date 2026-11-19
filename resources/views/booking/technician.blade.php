@@ -40,7 +40,7 @@
                                                 </label>
                                             </li>
                                             @foreach($technicians as $tech)
-                                                <li class="booking-technician-row" data-tech-id="{{ $tech['id'] }}" data-tech-specialization="{{ $tech['specialization'] }}" data-tech-avatar="{{ $tech['avatar'] ?? '' }}" data-tech-service-ids='@json($tech['serviceIds'])'>
+                                                <li class="booking-technician-row" data-tech-id="{{ $tech['id'] }}" data-tech-specialization="{{ $tech['specialization'] }}" data-tech-avatar="{{ $tech['avatar'] ?? '' }}" data-tech-service-ids='@json($tech['serviceIds'])' data-tech-extra-pairs='@json($tech['extraPairs'] ?? [])'>
                                                     <label class="booking-technician-row__label" for="booking-technician-{{ $tech['id'] }}">
                                                         <div class="booking-technician-row__avatar">
                                                             @if($tech['avatar'])

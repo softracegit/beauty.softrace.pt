@@ -1,56 +1,57 @@
 /* Payment POS modal — partilhado (agenda + relatórios). Não incluir regras globais de body/main-content. */
 
-/* Modal caixa: modo «só fatura final» (sem escolha de pagamento / MB WAY / gorjeta) */
-#paymentModal.payment-pos-modal--invoice-only #paymentMethodSectionLegend,
-#paymentModal.payment-pos-modal--invoice-only #paymentMethodToggleGroup,
-#paymentModal.payment-pos-modal--invoice-only #paymentMbwayPhoneWrap,
-#paymentModal.payment-pos-modal--invoice-only #paymentCashTenderWrap {
+/* Modal caixa: modo «só fatura final» (sem escolha de pagamento / MB WAY / gorjeta)
+   Classes também no .modal-content quando o POS abre em layer (fora de #paymentModal). */
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentMethodSectionLegend,
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentMethodToggleGroup,
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentMbwayPhoneWrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentCashTenderWrap {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--invoice-only .payment-pos-hero-gorjeta-wrap,
-#paymentModal.payment-pos-modal--invoice-only #paymentGorjetaLine {
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only .payment-pos-hero-gorjeta-wrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentGorjetaLine {
     display: none !important;
 }
 
 /* Modal caixa: modo pré-pagamento (sem gorjeta / linhas de caixa parcial) */
-#paymentModal.payment-pos-modal--reserva .payment-pos-hero-gorjeta-wrap,
-#paymentModal.payment-pos-modal--reserva #paymentGorjetaLine,
-#paymentModal.payment-pos-modal--reserva #paymentOnlinePaidLine,
-#paymentModal.payment-pos-modal--reserva #paymentLineTotalDue {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva .payment-pos-hero-gorjeta-wrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentGorjetaLine,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentOnlinePaidLine,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentLineTotalDue {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--reserva #paymentLinePrepagamentoPaid {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentLinePrepagamentoPaid {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--reserva #paymentLineCheckoutTotal {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentLineCheckoutTotal {
     display: flex !important;
 }
-#paymentModal.payment-pos-modal--reserva #paymentLineDepositAmount {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentLineDepositAmount {
     display: flex !important;
 }
-#paymentModal.payment-pos-modal--reserva .payment-pos-hero-reserva-custom-input {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva .payment-pos-hero-reserva-custom-input {
     max-width: 9rem;
     margin-left: auto;
 }
-#paymentModal:not(.payment-pos-modal--reserva) #paymentPrepagamentoLine,
-#paymentModal:not(.payment-pos-modal--reserva) #paymentReservaCustomWrap {
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentPrepagamentoLine,
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentReservaCustomWrap {
     display: none !important;
 }
 
 /* Pré-pagamento: créditos parciais (checkbox, como booking online) */
-#paymentModal.payment-pos-modal--reserva #paymentMethodCreditosCarteiraBtn {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentMethodCreditosCarteiraBtn {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodSectionLegend,
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodToggleGroup,
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMbwayPhoneWrap,
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentCashTenderWrap,
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentWalletPartialSummary {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodSectionLegend,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodToggleGroup,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMbwayPhoneWrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentCashTenderWrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentWalletPartialSummary {
     display: none !important;
 }
-#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletApplyWrap,
-#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletCoversReservaMsg,
-#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletPartialSummary {
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentWalletApplyWrap,
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentWalletCoversReservaMsg,
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentWalletPartialSummary {
     display: none !important;
 }
 .payment-pos-wallet-apply-wrap {
@@ -156,33 +157,81 @@
     border-radius: 0.75rem;
 }
 .payment-pos-modal .modal-footer.payment-pos-modal-footer {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.4rem;
-    justify-content: stretch;
-    align-items: stretch;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
 }
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary {
-    grid-column: 1 / span 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.4rem;
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > #paymentCancelBtn {
     min-width: 0;
 }
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary:has(#paymentDraftBtn.d-none) {
-    grid-template-columns: 1fr;
-}
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary > .btn {
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
     min-width: 0;
-    width: 100%;
 }
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > #paymentConfirmBtn {
-    grid-column: 3 / span 2;
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__actions > .btn {
     min-width: 0;
-    width: 100%;
 }
-.payment-pos-total-hero {
-    border-color: var(--bs-border-color, #dee2e6) !important;
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__actions > #paymentConfirmBtn {
+    min-width: 8.5rem;
+}
+.payment-pos-total-hero,
+.payment-pos-summary-card {
+    background: #fff !important;
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1)) !important;
+    border-radius: var(--radius-md, 0.375rem);
+    padding: 0.85rem 1rem;
+    box-shadow: none;
+}
+.payment-pos-summary-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.payment-pos-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 0.875rem;
+    line-height: 1.35;
+}
+.payment-pos-summary-services .payment-pos-summary-row:last-child,
+.payment-pos-summary-fees .payment-pos-summary-row:last-child {
+    border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+.payment-pos-summary-row--extra .payment-pos-summary-label {
+    color: var(--bs-secondary-color, #6c757d);
+    padding-left: 0.35rem;
+}
+.payment-pos-summary-row--total {
+    border-bottom: 0;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+    margin-top: 0.15rem;
+    padding-top: 0.7rem;
+    font-weight: 600;
+}
+.payment-pos-summary-label {
+    min-width: 0;
+    color: var(--bs-body-color, #212529);
+}
+.payment-pos-summary-value {
+    flex-shrink: 0;
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-body-color, #212529);
+}
+.payment-pos-summary-row--total .payment-pos-summary-label,
+.payment-pos-summary-row--total .payment-pos-summary-value {
+    font-weight: 700;
 }
 .payment-pos-hero-client {
     min-width: 0;
@@ -263,12 +312,12 @@
 }
 
 /* Caixa (modal pagamento): cartão seleccionado — fundo verde muito suave, borda verde mais escura */
-#paymentModal .tempo-pessoal-type-card.active {
+:is(#paymentModal, .payment-pos-in-layer) .tempo-pessoal-type-card.active {
     border-color: #1f7a4d !important;
     background-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.075);
     box-shadow: 0 0 0 1px rgba(var(--bs-success-rgb, 25, 135, 84), 0.22);
 }
-#paymentModal .tempo-pessoal-type-card:hover:not(.active) {
+:is(#paymentModal, .payment-pos-in-layer) .tempo-pessoal-type-card:hover:not(.active) {
     border-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.42) !important;
     background-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.045);
 }
@@ -276,26 +325,69 @@
 #paymentConfirmBtn.btn-success {
     min-height: 2.75rem;
 }
+.payment-pos-in-layer #paymentConfirmBtn.btn-success {
+    min-height: unset;
+}
 
-#paymentModal .payment-pos-cash-tender-row {
+.payment-pos-mbway-phone-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.75rem;
     min-width: 0;
 }
-#paymentModal .payment-pos-cash-received-input {
-    width: 8rem !important;
-    max-width: 8rem !important;
-    min-width: 0 !important;
-    flex: 0 0 8rem !important;
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
+.payment-pos-mbway-phone-input {
+    width: 11rem;
+    max-width: 11rem;
+    flex: 0 0 11rem;
 }
-#paymentModal .payment-pos-cash-change {
+.payment-pos-cash-tender-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    width: 100%;
+    overflow-x: auto;
+}
+.payment-pos-cash-label {
     flex: 0 0 auto;
+    margin-bottom: 0;
 }
-#paymentModal .payment-pos-cash-change strong {
+.payment-pos-cash-received-input {
+    width: 5.5rem !important;
+    max-width: 5.5rem !important;
+    min-width: 4.5rem !important;
+    flex: 0 0 5.5rem !important;
+    padding-left: 0.45rem !important;
+    padding-right: 0.45rem !important;
+}
+.payment-pos-cash-shortcuts {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.payment-pos-cash-shortcut {
+    min-width: 0;
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+    white-space: nowrap;
+}
+.payment-pos-cash-change {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding-left: 0.5rem;
+    border-left: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+}
+.payment-pos-cash-change strong {
     font-variant-numeric: tabular-nums;
-}
-#paymentModal .payment-pos-cash-shortcut {
-    min-width: 3.25rem;
+    font-weight: 700;
 }
 
 /* Modal pequenino — espera MB Way */

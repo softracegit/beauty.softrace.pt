@@ -67,6 +67,7 @@ class BookingContext
             'bookingCancellationPolicyNotice',
             CrmSetting::bookingCancellationPolicyNoticeText($store->id),
         );
+        View::share('bookingCancellationPolicyText', CrmSetting::bookingCancellationPolicyText($store->id));
         $resolvedTheme = BookingTheme::resolve(null, $store->id);
         View::share('bookingTheme', $resolvedTheme);
         View::share('bookingThemeMeta', BookingTheme::resolved($store->id));

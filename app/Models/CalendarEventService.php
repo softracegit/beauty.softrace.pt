@@ -43,7 +43,8 @@ class CalendarEventService extends Pivot
 
     public function service(): BelongsTo
     {
-        return $this->belongsTo(Service::class);
+        // withTrashed: marcações antigas continuam a resolver o serviço após soft delete.
+        return $this->belongsTo(Service::class)->withTrashed();
     }
 
     public function serviceOption(): BelongsTo

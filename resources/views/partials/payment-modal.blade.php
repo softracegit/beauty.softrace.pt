@@ -12,63 +12,64 @@
                 <button type="button" class="btn-close" id="paymentModalCloseBtn" aria-label="Fechar"></button>
             </div>
             <div class="modal-body pt-3">
-                <div class="payment-pos-total-hero py-3 px-3 mb-3 rounded-3 border bg-body-secondary bg-opacity-50">
-                    <div class="row g-3 align-items-start">
-                        <div class="col-md-6 payment-pos-hero-client">
-                            <div class="d-flex gap-3 align-items-start">
-                                <div class="payment-pos-hero-avatar-wrap flex-shrink-0">
-                                    <img src="" alt="" class="payment-pos-hero-avatar rounded-circle border d-none" id="paymentModalHeroAvatar" width="56" height="56">
-                                    <span class="payment-pos-hero-avatar-fallback rounded-circle border d-none" id="paymentModalHeroAvatarFallback" aria-hidden="true"></span>
-                                </div>
-                                <div class="payment-pos-hero-client-lines text-start flex-grow-1 min-w-0 small">
-                                    <div class="fw-semibold text-body text-break payment-pos-hero-client-line" id="paymentModalHeroName">—</div>
-                                    <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroPhone">—</div>
-                                    <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroEmail">—</div>
-                                    <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroNif">—</div>
-                                </div>
+                <h5 class="agenda-oc-payment-layer__title payment-pos-layer-only-title d-none" id="paymentLayerPanelTitle">Pagamento</h5>
+                <div class="payment-pos-total-hero payment-pos-summary-card mb-3">
+                    <div class="payment-pos-hero-client mb-3">
+                        <div class="d-flex gap-3 align-items-start">
+                            <div class="payment-pos-hero-avatar-wrap flex-shrink-0">
+                                <img src="" alt="" class="payment-pos-hero-avatar rounded-circle border d-none" id="paymentModalHeroAvatar" width="56" height="56">
+                                <span class="payment-pos-hero-avatar-fallback rounded-circle border d-none" id="paymentModalHeroAvatarFallback" aria-hidden="true"></span>
                             </div>
-                        </div>
-                        <div class="col-md-6 payment-pos-hero-values text-md-end">
-                            <div class="small payment-pos-hero-totals-stack mt-0 text-start text-md-end px-md-0 payment-pos-hero-caixa-stack" id="paymentCaixaHeroStack" aria-live="polite">
-                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row" id="paymentLineServices">
-                                    <span class="text-muted" id="paymentSubtotalLineLabel">Total 0 serviços:</span>
-                                    <span class="fw-semibold text-body" id="paymentSubtotalDisplay">0,00 €</span>
-                                </div>
-                                <div id="paymentFeesLines" class="payment-pos-hero-fees-stack"></div>
-                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentLineCheckoutTotal">
-                                    <span class="text-muted">Total a pagar:</span>
-                                    <span class="fw-semibold text-body" id="paymentCheckoutTotalDisplay">0,00 €</span>
-                                </div>
-                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentLinePrepagamentoPaid">
-                                    <span class="text-muted" id="paymentPrepaidLineLabel">Pré-pagamento:</span>
-                                    <span class="fw-semibold text-body" id="paymentOnlinePaidDisplay">-0,00 €</span>
-                                </div>
-                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentLineDepositAmount">
-                                    <span class="text-muted" id="paymentReservaPercentLabel">Pré-pagamento:</span>
-                                    <span class="fw-semibold text-body" id="paymentReservaAmountDisplay">0,00 €</span>
-                                </div>
-                                <div class="mt-2 d-none text-start text-md-end" id="paymentReservaCustomWrap">
-                                    <label for="paymentReservaCustomAmount" class="form-label small text-muted mb-1">Valor do pré-pagamento (€)</label>
-                                    <input type="number" step="0.01" min="0.01" class="form-control form-control-sm payment-pos-hero-reserva-custom-input text-end" id="paymentReservaCustomAmount" placeholder="0,00" autocomplete="off">
-                                </div>
-                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentLineTotalDue">
-                                    <span class="fw-semibold text-body">Total a pagar:</span>
-                                    <span class="fw-semibold text-body" id="paymentTotalDueDisplay">0,00 €</span>
-                                </div>
-                                @if($posGorjetaEnabled ?? true)
-                                <div class="d-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row d-none" id="paymentGorjetaLine"><span class="text-muted">Gorjeta:</span><span class="fw-semibold text-body" id="paymentGorjetaDisplay">0,00 €</span></div>
-                                @endif
+                            <div class="payment-pos-hero-client-lines text-start flex-grow-1 min-w-0 small">
+                                <div class="fw-semibold text-body text-break payment-pos-hero-client-line" id="paymentModalHeroName">—</div>
+                                <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroPhone">—</div>
+                                <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroEmail">—</div>
+                                <div class="text-muted text-break payment-pos-hero-client-line" id="paymentModalHeroNif">—</div>
                             </div>
-                            @if($posGorjetaEnabled ?? true)
-                            <div class="d-flex flex-wrap align-items-center justify-content-between justify-content-md-end gap-2 mt-2 pt-2 border-top payment-pos-hero-gorjeta-wrap">
-                                <label for="paymentGorjeta" class="form-label small text-muted mb-0">Gorjeta (€)</label>
-                                <input type="number" step="0.01" min="0" class="form-control form-control-sm payment-pos-hero-gorjeta-input text-end" id="paymentGorjeta" value="0" placeholder="0,00" title="Gorjeta">
-                            </div>
-                            @else
-                            <input type="hidden" id="paymentGorjeta" value="0">
-                            @endif
                         </div>
                     </div>
+                    <div class="payment-pos-summary-table" id="paymentCaixaHeroStack" aria-live="polite">
+                        <div class="payment-pos-summary-services" id="paymentSummaryServiceRows"></div>
+                        <div id="paymentFeesLines" class="payment-pos-summary-fees"></div>
+                        <div class="payment-pos-summary-row d-none" id="paymentLineServices">
+                            <span class="payment-pos-summary-label" id="paymentSubtotalLineLabel">Total 0 serviços</span>
+                            <span class="payment-pos-summary-value" id="paymentSubtotalDisplay">0,00 €</span>
+                        </div>
+                        <div class="payment-pos-summary-row d-none" id="paymentLineCheckoutTotal">
+                            <span class="payment-pos-summary-label">Total a pagar</span>
+                            <span class="payment-pos-summary-value" id="paymentCheckoutTotalDisplay">0,00 €</span>
+                        </div>
+                        <div class="payment-pos-summary-row d-none" id="paymentLinePrepagamentoPaid">
+                            <span class="payment-pos-summary-label" id="paymentPrepaidLineLabel">Pré-pagamento</span>
+                            <span class="payment-pos-summary-value" id="paymentOnlinePaidDisplay">-0,00 €</span>
+                        </div>
+                        <div class="payment-pos-summary-row d-none" id="paymentLineDepositAmount">
+                            <span class="payment-pos-summary-label" id="paymentReservaPercentLabel">Pré-pagamento</span>
+                            <span class="payment-pos-summary-value" id="paymentReservaAmountDisplay">0,00 €</span>
+                        </div>
+                        <div class="d-none mt-2" id="paymentReservaCustomWrap">
+                            <label for="paymentReservaCustomAmount" class="form-label small text-muted mb-1">Valor do pré-pagamento (€)</label>
+                            <input type="number" step="0.01" min="0.01" class="form-control form-control-sm payment-pos-hero-reserva-custom-input" id="paymentReservaCustomAmount" placeholder="0,00" autocomplete="off">
+                        </div>
+                        @if($posGorjetaEnabled ?? true)
+                        <div class="payment-pos-summary-row d-none" id="paymentGorjetaLine">
+                            <span class="payment-pos-summary-label">Gorjeta</span>
+                            <span class="payment-pos-summary-value" id="paymentGorjetaDisplay">0,00 €</span>
+                        </div>
+                        @endif
+                        <div class="payment-pos-summary-row payment-pos-summary-row--total d-none" id="paymentLineTotalDue">
+                            <span class="payment-pos-summary-label">Total a pagar</span>
+                            <span class="payment-pos-summary-value" id="paymentTotalDueDisplay">0,00 €</span>
+                        </div>
+                    </div>
+                    @if($posGorjetaEnabled ?? true)
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 pt-2 border-top payment-pos-hero-gorjeta-wrap">
+                        <label for="paymentGorjeta" class="form-label small text-muted mb-0">Gorjeta (€)</label>
+                        <input type="number" step="0.01" min="0" class="form-control form-control-sm payment-pos-hero-gorjeta-input text-end" id="paymentGorjeta" value="0" placeholder="0,00" title="Gorjeta">
+                    </div>
+                    @else
+                    <input type="hidden" id="paymentGorjeta" value="0">
+                    @endif
                     <div class="d-none mt-2 payment-consolidated-details-full" id="paymentConsolidatedDetailsWrap">
                         <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none d-inline-flex align-items-center gap-1" id="paymentConsolidatedToggleBtn" aria-expanded="false">
                             <span>Ver as marcações do dia</span>
@@ -80,7 +81,7 @@
                     </div>
                 </div>
 
-                <p class="small fw-semibold text-uppercase text-muted mb-2" id="paymentFaturaSectionLegend">Fatura</p>
+                <label class="form-label fw-semibold" id="paymentFaturaSectionLegend">Fatura</label>
                 <div class="tempo-pessoal-type-toggle-wrapper payment-pos-fatura-2x2 mb-2" role="group" aria-labelledby="paymentFaturaSectionLegend" id="paymentFaturaTilesGrid">
                     <button type="button" role="radio" class="tempo-pessoal-type-card btn border rounded-2 payment-invoice-fiscal-card active" data-fiscal-mode="consumer" aria-checked="true" id="paymentFiscalConsumerBtn">
                         <i class="ph ph-receipt tempo-pessoal-type-card-icon" aria-hidden="true"></i>
@@ -153,7 +154,7 @@
                     </p>
                 </div>
 
-                <p class="small fw-semibold text-uppercase text-muted mb-2 mt-3" id="paymentMethodSectionLegend">Pagamento</p>
+                <label class="form-label fw-semibold mt-3" id="paymentMethodSectionLegend">Pagamento</label>
                 <div class="tempo-pessoal-type-toggle-wrapper" role="group" aria-labelledby="paymentMethodSectionLegend" id="paymentMethodToggleGroup">
                     <button type="button" class="tempo-pessoal-type-card btn border rounded-2 payment-method-card d-none" data-method="dinheiro" aria-pressed="false" id="paymentMethodDinheiroBtn">
                         <i class="ph ph-money tempo-pessoal-type-card-icon" aria-hidden="true"></i>
@@ -193,29 +194,30 @@
                 <input type="hidden" id="paymentMethodValue" value="">
 
                 <div class="mt-4 d-none" id="paymentMbwayPhoneWrap">
-                    <label for="paymentMbwayPhone" class="form-label">Telemóvel MB WAY</label>
-                    <input type="tel" class="form-control" id="paymentMbwayPhone" placeholder="+3519XXXXXXXX">
-                    <div class="form-text">Se a ficha do cliente não tiver telemóvel, este número ficará guardado.</div>
-                    <div class="form-text text-danger d-none mb-0" id="paymentMbwayPhonePtHint">O MB Way (Stripe) só funciona com telemóveis portugueses (+351 9XXXXXXXX).</div>
+                    <div class="payment-pos-mbway-phone-row">
+                        <label for="paymentMbwayPhone" class="form-label mb-0 text-nowrap">Telemóvel MB WAY</label>
+                        <input type="tel" class="form-control payment-pos-mbway-phone-input" id="paymentMbwayPhone" placeholder="+3519XXXXXXXX">
+                    </div>
+                    <div class="form-text text-danger d-none mb-0 mt-2" id="paymentMbwayPhonePtHint">O MB Way (Stripe) só funciona com telemóveis portugueses (+351 9XXXXXXXX).</div>
                 </div>
 
                 <div class="mt-4 d-none" id="paymentCashTenderWrap">
-                    <div class="payment-pos-cash-tender-row d-flex align-items-center gap-2 flex-nowrap">
-                        <label for="paymentCashReceived" class="form-label mb-0 text-nowrap">Recebido</label>
+                    <div class="payment-pos-cash-tender-row" id="paymentCashTenderRow">
+                        <label for="paymentCashReceived" class="form-label mb-0 text-nowrap payment-pos-cash-label">Recebido</label>
                         <input type="number" step="0.01" min="0" class="form-control payment-pos-cash-received-input" id="paymentCashReceived" placeholder="0,00" inputmode="decimal" autocomplete="off">
-                        <div class="payment-pos-cash-change text-nowrap ms-2" aria-live="polite">
+                        <div class="payment-pos-cash-shortcuts" id="paymentCashShortcuts" role="group" aria-label="Valores rápidos">
+                            <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="exact">Exacto</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="5">5 €</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="10">10 €</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="20">20 €</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="50">50 €</button>
+                        </div>
+                        <div class="payment-pos-cash-change text-nowrap" aria-live="polite">
                             <span class="text-muted">Troco</span>
-                            <strong class="ms-1" id="paymentCashChange">0,00 €</strong>
+                            <strong id="paymentCashChange">0,00 €</strong>
                         </div>
                     </div>
-                    <div class="payment-pos-cash-shortcuts d-flex flex-wrap gap-1 mt-2" id="paymentCashShortcuts" role="group" aria-label="Valores rápidos">
-                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="exact">Exacto</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="5">5 €</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="10">10 €</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="20">20 €</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary payment-pos-cash-shortcut" data-cash-amount="50">50 €</button>
-                    </div>
-                    <div class="form-text text-danger d-none mb-0" id="paymentCashInsufficientHint">Valor insuficiente para o total a pagar.</div>
+                    <div class="form-text text-danger d-none mb-0 mt-2" id="paymentCashInsufficientHint">Valor insuficiente para o total a pagar.</div>
                 </div>
 
                 <div class="mt-4 pt-3 border-top d-none" id="paymentAgendarNovaMarcacaoWrap">
@@ -228,12 +230,12 @@
                     <p class="small text-muted mb-0 mt-1">Após concluir, fica um atalho para marcar de novo com o mesmo cliente.</p>
                 </div>
             </div>
-            <div class="modal-footer pt-2 pb-3 border-top payment-pos-modal-footer">
-                <div class="payment-pos-modal-footer__secondary">
-                    <button type="button" class="btn btn-light" id="paymentCancelBtn">Cancelar</button>
+            <div class="modal-footer border-top payment-pos-modal-footer">
+                <button type="button" class="btn btn-light" id="paymentCancelBtn">Cancelar</button>
+                <div class="payment-pos-modal-footer__actions">
                     <button type="button" class="btn btn-outline-secondary fw-semibold" id="paymentDraftBtn" disabled>Rascunho</button>
+                    <button type="button" class="btn btn-success fw-semibold" id="paymentConfirmBtn" disabled>Pagar 0,00 €</button>
                 </div>
-                <button type="button" class="btn btn-success fw-semibold py-2" id="paymentConfirmBtn" disabled>Pagar 0,00 €</button>
             </div>
         </div>
     </div>

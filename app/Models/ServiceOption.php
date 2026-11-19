@@ -14,7 +14,7 @@ class ServiceOption extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['service_id', 'name', 'duration', 'price', 'online_price', 'sort_order', 'is_baseline'])
+            ->logOnly(['service_id', 'name', 'description', 'duration', 'price', 'online_price', 'sort_order', 'is_baseline', 'type'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Opção de serviço criada',
@@ -24,14 +24,32 @@ class ServiceOption extends Model
             });
     }
 
+    /** Escolha única (radio): define o preço e a duração do serviço. */
+    public const TYPE_CHOICE = 'choice';
+
+    /** Adicional (interruptor): soma-se à variante escolhida. */
+    public const TYPE_ADDON = 'addon';
+
+    public function isAddon(): bool
+    {
+        return $this->type === self::TYPE_ADDON;
+    }
+
+    public static function normalizeType(mixed $type): string
+    {
+        return $type === self::TYPE_ADDON ? self::TYPE_ADDON : self::TYPE_CHOICE;
+    }
+
     protected $fillable = [
         'service_id',
         'name',
+        'description',
         'duration',
         'price',
         'online_price',
         'sort_order',
         'is_baseline',
+        'type',
     ];
 
     protected $casts = [

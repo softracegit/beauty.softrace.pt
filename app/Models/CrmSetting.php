@@ -46,6 +46,25 @@ class CrmSetting extends Model
 
     public const KEY_BOOKING_THEME = 'booking.theme';
 
+    /** Largura do Booking público: "wide" (ecrã inteiro) ou "narrow" (conteúdo centrado). */
+    public const KEY_BOOKING_WIDTH = 'booking.width';
+
+    public const BOOKING_WIDTH_WIDE = 'wide';
+
+    public const BOOKING_WIDTH_NARROW = 'narrow';
+
+    /** Disposição dos serviços no Booking público: "grid" (duas colunas) ou "list" (um por linha). */
+    public const KEY_BOOKING_SERVICES_LAYOUT = 'booking.services_layout';
+
+    /** Texto livre da política de cancelamento, mostrado no Booking (passo de confirmação). */
+    public const KEY_BOOKING_CANCELLATION_POLICY_TEXT = 'booking.cancellation_policy_text';
+
+    public const BOOKING_CANCELLATION_POLICY_TEXT_MAX = 600;
+
+    public const BOOKING_SERVICES_LAYOUT_GRID = 'grid';
+
+    public const BOOKING_SERVICES_LAYOUT_LIST = 'list';
+
     public const BOOKING_SLOT_INTERVAL_MINUTES_DEFAULT = 15;
 
     /** @var list<int> */
@@ -468,6 +487,22 @@ class CrmSetting extends Model
     }
 
     /**
+     * Texto livre da política de cancelamento escrito pela loja (vazio = não mostrar).
+     */
+    public static function bookingCancellationPolicyText(?int $storeId = null): string
+    {
+        return self::getString(self::KEY_BOOKING_CANCELLATION_POLICY_TEXT, '', $storeId);
+    }
+
+    public static function setBookingCancellationPolicyText(?string $text, ?int $storeId = null): void
+    {
+        $clean = trim(strip_tags((string) $text));
+        $clean = mb_substr($clean, 0, self::BOOKING_CANCELLATION_POLICY_TEXT_MAX);
+
+        self::setString(self::KEY_BOOKING_CANCELLATION_POLICY_TEXT, $clean, $storeId);
+    }
+
+    /**
      * Texto da política de cancelamento para o fluxo público (checkout, conta, SMS).
      */
     public static function bookingCancellationPolicyNoticeText(?int $storeId = null): string
@@ -545,6 +580,56 @@ class CrmSetting extends Model
     {
         return \App\Support\BookingTheme::resolve(
             self::getString(self::KEY_BOOKING_THEME, \App\Support\BookingTheme::DEFAULT, $storeId),
+            $storeId,
+        );
+    }
+
+    /** @return array<string, string> */
+    public static function bookingWidths(): array
+    {
+        return [
+            self::BOOKING_WIDTH_WIDE => 'Largo — ocupa o ecrã todo',
+            self::BOOKING_WIDTH_NARROW => 'Estreito — conteúdo centrado',
+        ];
+    }
+
+    public static function bookingWidth(?int $storeId = null): string
+    {
+        $value = self::getString(self::KEY_BOOKING_WIDTH, self::BOOKING_WIDTH_WIDE, $storeId);
+
+        return array_key_exists($value, self::bookingWidths()) ? $value : self::BOOKING_WIDTH_WIDE;
+    }
+
+    public static function setBookingWidth(string $width, ?int $storeId = null): void
+    {
+        self::setString(
+            self::KEY_BOOKING_WIDTH,
+            array_key_exists($width, self::bookingWidths()) ? $width : self::BOOKING_WIDTH_WIDE,
+            $storeId,
+        );
+    }
+
+    /** @return array<string, string> */
+    public static function bookingServicesLayouts(): array
+    {
+        return [
+            self::BOOKING_SERVICES_LAYOUT_GRID => 'Grelha — dois serviços por linha',
+            self::BOOKING_SERVICES_LAYOUT_LIST => 'Lista — um serviço por linha',
+        ];
+    }
+
+    public static function bookingServicesLayout(?int $storeId = null): string
+    {
+        $value = self::getString(self::KEY_BOOKING_SERVICES_LAYOUT, self::BOOKING_SERVICES_LAYOUT_GRID, $storeId);
+
+        return array_key_exists($value, self::bookingServicesLayouts()) ? $value : self::BOOKING_SERVICES_LAYOUT_GRID;
+    }
+
+    public static function setBookingServicesLayout(string $layout, ?int $storeId = null): void
+    {
+        self::setString(
+            self::KEY_BOOKING_SERVICES_LAYOUT,
+            array_key_exists($layout, self::bookingServicesLayouts()) ? $layout : self::BOOKING_SERVICES_LAYOUT_GRID,
             $storeId,
         );
     }

@@ -40,6 +40,20 @@ trait BelongsToOrganization
             ->firstOrFail();
     }
 
+    /**
+     * Soft-deleted models (ex.: Service no Arquivo) com withTrashed na rota.
+     */
+    public function resolveSoftDeletableRouteBinding($value, $field = null)
+    {
+        $field = $field ?? $this->getRouteKeyName();
+
+        return static::query()
+            ->withTrashed()
+            ->where($field, $value)
+            ->forOrganization($this->resolveRouteBindingOrganizationId())
+            ->firstOrFail();
+    }
+
     protected function resolveRouteBindingOrganizationId(): int
     {
         $user = auth()->user();

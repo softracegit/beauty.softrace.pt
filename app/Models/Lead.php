@@ -59,7 +59,7 @@ class Lead extends Model
             return null;
         }
 
-        return PhoneDisplay::formatInternational($raw) ?? $raw;
+        return PhoneDisplay::formatForDisplay($raw) ?? $raw;
     }
 
     // Tipos de lead

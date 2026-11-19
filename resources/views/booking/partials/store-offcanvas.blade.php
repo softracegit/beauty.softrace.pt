@@ -29,14 +29,62 @@
 @endphp
 <div class="offcanvas offcanvas-end booking-offcanvas" tabindex="-1" id="bookingStoreDetails" aria-labelledby="bookingOffcanvasTitle">
     <div class="offcanvas-header border-0 pb-0 booking-offcanvas__header">
-        <button type="button" class="btn booking-offcanvas__close-btn" data-bs-dismiss="offcanvas" aria-label="{{ __('booking.partials.store_close_aria') }}">
-            <i class="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
+        @if (($bookingTheme ?? null) === \App\Support\BookingTheme::MINIMAL)
+            {{-- Tema Minimal: mesmo fechar dos restantes modais e folhas --}}
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ __('booking.partials.store_close_aria') }}"></button>
+        @else
+            <button type="button" class="btn booking-offcanvas__close-btn" data-bs-dismiss="offcanvas" aria-label="{{ __('booking.partials.store_close_aria') }}">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        @endif
         <h2 class="visually-hidden offcanvas-title" id="bookingOffcanvasTitle">{{ __('booking.partials.store_menu_title') }}</h2>
     </div>
     <div class="offcanvas-body d-flex flex-column booking-offcanvas__body">
         <section class="booking-offcanvas__agency" aria-label="{{ __('booking.partials.store_agency_aria') }}">
-            <h3 class="booking-offcanvas__agency-title mb-2">{{ $profile['name'] ?? ($businessName ?? __('booking.nav.default_store')) }}</h3>
+            @php
+                // Tema Minimal: "Mudar loja" ao lado do nome, quando a organização tem mais de uma loja
+                $bookingSwitchStores = collect();
+                if (($bookingTheme ?? null) === \App\Support\BookingTheme::MINIMAL
+                    && ($bookingStore ?? null) instanceof \App\Models\Store
+                    && $bookingStore->organization_id) {
+                    $bookingSwitchStores = \App\Models\Store::query()
+                        ->where('organization_id', $bookingStore->organization_id)
+                        ->orderBy('name')
+                        ->get(['id', 'name', 'slug']);
+                }
+            @endphp
+            @if ($bookingSwitchStores->count() > 1)
+                <div class="booking-offcanvas__agency-head">
+                    <h3 class="booking-offcanvas__agency-title mb-0">{{ $profile['name'] ?? ($businessName ?? __('booking.nav.default_store')) }}</h3>
+                    <div class="dropdown booking-offcanvas__stores-dropdown">
+                        <button
+                            type="button"
+                            class="booking-offcanvas__store-toggle"
+                            data-bs-toggle="dropdown"
+                            data-bs-display="static"
+                            aria-expanded="false"
+                            aria-haspopup="menu"
+                        >
+                            <span>{{ __('booking.partials.store_switch') }}</span>
+                            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end booking-offcanvas__stores-menu">
+                            @foreach ($bookingSwitchStores as $switchStore)
+                                @php $isCurrentStore = (int) $switchStore->id === (int) $bookingStore->id; @endphp
+                                <li>
+                                    <a
+                                        href="{{ route('booking.index', ['store' => $switchStore->slug], false) }}"
+                                        @class(['dropdown-item', 'active' => $isCurrentStore])
+                                        @if ($isCurrentStore) aria-current="true" @endif
+                                    >{{ $switchStore->name }}</a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            @else
+                <h3 class="booking-offcanvas__agency-title mb-2">{{ $profile['name'] ?? ($businessName ?? __('booking.nav.default_store')) }}</h3>
+            @endif
 
             <div class="booking-offcanvas__info-list">
                 @if (! empty($profile['address']))

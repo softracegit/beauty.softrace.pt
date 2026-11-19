@@ -99,7 +99,22 @@
                     role="region"
                     aria-label="{{ __('booking.partials.summary_mobile_drawer_aria') }}"
                     aria-hidden="true"
-                ></div>
+                >
+                    @if (($bookingTheme ?? null) === \App\Support\BookingTheme::MINIMAL)
+                        {{-- Tema Minimal: o resumo abre como folha que sobe de baixo, com fechar e ajuda no fim --}}
+                        @php $summaryHelpWhatsapp = preg_replace('/\D+/', '', (string) config('booking.booking_whatsapp', '')); @endphp
+                        <div class="booking-summary-drawer__head">
+                            <h2 class="booking-summary-drawer__title">{{ __('booking.partials.summary_title') }}</h2>
+                            <button type="button" class="btn-close" data-booking-summary-close aria-label="{{ __('booking.partials.service_modal_close') }}"></button>
+                        </div>
+                        @if ($summaryHelpWhatsapp !== '')
+                            <a href="https://wa.me/{{ $summaryHelpWhatsapp }}" class="booking-summary-drawer__help" target="_blank" rel="noopener noreferrer">
+                                <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                                <span>{{ __('booking.auth.support_help') }}</span>
+                            </a>
+                        @endif
+                    @endif
+                </div>
 
                 <div class="booking-summary-footer-bar">
                     <div id="booking-summary-total" class="booking-summary-total is-hidden" role="button" tabindex="0" aria-expanded="false" aria-controls="booking-summary-mobile-drawer" aria-label="{{ __('booking.partials.summary_total_toggle_aria') }}">
@@ -113,6 +128,17 @@
                             <i class="bi bi-chevron-up booking-summary-total__toggle-icon"></i>
                         </span>
                     </div>
+
+                    @if($showPayAtStoreNote ?? false)
+                        {{-- Sem pré-pagamento online: o cliente sabe que hoje não paga nada --}}
+                        <div class="booking-summary-pay-note" role="note">
+                            <i class="bi bi-check-circle booking-summary-pay-note__icon" aria-hidden="true"></i>
+                            <div class="booking-summary-pay-note__text">
+                                <span class="booking-summary-pay-note__title">{{ __('booking.partials.pay_at_store_title') }}</span>
+                                <span class="booking-summary-pay-note__body">{{ __('booking.partials.pay_at_store_body') }}</span>
+                            </div>
+                        </div>
+                    @endif
 
                     @if($showNextButton)
                         <div class="booking-summary-actions d-flex gap-2 align-items-center">

@@ -270,6 +270,7 @@ class CalendarEvent extends Model
         'technical_formula',
         'technical_products',
         'technical_notes',
+        'clinical_sheet',
         'user_id',
         'client_id',
         'service_id',
@@ -303,6 +304,7 @@ class CalendarEvent extends Model
         'avisou_dentro_prazo' => 'boolean',
         'cancellation_notice_hours_applied' => 'integer',
         'wallet_credit_amount_cents' => 'integer',
+        'clinical_sheet' => 'array',
     ];
 
     protected $attributes = [
@@ -439,7 +441,7 @@ class CalendarEvent extends Model
 
     public function service(): BelongsTo
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsTo(Service::class)->withTrashed();
     }
 
     public function personalTimeType(): BelongsTo
@@ -454,6 +456,7 @@ class CalendarEvent extends Model
     {
         return $this->belongsToMany(Service::class, 'calendar_event_services')
             ->using(\App\Models\CalendarEventService::class)
+            ->withTrashed()
             ->withPivot(
                 'id',
                 'service_option_id',

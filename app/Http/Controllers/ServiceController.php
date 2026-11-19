@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\SyncServiceOptionsAction;
 use App\Http\Requests\StoreServiceRequest;
+use App\Http\Requests\SyncServiceExtraEquipaRequest;
 use App\Http\Requests\SyncServiceTecnicosRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use App\Models\Agent;
@@ -11,6 +12,7 @@ use App\Models\Category;
 use App\Models\Service;
 use App\Models\Store;
 use App\Models\User;
+use App\Support\AgentServiceExtras;
 use App\Support\CurrentStore;
 use App\Support\DateTimeDisplay;
 use App\Support\StoreContextPreference;
@@ -34,9 +36,13 @@ class ServiceController extends Controller
     public function allGrouped(Request $request): JsonResponse
     {
         $groups = Category::forOrganization(current_organization_id())->orderBy('sort_order')
-            ->with(['services' => fn ($q) => $q->with('agents')->withCount(['extras', 'fees'])->with([
-                'options' => fn ($oq) => $oq->orderBy('sort_order'),
-            ])->orderBy('sort_order')])
+            ->with(['services' => fn ($q) => $q
+                ->with([
+                    'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+                    'options' => fn ($oq) => $oq->orderBy('sort_order'),
+                ])
+                ->withCount(['extras', 'fees', 'agents'])
+                ->orderBy('sort_order')])
             ->get()
             ->map(fn (Category $cat) => [
                 'category' => $cat,
@@ -56,9 +62,11 @@ class ServiceController extends Controller
         }
 
         $services = $category->services()
-            ->with('agents')
-            ->withCount(['extras', 'fees'])
-            ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
+            ->with([
+                'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+                'options' => fn ($q) => $q->orderBy('sort_order'),
+            ])
+            ->withCount(['extras', 'fees', 'agents'])
             ->orderBy('sort_order')
             ->get();
 
@@ -163,11 +171,8 @@ class ServiceController extends Controller
 
         $this->syncServiceOptions->execute($service, $hasOptions, $hasOptions ? $request->optionRows() : []);
 
-        if ($request->has('agent_ids')) {
-            $this->syncAgentsForCurrentStore($service, $request->input('agent_ids', []));
-        }
         if ($request->boolean('sync_extras')) {
-            $service->extras()->sync($request->input('extra_ids', []));
+            $this->syncExtrasGrantingAgents($service, $request->input('extra_ids', []));
         }
         if ($request->boolean('sync_fees')) {
             $service->fees()->sync($request->input('fee_ids', []));
@@ -202,14 +207,8 @@ class ServiceController extends Controller
 
         $this->syncServiceOptions->execute($service, $hasOptions, $hasOptions ? $request->optionRows() : []);
 
-        // Formulário só lista técnicos da loja actual — preservar associações das outras lojas.
-        if ($request->has('agent_ids')) {
-            $this->syncAgentsForCurrentStore($service, $request->input('agent_ids', []));
-        } else {
-            $this->syncAgentsForCurrentStore($service, []);
-        }
         if ($request->boolean('sync_extras')) {
-            $service->extras()->sync($request->input('extra_ids', []));
+            $this->syncExtrasGrantingAgents($service, $request->input('extra_ids', []));
         }
         if ($request->boolean('sync_fees')) {
             $service->fees()->sync($request->input('fee_ids', []));
@@ -228,7 +227,30 @@ class ServiceController extends Controller
     }
 
     /**
-     * Remove the specified service
+     * Serviços no arquivo (soft-deleted).
+     */
+    public function archived(): JsonResponse
+    {
+        $services = Service::forOrganization(current_organization_id())
+            ->onlyTrashed()
+            ->with([
+                'category',
+                'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+                'options' => fn ($q) => $q->orderBy('sort_order'),
+            ])
+            ->withCount(['extras', 'fees', 'agents'])
+            ->orderByDesc('deleted_at')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'services' => $services,
+            'archived_services_count' => $services->count(),
+        ]);
+    }
+
+    /**
+     * Remove the specified service (soft delete → Arquivo).
      */
     public function destroy(Service $service): JsonResponse
     {
@@ -244,7 +266,46 @@ class ServiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Serviço eliminado com sucesso.',
+            'message' => 'Serviço movido para o Arquivo.',
+        ]);
+    }
+
+    /**
+     * Restaura um serviço do Arquivo.
+     *
+     * Usa id escalar (não route-model binding): o SubstituteBindings do grupo web
+     * corre antes de auth/set.current.store, e o scope de organização falhava nos soft-deleted.
+     */
+    public function restore(int $id): JsonResponse
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->canDeleteCatalogServicesAndCategories()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sem permissão para restaurar serviços.',
+            ], 403);
+        }
+
+        $service = Service::withTrashed()
+            ->forOrganization(current_organization_id())
+            ->whereKey($id)
+            ->first();
+
+        if (! $service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Serviço não encontrado no Arquivo.',
+            ], 404);
+        }
+
+        if ($service->trashed()) {
+            $service->restore();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Serviço restaurado com sucesso.',
+            'service' => $service->fresh(['category']),
         ]);
     }
 
@@ -345,7 +406,10 @@ class ServiceController extends Controller
                     ->map(fn ($id) => (int) $id)
                     ->all();
 
-                $service->agents()->sync(array_values(array_unique(array_merge($otherStoreAgentIds, $ids))));
+                $previousAgentIds = $service->agents()->pluck('agents.id')->map(fn ($id) => (int) $id)->all();
+                $nextAgentIds = array_values(array_unique(array_merge($otherStoreAgentIds, $ids)));
+                $service->agents()->sync($nextAgentIds);
+                AgentServiceExtras::syncForServiceAgents((int) $service->id, $previousAgentIds, $nextAgentIds);
             }
         });
 
@@ -355,31 +419,109 @@ class ServiceController extends Controller
     }
 
     /**
-     * Sync técnicos da loja actual sem remover agent_service de outras lojas.
-     *
-     * @param  list<int|string>|array<int|string, mixed>  $agentIds
+     * Matriz extra × técnico, dentro de cada serviço que tem extras.
      */
-    private function syncAgentsForCurrentStore(Service $service, array $agentIds): void
+    public function extrasEquipa(Request $request): View
     {
-        $storeId = current_store_id();
-        $allowed = Agent::query()
+        $storeId = $this->resolveCatalogStoreId($request);
+        $organizationId = current_organization_id();
+
+        $categories = Category::forOrganization($organizationId)->orderBy('sort_order')
+            ->with(['services' => fn ($q) => $q->with([
+                'agents:id',
+                'extras' => fn ($eq) => $eq->orderBy('sort_order'),
+            ])->orderBy('sort_order')])
+            ->get();
+
+        $agents = Agent::query()
+            ->activeServiceProviders($storeId)
+            ->orderBy('agenda_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'avatar', 'agenda_order']);
+
+        $assigned = [];
+        if ($agents->isNotEmpty()) {
+            $rows = DB::table('agent_service_extra')
+                ->whereIn('agent_id', $agents->pluck('id'))
+                ->get(['agent_id', 'service_id', 'extra_id']);
+            foreach ($rows as $row) {
+                $assigned[(int) $row->service_id.'-'.(int) $row->extra_id.'-'.(int) $row->agent_id] = true;
+            }
+        }
+
+        $store = Store::query()->find($storeId);
+
+        return view('services.extras-equipa', [
+            'categories' => $categories,
+            'agents' => $agents,
+            'assigned' => $assigned,
+            'matrixStoreId' => $storeId,
+            'matrixStore' => $store,
+        ]);
+    }
+
+    public function syncExtrasEquipa(SyncServiceExtraEquipaRequest $request): RedirectResponse
+    {
+        $storeId = $this->resolveCatalogStoreId($request);
+        $organizationId = current_organization_id();
+        $assignments = $request->validated('assignments', []);
+
+        $allowedAgentIds = Agent::query()
             ->activeServiceProviders($storeId)
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
 
-        $ids = array_values(array_intersect(
-            array_values(array_unique(array_map('intval', $agentIds))),
-            $allowed
-        ));
+        $services = Service::forOrganization($organizationId)
+            ->with(['agents:id', 'extras:id'])
+            ->get();
 
-        $otherStoreAgentIds = $service->agents()
-            ->where('agents.store_id', '!=', $storeId)
-            ->pluck('agents.id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        $catalogPairs = [];
+        $agentsByService = [];
+        foreach ($services as $service) {
+            if ($service->extras->isEmpty()) {
+                continue;
+            }
+            $agentsByService[(int) $service->id] = $service->agents->pluck('id')->map(fn ($id) => (int) $id)->all();
+            foreach ($service->extras as $extra) {
+                $catalogPairs[] = [
+                    'service_id' => (int) $service->id,
+                    'extra_id' => (int) $extra->id,
+                ];
+            }
+        }
 
-        $service->agents()->sync(array_values(array_unique(array_merge($otherStoreAgentIds, $ids))));
+        $wanted = [];
+        foreach ($assignments as $serviceId => $extras) {
+            if (! is_array($extras)) {
+                continue;
+            }
+            foreach ($extras as $extraId => $agentIds) {
+                $wanted[(int) $serviceId][(int) $extraId] = array_values(array_intersect(
+                    array_map('intval', (array) $agentIds),
+                    $allowedAgentIds,
+                ));
+            }
+        }
+
+        DB::transaction(function () use ($catalogPairs, $agentsByService, $wanted, $allowedAgentIds): void {
+            AgentServiceExtras::replaceStoreSelections($catalogPairs, $agentsByService, $wanted, $allowedAgentIds);
+        });
+
+        return redirect()
+            ->route('services.extras-equipa', [StoreContextPreference::QUERY_STORE => $storeId])
+            ->with('success', 'Extras por técnico atualizados.');
+    }
+
+    /**
+     * @param  list<int|string>|array<int|string, mixed>  $extraIds
+     */
+    private function syncExtrasGrantingAgents(Service $service, array $extraIds): void
+    {
+        $previousExtraIds = $service->extras()->pluck('extras.id')->map(fn ($id) => (int) $id)->all();
+        $nextExtraIds = array_values(array_unique(array_map('intval', $extraIds)));
+        $service->extras()->sync($nextExtraIds);
+        AgentServiceExtras::syncForServiceExtras((int) $service->id, $previousExtraIds, $nextExtraIds);
     }
 
     /**

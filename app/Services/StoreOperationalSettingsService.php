@@ -121,6 +121,9 @@ class StoreOperationalSettingsService
             CrmSetting::bookingCancellationNoticeHours($storeId),
             CrmSetting::bookingAnyStaffRule($storeId),
             CrmSetting::bookingTheme($storeId),
+            CrmSetting::bookingWidth($storeId),
+            CrmSetting::bookingServicesLayout($storeId),
+            md5(CrmSetting::bookingCancellationPolicyText($storeId)),
             (string) (Store::query()->whereKey($storeId)->value('booking_domain') ?? ''),
         ]);
     }
@@ -153,6 +156,11 @@ class StoreOperationalSettingsService
             'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule($storeId),
             'bookingTheme' => CrmSetting::bookingTheme($storeId),
             'bookingThemes' => BookingTheme::registry(),
+            'bookingWidth' => CrmSetting::bookingWidth($storeId),
+            'bookingWidths' => CrmSetting::bookingWidths(),
+            'bookingServicesLayout' => CrmSetting::bookingServicesLayout($storeId),
+            'bookingServicesLayouts' => CrmSetting::bookingServicesLayouts(),
+            'bookingCancellationPolicyText' => CrmSetting::bookingCancellationPolicyText($storeId),
             'bookingDomain' => (string) (Store::query()->whereKey($storeId)->value('booking_domain') ?? ''),
         ];
     }
@@ -201,6 +209,9 @@ class StoreOperationalSettingsService
             'booking_any_staff_rule_options' => ['nullable', 'array', 'min:1', 'max:1'],
             'booking_any_staff_rule_options.*' => ['string', 'in:'.implode(',', array_keys(CrmSetting::bookingAnyStaffRules()))],
             'booking_theme' => ['nullable', 'string', 'in:'.implode(',', array_keys(BookingTheme::registry()))],
+            'booking_width' => ['nullable', 'string', 'in:'.implode(',', array_keys(CrmSetting::bookingWidths()))],
+            'booking_services_layout' => ['nullable', 'string', 'in:'.implode(',', array_keys(CrmSetting::bookingServicesLayouts()))],
+            'booking_cancellation_policy_text' => ['nullable', 'string', 'max:'.CrmSetting::BOOKING_CANCELLATION_POLICY_TEXT_MAX],
             'booking_domain' => ['nullable', 'string', 'max:255', 'regex:/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/'],
         ], [
             'booking_slot_hold_minutes.min' => 'O tempo de reserva deve ser pelo menos 1 minuto.',
@@ -212,6 +223,7 @@ class StoreOperationalSettingsService
             'booking_cancellation_notice_hours.max' => 'O aviso mínimo não pode exceder 168 horas (7 dias).',
             'booking_any_staff_rule_options.max' => 'Selecione apenas uma regra de atribuição.',
             'booking_domain.regex' => 'Indique só o domínio, por exemplo booking.empresa.pt.',
+            'booking_cancellation_policy_text.max' => 'O texto da política de cancelamento não pode exceder '.CrmSetting::BOOKING_CANCELLATION_POLICY_TEXT_MAX.' caracteres.',
         ]);
 
         $selectedRule = null;
@@ -233,6 +245,16 @@ class StoreOperationalSettingsService
             'booking_theme' => array_key_exists('booking_theme', $validated)
                 ? (string) $validated['booking_theme']
                 : null,
+            'booking_width' => ! empty($validated['booking_width'])
+                ? (string) $validated['booking_width']
+                : null,
+            'booking_services_layout' => ! empty($validated['booking_services_layout'])
+                ? (string) $validated['booking_services_layout']
+                : null,
+            // Só entra quando o formulário envia o campo; vazio apaga o texto
+            ...($request->exists('booking_cancellation_policy_text')
+                ? ['booking_cancellation_policy_text' => (string) ($validated['booking_cancellation_policy_text'] ?? '')]
+                : []),
             'booking_domain' => $validated['booking_domain'] ?? null,
         ];
     }
@@ -256,6 +278,15 @@ class StoreOperationalSettingsService
         CrmSetting::setString(CrmSetting::KEY_BOOKING_ANY_STAFF_RULE, $data['booking_any_staff_rule'], $storeId);
         if ($data['booking_theme'] !== null) {
             CrmSetting::setBookingTheme($data['booking_theme'], $storeId);
+        }
+        if (($data['booking_width'] ?? null) !== null) {
+            CrmSetting::setBookingWidth((string) $data['booking_width'], $storeId);
+        }
+        if (($data['booking_services_layout'] ?? null) !== null) {
+            CrmSetting::setBookingServicesLayout((string) $data['booking_services_layout'], $storeId);
+        }
+        if (array_key_exists('booking_cancellation_policy_text', $data)) {
+            CrmSetting::setBookingCancellationPolicyText((string) $data['booking_cancellation_policy_text'], $storeId);
         }
         if (array_key_exists('booking_domain', $data)) {
             $store = Store::query()->find($storeId);
@@ -317,6 +348,8 @@ class StoreOperationalSettingsService
             'booking_cancellation_notice_hours' => CrmSetting::bookingCancellationNoticeHours($repId),
             'booking_any_staff_rule' => CrmSetting::bookingAnyStaffRule($repId),
             'booking_theme' => CrmSetting::bookingTheme($repId),
+            'booking_width' => CrmSetting::bookingWidth($repId),
+            'booking_services_layout' => CrmSetting::bookingServicesLayout($repId),
             'booking_domain' => Store::query()->whereKey($repId)->value('booking_domain'),
         ], $storeId);
 

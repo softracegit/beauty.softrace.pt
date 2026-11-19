@@ -229,6 +229,9 @@
         els.modalOptionsWrap = document.getElementById('booking-modal-options-wrap');
         els.modalOptions = document.getElementById('booking-modal-options');
         els.modalOptionsError = document.getElementById('booking-modal-options-error');
+        els.modalAddons = document.getElementById('booking-modal-addons');
+        els.modalStepper = document.getElementById('booking-modal-stepper');
+        els.modalBack = document.getElementById('booking-modal-back');
         els.modalExtrasWrap = document.getElementById('booking-modal-extras-wrap');
         els.modalExtras = document.getElementById('booking-modal-extras');
         els.modalConfirm = document.getElementById('booking-modal-confirm');
@@ -310,12 +313,16 @@
         if (!Number.isFinite(price)) {
             price = 0;
         }
-        return {
+        var entry = {
             fee_id: Number(feeId),
             name: String(fee.name || 'Taxa'),
             price: price,
             priceFormatted: fee.priceFormatted || formatMoneyEUR(price),
         };
+        if (fee.price_token) {
+            entry.price_token = String(fee.price_token);
+        }
+        return entry;
     }
 
     function feesFromServiceSnapshot(svc) {
@@ -636,7 +643,11 @@
 
                 var serviceNameEl = document.createElement('span');
                 serviceNameEl.className = 'booking-summary-line__service';
-                serviceNameEl.textContent = displayName;
+                // Com variante: "Serviço - Variante", para não se perder o nome do serviço
+                serviceNameEl.textContent =
+                    hasOption && parentName && displayName && displayName !== parentName
+                        ? parentName + ' - ' + displayName
+                        : displayName;
                 body.appendChild(serviceNameEl);
 
                 if (Array.isArray(line.extras) && line.extras.length) {
@@ -645,6 +656,14 @@
                         extraEl.className = 'booking-summary-line__extra';
                         extraEl.textContent = '+ ' + (ex.name || t('extra_fallback'));
                         body.appendChild(extraEl);
+                    });
+                }
+                if (Array.isArray(line.addons) && line.addons.length) {
+                    line.addons.forEach(function (addon) {
+                        var addonEl = document.createElement('span');
+                        addonEl.className = 'booking-summary-line__extra booking-summary-line__extra--addon';
+                        addonEl.textContent = '+ ' + (addon.name || t('extra_fallback'));
+                        body.appendChild(addonEl);
                     });
                 }
 
@@ -790,6 +809,28 @@
             }
         });
         return Object.keys(ids);
+    }
+
+    function getSelectedExtraPairs() {
+        var pairs = [];
+        var seen = {};
+        (state.items || []).forEach(function (line) {
+            if (!line || line.id == null) {
+                return;
+            }
+            (line.extras || []).forEach(function (ex) {
+                if (!ex || ex.id == null || ex.id === '') {
+                    return;
+                }
+                var key = String(line.id) + ':' + String(ex.id);
+                if (seen[key]) {
+                    return;
+                }
+                seen[key] = true;
+                pairs.push({ serviceId: String(line.id), extraId: String(ex.id) });
+            });
+        });
+        return pairs;
     }
 
     function saveTechnicianSelection(tech) {
@@ -977,20 +1018,68 @@
         if (line.service_option_id != null && line.service_option_id !== '') {
             row.service_option_id = Number(line.service_option_id);
         }
+        if (line.price_token) {
+            row.price_token = String(line.price_token);
+        }
         if (Array.isArray(line.extras) && line.extras.length) {
             row.extras = line.extras
                 .map(function (ex) {
-                    return { extra_id: Number(ex.id) };
+                    var extraRow = { extra_id: Number(ex.id) };
+                    if (ex.price_token) {
+                        extraRow.price_token = String(ex.price_token);
+                    }
+                    return extraRow;
                 })
                 .filter(function (ex) {
                     return Number.isFinite(ex.extra_id) && ex.extra_id > 0;
                 });
         }
+        var fees = [];
+        if (Array.isArray(line.fees) && line.fees.length) {
+            fees = line.fees;
+        } else if (line.editSnapshot) {
+            fees = feesFromServiceSnapshot(line.editSnapshot);
+        }
+        if (fees.length) {
+            row.fees = fees
+                .map(function (fee) {
+                    var normalized = normalizeFeeEntry(fee);
+                    if (!normalized) {
+                        return null;
+                    }
+                    var feeRow = { fee_id: normalized.fee_id };
+                    if (normalized.price_token) {
+                        feeRow.price_token = String(normalized.price_token);
+                    }
+                    return feeRow;
+                })
+                .filter(Boolean);
+        }
         return row;
     }
 
+    /** Linhas para o servidor: cada variante adicional segue como linha própria do mesmo serviço. */
+    function buildServicesPayloadRows() {
+        var rows = [];
+        state.items.forEach(function (line) {
+            rows.push(buildServicesPayloadRow(line));
+            (line.addons || []).forEach(function (addon) {
+                var addonId = Number(addon && addon.id);
+                if (!Number.isFinite(addonId) || addonId <= 0) {
+                    return;
+                }
+                var addonRow = { id: Number(line.id), service_option_id: addonId };
+                if (addon.price_token) {
+                    addonRow.price_token = String(addon.price_token);
+                }
+                rows.push(addonRow);
+            });
+        });
+        return rows;
+    }
+
     function buildServicesForSlotHoldPayload() {
-        return state.items.map(buildServicesPayloadRow);
+        return buildServicesPayloadRows();
     }
 
     function computeServicesSignature(items) {
@@ -1014,7 +1103,21 @@
                     .sort(function (a, b) {
                         return a - b;
                     });
-                return [sid, Number.isFinite(opt) ? opt : null, extraIds.join(',')];
+                var addonIds = (row.addons || [])
+                    .map(function (a) {
+                        return Number(a && a.id);
+                    })
+                    .filter(function (id) {
+                        return Number.isFinite(id) && id > 0;
+                    })
+                    .sort(function (a, b) {
+                        return a - b;
+                    });
+                return [
+                    sid,
+                    Number.isFinite(opt) ? opt : null,
+                    extraIds.join(',') + (addonIds.length ? '|' + addonIds.join(',') : ''),
+                ];
             })
             .filter(function (x) {
                 return !!x;
@@ -1611,7 +1714,7 @@
             date: dt.date,
             time: dt.time,
             agent_id: String(tech.id),
-            services: state.items.map(buildServicesPayloadRow),
+            services: buildServicesPayloadRows(),
         };
         if (slotHoldState.holdPublicId) {
             payload.slot_hold_public_id = slotHoldState.holdPublicId;
@@ -2335,6 +2438,12 @@
             if (Array.isArray(serviceIds) && serviceIds.length) {
                 url += '&service_ids=' + encodeURIComponent(serviceIds.join(','));
             }
+            var extraPairs = getSelectedExtraPairs();
+            if (extraPairs.length) {
+                url += '&extra_pairs=' + encodeURIComponent(extraPairs.map(function (pair) {
+                    return pair.serviceId + ':' + pair.extraId;
+                }).join(','));
+            }
             var holdToken = ensureSlotHoldSessionToken();
             if (holdToken) {
                 url += '&hold_session_token=' + encodeURIComponent(holdToken);
@@ -2765,6 +2874,7 @@
         }
         var rows = Array.prototype.slice.call(list.querySelectorAll('.booking-technician-row'));
         var serviceIds = getSelectedServiceIds();
+        var extraPairs = getSelectedExtraPairs();
         var eligibleAll = [];
         var eligibleAny = [];
 
@@ -2780,13 +2890,29 @@
             } catch (e) {
                 techServiceIds = [];
             }
+            var rawPairs = row.getAttribute('data-tech-extra-pairs');
+            var techPairs = [];
+            try {
+                techPairs = JSON.parse(rawPairs || '[]');
+            } catch (e2) {
+                techPairs = [];
+            }
+            if (!Array.isArray(techPairs)) {
+                techPairs = [];
+            }
             var coversAll = serviceIds.every(function (sid) {
                 return techServiceIds.indexOf(String(sid)) !== -1;
+            });
+            var coversExtras = extraPairs.every(function (pair) {
+                return techPairs.some(function (techPair) {
+                    return String(techPair.serviceId) === String(pair.serviceId)
+                        && String(techPair.extraId) === String(pair.extraId);
+                });
             });
             var coversAny = serviceIds.some(function (sid) {
                 return techServiceIds.indexOf(String(sid)) !== -1;
             });
-            if (coversAll) {
+            if (coversAll && coversExtras) {
                 eligibleAll.push(row);
             }
             if (coversAny) {
@@ -2794,10 +2920,11 @@
             }
         });
 
-        var chosenSet = eligibleAll.length ? eligibleAll : eligibleAny;
+        var chosenSet = eligibleAll.length ? eligibleAll : (extraPairs.length ? [] : eligibleAny);
+        var hideAny = extraPairs.length > 0 && eligibleAll.length === 0;
         rows.forEach(function (row) {
             var isAnyStaff = row.getAttribute('data-any-staff') === '1';
-            var isVisible = isAnyStaff || chosenSet.indexOf(row) !== -1;
+            var isVisible = isAnyStaff ? !hideAny : chosenSet.indexOf(row) !== -1;
             row.classList.toggle('is-hidden-tech', !isVisible);
             var input = row.querySelector('input[type="radio"]');
             if (input) {
@@ -2949,12 +3076,110 @@
         }
     }
 
+    /**
+     * Página de serviços: retira do carrinho variantes que já não existem no catálogo
+     * (ex.: serviço editado no CRM com um carrinho guardado no browser). Sem isto, o
+     * servidor recusa a marcação mais à frente, ao escolher a hora.
+     */
+    function reconcileCartWithCatalog() {
+        var buttons = document.querySelectorAll('[data-service]');
+        if (!buttons.length || !state.items.length) {
+            return;
+        }
+        var catalog = {};
+        buttons.forEach(function (btn) {
+            var svc = parseServicePayload(btn.getAttribute('data-service'));
+            if (svc && svc.id != null) {
+                catalog[String(svc.id)] = svc;
+            }
+        });
+        var changed = false;
+        state.items = state.items.filter(function (line) {
+            var svc = catalog[String(line.id)];
+            if (!svc) {
+                return true;
+            }
+            var optionIds = getNormalizedServiceOptions(svc).map(function (o) {
+                return String(o.id);
+            });
+            var hasOption = line.service_option_id != null && line.service_option_id !== '';
+            if (hasOption && optionIds.indexOf(String(line.service_option_id)) === -1) {
+                changed = true;
+                return false;
+            }
+            if (Array.isArray(line.addons) && line.addons.length) {
+                var addonIds = getAddonOptions(svc).map(function (o) {
+                    return String(o.id);
+                });
+                var kept = line.addons.filter(function (addon) {
+                    return addon && addonIds.indexOf(String(addon.id)) !== -1;
+                });
+                if (kept.length !== line.addons.length) {
+                    // Adicionais desatualizados: a linha volta a ser escolhida de raiz, com preços certos
+                    changed = true;
+                    return false;
+                }
+            }
+            return true;
+        });
+        if (changed) {
+            persist();
+        }
+    }
+
+    /** Área de conta: cartão "Continuar a minha marcação" com o que está guardado no resumo. */
+    function renderAccountResumeCard() {
+        var card = document.getElementById('booking-account-resume');
+        if (!card) {
+            return;
+        }
+        var listEl = document.getElementById('booking-account-resume-list');
+        var metaEl = document.getElementById('booking-account-resume-meta');
+        if (!state.items.length || !listEl || !metaEl) {
+            card.classList.add('d-none');
+            return;
+        }
+        listEl.innerHTML = '';
+        state.items.forEach(function (line) {
+            var snap = line.editSnapshot;
+            var hasOption = line.service_option_id != null && line.service_option_id !== '';
+            var parentName = hasOption && snap && snap.name ? snap.name : '';
+            var name = line.name || parentName || '';
+            if (parentName && name && name !== parentName) {
+                name = parentName + ' - ' + name;
+            }
+            var extras = []
+                .concat(Array.isArray(line.addons) ? line.addons : [], Array.isArray(line.extras) ? line.extras : [])
+                .map(function (x) {
+                    return x && x.name ? x.name : '';
+                })
+                .filter(Boolean);
+            var item = document.createElement('span');
+            item.className = 'booking-account-resume__item';
+            item.textContent = extras.length ? name + ' + ' + extras.join(' + ') : name;
+            listEl.appendChild(item);
+        });
+        var count = state.items.length;
+        var countLabel =
+            count === 1
+                ? card.getAttribute('data-count-one') || ''
+                : (card.getAttribute('data-count-many') || '').replace(':count', String(count));
+        metaEl.textContent = [countLabel, formatDuration(getTotalDurationMinutes()), formatMoneyEUR(getTotalAmount())]
+            .filter(Boolean)
+            .join(' · ');
+        card.classList.remove('d-none');
+    }
+
     function clearModalServiceOptions() {
         if (els.modalOptions) {
             els.modalOptions.innerHTML = '';
         }
         if (els.modalOptionsWrap) {
             els.modalOptionsWrap.classList.add('d-none');
+        }
+        if (els.modalAddons) {
+            els.modalAddons.innerHTML = '';
+            els.modalAddons.classList.add('d-none');
         }
         if (els.modalExtras) {
             els.modalExtras.innerHTML = '';
@@ -3052,6 +3277,178 @@
         return [];
     }
 
+    /** Variante adicional: soma-se à variante escolhida (interruptor), em vez de a substituir. */
+    function isAddonOption(opt) {
+        return !!opt && opt.type === 'addon';
+    }
+
+    /** Variantes de escolha única (radio). Se todas forem adicionais, tratam-se como escolhas. */
+    function getChoiceOptions(svc) {
+        var all = getNormalizedServiceOptions(svc);
+        var choices = all.filter(function (o) {
+            return !isAddonOption(o);
+        });
+        return choices.length ? choices : all;
+    }
+
+    function getAddonOptions(svc) {
+        var all = getNormalizedServiceOptions(svc);
+        var hasChoice = all.some(function (o) {
+            return !isAddonOption(o);
+        });
+        return hasChoice ? all.filter(isAddonOption) : [];
+    }
+
+    function syncPendingAddonsFromDom() {
+        if (!state.pending || !state.pending.service) {
+            return;
+        }
+        var addons = getAddonOptions(state.pending.service);
+        var selected = [];
+        if (addons.length && els.modalAddons) {
+            var checked = els.modalAddons.querySelectorAll('.booking-modal-addon-choice__input[value="1"]:checked');
+            checked.forEach(function (input) {
+                if (input.disabled) {
+                    return;
+                }
+                addons.forEach(function (a) {
+                    if (String(a.id) === String(input.getAttribute('data-addon-id'))) {
+                        selected.push(a);
+                    }
+                });
+            });
+        }
+        state.pending.selectedAddons = selected;
+    }
+
+    /** As adicionais só ficam disponíveis depois de escolhida a variante base. */
+    function refreshModalAddonsAvailability() {
+        if (!els.modalAddons) {
+            return;
+        }
+        var hasChoice = !!(
+            els.modalOptions && els.modalOptions.querySelector('input[name="booking-service-option"]:checked')
+        );
+        els.modalAddons.querySelectorAll('.booking-modal-addon-choice__input').forEach(function (input) {
+            input.disabled = !hasChoice;
+            var row = input.closest('.booking-modal-option');
+            if (row) {
+                row.classList.toggle('booking-modal-option--disabled', !hasChoice);
+            }
+        });
+    }
+
+    /** Adicionais sem resposta (nem Sim nem Não). */
+    function getUnansweredAddonRows() {
+        if (!els.modalAddons || els.modalAddons.classList.contains('d-none')) {
+            return [];
+        }
+        return Array.prototype.filter.call(
+            els.modalAddons.querySelectorAll('.booking-modal-option--addon'),
+            function (row) {
+                return !row.querySelector('.booking-modal-addon-choice__input:checked');
+            }
+        );
+    }
+
+    /**
+     * Obriga a responder Sim ou Não a cada adicional (como "quer saco?": não se pode passar à frente).
+     * Devolve true quando falta alguma resposta (e mostra o erro).
+     */
+    function blockOnUnansweredAddons() {
+        var missing = getUnansweredAddonRows();
+        if (!missing.length) {
+            return false;
+        }
+        missing.forEach(function (row) {
+            row.classList.remove('booking-modal-option--missing');
+            void row.offsetWidth;
+            row.classList.add('booking-modal-option--missing');
+        });
+        showModalOptionsError(t('addon_answer_required'));
+        if (typeof missing[0].scrollIntoView === 'function') {
+            missing[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        return true;
+    }
+
+    function isSteppedModalTheme() {
+        return document.body && document.body.getAttribute('data-booking-theme') === 'minimal';
+    }
+
+    /** Painel em dois momentos (tema Minimal): 1) opção + adicionais, 2) extras. */
+    function applyModalStep() {
+        if (!state.pending || !els.modal) {
+            return;
+        }
+        var steps = state.pending.steps || 1;
+        var step = state.pending.step || 1;
+        var hasOptions = !!state.pending.hasOptionsBlock;
+        var hasExtras = !!state.pending.hasExtrasBlock;
+        els.modal.classList.toggle('booking-modal--stepped', steps === 2);
+        els.modal.classList.toggle('booking-modal--step-2', steps === 2 && step === 2);
+        if (els.modalOptionsWrap) {
+            els.modalOptionsWrap.classList.toggle('d-none', !hasOptions || (steps === 2 && step === 2));
+        }
+        if (els.modalExtrasWrap) {
+            els.modalExtrasWrap.classList.toggle('d-none', !hasExtras || (steps === 2 && step === 1));
+        }
+        if (els.modalStepper) {
+            els.modalStepper.classList.toggle('d-none', steps !== 2);
+            els.modalStepper.querySelectorAll('[data-step]').forEach(function (el) {
+                var n = Number(el.getAttribute('data-step'));
+                el.classList.toggle('is-current', n === step);
+                el.classList.toggle('is-done', n < step);
+            });
+        }
+        if (els.modalBack) {
+            els.modalBack.classList.toggle('d-none', !(steps === 2 && step === 2));
+        }
+        updateModalActionLabels();
+    }
+
+    function updateModalActionLabels() {
+        if (!isSteppedModalTheme() || !state.pending) {
+            return;
+        }
+        var onFirstOfTwo = state.pending.steps === 2 && state.pending.step === 1;
+        [els.modalConfirm, els.modalApplyEdit].forEach(function (btn) {
+            if (!btn) {
+                return;
+            }
+            if (!btn.getAttribute('data-label-default')) {
+                btn.setAttribute('data-label-default', btn.textContent.trim());
+            }
+            var base = onFirstOfTwo
+                ? btn.getAttribute('data-label-continue') || btn.getAttribute('data-label-default')
+                : btn.getAttribute('data-label-default');
+            // O total (preço e duração) já aparece no topo do painel
+            btn.textContent = base;
+        });
+    }
+
+    /** Devolve true se avançou para o 2.º momento (em vez de confirmar). */
+    function advanceModalStepIfNeeded() {
+        if (!state.pending || state.pending.steps !== 2 || state.pending.step !== 1) {
+            return false;
+        }
+        syncPendingOptionFromDom();
+        if (getNormalizedServiceOptions(state.pending.service).length && !state.pending.selectedOption) {
+            showModalOptionsError(t('select_option_required'));
+            return true;
+        }
+        if (blockOnUnansweredAddons()) {
+            return true;
+        }
+        state.pending.step = 2;
+        applyModalStep();
+        var body = els.modal ? els.modal.querySelector('.modal-body') : null;
+        if (body) {
+            body.scrollTop = 0;
+        }
+        return true;
+    }
+
     function syncPendingOptionFromDom() {
         if (!state.pending || !state.pending.service) {
             return;
@@ -3114,7 +3511,7 @@
         );
     }
 
-    function buildLineFromServiceSelection(svc, opt, selectedExtras) {
+    function buildLineFromServiceSelection(svc, opt, selectedExtras, selectedAddons) {
         var basePrice = opt ? Number(opt.price) : Number(svc.price);
         var baseMinutes = opt ? Number(opt.durationMinutes) : Number(svc.durationMinutes);
         if (!Number.isFinite(basePrice)) {
@@ -3124,8 +3521,10 @@
             baseMinutes = 0;
         }
         var extraTotals = sumExtrasMetrics(selectedExtras);
-        var totalPrice = Math.round((basePrice + extraTotals.price) * 100) / 100;
-        var totalMinutes = baseMinutes + extraTotals.durationMinutes;
+        var addonTotals = sumExtrasMetrics(selectedAddons);
+        var totalPrice = Math.round((basePrice + extraTotals.price + addonTotals.price) * 100) / 100;
+        var totalMinutes = baseMinutes + extraTotals.durationMinutes + addonTotals.durationMinutes;
+        var baseToken = opt ? opt.price_token : svc.price_token;
         var line = {
             lineId: generateLineId(),
             id: svc.id,
@@ -3134,8 +3533,9 @@
             durationMinutes: totalMinutes,
             price: totalPrice,
             priceFormatted: formatMoneyEUR(totalPrice),
+            basePrice: basePrice,
             extras: (selectedExtras || []).map(function (ex) {
-                return {
+                var extraRow = {
                     id: ex.id,
                     name: ex.name,
                     duration: ex.duration,
@@ -3143,10 +3543,32 @@
                     price: Number(ex.price) || 0,
                     priceFormatted: ex.priceFormatted || formatMoneyEUR(ex.price),
                 };
+                if (ex.price_token) {
+                    extraRow.price_token = String(ex.price_token);
+                }
+                return extraRow;
+            }),
+            // Variantes adicionais: seguem para o servidor como linhas próprias do mesmo serviço
+            addons: (selectedAddons || []).map(function (a) {
+                var addonRow = {
+                    id: a.id,
+                    name: a.name,
+                    duration: a.duration,
+                    durationMinutes: Number(a.durationMinutes) || 0,
+                    price: Number(a.price) || 0,
+                    priceFormatted: a.priceFormatted || formatMoneyEUR(a.price),
+                };
+                if (a.price_token) {
+                    addonRow.price_token = String(a.price_token);
+                }
+                return addonRow;
             }),
             editSnapshot: cloneServiceForEditStorage(svc),
             fees: feesFromServiceSnapshot(svc),
         };
+        if (baseToken) {
+            line.price_token = String(baseToken);
+        }
         if (opt) {
             line.service_option_id = opt.id;
         }
@@ -3159,8 +3581,11 @@
         }
         syncPendingOptionFromDom();
         syncPendingExtrasFromDom();
+        refreshModalAddonsAvailability();
+        syncPendingAddonsFromDom();
         var opt = state.pending ? state.pending.selectedOption : null;
         var selectedExtras = state.pending ? state.pending.selectedExtras || [] : [];
+        var selectedAddons = state.pending ? state.pending.selectedAddons || [] : [];
         var opts = getNormalizedServiceOptions(service);
         var basePrice;
         var baseMinutes;
@@ -3174,6 +3599,10 @@
                     service.summaryPriceLabel || sum.price,
                     service.summaryDurationLabel || sum.duration,
                 );
+                if (state.pending) {
+                    state.pending.totalsLabel = '';
+                }
+                updateModalActionLabels();
                 return;
             }
         } else {
@@ -3181,12 +3610,18 @@
             baseMinutes = Number(service.durationMinutes) || 0;
         }
         var extraTotals = sumExtrasMetrics(selectedExtras);
-        var totalPrice = Math.round((basePrice + extraTotals.price) * 100) / 100;
-        var totalMinutes = baseMinutes + extraTotals.durationMinutes;
-        els.modalMeta.textContent = joinPriceAndDuration(
+        var addonTotals = sumExtrasMetrics(selectedAddons);
+        var totalPrice = Math.round((basePrice + extraTotals.price + addonTotals.price) * 100) / 100;
+        var totalMinutes = baseMinutes + extraTotals.durationMinutes + addonTotals.durationMinutes;
+        var totalsLabel = joinPriceAndDuration(
             formatMoneyEUR(totalPrice),
             formatBookingMinutesLabel(totalMinutes),
         );
+        els.modalMeta.textContent = totalsLabel;
+        if (state.pending) {
+            state.pending.totalsLabel = totalsLabel;
+        }
+        updateModalActionLabels();
     }
 
     function setModalConfirmEnabled(enabled) {
@@ -3209,7 +3644,7 @@
     }
 
     function modalSummaryFromOptions(service) {
-        var opts = getNormalizedServiceOptions(service);
+        var opts = getChoiceOptions(service);
         if (!opts.length) {
             return { price: '', duration: '' };
         }
@@ -3266,25 +3701,34 @@
             priceFormatted: svc.priceFormatted,
             summaryPriceLabel: svc.summaryPriceLabel,
             summaryDurationLabel: svc.summaryDurationLabel,
+            catalogMinPrice: svc.catalogMinPrice,
             fees: feesFromServiceSnapshot(svc),
         };
+        if (svc.price_token) {
+            o.price_token = String(svc.price_token);
+        }
         var optList = getNormalizedServiceOptions(svc);
         if (optList.length) {
             o.options = optList.map(function (opt) {
-                return {
+                var optRow = {
                     id: opt.id,
                     name: opt.name,
+                    type: isAddonOption(opt) ? 'addon' : 'choice',
                     duration: opt.duration,
                     durationMinutes: Number(opt.durationMinutes) || 0,
                     price: opt.price,
                     priceFormatted: opt.priceFormatted,
                 };
+                if (opt.price_token) {
+                    optRow.price_token = String(opt.price_token);
+                }
+                return optRow;
             });
         }
         var extraList = getNormalizedServiceExtras(svc);
         if (extraList.length) {
             o.extras = extraList.map(function (ex) {
-                return {
+                var exRow = {
                     id: ex.id,
                     name: ex.name,
                     duration: ex.duration,
@@ -3292,6 +3736,10 @@
                     price: ex.price,
                     priceFormatted: ex.priceFormatted,
                 };
+                if (ex.price_token) {
+                    exRow.price_token = String(ex.price_token);
+                }
+                return exRow;
             });
         }
         return o;
@@ -3321,13 +3769,14 @@
         }
     }
 
-    function populateModalFromService(service, preselectOptionId, preselectExtraIds) {
+    function populateModalFromService(service, preselectOptionId, preselectExtraIds, preselectAddonIds) {
         if (!els.modalTitle || !els.modalMeta) {
             return;
         }
         clearModalServiceOptions();
         els.modalTitle.textContent = service.name || '';
         preselectExtraIds = Array.isArray(preselectExtraIds) ? preselectExtraIds : [];
+        preselectAddonIds = Array.isArray(preselectAddonIds) ? preselectAddonIds : [];
 
         var opts = getNormalizedServiceOptions(service);
         if (opts.length) {
@@ -3346,8 +3795,10 @@
             if (els.modalOptionsWrap) {
                 els.modalOptionsWrap.classList.remove('d-none');
             }
+            var choiceOpts = getChoiceOptions(service);
+            var addonOpts = getAddonOptions(service);
             if (els.modalOptions) {
-                opts.forEach(function (opt) {
+                choiceOpts.forEach(function (opt) {
                     var label = document.createElement('label');
                     label.className = 'booking-modal-option';
                     var main = document.createElement('div');
@@ -3372,6 +3823,9 @@
                     input.setAttribute('aria-label', opt.name);
                     if (preselectOptionId != null && String(preselectOptionId) === String(opt.id)) {
                         input.checked = true;
+                    } else if (preselectOptionId == null && choiceOpts.length === 1 && addonOpts.length) {
+                        // Só há uma base (o próprio serviço): fica escolhida e as adicionais ficam logo disponíveis
+                        input.checked = true;
                     }
                     input.addEventListener('change', function () {
                         syncPendingOptionFromDom();
@@ -3382,6 +3836,71 @@
                     label.appendChild(main);
                     label.appendChild(radWrap);
                     els.modalOptions.appendChild(label);
+                });
+            }
+            if (els.modalAddons && addonOpts.length) {
+                els.modalAddons.classList.remove('d-none');
+                // Ao editar uma linha, o cliente já respondeu a cada adicional: Sim às que tem, Não às outras
+                var addonsAnswered = Array.isArray(preselectAddonIds) && state.pending && state.pending.mode === 'edit';
+                addonOpts.forEach(function (addon) {
+                    var label = document.createElement('div');
+                    label.className = 'booking-modal-option booking-modal-option--addon';
+                    label.setAttribute('data-addon-id', String(addon.id));
+                    var main = document.createElement('div');
+                    main.className = 'booking-modal-option__main';
+                    var nameEl = document.createElement('span');
+                    nameEl.className = 'booking-modal-option__name';
+                    nameEl.textContent = addon.name;
+                    var metaEl = document.createElement('span');
+                    metaEl.className = 'booking-modal-option__meta';
+                    var addonPrice = addon.priceFormatted != null ? addon.priceFormatted : formatMoneyEUR(addon.price);
+                    metaEl.textContent = joinPriceAndDuration(
+                        '+' + addonPrice,
+                        addon.duration ? '+' + addon.duration : ''
+                    );
+                    main.appendChild(nameEl);
+                    main.appendChild(metaEl);
+                    // Resposta obrigatória: nenhuma das duas vem marcada ao adicionar
+                    var isPreselected = (preselectAddonIds || []).some(function (id) {
+                        return String(id) === String(addon.id);
+                    });
+                    var choice = document.createElement('div');
+                    choice.className = 'booking-modal-addon-choice';
+                    choice.setAttribute('role', 'radiogroup');
+                    choice.setAttribute('aria-label', addon.name);
+                    [
+                        { value: '0', text: t('addon_answer_no') },
+                        { value: '1', text: t('addon_answer_yes') },
+                    ].forEach(function (opt) {
+                        var optLabel = document.createElement('label');
+                        optLabel.className = 'booking-modal-addon-choice__item';
+                        var radio = document.createElement('input');
+                        radio.type = 'radio';
+                        radio.className = 'booking-modal-addon-choice__input';
+                        radio.name = 'booking-service-addon-' + String(addon.id);
+                        radio.value = opt.value;
+                        radio.setAttribute('data-addon-id', String(addon.id));
+                        if (isPreselected && opt.value === '1') {
+                            radio.checked = true;
+                        } else if (!isPreselected && addonsAnswered && opt.value === '0') {
+                            radio.checked = true;
+                        }
+                        radio.addEventListener('change', function () {
+                            label.classList.remove('booking-modal-option--missing');
+                            if (!getUnansweredAddonRows().length) {
+                                clearModalOptionsError();
+                            }
+                            updateModalMetaFromSelection(service);
+                        });
+                        var span = document.createElement('span');
+                        span.textContent = opt.text;
+                        optLabel.appendChild(radio);
+                        optLabel.appendChild(span);
+                        choice.appendChild(optLabel);
+                    });
+                    label.appendChild(main);
+                    label.appendChild(choice);
+                    els.modalAddons.appendChild(label);
                 });
             }
             syncPendingOptionFromDom();
@@ -3436,7 +3955,14 @@
             syncPendingExtrasFromDom();
         }
 
+        if (state.pending) {
+            state.pending.hasOptionsBlock = opts.length > 0;
+            state.pending.hasExtrasBlock = extras.length > 0;
+            state.pending.steps = isSteppedModalTheme() && opts.length > 0 && extras.length > 0 ? 2 : 1;
+            state.pending.step = 1;
+        }
         updateModalMetaFromSelection(service);
+        applyModalStep();
         setModalConfirmEnabled(true);
     }
 
@@ -3525,7 +4051,10 @@
         var preExtras = (line.extras || []).map(function (ex) {
             return ex.id;
         });
-        populateModalFromService(svc, pre, preExtras);
+        var preAddons = (line.addons || []).map(function (a) {
+            return a.id;
+        });
+        populateModalFromService(svc, pre, preExtras, preAddons);
         syncPendingOptionFromDom();
         clearModalOptionsError();
         var m = getModalInstance();
@@ -3542,13 +4071,18 @@
         var lineId = state.pending.lineId;
         syncPendingOptionFromDom();
         syncPendingExtrasFromDom();
+        syncPendingAddonsFromDom();
         var opt = state.pending.selectedOption;
         var selectedExtras = state.pending.selectedExtras || [];
+        var selectedAddons = state.pending.selectedAddons || [];
         var editOpts = getNormalizedServiceOptions(svc);
         svc.options = editOpts;
         if (editOpts.length) {
             if (!opt) {
                 showModalOptionsError(t('select_option_required'));
+                return;
+            }
+            if (blockOnUnansweredAddons()) {
                 return;
             }
             var line = state.items.find(function (l) {
@@ -3558,14 +4092,17 @@
                 closeModal();
                 return;
             }
-            var updated = buildLineFromServiceSelection(svc, opt, selectedExtras);
+            var updated = buildLineFromServiceSelection(svc, opt, selectedExtras, selectedAddons);
             line.name = updated.name;
             line.duration = updated.duration;
             line.durationMinutes = updated.durationMinutes;
             line.price = updated.price;
             line.priceFormatted = updated.priceFormatted;
+            line.basePrice = updated.basePrice;
+            line.price_token = updated.price_token;
             line.service_option_id = updated.service_option_id;
             line.extras = updated.extras;
+            line.addons = updated.addons;
             line.editSnapshot = updated.editSnapshot;
             line.fees = updated.fees;
             persist();
@@ -3589,7 +4126,10 @@
         lineNoOpts.durationMinutes = updatedNoOpts.durationMinutes;
         lineNoOpts.price = updatedNoOpts.price;
         lineNoOpts.priceFormatted = updatedNoOpts.priceFormatted;
+        lineNoOpts.basePrice = updatedNoOpts.basePrice;
+        lineNoOpts.price_token = updatedNoOpts.price_token;
         lineNoOpts.extras = updatedNoOpts.extras;
+        lineNoOpts.addons = [];
         lineNoOpts.editSnapshot = updatedNoOpts.editSnapshot;
         lineNoOpts.fees = updatedNoOpts.fees;
         persist();
@@ -3625,11 +4165,16 @@
         var svc = state.pending.service;
         syncPendingOptionFromDom();
         syncPendingExtrasFromDom();
+        syncPendingAddonsFromDom();
         var opt = state.pending.selectedOption;
         var selectedExtras = state.pending.selectedExtras || [];
+        var selectedAddons = state.pending.selectedAddons || [];
         if (getNormalizedServiceOptions(svc).length) {
             if (!opt) {
                 showModalOptionsError(t('select_option_required'));
+                return;
+            }
+            if (blockOnUnansweredAddons()) {
                 return;
             }
         }
@@ -3639,11 +4184,119 @@
             );
             return;
         }
-        var line = buildLineFromServiceSelection(svc, opt, selectedExtras);
+        var line = buildLineFromServiceSelection(svc, opt, selectedExtras, selectedAddons);
         state.items.push(line);
         persist();
         renderSummary();
         closeModal();
+    }
+
+    function lastSeenPricesStorageKey() {
+        return 'booking_last_seen_prices_v1:' + BOOKING_STORE_SLUG;
+    }
+
+    function readLastSeenPrices() {
+        try {
+            var raw = sessionStorage.getItem(lastSeenPricesStorageKey());
+            if (!raw) {
+                return {};
+            }
+            var parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function writeLastSeenPrices(map) {
+        try {
+            sessionStorage.setItem(lastSeenPricesStorageKey(), JSON.stringify(map || {}));
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    function catalogDisplayPrice(payload) {
+        if (!payload || typeof payload !== 'object') {
+            return null;
+        }
+        if (payload.hasOptions || (Array.isArray(payload.options) && payload.options.length)) {
+            if (payload.catalogMinPrice != null && Number.isFinite(Number(payload.catalogMinPrice))) {
+                return Math.round(Number(payload.catalogMinPrice) * 100) / 100;
+            }
+            var opts = getNormalizedServiceOptions(payload);
+            if (!opts.length) {
+                return null;
+            }
+            var min = Infinity;
+            opts.forEach(function (opt) {
+                var p = Number(opt.price);
+                if (Number.isFinite(p) && p < min) {
+                    min = p;
+                }
+            });
+            return min === Infinity ? null : Math.round(min * 100) / 100;
+        }
+        var price = Number(payload.price);
+        return Number.isFinite(price) ? Math.round(price * 100) / 100 : null;
+    }
+
+    function cartKeptPriceForService(serviceId) {
+        var line = state.items.find(function (l) {
+            return l && l.id != null && String(l.id) === String(serviceId);
+        });
+        if (!line) {
+            return null;
+        }
+        if (line.basePrice != null && Number.isFinite(Number(line.basePrice))) {
+            return Math.round(Number(line.basePrice) * 100) / 100;
+        }
+        var price = Number(line.price);
+        return Number.isFinite(price) ? Math.round(price * 100) / 100 : null;
+    }
+
+    function applyCatalogPriceIncreaseNudges() {
+        var buttons = document.querySelectorAll('.booking-row--btn[data-service]');
+        if (!buttons.length) {
+            return;
+        }
+        var lastSeen = readLastSeenPrices();
+        var nextSeen = {};
+        buttons.forEach(function (btn) {
+            var payload = parseServicePayload(btn.getAttribute('data-service'));
+            if (!payload || payload.id == null) {
+                return;
+            }
+            var key = 's:' + String(payload.id);
+            var live = catalogDisplayPrice(payload);
+            if (live == null) {
+                return;
+            }
+            var previous = lastSeen[key];
+            var nudgeEl = btn.querySelector('.booking-row__price-nudge');
+            var showNudge =
+                previous != null &&
+                Number.isFinite(Number(previous)) &&
+                live > Math.round(Number(previous) * 100) / 100 + 0.001;
+            if (nudgeEl) {
+                if (showNudge) {
+                    var kept = cartKeptPriceForService(payload.id);
+                    var text =
+                        kept != null && kept < live - 0.001
+                            ? t('price_just_increased_cart_kept', { price: formatMoneyEUR(kept) })
+                            : t('price_just_increased');
+                    nudgeEl.textContent = text;
+                    nudgeEl.classList.remove('d-none');
+                    nudgeEl.removeAttribute('hidden');
+                } else {
+                    nudgeEl.textContent = '';
+                    nudgeEl.classList.add('d-none');
+                    nudgeEl.setAttribute('hidden', 'hidden');
+                }
+            }
+            nextSeen[key] = live;
+        });
+        writeLastSeenPrices(nextSeen);
     }
 
     function bindServiceButtons() {
@@ -3666,14 +4319,33 @@
                 openModal(payload);
             });
         });
+        applyCatalogPriceIncreaseNudges();
     }
 
     function bindModal() {
         if (els.modalConfirm) {
-            els.modalConfirm.addEventListener('click', confirmAdd);
+            els.modalConfirm.addEventListener('click', function () {
+                if (advanceModalStepIfNeeded()) {
+                    return;
+                }
+                confirmAdd();
+            });
         }
         if (els.modalApplyEdit) {
-            els.modalApplyEdit.addEventListener('click', confirmApplyEdit);
+            els.modalApplyEdit.addEventListener('click', function () {
+                if (advanceModalStepIfNeeded()) {
+                    return;
+                }
+                confirmApplyEdit();
+            });
+        }
+        if (els.modalBack) {
+            els.modalBack.addEventListener('click', function () {
+                if (state.pending && state.pending.steps === 2) {
+                    state.pending.step = 1;
+                    applyModalStep();
+                }
+            });
         }
         if (els.modalRemoveLine) {
             els.modalRemoveLine.addEventListener('click', removeFromEditModal);
@@ -3694,6 +4366,18 @@
                     els.modalMeta.textContent = '';
                 }
                 clearModalOptionsError();
+                els.modal.classList.remove('booking-modal--stepped', 'booking-modal--step-2');
+                if (els.modalStepper) {
+                    els.modalStepper.classList.add('d-none');
+                }
+                if (els.modalBack) {
+                    els.modalBack.classList.add('d-none');
+                }
+                [els.modalConfirm, els.modalApplyEdit].forEach(function (btn) {
+                    if (btn && btn.getAttribute('data-label-default')) {
+                        btn.textContent = btn.getAttribute('data-label-default');
+                    }
+                });
                 document.body.classList.remove('booking-modal-open');
                 /* Garante que o Bootstrap não deixa estilos inline que possam afetar sticky */
                 document.body.style.removeProperty('padding-right');
@@ -5333,6 +6017,12 @@
         overlay.addEventListener('click', function () {
             setDrawerState(false);
         });
+        // Botão de fechar dentro do resumo (tema Minimal)
+        drawer.querySelectorAll('[data-booking-summary-close]').forEach(function (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                setDrawerState(false);
+            });
+        });
     }
 
     /**
@@ -6248,9 +6938,11 @@
         loadSlotHoldState();
         syncSummaryScrollPlacement();
         loadFromStorage();
+        reconcileCartWithCatalog();
         initPresetAgentFromDom();
         loadCheckoutIntentCacheFromStorage();
         renderSummary();
+        renderAccountResumeCard();
         initTechnicianStep();
         initDateTimeStep();
         initCheckoutStep();

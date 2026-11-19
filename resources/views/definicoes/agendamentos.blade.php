@@ -52,6 +52,33 @@
         @error('booking_theme')
           <div class="text-danger small mt-2">{{ $message }}</div>
         @enderror
+
+        <div class="row g-3 mt-2">
+          <div class="col-12 col-md-6 col-lg-4">
+            <label for="booking_width" class="form-label fw-semibold mb-1">Largura do Booking</label>
+            <select id="booking_width" name="booking_width" class="form-select @error('booking_width') is-invalid @enderror">
+              @foreach(($bookingWidths ?? \App\Models\CrmSetting::bookingWidths()) as $widthId => $widthLabel)
+                <option value="{{ $widthId }}" @selected(old('booking_width', $bookingWidth ?? \App\Models\CrmSetting::BOOKING_WIDTH_WIDE) === $widthId)>{{ $widthLabel }}</option>
+              @endforeach
+            </select>
+            <div class="form-text">Aplica-se ao tema Minimal, em ecrãs grandes.</div>
+            @error('booking_width')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+          <div class="col-12 col-md-6 col-lg-4">
+            <label for="booking_services_layout" class="form-label fw-semibold mb-1">Serviços no Booking</label>
+            <select id="booking_services_layout" name="booking_services_layout" class="form-select @error('booking_services_layout') is-invalid @enderror">
+              @foreach(($bookingServicesLayouts ?? \App\Models\CrmSetting::bookingServicesLayouts()) as $layoutId => $layoutLabel)
+                <option value="{{ $layoutId }}" @selected(old('booking_services_layout', $bookingServicesLayout ?? \App\Models\CrmSetting::BOOKING_SERVICES_LAYOUT_GRID) === $layoutId)>{{ $layoutLabel }}</option>
+              @endforeach
+            </select>
+            <div class="form-text">Aplica-se ao tema Minimal, em ecrãs grandes.</div>
+            @error('booking_services_layout')
+              <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+          </div>
+        </div>
       </div>
     </div>
 
@@ -216,6 +243,25 @@
           O cliente pode cancelar sem perder o pré-pagamento se o pedido for feito pelo menos este número de horas antes da marcação
           (fuso horário da loja). Com 0 horas, o prazo é até ao início da marcação.
         </p>
+
+        <div class="mt-4">
+          <label for="booking_cancellation_policy_text" class="form-label fw-semibold mb-1">Texto da política de cancelamento</label>
+          <textarea
+            id="booking_cancellation_policy_text"
+            name="booking_cancellation_policy_text"
+            rows="3"
+            maxlength="{{ \App\Models\CrmSetting::BOOKING_CANCELLATION_POLICY_TEXT_MAX }}"
+            class="form-control @error('booking_cancellation_policy_text') is-invalid @enderror"
+            placeholder="Ex.: Pode cancelar ou reagendar sem custos até 3 horas antes da hora marcada…"
+          >{{ old('booking_cancellation_policy_text', $bookingCancellationPolicyText ?? '') }}</textarea>
+          @error('booking_cancellation_policy_text')
+            <div class="invalid-feedback d-block">{{ $message }}</div>
+          @enderror
+          <p class="small text-muted mb-0 mt-2">
+            Aparece no Booking, no passo de confirmação, na secção da política de cancelamento. Deixe vazio para não mostrar.
+            Máximo {{ \App\Models\CrmSetting::BOOKING_CANCELLATION_POLICY_TEXT_MAX }} caracteres.
+          </p>
+        </div>
       </div>
     </div>
 

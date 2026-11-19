@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@23.8.1/build/css/intlTelInput.css">
     <link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="{{ static_asset('template/css/agenda.css') }}">
+<link rel="stylesheet" href="{{ static_asset('template/css/clinical-sheet.css') }}">
     <link rel="stylesheet" href="{{ asset('template/css/payment-pos-modal.css') }}?v={{ file_exists(public_path('template/css/payment-pos-modal.css')) ? filemtime(public_path('template/css/payment-pos-modal.css')) : time() }}">
     <link rel="stylesheet" href="{{ asset('template/css/client-tags.css') }}?v={{ file_exists(public_path('template/css/client-tags.css')) ? filemtime(public_path('template/css/client-tags.css')) : time() }}">
     <style>
@@ -47,14 +48,10 @@
     </button>
 </div>
 
-<!-- Nova marcação: offcanvas lateral -->
-<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas agenda-marcacao-test-offcanvas--wide" tabindex="-1" id="agendaMarcacaoTestOffcanvas" aria-labelledby="agendaMarcacaoTestOffcanvasLabel" data-bs-scroll="true">
-    <div class="offcanvas-header border-bottom d-flex align-items-center gap-2">
-        <div class="flex-grow-1 min-w-0">
-            <h5 class="offcanvas-title fw-semibold mb-0" id="agendaMarcacaoTestOffcanvasLabel">Nova marcação</h5>
-        </div>
-        <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" data-agenda-oc-close aria-label="Fechar"></button>
-    </div>
+<!-- Nova marcação: offcanvas lateral (mesmo shell / footer / close do detalhe) -->
+<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas agenda-marcacao-test-offcanvas--wide event-detail-offcanvas--no-header" tabindex="-1" id="agendaMarcacaoTestOffcanvas" aria-labelledby="agendaMarcacaoTestOffcanvasLabel" data-bs-scroll="true">
+    <span class="visually-hidden" id="agendaMarcacaoTestOffcanvasLabel">Nova marcação</span>
+    <button type="button" class="btn-close event-detail-oc-close" data-bs-dismiss="offcanvas" data-agenda-oc-close aria-label="Fechar"></button>
     <div class="offcanvas-body agenda-oc-offcanvas-body">
         <form id="agendaMarcacaoTestForm" class="agenda-oc-test-form agenda-oc-shell" autocomplete="off" novalidate>
             <div class="agenda-oc-shell__grid">
@@ -69,6 +66,7 @@
                 </div>
                 <div class="agenda-oc-shell__right">
                     <div class="agenda-oc-shell__right-body">
+                        @include('agenda.partials.oc-status-select', ['prefix' => 'agendaOc', 'withTerminal' => false])
                         <div class="agenda-oc-field agenda-oc-schedule-row">
                             <div class="mb-2 d-none" id="agendaOcHorarioAvisoWrap">
                                 <div class="alert alert-warning mb-0 py-2 small" id="agendaOcHorarioAviso" role="alert">
@@ -109,16 +107,27 @@
                                 </select>
                             </div>
                             <div id="agendaOcSelectedServicesList" class="mt-2 d-none"></div>
+                            <div class="event-detail-services-total mt-2 d-none" id="agendaOcTotalRow">
+                                <div class="event-detail-total-line" id="agendaOcTotalLeft">
+                                    <span class="event-detail-total-line__part" id="agendaOcTotalMain">
+                                        <span class="small text-muted">Total:</span>
+                                        <span class="fw-semibold text-body" id="agendaOcTotalPrice">0,00 €</span>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         @include('agenda.partials.oc-visit-notes', ['prefix' => 'agendaOc'])
                     </div>
-                    <div class="agenda-marcacao-test-offcanvas-footer border-top d-flex flex-wrap gap-2 justify-content-between align-items-center">
-                        <small id="agendaOcPastStartHint" class="text-danger d-none mb-0">Não é possível criar marcações no passado.</small>
-                        <div class="d-flex flex-wrap gap-2 justify-content-end ms-auto">
-                            <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
-                            <button type="submit" class="btn btn-primary btn-sm" id="agendaOcSubmit" form="agendaMarcacaoTestForm">Criar marcação</button>
+                    <div class="agenda-marcacao-test-offcanvas-footer border-top" id="agendaOcOffcanvasFooter">
+                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between w-100 event-detail-oc-footer-actions">
+                            <small id="agendaOcPastStartHint" class="text-danger d-none mb-0">Não é possível criar marcações no passado.</small>
+                            <div class="d-flex flex-wrap gap-2 align-items-center ms-auto">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas" data-agenda-oc-close>Cancelar</button>
+                                <button type="submit" class="btn btn-primary event-detail-footer-save-btn" id="agendaOcSubmit" form="agendaMarcacaoTestForm">Criar marcação</button>
+                            </div>
                         </div>
                     </div>
+                    @include('agenda.partials.oc-clinical-panel', ['prefix' => 'agendaOc'])
                 </div>
             </div>
         </form>
@@ -371,47 +380,15 @@
 </div>
 
 <!-- Offcanvas: Ver/Editar marcação (estrutura igual à nova marcação: cliente, serviços, profissional, data, notas) -->
-<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas agenda-marcacao-test-offcanvas--wide" tabindex="-1" id="eventDetailEditModal" aria-labelledby="eventDetailEditOffcanvasLabel" data-bs-scroll="true">
-    <div class="offcanvas-header border-bottom d-flex align-items-center gap-2">
-        <div class="d-flex align-items-center flex-grow-1 min-w-0 gap-2">
-            <span class="visually-hidden" id="eventDetailEditOffcanvasLabel">Detalhe da marcação</span>
-            <div class="d-flex align-items-center min-w-0 flex-shrink-0 gap-2">
-                <span class="dropdown" id="eventDetailStatusDropdownWrap">
-                    <span class="event-detail-time-toggle dropdown-toggle event-detail-status-toggle d-inline-flex align-items-center text-muted small text-decoration-none" id="eventDetailStatusDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false" role="button">
-                        <span id="eventDetailStatusIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ri-time-fill agenda-status-icon-agendado"></i></span>
-                        <span id="eventDetailStatusLabel">Agendado</span>
-                    </span>
-                    <div class="dropdown-menu dropdown-menu-start p-0" id="eventDetailStatusMenu">
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="agendado"><i class="me-0 ri-time-fill agenda-status-icon-agendado"></i>Agendado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="notificado"><i class="me-0 ri-notification-3-fill agenda-status-icon-notificado"></i>Notificado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="confirmado"><i class="me-0 ri-notification-3-fill agenda-status-icon-confirmado"></i>Confirmado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="chegou"><i class="me-0 ri-map-pin-fill agenda-status-icon-chegou"></i>Chegou</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2" href="#" data-status="iniciado"><i class="me-0 ri-play-fill agenda-status-icon-iniciado"></i>Iniciado</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="faltou"><i class="me-0 ph ph-x text-danger"></i>Faltou</a>
-                        <a class="dropdown-item event-detail-status-opt d-flex align-items-center gap-2 text-danger" href="#" data-status="cancelar"><i class="me-0 ph ph-trash text-danger"></i>Cancelar</a>
-                    </div>
-                </span>
-                <span class="d-none event-detail-status-static d-inline-flex align-items-center small text-muted" id="eventDetailStatusStatic">
-                    <span id="eventDetailStatusStaticIcon" class="event-detail-status-trigger-icon" aria-hidden="true"><i class="ri-checkbox-circle-fill"></i></span>
-                    <span id="eventDetailStatusStaticLabel">Concluído</span>
-                </span>
-                <span class="badge event-detail-marcacao-source-badge ms-1 d-none" id="eventDetailMarcacaoSourceBadge"></span>
-            </div>
-        </div>
-        <button type="submit" class="btn btn-light btn-sm border flex-shrink-0 d-inline-flex align-items-center gap-2 event-detail-header-save-btn" id="eventDetailSaveBtn" form="eventDetailEditForm" aria-label="Guardar alterações" title="Guardar alterações">
-            <i class="ph ph-floppy-disk" aria-hidden="true"></i>
-            <span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span>
-            <span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>
-        </button>
-        <button type="button" class="btn-close flex-shrink-0" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
-    </div>
+<div class="offcanvas offcanvas-end agenda-marcacao-test-offcanvas agenda-marcacao-test-offcanvas--wide event-detail-offcanvas--no-header" tabindex="-1" id="eventDetailEditModal" aria-labelledby="eventDetailEditOffcanvasLabel" data-bs-scroll="true">
+    <span class="visually-hidden" id="eventDetailEditOffcanvasLabel">Detalhe da marcação</span>
+    <button type="button" class="btn-close event-detail-oc-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     <div id="eventDetailEditPanel" class="offcanvas-body agenda-oc-offcanvas-body">
         <form id="eventDetailEditForm" class="agenda-oc-test-form agenda-oc-shell" autocomplete="off" novalidate>
             <input type="hidden" id="eventDetailEditId" name="event_id">
             <input type="hidden" id="eventDetailEditUserId" name="user_id">
             <input type="hidden" id="eventDetailEditStart" name="start_at">
             <input type="hidden" id="eventDetailEditEnd" name="end_at">
-            <input type="hidden" id="eventDetailStatus" name="status" value="agendado">
             <div class="agenda-oc-shell__grid" id="eventDetailOcMarcacaoSection">
                 <div class="agenda-oc-split__client">
                     <div class="agenda-oc-client-column-heading">
@@ -426,6 +403,11 @@
                     <div class="agenda-oc-shell__right-body">
                         <div id="eventDetailVisitLeadBlock" class="d-none mb-3"></div>
                         <div id="eventDetailOcBookingFields">
+                            @include('agenda.partials.oc-status-select', [
+                                'prefix' => 'eventDetail',
+                                'withTerminal' => true,
+                                'withSourceBadge' => true,
+                            ])
                             <div class="agenda-oc-field agenda-oc-schedule-row">
                                 <div class="mb-2 d-none" id="eventDetailHorarioAvisoWrap">
                                     <div class="alert alert-warning mb-0 py-2 small" id="eventDetailHorarioAviso" role="alert">
@@ -467,62 +449,60 @@
                                 </div>
                                 <div id="eventDetailOcSelectedServicesList" class="mt-2 d-none"></div>
                                 <div id="eventDetailOcFeesList" class="mt-2 d-none"></div>
+                                <div class="event-detail-services-total mt-2" id="eventDetailTotalRow">
+                                    <div class="event-detail-total-line" id="eventDetailTotalLeft">
+                                        <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailReservaSummary">
+                                            <span id="eventDetailReservaSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmount">0,00 €</span> &bull; Falta pagar <span class="fw-semibold text-body" id="eventDetailFaltaPagarAmount">0,00 €</span></span>
+                                        </span>
+                                        <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailPagoSummary">
+                                            <span id="eventDetailPagoSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">0,00 €</span> &bull; Pagamento final <span class="fw-semibold text-body" id="eventDetailPagoAmount">0,00 €</span></span>
+                                        </span>
+                                        <span class="event-detail-total-line__part" id="eventDetailTotalMain">
+                                            <span class="small text-muted">Total:</span>
+                                            <span class="fw-semibold text-body" id="eventDetailTotalPrice">0,00 €</span>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                             @include('agenda.partials.oc-visit-notes', ['prefix' => 'eventDetailOc'])
-                            @if(auth()->user()->isAdmin())
-                            <div class="agenda-oc-field d-none" id="eventDetailActivityLogWrap">
-                                <button type="button" class="btn btn-link btn-sm px-0 text-decoration-none d-inline-flex align-items-center gap-1" id="eventDetailViewLogsBtn">
-                                    <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
-                                    Ver histórico de alterações
-                                </button>
-                            </div>
-                            @endif
                         </div>
                     </div>
-                    <div class="agenda-marcacao-test-offcanvas-footer border-top flex-column align-items-stretch" id="eventDetailOffcanvasFooter">
-                        <div class="d-flex align-items-center pb-2 mb-1 border-bottom border-light" id="eventDetailTotalRow">
-                            <div class="event-detail-total-line flex-grow-1 min-w-0" id="eventDetailTotalLeft">
-                                <span class="event-detail-total-line__part" id="eventDetailTotalMain">
-                                    <span class="small text-muted">Total:</span>
-                                    <span class="fw-semibold text-body" id="eventDetailTotalPrice">0,00 €</span>
-                                </span>
-                                <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailReservaSummary">
-                                    <span id="eventDetailReservaSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmount">0,00 €</span> &bull; Falta pagar <span class="fw-semibold text-body" id="eventDetailFaltaPagarAmount">0,00 €</span></span>
-                                </span>
-                                <span class="event-detail-total-line__part d-none small text-muted" id="eventDetailPagoSummary">
-                                    <span id="eventDetailPagoSummaryText">Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">0,00 €</span> &bull; Pagamento final <span class="fw-semibold text-body" id="eventDetailPagoAmount">0,00 €</span></span>
-                                </span>
-                            </div>
-                        </div>
+                    <div class="agenda-marcacao-test-offcanvas-footer border-top" id="eventDetailOffcanvasFooter">
                         <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between w-100 event-detail-oc-footer-actions" id="eventDetailFooterActionsRow">
                             <div class="d-flex flex-wrap gap-2 align-items-center" id="eventDetailPaymentWrap">
-                                <button type="button" class="btn btn-outline-primary btn-sm d-none" id="eventDetailReservaBtn" data-payment-flow-label="Pré-pagamento">
-                                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--long">Pré-pagamento</span>
-                                    <span class="event-detail-pay-btn-label event-detail-pay-btn-label--short">Pré-pag.</span>
-                                </button>
-                                <button type="button" class="btn btn-success btn-sm d-none" id="eventDetailPaymentBtn" data-payment-flow-label="Pagamento">Pagamento</button>
                                 <div class="dropup d-none" id="eventDetailPaymentDropup">
-                                    <button class="btn btn-success btn-sm dropdown-toggle" type="button" id="eventDetailPaymentDropupToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <button class="btn btn-success dropdown-toggle" type="button" id="eventDetailPaymentDropupToggle" data-bs-toggle="dropdown" aria-expanded="false">
                                         Pagamento
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="eventDetailPaymentDropupToggle" id="eventDetailPaymentDropupMenu">
-                                        <li>
-                                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2" type="button" id="eventDetailPayCurrentBtn">
-                                                <span>Pagar esta marcação</span>
-                                                <span class="small fw-semibold" id="eventDetailPayCurrentAmount">0,00 €</span>
+                                    <ul class="dropdown-menu dropdown-menu-end event-detail-payment-menu" aria-labelledby="eventDetailPaymentDropupToggle" id="eventDetailPaymentDropupMenu">
+                                        <li class="d-none" id="eventDetailPayMenuReservaLi">
+                                            <button type="button" class="dropdown-item d-flex justify-content-between align-items-center gap-3" id="eventDetailReservaBtn" data-payment-flow-label="Pré-pagamento">
+                                                <span>Pré-pagamento</span>
+                                                <span class="small fw-semibold text-nowrap" id="eventDetailReservaMenuAmount">0,00 €</span>
                                             </button>
                                         </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li><div class="dropdown-item-text small text-muted fw-semibold" id="eventDetailPayAllHint">+0 marcações por pagar hoje</div></li>
-                                        <li>
-                                            <button class="dropdown-item d-flex justify-content-between align-items-center gap-2 fw-semibold" type="button" id="eventDetailPayAllBtn" data-payment-flow-label="Pagar todas do dia">
+                                        <li class="d-none" id="eventDetailPayMenuDividerLi"><hr class="dropdown-divider"></li>
+                                        <li class="d-none" id="eventDetailPayMenuSimpleLi">
+                                            <button type="button" class="dropdown-item d-flex justify-content-between align-items-center gap-3 event-detail-pay-menu-item--primary" id="eventDetailPaymentBtn" data-payment-flow-label="Pagamento final">
+                                                <span id="eventDetailPaymentBtnLabel">Pagamento final</span>
+                                                <span class="small fw-bold text-nowrap" id="eventDetailPaymentBtnAmount">0,00 €</span>
+                                            </button>
+                                        </li>
+                                        <li class="d-none" id="eventDetailPayMenuCurrentLi">
+                                            <button type="button" class="dropdown-item d-flex justify-content-between align-items-center gap-3 event-detail-pay-menu-item--primary" id="eventDetailPayCurrentBtn" data-payment-flow-label="Pagamento final">
+                                                <span>Pagar esta marcação</span>
+                                                <span class="small fw-bold text-nowrap" id="eventDetailPayCurrentAmount">0,00 €</span>
+                                            </button>
+                                        </li>
+                                        <li class="d-none" id="eventDetailPayMenuAllLi">
+                                            <button type="button" class="dropdown-item d-flex justify-content-between align-items-center gap-3" id="eventDetailPayAllBtn" data-payment-flow-label="Pagar todas do dia">
                                                 <span>Pagar todas do dia</span>
-                                                <span class="small fw-semibold" id="eventDetailPayAllAmount">0,00 €</span>
+                                                <span class="small fw-semibold text-nowrap" id="eventDetailPayAllAmount">0,00 €</span>
                                             </button>
                                         </li>
                                     </ul>
                                 </div>
-                                <button type="button" class="btn btn-outline-success btn-sm d-none" id="eventDetailOpenCashRegisterBtn" data-crm-cash-register-trigger="open" data-crm-cash-register-fixed="open">
+                                <button type="button" class="btn btn-outline-success d-none" id="eventDetailOpenCashRegisterBtn" data-crm-cash-register-trigger="open" data-crm-cash-register-fixed="open">
                                     <span class="event-detail-pay-btn-label event-detail-pay-btn-label--long">Abrir caixa</span>
                                     <span class="event-detail-pay-btn-label event-detail-pay-btn-label--short">Caixa</span>
                                 </button>
@@ -530,10 +510,25 @@
                                     <i class="ph ph-check" aria-hidden="true"></i>
                                     <span>Pago</span>
                                 </span>
+                                <div class="d-none d-flex flex-wrap gap-1 align-items-center" id="eventDetailFaturasWrap"></div>
                             </div>
-                            <div class="d-none d-flex flex-wrap gap-1 align-items-center ms-auto" id="eventDetailFaturasWrap"></div>
+                            <div class="d-flex flex-wrap gap-2 align-items-center ms-auto" id="eventDetailFooterRightActions">
+                                @if(auth()->user()->isAdmin())
+                                <div class="d-none" id="eventDetailActivityLogWrap">
+                                    <button type="button" class="btn btn-light event-detail-history-btn" id="eventDetailViewLogsBtn" title="Ver histórico de alterações" aria-label="Ver histórico de alterações">
+                                        <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                @endif
+                                <button type="submit" class="btn btn-primary event-detail-footer-save-btn" id="eventDetailSaveBtn" form="eventDetailEditForm" aria-label="Guardar alterações" title="Guardar alterações">
+                                    <span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span>
+                                    <span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    @include('agenda.partials.oc-clinical-panel', ['prefix' => 'eventDetailOc'])
+                    @include('agenda.partials.oc-payment-panel')
                 </div>
             </div>
         </form>
@@ -615,6 +610,7 @@ window.AGENDA_CONFIG = {
     authEmail: @json(auth()->user()->email ?? ''),
     agendaMembersServicesUrl: @json(url('agenda/members')),
     agendaClientsUrl: @json(url('agenda/clients')),
+    agendaClinicalSchemaUrl: @json(route('agenda.clinical_schema')),
     agendaClientWalletUrl: @json(url('agenda/clients')),
     urlEvents: @json(url('agenda/events')),
     urlEventsStore: @json(route('agenda.events.store')),

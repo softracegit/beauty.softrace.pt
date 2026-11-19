@@ -1,20 +1,80 @@
 @if(($marcacoes ?? collect())->count() > 0)
+  @php
+    $marcacaoDetailMode = $marcacaoDetailMode ?? 'full';
+  @endphp
   @foreach($marcacoes as $ev)
     <template id="marcacao-detail-{{ $ev->id }}">
-      @include('relatorios._marcacao_modal_fragment', ['ev' => $ev])
+      @include('relatorios._marcacao_modal_fragment', [
+        'ev' => $ev,
+        'marcacaoDetailMode' => $marcacaoDetailMode,
+      ])
     </template>
   @endforeach
-  <div class="modal fade" id="marcacaoDetalheModal" tabindex="-1" aria-labelledby="marcacaoDetalheModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="marcacaoDetalheModalLabel">Detalhes da marcação</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-        </div>
-        <div class="modal-body" id="marcacaoDetalheModalBody"></div>
-        <div class="modal-footer" id="marcacaoDetalheModalFooter"></div>
-      </div>
+
+  <style>
+    .marcacao-detalhe-offcanvas {
+      --bs-offcanvas-width: 50vw !important;
+      width: 50vw !important;
+      max-width: 100vw;
+    }
+    .marcacao-detalhe-offcanvas.offcanvas-end {
+      border-left: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+      border-radius: 20px 0 0 20px;
+      overflow: hidden;
+    }
+    .marcacao-detalhe-offcanvas:focus,
+    .marcacao-detalhe-offcanvas:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+    .marcacao-detalhe-offcanvas .offcanvas-header {
+      padding: 1rem 1.75rem;
+    }
+    .marcacao-detalhe-offcanvas .offcanvas-body {
+      flex: 1 1 auto;
+      padding: 1.25rem 1.75rem 1.75rem;
+      overflow-y: auto;
+    }
+    .marcacao-detalhe-offcanvas__footer {
+      flex-shrink: 0;
+      padding: 1rem 1.75rem;
+      box-sizing: border-box;
+      background: var(--bs-body-bg, #fff);
+    }
+    .marcacao-detalhe-offcanvas__footer .btn {
+      font-size: 0.875rem;
+      font-weight: 500;
+      line-height: 1.5;
+      padding: var(--spacing-sm, 0.375rem) var(--spacing-lg, 1rem);
+      box-sizing: border-box;
+      height: calc(0.875rem * 1.5 + var(--spacing-sm, 0.375rem) * 2 + 2px);
+      min-height: calc(0.875rem * 1.5 + var(--spacing-sm, 0.375rem) * 2 + 2px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @media (max-width: 991.98px) {
+      .marcacao-detalhe-offcanvas {
+        --bs-offcanvas-width: 100% !important;
+        width: 100% !important;
+        border-radius: 0 !important;
+      }
+    }
+  </style>
+
+  <div
+    class="offcanvas offcanvas-end marcacao-detalhe-offcanvas"
+    tabindex="-1"
+    id="marcacaoDetalheModal"
+    aria-labelledby="marcacaoDetalheModalLabel"
+    data-bs-scroll="true"
+  >
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title mb-0 fw-semibold" id="marcacaoDetalheModalLabel">Detalhes da marcação</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     </div>
+    <div class="offcanvas-body csheet-modal-body" id="marcacaoDetalheModalBody"></div>
+    <div class="border-top marcacao-detalhe-offcanvas__footer d-flex flex-wrap align-items-center justify-content-end gap-2" id="marcacaoDetalheModalFooter"></div>
   </div>
 
   @if(auth()->user()?->isAdmin())

@@ -14,11 +14,13 @@ final class ServiceOptionValidation
     {
         return [
             "{$prefix}.*.name" => ['required', 'string', 'max:255'],
+            "{$prefix}.*.description" => ['nullable', 'string'],
             "{$prefix}.*.duration" => ['required', 'integer', 'min:1'],
             "{$prefix}.*.price" => ['required', 'numeric', 'min:0'],
             "{$prefix}.*.online_price" => ['required', 'numeric', 'min:0'],
             "{$prefix}.*.sort_order" => ['sometimes', 'integer', 'min:0'],
             "{$prefix}.*.is_baseline" => ['sometimes', 'boolean'],
+            "{$prefix}.*.type" => ['sometimes', 'nullable', 'in:choice,addon'],
         ];
     }
 
@@ -33,6 +35,22 @@ final class ServiceOptionValidation
             "{$prefix}.*.price.required" => 'O preço da opção é obrigatório.',
             "{$prefix}.*.online_price.required" => 'O preço online da opção é obrigatório.',
         ];
+    }
+
+    /**
+     * A opção base define o preço do serviço, por isso não pode ser adicional.
+     *
+     * @param  array<int, mixed>  $options
+     */
+    public static function baselineIsAddon(array $options): bool
+    {
+        foreach ($options as $row) {
+            if (is_array($row) && ! empty($row['is_baseline']) && ($row['type'] ?? null) === 'addon') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -63,4 +63,12 @@ class Category extends Model
     {
         return $query->where('hidden_from_booking', false);
     }
+
+    /**
+     * @return HasMany<CategoryClinicalField, $this>
+     */
+    public function clinicalFields(): HasMany
+    {
+        return $this->hasMany(CategoryClinicalField::class)->orderBy('sort_order')->orderBy('id');
+    }
 }

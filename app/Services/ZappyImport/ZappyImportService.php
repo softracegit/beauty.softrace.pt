@@ -4592,6 +4592,9 @@ class ZappyImportService
     {
         if ($importedServiceIds !== []) {
             DB::table('agent_service')->whereIn('service_id', $importedServiceIds)->delete();
+            if (Schema::hasTable('agent_service_extra')) {
+                DB::table('agent_service_extra')->whereIn('service_id', $importedServiceIds)->delete();
+            }
             if (Schema::hasTable('service_fee')) {
                 DB::table('service_fee')->whereIn('service_id', $importedServiceIds)->delete();
             }

@@ -4,9 +4,9 @@
 
 @section('css')
   @include('relatorios._styles')
+  <link rel="stylesheet" href="{{ static_asset('template/css/clinical-sheet.css') }}">
   @include('relatorios.partials.pdf-print-dropdown-styles')
-  @include('relatorios.partials.vendas-table-styles', ['showClienteColumn' => false])
-@endsection
+  @include('relatorios.partials.vendas-table-styles', ['showClienteColumn' => false])@endsection
 
 @section('content')
   <div class="dash-welcome mb-4">

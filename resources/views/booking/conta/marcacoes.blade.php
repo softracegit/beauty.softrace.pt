@@ -16,6 +16,7 @@
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'marcacoes'])
 
                     <div class="booking-account-content">
+                        @include('booking.conta.partials.resume-booking')
                         @include('booking.partials.elegant-account-header', [
                             'elegantAccountTitle' => __('booking.account.appointments_history_title'),
                             'elegantAccountSubtitle' => __('booking.account.appointments_history_subtitle'),

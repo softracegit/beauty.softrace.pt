@@ -35,28 +35,6 @@
             </div>
         </div>
 
-        <div id="{{ $pfx }}ClientBirthdayBanner" class="agenda-client-birthday-banner d-none" role="status" aria-live="polite">
-            <i class="ph ph-gift agenda-client-birthday-banner__icon" aria-hidden="true"></i>
-            <span id="{{ $pfx }}ClientBirthdayText" class="agenda-client-birthday-banner__text"></span>
-        </div>
-
-        {{-- Alergias: ficam no cliente (não nesta marcação); só a equipa edita — o cliente no Booking só deixa notas --}}
-        <div class="agenda-oc-client-alerts-wrap" id="{{ $pfx }}ClientAllergiesViewField" data-profile-field="allergies">
-            <div class="agenda-oc-client-alerts">
-                <div class="agenda-oc-client-alerts__head">
-                    <div class="agenda-oc-client-alerts__title">
-                        <i class="ph ph-warning-circle" aria-hidden="true"></i>
-                        <span>Alergias ou contraindicações?</span>
-                    </div>
-                    <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add agenda-oc-client-alerts__add d-none" id="{{ $pfx }}ClientAllergiesAddBtn">Adicionar</button>
-                </div>
-                <div class="agenda-oc-client-alerts__value">
-                    <span id="{{ $pfx }}ClientSelectedAllergies" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
-                    <input type="text" id="{{ $pfx }}ClientAllergiesInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="2000" placeholder="Alergias, sensibilidades, avisos…">
-                </div>
-            </div>
-        </div>
-
         <div class="agenda-oc-client-panel__details" id="{{ $pfx }}ClientDetails">
             <button
                 type="button"
@@ -162,6 +140,31 @@
             {{-- Links ocultos: JS de perfil / marcações ainda referencia estes IDs --}}
             <a id="{{ $pfx }}ClientProfileLink" href="#" class="d-none" tabindex="-1" aria-hidden="true"></a>
             <a id="{{ $pfx }}ClientMarcacoesLink" href="#" class="d-none" tabindex="-1" aria-hidden="true"></a>
+        </div>
+
+        {{-- Rodapé da coluna: aniversário (se houver) + alergias --}}
+        <div class="agenda-oc-client-panel__footer-cards">
+            <div id="{{ $pfx }}ClientBirthdayBanner" class="agenda-client-birthday-banner d-none" role="status" aria-live="polite">
+                <i class="ph ph-gift agenda-client-birthday-banner__icon" aria-hidden="true"></i>
+                <span id="{{ $pfx }}ClientBirthdayText" class="agenda-client-birthday-banner__text"></span>
+            </div>
+
+            {{-- Alergias: só a equipa edita — o cliente no Booking só deixa notas --}}
+            <div class="agenda-oc-client-alerts-wrap" id="{{ $pfx }}ClientAllergiesViewField" data-profile-field="allergies">
+                <div class="agenda-oc-client-alerts">
+                    <div class="agenda-oc-client-alerts__head">
+                        <div class="agenda-oc-client-alerts__title">
+                            <i class="ph ph-warning-circle" aria-hidden="true"></i>
+                            <span>Alergias ou contraindicações?</span>
+                        </div>
+                    </div>
+                    <div class="agenda-oc-client-alerts__value">
+                        <span id="{{ $pfx }}ClientSelectedAllergies" class="agenda-oc-client-panel__value-text" role="button" tabindex="0" title="Clique para editar">—</span>
+                        <button type="button" class="btn btn-link btn-sm p-0 agenda-oc-client-panel__add agenda-oc-client-alerts__add d-none" id="{{ $pfx }}ClientAllergiesAddBtn">Adicionar</button>
+                        <input type="text" id="{{ $pfx }}ClientAllergiesInput" class="agenda-oc-client-panel__inline-input d-none" maxlength="2000" placeholder="Alergias, sensibilidades, avisos…">
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>

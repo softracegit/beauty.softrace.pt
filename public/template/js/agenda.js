@@ -37,7 +37,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function agendaMarcacaoTotalStrip(priceId) {
         var el = $id(priceId);
         if (!el) return null;
-        return el.closest('.nova-marcacao-modal-total-strip') || el.closest('#eventDetailTotalRow') || null;
+        return el.closest('.nova-marcacao-modal-total-strip')
+            || el.closest('#eventDetailTotalRow')
+            || el.closest('#agendaOcTotalRow')
+            || null;
     }
 
     /** Painel scrollável do offcanvas «Ver / editar marcação» (âncora para quick menus). */
@@ -591,6 +594,69 @@ document.addEventListener('DOMContentLoaded', function() {
         anulado: 'ri-close-circle-fill',
         completo: 'ri-checkbox-circle-fill agenda-status-icon-confirmado'
     };
+
+    /**
+     * Sync UI do select de estado (nova marcação / detalhe).
+     * @param {string} prefix 'eventDetail' | 'agendaOc'
+     * @param {string} statusVal
+     * @param {{ allowTerminal?: boolean }} [opts]
+     */
+    function marcacaoSyncStatusSelect(prefix, statusVal, opts) {
+        opts = opts || {};
+        var allowTerminal = opts.allowTerminal !== false;
+        var statusInput = $id(prefix + 'Status');
+        var labelEl = $id(prefix + 'StatusLabel');
+        var iconEl = $id(prefix + 'StatusIcon');
+        var toggleBtn = $id(prefix + 'StatusDropdownBtn');
+        var menu = $id(prefix + 'StatusMenu');
+        var status = String(statusVal || 'agendado');
+        var locked = (status === 'completo' || status === 'faltou' || status === 'cancelado' || status === 'anulado');
+        if (statusInput) statusInput.value = status;
+        if (labelEl) labelEl.textContent = STATUS_LABELS[status] || status;
+        if (iconEl) {
+            var ic = iconEl.querySelector('i');
+            if (ic) ic.className = STATUS_ICONS[status] || 'ri-time-fill agenda-status-icon-agendado';
+        }
+        if (toggleBtn) {
+            toggleBtn.disabled = !!locked;
+            toggleBtn.classList.toggle('is-locked', !!locked);
+            if (locked) toggleBtn.dataset.statusLocked = '1';
+            else delete toggleBtn.dataset.statusLocked;
+        }
+        if (menu) {
+            menu.querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
+                var val = opt.getAttribute('data-status') || '';
+                var isTerminalAction = opt.getAttribute('data-terminal-action') === '1';
+                var hide = false;
+                if (locked) {
+                    hide = true;
+                } else if (isTerminalAction) {
+                    hide = !allowTerminal || !canCancelOrMarkMarcacaoFalta;
+                } else if (isPrestadorStaff && prestadorAllowedStatuses.indexOf(val) === -1) {
+                    hide = true;
+                }
+                var li = opt.closest('li');
+                if (li) li.classList.toggle('d-none', hide);
+                else opt.classList.toggle('d-none', hide);
+            });
+            var divider = menu.querySelector('.dropdown-divider');
+            if (divider && divider.closest('li')) {
+                var anyTerminalVisible = Array.prototype.some.call(
+                    menu.querySelectorAll('.event-detail-status-opt[data-terminal-action="1"]'),
+                    function(o) { return !o.closest('li')?.classList.contains('d-none'); }
+                );
+                divider.closest('li').classList.toggle('d-none', !anyTerminalVisible || locked);
+            }
+        }
+    }
+
+    function eventDetailSyncStatusSelect(statusVal) {
+        marcacaoSyncStatusSelect('eventDetail', statusVal, { allowTerminal: true });
+    }
+
+    function agendaOcSyncStatusSelect(statusVal) {
+        marcacaoSyncStatusSelect('agendaOc', statusVal, { allowTerminal: false });
+    }
 
     /** Ícone no cartão da grelha: terminado/completo → euro ou ficheiro conforme pagamento/fatura. */
     function agendaResolveEventStatusIcon(extProps) {
@@ -2936,6 +3002,14 @@ document.addEventListener('DOMContentLoaded', function() {
         var target = ev && ev.target;
         if (!target || !target.closest) return;
         if (target.closest('.flatpickr-calendar')) return;
+        /* Select nativo de mês/ano: o clique nas <option> muitas vezes não está dentro de .flatpickr-calendar */
+        var openCal = document.querySelector('.flatpickr-calendar.open');
+        if (openCal) {
+            var tag = String(target.tagName || '').toUpperCase();
+            if (tag === 'OPTION' || tag === 'SELECT') return;
+            var ae = document.activeElement;
+            if (ae && ae.closest && ae.closest('.flatpickr-calendar')) return;
+        }
         if (typeof eventDetailOcInlineField !== 'undefined' && eventDetailOcInlineField) {
             if (eventDetailOcClientProfileSaving) return;
             var edRow = agendaOcProfileFieldRow('eventDetailOc', eventDetailOcInlineField);
@@ -3043,6 +3117,685 @@ document.addEventListener('DOMContentLoaded', function() {
         if (allergiesInput && !allergiesInput.disabled) allergiesInput.value = alerts;
         var alertsWrap = $id(pfx + 'ClientAllergiesViewField');
         if (alertsWrap) alertsWrap.classList.toggle('has-allergies', !!alerts);
+    }
+
+    var agendaClinicalSchemaUrl = C.agendaClinicalSchemaUrl || '';
+    var agendaClinicalState = {
+        agendaOc: { schema: null, sheet: null, prefs: null, values: {}, stashByCategory: {} },
+        eventDetailOc: { schema: null, sheet: null, prefs: null, values: {}, stashByCategory: {} }
+    };
+
+    function agendaClinicalEscape(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function agendaClinicalEnsureState(prefix) {
+        if (!agendaClinicalState[prefix]) {
+            agendaClinicalState[prefix] = { schema: null, sheet: null, prefs: null, values: {}, stashByCategory: {} };
+        }
+        var st = agendaClinicalState[prefix];
+        if (!st.values) st.values = {};
+        if (!st.stashByCategory) st.stashByCategory = {};
+        return st;
+    }
+
+    function agendaClinicalResetState(prefix) {
+        agendaClinicalState[prefix] = { schema: null, sheet: null, prefs: null, values: {}, stashByCategory: {} };
+        agendaClinicalRenderSummary(prefix);
+    }
+
+    /** Extrai valor cru de entry de sheet ({ value } | primitivo). */
+    function agendaClinicalUnwrapSheetEntry(entry) {
+        if (entry && typeof entry === 'object' && !Array.isArray(entry) && Object.prototype.hasOwnProperty.call(entry, 'value')) {
+            return entry.value;
+        }
+        return entry;
+    }
+
+    /**
+     * Merge mapa category_id → { field: value } para o stash.
+     * Chaves com valor vazio são removidas do stash (ex.: campo limpo na layer).
+     */
+    function agendaClinicalMergeValuesIntoStash(st, byCategoryMap, opts) {
+        opts = opts || {};
+        var clearEmpty = opts.clearEmpty !== false;
+        st.stashByCategory = st.stashByCategory || {};
+        Object.keys(byCategoryMap || {}).forEach(function(cid) {
+            var block = byCategoryMap[cid];
+            if (!block || typeof block !== 'object') return;
+            st.stashByCategory[cid] = st.stashByCategory[cid] || {};
+            Object.keys(block).forEach(function(key) {
+                var v = agendaClinicalUnwrapSheetEntry(block[key]);
+                if (agendaClinicalIsEmpty(v)) {
+                    if (clearEmpty) delete st.stashByCategory[cid][key];
+                    return;
+                }
+                st.stashByCategory[cid][key] = v;
+            });
+            if (!Object.keys(st.stashByCategory[cid]).length) delete st.stashByCategory[cid];
+        });
+    }
+
+    /** Seed do stash a partir do sheet BD — não sobrescreve valores já no stash. */
+    function agendaClinicalSeedStashFromSheet(st, sheet) {
+        var by = sheet && sheet.by_category;
+        if (!by || typeof by !== 'object') return;
+        st.stashByCategory = st.stashByCategory || {};
+        Object.keys(by).forEach(function(cid) {
+            var block = by[cid];
+            if (!block || typeof block !== 'object') return;
+            st.stashByCategory[cid] = st.stashByCategory[cid] || {};
+            Object.keys(block).forEach(function(key) {
+                if (!agendaClinicalIsEmpty(st.stashByCategory[cid][key])) return;
+                var v = agendaClinicalUnwrapSheetEntry(block[key]);
+                if (!agendaClinicalIsEmpty(v)) st.stashByCategory[cid][key] = v;
+            });
+            if (!Object.keys(st.stashByCategory[cid]).length) delete st.stashByCategory[cid];
+        });
+    }
+
+    function agendaClinicalFieldValueFromSheet(sheet, categoryId, key) {
+        var by = sheet && sheet.by_category ? sheet.by_category : null;
+        if (!by) return null;
+        var block = by[String(categoryId)] || by[categoryId];
+        if (!block || !Object.prototype.hasOwnProperty.call(block, key)) return null;
+        return agendaClinicalUnwrapSheetEntry(block[key]);
+    }
+
+    function agendaClinicalPrefValue(prefs, categoryId, key) {
+        var by = prefs && prefs.by_category ? prefs.by_category : null;
+        if (!by) return null;
+        var block = by[String(categoryId)] || by[categoryId];
+        if (!block) return null;
+        return Object.prototype.hasOwnProperty.call(block, key) ? block[key] : null;
+    }
+
+    function agendaClinicalIsEmpty(v) {
+        return v == null || v === '' || (Array.isArray(v) && !v.length);
+    }
+
+    function agendaClinicalDisplay(v) {
+        if (v === true || v === 'true' || v === 1 || v === '1') return 'Sim';
+        if (v === false || v === 'false' || v === 0 || v === '0') return 'Não';
+        return Array.isArray(v) ? v.join(', ') : String(v);
+    }
+
+    function agendaClinicalSchemaFields(st) {
+        var out = [];
+        var cats = st && st.schema && Array.isArray(st.schema.categories) ? st.schema.categories : [];
+        cats.forEach(function(cat) {
+            (cat.fields || []).forEach(function(field) {
+                out.push({ cat: cat, field: field });
+            });
+        });
+        return out;
+    }
+
+    function agendaClinicalUsePills(field) {
+        var opts = Array.isArray(field.options) ? field.options : [];
+        if (!opts.length || opts.length > 8) return false;
+        return opts.every(function(o) { return String(o).length <= 22; });
+    }
+
+    function agendaClinicalRenderFieldHtml(field, categoryId, value, fromPref) {
+        var id = 'clinicalModal_' + categoryId + '_' + field.key;
+        var label = agendaClinicalEscape(field.label || field.key);
+        var req = field.is_required ? ' <span class="text-danger">*</span>' : '';
+        var opts = Array.isArray(field.options) ? field.options : [];
+        var type = field.input_type;
+        var control = type;
+        if ((type === 'select' || type === 'multiselect') && agendaClinicalUsePills(field)) control = type === 'select' ? 'pills' : 'pills-multi';
+        var wide = type === 'textarea' || control === 'pills' || control === 'pills-multi' || type === 'multiselect';
+        var html = '<div class="csheet-field' + (wide ? ' csheet-field--wide' : '') + '" data-category-id="' + agendaClinicalEscape(categoryId) + '" data-field-key="' + agendaClinicalEscape(field.key) + '" data-input-type="' + agendaClinicalEscape(type) + '" data-control="' + control + '">';
+        html += '<label class="csheet-field__label" for="' + id + '">' + label + req;
+        if (fromPref) html += ' <span class="csheet-pref-badge" title="Pré-preenchido com a preferência do cliente"><i class="ph ph-heart"></i> Preferência</span>';
+        html += '</label>';
+        if (control === 'pills' || control === 'pills-multi') {
+            var selected = Array.isArray(value) ? value.map(String) : (agendaClinicalIsEmpty(value) ? [] : [String(value)]);
+            html += '<div class="csheet-pills" id="' + id + '" role="' + (control === 'pills' ? 'radiogroup' : 'group') + '">';
+            opts.forEach(function(o) {
+                var on = selected.indexOf(String(o)) !== -1;
+                html += '<button type="button" class="csheet-pill' + (on ? ' is-active' : '') + '" data-value="' + agendaClinicalEscape(o) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + agendaClinicalEscape(o) + '</button>';
+            });
+            html += '</div>';
+        } else if (type === 'textarea') {
+            html += '<textarea class="form-control" id="' + id + '" rows="3">' + agendaClinicalEscape(value == null ? '' : value) + '</textarea>';
+        } else if (type === 'select') {
+            html += '<select class="form-select" id="' + id + '"><option value="">—</option>';
+            opts.forEach(function(o) {
+                var sel = String(value) === String(o) ? ' selected' : '';
+                html += '<option value="' + agendaClinicalEscape(o) + '"' + sel + '>' + agendaClinicalEscape(o) + '</option>';
+            });
+            html += '</select>';
+        } else if (type === 'multiselect') {
+            var selectedM = Array.isArray(value) ? value.map(String) : [];
+            html += '<div class="csheet-checks" id="' + id + '">';
+            opts.forEach(function(o, i) {
+                var cid = id + '_' + i;
+                var on = selectedM.indexOf(String(o)) !== -1;
+                html += '<div class="form-check"><input type="checkbox" class="form-check-input" id="' + cid + '" value="' + agendaClinicalEscape(o) + '"' + (on ? ' checked' : '') + '><label class="form-check-label" for="' + cid + '">' + agendaClinicalEscape(o) + '</label></div>';
+            });
+            html += '</div>';
+        } else if (type === 'bool') {
+            var checked = value === true || value === 1 || value === '1' || value === 'true';
+            html += '<div class="form-check form-switch csheet-switch"><input type="checkbox" role="switch" class="form-check-input" id="' + id + '"' + (checked ? ' checked' : '') + '><label class="form-check-label" for="' + id + '">' + (checked ? 'Sim' : 'Não') + '</label></div>';
+        } else if (type === 'number') {
+            html += '<input type="number" class="form-control" id="' + id + '" value="' + agendaClinicalEscape(value == null ? '' : value) + '">';
+        } else {
+            html += '<input type="text" class="form-control" id="' + id + '" value="' + agendaClinicalEscape(value == null ? '' : value) + '" maxlength="500">';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function agendaClinicalProgressStats(prefix) {
+        var st = agendaClinicalState[prefix] || {};
+        var entries = agendaClinicalSchemaFields(st);
+        var filled = 0;
+        entries.forEach(function(e) {
+            var v = agendaClinicalFieldValueFromSheet({ by_category: st.values || {} }, e.cat.category_id, e.field.key);
+            if (!agendaClinicalIsEmpty(v)) filled++;
+        });
+        return { total: entries.length, filled: filled };
+    }
+
+    function agendaClinicalSelectedServicesList(prefix) {
+        return prefix === 'eventDetailOc' ? (eventDetailSelectedServices || []) : (agendaOcSelectedServices || []);
+    }
+
+    function agendaClinicalRenderSummary(prefix) {
+        var wrap = $id(prefix + 'ClinicalSheetWrap');
+        var stats = agendaClinicalProgressStats(prefix);
+        var total = stats.total;
+        var filled = stats.filled;
+        var pctEl = $id(prefix + 'ClinicalProgressPct');
+        var countEl = $id(prefix + 'ClinicalProgressCount');
+        var subEl = $id(prefix + 'ClinicalProgressSub');
+        var barEl = $id(prefix + 'ClinicalProgressBar');
+        var btn = $id(prefix + 'ClinicalProgressBtn');
+        // Card sempre visível (lado a lado com Observações), mesmo sem serviços/categorias.
+        if (wrap) wrap.classList.remove('d-none');
+
+        if (!total) {
+            var hasServices = agendaClinicalSelectedServicesList(prefix).length > 0;
+            var emptyMsg = hasServices
+                ? 'Sem campos de ficha técnica para os serviços selecionados'
+                : 'Por favor adicione pelo menos um serviço à marcação';
+            if (pctEl) pctEl.textContent = '0%';
+            if (countEl) countEl.textContent = emptyMsg;
+            if (subEl) subEl.classList.add('d-none');
+            if (barEl) {
+                barEl.setAttribute('stroke-dasharray', '0 100');
+                barEl.classList.remove('is-complete', 'is-partial');
+                barEl.classList.add('is-empty');
+            }
+            if (btn) {
+                btn.classList.remove('is-complete', 'is-partial', 'is-empty');
+                btn.classList.add('is-awaiting-services');
+                btn.disabled = true;
+                btn.setAttribute('aria-disabled', 'true');
+                btn.setAttribute('aria-label', 'Ficha técnica: ' + emptyMsg);
+            }
+            return;
+        }
+
+        var pct = Math.round((filled / total) * 100);
+        if (pctEl) pctEl.textContent = pct + '%';
+        if (countEl) {
+            countEl.innerHTML = '<strong>' + filled + ' de ' + total + ' campos</strong>';
+        }
+        if (subEl) subEl.classList.remove('d-none');
+        if (barEl) {
+            barEl.setAttribute('stroke-dasharray', pct + ' 100');
+            barEl.classList.toggle('is-complete', pct >= 100);
+            barEl.classList.toggle('is-partial', pct > 0 && pct < 100);
+            barEl.classList.toggle('is-empty', pct <= 0);
+        }
+        if (btn) {
+            btn.classList.remove('is-awaiting-services');
+            btn.disabled = false;
+            btn.removeAttribute('aria-disabled');
+            btn.classList.toggle('is-complete', pct >= 100);
+            btn.classList.toggle('is-partial', pct > 0 && pct < 100);
+            btn.classList.toggle('is-empty', pct <= 0);
+            btn.setAttribute('aria-label', 'Ficha técnica: ' + filled + ' de ' + total + ' campos preenchidos. Abrir ficha.');
+        }
+    }
+
+    function agendaClinicalPanelEl(prefix) {
+        return $id(prefix + 'ClinicalPanel');
+    }
+
+    function agendaClinicalPanelIsOpen(prefix) {
+        var panelEl = agendaClinicalPanelEl(prefix);
+        return !!(panelEl && panelEl.classList.contains('is-open'));
+    }
+
+    function agendaClinicalClosePanel(prefix) {
+        var panelEl = agendaClinicalPanelEl(prefix);
+        if (!panelEl) return;
+        panelEl.classList.remove('is-open');
+        panelEl.setAttribute('aria-hidden', 'true');
+        if (agendaClinicalModalPrefix === prefix) agendaClinicalModalPrefix = null;
+        var shellRight = panelEl.closest('.agenda-oc-shell__right');
+        if (shellRight) shellRight.classList.remove('has-clinical-layer');
+    }
+
+    function agendaClinicalRefreshOpenModalIfNeeded(prefix) {
+        if (!agendaClinicalPanelIsOpen(prefix)) return;
+        var st = agendaClinicalState[prefix];
+        var entries = agendaClinicalSchemaFields(st);
+        if (!entries.length) {
+            agendaClinicalClosePanel(prefix);
+            return;
+        }
+        agendaClinicalOpenModal(prefix);
+    }
+
+    function agendaClinicalApplySchema(prefix, schema, sheet, prefs) {
+        var st = agendaClinicalEnsureState(prefix);
+        var previousValues = {};
+        Object.keys(st.values || {}).forEach(function(cid) {
+            previousValues[cid] = Object.assign({}, st.values[cid]);
+        });
+        // Se a layer está aberta, o DOM manda (inclui campos limpos).
+        var modalOpen = agendaClinicalPanelIsOpen(prefix);
+        if (modalOpen) {
+            var live = agendaClinicalCollectModalValues(prefix);
+            agendaClinicalSchemaFields(st).forEach(function(e) {
+                var cid = String(e.cat.category_id);
+                previousValues[cid] = previousValues[cid] || {};
+                if (live[cid] && !agendaClinicalIsEmpty(live[cid][e.field.key])) {
+                    previousValues[cid][e.field.key] = live[cid][e.field.key];
+                } else {
+                    // Campo limpo na UI → reflectir no stash (clearEmpty).
+                    previousValues[cid][e.field.key] = null;
+                }
+            });
+        }
+        // Stash por categoria: sobrevive a remover/re-adicionar serviços no mesmo offcanvas.
+        // Não re-seedar a partir do sheet aqui — o sheet BD reporia campos limpos na sessão.
+        agendaClinicalMergeValuesIntoStash(st, previousValues, { clearEmpty: true });
+
+        st.schema = schema || null;
+        st.sheet = sheet || null;
+        st.prefs = prefs || null;
+        st.values = {};
+        // Ordem: prev (vivo) → stash → sheet (só se layer fechada).
+        agendaClinicalSchemaFields(st).forEach(function(e) {
+            var cid = String(e.cat.category_id);
+            var fromPrev = previousValues[cid] ? previousValues[cid][e.field.key] : null;
+            var fromStash = st.stashByCategory[cid] ? st.stashByCategory[cid][e.field.key] : null;
+            var fromSheet = agendaClinicalFieldValueFromSheet(sheet, e.cat.category_id, e.field.key);
+            var v = null;
+            if (!agendaClinicalIsEmpty(fromPrev)) v = fromPrev;
+            else if (!agendaClinicalIsEmpty(fromStash)) v = fromStash;
+            else if (!modalOpen && !agendaClinicalIsEmpty(fromSheet)) v = fromSheet;
+            if (agendaClinicalIsEmpty(v)) return;
+            st.values[cid] = st.values[cid] || {};
+            st.values[cid][e.field.key] = v;
+        });
+        agendaClinicalMergeValuesIntoStash(st, st.values, { clearEmpty: false });
+
+        var fallback = $id(prefix + 'TechnicalFallback');
+        if (fallback) fallback.classList.toggle('d-none', agendaClinicalSchemaFields(st).length > 0);
+        agendaClinicalRenderSummary(prefix);
+        agendaClinicalRefreshOpenModalIfNeeded(prefix);
+    }
+
+    function agendaClinicalCollectPayload(prefix) {
+        var st = agendaClinicalState[prefix];
+        var entries = agendaClinicalSchemaFields(st);
+        if (!entries.length) return null;
+        var byCategory = {};
+        entries.forEach(function(e) {
+            var cid = String(e.cat.category_id);
+            var v = st.values && st.values[cid] ? st.values[cid][e.field.key] : null;
+            byCategory[cid] = byCategory[cid] || {};
+            byCategory[cid][e.field.key] = agendaClinicalIsEmpty(v) ? null : v;
+        });
+        return { by_category: byCategory };
+    }
+
+    function agendaClinicalPayloadHasValues(payload) {
+        var byCat = payload && payload.by_category;
+        if (!byCat || typeof byCat !== 'object') return false;
+        return Object.keys(byCat).some(function(cid) {
+            var block = byCat[cid];
+            if (!block || typeof block !== 'object') return false;
+            return Object.keys(block).some(function(key) {
+                return !agendaClinicalIsEmpty(block[key]);
+            });
+        });
+    }
+
+    /** Campos obrigatórios em falta — só relevantes quando a categoria já tem algum valor preenchido. */
+    function agendaClinicalMissingRequiredLabels(prefix) {
+        var st = agendaClinicalState[prefix];
+        var entries = agendaClinicalSchemaFields(st);
+        var missing = [];
+        var touchedCats = {};
+        entries.forEach(function(e) {
+            var cid = String(e.cat.category_id);
+            var v = st.values && st.values[cid] ? st.values[cid][e.field.key] : null;
+            if (!agendaClinicalIsEmpty(v)) touchedCats[cid] = true;
+        });
+        entries.forEach(function(e) {
+            if (!e.field || !e.field.is_required) return;
+            var cid = String(e.cat.category_id);
+            if (!touchedCats[cid]) return;
+            var v = st.values && st.values[cid] ? st.values[cid][e.field.key] : null;
+            if (agendaClinicalIsEmpty(v)) {
+                missing.push(e.field.label || e.field.key);
+            }
+        });
+        return missing;
+    }
+
+    var agendaClinicalModalPrefix = null;
+
+    function agendaClinicalServicesForCategory(prefix, categoryId, categoryName) {
+        var services = prefix === 'eventDetailOc' ? eventDetailSelectedServices : agendaOcSelectedServices;
+        var catId = categoryId != null ? String(categoryId) : '';
+        var catName = String(categoryName || '').trim().toLowerCase();
+        var names = [];
+        var seen = {};
+        (services || []).forEach(function(s) {
+            var match = false;
+            if (catId && s.category_id != null && String(s.category_id) === catId) match = true;
+            else if (catName && String(s.category_name || '').trim().toLowerCase() === catName) match = true;
+            if (!match) return;
+            var label = String(s.name || '').trim();
+            if (!label || seen[label]) return;
+            seen[label] = true;
+            names.push(label);
+        });
+        return names;
+    }
+
+    function agendaClinicalIsReadOnly(prefix) {
+        if (prefix !== 'eventDetailOc') return false;
+        var data = eventDetailCurrentData;
+        if (!data) return false;
+        var status = String(data.status || '');
+        if (status === 'completo' || status === 'faltou' || status === 'cancelado' || status === 'anulado') {
+            return true;
+        }
+        var isPartialSale = !!(eventDetailExistingSale && eventDetailExistingSale.is_partial);
+        return !!(eventDetailExistingSale && !isPartialSale);
+    }
+
+    function agendaClinicalApplyReadOnlyState(prefix, readOnly) {
+        var panelEl = agendaClinicalPanelEl(prefix);
+        var body = $id(prefix + 'ClinicalPanelBody');
+        var saveBtn = $id(prefix + 'ClinicalPanelSave');
+        if (panelEl) panelEl.classList.toggle('is-readonly', !!readOnly);
+        if (saveBtn) {
+            saveBtn.classList.toggle('d-none', !!readOnly);
+            saveBtn.disabled = !!readOnly;
+        }
+        if (!body || !readOnly) return;
+        body.querySelectorAll('input, select, textarea').forEach(function(el) {
+            el.disabled = true;
+            if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+                el.readOnly = true;
+            }
+        });
+        body.querySelectorAll('.csheet-pill').forEach(function(btn) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+        });
+    }
+
+    function agendaClinicalOpenModal(prefix) {
+        var st = agendaClinicalState[prefix];
+        var panelEl = agendaClinicalPanelEl(prefix);
+        var body = $id(prefix + 'ClinicalPanelBody');
+        if (!panelEl || !body || !st) return;
+        var cats = st.schema && Array.isArray(st.schema.categories) ? st.schema.categories : [];
+        if (!cats.some(function(cat) { return cat.fields && cat.fields.length; })) {
+            agendaClinicalClosePanel(prefix);
+            return;
+        }
+        var readOnly = agendaClinicalIsReadOnly(prefix);
+        agendaClinicalModalPrefix = prefix;
+        var html = '';
+        var n = 0;
+        cats.forEach(function(cat) {
+            if (!cat.fields || !cat.fields.length) return;
+            n++;
+            var catLabel = cat.category_name || ('Categoria ' + cat.category_id);
+            var serviceNames = agendaClinicalServicesForCategory(prefix, cat.category_id, cat.category_name);
+            html += '<section class="csheet-card" data-category-id="' + agendaClinicalEscape(cat.category_id) + '">';
+            html += '<h6 class="csheet-card__title">';
+            html += '<span class="csheet-card__num">' + n + '</span>';
+            html += '<span class="csheet-card__heading">';
+            html += '<span class="csheet-card__category">' + agendaClinicalEscape(catLabel) + '</span>';
+            if (serviceNames.length) {
+                html += '<span class="csheet-card__services"> • ' + agendaClinicalEscape(serviceNames.join(' · ')) + '</span>';
+            }
+            html += '</span></h6>';
+            html += '<div class="csheet-form-grid">';
+            cat.fields.forEach(function(field) {
+                var cid = String(cat.category_id);
+                var val = st.values && st.values[cid] ? st.values[cid][field.key] : null;
+                var fromPref = false;
+                if (!readOnly && agendaClinicalIsEmpty(val)) {
+                    var pref = agendaClinicalPrefValue(st.prefs, cat.category_id, field.key);
+                    if (!agendaClinicalIsEmpty(pref)) { val = pref; fromPref = true; }
+                }
+                html += agendaClinicalRenderFieldHtml(field, cat.category_id, val, fromPref);
+            });
+            html += '</div></section>';
+        });
+        var titleHtml = '<h5 class="agenda-oc-clinical-layer__title" id="' + prefix + 'ClinicalPanelTitle">Ficha técnica da marcação</h5>';
+        body.innerHTML = titleHtml + html;
+        var saveBtn = $id(prefix + 'ClinicalPanelSave');
+        if (saveBtn && !readOnly) {
+            saveBtn.classList.remove('d-none');
+            saveBtn.disabled = false;
+            saveBtn.textContent = agendaClinicalCanPersist(prefix) ? 'Guardar ficha' : 'Aplicar à marcação';
+        }
+        agendaClinicalApplyReadOnlyState(prefix, readOnly);
+        // Force reflow so the slide-in transition runs after content is ready.
+        void panelEl.offsetWidth;
+        panelEl.classList.add('is-open');
+        panelEl.setAttribute('aria-hidden', 'false');
+        var shellRight = panelEl.closest('.agenda-oc-shell__right');
+        if (shellRight) shellRight.classList.add('has-clinical-layer');
+    }
+
+    function agendaClinicalCanPersist(prefix) {
+        return prefix === 'eventDetailOc'
+            && !!(eventDetailCurrentData && eventDetailCurrentData.id)
+            && !agendaClinicalIsReadOnly(prefix);
+    }
+
+    function agendaClinicalCollectModalValues(prefix) {
+        var pfx = prefix || agendaClinicalModalPrefix;
+        var body = pfx ? $id(pfx + 'ClinicalPanelBody') : null;
+        var values = {};
+        if (!body) return values;
+        body.querySelectorAll('.csheet-field').forEach(function(wrap) {
+            var cid = wrap.getAttribute('data-category-id');
+            var key = wrap.getAttribute('data-field-key');
+            var type = wrap.getAttribute('data-input-type');
+            var control = wrap.getAttribute('data-control');
+            var value = null;
+            if (control === 'pills' || control === 'pills-multi') {
+                var on = Array.prototype.map.call(wrap.querySelectorAll('.csheet-pill.is-active'), function(b) { return b.getAttribute('data-value'); });
+                value = control === 'pills' ? (on[0] || null) : on;
+            } else if (type === 'multiselect') {
+                value = Array.prototype.map.call(wrap.querySelectorAll('input[type=checkbox]:checked'), function(i) { return i.value; });
+            } else if (type === 'bool') {
+                var cb = wrap.querySelector('input[type=checkbox]');
+                value = !!(cb && cb.checked);
+            } else {
+                var input = wrap.querySelector('input, select, textarea');
+                value = input ? String(input.value || '').trim() : '';
+                if (value === '') value = null;
+            }
+            if (agendaClinicalIsEmpty(value)) return;
+            values[cid] = values[cid] || {};
+            values[cid][key] = value;
+        });
+        return values;
+    }
+
+    function agendaClinicalSaveModal(prefix) {
+        var pfx = prefix || agendaClinicalModalPrefix;
+        var st = pfx ? agendaClinicalState[pfx] : null;
+        var panelEl = pfx ? agendaClinicalPanelEl(pfx) : null;
+        if (!st || !panelEl) return;
+        if (agendaClinicalIsReadOnly(pfx)) {
+            agendaClinicalClosePanel(pfx);
+            return;
+        }
+        var previous = st.values;
+        st.values = agendaClinicalCollectModalValues(pfx);
+        var missingRequired = agendaClinicalMissingRequiredLabels(pfx);
+        if (missingRequired.length) {
+            st.values = previous;
+            showToast('Preencha os campos obrigatórios: ' + missingRequired.join(', ') + '.', 'error');
+            return;
+        }
+        var payload = agendaClinicalCollectPayload(pfx);
+        agendaClinicalMergeValuesIntoStash(st, st.values || {}, { clearEmpty: true });
+        if (!agendaClinicalCanPersist(pfx)) {
+            agendaClinicalRenderSummary(pfx);
+            agendaClinicalClosePanel(pfx);
+            if (agendaClinicalPayloadHasValues(payload)) {
+                showToast('Ficha aplicada — fica guardada ao criar a marcação.', 'success');
+            } else {
+                showToast('Ficha fechada sem alterações.', 'success');
+            }
+            return;
+        }
+        var saveBtn = $id(pfx + 'ClinicalPanelSave');
+        if (saveBtn) saveBtn.disabled = true;
+        fetch((C.urlEvents || '') + '/' + encodeURIComponent(eventDetailCurrentData.id), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ clinical_sheet: payload })
+        })
+            .then(function(r) { return r.json().then(function(res) { return { ok: r.ok, res: res }; }); })
+            .then(function(x) {
+                if (!x.ok || (x.res && x.res.success === false)) {
+                    var errs = x.res && x.res.errors ? Object.values(x.res.errors)[0] : null;
+                    throw new Error((errs && errs[0]) || (x.res && x.res.message) || 'Não foi possível guardar a ficha.');
+                }
+                st.sheet = payload;
+                if (eventDetailCurrentData) eventDetailCurrentData.clinical_sheet = payload;
+                agendaClinicalMergeValuesIntoStash(st, st.values || {}, { clearEmpty: true });
+                agendaClinicalSeedStashFromSheet(st, payload);
+                agendaClinicalRenderSummary(pfx);
+                agendaClinicalClosePanel(pfx);
+                showToast('Ficha técnica guardada.', 'success');
+            })
+            .catch(function(err) {
+                st.values = previous;
+                showToast(err.message || 'Erro de ligação.', 'error');
+            })
+            .finally(function() {
+                if (saveBtn) saveBtn.disabled = false;
+            });
+    }
+
+    document.addEventListener('click', function(e) {
+        var openBtn = e.target.closest('.agenda-oc-clinical-edit-btn');
+        if (openBtn) {
+            e.preventDefault();
+            if (openBtn.disabled || openBtn.classList.contains('is-awaiting-services')) return;
+            agendaClinicalOpenModal(openBtn.getAttribute('data-clinical-prefix'));
+            return;
+        }
+        var closeBtn = e.target.closest('[data-clinical-close]');
+        if (closeBtn) {
+            e.preventDefault();
+            agendaClinicalClosePanel(closeBtn.getAttribute('data-clinical-close'));
+            return;
+        }
+        var saveBtn = e.target.closest('[data-clinical-save]');
+        if (saveBtn) {
+            e.preventDefault();
+            agendaClinicalSaveModal(saveBtn.getAttribute('data-clinical-save'));
+            return;
+        }
+        var pill = e.target.closest('.agenda-oc-clinical-layer .csheet-pill');
+        if (pill) {
+            var layer = pill.closest('.agenda-oc-clinical-layer');
+            if (layer && layer.classList.contains('is-readonly')) return;
+            var wrap = pill.closest('.csheet-field');
+            var single = wrap && wrap.getAttribute('data-control') === 'pills';
+            var willBeOn = !pill.classList.contains('is-active');
+            if (single) {
+                wrap.querySelectorAll('.csheet-pill').forEach(function(b) {
+                    b.classList.remove('is-active');
+                    b.setAttribute('aria-pressed', 'false');
+                });
+            }
+            pill.classList.toggle('is-active', willBeOn);
+            pill.setAttribute('aria-pressed', willBeOn ? 'true' : 'false');
+        }
+    });
+
+    document.addEventListener('change', function(e) {
+        var sw = e.target.closest('.agenda-oc-clinical-layer .csheet-switch input');
+        if (!sw) return;
+        if (sw.closest('.agenda-oc-clinical-layer.is-readonly')) return;
+        var lbl = sw.parentElement.querySelector('.form-check-label');
+        if (lbl) lbl.textContent = sw.checked ? 'Sim' : 'Não';
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        if (typeof paymentModalIsLayerHost === 'function' && paymentModalIsLayerHost()) {
+            e.preventDefault();
+            e.stopPropagation();
+            paymentModalHideHost();
+            return;
+        }
+        if (!agendaClinicalModalPrefix || !agendaClinicalPanelIsOpen(agendaClinicalModalPrefix)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        agendaClinicalClosePanel(agendaClinicalModalPrefix);
+    }, true);
+
+    function agendaClinicalServiceIdsFromList(list) {
+        return (list || []).map(function(s) { return parseInt(s.service_id, 10); }).filter(function(id) { return id > 0; });
+    }
+
+    function agendaClinicalFetchAndApply(prefix, serviceIds, clientId, existingSheet) {
+        if (!agendaClinicalSchemaUrl) {
+            agendaClinicalApplySchema(prefix, { categories: [] }, existingSheet || null, null);
+            return Promise.resolve();
+        }
+        var ids = (serviceIds || []).filter(Boolean);
+        if (!ids.length) {
+            agendaClinicalApplySchema(prefix, { categories: [] }, existingSheet || null, null);
+            return Promise.resolve();
+        }
+        var qs = ids.map(function(id) { return 'service_ids[]=' + encodeURIComponent(id); }).join('&');
+        if (clientId) qs += '&client_id=' + encodeURIComponent(clientId);
+        return fetch(agendaClinicalSchemaUrl + '?' + qs, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                agendaClinicalApplySchema(
+                    prefix,
+                    data.clinical_field_schema || { categories: [] },
+                    existingSheet || null,
+                    data.client_clinical_preferences || null
+                );
+            })
+            .catch(function() {
+                agendaClinicalApplySchema(prefix, { categories: [] }, existingSheet || null, null);
+            });
     }
 
     function agendaOcRenderBirthdayBanner(prefix, birthDate, apptDate, clientName, fallback) {
@@ -3576,11 +4329,24 @@ document.addEventListener('DOMContentLoaded', function() {
         return paymentModalMode === 'finalize-draft';
     }
 
+    function paymentModalContentEl() {
+        return document.querySelector('#eventDetailOcPaymentPanelHost .modal-content')
+            || ($id('paymentModal') && $id('paymentModal').querySelector('.modal-content'))
+            || null;
+    }
+
+    function paymentModalSyncModeClassTargets(className, on) {
+        var pm = $id('paymentModal');
+        if (pm) pm.classList.toggle(className, !!on);
+        var content = paymentModalContentEl();
+        if (content) content.classList.toggle(className, !!on);
+    }
+
     function paymentModalApplyModeClasses() {
         var pm = $id('paymentModal');
         if (!pm) return;
-        pm.classList.toggle('payment-pos-modal--invoice-only', paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft());
-        pm.classList.toggle('payment-pos-modal--reserva', paymentModalIsReserva());
+        paymentModalSyncModeClassTargets('payment-pos-modal--invoice-only', paymentModalIsInvoiceOnly() || paymentModalIsFinalizeDraft());
+        paymentModalSyncModeClassTargets('payment-pos-modal--reserva', paymentModalIsReserva());
         paymentModalSyncReservaWalletUi();
         paymentModalSyncFooterButtons();
     }
@@ -3637,9 +4403,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var walletCents = paymentModalGetWalletApplyCents();
         var stripeCents = paymentModalGetStripeDueCents();
 
-        if (pm) {
-            pm.classList.toggle('payment-pos-modal--wallet-covers', covers);
-        }
+        paymentModalSyncModeClassTargets('payment-pos-modal--wallet-covers', covers);
         if (wrap) {
             wrap.classList.toggle('d-none', !isReserva || !hasBalance);
             wrap.classList.toggle('payment-pos-wallet-apply-wrap--active', isReserva && paymentModalWantsWalletApplied() && walletCents > 0);
@@ -4036,6 +4800,103 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    var paymentModalHostMode = 'modal'; // 'modal' | 'layer'
+    var paymentModalContentHome = null;
+
+    function paymentModalPreferLayerHost() {
+        var detailOc = $id('eventDetailEditModal');
+        return !!(detailOc && detailOc.classList.contains('show') && $id('eventDetailOcPaymentPanel'));
+    }
+
+    function paymentModalIsLayerHost() {
+        return paymentModalHostMode === 'layer';
+    }
+
+    function paymentModalMountInLayer() {
+        var layer = $id('eventDetailOcPaymentPanel');
+        var host = $id('eventDetailOcPaymentPanelHost');
+        var modal = $id('paymentModal');
+        var content = modal ? modal.querySelector('.modal-content') : null;
+        var dialog = modal ? modal.querySelector('.modal-dialog') : null;
+        if (!layer || !host || !content || !dialog) return false;
+        if (!paymentModalContentHome) paymentModalContentHome = dialog;
+        if (content.parentNode !== host) host.appendChild(content);
+        content.classList.add('payment-pos-in-layer');
+        var cancelBtn = $id('paymentCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.innerHTML = '<i class="ph ph-arrow-left" aria-hidden="true"></i><span>Voltar</span>';
+            cancelBtn.classList.add('d-inline-flex', 'align-items-center', 'gap-2');
+        }
+        var draftBtn = $id('paymentDraftBtn');
+        if (draftBtn) {
+            draftBtn.classList.remove('btn-outline-secondary', 'fw-semibold');
+            draftBtn.classList.add('btn-light');
+        }
+        // Close clinical layer if open so payment takes the column.
+        if (typeof agendaClinicalClosePanel === 'function') agendaClinicalClosePanel('eventDetailOc');
+        paymentModalApplyModeClasses();
+        void layer.offsetWidth;
+        layer.classList.add('is-open');
+        layer.setAttribute('aria-hidden', 'false');
+        var shellRight = layer.closest('.agenda-oc-shell__right');
+        if (shellRight) shellRight.classList.add('has-payment-layer');
+        return true;
+    }
+
+    function paymentModalUnmountFromLayer() {
+        var layer = $id('eventDetailOcPaymentPanel');
+        var content = document.querySelector('#eventDetailOcPaymentPanelHost .modal-content.payment-pos-in-layer')
+            || document.querySelector('.modal-content.payment-pos-in-layer');
+        var home = paymentModalContentHome || ($id('paymentModal') && $id('paymentModal').querySelector('.modal-dialog'));
+        if (content && home) {
+            content.classList.remove('payment-pos-in-layer');
+            home.appendChild(content);
+        }
+        var cancelBtn = $id('paymentCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.classList.remove('d-inline-flex', 'align-items-center', 'gap-2');
+        }
+        var draftBtn = $id('paymentDraftBtn');
+        if (draftBtn) {
+            draftBtn.classList.add('btn-outline-secondary', 'fw-semibold');
+            draftBtn.classList.remove('btn-light');
+        }
+        if (content) {
+            content.classList.remove('payment-pos-modal--invoice-only', 'payment-pos-modal--reserva', 'payment-pos-modal--wallet-covers');
+        }
+        if (layer) {
+            layer.classList.remove('is-open');
+            layer.setAttribute('aria-hidden', 'true');
+            var shellRight = layer.closest('.agenda-oc-shell__right');
+            if (shellRight) shellRight.classList.remove('has-payment-layer');
+        }
+        paymentModalHostMode = 'modal';
+    }
+
+    function paymentModalShowHost() {
+        if (paymentModalPreferLayerHost()) {
+            paymentModalHostMode = 'layer';
+            if (paymentModalMountInLayer()) return;
+            paymentModalHostMode = 'modal';
+        } else {
+            paymentModalHostMode = 'modal';
+        }
+        bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+    }
+
+    function paymentModalHideHost() {
+        if (paymentModalIsLayerHost()) {
+            if (paymentMbwayAwaiting) {
+                showToast('Aguarde o MB Way ou cancele no modal de espera.', 'warning');
+                return;
+            }
+            paymentModalUnmountFromLayer();
+            return;
+        }
+        bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
+    }
+
     function openAgendaPaymentModalCaixa() {
         paymentModalResetToCaixa();
         paymentMbwayFinalizeSucceeded = false;
@@ -4065,7 +4926,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalFetchWalletBalance(function() {
             paymentModalFetchSavedCards(function() {
                 paymentModalSyncManualPaymentTilesVisibility();
-                bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+                paymentModalShowHost();
                 paymentModalSetPayButtonEnabled();
                 eventDetailCompletePaymentFlow();
             });
@@ -4117,7 +4978,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         showToast('Não é possível cobrar o pré-pagamento nesta marcação.', 'warning');
                     }
                     paymentModalSyncManualPaymentTilesVisibility();
-                    bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+                    paymentModalShowHost();
                     paymentModalSetPayButtonEnabled();
                     eventDetailCompletePaymentFlow();
                 });
@@ -4180,7 +5041,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 paymentModalInitInvoiceDelivery();
                 paymentModalUpdateTotals();
                 paymentModalSyncManualPaymentTilesVisibility();
-                bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+                paymentModalShowHost();
                 paymentModalSetPayButtonEnabled();
                 eventDetailCompletePaymentFlow();
             })
@@ -4224,7 +5085,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalUpdateTotals();
         var pl = $id('paymentModalLabel');
         if (pl) pl.textContent = 'Emitir fatura final';
-        bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+        paymentModalShowHost();
         paymentModalSetPayButtonEnabled();
     }
 
@@ -4249,7 +5110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         paymentModalUpdateTotals();
         var pl = $id('paymentModalLabel');
         if (pl) pl.textContent = eventDetailInvoiceFaturarLabel(inv);
-        bootstrap.Modal.getOrCreateInstance($id('paymentModal')).show();
+        paymentModalShowHost();
         paymentModalSetPayButtonEnabled();
     }
 
@@ -4406,7 +5267,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         wrap.classList.remove('d-none');
-        wrap.className = 'd-flex flex-wrap gap-1 align-items-center ms-auto event-detail-faturas-wrap';
+        wrap.className = 'd-flex flex-wrap gap-1 align-items-center event-detail-faturas-wrap';
 
         var status = eventDetailCurrentData ? String(eventDetailCurrentData.status || '') : '';
         var amountDueForPay = parseFloat(eventDetailCurrentData && eventDetailCurrentData.amount_due) || 0;
@@ -4417,10 +5278,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var showAnular = !!(activeCaixa && !isPartialSale && !eventDetailInvoiceIsDraft(activeCaixa));
 
         var dropup = document.createElement('div');
-        dropup.className = 'dropup event-detail-faturas-dropup ms-auto';
+        dropup.className = 'dropup event-detail-faturas-dropup';
         var toggle = document.createElement('button');
         toggle.type = 'button';
-        toggle.className = 'btn btn-outline-secondary btn-sm dropdown-toggle event-detail-invoice-btn d-inline-flex align-items-center justify-content-center gap-1';
+        toggle.className = 'btn btn-outline-secondary dropdown-toggle event-detail-invoice-btn d-inline-flex align-items-center justify-content-center gap-1';
         toggle.setAttribute('data-bs-toggle', 'dropdown');
         toggle.setAttribute('data-bs-display', 'static');
         toggle.setAttribute('aria-expanded', 'false');
@@ -4717,7 +5578,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function eventDetailSaveBtnDefaultHtml() {
-            return '<i class="ph ph-floppy-disk" aria-hidden="true"></i><span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span><span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>';
+            return '<span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span><span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>';
         }
 
         function setEventDetailPaymentAndReadOnly(existingSale, eventType, servicesCount) {
@@ -4727,7 +5588,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var footerActions = $id('eventDetailFooterActionsRow');
         if (footerActions) {
-            footerActions.classList.toggle('d-none', !canProcessPayments);
+            footerActions.classList.remove('d-none');
         }
         var paymentsUiEnabled = canProcessPayments;
         var paymentWrap = $id('eventDetailPaymentWrap');
@@ -4735,7 +5596,7 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentWrap.classList.toggle('d-none', !paymentsUiEnabled);
         }
         if (!paymentsUiEnabled) {
-            ['eventDetailPaymentBtn', 'eventDetailPaymentDropup', 'eventDetailReservaBtn', 'eventDetailOpenCashRegisterBtn', 'eventDetailPagoBadge'].forEach(function(btnId) {
+            ['eventDetailPaymentDropup', 'eventDetailOpenCashRegisterBtn', 'eventDetailPagoBadge'].forEach(function(btnId) {
                 var el = $id(btnId);
                 if (el) el.classList.add('d-none');
             });
@@ -4747,7 +5608,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         var payBtn = $id('eventDetailPaymentBtn');
         var payDropup = $id('eventDetailPaymentDropup');
-        var payAllHint = $id('eventDetailPayAllHint');
+        var payMenuReservaLi = $id('eventDetailPayMenuReservaLi');
+        var payMenuDividerLi = $id('eventDetailPayMenuDividerLi');
+        var payMenuSimpleLi = $id('eventDetailPayMenuSimpleLi');
+        var payMenuCurrentLi = $id('eventDetailPayMenuCurrentLi');
+        var payMenuAllLi = $id('eventDetailPayMenuAllLi');
+        var payBtnLabel = $id('eventDetailPaymentBtnLabel');
+        var payBtnAmount = $id('eventDetailPaymentBtnAmount');
+        var reservaMenuAmount = $id('eventDetailReservaMenuAmount');
         var payCurrentAmount = $id('eventDetailPayCurrentAmount');
         var payAllAmount = $id('eventDetailPayAllAmount');
         var reservaBtn = $id('eventDetailReservaBtn');
@@ -4778,29 +5646,88 @@ document.addEventListener('DOMContentLoaded', function() {
         var cashRegisterOpen = agendaCashRegisterOpenFromData(eventDetailCurrentData);
         var hasSameDayOptions = showPayBtn && sameDayOthers.length > 0 && !isFaturar;
         var pagoBadge = $id('eventDetailPagoBadge');
-        if (payBtn) {
-            payBtn.classList.toggle('d-none', !paymentsUiEnabled || !showPayBtn || hasSameDayOptions);
-            payBtn.textContent = isFaturar ? 'Faturar' : 'Pagamento';
-            payBtn.disabled = showPayBtn && !cashRegisterOpen && !isFaturar;
-            if (showPayBtn && !cashRegisterOpen && !isFaturar) {
-                payBtn.setAttribute('title', agendaCashRegisterClosedMessage());
-            } else if (showPayBtn && isFaturar) {
-                payBtn.removeAttribute('title');
-            } else if (showPayBtn) {
-                payBtn.removeAttribute('title');
+        var canShowReserva = false;
+        var eventId = ($id('eventDetailEditId') && $id('eventDetailEditId').value) || '';
+        var hasClient = !!(eventDetailSelectedClient && eventDetailSelectedClient.id)
+            || !!(eventDetailCurrentData && eventDetailCurrentData.client_id);
+        var reservaBlockedStatus = status === 'faltou' || status === 'cancelado' || status === 'anulado';
+        var subtotal = eventDetailCheckoutSubtotal();
+        var depositPct = eventDetailDepositPercent();
+        var depositExpected = eventDetailExpectedDepositEur(subtotal);
+        var bookingPaid = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
+        var hasReservaSale = eventDetailHasReservaSale();
+        canShowReserva = eventType === 'marcacao'
+            && servicesCount > 0
+            && hasClient
+            && !reservaBlockedStatus
+            && !strictLock;
+        if (canShowReserva) {
+            if (depositPct > 0) {
+                canShowReserva = !hasReservaSale && bookingPaid + 0.00001 < depositExpected;
+            } else {
+                canShowReserva = !hasReservaSale && bookingPaid + 0.00001 < subtotal;
             }
         }
+        var unsaved = !eventId;
+        var payActionsLocked = (showPayBtn || canShowReserva) && !cashRegisterOpen && !isFaturar;
+        var showPayMenu = paymentsUiEnabled && (canShowReserva || showPayBtn);
         if (payDropup) {
-            payDropup.classList.toggle('d-none', !paymentsUiEnabled || !hasSameDayOptions);
+            payDropup.classList.toggle('d-none', !showPayMenu);
         }
         var payDropupToggle = $id('eventDetailPaymentDropupToggle');
         if (payDropupToggle) {
-            payDropupToggle.disabled = hasSameDayOptions && !cashRegisterOpen && !isFaturar;
-            if (hasSameDayOptions && !cashRegisterOpen && !isFaturar) {
+            payDropupToggle.disabled = !!payActionsLocked && !!showPayMenu;
+            if (payActionsLocked && showPayMenu) {
                 payDropupToggle.setAttribute('title', agendaCashRegisterClosedMessage());
             } else {
                 payDropupToggle.removeAttribute('title');
             }
+        }
+        if (payMenuReservaLi) {
+            payMenuReservaLi.classList.toggle('d-none', !paymentsUiEnabled || !canShowReserva);
+        }
+        if (reservaBtn) {
+            reservaBtn.disabled = unsaved || hideSaveClose || (canShowReserva && !cashRegisterOpen);
+            if (unsaved) {
+                reservaBtn.setAttribute('title', 'Guarde a marcação antes do pré-pagamento');
+            } else if (canShowReserva && !cashRegisterOpen) {
+                reservaBtn.setAttribute('title', agendaCashRegisterClosedMessage());
+            } else {
+                reservaBtn.removeAttribute('title');
+            }
+        }
+        var reservaDueAmount = depositPct > 0
+            ? Math.max(0, depositExpected - bookingPaid)
+            : Math.max(0, subtotal - bookingPaid);
+        if (reservaMenuAmount) {
+            reservaMenuAmount.textContent = eventDetailMoney(reservaDueAmount);
+        }
+        if (payMenuSimpleLi) {
+            payMenuSimpleLi.classList.toggle('d-none', !paymentsUiEnabled || !showPayBtn || hasSameDayOptions);
+        }
+        if (payMenuCurrentLi) {
+            payMenuCurrentLi.classList.toggle('d-none', !paymentsUiEnabled || !hasSameDayOptions);
+        }
+        if (payMenuAllLi) {
+            payMenuAllLi.classList.toggle('d-none', !paymentsUiEnabled || !hasSameDayOptions);
+        }
+        if (payMenuDividerLi) {
+            payMenuDividerLi.classList.toggle('d-none', !(canShowReserva && showPayBtn));
+        }
+        if (payBtn) {
+            if (payBtnLabel) {
+                payBtnLabel.textContent = isFaturar ? 'Faturar' : 'Pagamento final';
+            }
+            payBtn.dataset.paymentFlowLabel = isFaturar ? 'Faturar' : 'Pagamento final';
+            payBtn.disabled = showPayBtn && !cashRegisterOpen && !isFaturar;
+            if (showPayBtn && !cashRegisterOpen && !isFaturar) {
+                payBtn.setAttribute('title', agendaCashRegisterClosedMessage());
+            } else {
+                payBtn.removeAttribute('title');
+            }
+        }
+        if (payBtnAmount) {
+            payBtnAmount.textContent = eventDetailMoney(amountDueForPay);
         }
         var payCurrentBtn = $id('eventDetailPayCurrentBtn');
         var payAllBtn = $id('eventDetailPayAllBtn');
@@ -4810,9 +5737,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (payAllBtn) {
             payAllBtn.disabled = hasSameDayOptions && !cashRegisterOpen && !isFaturar;
         }
-        if (payAllHint) {
-            payAllHint.textContent = '+' + sameDayOthers.length + ' marcações por pagar hoje';
-        }
         if (payCurrentAmount) {
             payCurrentAmount.textContent = eventDetailMoney(amountDueForPay);
         }
@@ -4821,41 +5745,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (pagoBadge) {
             pagoBadge.classList.toggle('d-none', !paymentsUiEnabled || !showPagoBadge);
-        }
-        var canShowReserva = false;
-        if (reservaBtn) {
-            var eventId = ($id('eventDetailEditId') && $id('eventDetailEditId').value) || '';
-            var hasClient = !!(eventDetailSelectedClient && eventDetailSelectedClient.id)
-                || !!(eventDetailCurrentData && eventDetailCurrentData.client_id);
-            var reservaBlockedStatus = status === 'faltou' || status === 'cancelado' || status === 'anulado';
-            var subtotal = eventDetailCheckoutSubtotal();
-            var depositPct = eventDetailDepositPercent();
-            var depositExpected = eventDetailExpectedDepositEur(subtotal);
-            var bookingPaid = Math.max(0, parseFloat(eventDetailBookingPaidAmount) || 0);
-            var hasReservaSale = eventDetailHasReservaSale();
-            canShowReserva = eventType === 'marcacao'
-                && servicesCount > 0
-                && hasClient
-                && !reservaBlockedStatus
-                && !strictLock;
-            if (canShowReserva) {
-                if (depositPct > 0) {
-                    canShowReserva = !hasReservaSale && bookingPaid + 0.00001 < depositExpected;
-                } else {
-                    canShowReserva = !hasReservaSale && bookingPaid + 0.00001 < subtotal;
-                }
-            }
-            reservaBtn.classList.toggle('d-none', !paymentsUiEnabled || !canShowReserva);
-            var unsaved = !eventId;
-            var cashRegisterOpen = agendaCashRegisterOpenFromData(eventDetailCurrentData);
-            reservaBtn.disabled = unsaved || hideSaveClose || (canShowReserva && !cashRegisterOpen);
-            if (unsaved) {
-                reservaBtn.setAttribute('title', 'Guarde a marcação antes do pré-pagamento');
-            } else if (canShowReserva && !cashRegisterOpen) {
-                reservaBtn.setAttribute('title', agendaCashRegisterClosedMessage());
-            } else {
-                reservaBtn.removeAttribute('title');
-            }
         }
         var openCashBtn = $id('eventDetailOpenCashRegisterBtn');
         if (openCashBtn) {
@@ -4876,7 +5765,7 @@ document.addEventListener('DOMContentLoaded', function() {
             saveBtn.classList.toggle('d-none', hideSaveClose);
         }
         if (closeWithoutSaveBtn) closeWithoutSaveBtn.classList.toggle('d-none', hideSaveClose);
-        var statusWrap = $id('eventDetailStatusDropdownWrap');
+        var statusWrap = $id('eventDetailStatusDropdownBtn');
         var observacoes = $id('eventDetailOcObs');
         var addMoreBtn = $id('eventDetailOcAddMoreServicesBtn');
         var addMoreWrap = $id('eventDetailOcAddMoreServicesWrap');
@@ -4901,7 +5790,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mesmo quando a marcação está “read-only” (paga / não editável),
         // permitir editar os dados do cliente (contatos) — só bloqueia por privacidade/permissions.
         var lockClientFields = !canEditClientContacts;
-        if (statusWrap) statusWrap.style.pointerEvents = lockServicesExceptNif ? 'none' : '';
+        if (statusWrap && !statusWrap.dataset.statusLocked) {
+            statusWrap.disabled = !!lockServicesExceptNif;
+        }
         if (observacoes) observacoes.disabled = lockServicesExceptNif;
         if (addMoreBtn) { addMoreBtn.disabled = lockServicesExceptNif; addMoreBtn.style.display = lockServicesExceptNif ? 'none' : ''; }
         if (addMoreWrap) addMoreWrap.style.display = lockServicesExceptNif ? 'none' : '';
@@ -5183,42 +6074,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetailOcPersistDraftSnapshot();
         }
         var statusVal = data.status || 'agendado';
-        $id('eventDetailStatus').value = statusVal;
-        $id('eventDetailStatusLabel').textContent = STATUS_LABELS[statusVal] || statusVal;
-        var iconEl = $id('eventDetailStatusIcon');
-        if (iconEl) {
-            var ic = iconEl.querySelector('i');
-            if (ic) ic.className = STATUS_ICONS[statusVal] || 'ri-time-fill agenda-status-icon-agendado';
-        }
-        var statusDropdownWrap = $id('eventDetailStatusDropdownWrap');
-        var statusStatic = $id('eventDetailStatusStatic');
-        var statusStaticIcon = $id('eventDetailStatusStaticIcon');
-        var statusStaticLabel = $id('eventDetailStatusStaticLabel');
-        var statusStaticOnly = (statusVal === 'completo' || statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado');
-        if (statusStaticOnly) {
-            if (statusDropdownWrap) statusDropdownWrap.classList.add('d-none');
-            if (statusStatic) {
-                statusStatic.classList.remove('d-none');
-                statusStatic.classList.toggle('text-success', statusVal === 'completo');
-                statusStatic.classList.toggle('text-danger', statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado');
-                if (statusStaticLabel) statusStaticLabel.textContent = STATUS_LABELS[statusVal] || statusVal;
-                if (statusStaticIcon) {
-                    var si = statusStaticIcon.querySelector('i');
-                    if (si) si.className = STATUS_ICONS[statusVal] || 'ri-time-fill agenda-status-icon-agendado';
-                }
-            }
-        } else {
-            if (statusDropdownWrap) statusDropdownWrap.classList.remove('d-none');
-            if (statusStatic) {
-                statusStatic.classList.add('d-none');
-                statusStatic.classList.remove('text-success', 'text-danger');
-            }
-        }
-        var cancelOpt = $id('eventDetailStatusMenu')?.querySelector('[data-status="cancelar"]');
-        var faltouOpt = $id('eventDetailStatusMenu')?.querySelector('[data-status="faltou"]');
-        var hideTerminal = (statusVal === 'faltou' || statusVal === 'cancelado' || statusVal === 'anulado');
-        if (cancelOpt) cancelOpt.style.display = hideTerminal ? 'none' : '';
-        if (faltouOpt) faltouOpt.style.display = hideTerminal ? 'none' : '';
+        eventDetailSyncStatusSelect(statusVal);
 
         var sourceBadge = $id('eventDetailMarcacaoSourceBadge');
         if (sourceBadge) {
@@ -5239,6 +6095,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (techProductsEl) techProductsEl.value = data.technical_products || '';
         var techNotesEl = $id('eventDetailOcTechnicalNotes');
         if (techNotesEl) techNotesEl.value = data.technical_notes || '';
+        agendaClinicalResetState('eventDetailOc');
+        if (data.clinical_field_schema) {
+            agendaClinicalApplySchema(
+                'eventDetailOc',
+                data.clinical_field_schema,
+                data.clinical_sheet || null,
+                data.client_clinical_preferences || null
+            );
+        } else {
+            agendaClinicalFetchAndApply(
+                'eventDetailOc',
+                (data.event_services || []).map(function(s) { return s.id || s.service_id; }),
+                data.client_id,
+                data.clinical_sheet || null
+            );
+        }
 
         var hasVisitLead = !!(data.visit || data.lead);
         var isVisitMode = hasVisitLead || data.event_type !== 'marcacao';
@@ -5333,6 +6205,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formatted_duration: (s.formatted_duration || dur + ' min'),
                 formatted_price: s.formatted_price || (pr.toFixed(2).replace('.', ',') + ' €'),
                 color: s.color || '#6c757d',
+                category_id: s.category_id != null ? s.category_id : null,
                 category_name: s.category_name || '',
                 fees: (s.fees || []).map(function(f) {
                     return {
@@ -6181,6 +7054,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (String(svc.id) === String(item.service_id)) {
                                 availableExtras = svc.extras || [];
                                 if (!item.category_name && cat.name) item.category_name = cat.name;
+                                if (item.category_id == null && cat.id != null) item.category_id = cat.id;
                             }
                         });
                     });
@@ -6189,6 +7063,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         return String(fs.service_id) === String(item.service_id) && String(fs.service_option_id || '') === String(item.service_option_id || '');
                     });
                     if (flatMatch && flatMatch.category_name) item.category_name = flatMatch.category_name;
+                    if (flatMatch && flatMatch.category_id != null) item.category_id = flatMatch.category_id;
                     if (flatMatch && flatMatch.fees) item.fees = flatMatch.fees;
                 });
                 if (done && !isStale()) {
@@ -6520,7 +7395,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var dateIn = $id('eventDetailOcDate');
         if (dateIn && typeof flatpickr !== 'undefined') {
             if (!eventDetailOcDateFlatpickr) {
-                eventDetailOcDateFlatpickr = flatpickr(dateIn, {
+                var eventDetailFpOpts = {
                     dateFormat: 'Y-m-d',
                     altInput: true,
                     altFormat: 'l, j F',
@@ -6532,7 +7407,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         updateEventDetailOutOfHoursWarning();
                         eventDetailOcUpdateBirthdayBanner();
                     }
-                });
+                };
+                if (typeof window.withCrmFlatpickrEnhancements === 'function') {
+                    eventDetailFpOpts = window.withCrmFlatpickrEnhancements(eventDetailFpOpts);
+                }
+                eventDetailOcDateFlatpickr = flatpickr(dateIn, eventDetailFpOpts);
                 if (eventDetailOcDateFlatpickr && eventDetailOcDateFlatpickr.altInput) {
                     eventDetailOcDateFlatpickr.altInput.removeAttribute('readonly');
                     eventDetailOcDateFlatpickr.altInput.style.cursor = 'pointer';
@@ -6589,6 +7468,13 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetailOcRenderFeesList();
             eventDetailOcApplyServiceFieldVisibility();
             if (totalStrip) totalStrip.classList.remove('d-none');
+            // Sem serviços → limpar schema e mostrar card acinzentado.
+            agendaClinicalFetchAndApply(
+                'eventDetailOc',
+                [],
+                eventDetailSelectedClient && eventDetailSelectedClient.id,
+                (eventDetailCurrentData && eventDetailCurrentData.clinical_sheet) || null
+            );
             return;
         }
         wrap.classList.remove('d-none');
@@ -6771,6 +7657,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
         eventDetailOcApplyServiceFieldVisibility();
+        // Sheet = snapshot BD (não collectPayload): o stash guarda edições em memória no offcanvas.
+        agendaClinicalFetchAndApply(
+            'eventDetailOc',
+            agendaClinicalServiceIdsFromList(eventDetailSelectedServices),
+            eventDetailSelectedClient && eventDetailSelectedClient.id,
+            (eventDetailCurrentData && eventDetailCurrentData.clinical_sheet) || null
+        );
     }
     function eventDetailActivityLogUrl(eventId) {
         var tpl = C.agendaEventActivityLogUrl || '';
@@ -6878,6 +7771,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         original_price: svc.original_price != null ? svc.original_price : (parseFloat(svc.price) || 0),
                         formatted_duration: svc.formatted_duration || ((parseInt(svc.duration, 10) || 60) + ' min'),
                         formatted_price: svc.formatted_price || ((parseFloat(svc.price) || 0).toFixed(2).replace('.', ',') + ' €'),
+                        category_id: svc.category_id != null ? svc.category_id : null,
                         category_name: svc.category_name || '',
                         available_extras: svc.available_extras || [],
                         fees: Array.isArray(svc.fees) ? svc.fees.map(function(f) {
@@ -7243,6 +8137,7 @@ document.addEventListener('DOMContentLoaded', function() {
             reservaSummary.classList.add('d-none');
             pagoSummary.classList.add('d-none');
             totalMain.classList.remove('d-none');
+            totalMain.classList.remove('has-prefix-sep');
             var totalPriceEl = $id('eventDetailTotalPrice');
             if (totalPriceEl) {
                 totalPriceEl.textContent = eventDetailMoney(total);
@@ -7264,28 +8159,30 @@ document.addEventListener('DOMContentLoaded', function() {
             if (prepagamentoPaid > 0.00001 && caixaPaid > 0.00001) {
                 pagoSummary.classList.remove('d-none');
                 if (pagoSummaryText) {
-                    pagoSummaryText.innerHTML = '<span class="event-detail-total-line__sep" aria-hidden="true">&bull;</span> Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">'
+                    pagoSummaryText.innerHTML = 'Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">'
                         + eventDetailMoney(prepagamentoPaid) + '</span> &bull; Pagamento final <span class="fw-semibold text-body" id="eventDetailPagoAmount">'
                         + eventDetailMoney(caixaPaid) + '</span>';
                 }
             } else if (prepagamentoPaid > 0.00001) {
                 pagoSummary.classList.remove('d-none');
                 if (pagoSummaryText) {
-                    pagoSummaryText.innerHTML = '<span class="event-detail-total-line__sep" aria-hidden="true">&bull;</span> Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">'
+                    pagoSummaryText.innerHTML = 'Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmountPaid">'
                         + eventDetailMoney(prepagamentoPaid) + '</span>';
                 }
             }
+            totalMain.classList.toggle('has-prefix-sep', !pagoSummary.classList.contains('d-none'));
             return;
         }
 
         if (prepagamentoPaid > 0.00001) {
             reservaSummary.classList.remove('d-none');
             if (reservaSummaryText) {
-                reservaSummaryText.innerHTML = '<span class="event-detail-total-line__sep" aria-hidden="true">&bull;</span> Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmount">'
+                reservaSummaryText.innerHTML = 'Pré-pagamento <span class="fw-semibold text-body" id="eventDetailReservaAmount">'
                     + eventDetailMoney(prepagamentoPaid) + '</span> &bull; Falta pagar <span class="fw-semibold text-body" id="eventDetailFaltaPagarAmount">'
                     + eventDetailMoney(remainingDue) + '</span>';
             }
         }
+        totalMain.classList.toggle('has-prefix-sep', !reservaSummary.classList.contains('d-none') || !pagoSummary.classList.contains('d-none'));
     }
 
     EventDetail.updateEndTime = function() {
@@ -8307,15 +9204,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     (s.options || []).forEach(function(opt) {
                         var dur = parseInt(opt.duration, 10) || 60;
                         var priceNum = opt.price != null && opt.price !== '' ? parseFloat(opt.price) : 0;
+                        var optName = String(opt.name || '').trim() || ('Opção #' + opt.id);
+                        if (opt.type === 'addon') {
+                            // Variante adicional: identifica o serviço a que pertence
+                            optName += ' (adicional · ' + String(s.name || '').trim() + ')';
+                        }
                         out.push({
                             service_id: String(s.id),
                             service_option_id: String(opt.id),
-                            name: String(opt.name || '').trim() || ('Opção #' + opt.id),
+                            name: optName,
+                            is_addon: opt.type === 'addon',
                             duration: dur,
                             price: priceNum,
                             original_price: priceNum,
                             formatted_duration: opt.formatted_duration || (dur + ' min'),
                             formatted_price: opt.formatted_price || '',
+                            category_id: cat.id != null ? cat.id : null,
                             category_name: cat.name || '',
                             available_extras: extras,
                             fees: Array.isArray(s.fees) ? s.fees : [],
@@ -8334,6 +9238,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         original_price: priceNum,
                         formatted_duration: s.formatted_duration || (dur + ' min'),
                         formatted_price: s.formatted_price || '',
+                        category_id: cat.id != null ? cat.id : null,
                         category_name: cat.name || '',
                         available_extras: extras,
                         fees: Array.isArray(s.fees) ? s.fees : [],
@@ -8365,6 +9270,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function agendaOcUpdateTotal() {
+        var total = agendaOcSelectedServices.reduce(function(sum, s) {
+            var p = parseFloat(s.price) || 0;
+            var ex = (s.extras || []).reduce(function(s2, e) { return s2 + (parseFloat(e.price) || 0); }, 0);
+            return sum + p + ex;
+        }, 0);
+        var el = $id('agendaOcTotalPrice');
+        if (el) el.textContent = total.toFixed(2).replace('.', ',') + ' €';
+        var row = $id('agendaOcTotalRow');
+        if (row) row.classList.toggle('d-none', agendaOcSelectedServices.length === 0);
+    }
+
     function agendaOcRenderSelectedServices() {
         var wrap = $id('agendaOcSelectedServicesList');
         if (!wrap) return;
@@ -8372,9 +9289,18 @@ document.addEventListener('DOMContentLoaded', function() {
             wrap.classList.add('d-none');
             wrap.innerHTML = '';
             agendaOcApplyServiceFieldVisibility();
+            agendaOcUpdateTotal();
+            // Sem serviços → limpar schema e mostrar card acinzentado.
+            agendaClinicalFetchAndApply(
+                'agendaOc',
+                [],
+                agendaOcSelectedClient && agendaOcSelectedClient.id,
+                null
+            );
             return;
         }
         wrap.classList.remove('d-none');
+        agendaOcUpdateTotal();
         var html = agendaOcSelectedServices.map(function(item, idx) {
             var dur = parseInt(item.duration, 10) || 0;
             var price = parseFloat(item.price) || 0;
@@ -8564,6 +9490,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         agendaOcApplyServiceFieldVisibility();
         updateAgendaOcOutOfHoursWarning();
+        // Sem sheet BD na criação — valores vivem no stash até Criar marcação.
+        agendaClinicalFetchAndApply(
+            'agendaOc',
+            agendaClinicalServiceIdsFromList(agendaOcSelectedServices),
+            agendaOcSelectedClient && agendaOcSelectedClient.id,
+            null
+        );
     }
 
     /**
@@ -8684,6 +9617,7 @@ document.addEventListener('DOMContentLoaded', function() {
         agendaOcDestroyTestChoices();
         agendaOcResetClientUi();
         agendaOcReleaseSubmitButton();
+        agendaOcSyncStatusSelect('agendado');
 
         var startD = new Date(startStr);
         if (isNaN(startD.getTime())) {
@@ -8713,7 +9647,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var dateSel = $id('agendaOcDate');
         if (dateSel) {
             if (!agendaOcDateFlatpickr && typeof flatpickr !== 'undefined') {
-                agendaOcDateFlatpickr = flatpickr(dateSel, {
+                var agendaOcFpOpts = {
                     dateFormat: 'Y-m-d',
                     altInput: true,
                     altFormat: 'l, j F',
@@ -8724,7 +9658,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         updateAgendaOcOutOfHoursWarning();
                         agendaOcUpdateBirthdayBanner();
                     }
-                });
+                };
+                if (typeof window.withCrmFlatpickrEnhancements === 'function') {
+                    agendaOcFpOpts = window.withCrmFlatpickrEnhancements(agendaOcFpOpts);
+                }
+                agendaOcDateFlatpickr = flatpickr(dateSel, agendaOcFpOpts);
                 if (agendaOcDateFlatpickr && agendaOcDateFlatpickr.altInput) {
                     agendaOcDateFlatpickr.altInput.removeAttribute('readonly');
                     agendaOcDateFlatpickr.altInput.style.cursor = 'pointer';
@@ -8758,6 +9696,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (agendaTechNotes) agendaTechNotes.value = '';
         agendaOcSelectedServices = [];
         agendaOcShowServicePicker = true;
+        agendaClinicalResetState('agendaOc');
         agendaOcRenderSelectedServices();
         agendaOcApplyClientTechnicalSheet('agendaOc', null);
 
@@ -8853,6 +9792,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         original_price: svc.original_price != null ? svc.original_price : (parseFloat(svc.price) || 0),
                         formatted_duration: svc.formatted_duration || ((parseInt(svc.duration, 10) || 60) + ' min'),
                         formatted_price: svc.formatted_price || ((parseFloat(svc.price) || 0).toFixed(2).replace('.', ',') + ' €'),
+                        category_id: svc.category_id != null ? svc.category_id : null,
                         category_name: svc.category_name || '',
                         available_extras: svc.available_extras || [],
                         extras: []
@@ -8944,6 +9884,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.disabled = true;
                 var origHtml = btn.innerHTML;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>A guardar…';
+                var createStatus = (($id('agendaOcStatus') && $id('agendaOcStatus').value) || 'agendado').trim();
+                var createAllowedStatuses = ['agendado', 'notificado', 'confirmado', 'chegou', 'iniciado'];
+                if (createAllowedStatuses.indexOf(createStatus) === -1) createStatus = 'agendado';
+                if (isPrestadorStaff && prestadorAllowedStatuses.indexOf(createStatus) === -1) {
+                    createStatus = 'agendado';
+                }
                 var payload = {
                     title: title,
                     start_at: agendaLocalInputToUtcIso(startLocal),
@@ -8953,6 +9899,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     technical_products: ($id('agendaOcTechnicalProducts') && $id('agendaOcTechnicalProducts').value) || '',
                     technical_notes: ($id('agendaOcTechnicalNotes') && $id('agendaOcTechnicalNotes').value) || '',
                     event_type: 'marcacao',
+                    status: createStatus,
                     user_id: mid,
                     client_id: cid,
                     services: agendaOcSelectedServices.map(function(s) {
@@ -8971,6 +9918,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         return row;
                     })
                 };
+                var clinicalPayload = agendaClinicalCollectPayload('agendaOc');
+                // Só envia ficha se houver valores — campos obrigatórios não bloqueiam se a ficha não foi preenchida.
+                if (clinicalPayload && agendaClinicalPayloadHasValues(clinicalPayload)) {
+                    payload.clinical_sheet = clinicalPayload;
+                }
                 fetch((C.urlEvents || ''), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': C.csrf || '', 'X-Requested-With': 'XMLHttpRequest' },
@@ -9040,6 +9992,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 agendaOcSelectedServices = [];
                 agendaOcShowServicePicker = true;
                 agendaOcRenderSelectedServices();
+                agendaOcSyncStatusSelect('agendado');
+                agendaClinicalClosePanel('agendaOc');
+                agendaClinicalResetState('agendaOc');
             });
             if (!agendaOcClientChangeBound) {
                 agendaOcClientChangeBound = true;
@@ -9373,7 +10328,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function eventDetailSaveBtnDefaultHtml() {
-        return '<i class="ph ph-floppy-disk" aria-hidden="true"></i><span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span><span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>';
+        return '<span class="event-detail-header-save-label event-detail-header-save-label--long">Guardar alterações</span><span class="event-detail-header-save-label event-detail-header-save-label--short">Guardar</span>';
     }
 
     function openEventDetailUnsavedChangesModal() {
@@ -9436,6 +10391,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 return row;
             });
+            var clinicalPayload = agendaClinicalCollectPayload('eventDetailOc');
+            if (clinicalPayload && agendaClinicalPayloadHasValues(clinicalPayload)) {
+                payload.clinical_sheet = clinicalPayload;
+            }
         }
         var needNotifyConfirm = eventDetailCurrentData
             && eventDetailCurrentData.event_type === 'marcacao'
@@ -9456,6 +10415,13 @@ document.addEventListener('DOMContentLoaded', function() {
         eventDetailOriginalClientId = payload.client_id || null;
         eventDetailOriginalStatus = payload.status || eventDetailOriginalStatus;
         eventDetailServicesMutated = false;
+        if (payload && payload.clinical_sheet) {
+            if (eventDetailCurrentData) eventDetailCurrentData.clinical_sheet = payload.clinical_sheet;
+            var clinicalSt = agendaClinicalEnsureState('eventDetailOc');
+            clinicalSt.sheet = payload.clinical_sheet;
+            agendaClinicalMergeValuesIntoStash(clinicalSt, clinicalSt.values || {}, { clearEmpty: true });
+            agendaClinicalSeedStashFromSheet(clinicalSt, payload.clinical_sheet);
+        }
     }
 
     function eventDetailHasUnsavedChanges() {
@@ -9611,7 +10577,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function eventDetailRestorePaymentTriggerButtons() {
-        ['eventDetailPaymentBtn', 'eventDetailReservaBtn', 'eventDetailPayAllBtn'].forEach(function(id) {
+        ['eventDetailPaymentBtn', 'eventDetailReservaBtn', 'eventDetailPayCurrentBtn', 'eventDetailPayAllBtn'].forEach(function(id) {
             var el = $id(id);
             if (!el || !el.dataset.paymentFlowPrevHtml) {
                 return;
@@ -10182,13 +11148,69 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function paymentModalEscapeHtml(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function paymentModalAppendSummaryRow(wrap, name, amountLabel, opts) {
+        opts = opts || {};
+        var row = document.createElement('div');
+        row.className = 'payment-pos-summary-row' + (opts.isExtra ? ' payment-pos-summary-row--extra' : '');
+        row.innerHTML = '<span class="payment-pos-summary-label">' + paymentModalEscapeHtml(name) + '</span>'
+            + '<span class="payment-pos-summary-value">' + paymentModalEscapeHtml(amountLabel) + '</span>';
+        wrap.appendChild(row);
+    }
+
+    function paymentModalRenderServiceLines() {
+        var wrap = $id('paymentSummaryServiceRows');
+        if (!wrap) return false;
+        wrap.innerHTML = '';
+        if (paymentModalIsFinalizeDraft() || paymentModalIsInvoiceOnly()) {
+            wrap.classList.add('d-none');
+            return false;
+        }
+        var hasRows = false;
+        if (paymentModalIsConsolidated() && Array.isArray(paymentModalCheckoutItems)) {
+            paymentModalCheckoutItems.forEach(function(row) {
+                if (String(row.tipo || '').toLowerCase() === 'taxa') return;
+                var qty = parseInt(row.quantidade, 10) || 1;
+                var unit = parseFloat(row.preco_unitario) || 0;
+                var gross = qty * unit;
+                var discount = Math.max(0, Math.min(parseFloat(row.desconto) || 0, gross));
+                var net = gross - discount;
+                var name = String(row.descricao || 'Serviço').trim() || 'Serviço';
+                paymentModalAppendSummaryRow(wrap, name, eventDetailMoney(net));
+                hasRows = true;
+            });
+        } else if (eventDetailSelectedServices && eventDetailSelectedServices.length) {
+            eventDetailSelectedServices.forEach(function(s) {
+                paymentModalAppendSummaryRow(wrap, s.name || 'Serviço', eventDetailMoney(parseFloat(s.price) || 0));
+                hasRows = true;
+                (s.extras || []).forEach(function(e) {
+                    paymentModalAppendSummaryRow(
+                        wrap,
+                        '+ ' + (e.name || 'Extra'),
+                        e.formatted_price || eventDetailMoney(parseFloat(e.price) || 0),
+                        { isExtra: true }
+                    );
+                });
+            });
+        }
+        wrap.classList.toggle('d-none', !hasRows);
+        return hasRows;
+    }
+
     function paymentModalRenderFeesLines() {
         var wrap = $id('paymentFeesLines');
         if (!wrap) {
             return;
         }
         wrap.innerHTML = '';
-        if (paymentModalIsFinalizeDraft()) {
+        if (paymentModalIsFinalizeDraft() || paymentModalIsInvoiceOnly()) {
             wrap.classList.add('d-none');
             return;
         }
@@ -10217,12 +11239,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         wrap.classList.remove('d-none');
         fees.forEach(function(f) {
-            var row = document.createElement('div');
-            row.className = 'd-flex justify-content-between justify-content-md-end gap-2 flex-wrap align-items-baseline payment-pos-hero-amount-row';
             var price = parseFloat(f.price) || 0;
             var label = f.formatted_price || eventDetailMoney(price);
-            row.innerHTML = '<span class="text-muted">' + String(f.name || 'Taxa').replace(/</g, '&lt;') + ':</span><span class="fw-semibold text-body">' + label + '</span>';
-            wrap.appendChild(row);
+            paymentModalAppendSummaryRow(wrap, f.name || 'Taxa', label);
         });
     }
 
@@ -10235,10 +11254,16 @@ document.addEventListener('DOMContentLoaded', function() {
         var gorjeta = paymentModalGetGorjetaAmount();
         var deposit = paymentModalGetDepositAmountEur();
 
+        var hasServiceLines = paymentModalRenderServiceLines();
         var subtotalLbl = $id('paymentSubtotalLineLabel');
-        if (subtotalLbl) subtotalLbl.textContent = paymentModalSubtotalLineLabel();
+        if (subtotalLbl) subtotalLbl.textContent = paymentModalSubtotalLineLabel().replace(/:\s*$/, '');
         var subDisp = $id('paymentSubtotalDisplay');
         if (subDisp) subDisp.textContent = eventDetailMoney(servicesSub);
+        var lineServices = $id('paymentLineServices');
+        if (lineServices) {
+            // Linhas detalhadas substituem o agregado; no finalize/invoice-only o agregado fica visível.
+            lineServices.classList.toggle('d-none', hasServiceLines && !isFinalizeDraft && !paymentModalIsInvoiceOnly());
+        }
 
         paymentModalRenderFeesLines();
 
@@ -10263,8 +11288,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? (Number.isFinite(paymentModalFinalizeDraftAmount) ? Math.max(0, parseFloat(paymentModalFinalizeDraftAmount) || 0) : 0)
                 : (Number.isFinite(paymentModalInvoiceOnlyAmount) ? Math.max(0, parseFloat(paymentModalInvoiceOnlyAmount) || 0) : 0);
             var feesWrap = $id('paymentFeesLines');
-            if (subtotalLbl) subtotalLbl.textContent = 'Total a faturar:';
+            if (subtotalLbl) subtotalLbl.textContent = 'Total a faturar';
             if (subDisp) subDisp.textContent = eventDetailMoney(fixedTotal);
+            if (lineServices) lineServices.classList.remove('d-none');
             if (feesWrap) feesWrap.classList.add('d-none');
             if (lineCheckout) lineCheckout.classList.add('d-none');
             if (linePrePaid) linePrePaid.classList.add('d-none');
@@ -10279,21 +11305,27 @@ document.addEventListener('DOMContentLoaded', function() {
             if (checkoutDisp) checkoutDisp.textContent = eventDetailMoney(checkoutSub);
             if (linePrePaid) linePrePaid.classList.add('d-none');
             if (lineTotalDue) lineTotalDue.classList.add('d-none');
-            if (lineDeposit) lineDeposit.classList.remove('d-none');
+            if (lineDeposit) {
+                lineDeposit.classList.remove('d-none');
+                lineDeposit.classList.add('payment-pos-summary-row--total');
+            }
             var pct = paymentModalReservaPreview
                 ? parseInt(paymentModalReservaPreview.deposit_percent, 10)
                 : (parseInt(C.bookingDepositPercent, 10) || 0);
             if (depositLbl) {
                 depositLbl.textContent = pct > 0
-                    ? ('Pré-pagamento (' + pct + '%):')
-                    : 'Pré-pagamento:';
+                    ? ('Pré-pagamento (' + pct + '%)')
+                    : 'Pré-pagamento';
             }
             if (depositDisp) depositDisp.textContent = eventDetailMoney(deposit);
             if (customWrap) customWrap.classList.toggle('d-none', pct > 0);
             if (gorjetaLine) gorjetaLine.classList.add('d-none');
         } else {
             if (lineCheckout) lineCheckout.classList.add('d-none');
-            if (lineDeposit) lineDeposit.classList.add('d-none');
+            if (lineDeposit) {
+                lineDeposit.classList.add('d-none');
+                lineDeposit.classList.remove('payment-pos-summary-row--total');
+            }
             if (customWrap) customWrap.classList.add('d-none');
             var isConsolidated = paymentModalIsConsolidated();
             var consolidatedPrepaid = paymentModalConsolidatedBookingPaidFromSummary();
@@ -10302,7 +11334,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 linePrePaid.classList.toggle('d-none', !showPrepaidLine);
             }
             if (prePaidLabel) {
-                prePaidLabel.textContent = isConsolidated ? 'Pré-pagamentos do dia:' : 'Pré-pagamento:';
+                prePaidLabel.textContent = isConsolidated ? 'Pré-pagamentos do dia' : 'Pré-pagamento';
             }
             if (prePaidDisp) {
                 var prepaidValue = isConsolidated ? consolidatedPrepaid : paidOnline;
@@ -10906,7 +11938,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function agendaAfterCheckoutPaymentSuccess(res, eventId) {
         paymentModalRestoreConfirmButton();
         agendaMaybeArmPendingRemarcacaoFromPayment();
-        bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
+        paymentModalHideHost();
         var delivery = (res && res.invoice_delivery) || 'print';
         var isPrepagamento = paymentModalIsReserva();
         if (isPrepagamento) {
@@ -10962,6 +11994,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function eventDetailHidePaymentDropup() {
+        var toggle = $id('eventDetailPaymentDropupToggle');
+        if (!toggle || !window.bootstrap || !bootstrap.Dropdown) return;
+        var inst = bootstrap.Dropdown.getInstance(toggle);
+        if (inst) inst.hide();
+    }
+
     var eventDetailReservaBtnEl = $id('eventDetailReservaBtn');
     if (eventDetailReservaBtnEl) {
         eventDetailReservaBtnEl.addEventListener('click', function() {
@@ -10971,15 +12010,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 return;
             }
+            eventDetailHidePaymentDropup();
             if (typeof openAgendaPaymentModalReserva === 'function') {
                 eventDetailLaunchPaymentFlow(eventDetailReservaBtnEl, openAgendaPaymentModalReserva);
             }
         });
     }
 
-    $id('eventDetailPaymentBtn').addEventListener('click', function() {
-        eventDetailLaunchPaymentFlow(this, openAgendaPaymentModalCaixa);
-    });
+    var eventDetailPaymentBtnEl = $id('eventDetailPaymentBtn');
+    if (eventDetailPaymentBtnEl) {
+        eventDetailPaymentBtnEl.addEventListener('click', function() {
+            if (eventDetailPaymentBtnEl.disabled) {
+                showToast(agendaCashRegisterClosedMessage(), 'warning');
+                return;
+            }
+            eventDetailHidePaymentDropup();
+            eventDetailLaunchPaymentFlow(eventDetailPaymentBtnEl, openAgendaPaymentModalCaixa);
+        });
+    }
 
     var payCurrentBtn = $id('eventDetailPayCurrentBtn');
     if (payCurrentBtn) {
@@ -10988,9 +12036,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast(agendaCashRegisterClosedMessage(), 'warning');
                 return;
             }
-            bootstrap.Dropdown.getOrCreateInstance($id('eventDetailPaymentDropupToggle')).hide();
-            var payBtn = $id('eventDetailPaymentBtn');
-            eventDetailLaunchPaymentFlow(payBtn, openAgendaPaymentModalCaixa);
+            eventDetailHidePaymentDropup();
+            eventDetailLaunchPaymentFlow(payCurrentBtn, openAgendaPaymentModalCaixa);
         });
     }
     var payAllBtn = $id('eventDetailPayAllBtn');
@@ -11000,7 +12047,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast(agendaCashRegisterClosedMessage(), 'warning');
                 return;
             }
-            bootstrap.Dropdown.getOrCreateInstance($id('eventDetailPaymentDropupToggle')).hide();
+            eventDetailHidePaymentDropup();
             eventDetailLaunchPaymentFlow(payAllBtn, openAgendaPaymentModalConsolidated);
         });
     }
@@ -11244,7 +12291,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showToast((pack.res && (pack.res.error || pack.res.message)) || 'Erro ao faturar.', 'error');
                 return;
             }
-            bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
+            paymentModalHideHost();
             eventDetailMergeFinalizeSaleFromResponse(pack.res);
             var delivery = (pack.res && pack.res.invoice_delivery) || 'print';
             if (delivery === 'email' && pack.res && pack.res.invoice_email_sent) {
@@ -11569,15 +12616,21 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('Aguarde o MB Way ou cancele no modal de espera.', 'warning');
             return;
         }
-        bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
+        paymentModalHideHost();
     });
     $id('paymentModalCloseBtn').addEventListener('click', function() {
         if (paymentMbwayAwaiting) {
             showToast('Aguarde o MB Way ou cancele no modal de espera.', 'warning');
             return;
         }
-        bootstrap.Modal.getInstance($id('paymentModal'))?.hide();
+        paymentModalHideHost();
     });
+    var eventDetailPaymentLayerClose = $id('eventDetailOcPaymentPanelClose');
+    if (eventDetailPaymentLayerClose) {
+        eventDetailPaymentLayerClose.addEventListener('click', function() {
+            paymentModalHideHost();
+        });
+    }
 
     $id('paymentModal').addEventListener('hide.bs.modal', function(ev) {
         if (paymentMbwayAwaiting) {
@@ -11957,7 +13010,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!input || typeof flatpickr === 'undefined') {
             return null;
         }
-        var fp = flatpickr(input, {
+        var toolbarFpOpts = {
             locale: 'pt',
             dateFormat: 'Y-m-d',
             allowInput: false,
@@ -11969,7 +13022,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     calendar.gotoDate(selectedDates[0]);
                 }
             }
-        });
+        };
+        if (typeof window.withCrmFlatpickrEnhancements === 'function') {
+            toolbarFpOpts = window.withCrmFlatpickrEnhancements(toolbarFpOpts);
+        }
+        var fp = flatpickr(input, toolbarFpOpts);
         window.agendaToolbarDateFlatpickr = fp;
         return fp;
     }
@@ -13977,6 +15034,18 @@ document.addEventListener('DOMContentLoaded', function() {
         initAdicionarDropdown();
     }
 
+    /** Fecha/repara o Bootstrap Dropdown do seletor de vista (evita ficar preso após changeView). */
+    function repairViewSelectorDropdownState(viewBtn, menu) {
+        if (!viewBtn) return;
+        viewBtn.classList.remove('show');
+        viewBtn.setAttribute('aria-expanded', 'false');
+        if (menu) menu.classList.remove('show');
+        if (!window.bootstrap || !bootstrap.Dropdown) return;
+        var inst = bootstrap.Dropdown.getInstance(viewBtn);
+        if (inst) inst.dispose();
+        bootstrap.Dropdown.getOrCreateInstance(viewBtn);
+    }
+
     // Inicializar dropdown de vistas
     function initViewSelectorDropdown() {
         const viewBtn = calendarEl.querySelector('.fc-viewSelector-button');
@@ -13987,12 +15056,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const wrapper = viewBtn.closest('.dropdown');
             const dropdown = wrapper ? wrapper.querySelector('#viewSelectorDropdown') : null;
             if (wrapper && dropdown) {
-                // Estrutura existe, apenas garantir estilos com important
+                // Estrutura existe — reparar estado Bootstrap (changeView pode deixar aria-expanded/show órfãos)
                 wrapper.style.setProperty('padding', '0', 'important');
                 wrapper.style.setProperty('display', 'inline-block', 'important');
+                repairViewSelectorDropdownState(viewBtn, dropdown);
                 return;
             }
             // Estrutura perdida, re-inicializar
+            if (window.bootstrap && bootstrap.Dropdown) {
+                bootstrap.Dropdown.getInstance(viewBtn)?.dispose();
+            }
             viewBtn.dataset.initialized = '';
         }
         
@@ -14019,10 +15092,15 @@ document.addEventListener('DOMContentLoaded', function() {
             btnParent.style.setProperty('display', 'inline-block', 'important');
         }
         
+        if (window.bootstrap && bootstrap.Dropdown) {
+            bootstrap.Dropdown.getInstance(viewBtn)?.dispose();
+        }
+
         viewBtn.classList.add('dropdown-toggle');
         viewBtn.setAttribute('data-bs-toggle', 'dropdown');
         viewBtn.setAttribute('data-bs-target', '#viewSelectorDropdown');
         viewBtn.setAttribute('aria-expanded', 'false');
+        viewBtn.classList.remove('show');
         viewBtn.setAttribute('id', 'viewSelectorBtn');
         
         calendarEl.querySelectorAll('#viewSelectorDropdown').forEach(function(el) { el.remove(); });
@@ -14046,20 +15124,30 @@ document.addEventListener('DOMContentLoaded', function() {
             option.dataset.viewType = view.type;
             option.addEventListener('click', function(e) {
                 e.preventDefault();
-                const viewBtn = calendarEl.querySelector('.fc-viewSelector-button');
-                if (viewBtn) {
-                    viewBtn.textContent = '';
-                    viewBtn.textContent = view.label;
+                e.stopPropagation();
+                const liveBtn = calendarEl.querySelector('.fc-viewSelector-button');
+                if (liveBtn && window.bootstrap && bootstrap.Dropdown) {
+                    bootstrap.Dropdown.getInstance(liveBtn)?.hide();
                 }
-                calendar.changeView(view.type);
-                calendar.gotoDate(new Date());
-                updateViewSelectorButton(view.type);
-                updateViewDropdownActive(view.type);
+                if (liveBtn) {
+                    liveBtn.textContent = view.label;
+                    liveBtn.setAttribute('aria-expanded', 'false');
+                    liveBtn.classList.remove('show');
+                }
+                // Fechar o menu antes do FC recriar a toolbar (evita dropdown preso)
+                requestAnimationFrame(function() {
+                    calendar.changeView(view.type);
+                    calendar.gotoDate(new Date());
+                    updateViewSelectorButton(view.type);
+                    updateViewDropdownActive(view.type);
+                    ensureAgendaToolbarDropdowns();
+                });
             });
             dropdown.appendChild(option);
         });
         
         btnParent.appendChild(dropdown);
+        repairViewSelectorDropdownState(viewBtn, dropdown);
         
         // Atualizar estado inicial
         updateViewSelectorButton(calendar.view.type);
@@ -14534,7 +15622,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof flatpickr !== 'undefined') {
         var tempoPessoalDatePickerWrap = $id('tempoPessoalDatePickerWrap');
         if (tempoPessoalDatePickerWrap) {
-            window.tempoPessoalDateFlatpickr = flatpickr(tempoPessoalDatePickerWrap, {
+            var tempoPessoalFpOpts = {
                 inline: true,
                 dateFormat: 'Y-m-d',
                 locale: 'pt',
@@ -14555,7 +15643,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (toggle && bootstrap.Dropdown) bootstrap.Dropdown.getInstance(toggle)?.hide();
                     }
                 }
-            });
+            };
+            if (typeof window.withCrmFlatpickrEnhancements === 'function') {
+                tempoPessoalFpOpts = window.withCrmFlatpickrEnhancements(tempoPessoalFpOpts);
+            }
+            window.tempoPessoalDateFlatpickr = flatpickr(tempoPessoalDatePickerWrap, tempoPessoalFpOpts);
         }
     }
 
@@ -14729,87 +15821,81 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    $id('eventDetailStatusMenu').querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
-        if (isPrestadorStaff) {
-            var optStatus = opt.dataset.status || '';
-            if (optStatus === 'cancelar' || optStatus === 'faltou') {
-                if (!canCancelOrMarkMarcacaoFalta) {
-                    opt.classList.add('d-none');
+    (function bindEventDetailStatusSelect() {
+        var menu = $id('eventDetailStatusMenu');
+        if (!menu) return;
+        menu.querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
+            opt.addEventListener('click', function(e) {
+                e.preventDefault();
+                var status = this.getAttribute('data-status') || '';
+                var previousStatus = ($id('eventDetailStatus') && $id('eventDetailStatus').value) || 'agendado';
+                var evId = $id('eventDetailEditId')?.value;
+                var toggleBtn = $id('eventDetailStatusDropdownBtn');
+                if (toggleBtn && window.bootstrap && bootstrap.Dropdown) {
+                    bootstrap.Dropdown.getInstance(toggleBtn)?.hide();
                 }
-            } else if (optStatus && prestadorAllowedStatuses.indexOf(optStatus) === -1) {
-                opt.classList.add('d-none');
-            }
-        } else if (!canCancelOrMarkMarcacaoFalta) {
-            if ((opt.dataset.status || '') === 'cancelar' || (opt.dataset.status || '') === 'faltou') {
-                opt.classList.add('d-none');
-            }
-        }
-        opt.addEventListener('click', function(e) {
-            e.preventDefault();
-            var status = this.dataset.status;
-            var labels = STATUS_LABELS;
-            var icons = STATUS_ICONS;
-            var evId = $id('eventDetailEditId')?.value;
-            var previousStatus = $id('eventDetailStatus').value;
-            bootstrap.Dropdown.getInstance($id('eventDetailStatusDropdownBtn'))?.hide();
-            if (status === 'cancelar' || status === 'faltou') {
-                if (!canCancelOrMarkMarcacaoFalta) return;
-                if (previousStatus === 'faltou' || previousStatus === 'cancelado' || previousStatus === 'anulado') return;
-                window._cancelMarcacaoPreviousStatus = previousStatus;
-                var total = 0;
-                (eventDetailSelectedServices || []).forEach(function(s) { total += parseFloat(s.price) || 0; });
-                var calendarEv = evId && typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
-                var startAt = (calendarEv && calendarEv.start) || $id('eventDetailEditStart')?.value || null;
-                openMarcacaoTerminalModal(status === 'faltou' ? 'faltou' : 'cancelado', evId, 'edit', startAt, total);
-                return;
-            }
-            $id('eventDetailStatus').value = status;
-            $id('eventDetailStatusLabel').textContent = labels[status] || status;
-            var iconEl = $id('eventDetailStatusIcon');
-            if (iconEl) {
-                var ic = iconEl.querySelector('i');
-                if (ic) ic.className = icons[status] || 'ri-time-fill agenda-status-icon-agendado';
-            }
-            if (evId && status !== previousStatus) {
-                var payload = { status: status };
-                fetch((C.urlEvents || '') + '/' + evId + '/status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
-                    body: JSON.stringify(payload)
-                })
-                .then(function(r) { return r.json(); })
-                .then(function(res) {
-                    if (res.success) {
-                        eventDetailOriginalStatus = res.status || status;
-                        var ev = typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
-                        if (ev) {
-                            ev.setExtendedProp('status', res.status);
-                            ev.setExtendedProp('status_icon', res.status_icon);
-                            ev.setExtendedProp('status_label', res.status_label);
+                if (status === 'cancelar' || status === 'faltou') {
+                    if (!canCancelOrMarkMarcacaoFalta) return;
+                    if (previousStatus === 'faltou' || previousStatus === 'cancelado' || previousStatus === 'anulado') return;
+                    window._cancelMarcacaoPreviousStatus = previousStatus;
+                    var total = 0;
+                    (eventDetailSelectedServices || []).forEach(function(s) { total += parseFloat(s.price) || 0; });
+                    var calendarEv = evId && typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
+                    var startAt = (calendarEv && calendarEv.start) || $id('eventDetailEditStart')?.value || null;
+                    openMarcacaoTerminalModal(status === 'faltou' ? 'faltou' : 'cancelado', evId, 'edit', startAt, total);
+                    return;
+                }
+                eventDetailSyncStatusSelect(status);
+                if (evId && status !== previousStatus) {
+                    fetch((C.urlEvents || '') + '/' + evId + '/status', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                        body: JSON.stringify({ status: status })
+                    })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) {
+                        if (res.success) {
+                            eventDetailOriginalStatus = res.status || status;
+                            eventDetailSyncStatusSelect(res.status || status);
+                            var ev = typeof calendar !== 'undefined' ? calendar.getEventById(evId) : null;
+                            if (ev) {
+                                ev.setExtendedProp('status', res.status);
+                                ev.setExtendedProp('status_icon', res.status_icon);
+                                ev.setExtendedProp('status_label', res.status_label);
+                            }
+                            showToast('Estado atualizado.', 'success');
+                        } else {
+                            eventDetailSyncStatusSelect(previousStatus);
+                            showToast(res.message || 'Erro ao atualizar estado.', 'error');
                         }
-                        showToast('Estado atualizado.', 'success');
-                    } else {
-                        $id('eventDetailStatus').value = previousStatus;
-                        $id('eventDetailStatusLabel').textContent = labels[previousStatus] || previousStatus;
-                        if (iconEl) {
-                            var ic = iconEl.querySelector('i');
-                            if (ic) ic.className = icons[previousStatus] || 'ri-time-fill agenda-status-icon-agendado';
-                        }
-                        showToast(res.message || 'Erro ao atualizar estado.', 'error');
-                    }
-                })
-                .catch(function() {
-                    $id('eventDetailStatus').value = previousStatus;
-                    $id('eventDetailStatusLabel').textContent = labels[previousStatus] || previousStatus;
-                    if (iconEl) {
-                        var ic = iconEl.querySelector('i');
-                        if (ic) ic.className = icons[previousStatus] || 'ri-time-fill agenda-status-icon-agendado';
-                    }
-                    showToast('Erro de ligação.', 'error');
-                });
-            }
+                    })
+                    .catch(function() {
+                        eventDetailSyncStatusSelect(previousStatus);
+                        showToast('Erro de ligação.', 'error');
+                    });
+                }
+            });
         });
-    });
+    })();
+
+    (function bindAgendaOcStatusSelect() {
+        var menu = $id('agendaOcStatusMenu');
+        if (!menu) return;
+        menu.querySelectorAll('.event-detail-status-opt').forEach(function(opt) {
+            opt.addEventListener('click', function(e) {
+                e.preventDefault();
+                var status = this.getAttribute('data-status') || 'agendado';
+                if (['agendado', 'notificado', 'confirmado', 'chegou', 'iniciado'].indexOf(status) === -1) return;
+                if (isPrestadorStaff && prestadorAllowedStatuses.indexOf(status) === -1) return;
+                var toggleBtn = $id('agendaOcStatusDropdownBtn');
+                if (toggleBtn && window.bootstrap && bootstrap.Dropdown) {
+                    bootstrap.Dropdown.getInstance(toggleBtn)?.hide();
+                }
+                agendaOcSyncStatusSelect(status);
+            });
+        });
+        agendaOcSyncStatusSelect('agendado');
+    })();
 
     $id('cancelMarcacaoReason').addEventListener('change', function() {
         $id('cancelMarcacaoOutraWrap').classList.toggle('d-none', this.value !== 'Outra razão');
@@ -15116,18 +16202,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window._cancelMarcacaoConfirmed) return;
         var prev = window._cancelMarcacaoPreviousStatus;
         if (prev === undefined) return;
-        var labels = { agendado: 'Agendado', notificado: 'Notificado', confirmado: 'Confirmado', chegou: 'Chegou', iniciado: 'Iniciado', terminado: 'Terminado', faltou: 'Faltou', cancelado: 'Cancelado', anulado: 'Anulado', completo: 'Pago' };
-        $id('eventDetailStatus').value = prev;
-        $id('eventDetailStatusLabel').textContent = labels[prev] || prev;
-        var iconEl = $id('eventDetailStatusIcon');
-        if (iconEl) {
-            var ic = iconEl.querySelector('i');
-            if (ic) ic.className = STATUS_ICONS[prev] || 'ri-time-fill agenda-status-icon-agendado';
-        }
+        eventDetailSyncStatusSelect(prev);
         window._cancelMarcacaoContext = null;
     });
 
     $id('eventDetailEditModal').addEventListener('hidden.bs.offcanvas', function() {
+        agendaClinicalClosePanel('eventDetailOc');
+        agendaClinicalResetState('eventDetailOc');
+        if (typeof paymentModalIsLayerHost === 'function' && paymentModalIsLayerHost()) {
+            paymentModalUnmountFromLayer();
+        }
         if (!eventDetailWasSaved) {
             var evId = $id('eventDetailEditId')?.value;
             if (evId && eventDetailOriginalStartAt && eventDetailOriginalEndAt && typeof calendar !== 'undefined') {

@@ -1,7 +1,8 @@
 @php
     $supportWhatsappDigits = preg_replace('/\D+/', '', (string) config('booking.booking_whatsapp', ''));
 @endphp
-@if ($supportWhatsappDigits !== '')
+{{-- No tema Minimal o WhatsApp está no rodapé --}}
+@if ($supportWhatsappDigits !== '' && ($bookingTheme ?? null) !== \App\Support\BookingTheme::MINIMAL)
     <a
         href="https://wa.me/{{ $supportWhatsappDigits }}"
         class="booking-support-whatsapp"

@@ -1,9 +1,9 @@
 <script>
   (function () {
-    var modalEl = document.getElementById('marcacaoDetalheModal');
-    if (!modalEl) return;
+    var panelEl = document.getElementById('marcacaoDetalheModal');
+    if (!panelEl) return;
 
-    modalEl.addEventListener('show.bs.modal', function (event) {
+    panelEl.addEventListener('show.bs.offcanvas', function (event) {
       var btn = event.relatedTarget;
       if (!btn || !btn.getAttribute('data-template-id')) return;
       var tid = btn.getAttribute('data-template-id');
@@ -17,7 +17,21 @@
       var bodyEl = frag.querySelector('.js-marcacao-modal-body');
       var footerEl = frag.querySelector('.js-marcacao-modal-footer');
       if (bodyEl) body.appendChild(bodyEl);
-      if (footerEl) footer.appendChild(footerEl);
+      if (footerEl) {
+        while (footerEl.firstChild) {
+          footer.appendChild(footerEl.firstChild);
+        }
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      var trigger = e.target && e.target.closest
+        ? e.target.closest('.js-marcacao-detail-trigger[data-bs-toggle="offcanvas"]')
+        : null;
+      if (!trigger) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      trigger.click();
     });
 
     var reativarModalEl = document.getElementById('reativarMarcacaoModal');
@@ -33,7 +47,7 @@
     var confirmBtn = document.getElementById('reativarMarcacaoConfirmBtn');
     var eventIdEl = document.getElementById('reativarMarcacaoEventId');
     var urlEl = document.getElementById('reativarMarcacaoUrl');
-    var detailModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    var detailPanel = bootstrap.Offcanvas.getOrCreateInstance(panelEl);
     var reativarModal = bootstrap.Modal.getOrCreateInstance(reativarModalEl);
 
     function csrfToken() {
@@ -76,7 +90,7 @@
       if (statusLabelEl) statusLabelEl.textContent = statusLabel || '—';
     }
 
-    modalEl.addEventListener('click', function (e) {
+    panelEl.addEventListener('click', function (e) {
       var btn = e.target.closest('.js-reativar-marcacao');
       if (!btn) return;
       e.preventDefault();
@@ -92,7 +106,7 @@
       if (urlEl) urlEl.value = reativarUrl;
       if (statusLabelEl) statusLabelEl.textContent = statusLabel;
 
-      detailModal.hide();
+      detailPanel.hide();
       reativarModal.show();
 
       fetch(previewUrl, {

@@ -2662,6 +2662,19 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     align-items: center;
 }
 
+.booking-row__price-nudge {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: #9a3412;
+}
+
+.booking-row__price-nudge:not(.d-none) {
+    display: block;
+}
+
 .booking-row__meta {
     font-size: 0.8125rem;
     color: var(--booking-muted);
@@ -3843,4 +3856,252 @@ body.booking-body:has(.booking-cookie-consent:not(.d-none)) .booking-support-wha
     body.booking-body:has(.booking-cookie-consent:not(.d-none)) .booking-support-whatsapp {
         bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
     }
+}
+
+/* Modal de serviço — variantes adicionais (somam-se à opção escolhida) */
+.booking-modal-option--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.booking-modal-option--disabled input {
+    cursor: not-allowed;
+}
+
+.booking-modal-footer .booking-modal-back {
+    flex: 0 0 auto;
+}
+
+/* Modal de tempo da reserva: fica por cima de tudo (incluindo o painel de serviço aberto) */
+#booking-slot-hold-expired-modal {
+    z-index: 1090;
+}
+
+body:has(#booking-slot-hold-expired-modal.show) .modal-backdrop:last-of-type {
+    z-index: 1085;
+}
+
+/* "Remover serviço": o ícone só aparece nos temas que o usam */
+.booking-modal-remove__icon {
+    display: none;
+}
+
+/* Área de conta: "Continuar a minha marcação" */
+.booking-account-resume {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--booking-border, #e5e7eb);
+    border-radius: 0.75rem;
+    background: var(--booking-surface, #fff);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.booking-account-resume:hover,
+.booking-account-resume:focus-visible {
+    border-color: var(--booking-text, #111827);
+    color: inherit;
+}
+
+.booking-account-resume__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.booking-account-resume__title {
+    font-weight: 700;
+}
+
+.booking-account-resume__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.875rem;
+}
+
+.booking-account-resume__meta {
+    font-size: 0.8125rem;
+    color: var(--booking-muted, #6b7280);
+}
+
+.booking-account-resume__cta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    background: var(--booking-text, #111827);
+    color: #fff;
+}
+
+/* Adicionais: resposta obrigatória Sim / Não (sem resposta por defeito) */
+.booking-modal-option--addon {
+    align-items: center;
+    cursor: default;
+}
+
+.booking-modal-addon-choice {
+    flex: 0 0 auto;
+    display: inline-flex;
+    gap: 0.25rem;
+    padding: 0.2rem;
+    border: 1px solid var(--booking-border, #e5e7eb);
+    border-radius: 999px;
+    background: var(--booking-surface, #fff);
+}
+
+.booking-modal-addon-choice__item {
+    position: relative;
+    margin: 0;
+    cursor: pointer;
+}
+
+.booking-modal-addon-choice__input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.booking-modal-addon-choice__item span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.1rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--booking-text, #111827);
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.booking-modal-addon-choice__item:hover span {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.booking-modal-addon-choice__input:checked + span {
+    background: var(--booking-text, #111827);
+    color: #fff;
+}
+
+.booking-modal-addon-choice__input:focus-visible + span {
+    outline: 2px solid var(--booking-accent, #111827);
+    outline-offset: 2px;
+}
+
+.booking-modal-option--disabled .booking-modal-addon-choice__item,
+.booking-modal-option--disabled .booking-modal-addon-choice__input {
+    cursor: not-allowed;
+}
+
+/* Sem resposta ao tentar avançar */
+.booking-modal-option--missing .booking-modal-addon-choice {
+    border-color: #b42318;
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.12);
+    animation: booking-addon-shake 0.32s ease;
+}
+
+@keyframes booking-addon-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .booking-modal-option--missing .booking-modal-addon-choice {
+        animation: none;
+    }
+}
+
+/* Resumo: "Hoje não pagas nada" (sem pré-pagamento online) */
+.booking-summary-pay-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin: 0.25rem 0 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.35;
+}
+
+.booking-summary-pay-note__icon {
+    flex: 0 0 auto;
+    margin-top: 0.05rem;
+    color: #15803d;
+    font-size: 1rem;
+}
+
+.booking-summary-pay-note__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.booking-summary-pay-note__title {
+    color: #15803d;
+    font-weight: 600;
+}
+
+.booking-summary-pay-note__body {
+    color: var(--booking-muted, #6b7280);
+    font-size: 0.8125rem;
+}
+
+@media (max-width: 991.98px) {
+    /* Na barra fixa do mobile, a nota ocupa a linha de cima, por cima do total e do botão */
+    .booking-summary-footer-bar:has(.booking-summary-pay-note) {
+        flex-wrap: wrap;
+    }
+
+    .booking-summary-footer-bar .booking-summary-pay-note {
+        order: -1;
+        flex: 1 0 100%;
+        /* Abaixo do círculo da seta que abre o resumo */
+        margin: 1.1rem 0 0;
+        font-size: 0.8125rem;
+    }
+
+    .booking-summary-footer-bar .booking-summary-pay-note__text {
+        flex-direction: row;
+        flex-wrap: wrap;
+        column-gap: 0.35rem;
+    }
+
+    .booking-summary-footer-bar .booking-summary-pay-note__body {
+        font-size: 0.8125rem;
+    }
+}
+
+/* Rodapé: "Powered by softrace.pt" — segunda linha, discreta */
+.booking-legal-footer__powered {
+    margin: 0.5rem 0 0;
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    color: var(--booking-muted, #6b7280);
+    opacity: 0.8;
+}
+
+.booking-legal-footer__powered a {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.booking-legal-footer__powered a:hover,
+.booking-legal-footer__powered a:focus-visible {
+    color: var(--booking-text, #111827);
+    text-decoration: underline;
 }

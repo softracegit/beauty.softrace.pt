@@ -19,44 +19,79 @@
     ])->map(fn ($v) => trim((string) $v))->filter()->values();
 
     $s = $stats ?? null;
+    $kpiStoreId = $cliente->store_id ? (int) $cliente->store_id : null;
+    $formatVisitaParts = static function ($raw, ?int $storeId): ?array {
+        if (! $raw) {
+            return null;
+        }
+        $dt = $raw instanceof \Carbon\CarbonInterface
+            ? $raw
+            : \Carbon\Carbon::parse($raw);
+        $date = \App\Support\DateTimeDisplay::marcacao($dt, $storeId, 'd/m/Y');
+        $time = \App\Support\DateTimeDisplay::marcacao($dt, $storeId, 'H:i');
+
+        return [$date, $time];
+    };
+    $ultimaMarcacao = $s->ultimaMarcacao ?? null;
+    $proximaMarcacao = $s->proximaMarcacao ?? null;
+    $ultimaParts = $ultimaMarcacao
+        ? $formatVisitaParts($ultimaMarcacao->start_at, $ultimaMarcacao->store_id ?? $kpiStoreId)
+        : null;
+    $proximaParts = $proximaMarcacao
+        ? $formatVisitaParts($proximaMarcacao->start_at, $proximaMarcacao->store_id ?? $kpiStoreId)
+        : null;
 @endphp
 
 @if($s)
 <div class="row g-3 mb-3 client-resumo-kpis">
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6">
         <div class="card h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center gap-2 mb-1">
-                    <i class="ph ph-calendar-check fs-4 text-primary"></i>
-                    <span class="fw-semibold">Marcações</span>
+                    <i class="ph ph-clock-counter-clockwise fs-4 text-primary"></i>
+                    <span class="fw-semibold">Última marcação</span>
                 </div>
-                <p class="mb-0">{{ $s->totalMarcacoes }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <i class="ph ph-user fs-4 text-primary"></i>
-                    <span class="fw-semibold">Técnico preferido</span>
-                </div>
-                <p class="mb-0">{{ $s->tecnicoPreferido ?? '—' }}</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6 col-lg-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                    <i class="ph ph-scissors fs-4 text-primary"></i>
-                    <span class="fw-semibold">Serviço mais usado</span>
-                </div>
-                @if($s->topServicos->isNotEmpty())
-                    @php $sv = $s->topServicos->first(); @endphp
-                    <p class="mb-0">{{ $sv->service_name }} <span class="text-muted">({{ $sv->total }})</span></p>
+                @if($ultimaMarcacao && $ultimaParts)
+                    <p class="mb-1 small text-muted">
+                        {{ $ultimaParts[0] }}
+                        <span class="mx-1" aria-hidden="true">·</span>
+                        {{ $ultimaParts[1] }}
+                    </p>
+                    <p class="mb-0 small text-truncate" title="{{ $ultimaMarcacao->services }} · {{ ($ultimaMarcacao->duration_minutes ?? 0) > 0 ? $formatMins((int) $ultimaMarcacao->duration_minutes) : '—' }} · {{ $ultimaMarcacao->technician ?: '—' }}">
+                        {{ $ultimaMarcacao->services }}
+                        <span class="mx-1" aria-hidden="true">·</span>
+                        {{ ($ultimaMarcacao->duration_minutes ?? 0) > 0 ? $formatMins((int) $ultimaMarcacao->duration_minutes) : '—' }}
+                        <span class="mx-1" aria-hidden="true">·</span>
+                        {{ $ultimaMarcacao->technician ?: '—' }}
+                    </p>
                 @else
-                    <p class="text-muted mb-0">Nenhum serviço registado.</p>
+                    <p class="mb-0 text-muted">—</p>
+                @endif
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="ph ph-calendar-blank fs-4 text-primary"></i>
+                    <span class="fw-semibold">Próxima marcação</span>
+                </div>
+                @if($proximaMarcacao && $proximaParts)
+                    <p class="mb-1 small text-muted">
+                        {{ $proximaParts[0] }}
+                        <span class="mx-1" aria-hidden="true">·</span>
+                        {{ $proximaParts[1] }}
+                    </p>
+                    <p class="mb-0 small text-truncate" title="{{ $proximaMarcacao->services }} · {{ ($proximaMarcacao->duration_minutes ?? 0) > 0 ? $formatMins((int) $proximaMarcacao->duration_minutes) : '—' }} · {{ $proximaMarcacao->technician ?: '—' }}">
+                        {{ $proximaMarcacao->services }}
+                        <span class="mx-1" aria-hidden="true">·</span>
+                        {{ ($proximaMarcacao->duration_minutes ?? 0) > 0 ? $formatMins((int) $proximaMarcacao->duration_minutes) : '—' }}
+                        <span class="mx-1" aria-hidden="true">·</span>
+                        {{ $proximaMarcacao->technician ?: '—' }}
+                    </p>
+                @else
+                    <p class="mb-0 text-muted">—</p>
                 @endif
             </div>
         </div>
@@ -80,6 +115,7 @@
 @endif
 
 <div class="client-ficha-timeline-wrap{{ ($s || $alertasPartes->isNotEmpty()) ? ' client-ficha-timeline-wrap--spaced' : '' }}">
+    <h5 class="client-ficha-timeline-title mb-3">Últimas marcações</h5>
     @if(($marcacoes ?? collect())->isEmpty())
         <p class="text-muted small mb-0">Ainda não há marcações neste período.</p>
     @else
@@ -103,9 +139,7 @@
                     $statusKey = (string) ($ev->status ?? \App\Models\CalendarEvent::STATUS_AGENDADO);
                     $statusLabel = \App\Models\CalendarEvent::statuses()[$statusKey] ?? ($statusKey !== '' ? $statusKey : '—');
                     $statusIcon = $ev->status_icon ?: 'ri-time-fill agenda-status-icon-agendado';
-                    $techFormula = trim((string) ($ev->technical_formula ?? ''));
-                    $techProducts = trim((string) ($ev->technical_products ?? ''));
-                    $techNotes = trim((string) ($ev->technical_notes ?? ''));
+                    $visitNotes = trim((string) ($ev->description ?? ''));
                     $isTerminal = in_array($statusKey, [
                         \App\Models\CalendarEvent::STATUS_CANCELADO,
                         \App\Models\CalendarEvent::STATUS_FALTOU,
@@ -114,11 +148,7 @@
                     $isCancelado = $statusKey === \App\Models\CalendarEvent::STATUS_CANCELADO;
                     $cancelReason = $isCancelado ? trim((string) ($ev->cancellation_reason ?? '')) : '';
                     $cancelNotes = $isCancelado ? trim((string) ($ev->cancellation_notes ?? '')) : '';
-                    $hasTechnical = $techFormula !== ''
-                        || $techProducts !== ''
-                        || $techNotes !== ''
-                        || $cancelReason !== ''
-                        || $cancelNotes !== '';
+                    $hasCancelPreview = $cancelReason !== '' || $cancelNotes !== '';
                     $startBiz = \App\Support\DateTimeDisplay::inBusiness($ev->start_at, $storeId);
                     $dateLabel = $startBiz
                         ? $startBiz->format('j').' de '.ucfirst($startBiz->locale('pt')->translatedFormat('M')).' '.$startBiz->format('Y')
@@ -202,26 +232,41 @@
                                     @endif
                                 </div>
                             </div>
-                            <a href="{{ route('agenda.index', ['event' => $ev->id]) }}" class="client-ficha-timeline__agenda-btn" title="Ver na agenda" aria-label="Ver na agenda">
-                                <i class="ph ph-calendar-blank" aria-hidden="true"></i>
-                            </a>
+                            <div class="client-ficha-timeline__actions">
+                                <button
+                                    type="button"
+                                    class="client-ficha-timeline__action-btn client-ficha-timeline__action-btn--file js-marcacao-detail-trigger"
+                                    data-bs-toggle="offcanvas"
+                                    data-bs-target="#marcacaoDetalheModal"
+                                    data-template-id="marcacao-detail-{{ $ev->id }}"
+                                    title="Ficha técnica"
+                                    aria-label="Ver ficha técnica da marcação"
+                                >
+                                    <i class="ph ph-file-text" aria-hidden="true"></i>
+                                </button>
+                                <a
+                                    href="{{ route('agenda.index', ['event' => $ev->id]) }}"
+                                    class="client-ficha-timeline__action-btn client-ficha-timeline__action-btn--calendar"
+                                    title="Ver na agenda"
+                                    aria-label="Ver marcação na agenda"
+                                >
+                                    <i class="ph ph-calendar-blank" aria-hidden="true"></i>
+                                </a>
+                            </div>
                         </div>
-                        @if($hasTechnical)
+                        @if($visitNotes !== '')
+                            <div class="client-ficha-timeline__notes">
+                                <span class="client-ficha-timeline__tech-label">Observações</span>
+                                <span class="client-ficha-timeline__notes-text">{{ $visitNotes }}</span>
+                            </div>
+                        @endif
+                        @if($hasCancelPreview)
                             <div class="client-ficha-timeline__tech">
                                 @if($cancelReason !== '')
                                     <div><span class="client-ficha-timeline__tech-label">Razão</span> {{ $cancelReason }}</div>
                                 @endif
                                 @if($cancelNotes !== '')
-                                    <div><span class="client-ficha-timeline__tech-label">Notas</span> {{ $cancelNotes }}</div>
-                                @endif
-                                @if($techFormula !== '')
-                                    <div><span class="client-ficha-timeline__tech-label">Fórmula</span> {{ $techFormula }}</div>
-                                @endif
-                                @if($techProducts !== '')
-                                    <div><span class="client-ficha-timeline__tech-label">Produtos</span> {{ $techProducts }}</div>
-                                @endif
-                                @if($techNotes !== '')
-                                    <div><span class="client-ficha-timeline__tech-label">Notas</span> {{ $techNotes }}</div>
+                                    <div><span class="client-ficha-timeline__tech-label">Notas cancelamento</span> {{ $cancelNotes }}</div>
                                 @endif
                             </div>
                         @endif

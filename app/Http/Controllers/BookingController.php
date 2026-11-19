@@ -14,6 +14,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Services\CancellationPolicyService;
 use App\Services\ClientWalletService;
+use App\Support\AgentServiceExtras;
 use App\Support\CurrentStore;
 use App\Support\PortugueseNationalHolidays;
 use App\Support\WeeklyScheduleWindow;
@@ -65,6 +66,7 @@ class BookingController extends Controller
 
         $viewData = $this->bookingServicesIndexViewData(
             $serviceIds !== [] ? $serviceIds : null,
+            $canBook ? (int) $agent->id : null,
         );
 
         return view('booking.index', array_merge($viewData, [
@@ -80,7 +82,7 @@ class BookingController extends Controller
      * @param  list<int>|null  $onlyServiceIds
      * @return array{categories: \Illuminate\Support\Collection, businessName: string}
      */
-    private function bookingServicesIndexViewData(?array $onlyServiceIds = null): array
+    private function bookingServicesIndexViewData(?array $onlyServiceIds = null, ?int $onlyAgentId = null): array
     {
         $store = $this->bookingStore();
         $storeId = (int) $store->id;
@@ -134,6 +136,19 @@ class BookingController extends Controller
                 ->filter(fn (Category $category): bool => $category->services->isNotEmpty())
                 ->values();
         }
+
+        $bookableExtras = AgentServiceExtras::bookableExtraIdsByService($storeId, $onlyAgentId);
+        $categories->each(function (Category $category) use ($bookableExtras): void {
+            $category->services->each(function (Service $service) use ($bookableExtras): void {
+                $allowed = $bookableExtras[(int) $service->id] ?? [];
+                $service->setRelation(
+                    'extras',
+                    $service->extras
+                        ->filter(fn ($extra): bool => in_array((int) $extra->id, $allowed, true))
+                        ->values(),
+                );
+            });
+        });
 
         return [
             'categories' => $categories,
@@ -209,6 +224,7 @@ class BookingController extends Controller
             ? array_values(array_unique(array_filter(array_map('intval', explode(',', $serviceIdsRaw)))))
             : [];
         $serviceIds = $this->serviceIdsBelongingToBookingStore($serviceIds);
+        $extraPairs = AgentServiceExtras::parsePairQuery((string) $request->query('extra_pairs', ''));
         $holdSessionToken = trim((string) $request->query('hold_session_token', ''));
 
         if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
@@ -261,7 +277,7 @@ class BookingController extends Controller
                 return response()->json(['slots' => []]);
             }
 
-            $eligibleAgents = $this->bookingEligibleAgentsForServices($serviceIds, $this->bookingStoreId());
+            $eligibleAgents = $this->bookingEligibleAgentsForServices($serviceIds, $this->bookingStoreId(), $extraPairs);
             if ($eligibleAgents->isEmpty()) {
                 return response()->json(['slots' => []]);
             }
@@ -324,6 +340,10 @@ class BookingController extends Controller
             return response()->json(['slots' => []]);
         }
 
+        if ($extraPairs !== [] && AgentServiceExtras::filterAgents(collect([$agent]), $extraPairs)->isEmpty()) {
+            return response()->json(['slots' => []]);
+        }
+
         $dowKey = $this->carbonToWeekdayKey($day);
         $window = WeeklyScheduleWindow::resolveMinutesWindow($agent->weekly_schedule, $dowKey, $storeSchedule);
         if ($window === null) {
@@ -365,14 +385,21 @@ class BookingController extends Controller
             ->withServicesForStore($this->bookingStoreId())
             ->orderBy('agenda_order')
             ->orderBy('name')
-            ->get()
-            ->map(function (Agent $agent): array {
+            ->get();
+
+        $extraPairsByAgent = AgentServiceExtras::pairsGroupedByAgent(
+            $technicians->pluck('id')->map(fn ($id) => (int) $id)->all()
+        );
+
+        $technicians = $technicians
+            ->map(function (Agent $agent) use ($extraPairsByAgent): array {
                 return [
                     'id' => (int) $agent->id,
                     'name' => (string) $agent->name,
                     'specialization' => Agent::specializationLabel($agent->specialization) ?? __('booking.flow.default_specialization'),
                     'avatar' => $agent->avatar ? asset('storage/'.$agent->avatar) : null,
                     'serviceIds' => $agent->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
+                    'extraPairs' => $extraPairsByAgent[(int) $agent->id] ?? [],
                 ];
             })
             ->values();
@@ -795,9 +822,10 @@ class BookingController extends Controller
 
     /**
      * @param  list<int>  $serviceIds
+     * @param  list<array{service_id: int, extra_id: int}>  $extraPairs
      * @return \Illuminate\Support\Collection<int, Agent>
      */
-    private function bookingEligibleAgentsForServices(array $serviceIds, int $storeId)
+    private function bookingEligibleAgentsForServices(array $serviceIds, int $storeId, array $extraPairs = [])
     {
         $query = Agent::query()
             ->where('store_id', $storeId)
@@ -811,20 +839,20 @@ class BookingController extends Controller
             ->orderBy('name');
 
         $agents = $query->get();
-        if ($serviceIds === []) {
-            return $agents;
+        if ($serviceIds !== []) {
+            $agents = $agents->filter(function (Agent $agent) use ($serviceIds): bool {
+                $techIds = $agent->services->pluck('id')->map(fn ($id) => (int) $id)->all();
+                foreach ($serviceIds as $sid) {
+                    if (! in_array((int) $sid, $techIds, true)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            })->values();
         }
 
-        return $agents->filter(function (Agent $agent) use ($serviceIds): bool {
-            $techIds = $agent->services->pluck('id')->map(fn ($id) => (int) $id)->all();
-            foreach ($serviceIds as $sid) {
-                if (! in_array((int) $sid, $techIds, true)) {
-                    return false;
-                }
-            }
-
-            return true;
-        })->values();
+        return AgentServiceExtras::filterAgents($agents, $extraPairs);
     }
 
     private function bookingStoreId(): int

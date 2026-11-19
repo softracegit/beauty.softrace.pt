@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -49,6 +51,29 @@ class Extra extends Model
     public function services(): BelongsToMany
     {
         return $this->belongsToMany(Service::class, 'service_extra');
+    }
+
+    /**
+     * Técnicos que podem fazer este extra (via agent_service_extra; pode haver várias linhas por serviço).
+     */
+    public function agents(): BelongsToMany
+    {
+        return $this->belongsToMany(Agent::class, 'agent_service_extra');
+    }
+
+    /**
+     * Contagem distinta de membros associados a este extra (todas as lojas).
+     *
+     * @param  Builder<Extra>  $query
+     * @return Builder<Extra>
+     */
+    public function scopeWithStoreAgentsCount(Builder $query, ?int $storeId = null): Builder
+    {
+        return $query->addSelect([
+            'agents_count' => DB::table('agent_service_extra')
+                ->whereColumn('agent_service_extra.extra_id', $query->qualifyColumn('id'))
+                ->selectRaw('count(distinct agent_service_extra.agent_id)'),
+        ]);
     }
 
     /**

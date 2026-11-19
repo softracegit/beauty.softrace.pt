@@ -120,6 +120,8 @@ class BookingPaymentController extends Controller
         $stripeCustomerId = $this->resolveStripeCustomerIdForBookingActor($actor);
 
         try {
+            $requestPayload = $validated;
+            $requestPayload['price_snapshot'] = $this->checkout->buildPriceSnapshot($resolved);
             $booking = Booking::query()->create([
                 'store_id' => $storeId,
                 'public_id' => (string) \Illuminate\Support\Str::ulid(),
@@ -129,7 +131,7 @@ class BookingPaymentController extends Controller
                 'remaining_amount' => $remaining,
                 'deposit_percent_used' => $depositPercent,
                 'payment_status' => Booking::PAYMENT_PENDING,
-                'request_payload' => $validated,
+                'request_payload' => $requestPayload,
                 'authenticated_booking_user_id' => $authenticatedId,
             ]);
         } catch (\Throwable $e) {
@@ -323,11 +325,20 @@ class BookingPaymentController extends Controller
                 }
             }
 
-            $validated = $this->checkout->validateStoredPayload($booking->request_payload ?? []);
+            $rawPayload = $booking->request_payload ?? [];
+            $priceSnapshot = is_array($rawPayload['price_snapshot'] ?? null)
+                ? $rawPayload['price_snapshot']
+                : null;
+            $validated = $this->checkout->validateStoredPayload($rawPayload);
             $this->checkout->assertPublicBookingServicesBelongToUrlStore($validated['services'] ?? [], $request);
-            $resolved = $this->checkout->resolveValidatedBookingPayload($validated);
-            $holdPublicId = trim((string) ($booking->request_payload['slot_hold_public_id'] ?? ''));
-            $holdToken = trim((string) ($booking->request_payload['slot_hold_token'] ?? ''));
+            // Preços do intent (price_snapshot); fallback vivo só para bookings antigos sem snapshot.
+            $resolved = $this->checkout->resolveValidatedBookingPayload($validated, $priceSnapshot);
+            if ($priceSnapshot === null) {
+                // Alinhar total ao Booking.total_price já cobrado (depósito Stripe).
+                $resolved['totalPrice'] = round((float) $booking->total_price, 2);
+            }
+            $holdPublicId = trim((string) ($rawPayload['slot_hold_public_id'] ?? ''));
+            $holdToken = trim((string) ($rawPayload['slot_hold_token'] ?? ''));
 
             $actor = $request->user();
             $clientBundle = $this->checkout->resolveClientForBooking(

@@ -19,6 +19,7 @@ $child = [
     'extras' => 'extra_categories',
     'service_extra' => 'services',
     'agent_service' => 'agents',
+    'agent_service_extra' => 'agents',
     'calendar_event_services' => 'calendar_events',
     'calendar_event_service_extras' => 'calendar_event_services',
     'sale_items' => 'sales',

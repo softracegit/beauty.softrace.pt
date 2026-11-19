@@ -14,7 +14,9 @@ use App\Models\Store;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
 use App\Services\ReceptionBookingNotifier;
+use App\Support\AgentServiceExtras;
 use App\Support\ApplicableFees;
+use App\Support\BookingCartPriceToken;
 use App\Support\CurrentStore;
 use App\Support\PhoneDisplay;
 use App\Support\PortugueseNationalHolidays;
@@ -58,8 +60,13 @@ class OnlineBookingCheckoutService
             'services' => ['required', 'array', 'min:1'],
             'services.*.id' => ['required', 'integer', 'exists:services,id'],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
+            'services.*.price_token' => ['nullable', 'string', 'max:512'],
             'services.*.extras' => ['nullable', 'array'],
             'services.*.extras.*.extra_id' => ['required', 'integer', 'exists:extras,id'],
+            'services.*.extras.*.price_token' => ['nullable', 'string', 'max:512'],
+            'services.*.fees' => ['nullable', 'array'],
+            'services.*.fees.*.fee_id' => ['required', 'integer', 'exists:fees,id'],
+            'services.*.fees.*.price_token' => ['nullable', 'string', 'max:512'],
             'send_invoice_email' => ['sometimes', 'boolean'],
             'want_invoice_with_nif' => ['sometimes', 'boolean'],
             'invoice_email' => ['nullable', 'string', 'email', 'max:255'],
@@ -272,8 +279,10 @@ class OnlineBookingCheckoutService
 
     /**
      * Resolve technician, times, and cart totals without touching the database.
+     * Optional $priceSnapshot freezes line/fee prices from createIntent (catalog may have changed).
      *
      * @param  array<string, mixed>  $validated
+     * @param  array<string, mixed>|null  $priceSnapshot
      * @return array{
      *     validated: array<string, mixed>,
      *     bookingLines: list<array{
@@ -292,7 +301,7 @@ class OnlineBookingCheckoutService
      *     totalPrice: float,
      * }
      */
-    public function resolveValidatedBookingPayload(array $validated): array
+    public function resolveValidatedBookingPayload(array $validated, ?array $priceSnapshot = null): array
     {
         $slot = $this->resolveSlotCandidateCore($validated);
         $bookingLines = $slot['bookingLines'];
@@ -311,7 +320,7 @@ class OnlineBookingCheckoutService
         );
         $totalPrice = round($servicesSubtotal + ApplicableFees::sumPrices($catalogFees), 2);
 
-        return [
+        $resolved = [
             'validated' => $validated,
             'bookingLines' => $bookingLines,
             'userId' => $userId,
@@ -321,6 +330,357 @@ class OnlineBookingCheckoutService
             'catalogFees' => $catalogFees,
             'totalPrice' => $totalPrice,
         ];
+
+        if (is_array($priceSnapshot) && $priceSnapshot !== []) {
+            return $this->overlayPriceSnapshot($resolved, $priceSnapshot);
+        }
+
+        $cartSnapshot = $this->priceSnapshotFromCartTokens($validated['services'] ?? [], $resolved);
+        if (is_array($cartSnapshot) && $cartSnapshot !== []) {
+            return $this->overlayPriceSnapshot($resolved, $cartSnapshot);
+        }
+
+        return $resolved;
+    }
+
+    /**
+     * Constrói price_snapshot a partir de tokens HMAC do carrinho (preço visto ao adicionar).
+     * Devolve null se faltar algum token ou a verificação falhar → fallback ao catálogo vivo.
+     *
+     * @param  list<array<string, mixed>>  $servicesInput
+     * @param  array<string, mixed>  $resolved
+     * @return array<string, mixed>|null
+     */
+    public function priceSnapshotFromCartTokens(array $servicesInput, array $resolved): ?array
+    {
+        $bookingLines = $resolved['bookingLines'] ?? null;
+        if (! is_array($bookingLines) || $bookingLines === [] || count($servicesInput) !== count($bookingLines)) {
+            return null;
+        }
+
+        $storeId = $this->storeIdFromBookingServices($servicesInput);
+        $storeIdOrNull = $storeId > 0 ? $storeId : null;
+        $snapLines = [];
+        $feesById = [];
+        $sawFeeTokens = false;
+
+        foreach ($bookingLines as $i => $line) {
+            $input = $servicesInput[$i] ?? null;
+            if (! is_array($input)) {
+                return null;
+            }
+
+            /** @var Service $service */
+            $service = $line['service'];
+            /** @var ServiceOption|null $option */
+            $option = $line['option'] ?? null;
+
+            if ((int) ($input['id'] ?? 0) !== (int) $service->id) {
+                return null;
+            }
+
+            $baseToken = trim((string) ($input['price_token'] ?? ''));
+            if ($baseToken === '') {
+                return null;
+            }
+
+            if ($option instanceof ServiceOption) {
+                $verified = BookingCartPriceToken::verify(
+                    $baseToken,
+                    BookingCartPriceToken::KIND_OPTION,
+                    (int) $option->id,
+                    $storeIdOrNull,
+                );
+            } else {
+                $verified = BookingCartPriceToken::verify(
+                    $baseToken,
+                    BookingCartPriceToken::KIND_SERVICE,
+                    (int) $service->id,
+                    $storeIdOrNull,
+                );
+            }
+            if ($verified === null) {
+                return null;
+            }
+
+            $frozenBase = round((float) $verified['price'], 2);
+            $liveExtras = is_array($line['extras'] ?? null) ? $line['extras'] : [];
+            $inputExtras = is_array($input['extras'] ?? null) ? $input['extras'] : [];
+            $inputExtraById = [];
+            foreach ($inputExtras as $exRow) {
+                if (! is_array($exRow)) {
+                    continue;
+                }
+                $eid = (int) ($exRow['extra_id'] ?? 0);
+                if ($eid > 0) {
+                    $inputExtraById[$eid] = $exRow;
+                }
+            }
+
+            $frozenExtras = [];
+            foreach ($liveExtras as $ex) {
+                if (! is_array($ex)) {
+                    return null;
+                }
+                $eid = (int) ($ex['extra_id'] ?? 0);
+                if ($eid <= 0 || ! isset($inputExtraById[$eid])) {
+                    return null;
+                }
+                $exToken = trim((string) ($inputExtraById[$eid]['price_token'] ?? ''));
+                if ($exToken === '') {
+                    return null;
+                }
+                $exVerified = BookingCartPriceToken::verify(
+                    $exToken,
+                    BookingCartPriceToken::KIND_EXTRA,
+                    $eid,
+                    $storeIdOrNull,
+                );
+                if ($exVerified === null) {
+                    return null;
+                }
+                $frozenExtras[] = [
+                    'extra_id' => $eid,
+                    'duration' => max(0, (int) ($ex['duration'] ?? 0)),
+                    'price' => round((float) $exVerified['price'], 2),
+                ];
+            }
+
+            foreach ($input['fees'] ?? [] as $feeRow) {
+                if (! is_array($feeRow)) {
+                    continue;
+                }
+                $feeId = (int) ($feeRow['fee_id'] ?? 0);
+                $feeToken = trim((string) ($feeRow['price_token'] ?? ''));
+                if ($feeId <= 0 || $feeToken === '') {
+                    continue;
+                }
+                $sawFeeTokens = true;
+                $feeVerified = BookingCartPriceToken::verify(
+                    $feeToken,
+                    BookingCartPriceToken::KIND_FEE,
+                    $feeId,
+                    $storeIdOrNull,
+                );
+                if ($feeVerified === null) {
+                    return null;
+                }
+                if (! isset($feesById[$feeId])) {
+                    $liveFee = null;
+                    foreach ($resolved['catalogFees'] ?? [] as $cf) {
+                        if (is_array($cf) && (int) ($cf['fee_id'] ?? 0) === $feeId) {
+                            $liveFee = $cf;
+                            break;
+                        }
+                    }
+                    $feesById[$feeId] = [
+                        'fee_id' => $feeId,
+                        'name' => (string) ($liveFee['name'] ?? ('Taxa #'.$feeId)),
+                        'price' => round((float) $feeVerified['price'], 2),
+                        'formatted_price' => $liveFee['formatted_price']
+                            ?? (number_format((float) $feeVerified['price'], 2, ',', '.')."\u{00A0}€"),
+                    ];
+                }
+            }
+
+            $snapLines[] = [
+                'service_id' => (int) $service->id,
+                'service_option_id' => $option?->id,
+                'option_name' => $option?->name,
+                'option_duration' => $option ? (int) $option->duration : null,
+                'option_price' => $option ? (float) $option->price : null,
+                'option_online_price' => $option ? $frozenBase : null,
+                'duration' => (int) ($line['duration'] ?? 0),
+                'price' => $frozenBase,
+                'original_price' => round((float) ($line['original_price'] ?? $frozenBase), 2),
+                'display_name' => (string) ($line['display_name'] ?? $service->name),
+                'extras' => $frozenExtras,
+            ];
+        }
+
+        $catalogFees = $sawFeeTokens
+            ? array_values($feesById)
+            : array_values($resolved['catalogFees'] ?? []);
+
+        $servicesSubtotal = round(
+            (float) array_sum(array_map(function (array $snapLine): float {
+                $base = (float) ($snapLine['price'] ?? 0);
+                $extras = array_sum(array_map(
+                    fn (array $ex): float => (float) ($ex['price'] ?? 0),
+                    $snapLine['extras'] ?? [],
+                ));
+
+                return $base + $extras;
+            }, $snapLines)),
+            2,
+        );
+        $totalPrice = round($servicesSubtotal + ApplicableFees::sumPrices($catalogFees), 2);
+
+        return [
+            'total_price' => $totalPrice,
+            'services_subtotal' => $servicesSubtotal,
+            'catalog_fees' => $catalogFees,
+            'lines' => $snapLines,
+        ];
+    }
+
+    /**
+     * Serializa preços/taxas resolvidos no createIntent para reutilizar no complete.
+     *
+     * @param  array{
+     *     bookingLines: list<array<string, mixed>>,
+     *     servicesSubtotal: float,
+     *     catalogFees: list<array<string, mixed>>,
+     *     totalPrice: float,
+     * }  $resolved
+     * @return array<string, mixed>
+     */
+    public function buildPriceSnapshot(array $resolved): array
+    {
+        $lines = [];
+        foreach ($resolved['bookingLines'] as $line) {
+            /** @var Service $service */
+            $service = $line['service'];
+            /** @var ServiceOption|null $option */
+            $option = $line['option'] ?? null;
+            $lines[] = [
+                'service_id' => (int) $service->id,
+                'service_option_id' => $option?->id,
+                'option_name' => $option?->name,
+                'option_duration' => $option ? (int) $option->duration : null,
+                'option_price' => $option ? (float) $option->price : null,
+                'option_online_price' => $option && $option->online_price !== null ? (float) $option->online_price : null,
+                'duration' => (int) ($line['duration'] ?? 0),
+                'price' => round((float) ($line['price'] ?? 0), 2),
+                'original_price' => round((float) ($line['original_price'] ?? 0), 2),
+                'display_name' => (string) ($line['display_name'] ?? $service->name),
+                'extras' => array_values(array_map(static function (array $ex): array {
+                    return [
+                        'extra_id' => (int) ($ex['extra_id'] ?? 0),
+                        'duration' => max(0, (int) ($ex['duration'] ?? 0)),
+                        'price' => round((float) ($ex['price'] ?? 0), 2),
+                    ];
+                }, $line['extras'] ?? [])),
+            ];
+        }
+
+        return [
+            'total_price' => round((float) ($resolved['totalPrice'] ?? 0), 2),
+            'services_subtotal' => round((float) ($resolved['servicesSubtotal'] ?? 0), 2),
+            'catalog_fees' => array_values($resolved['catalogFees'] ?? []),
+            'lines' => $lines,
+        ];
+    }
+
+    /**
+     * Aplica preços congelados do Booking às linhas resolvidas (slot/duração podem ser vivos).
+     *
+     * @param  array<string, mixed>  $resolved
+     * @param  array<string, mixed>  $snapshot
+     * @return array<string, mixed>
+     */
+    public function overlayPriceSnapshot(array $resolved, array $snapshot): array
+    {
+        $snapLines = $snapshot['lines'] ?? null;
+        $bookingLines = $resolved['bookingLines'] ?? null;
+        if (! is_array($snapLines) || ! is_array($bookingLines) || count($snapLines) !== count($bookingLines)) {
+            return $resolved;
+        }
+
+        foreach ($bookingLines as $i => $line) {
+            $snap = $snapLines[$i] ?? null;
+            if (! is_array($snap)) {
+                return $resolved;
+            }
+            $service = $line['service'] ?? null;
+            if (! $service instanceof Service || (int) $service->id !== (int) ($snap['service_id'] ?? 0)) {
+                return $resolved;
+            }
+            $snapOptId = $snap['service_option_id'] ?? null;
+            $liveOptId = isset($line['option']) && $line['option'] instanceof ServiceOption
+                ? $line['option']->id
+                : null;
+            if ((int) ($snapOptId ?? 0) !== (int) ($liveOptId ?? 0)) {
+                return $resolved;
+            }
+
+            $line['price'] = round((float) ($snap['price'] ?? 0), 2);
+            $line['original_price'] = round((float) ($snap['original_price'] ?? $line['original_price'] ?? 0), 2);
+            $line['display_name'] = (string) ($snap['display_name'] ?? $line['display_name'] ?? $service->name);
+            $line['option_name'] = $snap['option_name'] ?? $line['option_name'] ?? null;
+            $line['option_duration'] = array_key_exists('option_duration', $snap)
+                ? ($snap['option_duration'] !== null ? (int) $snap['option_duration'] : null)
+                : ($line['option_duration'] ?? null);
+            $line['option_price'] = array_key_exists('option_price', $snap)
+                ? ($snap['option_price'] !== null ? (float) $snap['option_price'] : null)
+                : ($line['option_price'] ?? null);
+            $line['option_online_price'] = array_key_exists('option_online_price', $snap)
+                ? ($snap['option_online_price'] !== null ? (float) $snap['option_online_price'] : null)
+                : ($line['option_online_price'] ?? null);
+
+            $snapExtras = is_array($snap['extras'] ?? null) ? $snap['extras'] : [];
+            $snapExtraById = [];
+            foreach ($snapExtras as $ex) {
+                if (! is_array($ex)) {
+                    continue;
+                }
+                $eid = (int) ($ex['extra_id'] ?? 0);
+                if ($eid > 0) {
+                    $snapExtraById[$eid] = $ex;
+                }
+            }
+            $lineExtras = [];
+            foreach ($line['extras'] ?? [] as $ex) {
+                if (! is_array($ex)) {
+                    continue;
+                }
+                $eid = (int) ($ex['extra_id'] ?? 0);
+                if ($eid > 0 && isset($snapExtraById[$eid])) {
+                    $ex['price'] = round((float) ($snapExtraById[$eid]['price'] ?? 0), 2);
+                    if (array_key_exists('duration', $snapExtraById[$eid])) {
+                        $ex['duration'] = max(0, (int) $snapExtraById[$eid]['duration']);
+                    }
+                }
+                $lineExtras[] = $ex;
+            }
+            // Extras que estavam no snapshot mas já não no catálogo vivo: manter pelo preço congelado.
+            $liveIds = array_map(fn (array $ex): int => (int) ($ex['extra_id'] ?? 0), $lineExtras);
+            foreach ($snapExtraById as $eid => $snapEx) {
+                if (in_array($eid, $liveIds, true)) {
+                    continue;
+                }
+                $lineExtras[] = [
+                    'extra_id' => $eid,
+                    'duration' => max(0, (int) ($snapEx['duration'] ?? 0)),
+                    'price' => round((float) ($snapEx['price'] ?? 0), 2),
+                ];
+            }
+            $line['extras'] = $lineExtras;
+            $bookingLines[$i] = $line;
+        }
+
+        $resolved['bookingLines'] = $bookingLines;
+        if (array_key_exists('catalog_fees', $snapshot) && is_array($snapshot['catalog_fees'])) {
+            $resolved['catalogFees'] = array_values($snapshot['catalog_fees']);
+        }
+        if (array_key_exists('services_subtotal', $snapshot)) {
+            $resolved['servicesSubtotal'] = round((float) $snapshot['services_subtotal'], 2);
+        } else {
+            $resolved['servicesSubtotal'] = round(
+                (float) array_sum(array_map(fn (array $line): float => $this->bookingLineTotalPrice($line), $bookingLines)),
+                2,
+            );
+        }
+        if (array_key_exists('total_price', $snapshot)) {
+            $resolved['totalPrice'] = round((float) $snapshot['total_price'], 2);
+        } else {
+            $resolved['totalPrice'] = round(
+                (float) $resolved['servicesSubtotal'] + ApplicableFees::sumPrices($resolved['catalogFees'] ?? []),
+                2,
+            );
+        }
+
+        return $resolved;
     }
 
     /**
@@ -397,7 +757,10 @@ class OnlineBookingCheckoutService
         $startForDb = $startLocal->copy()->timezone($tzApp);
         $endForDb = $endLocal->copy()->timezone($tzApp);
 
-        $eligible = $this->agentsEligibleForServices($serviceIds);
+        $eligible = AgentServiceExtras::filterAgents(
+            $this->agentsEligibleForServices($serviceIds),
+            AgentServiceExtras::pairsFromBookingLines($bookingLines),
+        );
         if ($eligible->isEmpty()) {
             throw ValidationException::withMessages([
                 'services' => [__('booking.validation.no_technician_for_services')],
@@ -559,6 +922,21 @@ class OnlineBookingCheckoutService
                 'display_name' => $displayName,
                 'extras' => $this->resolveOnlineBookingExtrasForServiceLine($service, $row['extras'] ?? [], $idx),
             ];
+        }
+
+        // Uma variante adicional só é válida acompanhada de uma variante de escolha única do mesmo serviço.
+        $baseServiceIds = [];
+        foreach ($lines as $line) {
+            if (! $line['option'] || ! $line['option']->isAddon()) {
+                $baseServiceIds[(int) $line['service']->id] = true;
+            }
+        }
+        foreach ($lines as $lineIdx => $line) {
+            if ($line['option'] && $line['option']->isAddon() && ! isset($baseServiceIds[(int) $line['service']->id])) {
+                throw ValidationException::withMessages([
+                    "services.{$lineIdx}.service_option_id" => [__('booking.validation.addon_requires_base')],
+                ]);
+            }
         }
 
         return $lines;
@@ -748,13 +1126,20 @@ class OnlineBookingCheckoutService
         foreach ($bookingLines as $line) {
             $svc = $line['service'];
             $opt = $line['option'];
+            // Prefer snapshot fields on the line (price freeze); fall back to live option/catalog.
             $servicesPayload[] = [
                 'service_id' => $svc->id,
                 'service_option_id' => $opt?->id,
-                'option_name' => $opt?->name,
-                'option_duration' => $opt ? (int) $opt->duration : null,
-                'option_price' => $opt ? (float) $opt->price : null,
-                'option_online_price' => $opt && $opt->online_price !== null ? (float) $opt->online_price : null,
+                'option_name' => $line['option_name'] ?? $opt?->name,
+                'option_duration' => array_key_exists('option_duration', $line)
+                    ? ($line['option_duration'] !== null ? (int) $line['option_duration'] : null)
+                    : ($opt ? (int) $opt->duration : null),
+                'option_price' => array_key_exists('option_price', $line)
+                    ? ($line['option_price'] !== null ? (float) $line['option_price'] : null)
+                    : ($opt ? (float) $opt->price : null),
+                'option_online_price' => array_key_exists('option_online_price', $line)
+                    ? ($line['option_online_price'] !== null ? (float) $line['option_online_price'] : null)
+                    : ($opt && $opt->online_price !== null ? (float) $opt->online_price : null),
                 'duration' => (int) $line['duration'],
                 'price' => (float) $line['price'],
                 'original_price' => (float) $line['original_price'],

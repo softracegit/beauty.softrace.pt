@@ -26,6 +26,243 @@
 /* Borda interior esquerda do painel direito: BS usa --bs-border-color-translucent (por vezes com tom azulado) */
 .agenda-marcacao-test-offcanvas.offcanvas-end {
     border-left: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+    border-radius: 20px 0 0 20px;
+    overflow: hidden;
+}
+/* Ficha técnica — stack por cima do offcanvas da marcação (mais estreito em largura) */
+/* Dropup Pagamento / Faturas — itens altos e edge-to-edge (sem padding do menu) */
+.event-detail-payment-menu,
+.event-detail-faturas-dropup .dropdown-menu {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+.event-detail-payment-menu {
+    min-width: 16rem;
+}
+.event-detail-payment-menu > li > .dropdown-item,
+.event-detail-faturas-dropup .dropdown-menu > li > .dropdown-item,
+.event-detail-faturas-dropup .dropdown-menu > li > a.dropdown-item,
+.event-detail-faturas-dropup .dropdown-menu > li > button.dropdown-item {
+    gap: 0.75rem;
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    min-height: 3rem;
+    padding-top: 0.95rem !important;
+    padding-bottom: 0.95rem !important;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    box-sizing: border-box;
+    align-items: center;
+}
+.event-detail-payment-menu > li > .dropdown-divider,
+.event-detail-faturas-dropup .dropdown-menu > li > .dropdown-divider {
+    margin: 0;
+}
+.event-detail-payment-menu .event-detail-pay-menu-item--primary {
+    color: var(--bs-success, #198754);
+    font-weight: 700;
+}
+.event-detail-payment-menu .event-detail-pay-menu-item--primary:hover,
+.event-detail-payment-menu .event-detail-pay-menu-item--primary:focus {
+    color: var(--bs-success, #198754);
+    background-color: rgba(var(--bs-success-rgb, 25, 135, 84), 0.08);
+}
+.event-detail-payment-menu .event-detail-pay-menu-item--primary .small,
+.event-detail-payment-menu .event-detail-pay-menu-item--primary #eventDetailPaymentBtnAmount,
+.event-detail-payment-menu .event-detail-pay-menu-item--primary #eventDetailPayCurrentAmount {
+    font-weight: 700 !important;
+}
+
+/* Layer da ficha técnica: cobre só a coluna da direita (slide from right) */
+.agenda-oc-clinical-layer {
+    --agenda-oc-clinical-pad: 1.75rem;
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    background: #fff !important;
+    box-shadow: -8px 0 28px rgba(15, 23, 42, 0.08);
+    transform: translateX(100%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.28s;
+}
+.agenda-oc-clinical-layer.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+}
+.agenda-oc-clinical-layer__close {
+    position: absolute;
+    top: 1.35rem;
+    right: 1.35rem;
+    z-index: 2;
+}
+.agenda-oc-clinical-layer__body,
+.agenda-oc-clinical-layer__body.csheet-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 1.35rem var(--agenda-oc-clinical-pad) var(--agenda-oc-clinical-pad);
+    background: #fff !important;
+    box-sizing: border-box;
+}
+.agenda-oc-clinical-layer__title {
+    margin: 0 0 1.25rem;
+    padding-right: 2.25rem; /* não colidir com o close */
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--heading-color, #111827);
+}
+.agenda-oc-clinical-layer__footer {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    /* Mesmo padding do footer da coluna da marcação */
+    padding: 1rem 1.75rem;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+    background: #fff;
+    box-sizing: border-box;
+}
+.agenda-oc-clinical-layer.is-readonly .csheet-field input,
+.agenda-oc-clinical-layer.is-readonly .csheet-field select,
+.agenda-oc-clinical-layer.is-readonly .csheet-field textarea,
+.agenda-oc-clinical-layer.is-readonly .csheet-pill {
+    pointer-events: none;
+    cursor: default;
+}
+.agenda-oc-clinical-layer.is-readonly .csheet-pill:not(.is-active) {
+    opacity: 0.55;
+}
+
+/* Layer de pagamento (mesmo padrão da ficha técnica) */
+.agenda-oc-payment-layer {
+    --agenda-oc-payment-pad: 1.75rem;
+    position: absolute;
+    inset: 0;
+    z-index: 31;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    box-shadow: -8px 0 28px rgba(15, 23, 42, 0.08);
+    transform: translateX(100%);
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 0.28s;
+}
+.agenda-oc-payment-layer.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
+}
+.agenda-oc-payment-layer__close {
+    position: absolute;
+    top: 1.35rem;
+    right: 1.35rem;
+    z-index: 2;
+}
+.agenda-oc-payment-layer__title {
+    margin: 0 0 1.25rem;
+    padding-right: 2.25rem;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--heading-color, #111827);
+}
+.agenda-oc-payment-layer__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.agenda-oc-payment-layer .modal-content.payment-pos-in-layer {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #fff;
+}
+.agenda-oc-payment-layer .payment-pos-in-layer .modal-header {
+    display: none;
+}
+.agenda-oc-payment-layer .payment-pos-in-layer .payment-pos-layer-only-title {
+    display: block !important;
+}
+.agenda-oc-payment-layer .payment-pos-in-layer .payment-pos-hero-client {
+    display: none !important;
+}
+.agenda-oc-payment-layer .payment-pos-in-layer .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 1.35rem var(--agenda-oc-payment-pad) var(--agenda-oc-payment-pad);
+}
+.agenda-oc-payment-layer .payment-pos-in-layer .modal-footer.payment-pos-modal-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    grid-template-columns: none;
+    margin: 0;
+    padding: 1rem 1.75rem !important;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+    background: #fff;
+    border-radius: 0;
+    flex-shrink: 0;
+}
+.agenda-oc-payment-layer .payment-pos-in-layer .modal-footer.payment-pos-modal-footer > #paymentCancelBtn {
+    width: auto;
+    min-width: 0;
+}
+.agenda-oc-payment-layer .payment-pos-in-layer .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+.agenda-oc-payment-layer .payment-pos-in-layer .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__actions > .btn {
+    width: auto;
+    min-width: 0;
+}
+#eventDetailEditModal .agenda-oc-payment-layer .payment-pos-in-layer .modal-footer .btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    box-sizing: border-box;
+    height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+    min-height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+}
+#eventDetailEditModal .agenda-oc-payment-layer .payment-pos-in-layer #paymentConfirmBtn.btn-success {
+    min-height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+}
+
+/* Labels Fatura / Pagamento = estilo das labels da marcação */
+.agenda-oc-payment-layer .payment-pos-in-layer #paymentFaturaSectionLegend,
+.agenda-oc-payment-layer .payment-pos-in-layer #paymentMethodSectionLegend {
+    display: block;
+    color: #9ca3af !important;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem !important;
 }
 @media (max-width: 767.98px) {
     .agenda-marcacao-test-offcanvas {
@@ -40,6 +277,10 @@
     }
     .agenda-marcacao-test-offcanvas.offcanvas-end {
         border-left: none;
+        border-radius: 0 !important;
+    }
+    .agenda-oc-clinical-layer {
+        box-shadow: none;
     }
 }
 /* Foco no contentor ao abrir (focus trap): sem anel/outline extra do tema por cima dessa borda */
@@ -144,10 +385,10 @@
     display: flex;
     flex-direction: column;
 }
-/* Shell: cliente 35% | marcação 65%; separador full-height; rodapé só à direita */
+/* Shell: cliente ~33% | marcação ~67%; separador full-height; rodapé só à direita */
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__grid {
     display: grid;
-    grid-template-columns: minmax(0, 28%) minmax(0, 72%);
+    grid-template-columns: minmax(0, 33%) minmax(0, 67%);
     align-items: stretch;
     min-width: 0;
     min-height: 0;
@@ -168,8 +409,7 @@
     flex-direction: column;
     overflow-x: hidden;
     overflow-y: auto;
-    /* Ligeiramente acima para alinhar avatar/nome com a label Data à direita */
-    padding: 1.05rem 1rem 1.25rem;
+    padding: 1.75rem;
     border-right: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
     background: #F6F7FA;
 }
@@ -203,11 +443,12 @@
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-split__client .agenda-oc-client-edit-btn {
     color: #4b5563;
 }
-/* Cliente seleccionado: topo alinhado com a label Data */
+/* Cliente seleccionado: mesmo padding das colunas */
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-split__client:has(.agenda-oc-client-selected-card--panel:not(.d-none)) {
-    padding-top: 1.05rem;
+    padding-top: 1.75rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right {
+    position: relative;
     min-width: 0;
     min-height: 0;
     display: flex;
@@ -218,13 +459,16 @@
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 1.25rem 1.875rem;
+    padding: 1.75rem;
+}
+#eventDetailEditModal .agenda-oc-shell__right-body {
+    padding: 1.75rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right .agenda-marcacao-test-offcanvas-footer {
     flex-shrink: 0;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-field {
-    margin-bottom: 1.15rem;
+    margin-bottom: 1.75rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-field .form-label {
     color: #9ca3af !important;
@@ -346,9 +590,15 @@
     min-height: 0;
     overflow: visible;
     padding-top: 0;
+    display: flex;
+    flex-direction: column;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel {
     position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     padding: 0 0 0.5rem;
     background: transparent;
     border: none;
@@ -572,8 +822,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.45rem;
-    min-height: 1.75rem;
-    padding: 0.28rem 0;
+    min-height: 1.85rem;
+    padding: 0.42rem 0;
     border-bottom: 0;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row.is-editing {
@@ -589,11 +839,11 @@
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row > .agenda-oc-client-panel__label {
     flex: 0 0 auto;
-    width: 5.25rem;
+    width: 5.75rem;
     margin-bottom: 0;
     padding-top: 0;
     color: #6b7280;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     line-height: 1.2;
 }
@@ -608,7 +858,7 @@
     min-height: 1.5rem;
     gap: 0.35rem;
     padding: 0;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     line-height: 1.35;
     color: #111827;
@@ -628,7 +878,7 @@
     min-width: 0;
     flex: 1 1 auto;
     max-width: 100%;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     line-height: 1.35;
     color: #111827;
@@ -662,7 +912,7 @@
     border-color: transparent !important;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__add {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     line-height: 1.35;
     text-decoration: none;
@@ -686,7 +936,7 @@
     box-sizing: border-box;
     background: transparent;
     box-shadow: none;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     line-height: 1.35;
     text-align: right;
@@ -696,7 +946,7 @@
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__inline-input::placeholder {
     color: #9ca3af;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     opacity: 1;
 }
@@ -716,7 +966,7 @@
     max-width: 100%;
     min-width: 0;
     flex: 1 1 auto;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     height: auto;
     min-height: 0;
@@ -742,7 +992,7 @@
     box-sizing: border-box;
     background: transparent;
     box-shadow: none;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     line-height: 1.35;
     text-align: right;
@@ -751,7 +1001,7 @@
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row .flatpickr-input.form-control::placeholder,
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__field--row input.flatpickr-input.agenda-oc-client-panel__inline-input::placeholder {
     color: #9ca3af;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 400;
     opacity: 1;
 }
@@ -868,7 +1118,7 @@
     font-size: 0.78rem;
 }
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-client-birthday-banner {
-    margin-top: 1.75rem;
+    margin-top: 0;
     flex-shrink: 0;
 }
 
@@ -903,15 +1153,20 @@
 .agenda-oc-client-choice-card {
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 0.85rem;
     width: 100%;
     margin: 0;
-    padding: 0.85rem 0.75rem;
+    padding: 1.75rem 1.5rem;
     border: 1.5px dashed #9ca3af;
     border-radius: 0.5rem;
     background: #fff;
     color: #374151;
+    box-sizing: border-box;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.agenda-oc-client-choice-card--new:not(.is-expanded) {
+    min-height: 10.5rem;
+    justify-content: center;
 }
 .agenda-oc-client-choice-card.is-active {
     border-color: var(--bs-primary, #0d6efd);
@@ -925,7 +1180,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
+    gap: 0.55rem;
     position: relative;
     text-align: center;
 }
@@ -933,17 +1188,17 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 3.25rem;
-    height: 3.25rem;
+    width: 3.5rem;
+    height: 3.5rem;
     border-radius: 50%;
     background: #eef0f4;
     color: #4b5563;
 }
 .agenda-oc-client-choice-card__avatar .ph {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
 }
 .agenda-oc-client-choice-card__label {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     font-weight: 600;
     color: #374151;
     line-height: 1.25;
@@ -957,10 +1212,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
+    gap: 0.55rem;
     width: 100%;
     margin: 0;
-    padding: 0;
+    padding: 0.35rem 0;
     border: 0;
     background: transparent;
     color: inherit;
@@ -1038,34 +1293,26 @@
 .agenda-marcacao-test-offcanvas .agenda-oc-field:last-child {
     margin-bottom: 0;
 }
-.event-detail-header-save-btn {
-    width: auto;
-    height: 2.125rem;
-    padding: 0 0.85rem;
-    margin-right: 0.85rem;
-    color: var(--bs-body-color);
-    background-color: var(--bs-body-bg);
+/* Offcanvas marcação (nova + detalhe) — sem header; fechar flutuante */
+.agenda-marcacao-test-offcanvas.event-detail-offcanvas--no-header {
+    position: fixed;
 }
-
-.event-detail-header-save-btn:hover:not(:disabled),
-.event-detail-header-save-btn:focus-visible:not(:disabled) {
-    color: var(--bs-body-color);
-    background-color: var(--bs-secondary-bg);
-    border-color: var(--bs-border-color);
+.agenda-marcacao-test-offcanvas.event-detail-offcanvas--no-header > .offcanvas-body {
+    height: 100%;
 }
-
-.event-detail-header-save-btn:disabled {
-    opacity: 0.45;
+.agenda-marcacao-test-offcanvas .event-detail-oc-close {
+    position: absolute;
+    top: 1.35rem;
+    right: 1.35rem;
+    z-index: 5;
 }
-
-.event-detail-header-save-btn .ph {
-    font-size: 1.0625rem;
+#eventDetailEditModal .event-detail-status-row {
+    margin-bottom: 1.35rem;
 }
-
 .event-detail-header-save-label {
-    font-size: 0.8125rem;
-    font-weight: 500;
-    line-height: 1.2;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
     white-space: nowrap;
 }
 
@@ -1073,34 +1320,65 @@
     display: none;
 }
 
+.event-detail-services-total {
+    padding-top: 0.35rem;
+}
+/* Footer da marcação (nova + detalhe) = mesmo sizing do footer da ficha técnica */
+.agenda-marcacao-test-offcanvas--wide .agenda-marcacao-test-offcanvas-footer {
+    padding: 1rem 1.75rem;
+    box-sizing: border-box;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-marcacao-test-offcanvas-footer .btn,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-clinical-layer__footer .btn {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    box-sizing: border-box;
+    height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+    min-height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+}
+#eventDetailEditModal .event-detail-footer-save-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+/* Mesma altura do Guardar; largura só do ícone */
+#eventDetailEditModal .agenda-marcacao-test-offcanvas-footer .event-detail-history-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: var(--spacing-sm);
+    width: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+    min-width: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+    height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+    min-height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+}
+#eventDetailEditModal .agenda-marcacao-test-offcanvas-footer .event-detail-history-btn .ph {
+    font-size: 1.125rem;
+    line-height: 1;
+}
+
 @media (max-width: 767.98px) {
-    #eventDetailEditModal .offcanvas-header {
-        padding: 0.75rem 1rem;
-        gap: 0.35rem;
-    }
-    #eventDetailEditModal .offcanvas-header > .d-flex.flex-grow-1 {
-        min-width: 0;
-    }
     #eventDetailEditModal .event-detail-header-save-label--long {
         display: none;
     }
     #eventDetailEditModal .event-detail-header-save-label--short {
         display: inline;
     }
-    #eventDetailEditModal .event-detail-header-save-btn {
-        width: auto;
-        min-width: 0;
-        height: 2.125rem;
-        padding: 0 0.65rem;
-        margin-right: 0.25rem;
+    #eventDetailEditModal .event-detail-footer-save-btn {
         gap: 0.35rem;
     }
-    #eventDetailEditModal #eventDetailStatusLabel,
-    #eventDetailEditModal #eventDetailStatusStaticLabel {
+    .agenda-marcacao-test-offcanvas .event-detail-status-select__current > span:last-child {
         max-width: none;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+    .agenda-marcacao-test-offcanvas .event-detail-status-select {
+        width: 40%;
+        max-width: 11rem;
     }
     .agenda-marcacao-test-offcanvas .offcanvas-header {
         padding: 0.75rem 1rem;
@@ -1118,7 +1396,7 @@
         width: 100%;
     }
 
-    #eventDetailPaymentWrap .btn-sm,
+    #eventDetailPaymentWrap .btn,
     #eventDetailPaymentWrap .dropdown-toggle {
         flex: 0 0 auto;
         min-width: 0;
@@ -1163,13 +1441,12 @@
     gap: 0.5rem;
 }
 #eventDetailPaymentWrap {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
 }
 #eventDetailFaturasWrap {
     flex: 0 0 auto;
 }
-
 .event-detail-pay-btn-label--short {
     display: none;
 }
@@ -1182,10 +1459,12 @@
 .event-detail-total-line {
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
     align-items: baseline;
-    gap: 0.35rem 0.5rem;
+    gap: 0.35rem 0;
     min-width: 0;
     max-width: 100%;
+    text-align: right;
 }
 .event-detail-total-line__part {
     display: inline-flex;
@@ -1195,24 +1474,35 @@
     min-width: 0;
     max-width: 100%;
 }
+#eventDetailTotalMain.has-prefix-sep::before {
+    content: '•';
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+    color: var(--muted-color, #6b7280);
+    font-weight: 400;
+}
 .event-detail-total-line__sep {
     margin-inline: 0.1rem;
 }
 
-/* Rodapé offcanvas: estado «Pago» com altura de btn-sm */
+/* Rodapé: «Pago» com a mesma altura dos .btn do footer */
+#eventDetailEditModal .event-detail-paid-badge,
 .event-detail-paid-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
-    height: calc(1.5em + 0.75rem + 2px);
-    padding: 0.375rem 0.65rem;
+    gap: var(--spacing-sm, 0.5rem);
+    box-sizing: border-box;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
+    min-height: calc(0.875rem * 1.5 + var(--spacing-sm) * 2 + 2px);
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 1.5;
     color: #fff;
     background-color: var(--bs-success, #198754);
-    border-radius: var(--bs-border-radius, 0.375rem);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md, 0.375rem);
     white-space: nowrap;
     user-select: none;
     pointer-events: none;
@@ -1227,18 +1517,15 @@
     white-space: normal;
     overflow-wrap: break-word;
 }
-
-#eventDetailPaymentDropup .dropdown-menu {
-    min-width: 22rem;
-    width: max-content;
-    max-width: min(24rem, calc(100vw - 1rem));
-    box-sizing: border-box;
+.event-detail-faturas-dropup .agenda-fatura-final-item {
+    border-radius: 0 !important;
 }
 
-#eventDetailPayAllHint {
-    white-space: nowrap !important;
-    color: var(--bs-danger, #dc3545) !important;
-    font-weight: 300 !important;
+#eventDetailPaymentDropup .event-detail-payment-menu {
+    min-width: 16rem;
+    width: max-content;
+    max-width: min(22rem, calc(100vw - 1rem));
+    box-sizing: border-box;
 }
 
 .payment-consolidated-details-full {
@@ -1313,57 +1600,57 @@
     line-height: 1;
 }
 
-/* Modal caixa: modo «só fatura final» (sem escolha de pagamento / MB WAY / gorjeta) */
-#paymentModal.payment-pos-modal--invoice-only #paymentMethodSectionLegend,
-#paymentModal.payment-pos-modal--invoice-only #paymentMethodToggleGroup,
-#paymentModal.payment-pos-modal--invoice-only #paymentMbwayPhoneWrap,
-#paymentModal.payment-pos-modal--invoice-only #paymentCashTenderWrap {
+/* Modal caixa: modo «só fatura final» (também no .modal-content em layer) */
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentMethodSectionLegend,
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentMethodToggleGroup,
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentMbwayPhoneWrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentCashTenderWrap {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--invoice-only .payment-pos-hero-gorjeta-wrap,
-#paymentModal.payment-pos-modal--invoice-only #paymentGorjetaLine {
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only .payment-pos-hero-gorjeta-wrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--invoice-only #paymentGorjetaLine {
     display: none !important;
 }
 
 /* Modal caixa: modo pré-pagamento (sem gorjeta / linhas de caixa parcial) */
-#paymentModal.payment-pos-modal--reserva .payment-pos-hero-gorjeta-wrap,
-#paymentModal.payment-pos-modal--reserva #paymentGorjetaLine,
-#paymentModal.payment-pos-modal--reserva #paymentOnlinePaidLine,
-#paymentModal.payment-pos-modal--reserva #paymentLineTotalDue {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva .payment-pos-hero-gorjeta-wrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentGorjetaLine,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentOnlinePaidLine,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentLineTotalDue {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--reserva #paymentLinePrepagamentoPaid {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentLinePrepagamentoPaid {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--reserva #paymentLineCheckoutTotal {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentLineCheckoutTotal {
     display: flex !important;
 }
-#paymentModal.payment-pos-modal--reserva #paymentLineDepositAmount {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentLineDepositAmount {
     display: flex !important;
 }
-#paymentModal.payment-pos-modal--reserva .payment-pos-hero-reserva-custom-input {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva .payment-pos-hero-reserva-custom-input {
     max-width: 9rem;
     margin-left: auto;
 }
-#paymentModal:not(.payment-pos-modal--reserva) #paymentPrepagamentoLine,
-#paymentModal:not(.payment-pos-modal--reserva) #paymentReservaCustomWrap {
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentPrepagamentoLine,
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentReservaCustomWrap {
     display: none !important;
 }
 
 /* Pré-pagamento: créditos parciais (checkbox, como booking online) */
-#paymentModal.payment-pos-modal--reserva #paymentMethodCreditosCarteiraBtn {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva #paymentMethodCreditosCarteiraBtn {
     display: none !important;
 }
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodSectionLegend,
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodToggleGroup,
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMbwayPhoneWrap,
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentCashTenderWrap,
-#paymentModal.payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentWalletPartialSummary {
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodSectionLegend,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMethodToggleGroup,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentMbwayPhoneWrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentCashTenderWrap,
+:is(#paymentModal, .modal-content).payment-pos-modal--reserva.payment-pos-modal--wallet-covers #paymentWalletPartialSummary {
     display: none !important;
 }
-#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletApplyWrap,
-#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletCoversReservaMsg,
-#paymentModal:not(.payment-pos-modal--reserva) #paymentWalletPartialSummary {
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentWalletApplyWrap,
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentWalletCoversReservaMsg,
+:is(#paymentModal, .modal-content):not(.payment-pos-modal--reserva) #paymentWalletPartialSummary {
     display: none !important;
 }
 .payment-pos-wallet-apply-wrap {
@@ -2167,6 +2454,9 @@ body.page-agenda .app-wrapper .container-fluid {
 .agenda-oc-visit-block__section:first-child {
     margin-top: 0;
 }
+.agenda-oc-clinical-prefs-hint {
+    margin-top: 0.35rem;
+}
 .agenda-marcacao-test-offcanvas--wide .agenda-oc-shell__right-body .agenda-oc-info-card .form-label {
     color: #64748b !important;
 }
@@ -2228,65 +2518,81 @@ body.page-agenda .app-wrapper .container-fluid {
 .agenda-oc-info-card .form-control:focus {
     background-color: #fff;
 }
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel__hero + .agenda-client-birthday-banner:not(.d-none) {
-    margin-top: 1.75rem;
-}
-/* Espaço após etiquetas/hero — mesmo com o banner de aniversário oculto no DOM */
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-oc-client-alerts-wrap {
-    margin-top: 1.75rem;
+.agenda-oc-client-panel__footer-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-top: 1rem;
     margin-bottom: 0;
+    flex-shrink: 0;
 }
-.agenda-marcacao-test-offcanvas--wide .agenda-client-birthday-banner:not(.d-none) + .agenda-oc-client-alerts-wrap {
-    margin-top: 0.85rem;
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-oc-client-panel__footer-cards {
+    margin-top: auto;
+    padding-top: 1.25rem;
 }
 .agenda-oc-client-alerts-wrap {
-    margin-top: 0.65rem;
+    margin-top: 0;
     margin-bottom: 0;
 }
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap + .agenda-oc-client-panel__details {
-    margin-top: 0.45rem;
-}
-@media (min-width: 992px) {
-    .agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap + .agenda-oc-client-panel__details {
-        margin-top: 1.25rem;
-    }
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-oc-client-alerts-wrap {
+    margin-top: 0;
+    margin-bottom: 0;
+    margin-left: 0;
+    margin-right: 0;
+    padding-top: 0;
+    flex-shrink: 0;
 }
 .agenda-oc-client-alerts {
-    padding: 0.55rem 0.65rem;
-    border-radius: 0.5rem;
-    border: 1px solid #fed7aa;
-    background: #fffbf7;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 0.3rem;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0.5rem 0.7rem;
+    text-align: left;
+    border: 1px solid #d4d4d8;
+    border-radius: var(--radius-md, 0.375rem);
+    background: linear-gradient(180deg, #f4f4f5 0%, #ececef 100%);
+    color: #52525b;
+    box-shadow: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+.agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts {
+    border-color: #fcd34d;
+    background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+    color: #78350f;
 }
 .agenda-oc-client-alerts__head {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
     gap: 0.5rem;
     margin-bottom: 0;
-}
-.agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts__head {
-    margin-bottom: 0.35rem;
+    flex-shrink: 0;
 }
 .agenda-oc-client-alerts__title {
     display: inline-flex;
-    align-items: flex-start;
-    gap: 0.35rem;
+    align-items: center;
+    gap: 0.3rem;
     min-width: 0;
-    font-size: 0.75rem;
-    font-weight: 600;
-    line-height: 1.3;
-    color: #111827;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #52525b;
 }
 .agenda-oc-client-alerts__title .ph {
     flex-shrink: 0;
-    margin-top: 0.1rem;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     line-height: 1;
-    color: #ea580c;
+    color: #71717a;
 }
-.agenda-oc-client-alerts__add {
-    flex-shrink: 0;
-    margin-left: auto;
+.agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts__title {
+    color: #78350f;
+}
+.agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts__title .ph {
+    color: #d97706;
 }
 .agenda-oc-client-alerts__hint {
     margin-top: 0.4rem !important;
@@ -2297,64 +2603,112 @@ body.page-agenda .app-wrapper .container-fluid {
 }
 .agenda-oc-client-alerts__value {
     display: flex;
-    align-items: flex-start;
+    align-items: stretch;
     flex-wrap: wrap;
-    gap: 0.35rem;
+    gap: 0;
     min-width: 0;
+    min-height: 1.75rem;
 }
-.agenda-oc-client-alerts-wrap:not(.has-allergies):not(.is-editing) .agenda-oc-client-alerts__value {
+.agenda-oc-client-alerts-wrap:not(.has-allergies):not(.is-editing) .agenda-oc-client-alerts__value .agenda-oc-client-panel__value-text {
     display: none;
 }
-.agenda-oc-client-alerts .agenda-oc-client-panel__value-text {
-    flex: 1 1 auto;
-    min-width: 0;
-    text-align: left;
-    white-space: pre-wrap;
-    overflow: visible;
-    text-overflow: unset;
-    word-break: break-word;
-    font-size: 0.75rem;
-    font-weight: 400;
-    line-height: 1.4;
-    color: #1f2937;
-    cursor: pointer;
-    border: 1px dashed transparent;
-    border-radius: 3px;
-    padding: 0.15rem 0.25rem;
-    margin: -0.15rem -0.25rem;
-}
-.agenda-oc-client-alerts .agenda-oc-client-panel__value-text:hover {
-    border-color: #d1d5db;
-}
-.agenda-oc-client-alerts .agenda-oc-client-panel__value-text:focus,
-.agenda-oc-client-alerts .agenda-oc-client-panel__value-text:focus-visible {
-    border-color: #9ca3af;
-    outline: none;
-}
-.agenda-oc-client-alerts .agenda-oc-client-panel__inline-input {
+/* Valor / Adicionar / input: mesmo box model (o input global do painel tem margin negativo) */
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__value-text,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-alerts__add,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__inline-input {
     flex: 1 1 100%;
     width: 100%;
-    text-align: left;
-    color: #1f2937;
-    border-color: #9ca3af;
-    font-size: 0.75rem;
-    font-weight: 400;
-    line-height: 1.4;
-    padding: 0.25rem 0.35rem;
-    margin: 0;
-    background: #fff;
+    max-width: 100%;
+    min-width: 0;
+    height: 1.75rem;
+    min-height: 1.75rem;
+    max-height: 1.75rem;
+    box-sizing: border-box;
+    margin: 0 !important;
+    padding: 0.2rem 0.35rem !important;
+    border: 1px solid transparent;
     border-radius: 0.35rem;
+    font-size: 0.8rem !important;
+    font-weight: 400;
+    line-height: 1.3 !important;
+    text-align: left !important;
+    color: #52525b;
+    background: transparent;
+    box-shadow: none !important;
+    appearance: none;
+    -webkit-appearance: none;
 }
-.agenda-oc-client-alerts-wrap.is-editing .agenda-oc-client-alerts__head {
-    margin-bottom: 0.4rem;
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts .agenda-oc-client-panel__value-text,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts .agenda-oc-client-panel__inline-input {
+    color: #78350f;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__value-text {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: normal;
+    cursor: pointer;
+    border-style: dashed;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__value-text:hover {
+    border-color: #a1a1aa;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts .agenda-oc-client-panel__value-text:hover {
+    border-color: #f59e0b;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__value-text:focus,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__value-text:focus-visible {
+    border-color: #71717a;
+    outline: none;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts .agenda-oc-client-panel__value-text:focus,
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts .agenda-oc-client-panel__value-text:focus-visible {
+    border-color: #d97706;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-alerts__add {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    color: #71717a;
+    text-decoration: none !important;
+    border-style: dashed;
+    cursor: pointer;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__inline-input {
+    display: block;
+    border-color: #a1a1aa;
+    border-style: solid;
+    background: #fafafa;
+    color: #3f3f46;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts .agenda-oc-client-panel__inline-input {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    color: #78350f;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__inline-input::placeholder {
+    color: #a1a1aa;
+    font-size: 0.875rem !important;
+    font-weight: 400;
+    opacity: 1;
+    line-height: 1.35;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts .agenda-oc-client-panel__inline-input::placeholder {
+    color: #b45309;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts .agenda-oc-client-panel__inline-input:focus {
+    outline: none;
+    border-color: #71717a;
+    box-shadow: none !important;
+}
+.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-alerts-wrap.has-allergies .agenda-oc-client-alerts .agenda-oc-client-panel__inline-input:focus {
+    border-color: #d97706;
 }
 .agenda-oc-client-alerts-wrap.is-editing .agenda-oc-client-panel__value-text,
 .agenda-oc-client-alerts-wrap.is-editing .agenda-oc-client-panel__add {
     display: none !important;
-}
-.agenda-marcacao-test-offcanvas--wide .agenda-oc-client-panel .agenda-oc-client-alerts-wrap {
-    margin-left: 0;
-    margin-right: 0;
 }
 .fc-event-line {
     line-height: 1.25;
@@ -2513,9 +2867,6 @@ body.page-agenda .app-wrapper .container-fluid {
     width: 17px;
     height: 17px;
 }
-#eventDetailStatusIcon {
-    font-size: 1.125rem;
-}
 .fc-daygrid-event,
 .fc-daygrid-event-harness {
     min-height: auto !important;
@@ -2570,10 +2921,10 @@ body.page-agenda .app-wrapper .container-fluid {
 }
 
 /* Offcanvas marcação: ícones do menu de estado ligeiramente maiores que o texto */
-#eventDetailEditModal #eventDetailStatusMenu .event-detail-status-opt > i {
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu .event-detail-status-opt > i {
     font-size: 1.08rem;
 }
-#eventDetailEditModal #eventDetailStatusMenu .event-detail-status-opt > i.agenda-status-icon-iniciado {
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu .event-detail-status-opt > i.agenda-status-icon-iniciado {
     font-size: 1.2rem;
 }
 
@@ -4071,134 +4422,139 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     height: 40px;
 }
 
-/* Offcanvas Ver/Editar marcação */
-/* display:flex já vem de .agenda-marcacao-test-offcanvas */
-#eventDetailEditModal .offcanvas-header {
-    flex-shrink: 0;
-    overflow: visible; /* dropdown do estado não pode ser cortado por overflow do header */
-    --agenda-ed-header-line: calc(1.25rem * 1.25); /* caixa de linha = título h5 (1.25rem × lh 1.25) */
-    align-items: center;
+/* Offcanvas nova / editar — Estado: aspeto de select, ~1/4 largura, com ícones */
+.agenda-marcacao-test-offcanvas .event-detail-status-field {
+    max-width: 100%;
 }
-
-/* Título e estado com a mesma altura de linha — evita +1px no header */
-#eventDetailEditModal #eventDetailStatusDropdownWrap {
+.agenda-marcacao-test-offcanvas .event-detail-status-select-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select {
+    width: 25%;
+    min-width: 7.5rem;
+    max-width: 12rem;
+    flex: 0 0 auto;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select-row .event-detail-marcacao-source-badge {
+    flex: 0 0 auto;
+    align-self: center;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle.form-select {
     display: inline-flex;
     align-items: center;
-    height: var(--agenda-ed-header-line);
     box-sizing: border-box;
-}
-
-#eventDetailEditModal #eventDetailStatusDropdownBtn {
-    display: inline-flex !important;
-    align-items: center;
-    align-self: center;
-    gap: 0.35rem;
-    height: 100%;
-    max-height: var(--agenda-ed-header-line);
-    margin: 0;
-    padding: 0;
-    line-height: 1.25;
-    font-size: 0.875rem;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    vertical-align: middle;
-}
-
-#eventDetailEditModal #eventDetailStatusDropdownBtn.dropdown-toggle::after {
-    margin-top: 0;
-    margin-bottom: 0;
-    align-self: center;
-    flex-shrink: 0;
-}
-
-/* Botão de faturas (ícone): manter a mesma altura visual dos restantes btn-sm no footer. */
-#eventDetailFaturasWrap .event-detail-invoice-btn,
-.event-detail-oc-footer-actions .event-detail-invoice-btn {
-    height: calc(1.5em + 0.75rem + 2px);
-    min-width: calc(1.5em + 0.75rem + 2px);
-    padding: 0.375rem 0.5rem;
+    width: 100%;
+    /* mesma altura que Data / Hora (.form-control / .form-select) */
+    min-height: calc(0.9375rem * 1.5 + var(--spacing-sm) * 2 + 2px) !important;
+    height: calc(0.9375rem * 1.5 + var(--spacing-sm) * 2 + 2px) !important;
+    padding-top: var(--spacing-sm) !important;
+    padding-bottom: var(--spacing-sm) !important;
+    padding-left: var(--spacing-md) !important;
+    padding-right: calc(var(--spacing-md) + 24px) !important;
+    font-size: 0.9375rem !important;
     line-height: 1.5;
+    text-align: left;
+    background-color: var(--input-bg, var(--bs-body-bg, #fff));
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle.dropdown-toggle::after {
+    display: none; /* seta do Bootstrap dropdown-toggle */
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle.form-select:disabled,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle.form-select.is-locked {
+    opacity: 0.85;
+    cursor: default;
+    /* sem seta quando o estado já não é alterável (ex.: Pago) */
+    background-image: none !important;
+    padding-right: var(--spacing-md) !important;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__current {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+    overflow: hidden;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu {
+    min-width: 100%;
+    width: max-content;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu .dropdown-item {
+    min-height: 2.5rem;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
 }
 
+/* Botão de faturas: mesmo .btn do tema (sem altura forçada) */
 #eventDetailFaturasWrap .event-detail-invoice-btn .ph,
 .event-detail-oc-footer-actions .event-detail-invoice-btn .ph {
     font-size: 1rem;
     line-height: 1;
-    display: block;
-}
-
-#eventDetailFaturasWrap .event-detail-invoice-btn.dropdown-toggle,
-.event-detail-oc-footer-actions .event-detail-invoice-btn.dropdown-toggle {
-    min-width: auto;
-    padding-inline: 0.45rem 0.35rem;
 }
 
 #eventDetailFaturasWrap .event-detail-invoice-btn.dropdown-toggle::after,
 .event-detail-oc-footer-actions .event-detail-invoice-btn.dropdown-toggle::after {
     margin-top: 0;
     margin-bottom: 0;
-    margin-left: 0.1rem;
+    margin-left: 0.35rem;
     align-self: center;
     flex-shrink: 0;
 }
 
 /* Ícone do estado alinhado ao centro óptico do texto */
-#eventDetailEditModal .event-detail-status-trigger-icon {
+.agenda-marcacao-test-offcanvas .event-detail-status-trigger-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     line-height: 0;
     flex-shrink: 0;
+    font-size: 1.125rem;
 }
 
-#eventDetailEditModal .event-detail-status-trigger-icon .ph,
-#eventDetailEditModal .event-detail-status-trigger-icon .ri {
+.agenda-marcacao-test-offcanvas .event-detail-status-trigger-icon .ph,
+.agenda-marcacao-test-offcanvas .event-detail-status-trigger-icon .ri {
     display: block;
-    font-size: 1.05em;
+    font-size: 1em;
     line-height: 1;
 }
-#eventDetailEditModal #eventDetailStatusIcon .agenda-status-icon-notificado,
-#eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-notificado,
-#eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-notificado {
+.agenda-marcacao-test-offcanvas .event-detail-status-select .agenda-status-icon-notificado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu .agenda-status-icon-notificado {
     color: #eab308;
 }
-#eventDetailEditModal #eventDetailStatusIcon .agenda-status-icon-confirmado,
-#eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-confirmado,
-#eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-confirmado {
+.agenda-marcacao-test-offcanvas .event-detail-status-select .agenda-status-icon-confirmado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu .agenda-status-icon-confirmado {
     color: #16a34a;
 }
-#eventDetailEditModal #eventDetailStatusIcon .agenda-status-icon-agendado,
-#eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-agendado,
-#eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-agendado {
+.agenda-marcacao-test-offcanvas .event-detail-status-select .agenda-status-icon-agendado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu .agenda-status-icon-agendado {
     color: #6c757d;
 }
-#eventDetailEditModal #eventDetailStatusIcon .agenda-status-icon-chegou,
-#eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-chegou,
-#eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-chegou,
-#eventDetailEditModal #eventDetailStatusIcon .agenda-status-icon-iniciado,
-#eventDetailEditModal #eventDetailStatusStaticIcon .agenda-status-icon-iniciado,
-#eventDetailEditModal #eventDetailStatusMenu .agenda-status-icon-iniciado {
+.agenda-marcacao-test-offcanvas .event-detail-status-select .agenda-status-icon-chegou,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu .agenda-status-icon-chegou,
+.agenda-marcacao-test-offcanvas .event-detail-status-select .agenda-status-icon-iniciado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu .agenda-status-icon-iniciado {
     color: var(--accent-color, #0d6efd);
 }
-#eventDetailEditModal #eventDetailStatusIcon i.agenda-status-icon-iniciado {
+.agenda-marcacao-test-offcanvas .event-detail-status-select i.agenda-status-icon-iniciado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__menu i.agenda-status-icon-iniciado {
     font-size: 1.15em;
 }
-
-#eventDetailEditModal #eventDetailStatusLabel,
-#eventDetailEditModal #eventDetailStatusStaticLabel {
+.agenda-marcacao-test-offcanvas .event-detail-status-select .ri-forbid-fill,
+.agenda-marcacao-test-offcanvas .event-detail-status-select .ri-close-circle-fill {
+    color: var(--bs-danger, #dc3545);
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__current > span:last-child {
     display: inline-flex;
     align-items: center;
     line-height: 1.25;
-}
-
-#eventDetailEditModal #eventDetailStatusStatic {
-    gap: 0.35rem;
-    height: var(--agenda-ed-header-line);
-    box-sizing: border-box;
-    align-items: center;
-    line-height: 1.25;
-    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #eventDetailEditModal #eventDetailStatusPaidBadge {
@@ -4308,16 +4664,30 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     color: inherit;
 }
 
-/* Trigger do estado: agendado/chegou/iniciado não mudam de cor ao hover do botão (evita herdar cinza errado) */
-#eventDetailEditModal #eventDetailStatusDropdownBtn:hover #eventDetailStatusIcon i.agenda-status-icon-agendado,
-#eventDetailEditModal #eventDetailStatusDropdownBtn:focus #eventDetailStatusIcon i.agenda-status-icon-agendado {
+/* Trigger do estado: ícones coloridos não herdam cinza no hover/focus */
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:hover .event-detail-status-trigger-icon i.agenda-status-icon-agendado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:focus .event-detail-status-trigger-icon i.agenda-status-icon-agendado {
     color: #6c757d !important;
 }
-#eventDetailEditModal #eventDetailStatusDropdownBtn:hover #eventDetailStatusIcon i.agenda-status-icon-chegou,
-#eventDetailEditModal #eventDetailStatusDropdownBtn:focus #eventDetailStatusIcon i.agenda-status-icon-chegou,
-#eventDetailEditModal #eventDetailStatusDropdownBtn:hover #eventDetailStatusIcon i.agenda-status-icon-iniciado,
-#eventDetailEditModal #eventDetailStatusDropdownBtn:focus #eventDetailStatusIcon i.agenda-status-icon-iniciado {
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:hover .event-detail-status-trigger-icon i.agenda-status-icon-notificado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:focus .event-detail-status-trigger-icon i.agenda-status-icon-notificado {
+    color: #eab308 !important;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:hover .event-detail-status-trigger-icon i.agenda-status-icon-confirmado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:focus .event-detail-status-trigger-icon i.agenda-status-icon-confirmado {
+    color: #16a34a !important;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:hover .event-detail-status-trigger-icon i.agenda-status-icon-chegou,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:focus .event-detail-status-trigger-icon i.agenda-status-icon-chegou,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:hover .event-detail-status-trigger-icon i.agenda-status-icon-iniciado,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:focus .event-detail-status-trigger-icon i.agenda-status-icon-iniciado {
     color: var(--accent-color, #0d6efd) !important;
+}
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:hover .event-detail-status-trigger-icon .ri-forbid-fill,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:focus .event-detail-status-trigger-icon .ri-forbid-fill,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:hover .event-detail-status-trigger-icon .ri-close-circle-fill,
+.agenda-marcacao-test-offcanvas .event-detail-status-select__toggle:focus .event-detail-status-trigger-icon .ri-close-circle-fill {
+    color: var(--bs-danger, #dc3545) !important;
 }
 
 /* Ícones ver perfil / editar cliente — sem sublinhado (nova marcação + editar offcanvas) */
@@ -4457,33 +4827,77 @@ body > .agenda-cell-highlight-hover .agenda-cell-time-overlay,
     border-radius: 0.75rem;
 }
 .payment-pos-modal .modal-footer.payment-pos-modal-footer {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.4rem;
-    justify-content: stretch;
-    align-items: stretch;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-start;
 }
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary {
-    grid-column: 1 / span 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.4rem;
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > #paymentCancelBtn {
     min-width: 0;
 }
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary:has(#paymentDraftBtn.d-none) {
-    grid-template-columns: 1fr;
-}
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__secondary > .btn {
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
     min-width: 0;
-    width: 100%;
 }
-.payment-pos-modal .modal-footer.payment-pos-modal-footer > #paymentConfirmBtn {
-    grid-column: 3 / span 2;
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__actions > .btn {
     min-width: 0;
-    width: 100%;
 }
-.payment-pos-total-hero {
-    border-color: var(--bs-border-color, #dee2e6) !important;
+.payment-pos-modal .modal-footer.payment-pos-modal-footer > .payment-pos-modal-footer__actions > #paymentConfirmBtn {
+    min-width: 8.5rem;
+}
+.payment-pos-total-hero,
+.payment-pos-summary-card {
+    background: #fff !important;
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1)) !important;
+    border-radius: var(--radius-md, 0.375rem);
+    padding: 0.85rem 1rem;
+    box-shadow: none;
+}
+.payment-pos-summary-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.payment-pos-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 0.875rem;
+    line-height: 1.35;
+}
+.payment-pos-summary-row--extra .payment-pos-summary-label {
+    color: var(--bs-secondary-color, #6c757d);
+    padding-left: 0.35rem;
+}
+.payment-pos-summary-row--total {
+    border-bottom: 0;
+    border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+    margin-top: 0.15rem;
+    padding-top: 0.7rem;
+    font-weight: 600;
+}
+.payment-pos-summary-label {
+    min-width: 0;
+    color: var(--bs-body-color, #212529);
+}
+.payment-pos-summary-value {
+    flex-shrink: 0;
+    text-align: right;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--bs-body-color, #212529);
+}
+.payment-pos-summary-row--total .payment-pos-summary-label,
+.payment-pos-summary-row--total .payment-pos-summary-value {
+    font-weight: 700;
 }
 .payment-pos-hero-client {
     min-width: 0;

@@ -8,11 +8,11 @@ use App\Models\CalendarEventService;
 use App\Models\Client;
 use App\Models\ClientTag;
 use App\Models\Local;
-use App\Models\Note;
 use App\Models\Sale;
 use App\Models\User;
-use App\Rules\UniqueClientPhone;
 use App\Rules\ClientFullName;
+use App\Rules\UniqueClientPhone;
+use App\Services\ClinicalSheetService;
 use App\Services\VendasReportService;
 use App\Support\ActivityLogQuery;
 use App\Support\DateTimeDisplay;
@@ -32,6 +32,7 @@ class ClientController extends Controller
 {
     public function __construct(
         private readonly VendasReportService $vendasReportService,
+        private readonly ClinicalSheetService $clinicalSheetService,
     ) {}
 
     /**
@@ -159,6 +160,7 @@ class ClientController extends Controller
             $dimension = $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($colIndex));
             if ($notesColIndex !== false && $colIndex === $notesColIndex + 1) {
                 $dimension->setWidth(36);
+
                 continue;
             }
             $dimension->setAutoSize(true);
@@ -329,7 +331,7 @@ class ClientController extends Controller
      */
     public function show(Request $request, Client $cliente)
     {
-        $cliente->load(['notes.user', 'tags']);
+        $cliente->load(['tags']);
 
         $activities = ActivityLogQuery::forSubject($cliente);
 
@@ -338,9 +340,9 @@ class ClientController extends Controller
         $vendasDefaultDesde = now()->copy()->startOfMonth()->toDateString();
         $vendasDefaultAte = now()->copy()->endOfMonth()->toDateString();
 
-        $validTabs = ['tab-resumo', 'tab-ficha-tecnica', 'tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
+        $validTabs = ['tab-resumo', 'tab-ficha-tecnica', 'tab-preferencias', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log'];
         $activeTab = $request->get('active_tab', 'tab-resumo');
-        if ($activeTab === 'tab-ficha-tecnica') {
+        if ($activeTab === 'tab-ficha-tecnica' || $activeTab === 'tab-details' || $activeTab === 'tab-notas') {
             $activeTab = 'tab-resumo';
         }
         if (! in_array($activeTab, $validTabs, true)) {
@@ -505,6 +507,10 @@ class ClientController extends Controller
             ->orderBy('name')
             ->get();
 
+        $clinicalPreferenceCategoryIds = $this->clinicalSheetService->categoryIdsWithFields((int) current_organization_id());
+        $clinicalPreferenceSchema = $this->clinicalSheetService->schemaPayload($clinicalPreferenceCategoryIds);
+        $clinicalPreferenceValues = $this->clinicalSheetService->preferencesPayload($cliente, $clinicalPreferenceCategoryIds);
+
         return view('clientes.show', compact(
             'cliente',
             'activities',
@@ -528,35 +534,10 @@ class ClientController extends Controller
             'vendasTecnico',
             'vendasEstado',
             'servicosCliente',
-            'tecnicosCliente'
+            'tecnicosCliente',
+            'clinicalPreferenceSchema',
+            'clinicalPreferenceValues',
         ));
-    }
-
-    /**
-     * Store a note for the client.
-     */
-    public function storeNote(Request $request, Client $cliente)
-    {
-        $validated = $request->validate([
-            'note' => ['required', 'string'],
-            'type' => ['nullable', 'in:geral,email,chamada,reuniao'],
-            'reminder_at' => ['nullable', 'date'],
-            'reminder_advance_minutes' => ['nullable', 'integer', 'min:0'],
-        ]);
-
-        $cliente->notes()->create([
-            'user_id' => auth()->id(),
-            'type' => $validated['type'] ?? Note::TYPE_GERAL,
-            'note' => $validated['note'],
-            'reminder_at' => $validated['reminder_at'] ?? null,
-            'reminder_advance_minutes' => $validated['reminder_advance_minutes'] ?? 15,
-            'reminder_sent' => false,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Nota adicionada com sucesso.',
-        ]);
     }
 
     /**
@@ -781,8 +762,20 @@ class ClientController extends Controller
             $porHora[$h] = (clone $marcacoesBase)->whereRaw('HOUR(start_at) = ?', [$h])->count();
         }
 
-        $today = now()->startOfDay();
-        $ultimaVisita = (clone $marcacoesBase)->where('start_at', '<', $today)->orderByDesc('start_at')->first();
+        $storeIdForDay = $cliente->store_id ? (int) $cliente->store_id : null;
+        $today = $storeIdForDay
+            ? \App\Support\StoreBusinessTime::nowForStore($storeIdForDay)->copy()->startOfDay()
+            : now()->startOfDay();
+        $ultimaVisita = (clone $marcacoesBase)
+            ->with(['user', 'eventServiceItems.service', 'eventServiceItems.extras'])
+            ->where('start_at', '<', $today)
+            ->orderByDesc('start_at')
+            ->first();
+        $proximaVisita = (clone $marcacoesBase)
+            ->with(['user', 'eventServiceItems.service', 'eventServiceItems.extras'])
+            ->where('start_at', '>=', $today)
+            ->orderBy('start_at')
+            ->first();
         $marcacoesFuturas = (clone $marcacoesBase)->where('start_at', '>=', $today)->count();
 
         $intervaloMedioDias = null;
@@ -808,7 +801,43 @@ class ClientController extends Controller
             'porHora' => $porHora,
             'intervaloMedioDias' => $intervaloMedioDias,
             'ultimaVisita' => $ultimaVisita?->start_at,
+            'proximaVisita' => $proximaVisita?->start_at,
+            'ultimaMarcacao' => $this->summarizeMarcacaoKpi($ultimaVisita),
+            'proximaMarcacao' => $this->summarizeMarcacaoKpi($proximaVisita),
             'marcacoesFuturas' => $marcacoesFuturas,
+        ];
+    }
+
+    /**
+     * Resumo compacto de uma marcação para os cards do Resumo.
+     *
+     * @return object{start_at: mixed, store_id: int|null, services: string, duration_minutes: int, technician: string|null}|null
+     */
+    private function summarizeMarcacaoKpi(?CalendarEvent $event): ?object
+    {
+        if (! $event) {
+            return null;
+        }
+
+        $totalMins = 0;
+        $serviceLabels = [];
+        foreach ($event->eventServiceItems ?? [] as $item) {
+            $totalMins += (int) ($item->duration ?? 0);
+            foreach ($item->extras ?? [] as $ex) {
+                $totalMins += (int) ($ex->duration ?? 0);
+            }
+            $label = trim((string) ($item->option_name ?: ($item->service?->name ?? '')));
+            if ($label !== '') {
+                $serviceLabels[] = $label;
+            }
+        }
+
+        return (object) [
+            'start_at' => $event->start_at,
+            'store_id' => $event->store_id ? (int) $event->store_id : null,
+            'services' => $serviceLabels !== [] ? implode(', ', $serviceLabels) : '—',
+            'duration_minutes' => $totalMins,
+            'technician' => $event->user?->name,
         ];
     }
 

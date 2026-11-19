@@ -132,7 +132,7 @@ class Client extends Model
             return null;
         }
 
-        return PhoneDisplay::formatInternational($raw) ?? $raw;
+        return PhoneDisplay::formatForDisplay($raw) ?? $raw;
     }
 
     // Tipos de cliente
@@ -379,6 +379,14 @@ class Client extends Model
     /**
      * Marcações (agendamentos de serviços) deste cliente.
      */
+    /**
+     * @return HasMany<ClientClinicalPreference, $this>
+     */
+    public function clinicalPreferences(): HasMany
+    {
+        return $this->hasMany(ClientClinicalPreference::class);
+    }
+
     public function calendarEvents(): HasMany
     {
         return $this->hasMany(CalendarEvent::class);

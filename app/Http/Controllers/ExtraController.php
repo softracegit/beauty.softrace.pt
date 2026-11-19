@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateExtraRequest;
 use App\Models\Extra;
 use App\Models\ExtraCategory;
 use App\Models\Service;
+use App\Support\AgentServiceExtras;
 use App\Support\ServiceCategoriesForAssociation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,16 +24,49 @@ class ExtraController extends Controller
     {
         $organizationId = current_organization_id();
         $selectedCategory = null;
+        $viewArchive = false;
+        $archivedExtras = collect();
+
+        $archivedExtrasCount = Extra::query()
+            ->onlyTrashed()
+            ->whereHas('extraCategory', fn ($q) => $q->where('organization_id', $organizationId))
+            ->count();
+
+        $extrasWithMembers = fn ($q) => $q
+            ->with([
+                'extraCategory',
+                'services',
+                'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+            ])
+            ->withCount('services')
+            ->withStoreAgentsCount()
+            ->orderBy('sort_order');
+
         $categories = ExtraCategory::forOrganization($organizationId)->orderBy('sort_order')
             ->withCount('extras')
-            ->with(['extras' => fn ($q) => $q->with('extraCategory', 'services')->orderBy('sort_order')])
+            ->with(['extras' => $extrasWithMembers])
             ->get();
 
         $categoryId = $request->get('category_id');
-        if ($categoryId && $categoryId !== 'all') {
+        if ($categoryId === 'archive') {
+            $viewArchive = true;
+            $archivedExtras = Extra::query()
+                ->onlyTrashed()
+                ->whereHas('extraCategory', fn ($q) => $q->where('organization_id', $organizationId))
+                ->with([
+                    'extraCategory',
+                    'services',
+                    'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+                ])
+                ->withCount('services')
+                ->withStoreAgentsCount()
+                ->orderByDesc('deleted_at')
+                ->orderBy('name')
+                ->get();
+        } elseif ($categoryId && $categoryId !== 'all') {
             $selectedCategory = $categories->firstWhere('id', (int) $categoryId) ?? ExtraCategory::forOrganization($organizationId)->find($categoryId);
             if ($selectedCategory && ! $selectedCategory->relationLoaded('extras')) {
-                $selectedCategory->load(['extras' => fn ($q) => $q->with('extraCategory', 'services')->orderBy('sort_order')]);
+                $selectedCategory->load(['extras' => $extrasWithMembers]);
             }
         }
 
@@ -46,6 +80,9 @@ class ExtraController extends Controller
         return view('extras.index', [
             'categories' => $categories,
             'selectedCategory' => $selectedCategory,
+            'viewArchive' => $viewArchive,
+            'archivedExtras' => $archivedExtras,
+            'archivedExtrasCount' => $archivedExtrasCount,
             'extras' => $extras,
             'services' => $services,
             'serviceCategories' => $association['categories'],
@@ -74,7 +111,9 @@ class ExtraController extends Controller
 
         $extra = Extra::create($data);
         if ($serviceIds !== null) {
-            $extra->services()->sync($serviceIds);
+            $nextServiceIds = array_values(array_unique(array_map('intval', (array) $serviceIds)));
+            $extra->services()->sync($nextServiceIds);
+            AgentServiceExtras::syncForExtraServices((int) $extra->id, [], $nextServiceIds);
         }
 
         return response()->json([
@@ -123,7 +162,10 @@ class ExtraController extends Controller
 
         $extra->update($data);
         if ($serviceIds !== null) {
-            $extra->services()->sync($serviceIds);
+            $previousServiceIds = $extra->services()->pluck('services.id')->map(fn ($id) => (int) $id)->all();
+            $nextServiceIds = array_values(array_unique(array_map('intval', (array) $serviceIds)));
+            $extra->services()->sync($nextServiceIds);
+            AgentServiceExtras::syncForExtraServices((int) $extra->id, $previousServiceIds, $nextServiceIds);
         }
 
         return response()->json([
@@ -139,7 +181,73 @@ class ExtraController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Extra eliminado com sucesso.',
+            'message' => 'Extra movido para o Arquivo.',
+        ]);
+    }
+
+    /**
+     * Restaura um extra do Arquivo (id escalar — evita binding antes de auth/loja).
+     */
+    public function restore(int $id): JsonResponse
+    {
+        $extra = Extra::withTrashed()
+            ->whereKey($id)
+            ->whereHas('extraCategory', fn ($q) => $q->where('organization_id', current_organization_id()))
+            ->first();
+
+        if (! $extra) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Extra não encontrado no Arquivo.',
+            ], 404);
+        }
+
+        if ($extra->trashed()) {
+            $extra->restore();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Extra restaurado com sucesso.',
+            'extra' => $extra->fresh(['extraCategory', 'services']),
+        ]);
+    }
+
+    /**
+     * Reordenar extras dentro de uma categoria.
+     */
+    public function reorder(Request $request, ExtraCategory $extraCategory): JsonResponse
+    {
+        $request->validate([
+            'order' => ['required', 'array'],
+            'order.*' => ['required', 'integer', 'exists:extras,id'],
+        ]);
+
+        $organizationId = current_organization_id();
+        if ((int) $extraCategory->organization_id !== (int) $organizationId) {
+            abort(404);
+        }
+
+        $extraIds = Extra::query()
+            ->where('extra_category_id', $extraCategory->id)
+            ->whereIn('id', $request->order)
+            ->pluck('id')
+            ->all();
+
+        if (count($extraIds) !== count($request->order)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Alguns extras não pertencem a esta categoria.',
+            ], 422);
+        }
+
+        foreach ($request->order as $index => $extraId) {
+            Extra::query()->whereKey($extraId)->update(['sort_order' => $index + 1]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ordem dos extras atualizada com sucesso.',
         ]);
     }
 
@@ -202,6 +310,14 @@ class ExtraController extends Controller
 
     public function destroyCategory(ExtraCategory $extraCategory): JsonResponse
     {
+        // Inclui extras no Arquivo: apagar a categoria faria cascade e apagava-os da BD.
+        if ($extraCategory->extras()->withTrashed()->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não é possível eliminar uma categoria que possui extras (incluindo no Arquivo).',
+            ], 422);
+        }
+
         $extraCategory->delete();
 
         return response()->json([

@@ -48,7 +48,8 @@ class SaleItem extends Model
 
     public function service(): BelongsTo
     {
-        return $this->belongsTo(Service::class);
+        // withTrashed: documentos fiscais já emitidos mantêm a ligação ao serviço arquivado.
+        return $this->belongsTo(Service::class)->withTrashed();
     }
 
     public function extra(): BelongsTo

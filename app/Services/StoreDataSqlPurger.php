@@ -170,6 +170,11 @@ SQL,
     private function storeServicePivotDeleteStatements(): array
     {
         return [
+            'Extras por agente e serviço (pivots dos agentes desta loja)' => <<<'SQL'
+DELETE ase FROM agent_service_extra ase
+INNER JOIN agents a ON a.id = ase.agent_id
+WHERE a.store_id = @store_id
+SQL,
             'Serviços por agente (pivots dos agentes desta loja)' => <<<'SQL'
 DELETE ags FROM agent_service ags
 INNER JOIN agents a ON a.id = ags.agent_id

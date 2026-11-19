@@ -33,6 +33,33 @@ final class PhoneDisplay
     }
 
     /**
+     * Exibição na UI: números PT sem indicativo (nacional); estrangeiros com +país.
+     * Ex.: 912 345 678 · +34 612 34 56 78
+     */
+    public static function formatForDisplay(?string $phone): ?string
+    {
+        if ($phone === null || trim($phone) === '') {
+            return null;
+        }
+        $phone = trim($phone);
+        try {
+            $util = PhoneNumberUtil::getInstance();
+            $parsed = str_starts_with($phone, '+')
+                ? $util->parse($phone, null)
+                : $util->parse($phone, 'PT');
+
+            $region = $util->getRegionCodeForNumber($parsed);
+            $format = $region === 'PT'
+                ? PhoneNumberFormat::NATIONAL
+                : PhoneNumberFormat::INTERNATIONAL;
+
+            return $util->format($parsed, $format);
+        } catch (NumberParseException) {
+            return $phone;
+        }
+    }
+
+    /**
      * URI tel: com dígitos E.164 (adequado a href), ex.: tel:+351934567890
      */
     public static function telHref(?string $phone): string

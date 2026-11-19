@@ -224,6 +224,10 @@
                                     <div class="card-body">
                                         <h3 class="h6 fw-semibold text-dark mb-0 pb-3 border-bottom">{{ __('booking.flow.cancellation_heading') }}</h3>
                                         <div class="pt-3">
+                                        @if (trim((string) ($bookingCancellationPolicyText ?? '')) !== '')
+                                            {{-- Texto livre definido no CRM (Definições → Agendamentos) --}}
+                                            <p class="booking-cancel-policy__text small mb-3">{!! nl2br(e($bookingCancellationPolicyText)) !!}</p>
+                                        @endif
                                         @include('booking.partials.cancellation-policy-visual', [
                                             'bookingCancellationPreviewUrl' => $bookingCancellationPreviewUrl ?? null,
                                             'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired ?? true,
@@ -243,6 +247,7 @@
                             'nextRequires' => 'checkout',
                             'nextLabel' => ($onlineBookingPaymentRequired ?? true) ? __('booking.flow.confirm_button') : __('booking.flow.book_button'),
                             'nextClass' => ($onlineBookingPaymentRequired ?? true) ? 'btn-dark' : 'btn-success',
+                            'showPayAtStoreNote' => ! ($onlineBookingPaymentRequired ?? true),
                         ])
                     </div>
                 </div>

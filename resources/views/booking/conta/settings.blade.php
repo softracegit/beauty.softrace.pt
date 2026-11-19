@@ -16,6 +16,7 @@
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'definicoes'])
 
                     <div class="booking-account-content">
+                        @include('booking.conta.partials.resume-booking')
                         @include('booking.partials.elegant-account-header', [
                             'elegantAccountEyebrow' => __('booking.elegant.account_settings_eyebrow'),
                             'elegantAccountTitle' => __('booking.nav.settings'),

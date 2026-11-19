@@ -238,7 +238,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('/dashboard/imoveis', [DashboardController::class, 'imoveis'])->name('dashboard.imoveis');
     Route::get('/dashboard/negocios', [DashboardController::class, 'negocios'])->name('dashboard.negocios');
 
-    // Year Recap (protótipo — dados demo)
+    // Year Recap (dados reais por perfil; ?demo=1 para os dados de demonstração)
     Route::get('/year-recap', [YearRecapController::class, 'show'])->name('year-recap.show');
 
     Route::get('/activity', [ActivityLogController::class, 'index'])->name('activity.index');
@@ -298,8 +298,6 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('clientes/export', [ClientController::class, 'indexExport'])->name('clientes.export');
     Route::get('clientes/pdf', [ClientController::class, 'indexPdf'])->name('clientes.pdf');
     Route::resource('clientes', ClientController::class);
-    Route::post('clientes/{cliente}/notes', [ClientController::class, 'storeNote'])->name('clientes.storeNote');
-
     Route::get('lojas', [LojasController::class, 'index'])->name('lojas.index');
     Route::get('lojas/create', [LojasController::class, 'create'])->name('lojas.create');
     Route::post('lojas', [LojasController::class, 'store'])->name('lojas.store');
@@ -368,6 +366,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('agenda/clients/{client}/wallet', [CalendarController::class, 'clientWallet'])->name('agenda.clients.wallet');
     Route::get('agenda/clients/{client}/saved-cards', [CalendarController::class, 'clientSavedCards'])->name('agenda.clients.saved_cards');
     Route::get('agenda/events', [CalendarController::class, 'events'])->name('agenda.events');
+    Route::get('agenda/clinical-schema', [CalendarController::class, 'clinicalSchema'])->name('agenda.clinical_schema');
     Route::get('agenda/events/{calendarEvent}', [CalendarController::class, 'show'])->name('agenda.events.show');
     Route::get('agenda/events/{calendarEvent}/activity-log', [CalendarController::class, 'activityLog'])->name('agenda.events.activity_log');
     Route::get('agenda/events/{calendarEvent}/same-day-payable', [CalendarController::class, 'sameDayPayable'])->name('agenda.events.same_day_payable');
@@ -407,11 +406,20 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::match(['post', 'put'], 'categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::get('categories/{category}/clinical-fields', [CategoryController::class, 'clinicalFieldsIndex'])->name('categories.clinical-fields.index');
+    Route::post('categories/{category}/clinical-fields', [CategoryController::class, 'clinicalFieldsStore'])->name('categories.clinical-fields.store');
+    Route::post('categories/{category}/clinical-fields/reorder', [CategoryController::class, 'clinicalFieldsReorder'])->name('categories.clinical-fields.reorder');
+    Route::match(['put', 'patch'], 'categories/{category}/clinical-fields/{clinicalField}', [CategoryController::class, 'clinicalFieldsUpdate'])->name('categories.clinical-fields.update');
+    Route::delete('categories/{category}/clinical-fields/{clinicalField}', [CategoryController::class, 'clinicalFieldsDestroy'])->name('categories.clinical-fields.destroy');
     Route::get('categories/all/services', [ServiceController::class, 'allGrouped'])->name('services.allGrouped');
     Route::get('categories/{category}/services', [ServiceController::class, 'index'])->name('services.byCategory')->where('category', '[0-9]+');
     Route::get('servicos/equipa', [ServiceController::class, 'tecnicos'])->name('services.tecnicos');
     Route::post('servicos/equipa', [ServiceController::class, 'syncTecnicos'])->name('services.tecnicos.sync');
+    Route::get('servicos/extras-equipa', [ServiceController::class, 'extrasEquipa'])->name('services.extras-equipa');
+    Route::post('servicos/extras-equipa', [ServiceController::class, 'syncExtrasEquipa'])->name('services.extras-equipa.sync');
     Route::get('services/export-pdf', [ServiceController::class, 'exportPdf'])->name('services.export_pdf');
+    Route::get('services/arquivo', [ServiceController::class, 'archived'])->name('services.archived');
+    Route::post('services/{id}/restore', [ServiceController::class, 'restore'])->name('services.restore')->whereNumber('id');
     Route::get('services/{service}', [ServiceController::class, 'show'])->name('services.show');
     Route::post('services', [ServiceController::class, 'store'])->name('services.store');
     Route::match(['post', 'put'], 'services/{service}', [ServiceController::class, 'update'])->name('services.update');
@@ -423,6 +431,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('extras/create', [ExtraController::class, 'create'])->name('extras.create');
     Route::post('extras', [ExtraController::class, 'store'])->name('extras.store');
     Route::get('extras/list', [ExtraController::class, 'list'])->name('extras.list');
+    Route::post('extras/{id}/restore', [ExtraController::class, 'restore'])->name('extras.restore')->whereNumber('id');
     Route::get('extras/{extra}', [ExtraController::class, 'show'])->name('extras.show');
     Route::get('extras/{extra}/edit', [ExtraController::class, 'edit'])->name('extras.edit');
     Route::match(['put', 'patch'], 'extras/{extra}', [ExtraController::class, 'update'])->name('extras.update');
@@ -431,6 +440,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::post('extra-categories', [ExtraController::class, 'storeCategory'])->name('extras.categories.store');
     Route::match(['put', 'patch'], 'extra-categories/{extraCategory}', [ExtraController::class, 'updateCategory'])->name('extras.categories.update');
     Route::delete('extra-categories/{extraCategory}', [ExtraController::class, 'destroyCategory'])->name('extras.categories.destroy');
+    Route::post('extra-categories/{extraCategory}/extras/reorder', [ExtraController::class, 'reorder'])->name('extras.reorder');
 
     Route::get('fees', [FeeController::class, 'index'])->name('fees.index');
     Route::post('fees', [FeeController::class, 'store'])->name('fees.store');

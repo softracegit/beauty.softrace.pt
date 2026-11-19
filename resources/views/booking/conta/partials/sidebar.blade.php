@@ -18,6 +18,10 @@
             'booking-account-sidebar__user' => ($bookingUsesRefinedLayout ?? false),
         ])>{{ $accountUserName }}</p>
         <nav class="booking-account-nav">
+            <a href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}" class="booking-account-nav__link booking-account-nav__link--new d-flex align-items-center gap-2">
+                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                <span>{{ __('booking.nav.new_booking') }}</span>
+            </a>
             <a href="{{ route('booking.conta.index', ['store' => $bookingStoreSlug], false) }}" class="booking-account-nav__link d-flex align-items-center gap-2 {{ $accountNavActive === 'perfil' ? 'is-active' : '' }}">
                 <i class="bi bi-person" aria-hidden="true"></i>
                 <span>{{ __('booking.nav.profile') }}</span>

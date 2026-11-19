@@ -27,4 +27,17 @@ class PhoneDisplayTest extends TestCase
     {
         $this->assertSame('+351912345678', PhoneDisplay::toE164('+351912345678'));
     }
+
+    public function test_format_for_display_hides_portuguese_country_code(): void
+    {
+        $this->assertSame('912 345 678', PhoneDisplay::formatForDisplay('+351912345678'));
+        $this->assertSame('912 345 678', PhoneDisplay::formatForDisplay('912345678'));
+    }
+
+    public function test_format_for_display_keeps_foreign_country_code(): void
+    {
+        $formatted = PhoneDisplay::formatForDisplay('+34612345678');
+        $this->assertNotNull($formatted);
+        $this->assertStringStartsWith('+34', $formatted);
+    }
 }

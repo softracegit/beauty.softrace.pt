@@ -26,6 +26,27 @@
     $totalSteps = count($elegantSteps);
 @endphp
 
+{{-- Tema Minimal: "Voltar" numa linha própria, antes do título (em vez da seta na navbar) --}}
+@if (($bookingTheme ?? null) === BookingTheme::MINIMAL)
+    @php
+        $minimalPresetAgentUrl = $bookingPresetAgent ? (string) ($bookingPresetAgent['url'] ?? '') : '';
+        $minimalBackUrl = match (request()->route()?->getName()) {
+            'booking.technician' => route('booking.index', ['store' => $bookingStoreSlug], false),
+            'booking.datetime' => $bookingSkipStaffStep && $minimalPresetAgentUrl !== ''
+                ? $minimalPresetAgentUrl
+                : route('booking.technician', ['store' => $bookingStoreSlug], false),
+            'booking.step3' => route('booking.datetime', ['store' => $bookingStoreSlug], false),
+            default => null,
+        };
+    @endphp
+    @if ($minimalBackUrl)
+        <a href="{{ $minimalBackUrl }}" class="booking-minimal-back">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i>
+            <span>{{ __('booking.nav.back') }}</span>
+        </a>
+    @endif
+@endif
+
 @if ($useProgressSteps)
     {{-- Horizon: progress bar horizontal com dots e linha de progresso --}}
     <header class="booking-horizon-flow-header d-none d-lg-block">

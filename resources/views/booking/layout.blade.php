@@ -49,6 +49,8 @@
 <body
     class="booking-body{{ $bookingLayoutIsRefined ? ' booking-theme--refined' : '' }} @yield('body_class'){{ $bookingSkipStaffStep ? ' booking-flow--preset-agent' : '' }}"
     data-booking-theme="{{ $bookingThemeId }}"
+    data-booking-width="{{ \App\Models\CrmSetting::bookingWidth(($bookingStore ?? null)?->id) }}"
+    data-booking-services="{{ \App\Models\CrmSetting::bookingServicesLayout(($bookingStore ?? null)?->id) }}"
     data-booking-store-slug="{{ $bookingStoreSlug }}"
     data-booking-index-url="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"
     @if($bookingPresetAgent)

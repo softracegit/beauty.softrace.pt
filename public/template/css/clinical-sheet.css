@@ -1,0 +1,677 @@
+/* Ficha técnica — modal de detalhe, preferências do cliente e editor da agenda */
+
+.csheet-modal-body {
+    background: #f8fafc;
+}
+
+/* Cabeçalho da marcação */
+.csheet-hero {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--border-color-light, #e5e7eb);
+    border-radius: 0.85rem;
+    background: #fff;
+    margin-bottom: 0.85rem;
+}
+.csheet-hero__main {
+    min-width: 0;
+}
+.csheet-hero__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--heading-color, #111827);
+    line-height: 1.3;
+}
+.csheet-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    margin-top: 0.35rem;
+    font-size: 0.82rem;
+    color: var(--muted-color, #6b7280);
+}
+.csheet-hero__meta i {
+    margin-right: 0.15rem;
+}
+
+.csheet-status {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: #475569;
+}
+.csheet-status--success { background: #dcfce7; color: #166534; }
+.csheet-status--info { background: #e0f2fe; color: #075985; }
+.csheet-status--danger { background: #fee2e2; color: #991b1b; }
+
+/* Mini indicadores */
+.csheet-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+}
+@media (max-width: 575px) {
+    .csheet-stats { grid-template-columns: 1fr; }
+}
+.csheet-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--border-color-light, #e5e7eb);
+    border-radius: 0.75rem;
+    background: #fff;
+    min-width: 0;
+}
+.csheet-stat__icon,
+.csheet-summary__icon {
+    flex-shrink: 0;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--accent-color, #5b8def) 12%, #fff);
+    color: var(--accent-color, #5b8def);
+    font-size: 1.05rem;
+}
+.csheet-stat__label,
+.csheet-summary__label {
+    font-size: 0.72rem;
+    color: var(--muted-color, #6b7280);
+}
+.csheet-stat__value,
+.csheet-summary__value {
+    font-size: 0.9rem;
+    font-weight: 650;
+    color: var(--heading-color, #111827);
+}
+
+/* Secções numeradas */
+.csheet-card {
+    border: 1px solid var(--border-color-light, #e5e7eb);
+    border-radius: 0.85rem;
+    background: #fff;
+    padding: 1rem 1.1rem;
+}
+.csheet-card + .csheet-card {
+    margin-top: 0.85rem;
+}
+.csheet-card--danger {
+    border-color: #fecaca;
+}
+.csheet-card__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--heading-color, #111827);
+    margin: 0 0 0.85rem;
+}
+.csheet-card__heading {
+    display: inline;
+    min-width: 0;
+    line-height: 1.35;
+}
+.csheet-card__category {
+    font-weight: 700;
+    color: var(--heading-color, #111827);
+}
+.csheet-card__services {
+    font-weight: 500;
+    color: #9ca3af;
+}
+.csheet-card__num {
+    flex-shrink: 0;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: color-mix(in srgb, var(--accent-color, #5b8def) 14%, #fff);
+    color: var(--accent-color, #5b8def);
+}
+.csheet-section-head {
+    margin-bottom: 0.85rem;
+}
+
+/* Tiles só leitura */
+.csheet-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+@media (max-width: 991px) {
+    .csheet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 575px) {
+    .csheet-grid { grid-template-columns: 1fr; }
+}
+.csheet-tile {
+    border: 1px solid var(--border-color-light, #eef0f3);
+    border-radius: 0.65rem;
+    padding: 0.65rem 0.8rem;
+    background: #fafbfc;
+    min-width: 0;
+}
+.csheet-tile--wide {
+    grid-column: 1 / -1;
+}
+.csheet-tile--empty {
+    opacity: 0.65;
+}
+.csheet-tile__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-color, #6b7280);
+}
+.csheet-tile__value {
+    margin-top: 0.3rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--heading-color, #111827);
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.csheet-chips,
+.csheet-summary-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+.csheet-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.18rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: color-mix(in srgb, var(--accent-color, #5b8def) 12%, #fff);
+    color: color-mix(in srgb, var(--accent-color, #5b8def) 75%, #000);
+    border: 1px solid color-mix(in srgb, var(--accent-color, #5b8def) 30%, #fff);
+}
+.csheet-bool {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+}
+.csheet-bool--yes { background: #dcfce7; color: #166534; }
+.csheet-bool--no { background: #f1f5f9; color: #475569; }
+
+.csheet-empty {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--muted-color, #6b7280);
+}
+.csheet-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--accent-color, #5b8def) 8%, #fff);
+    color: color-mix(in srgb, var(--accent-color, #5b8def) 70%, #000);
+    font-size: 0.85rem;
+}
+
+/* Serviços */
+.csheet-service {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0;
+}
+.csheet-service + .csheet-service {
+    border-top: 1px solid var(--border-color-light, #eef0f3);
+}
+.csheet-service__name {
+    font-weight: 650;
+    font-size: 0.9rem;
+    color: var(--heading-color, #111827);
+}
+.csheet-service__sub {
+    font-size: 0.76rem;
+    color: var(--muted-color, #6b7280);
+}
+.csheet-service__extra {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+}
+.csheet-service__side {
+    text-align: right;
+    flex-shrink: 0;
+}
+.csheet-service__price {
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.csheet-note {
+    margin-top: 0.65rem;
+    padding: 0.65rem 0.8rem;
+    border-radius: 0.65rem;
+    background: #fafbfc;
+    border: 1px dashed var(--border-color-light, #e5e7eb);
+    font-size: 0.86rem;
+}
+
+/* Observações — mesmo tom do card na timeline do Resumo */
+.csheet-obs-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.2rem 0.35rem;
+    margin: 0 0 0.85rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.45rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #fff;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: #334155;
+}
+.csheet-obs-card__label {
+    display: inline-block;
+    min-width: 4.5rem;
+    margin-right: 0.15rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+.csheet-obs-card__text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-width: 0;
+}
+
+/* Ficha técnica — categorias + campos em cards brancos */
+.csheet-ficha {
+    margin-top: 0.15rem;
+}
+.csheet-obs-card + .csheet-ficha {
+    margin-top: 1.15rem;
+}
+.csheet-ficha__category {
+    margin: 1.65rem 0 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #94a3b8;
+}
+.csheet-ficha__category:first-child {
+    margin-top: 0;
+}
+.csheet-ficha__fields + .csheet-ficha__category {
+    margin-top: 1.65rem;
+}
+.csheet-ficha__fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+@media (max-width: 991.98px) {
+    .csheet-ficha__fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 575.98px) {
+    .csheet-ficha__fields {
+        grid-template-columns: 1fr;
+    }
+}
+.csheet-field-card {
+    min-width: 0;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 0.5rem;
+    background: #fff;
+}
+.csheet-field-card--wide {
+    grid-column: 1 / -1;
+}
+.csheet-field-card__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+}
+.csheet-field-card__value {
+    margin-top: 0.3rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--heading-color, #111827);
+    line-height: 1.35;
+    word-break: break-word;
+}
+.csheet-field-card--empty .csheet-field-card__value {
+    font-weight: 500;
+}
+.csheet-field-card__empty {
+    color: #cbd5e1;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+}
+.csheet-card + .csheet-ficha,
+.csheet-ficha + .csheet-card {
+    margin-top: 0.85rem;
+}
+
+/* Resumo rápido (preferências) */
+.csheet-summary__title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+}
+.csheet-summary__item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0;
+}
+.csheet-summary__item + .csheet-summary__item {
+    border-top: 1px solid var(--border-color-light, #eef0f3);
+}
+
+/* Editor (modal da agenda) */
+.csheet-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem 1rem;
+}
+@media (max-width: 575px) {
+    .csheet-form-grid { grid-template-columns: 1fr; }
+}
+.csheet-field {
+    min-width: 0;
+}
+.csheet-field--wide {
+    grid-column: 1 / -1;
+}
+.csheet-field__label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.35rem;
+}
+.csheet-pref-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: #fdf2f8;
+    color: #9d174d;
+}
+.csheet-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.csheet-pill {
+    min-width: 2.75rem;
+    padding: 0.38rem 0.85rem;
+    border: 1px solid var(--border-color-light, #e2e8f0);
+    border-radius: 0.55rem;
+    background: #fff;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #334155;
+    transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+}
+.csheet-pill:hover {
+    border-color: color-mix(in srgb, var(--accent-color, #5b8def) 50%, #fff);
+}
+.csheet-pill.is-active {
+    background: color-mix(in srgb, var(--accent-color, #5b8def) 14%, #fff);
+    border-color: var(--accent-color, #5b8def);
+    color: color-mix(in srgb, var(--accent-color, #5b8def) 80%, #000);
+    box-shadow: 0 0 0 1px var(--accent-color, #5b8def) inset;
+}
+.csheet-checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: 0.3rem 1rem;
+}
+.csheet-switch {
+    padding-top: 0.2rem;
+}
+
+/* Resumo no offcanvas */
+.csheet-summary-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: #f1f5f9;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+.csheet-summary-chip__label {
+    font-weight: 500;
+    color: #64748b;
+}
+.csheet-summary-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 0.55rem;
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+/* Ficha + Observações lado a lado */
+.agenda-oc-notes-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    align-items: stretch;
+    margin-top: 1.5rem;
+}
+.agenda-oc-notes-row:has(.agenda-oc-clinical-progress-field:not(.d-none)) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.agenda-oc-clinical-progress-field,
+.agenda-oc-obs-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+.agenda-oc-clinical-progress-field .csheet-progress-card,
+.agenda-oc-obs-field__input {
+    flex: 1 1 auto;
+    min-height: 6.5rem;
+}
+.agenda-oc-obs-field__input {
+    resize: vertical;
+    height: 100%;
+    border-radius: var(--radius-md, 0.375rem);
+}
+@media (max-width: 767.98px) {
+    .agenda-oc-notes-row:has(.agenda-oc-clinical-progress-field:not(.d-none)) {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Card de progresso (trigger do painel) */
+.csheet-progress-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.65rem;
+    width: 100%;
+    margin: 0;
+    padding: 0.85rem 1rem;
+    text-align: left;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: var(--radius-md, 0.375rem);
+    background: linear-gradient(180deg, #f8f7fc 0%, #f3f0fa 100%);
+    color: #1e3a5f;
+    box-shadow: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+.csheet-progress-card:hover,
+.csheet-progress-card:focus-visible {
+    border-color: #c7d2fe;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+    outline: none;
+}
+.csheet-progress-card__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #1e3a5f;
+}
+.csheet-progress-card__title .ph {
+    font-size: 1.05rem;
+    color: #334155;
+}
+.csheet-progress-card__body {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+}
+.csheet-progress-ring {
+    position: relative;
+    flex-shrink: 0;
+    width: 3.25rem;
+    height: 3.25rem;
+}
+.csheet-progress-ring__svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+.csheet-progress-ring__track {
+    stroke: #ddd6fe;
+    stroke-width: 3.25;
+}
+.csheet-progress-ring__bar {
+    stroke: #94a3b8;
+    stroke-width: 3.25;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.35s ease, stroke 0.2s ease;
+}
+.csheet-progress-ring__bar.is-partial {
+    stroke: #22c55e;
+}
+.csheet-progress-ring__bar.is-complete {
+    stroke: #16a34a;
+}
+.csheet-progress-ring__bar.is-empty {
+    stroke: #c4b5fd;
+}
+.csheet-progress-ring__pct {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    line-height: 1;
+}
+.csheet-progress-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+.csheet-progress-card__count {
+    font-size: 0.92rem;
+    font-weight: 400;
+    color: #1e3a5f;
+    line-height: 1.25;
+}
+.csheet-progress-card__count strong {
+    font-weight: 700;
+}
+.csheet-progress-card__sub {
+    font-size: 0.84rem;
+    color: #334155;
+    line-height: 1.25;
+}
+.csheet-progress-card__chevron {
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 1.05rem;
+    color: #64748b;
+}
+.csheet-progress-card.is-complete {
+    background: linear-gradient(180deg, #f3faf5 0%, #ecfdf3 100%);
+    border-color: #bbf7d0;
+}
+
+/* Sem serviços / sem categorias: card sempre presente, acinzentado e não clicável */
+.csheet-progress-card.is-awaiting-services,
+.csheet-progress-card.is-awaiting-services:hover,
+.csheet-progress-card.is-awaiting-services:focus-visible {
+    background: linear-gradient(180deg, #f4f4f5 0%, #ececef 100%);
+    border-color: #d4d4d8;
+    color: #71717a;
+    box-shadow: none;
+    cursor: default;
+    opacity: 1;
+}
+.csheet-progress-card.is-awaiting-services .csheet-progress-card__title,
+.csheet-progress-card.is-awaiting-services .csheet-progress-card__title .ph,
+.csheet-progress-card.is-awaiting-services .csheet-progress-card__count,
+.csheet-progress-card.is-awaiting-services .csheet-progress-ring__pct {
+    color: #71717a;
+}
+.csheet-progress-card.is-awaiting-services .csheet-progress-card__count {
+    font-size: 0.84rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
+.csheet-progress-card.is-awaiting-services .csheet-progress-card__chevron {
+    color: #a1a1aa;
+    opacity: 0.55;
+}
+.csheet-progress-card.is-awaiting-services .csheet-progress-ring__track {
+    stroke: #d4d4d8;
+}
+.csheet-progress-card.is-awaiting-services .csheet-progress-ring__bar.is-empty {
+    stroke: #a1a1aa;
+}

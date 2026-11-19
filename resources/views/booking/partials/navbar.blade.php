@@ -85,6 +85,28 @@
         'booking.step3' => route('booking.datetime', ['store' => $bookingStoreSlug], false),
         default => null,
     };
+    // Tema Minimal: nome da empresa e loja à esquerda (a loja abre os detalhes, onde se pode mudar de loja)
+    $bookingIsMinimalTheme = ($bookingTheme ?? null) === \App\Support\BookingTheme::MINIMAL;
+    $bookingNavHoursUi = null;
+    $bookingBrandName = $bookingBusinessDisplayName;
+    if ($bookingIsMinimalTheme) {
+        $bookingNavHoursUi = \App\Support\BookingStoreOpenStatus::publicUiState(
+            $bookingWeeklySchedule ?? ($bookingStore?->normalizedWeeklySchedule() ?? \App\Models\Store::defaultWeeklySchedule())
+        );
+        $bookingOrgName = trim((string) (($bookingStore ?? null)?->organization?->name ?? ''));
+        if ($bookingOrgName !== '') {
+            $bookingBrandName = $bookingOrgName;
+        }
+    }
+    // Logotipo "Genérico" (da loja ou, se a loja não tiver, da empresa). Sem nenhum carregado, fica o nome em texto.
+    $bookingBrandLogoUrl = null;
+    if ($bookingIsMinimalTheme && ($bookingStore ?? null) instanceof \App\Models\Store) {
+        $bookingStoreHasLogo = trim((string) ($bookingStore->logo ?? '')) !== '';
+        $bookingOrgHasLogo = (bool) $bookingStore->organization?->hasOwnLogo();
+        if ($bookingStoreHasLogo || $bookingOrgHasLogo) {
+            $bookingBrandLogoUrl = $bookingStore->logoGenericUrl();
+        }
+    }
 @endphp
 <nav class="navbar navbar-light bg-white border-bottom fixed-top booking-navbar shadow-sm py-0">
     <div class="container booking-container-wide py-2 booking-navbar__inner px-3">
@@ -102,6 +124,26 @@
                     <span class="booking-navbar__lead-spacer" aria-hidden="true"></span>
                 @endif
             </div>
+            @if ($bookingIsMinimalTheme)
+                <a href="{{ $bookingIndexUrl }}" class="booking-navbar__brand booking-navbar__brand--minimal {{ $bookingBrandLogoUrl ? 'booking-navbar__brand--logo' : '' }}">
+                    @if ($bookingBrandLogoUrl)
+                        <img src="{{ $bookingBrandLogoUrl }}" alt="{{ $bookingBrandName }}" class="booking-navbar__brand-logo" decoding="async">
+                    @else
+                        {{ $bookingBrandName }}
+                    @endif
+                </a>
+                <button
+                    type="button"
+                    class="booking-navbar-store__toggle"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#bookingStoreDetails"
+                    aria-label="{{ __('booking.partials.store_trigger_aria') }}"
+                >
+                    <span class="booking-navbar-store__dot {{ $bookingNavHoursUi['css_class'] ?? '' }}" aria-hidden="true"></span>
+                    <span class="booking-navbar-store__name">{{ $bookingBusinessDisplayName }}</span>
+                    <i class="bi bi-chevron-down booking-navbar-store__caret" aria-hidden="true"></i>
+                </button>
+            @endif
         </div>
         <div class="booking-navbar__cell booking-navbar__cell--center">
             <span class="booking-navbar__store-title">{{ $bookingNavbarStoreTitleUpper }}</span>
@@ -142,7 +184,9 @@
                     >
                         <i class="bi bi-plus-lg" aria-hidden="true"></i>
                     </a>
-                    @include('booking.partials.navbar-lang-dropdown')
+                    @unless ($bookingIsMinimalTheme)
+                        @include('booking.partials.navbar-lang-dropdown')
+                    @endunless
                     <div class="dropdown booking-navbar-account">
                         <button
                             type="button"
@@ -204,7 +248,9 @@
                     </div>
                 </div>
             @else
-                @include('booking.partials.navbar-lang-dropdown')
+                @unless ($bookingIsMinimalTheme)
+                    @include('booking.partials.navbar-lang-dropdown')
+                @endunless
                 @if ($bookingDisableAuthModal)
                     <a href="{{ route('booking.login', ['store' => $bookingStoreSlug], false) }}" class="btn btn-outline-dark btn-sm rounded-pill booking-navbar__auth-open text-nowrap" id="booking-navbar-open-auth">
                         <i class="bi bi-person d-lg-none booking-navbar__auth-open-icon" aria-hidden="true"></i>

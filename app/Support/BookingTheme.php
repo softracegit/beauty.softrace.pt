@@ -23,6 +23,8 @@ final class BookingTheme
 
     public const HORIZON = 'horizon';
 
+    public const MINIMAL = 'minimal';
+
     public const KEY = CrmSetting::KEY_BOOKING_THEME;
 
     /** Temas com layout full-width, resumo fixo à direita e passos no conteúdo. */
@@ -33,6 +35,7 @@ final class BookingTheme
         self::BREEZE,
         self::SAGE,
         self::HORIZON,
+        self::MINIMAL,
     ];
 
     /** Temas que usam progress bar em vez de badges numerados nos steps. */
@@ -72,6 +75,16 @@ final class BookingTheme
                     'booking-assets/css/themes/noir.css',
                 ],
                 'fonts' => 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,500&display=swap',
+            ],
+            self::MINIMAL => [
+                'id' => self::MINIMAL,
+                'label' => 'Minimal',
+                'description' => 'Preto e branco — logo e loja à esquerda, serviços em cartões e painel de opções em dois momentos.',
+                'css' => [
+                    'booking-assets/css/themes/refined.css',
+                    'booking-assets/css/themes/minimal.css',
+                ],
+                'fonts' => 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap',
             ],
         ];
     }
@@ -145,6 +158,7 @@ final class BookingTheme
             self::BREEZE   => '#fdf8f2',
             self::SAGE     => '#f2f5ef',
             self::HORIZON  => '#0d1525',
+            self::MINIMAL  => '#ffffff',
             default        => '#ffffff',
         };
     }

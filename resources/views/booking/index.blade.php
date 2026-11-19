@@ -47,6 +47,10 @@
                             return $mins.' min';
                         };
                         $bookingServiceOptionsCatalog = [];
+                        $bookingPriceStoreId = (int) ($bookingStore?->id ?? 0);
+                        $bookingIssuePriceToken = static function (string $kind, int $id, float $price) use ($bookingPriceStoreId): string {
+                            return \App\Support\BookingCartPriceToken::issue($kind, $id, $price, null, $bookingPriceStoreId > 0 ? $bookingPriceStoreId : null);
+                        };
                     @endphp
                     <div @class(['row g-4 g-lg-5 align-items-start align-items-lg-stretch booking-services-row', 'booking-elegant-split' => ($bookingUsesRefinedLayout ?? false)])>
                         <div class="col-lg-8 booking-elegant-main">
@@ -105,43 +109,58 @@
                                             <ul class="list-group list-group-flush" role="list">
                                                 @foreach($category->services as $service)
                                                     @php
-                                                        $feesPayload = $service->fees->map(static function ($fee) {
+                                                        $feesPayload = $service->fees->map(static function ($fee) use ($bookingIssuePriceToken) {
+                                                            $feePrice = round((float) $fee->price, 2);
+
                                                             return [
                                                                 'fee_id' => (int) $fee->id,
                                                                 'name' => $fee->name,
-                                                                'price' => round((float) $fee->price, 2),
+                                                                'price' => $feePrice,
                                                                 'priceFormatted' => $fee->formatted_price,
+                                                                'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_FEE, (int) $fee->id, $feePrice),
                                                             ];
                                                         })->values()->all();
-                                                        $extrasPayload = $service->extras->map(static function ($extra) {
+                                                        $extrasPayload = $service->extras->map(static function ($extra) use ($bookingIssuePriceToken) {
+                                                            $extraPrice = round((float) $extra->price, 2);
+
                                                             return [
                                                                 'id' => (int) $extra->id,
                                                                 'name' => $extra->name,
                                                                 'duration' => $extra->formatted_duration,
                                                                 'durationMinutes' => (int) ($extra->duration ?? 0),
-                                                                'price' => round((float) $extra->price, 2),
+                                                                'price' => $extraPrice,
                                                                 'priceFormatted' => $extra->formatted_price,
+                                                                'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_EXTRA, (int) $extra->id, $extraPrice),
                                                             ];
                                                         })->values()->all();
                                                         $hasOptions = $service->options->isNotEmpty();
                                                         if ($hasOptions) {
-                                                            $minPrice = (float) $service->options->min(fn ($o) => (float) ($o->online_price ?? $o->price));
-                                                            $minDur = (int) $service->options->min('duration');
-                                                            $maxDur = (int) $service->options->max('duration');
+                                                            // "Desde" e duração só contam as variantes de escolha única (as adicionais somam-se)
+                                                            $choiceOptions = $service->options->reject(fn ($o) => $o->isAddon());
+                                                            if ($choiceOptions->isEmpty()) {
+                                                                $choiceOptions = $service->options;
+                                                            }
+                                                            $minPrice = (float) $choiceOptions->min(fn ($o) => (float) ($o->online_price ?? $o->price));
+                                                            $minDur = (int) $choiceOptions->min('duration');
+                                                            $maxDur = (int) $choiceOptions->max('duration');
                                                             $rowDurationLabel = $minDur === $maxDur
                                                                 ? $bookingFmtMinutes($minDur)
                                                                 : $bookingFmtMinutes($minDur).'+';
-                                                            $rowPriceLabel = __('booking.services.price_from').' '.number_format($minPrice, 2, ',', '.')."\u{00A0}€";
-                                                            $optionsPayload = $service->options->map(static function ($opt) {
-                                                                $p = $opt->online_price ?? $opt->price;
+                                                            // Só há uma escolha (o próprio serviço + adicionais): o preço é fixo, sem "Desde"
+                                                            $rowChoiceCount = $choiceOptions->count();
+                                                            $rowPriceLabel = ($rowChoiceCount > 1 ? __('booking.services.price_from').' ' : '').number_format($minPrice, 2, ',', '.')."\u{00A0}€";
+                                                            $optionsPayload = $service->options->map(static function ($opt) use ($bookingIssuePriceToken) {
+                                                                $p = round((float) ($opt->online_price ?? $opt->price), 2);
 
                                                                 return [
                                                                     'id' => $opt->id,
                                                                     'name' => $opt->name,
+                                                                    'type' => \App\Models\ServiceOption::normalizeType($opt->type),
                                                                     'duration' => $opt->formatted_duration,
                                                                     'durationMinutes' => (int) $opt->duration,
-                                                                    'price' => round((float) $p, 2),
-                                                                    'priceFormatted' => number_format((float) $p, 2, ',', '.')."\u{00A0}€",
+                                                                    'price' => $p,
+                                                                    'priceFormatted' => number_format($p, 2, ',', '.')."\u{00A0}€",
+                                                                    'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_OPTION, (int) $opt->id, $p),
                                                                 ];
                                                             })->values()->all();
                                                             $payload = [
@@ -150,22 +169,24 @@
                                                                 'hasOptions' => true,
                                                                 'summaryPriceLabel' => $rowPriceLabel,
                                                                 'summaryDurationLabel' => $rowDurationLabel,
+                                                                'catalogMinPrice' => round($minPrice, 2),
                                                                 'options' => $optionsPayload,
                                                                 'extras' => $extrasPayload,
                                                                 'fees' => $feesPayload,
                                                             ];
                                                             $bookingServiceOptionsCatalog[(int) $service->id] = $payload;
                                                         } else {
-                                                            $price = $service->online_price ?? $service->price;
+                                                            $price = round((float) ($service->online_price ?? $service->price), 2);
                                                             $rowDurationLabel = $service->formatted_duration;
-                                                            $rowPriceLabel = number_format((float) $price, 2, ',', '.')."\u{00A0}€";
+                                                            $rowPriceLabel = number_format($price, 2, ',', '.')."\u{00A0}€";
                                                             $payload = [
                                                                 'id' => $service->id,
                                                                 'name' => $service->name,
                                                                 'duration' => $service->formatted_duration,
                                                                 'durationMinutes' => (int) ($service->duration ?? 0),
-                                                                'price' => round((float) $price, 2),
-                                                                'priceFormatted' => number_format((float) $price, 2, ',', '.')."\u{00A0}€",
+                                                                'price' => $price,
+                                                                'priceFormatted' => number_format($price, 2, ',', '.')."\u{00A0}€",
+                                                                'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_SERVICE, (int) $service->id, $price),
                                                                 'extras' => $extrasPayload,
                                                                 'fees' => $feesPayload,
                                                             ];
@@ -178,8 +199,9 @@
                                                             data-service='@json($payload)'
                                                         >
                                                             <span class="booking-row__text">
-                                                                <span class="booking-row__name">{{ $service->name }}</span>
+                                                                <span class="booking-row__name">{{ $service->name }}@if($hasOptions && ($rowChoiceCount ?? 0) > 1 && ($bookingTheme ?? null) === \App\Support\BookingTheme::MINIMAL)<span class="booking-row__tag">{{ __('booking.partials.options_count', ['count' => $rowChoiceCount]) }}</span>@endif</span>
                                                                 <span class="booking-row__duration">{{ $rowDurationLabel }}</span>
+                                                                <span class="booking-row__price-nudge d-none" hidden></span>
                                                                 @if($service->description)
                                                                     <span class="booking-row__meta">{{ \Illuminate\Support\Str::limit(strip_tags($service->description), 80) }}</span>
                                                                 @endif

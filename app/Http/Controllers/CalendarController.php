@@ -2,44 +2,47 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\AppointmentCancellationException;
 use App\Models\Agent;
 use App\Models\Booking;
 use App\Models\BookingSavedCard;
 use App\Models\CalendarEvent;
 use App\Models\CalendarEventService;
 use App\Models\Client;
+use App\Models\ClientWalletTransaction;
 use App\Models\CrmSetting;
+use App\Models\Extra;
 use App\Models\ExtraCategory;
 use App\Models\PersonalTimeType;
 use App\Models\Sale;
 use App\Models\Service;
 use App\Models\User;
 use App\Notifications\AppointmentNotification;
-use App\Exceptions\AppointmentCancellationException;
-use App\Models\ClientWalletTransaction;
 use App\Notifications\ClientAppointmentCancelledNotification;
 use App\Notifications\ClientAppointmentCreatedNotification;
 use App\Notifications\ClientAppointmentRescheduledNotification;
+use App\Rules\ClientFullName;
+use App\Rules\UniqueClientPhone;
 use App\Services\AgendaDepositService;
 use App\Services\AgendaSameDayPayableService;
 use App\Services\AppointmentCancellationService;
 use App\Services\CancellationPolicyService;
 use App\Services\CashRegisterService;
 use App\Services\ClientWalletService;
+use App\Services\ClinicalSheetService;
 use App\Services\MarcacaoServicesActivityLogger;
 use App\Services\ReceptionBookingNotifier;
-use App\Support\MarcacaoTerminalReasons;
 use App\Support\ActivityLogQuery;
 use App\Support\ActivityLogSyntheticMarcacao;
+use App\Support\AgentServiceExtras;
 use App\Support\ApplicableFees;
 use App\Support\BookingLocale;
 use App\Support\ClientContactMask;
 use App\Support\CrmPrivacyLock;
 use App\Support\MarcacaoMoneyBatch;
+use App\Support\MarcacaoTerminalReasons;
 use App\Support\PortugueseNationalHolidays;
 use App\Support\StoreBusinessTime;
-use App\Rules\ClientFullName;
-use App\Rules\UniqueClientPhone;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +63,7 @@ class CalendarController extends Controller
         private CashRegisterService $cashRegisterService,
         private MarcacaoServicesActivityLogger $servicesActivityLogger,
         private ReceptionBookingNotifier $receptionBookingNotifier,
+        private ClinicalSheetService $clinicalSheetService,
     ) {}
 
     /**
@@ -475,6 +479,8 @@ class CalendarController extends Controller
             })
             ->values();
 
+        $allowedExtras = AgentServiceExtras::allowedPairSet((int) $agent->id);
+
         $byCategory = $services->groupBy(function ($s) {
             return $s->category_id ?: 0;
         });
@@ -503,11 +509,14 @@ class CalendarController extends Controller
                         'price' => (float) $o->price,
                         'online_price' => (float) $o->online_price,
                         'is_baseline' => (bool) $o->is_baseline,
+                        'type' => \App\Models\ServiceOption::normalizeType($o->type),
                         'sort_order' => $o->sort_order,
                         'formatted_duration' => $o->formatted_duration,
                         'formatted_price' => $o->formatted_price,
                     ])->values()->all(),
-                    'extras' => $s->extras->map(fn ($e) => [
+                    'extras' => $s->extras
+                        ->filter(fn ($e): bool => isset($allowedExtras[(int) $s->id.':'.(int) $e->id]))
+                        ->map(fn ($e) => [
                         'id' => $e->id,
                         'name' => $e->name,
                         'duration' => $e->duration,
@@ -802,6 +811,36 @@ class CalendarController extends Controller
     }
 
     /**
+     * Schema de ficha clínica para serviços seleccionados (+ preferências do cliente).
+     */
+    public function clinicalSchema(Request $request): JsonResponse
+    {
+        $serviceIds = $request->input('service_ids', []);
+        if (! is_array($serviceIds)) {
+            $serviceIds = [];
+        }
+        $serviceIds = array_values(array_filter(array_map('intval', $serviceIds)));
+        $categoryIds = $this->clinicalSheetService->categoryIdsForServiceIds($serviceIds);
+        $schema = $this->clinicalSheetService->schemaPayload($categoryIds);
+        $clientId = (int) $request->input('client_id', 0);
+        $prefs = ['by_category' => []];
+        if ($clientId > 0) {
+            $client = Client::query()
+                ->forOrganization((int) current_organization_id())
+                ->whereKey($clientId)
+                ->first();
+            if ($client) {
+                $prefs = $this->clinicalSheetService->preferencesPayload($client, $categoryIds);
+            }
+        }
+
+        return response()->json([
+            'clinical_field_schema' => $schema,
+            'client_clinical_preferences' => $prefs,
+        ]);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function clientAgendaPayload(Client $client): array
@@ -822,6 +861,10 @@ class CalendarController extends Controller
             'allergies' => $client->allergies,
             'contraindications' => $client->contraindications,
             'service_preferences' => $client->preferences_notes,
+            'clinical_preferences' => $this->clinicalSheetService->preferencesPayload(
+                $client,
+                $this->clinicalSheetService->categoryIdsWithFields((int) ($client->organization_id ?: current_organization_id()))
+            ),
             'client_since' => $client->created_at
                 ? $client->created_at->locale('pt')->diffForHumans()
                 : null,
@@ -892,6 +935,16 @@ class CalendarController extends Controller
                 'technical_formula' => $calendarEvent->technical_formula,
                 'technical_products' => $calendarEvent->technical_products,
                 'technical_notes' => $calendarEvent->technical_notes,
+                'clinical_sheet' => $calendarEvent->clinical_sheet,
+                'clinical_field_schema' => $this->clinicalSheetService->schemaPayload(
+                    $this->clinicalSheetService->categoryIdsForEvent($calendarEvent)
+                ),
+                'client_clinical_preferences' => $calendarEvent->client
+                    ? $this->clinicalSheetService->preferencesPayload(
+                        $calendarEvent->client,
+                        $this->clinicalSheetService->categoryIdsForEvent($calendarEvent)
+                    )
+                    : ['by_category' => []],
                 'event_type' => $calendarEvent->event_type ?? 'manual',
                 'event_type_label' => CalendarEvent::eventTypes()[$calendarEvent->event_type] ?? ($calendarEvent->event_type ?? 'Manual'),
                 'marcacao_source' => $calendarEvent->resolvedMarcacaoSource(),
@@ -973,6 +1026,7 @@ class CalendarController extends Controller
                         'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.').' €' : $s->formatted_price,
                         'formatted_duration' => $this->formatDurationMinutes((int) $duration),
                         'color' => $color,
+                        'category_id' => $cat?->id ? (int) $cat->id : null,
                         'category_name' => $cat?->name ?? '',
                         'extras' => $extras,
                     ];
@@ -1255,12 +1309,16 @@ class CalendarController extends Controller
             'technical_formula' => ['nullable', 'string', 'max:5000'],
             'technical_products' => ['nullable', 'string', 'max:5000'],
             'technical_notes' => ['nullable', 'string', 'max:5000'],
+            'clinical_sheet' => ['nullable', 'array'],
+            'clinical_sheet.by_category' => ['nullable', 'array'],
             'event_type' => ['required', 'in:manual,outro,marcacao,tempo_pessoal'],
+            // Na criação: só estados operacionais (sem faltou/cancelado/completo)
+            'status' => ['sometimes', 'nullable', 'string', 'in:agendado,notificado,confirmado,chegou,iniciado'],
             'user_id' => ['nullable', Rule::exists('agents', 'user_id')->where(fn ($q) => $q->whereIn('store_id', $userIdStoreIds)->where('status', Agent::STATUS_ACTIVE))],
             'client_id' => ['nullable', Rule::exists('clients', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
-            'service_id' => ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
+            'service_id' => ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id())->whereNull('deleted_at'))],
             'services' => ['nullable', 'array'],
-            'services.*.service_id' => ['required_with:services', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
+            'services.*.service_id' => ['required_with:services', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id())->whereNull('deleted_at'))],
             'services.*.service_option_id' => ['nullable', 'integer', 'exists:service_options,id'],
             'services.*.duration' => ['nullable', 'integer', 'min:1'],
             'services.*.price' => ['nullable', 'numeric', 'min:0'],
@@ -1280,7 +1338,7 @@ class CalendarController extends Controller
 
         $servicesPayload = $request->input('services', []);
         if (is_array($servicesPayload) && $servicesPayload !== []) {
-            $this->assertMarcacaoServicesOptionsValid($servicesPayload);
+            $this->assertMarcacaoServicesOptionsValid($servicesPayload, false);
         }
 
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_TEMPO_PESSOAL) {
@@ -1299,7 +1357,7 @@ class CalendarController extends Controller
             if (! empty($servicesPayload)) {
                 $validated['service_id'] = (int) $servicesPayload[0]['service_id'];
             } else {
-                $request->validate(['service_id' => ['required', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))]]);
+                $request->validate(['service_id' => ['required', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id())->whereNull('deleted_at'))]]);
                 $validated['service_id'] = $request->input('service_id');
             }
         } else {
@@ -1343,7 +1401,8 @@ class CalendarController extends Controller
                 'message' => 'Não é possível atribuir o evento a um Administrador.',
             ], 422);
         }
-        $validated['status'] = $validated['status'] ?? CalendarEvent::STATUS_AGENDADO;
+        $createStatus = (string) ($validated['status'] ?? '');
+        $validated['status'] = $createStatus !== '' ? $createStatus : CalendarEvent::STATUS_AGENDADO;
         $validated['store_id'] = current_store_id();
         if (($validated['event_type'] ?? '') === CalendarEvent::TYPE_MARCACAO) {
             $validated['marcacao_source'] = \App\Support\ActivityLogMarcacaoOrigin::AGENDA;
@@ -1354,6 +1413,29 @@ class CalendarController extends Controller
             if ($agentStoreId !== null) {
                 $validated['store_id'] = $agentStoreId;
             }
+            if (is_array($servicesPayload) && $servicesPayload !== []) {
+                $this->assertMarcacaoExtrasAllowedForAgent(
+                    $servicesPayload,
+                    $validated['user_id'] ? (int) $validated['user_id'] : null,
+                    (int) $validated['store_id'],
+                    null,
+                );
+            }
+        }
+
+        $clinicalSubmitted = $request->input('clinical_sheet');
+        unset($validated['clinical_sheet']);
+        $categoryIdsForSheet = $this->clinicalSheetService->categoryIdsForServiceIds(
+            collect(is_array($servicesPayload) ? $servicesPayload : [])
+                ->map(fn ($row) => (int) ($row['service_id'] ?? 0))
+                ->filter()
+                ->values()
+                ->all()
+                ?: [((int) ($validated['service_id'] ?? 0))]
+        );
+        if (is_array($clinicalSubmitted)) {
+            $this->clinicalSheetService->validateSubmitted($categoryIdsForSheet, $clinicalSubmitted);
+            $validated['clinical_sheet'] = $this->clinicalSheetService->buildSnapshot($categoryIdsForSheet, $clinicalSubmitted);
         }
 
         $event = CalendarEvent::create($validated);
@@ -1500,6 +1582,8 @@ class CalendarController extends Controller
             $rules['technical_formula'] = ['nullable', 'string', 'max:5000'];
             $rules['technical_products'] = ['nullable', 'string', 'max:5000'];
             $rules['technical_notes'] = ['nullable', 'string', 'max:5000'];
+            $rules['clinical_sheet'] = ['nullable', 'array'];
+            $rules['clinical_sheet.by_category'] = ['nullable', 'array'];
             $rules['event_type'] = ['sometimes', 'in:manual,outro,marcacao,tempo_pessoal'];
             $rules['service_id'] = ['nullable', Rule::exists('services', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))];
         }
@@ -1512,7 +1596,25 @@ class CalendarController extends Controller
 
         $servicesPayload = $request->input('services', []);
         if (is_array($servicesPayload) && $servicesPayload !== []) {
-            $this->assertMarcacaoServicesOptionsValid($servicesPayload);
+            // withTrashed: permite manter/editar marcações cujo serviço já foi para o Arquivo.
+            $this->assertMarcacaoServicesOptionsValid($servicesPayload, true);
+        }
+        if (($calendarEvent->event_type ?? '') === CalendarEvent::TYPE_MARCACAO) {
+            $targetUserId = $request->exists('user_id')
+                ? ($request->input('user_id') ? (int) $request->input('user_id') : null)
+                : ($calendarEvent->user_id ? (int) $calendarEvent->user_id : null);
+            $userChanged = (int) ($calendarEvent->user_id ?? 0) !== (int) ($targetUserId ?? 0);
+            $payloadForExtras = is_array($servicesPayload) && $servicesPayload !== []
+                ? $servicesPayload
+                : ($userChanged ? $this->marcacaoExtrasPayloadFromEvent($calendarEvent) : []);
+            if ($payloadForExtras !== []) {
+                $this->assertMarcacaoExtrasAllowedForAgent(
+                    $payloadForExtras,
+                    $targetUserId,
+                    (int) ($calendarEvent->store_id ?: current_store_id()),
+                    $userChanged ? null : $calendarEvent,
+                );
+            }
         }
 
         if (
@@ -1678,6 +1780,25 @@ class CalendarController extends Controller
         if ($calendarEvent->isSourceEditable()) {
             $allowed = ['title', 'description', 'technical_formula', 'technical_products', 'technical_notes', 'event_type', 'service_id', 'client_id', 'personal_time_type_id'];
             $toUpdate = array_filter($validated, fn ($k) => in_array($k, $allowed, true), ARRAY_FILTER_USE_KEY);
+            if ($request->has('clinical_sheet')) {
+                $clinicalSubmitted = $request->input('clinical_sheet');
+                $categoryIdsForSheet = $this->clinicalSheetService->categoryIdsForServiceIds(
+                    collect(is_array($servicesPayload) ? $servicesPayload : [])
+                        ->map(fn ($row) => (int) ($row['service_id'] ?? 0))
+                        ->filter()
+                        ->values()
+                        ->all()
+                );
+                if ($categoryIdsForSheet === []) {
+                    $categoryIdsForSheet = $this->clinicalSheetService->categoryIdsForEvent($calendarEvent);
+                }
+                if (is_array($clinicalSubmitted)) {
+                    $this->clinicalSheetService->validateSubmitted($categoryIdsForSheet, $clinicalSubmitted);
+                    $toUpdate['clinical_sheet'] = $this->clinicalSheetService->buildSnapshot($categoryIdsForSheet, $clinicalSubmitted);
+                } else {
+                    $toUpdate['clinical_sheet'] = null;
+                }
+            }
             if (isset($toUpdate['personal_time_type_id']) && $calendarEvent->event_type === CalendarEvent::TYPE_TEMPO_PESSOAL) {
                 $type = PersonalTimeType::forOrganization((int) current_organization_id())->find($toUpdate['personal_time_type_id']);
                 if ($type) {
@@ -1708,6 +1829,7 @@ class CalendarController extends Controller
             if ($servicesWillChange) {
                 $calendarEvent->eventServices()->detach();
                 $servicesById = Service::query()
+                    ->withTrashed()
                     ->forStore(current_store_id())
                     ->whereIn('id', array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload))))
                     ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
@@ -2172,6 +2294,11 @@ class CalendarController extends Controller
                         $out[$key] = $val;
                     }
                     break;
+                case 'clinical_sheet':
+                    if (json_encode($cur) !== json_encode($val)) {
+                        $out[$key] = $val;
+                    }
+                    break;
                 default:
                     if ($cur != $val) {
                         $out[$key] = $val;
@@ -2268,6 +2395,7 @@ class CalendarController extends Controller
                     'formatted_price' => $s->pivot->price !== null ? number_format((float) $s->pivot->price, 2, ',', '.').' €' : $s->formatted_price,
                     'formatted_duration' => $this->formatDurationMinutes((int) $dur),
                     'color' => $cat?->color ?? '#6c757d',
+                    'category_id' => $cat?->id ? (int) $cat->id : null,
                     'category_name' => $cat?->name ?? '',
                     'fees' => $s->fees->map(fn ($f) => [
                         'fee_id' => (int) $f->id,
@@ -2481,12 +2609,15 @@ class CalendarController extends Controller
     /**
      * @param  array<int, array<string, mixed>>  $servicesPayload
      */
-    private function assertMarcacaoServicesOptionsValid(array $servicesPayload): void
+    private function assertMarcacaoServicesOptionsValid(array $servicesPayload, bool $allowTrashed = false): void
     {
         $serviceIds = array_values(array_unique(array_map(fn ($row) => (int) ($row['service_id'] ?? 0), $servicesPayload)));
         $serviceIds = array_values(array_filter($serviceIds, fn (int $id) => $id > 0));
-        $services = Service::query()
-            ->forStore(current_store_id())
+        $servicesQuery = Service::query()->forStore(current_store_id());
+        if ($allowTrashed) {
+            $servicesQuery->withTrashed();
+        }
+        $services = $servicesQuery
             ->whereIn('id', $serviceIds)
             ->with(['options' => fn ($q) => $q->orderBy('sort_order')])
             ->get()
@@ -2523,6 +2654,116 @@ class CalendarController extends Controller
                 ]);
             }
         }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $servicesPayload
+     */
+    private function assertMarcacaoExtrasAllowedForAgent(
+        array $servicesPayload,
+        ?int $userId,
+        int $storeId,
+        ?CalendarEvent $keepExistingOn,
+    ): void {
+        $pairs = [];
+        foreach ($servicesPayload as $idx => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $serviceId = (int) ($item['service_id'] ?? 0);
+            foreach ($item['extras'] ?? [] as $extraIndex => $extra) {
+                if (! is_array($extra)) {
+                    continue;
+                }
+                $extraId = (int) ($extra['extra_id'] ?? 0);
+                if ($serviceId <= 0 || $extraId <= 0) {
+                    continue;
+                }
+                $pairs[] = [
+                    'idx' => (int) $idx,
+                    'extra_index' => (int) $extraIndex,
+                    'service_id' => $serviceId,
+                    'extra_id' => $extraId,
+                ];
+            }
+        }
+        if ($pairs === []) {
+            return;
+        }
+
+        $agent = null;
+        if ($userId) {
+            $agent = Agent::query()->where('user_id', $userId)->where('store_id', $storeId)->first()
+                ?? Agent::query()->where('user_id', $userId)->whereIn('store_id', $this->accessibleAgendaStoreIds())->first();
+        }
+        if (! $agent) {
+            throw ValidationException::withMessages([
+                'user_id' => ['Escolhe um técnico que faça os extras desta marcação.'],
+            ]);
+        }
+
+        $allowed = AgentServiceExtras::allowedPairSet((int) $agent->id);
+        $kept = [];
+        if ($keepExistingOn) {
+            $keepExistingOn->loadMissing('eventServiceItems.extras');
+            foreach ($keepExistingOn->eventServiceItems as $item) {
+                foreach ($item->extras as $extra) {
+                    $kept[(int) $item->service_id.':'.(int) $extra->extra_id] = true;
+                }
+            }
+        }
+
+        $missing = [];
+        foreach ($pairs as $pair) {
+            $key = $pair['service_id'].':'.$pair['extra_id'];
+            if (isset($allowed[$key]) || isset($kept[$key])) {
+                continue;
+            }
+            $missing[] = $pair;
+        }
+        if ($missing === []) {
+            return;
+        }
+
+        $serviceNames = Service::query()->whereIn('id', array_column($missing, 'service_id'))->pluck('name', 'id');
+        $extraNames = Extra::query()->withTrashed()->whereIn('id', array_column($missing, 'extra_id'))->pluck('name', 'id');
+        $errors = [];
+        foreach ($missing as $pair) {
+            $serviceName = (string) ($serviceNames[$pair['service_id']] ?? 'serviço');
+            $extraName = (string) ($extraNames[$pair['extra_id']] ?? 'extra');
+            $errors['services.'.$pair['idx'].'.extras.'.$pair['extra_index'].'.extra_id'] = [
+                $agent->name.' não faz o extra «'.$extraName.'» em '.$serviceName.'.',
+            ];
+        }
+
+        throw ValidationException::withMessages($errors);
+    }
+
+    /**
+     * @return list<array{service_id: int, extras: list<array{extra_id: int}>}>
+     */
+    private function marcacaoExtrasPayloadFromEvent(CalendarEvent $event): array
+    {
+        $event->loadMissing('eventServiceItems.extras');
+        $payload = [];
+        foreach ($event->eventServiceItems as $item) {
+            $extras = [];
+            foreach ($item->extras as $extra) {
+                $extraId = (int) $extra->extra_id;
+                if ($extraId > 0) {
+                    $extras[] = ['extra_id' => $extraId];
+                }
+            }
+            if ($extras === []) {
+                continue;
+            }
+            $payload[] = [
+                'service_id' => (int) $item->service_id,
+                'extras' => $extras,
+            ];
+        }
+
+        return $payload;
     }
 
     private function assertMarcacaoClientRequired(Request $request): void

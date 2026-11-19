@@ -5,11 +5,57 @@
 <link rel="stylesheet" href="{{ asset('template/css/payment-pos-modal.css') }}?v={{ file_exists(public_path('template/css/payment-pos-modal.css')) ? filemtime(public_path('template/css/payment-pos-modal.css')) : time() }}">
 <link rel="stylesheet" href="{{ asset('template/css/client-tags.css') }}?v={{ file_exists(public_path('template/css/client-tags.css')) ? filemtime(public_path('template/css/client-tags.css')) : time() }}">
 <link href="{{ asset('template/vendor/remixicon/remixicon.css') }}" rel="stylesheet">
+<link rel="stylesheet" href="{{ static_asset('template/css/clinical-sheet.css') }}">
 @include('relatorios.partials.vendas-table-styles', ['showClienteColumn' => false])
 <style>
-.uview-header .uview-phone { margin: 0; font-size: 0.9rem; }
-.uview-header .uview-phone a { color: inherit; text-decoration: none; }
-.uview-header .uview-phone a:hover { text-decoration: underline; }
+.uview-header .uview-name {
+    font-size: 1.125rem;
+    line-height: 1.25;
+    margin-bottom: 0.2rem;
+}
+.uview-header .uview-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 20px;
+    margin: 0.1rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.25;
+    color: inherit;
+}
+.uview-header .uview-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    min-width: 0;
+    line-height: 1.25;
+}
+.uview-header .uview-meta-item .ph {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    font-size: 0.9rem;
+    line-height: 1;
+    opacity: 0.75;
+    flex-shrink: 0;
+    /* Phosphor glyphs sit slightly high in the em box */
+    transform: translateY(0.06em);
+}
+.uview-header .uview-meta-item a,
+.uview-header .uview-meta-item span {
+    line-height: 1.25;
+}
+.uview-header .uview-meta-item a {
+    color: inherit;
+    text-decoration: none;
+}
+.uview-header .uview-meta-item a:hover { text-decoration: underline; }
+.uview-header .uview-header-tags {
+    margin-top: 0.85rem;
+}
 /* Resumo — card de alertas */
 .client-ficha-alert-card {
     display: flex;
@@ -83,6 +129,11 @@
 /* Resumo — timeline */
 .client-ficha-timeline-wrap--spaced {
     margin-top: 2.25rem;
+}
+.client-ficha-timeline-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
 }
 .client-ficha-timeline {
     position: relative;
@@ -213,26 +264,71 @@
 .client-ficha-timeline__meta-sep {
     color: #cbd5e1;
 }
-.client-ficha-timeline__agenda-btn {
+.client-ficha-timeline__actions {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+.client-ficha-timeline__action-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    align-self: center;
     width: 2.1rem;
     height: 2.1rem;
     border-radius: 0.45rem;
     border: 1px solid rgba(15, 23, 42, 0.1);
     background: #f8fafc;
-    color: #475569;
     text-decoration: none;
-    flex-shrink: 0;
+    padding: 0;
+    cursor: pointer;
+    line-height: 1;
 }
-.client-ficha-timeline__agenda-btn:hover {
-    background: #eff6ff;
-    border-color: rgba(37, 99, 235, 0.25);
+.client-ficha-timeline__action-btn .ph {
+    font-size: 1.15rem;
+}
+.client-ficha-timeline__action-btn--file {
+    color: #64748b;
+}
+.client-ficha-timeline__action-btn--file:hover {
+    background: #f1f5f9;
+    border-color: rgba(100, 116, 139, 0.35);
+    color: #475569;
+}
+.client-ficha-timeline__action-btn--calendar {
+    color: var(--accent-color, #0d6efd);
+    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 28%, #e2e8f0);
+    background: color-mix(in srgb, var(--accent-color, #0d6efd) 8%, #fff);
+}
+.client-ficha-timeline__action-btn--calendar:hover {
+    background: color-mix(in srgb, var(--accent-color, #0d6efd) 14%, #fff);
+    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 40%, #e2e8f0);
     color: var(--accent-color, #0d6efd);
 }
-.client-ficha-timeline__agenda-btn .ph { font-size: 1.15rem; }
+.client-ficha-timeline__action-btn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-color, #0d6efd) 45%, transparent);
+    outline-offset: 2px;
+}
+.client-ficha-timeline__notes {
+    margin-top: 0.15rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.45rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #fff;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: #334155;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.35rem;
+    align-items: baseline;
+}
+.client-ficha-timeline__notes-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-width: 0;
+}
 .client-ficha-timeline__facts {
     display: flex;
     flex-wrap: wrap;
@@ -277,7 +373,7 @@
     color: #94a3b8;
 }
 @media (max-width: 767.98px) {
-    .client-ficha-timeline__agenda-btn {
+    .client-ficha-timeline__actions {
         align-self: flex-start;
     }
 }
@@ -301,7 +397,6 @@
     } else {
         $avatarInitial = '—';
     }
-    $clientNotes = $cliente->getRelationValue('notes') ?: $cliente->notes()->with('user')->get();
 @endphp
 
 <!-- User Profile Header -->
@@ -315,13 +410,32 @@
     @endif
     <div class="uview-info">
         <h2 class="uview-name">{{ $cliente->name }}</h2>
-        @if($cliente->email)
-            <p class="uview-email uview-email--profile mb-0"><a href="mailto:{{ $cliente->email }}">{{ $cliente->email }}</a></p>
-        @endif
-        @if($cliente->phone)
-            <p class="uview-phone uview-email--profile mb-0">
-                <a href="{{ \App\Support\PhoneDisplay::telHref($cliente->phone) }}">{{ $cliente->formatted_phone }}</a>
-            </p>
+        @if($cliente->phone || $cliente->email || $cliente->birth_date)
+            <div class="uview-meta-row">
+                @if($cliente->phone)
+                    <p class="uview-meta-item">
+                        <i class="ph ph-phone" aria-hidden="true"></i>
+                        <a href="{{ \App\Support\PhoneDisplay::telHref($cliente->phone) }}">{{ $cliente->formatted_phone }}</a>
+                    </p>
+                @endif
+                @if($cliente->email)
+                    <p class="uview-meta-item">
+                        <i class="ph ph-envelope-simple" aria-hidden="true"></i>
+                        <a href="mailto:{{ $cliente->email }}">{{ $cliente->email }}</a>
+                    </p>
+                @endif
+                @if($cliente->birth_date)
+                    <p class="uview-meta-item">
+                        <i class="ph ph-cake" aria-hidden="true"></i>
+                        <span>
+                            @if($cliente->age !== null)
+                                {{ $cliente->age }} anos ·
+                            @endif
+                            {{ $cliente->birth_date->format('d/m/Y') }}
+                        </span>
+                    </p>
+                @endif
+            </div>
         @endif
         <div class="uview-header-tags">
             @include('clientes.partials.tags-inline', [
@@ -366,12 +480,11 @@
         <div class="card">
             <div class="uview-tabs" role="tablist">
                 <button type="button" class="uview-tab nav-link active" role="tab" data-bs-toggle="tab" data-bs-target="#tab-resumo">Resumo</button>
-                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-details">Detalhes</button>
+                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-preferencias">Preferências</button>
                 <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-marcacoes">Marcações</button>
                 <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-vendas">Vendas</button>
                 <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-estatisticas">Estatísticas</button>
                 <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-log">Logs</button>
-                <button type="button" class="uview-tab nav-link" role="tab" data-bs-toggle="tab" data-bs-target="#tab-notas">Notas</button>
             </div>
             <div class="card-body tab-content">
 
@@ -384,153 +497,13 @@
                     ])
                 </div>
 
-                <!-- Details Tab — perfil completo (mesmo que também apareça no header / resumo / ficha técnica) -->
-                <div class="tab-pane fade" id="tab-details">
-                    <div class="uview-detail-group">
-                        <div class="uview-detail-title">Informação Pessoal</div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Nome Completo</div>
-                            <div class="uview-detail-value">{{ $cliente->name }}</div>
-                        </div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Email</div>
-                            <div class="uview-detail-value">
-                                @if($cliente->email)
-                                    <a href="mailto:{{ $cliente->email }}">{{ $cliente->email }}</a>
-                                @else
-                                    —
-                                @endif
-                            </div>
-                        </div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Telefone</div>
-                            <div class="uview-detail-value">
-                                @if($cliente->phone)
-                                    <a href="{{ \App\Support\PhoneDisplay::telHref($cliente->phone) }}">{{ $cliente->formatted_phone }}</a>
-                                @else
-                                    —
-                                @endif
-                            </div>
-                        </div>
-                        @if($cliente->nif)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">NIF</div>
-                            <div class="uview-detail-value">{{ $cliente->nif }}</div>
-                        </div>
-                        @endif
-                        @if($cliente->birth_date)
-                        @php
-                            $clienteBirthdayHighlight = $cliente->birthdayHighlight(sameMonthOnly: true);
-                        @endphp
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Data de Nascimento</div>
-                            <div class="uview-detail-value">
-                                {{ $cliente->birth_date->format('d/m/Y') }}
-                                @if($clienteBirthdayHighlight)
-                                <div class="client-birthday-highlight client-birthday-highlight--{{ $clienteBirthdayHighlight['scope'] }} client-birthday-highlight--{{ $clienteBirthdayHighlight['tense'] }}" role="status">
-                                    <i class="ri-gift-2-fill" aria-hidden="true"></i>
-                                    <span>{!! $clienteBirthdayHighlight['message_html'] !!}</span>
-                                </div>
-                                @endif
-                            </div>
-                        </div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Idade</div>
-                            <div class="uview-detail-value">{{ $cliente->age }} anos</div>
-                        </div>
-                        @endif
-                        @if($cliente->gender)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Género</div>
-                            <div class="uview-detail-value">{{ \App\Models\Client::genders()[$cliente->gender] ?? $cliente->gender }}</div>
-                        </div>
-                        @endif
-                        @if($cliente->nationality)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Nacionalidade</div>
-                            <div class="uview-detail-value">{{ $cliente->nationality }}</div>
-                        </div>
-                        @endif
-                        @if($cliente->marital_status)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Estado Civil</div>
-                            <div class="uview-detail-value">{{ \App\Models\Client::maritalStatuses()[$cliente->marital_status] ?? $cliente->marital_status }}</div>
-                        </div>
-                        @endif
-                        @if($cliente->origem)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Origem</div>
-                            <div class="uview-detail-value">{{ $cliente->origem }}</div>
-                        </div>
-                        @endif
-                        @if($cliente->profissao)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Profissão</div>
-                            <div class="uview-detail-value">{{ $cliente->profissao }}</div>
-                        </div>
-                        @endif
-                    </div>
-
-                    @php
-                        $detalheAlertas = collect([
-                            $cliente->allergies,
-                            $cliente->contraindications,
-                        ])->map(fn ($v) => trim((string) $v))->filter()->implode(' · ');
-                    @endphp
-                    @if($detalheAlertas !== '')
-                    <div class="uview-detail-group">
-                        <div class="uview-detail-title">Alertas do cliente</div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Alertas</div>
-                            <div class="uview-detail-value text-danger">{{ $detalheAlertas }}</div>
-                        </div>
-                    </div>
-                    @endif
-
-                    @if($cliente->address || $cliente->postal_code || $cliente->locality)
-                    <div class="uview-detail-group">
-                        <div class="uview-detail-title">Morada</div>
-                        @if($cliente->address)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Morada</div>
-                            <div class="uview-detail-value">
-                                {{ $cliente->address }}
-                                @if($cliente->door), Porta {{ $cliente->door }}@endif
-                                @if($cliente->floor), {{ $cliente->floor }}º@endif
-                                @if($cliente->side), {{ $cliente->side }}@endif
-                            </div>
-                        </div>
-                        @endif
-                        @if($cliente->postal_code)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Código Postal</div>
-                            <div class="uview-detail-value">{{ $cliente->postal_code }}</div>
-                        </div>
-                        @endif
-                        @if($cliente->locality)
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Localidade</div>
-                            <div class="uview-detail-value">{{ $cliente->locality }}</div>
-                        </div>
-                        @endif
-                    </div>
-                    @endif
-
-                    <div class="uview-detail-group">
-                        <div class="uview-detail-title">Informação da Conta</div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">ID Cliente</div>
-                            <div class="uview-detail-value">{{ $cliente->client_id }}</div>
-                        </div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Data de Registo</div>
-                            <div class="uview-detail-value">{{ \App\Support\DateTimeDisplay::formatInstant($cliente->created_at, $cliente->store_id ? (int) $cliente->store_id : null, 'd/m/Y H:i') }}</div>
-                        </div>
-                        <div class="uview-detail-row">
-                            <div class="uview-detail-label">Última Atualização</div>
-                            <div class="uview-detail-value">{{ \App\Support\DateTimeDisplay::formatInstant($cliente->updated_at, $cliente->store_id ? (int) $cliente->store_id : null, 'd/m/Y H:i') }}</div>
-                        </div>
-                    </div>
+                <div class="tab-pane fade" id="tab-preferencias">
+                    @include('clientes.partials.clinical-preferences', [
+                        'cliente' => $cliente,
+                        'clinicalPreferenceSchema' => $clinicalPreferenceSchema ?? ['categories' => []],
+                        'clinicalPreferenceValues' => $clinicalPreferenceValues ?? ['by_category' => []],
+                        'stats' => $stats ?? null,
+                    ])
                 </div>
 
                 <!-- Marcações Tab -->
@@ -746,57 +719,6 @@
                     ])
                 </div>
 
-                <!-- Notas Tab -->
-                <div class="tab-pane fade" id="tab-notas">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Notas do cliente</h6>
-                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addNoteModal">
-                            <i class="ph ph-plus me-1"></i> Adicionar Nota
-                        </button>
-                    </div>
-                    @if($clientNotes->count() > 0)
-                        <div class="activity-log">
-                            @foreach($clientNotes as $note)
-                                @php
-                                    $color = \App\Models\Note::getColorForType($note->type);
-                                    $typeLabel = \App\Models\Note::types()[$note->type] ?? $note->type;
-                                    $iconClass = match($note->type) {
-                                        \App\Models\Note::TYPE_EMAIL => 'ph-duotone ph-envelope',
-                                        \App\Models\Note::TYPE_CHAMADA => 'ph-duotone ph-phone',
-                                        \App\Models\Note::TYPE_REUNIAO => 'ph-duotone ph-calendar',
-                                        default => 'ph-duotone ph-note',
-                                    };
-                                    $bgClass = match($color) {
-                                        'text-success' => 'bg-success-light text-success',
-                                        'text-info' => 'bg-info-light text-info',
-                                        'text-warning' => 'bg-warning-light text-warning',
-                                        'text-danger' => 'bg-danger-light text-danger',
-                                        'text-primary' => 'bg-primary-light text-primary',
-                                        default => 'bg-primary-light text-primary',
-                                    };
-                                @endphp
-                                <div class="activity-item">
-                                    <div class="activity-icon {{ $bgClass }}">
-                                        <i class="{{ $iconClass }}"></i>
-                                    </div>
-                                    <div class="activity-content">
-                                        <div class="activity-title">{{ $typeLabel }}</div>
-                                        <div class="activity-description">{{ $note->note }}</div>
-                                        <div class="activity-time">
-                                            <i class="ph ph-clock"></i> {{ $note->created_at->format('d/m/Y H:i') }}
-                                            @if($note->user)
-                                                por {{ $note->user->name }}
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @else
-                        <p class="text-muted text-center py-3">Nenhuma nota adicionada ainda.</p>
-                    @endif
-                </div>
-
             </div>
         </div>
     </div>
@@ -898,11 +820,12 @@
     </div>
 </div>
 
-@include('partials.note-form-modal', ['route' => route('clientes.storeNote', $cliente), 'modelName' => 'cliente'])
-
 @include('partials.payment-modal')
 
-@include('relatorios.partials.marcacao-detalhe-modals', ['marcacoes' => $marcacoes ?? collect()])
+@include('relatorios.partials.marcacao-detalhe-modals', [
+    'marcacoes' => $marcacoes ?? collect(),
+    'marcacaoDetailMode' => 'client',
+])
 
 @endsection
 @section('js')
@@ -915,12 +838,12 @@
     const hash = window.location.hash;
     const params = new URLSearchParams(window.location.search);
     const activeTabParam = params.get('active_tab');
-    const validTabs = ['tab-resumo', 'tab-ficha-tecnica', 'tab-details', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log', 'tab-notas'];
+    const validTabs = ['tab-resumo', 'tab-ficha-tecnica', 'tab-preferencias', 'tab-marcacoes', 'tab-vendas', 'tab-estatisticas', 'tab-log'];
     var tabId = hash && validTabs.includes(hash.slice(1)) ? hash.slice(1) : null;
     if (!tabId && activeTabParam && validTabs.includes(activeTabParam)) {
         tabId = activeTabParam;
     }
-    if (tabId === 'tab-ficha-tecnica') {
+    if (tabId === 'tab-ficha-tecnica' || tabId === 'tab-details' || tabId === 'tab-notas') {
         tabId = 'tab-resumo';
     }
 
