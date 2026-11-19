@@ -196,7 +196,7 @@
               <td class="text-end text-nowrap">{{ $linha->comissao_taxa ?? '—' }}</td>
               <td class="text-end text-nowrap">
                 @if(!empty($linha->retencao_taxa))
-                  <span class="badge bg-secondary-subtle text-secondary border" title="Retenção aplicada nesta venda">{{ $linha->retencao_taxa }}</span>
+                  <span class="badge bg-secondary-subtle text-secondary border" title="Retenção aplicada nesta linha (1× por fatura e técnica se for valor fixo em €)">{{ $linha->retencao_taxa }}</span>
                 @else
                   <span class="text-muted" title="Sem taxa de retenção nesta venda">—</span>
                 @endif

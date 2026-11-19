@@ -281,7 +281,8 @@ class ComissoesReportService
             $comissaoTaxa = $commissionPeriod?->formatDisplay();
 
             $retentionPeriod = $agent?->retentionFeePeriodForDate($saleDate);
-            $retencaoTaxa = $retentionPeriod?->formatDisplay();
+            // Em € a retenção deduz-se 1× por fatura+técnica; o badge só na linha onde foi aplicada.
+            $retencaoTaxa = null;
 
             // 1) Comissão sobre o valor (c/ ou s/ IVA). 2) Retenção descontada depois, no valor a pagar.
             [$comissaoComIva, $comissaoSemIva] = $this->commissionAmounts(
@@ -295,17 +296,30 @@ class ComissoesReportService
             );
 
             if ($retentionPeriod !== null) {
+                $retUnit = (string) ($retentionPeriod->unit ?: Agent::COMMISSION_UNIT_EURO);
+                $showRetencaoBadge = true;
+                if ($retUnit === Agent::COMMISSION_UNIT_EURO) {
+                    $retKey = (int) $sale->id.':'.$userId;
+                    if (isset($retentionEuroCounted[$retKey])) {
+                        $showRetencaoBadge = false;
+                    }
+                }
+
                 [$comissaoComIva, $comissaoSemIva] = $this->subtractRetentionFromCommission(
                     $comissaoComIva,
                     $comissaoSemIva,
                     $valorComIva,
                     $valorSemIva,
                     $retentionPeriod->rate,
-                    (string) ($retentionPeriod->unit ?: Agent::COMMISSION_UNIT_EURO),
+                    $retUnit,
                     (int) $sale->id,
                     $userId,
                     $retentionEuroCounted,
                 );
+
+                if ($showRetencaoBadge) {
+                    $retencaoTaxa = $retentionPeriod->formatDisplay();
+                }
             }
 
             $out->push((object) [

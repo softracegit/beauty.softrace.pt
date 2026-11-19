@@ -236,6 +236,61 @@ class ComissoesReportTest extends TestCase
         $this->assertSame(16.2, (float) $linesBefore->first()->comissao_com_iva); // 60% de 27
     }
 
+    public function test_euro_retention_badge_once_per_invoice_and_technician(): void
+    {
+        $fx = $this->singleSaleFixture();
+        session([\App\Http\Middleware\SetCurrentStore::SESSION_KEY => $fx['store']->id]);
+
+        $agent = Agent::query()->where('user_id', $fx['tech']->id)->firstOrFail();
+        AgentCommissionPeriod::query()->where('agent_id', $agent->id)->delete();
+        AgentCommissionPeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 60,
+            'unit' => Agent::COMMISSION_UNIT_PERCENT,
+            'effective_from' => '2026-01-01',
+        ]);
+        $agent->refreshCommissionCache();
+        AgentRetentionFeePeriod::query()->create([
+            'agent_id' => $agent->id,
+            'rate' => 1.5,
+            'unit' => Agent::COMMISSION_UNIT_EURO,
+            'effective_from' => '2026-06-01',
+        ]);
+        $agent->refreshRetentionFeeCache();
+
+        $firstItem = $fx['sale']->items()->firstOrFail();
+        $fx['sale']->update(['total' => 54, 'iva_total' => 10.1, 'valor_pago' => 54]);
+        $firstItem->update(['preco_unitario' => 27, 'subtotal' => 27]);
+        SaleItem::query()->create([
+            'sale_id' => $fx['sale']->id,
+            'tipo' => SaleItem::TIPO_SERVICO,
+            'calendar_event_service_id' => $firstItem->calendar_event_service_id,
+            'service_id' => $firstItem->service_id,
+            'descricao' => 'Segundo serviço mesma técnica',
+            'quantidade' => 1,
+            'preco_unitario' => 27,
+            'subtotal' => 27,
+            'sort_order' => 1,
+        ]);
+
+        $sale = $fx['sale']->fresh()->load([
+            'client',
+            'items.service',
+            'items.calendarEventService.event.user',
+            'calendarEvent.user',
+        ]);
+
+        $lines = app(ComissoesReportService::class)->linesCollection(collect([$sale]));
+        $this->assertCount(2, $lines);
+
+        $withBadge = $lines->filter(fn ($l) => $l->retencao_taxa === '1,50 €');
+        $this->assertCount(1, $withBadge, 'Retenção em € só aparece uma vez por fatura+técnica');
+        $this->assertTrue($lines->contains(fn ($l) => $l->retencao_taxa === null));
+
+        // Deduzida 1×: 60%×27 − 1,50 + 60%×27 = 14,70 + 16,20
+        $this->assertEqualsWithDelta(30.9, (float) $lines->sum('comissao_com_iva'), 0.01);
+    }
+
     public function test_retention_fee_history_uses_rate_in_force_on_sale_date(): void
     {
         $fx = $this->singleSaleFixture();
