@@ -227,6 +227,8 @@
         els.modalTitle = document.getElementById('bookingModalTitle');
         els.modalMeta = document.getElementById('booking-modal-service-meta');
         els.modalOptionsWrap = document.getElementById('booking-modal-options-wrap');
+        els.modalSingleWrap = document.getElementById('booking-modal-single-wrap');
+        els.modalSingle = document.getElementById('booking-modal-single');
         els.modalOptions = document.getElementById('booking-modal-options');
         els.modalOptionsError = document.getElementById('booking-modal-options-error');
         els.modalAddons = document.getElementById('booking-modal-addons');
@@ -3174,6 +3176,12 @@
         if (els.modalOptions) {
             els.modalOptions.innerHTML = '';
         }
+        if (els.modalSingle) {
+            els.modalSingle.innerHTML = '';
+        }
+        if (els.modalSingleWrap) {
+            els.modalSingleWrap.classList.add('d-none');
+        }
         if (els.modalOptionsWrap) {
             els.modalOptionsWrap.classList.add('d-none');
         }
@@ -3188,6 +3196,43 @@
             els.modalExtrasWrap.classList.add('d-none');
         }
         clearModalOptionsError();
+    }
+
+    /**
+     * Serviço sem variantes: mostra o próprio serviço como opção única já escolhida,
+     * para o painel não abrir vazio (só visual; não envia variante).
+     */
+    function renderModalSingleOption(service) {
+        if (!els.modalSingle || !els.modalSingleWrap || !service) {
+            return;
+        }
+        var label = document.createElement('label');
+        label.className = 'booking-modal-option booking-modal-option--single';
+        var main = document.createElement('div');
+        main.className = 'booking-modal-option__main';
+        var nameEl = document.createElement('span');
+        nameEl.className = 'booking-modal-option__name';
+        nameEl.textContent = service.name || '';
+        var metaEl = document.createElement('span');
+        metaEl.className = 'booking-modal-option__meta';
+        metaEl.textContent = joinPriceAndDuration(
+            service.priceFormatted || formatMoneyEUR(service.price),
+            service.duration
+        );
+        main.appendChild(nameEl);
+        main.appendChild(metaEl);
+        var radWrap = document.createElement('div');
+        radWrap.className = 'booking-modal-option__radio';
+        var input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'booking-service-single';
+        input.checked = true;
+        input.setAttribute('aria-label', service.name || '');
+        radWrap.appendChild(input);
+        label.appendChild(main);
+        label.appendChild(radWrap);
+        els.modalSingle.appendChild(label);
+        els.modalSingleWrap.classList.remove('d-none');
     }
 
     function clearModalOptionsError() {
@@ -3909,6 +3954,7 @@
                 service.priceFormatted || formatMoneyEUR(service.price),
                 service.duration
             );
+            renderModalSingleOption(service);
         }
 
         if (extras.length > 0 && els.modalExtrasWrap && els.modalExtras) {

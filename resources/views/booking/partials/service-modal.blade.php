@@ -13,6 +13,11 @@
                     <span class="booking-modal-stepper__item" data-step="1">1 · {{ __('booking.partials.service_modal_step_option') }}</span>
                     <span class="booking-modal-stepper__item" data-step="2">2 · {{ __('booking.partials.service_modal_step_extras') }}</span>
                 </div>
+                {{-- Serviço sem variantes: o próprio serviço aparece como opção única, já escolhida --}}
+                <div id="booking-modal-single-wrap" class="d-none mt-3">
+                    <p class="small fw-semibold text-dark mb-2">{{ __('booking.partials.service_modal_options') }}</p>
+                    <div id="booking-modal-single" class="booking-modal-options" role="radiogroup" aria-label="{{ __('booking.partials.service_modal_options_aria') }}"></div>
+                </div>
                 <div id="booking-modal-options-wrap" class="d-none mt-3">
                     <p class="small fw-semibold text-dark mb-2">{{ __('booking.partials.service_modal_options') }}</p>
                     <div id="booking-modal-options" class="booking-modal-options" role="radiogroup" aria-label="{{ __('booking.partials.service_modal_options_aria') }}"></div>
