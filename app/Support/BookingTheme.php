@@ -25,6 +25,9 @@ final class BookingTheme
 
     public const MINIMAL = 'minimal';
 
+    /** Tema usado quando a loja não escolheu nenhum (ou escolheu um que já não existe). */
+    public const FALLBACK = self::MINIMAL;
+
     public const KEY = CrmSetting::KEY_BOOKING_THEME;
 
     /** Temas com layout full-width, resumo fixo à direita e passos no conteúdo. */
@@ -49,33 +52,6 @@ final class BookingTheme
     public static function registry(): array
     {
         return [
-            self::DEFAULT => [
-                'id' => self::DEFAULT,
-                'label' => 'Clássico',
-                'description' => 'Layout atual — fundo cinza claro, acento azul e tipografia Plus Jakarta Sans.',
-                'css' => null,
-                'fonts' => 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap',
-            ],
-            self::ELEGANT => [
-                'id' => self::ELEGANT,
-                'label' => 'Elegante',
-                'description' => 'Estilo minimalista — fundo creme, acento preto, serif nos títulos e passos numerados.',
-                'css' => [
-                    'booking-assets/css/themes/refined.css',
-                    'booking-assets/css/themes/elegant.css',
-                ],
-                'fonts' => 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap',
-            ],
-            self::NOIR => [
-                'id' => self::NOIR,
-                'label' => 'Noir',
-                'description' => 'Tema escuro minimalista — fundo quase preto, acentos lilás e azul, tipografia sans-serif.',
-                'css' => [
-                    'booking-assets/css/themes/refined.css',
-                    'booking-assets/css/themes/noir.css',
-                ],
-                'fonts' => 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,500&display=swap',
-            ],
             self::MINIMAL => [
                 'id' => self::MINIMAL,
                 'label' => 'Minimal',
@@ -85,6 +61,13 @@ final class BookingTheme
                     'booking-assets/css/themes/minimal.css',
                 ],
                 'fonts' => 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap',
+            ],
+            self::DEFAULT => [
+                'id' => self::DEFAULT,
+                'label' => 'Clássico',
+                'description' => 'Layout atual — fundo cinza claro, acento azul e tipografia Plus Jakarta Sans.',
+                'css' => null,
+                'fonts' => 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap',
             ],
         ];
     }
@@ -104,7 +87,7 @@ final class BookingTheme
     {
         $id = $themeId ?? CrmSetting::bookingTheme($storeId);
 
-        return array_key_exists($id, self::registry()) ? $id : self::DEFAULT;
+        return array_key_exists($id, self::registry()) ? $id : self::FALLBACK;
     }
 
     public static function usesRefinedLayout(?string $themeId = null, ?int $storeId = null): bool

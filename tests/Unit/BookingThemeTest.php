@@ -7,34 +7,32 @@ use PHPUnit\Framework\TestCase;
 
 class BookingThemeTest extends TestCase
 {
-    public function test_registry_contains_all_themes(): void
+    public function test_registry_only_offers_minimal_and_classic(): void
     {
         $registry = BookingTheme::registry();
 
-        $this->assertArrayHasKey(BookingTheme::DEFAULT, $registry);
-        $this->assertArrayHasKey(BookingTheme::ELEGANT, $registry);
-        $this->assertArrayHasKey(BookingTheme::NOIR, $registry);
+        $this->assertSame([BookingTheme::MINIMAL, BookingTheme::DEFAULT], array_keys($registry));
         $this->assertNull($registry[BookingTheme::DEFAULT]['css']);
-        $this->assertIsArray($registry[BookingTheme::ELEGANT]['css']);
-        $this->assertIsArray($registry[BookingTheme::NOIR]['css']);
+        $this->assertIsArray($registry[BookingTheme::MINIMAL]['css']);
     }
 
-    public function test_resolve_falls_back_to_default_for_unknown_theme(): void
+    public function test_resolve_falls_back_to_minimal_for_unknown_or_removed_theme(): void
     {
-        $this->assertSame(BookingTheme::DEFAULT, BookingTheme::resolve('tema-inexistente'));
-        $this->assertSame(BookingTheme::DEFAULT, BookingTheme::resolve(''));
+        $this->assertSame(BookingTheme::MINIMAL, BookingTheme::resolve('tema-inexistente'));
+        $this->assertSame(BookingTheme::MINIMAL, BookingTheme::resolve(''));
+        $this->assertSame(BookingTheme::MINIMAL, BookingTheme::resolve(BookingTheme::ELEGANT));
+        $this->assertSame(BookingTheme::MINIMAL, BookingTheme::resolve(BookingTheme::NOIR));
     }
 
     public function test_resolve_accepts_known_themes(): void
     {
-        $this->assertSame(BookingTheme::ELEGANT, BookingTheme::resolve(BookingTheme::ELEGANT));
-        $this->assertSame(BookingTheme::NOIR, BookingTheme::resolve(BookingTheme::NOIR));
+        $this->assertSame(BookingTheme::DEFAULT, BookingTheme::resolve(BookingTheme::DEFAULT));
+        $this->assertSame(BookingTheme::MINIMAL, BookingTheme::resolve(BookingTheme::MINIMAL));
     }
 
-    public function test_uses_refined_layout_for_elegant_and_noir(): void
+    public function test_uses_refined_layout_for_minimal_only(): void
     {
-        $this->assertTrue(BookingTheme::usesRefinedLayout(BookingTheme::ELEGANT));
-        $this->assertTrue(BookingTheme::usesRefinedLayout(BookingTheme::NOIR));
+        $this->assertTrue(BookingTheme::usesRefinedLayout(BookingTheme::MINIMAL));
         $this->assertFalse(BookingTheme::usesRefinedLayout(BookingTheme::DEFAULT));
     }
 
@@ -43,8 +41,6 @@ class BookingThemeTest extends TestCase
         $registry = BookingTheme::registry();
 
         $this->assertNull($registry[BookingTheme::DEFAULT]['css']);
-        $this->assertCount(2, $registry[BookingTheme::ELEGANT]['css']);
-        $this->assertCount(2, $registry[BookingTheme::NOIR]['css']);
-        $this->assertContains('booking-assets/css/themes/noir.css', $registry[BookingTheme::NOIR]['css']);
+        $this->assertContains('booking-assets/css/themes/minimal.css', $registry[BookingTheme::MINIMAL]['css']);
     }
 }

@@ -10,8 +10,7 @@
       @php
         $themeId = $theme['id'];
         [$previewBg, $previewAccent] = match ($themeId) {
-            \App\Support\BookingTheme::ELEGANT => ['#faf8f5', '#111111'],
-            \App\Support\BookingTheme::NOIR => ['#13111a', '#9d8cff'],
+            \App\Support\BookingTheme::MINIMAL => ['#ffffff', '#111111'],
             default => ['#f3f4f6', '#0d6efd'],
         };
       @endphp
@@ -22,9 +21,9 @@
             type="radio"
             name="booking_theme"
             value="{{ $themeId }}"
-            @checked(old('booking_theme', $bookingTheme ?? \App\Support\BookingTheme::DEFAULT) === $themeId)
+            @checked(old('booking_theme', $bookingTheme ?? \App\Support\BookingTheme::FALLBACK) === $themeId)
           >
-          <span class="card h-100 booking-theme-card {{ old('booking_theme', $bookingTheme ?? \App\Support\BookingTheme::DEFAULT) === $themeId ? 'is-selected' : '' }}">
+          <span class="card h-100 booking-theme-card {{ old('booking_theme', $bookingTheme ?? \App\Support\BookingTheme::FALLBACK) === $themeId ? 'is-selected' : '' }}">
             <span class="card-body d-flex flex-column gap-2">
               <span class="booking-theme-card__preview rounded-3 border" style="background: {{ $previewBg }}; --preview-accent: {{ $previewAccent }};" aria-hidden="true">
                 <span class="booking-theme-card__preview-bar"></span>

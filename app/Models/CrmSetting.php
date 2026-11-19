@@ -579,7 +579,7 @@ class CrmSetting extends Model
     public static function bookingTheme(?int $storeId = null): string
     {
         return \App\Support\BookingTheme::resolve(
-            self::getString(self::KEY_BOOKING_THEME, \App\Support\BookingTheme::DEFAULT, $storeId),
+            self::getString(self::KEY_BOOKING_THEME, \App\Support\BookingTheme::FALLBACK, $storeId),
             $storeId,
         );
     }

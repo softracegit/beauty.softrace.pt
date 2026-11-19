@@ -11,37 +11,34 @@
         <div class="flex-grow-1 booking-main-body">
             <div @class(['container booking-container-wide px-3 pb-4 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
                 <main @class(['pt-1 booking-account-layout', 'booking-elegant-account-layout' => ($bookingUsesRefinedLayout ?? false)])>
-                    @include('booking.conta.partials.flash-messages')
 
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'marcacoes'])
 
                     <div class="booking-account-content">
+                        @include('booking.conta.partials.flash-messages')
+                        @if (request()->boolean('marcacao_confirmada'))
+                            {{-- Marcação acabada de fazer: é a primeira coisa que o cliente vê --}}
+                            <section class="booking-account-confirmed" role="status">
+                                <span class="booking-account-confirmed__icon" aria-hidden="true">
+                                    <i class="bi bi-check-lg"></i>
+                                </span>
+                                <div class="booking-account-confirmed__body">
+                                    <h2 class="booking-account-confirmed__title">{{ __('booking.account.appointment_confirmed') }}</h2>
+                                    <p class="booking-account-confirmed__text">
+                                        {!! str_replace(
+                                            ':business',
+                                            '<strong>' . e($businessName) . '</strong>',
+                                            __('booking.account.appointment_confirm_body')
+                                        ) !!}
+                                    </p>
+                                </div>
+                            </section>
+                        @endif
                         @include('booking.conta.partials.resume-booking')
                         @include('booking.partials.elegant-account-header', [
                             'elegantAccountTitle' => __('booking.account.appointments_history_title'),
                             'elegantAccountSubtitle' => __('booking.account.appointments_history_subtitle'),
                         ])
-
-                        @if (request()->boolean('marcacao_confirmada'))
-                            <div class="text-center mb-4">
-                                <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success bg-opacity-10 text-success mb-3" style="width: 3.5rem; height: 3.5rem;" aria-hidden="true">
-                                    <i class="bi bi-check-lg fs-4"></i>
-                                </span>
-                                <h1 class="booking-services-heading h5 fw-semibold text-dark mb-2">{{ __('booking.account.appointment_confirmed') }}</h1>
-                                <p class="text-muted small mb-0">
-                                    {!! str_replace(
-                                        ':business',
-                                        '<span class="fw-semibold text-dark">' . e($businessName) . '</span>',
-                                        __('booking.account.appointment_confirm_body')
-                                    ) !!}
-                                </p>
-                            </div>
-                            @if (request()->boolean('primeira_marcacao'))
-                                <div class="alert alert-info small py-2 px-3 mb-4 text-start" role="status">
-                                    {!! __('booking.account.first_booking_alert_html') !!}
-                                </div>
-                            @endif
-                        @endif
 
                         @include('booking.conta.partials.marcacoes', [
                             'marcacoes' => $marcacoes,

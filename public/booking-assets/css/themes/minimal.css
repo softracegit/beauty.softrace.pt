@@ -1559,3 +1559,10 @@ body[data-booking-theme="minimal"] .booking-summary-mobile-drawer .btn-close:hov
         padding-right: 1.5rem;
     }
 }
+
+@media (max-width: 991.98px) {
+    /* Área de conta: o mesmo espaço abaixo da navbar que as páginas de marcação */
+    [data-booking-theme="minimal"] .booking-account-content {
+        padding-top: 1.75rem;
+    }
+}

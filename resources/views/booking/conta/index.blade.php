@@ -11,7 +11,6 @@
         <div class="flex-grow-1 booking-main-body">
             <div @class(['container booking-container-wide px-3 pb-4 pt-0', 'booking-elegant-container' => ($bookingUsesRefinedLayout ?? false)])>
                 <main @class(['pt-1 booking-account-layout', 'booking-elegant-account-layout' => ($bookingUsesRefinedLayout ?? false)])>
-                    @include('booking.conta.partials.flash-messages')
 
                     @php
                         $emailVerified = !empty($user->email_verified_at);
@@ -44,6 +43,7 @@
                     @include('booking.conta.partials.sidebar', ['accountNavActive' => 'perfil'])
 
                     <div class="booking-account-content">
+                        @include('booking.conta.partials.flash-messages')
                         @include('booking.conta.partials.resume-booking')
                         @include('booking.partials.elegant-account-header', [
                             'elegantAccountEyebrow' => __('booking.elegant.account_profile_eyebrow'),

@@ -39,7 +39,7 @@ final class BookingStoreComposer
     {
         $resolvedTheme = BookingTheme::resolve(CrmSetting::getString(
             CrmSetting::KEY_BOOKING_THEME,
-            BookingTheme::DEFAULT,
+            BookingTheme::FALLBACK,
             $store->id,
         ), $store->id);
 

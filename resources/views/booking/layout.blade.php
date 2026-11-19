@@ -14,7 +14,7 @@
         gtag('config', 'G-E2MC9BE3P8');
     </script>
     @php
-        $bookingThemeId = $bookingTheme ?? \App\Support\BookingTheme::DEFAULT;
+        $bookingThemeId = $bookingTheme ?? \App\Support\BookingTheme::FALLBACK;
         $bookingThemeMeta = $bookingThemeMeta ?? \App\Support\BookingTheme::resolved();
         $bookingThemeFonts = $bookingThemeMeta['fonts'] ?? null;
         $bookingThemeCssFiles = \App\Support\BookingTheme::cssAssetPaths();
