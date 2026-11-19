@@ -344,7 +344,7 @@
     });
 
     root.querySelectorAll(
-      'input[type="text"][name="marcacoes_desde"], input[type="text"][name="marcacoes_ate"], input[type="text"][name="vendas_desde"], input[type="text"][name="vendas_ate"], input[type="text"][name="comissoes_desde"], input[type="text"][name="comissoes_ate"]'
+      'input[type="text"][name="marcacoes_desde"], input[type="text"][name="marcacoes_ate"], input[type="text"][name="vendas_desde"], input[type="text"][name="vendas_ate"], input[type="text"][name="comissoes_desde"], input[type="text"][name="comissoes_ate"], input[type="text"][name="sms_desde"], input[type="text"][name="sms_ate"]'
     ).forEach(function (el) {
       if (el._flatpickr) {
         window.enhanceCrmFlatpickrInstance(el._flatpickr);

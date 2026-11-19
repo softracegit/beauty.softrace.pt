@@ -20,6 +20,8 @@ use App\Services\VendasReportService;
 use App\Support\ComissoesReportPdfColumns;
 use App\Support\DateTimeDisplay;
 use App\Support\MarcacoesReportPdfColumns;
+use App\Support\PhoneDisplay;
+use App\Support\SmsReportPdfColumns;
 use App\Support\TechnicianFilterUserId;
 use App\Support\MarcacoesReportEstadoFilter;
 use App\Support\StoreBusinessTime;
@@ -1214,16 +1216,9 @@ class RelatoriosController extends Controller
         $storeCtx = $this->resolveReportStoreContext($request);
         $storeIds = $storeCtx['store_ids'];
         $displayStoreId = $storeCtx['store_id'] ?? $storeIds[0];
-        $today = StoreBusinessTime::nowForStore($displayStoreId)->startOfDay();
-        $availableYears = $this->smsReportService->availableYears($storeIds);
-        $year = (int) $request->get('year', $today->year);
-        $year = max($availableYears[0] ?? $today->year, min($today->year, $year));
-        $month = max(1, min(12, (int) $request->get('month', $today->month)));
-        if ($year === $today->year && $month > $today->month) {
-            $month = $today->month;
-        }
+        $filters = $this->smsFiltersFromRequest($request);
 
-        $messages = $this->smsReportService->reportQuery($storeIds, $year, $month)
+        $messages = $this->smsReportService->reportQuery($storeIds, $filters)
             ->orderByDesc('sent_at')
             ->orderByDesc('id')
             ->paginate(50)
@@ -1234,14 +1229,147 @@ class RelatoriosController extends Controller
             'reportStoreFilter' => $storeCtx,
             'messages' => $messages,
             'summaryCounts' => $this->smsReportService->summaryCounts($storeIds),
-            'month' => $month,
-            'year' => $year,
-            'monthOptions' => $this->smsReportService->monthOptions(),
-            'availableYears' => $availableYears,
-            'periodLabel' => $this->smsReportService->periodLabel($year, $month, $displayStoreId),
+            'smsDesde' => $filters['desde'],
+            'smsAte' => $filters['ate'],
+            'smsCliente' => $filters['cliente'],
+            'smsTipo' => $filters['tipo'],
+            'smsTelemovel' => $filters['telemovel'],
+            'clientesOpts' => $this->smsReportService->clientesOpts($storeIds),
             'typeLabels' => SmsMessage::typeLabels(),
+            'smsPdfColumnOptions' => SmsReportPdfColumns::labels(),
+            'displayStoreId' => $displayStoreId,
             'storeTimezone' => StoreBusinessTime::timezoneForStore($displayStoreId),
         ]);
+    }
+
+    public function smsExport(Request $request): StreamedResponse
+    {
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
+        $displayStoreId = $storeCtx['store_id'] ?? $storeIds[0];
+        $filters = $this->smsFiltersFromRequest($request);
+        $typeLabels = SmsMessage::typeLabels();
+
+        $messages = $this->smsReportService->reportQuery($storeIds, $filters)
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('SMS');
+        $sheet->fromArray([$this->relatorioLojaFiltroLine($storeCtx)], null, 'A1');
+        $sheet->fromArray([[
+            'Data',
+            'Tipo',
+            'Remetente',
+            'Cliente',
+            'Telemóvel',
+            'Mensagem',
+        ]], null, 'A2');
+
+        $rowIndex = 3;
+        foreach ($messages as $sms) {
+            $clientName = $sms->client_name ?: ($sms->client?->name ?? '');
+            $sheet->fromArray([[
+                DateTimeDisplay::formatInstant($sms->sent_at, $displayStoreId, 'd/m/Y H:i', ''),
+                $typeLabels[$sms->type] ?? $sms->type,
+                (string) $sms->from_phone,
+                $clientName,
+                PhoneDisplay::formatInternational($sms->to_phone) ?? (string) $sms->to_phone,
+                (string) $sms->body,
+            ]], null, 'A'.$rowIndex);
+            $rowIndex++;
+        }
+
+        foreach (range('A', 'F') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'sms_'.now()->format('Y-m-d_His').'.xlsx';
+
+        return response()->streamDownload(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function smsPdf(Request $request)
+    {
+        $storeCtx = $this->resolveReportStoreContext($request);
+        $storeIds = $storeCtx['store_ids'];
+        $displayStoreId = $storeCtx['store_id'] ?? $storeIds[0];
+        $filters = $this->smsFiltersFromRequest($request);
+        $pdfColumns = SmsReportPdfColumns::resolveFromRequest($request);
+
+        $messages = $this->smsReportService->reportQuery($storeIds, $filters)
+            ->orderByDesc('sent_at')
+            ->orderByDesc('id')
+            ->get();
+
+        $pdf = Pdf::loadView('relatorios.pdf.sms', [
+            'messages' => $messages,
+            'filtrosLinhas' => $this->smsFiltrosResumo($storeCtx, $filters),
+            'appName' => config('app.name'),
+            'totalLinhas' => $messages->count(),
+            'pdfColumns' => $pdfColumns,
+            'pdfColumnLabels' => SmsReportPdfColumns::labels(),
+            'typeLabels' => SmsMessage::typeLabels(),
+            'displayStoreId' => $displayStoreId,
+        ])->setPaper('a4', SmsReportPdfColumns::resolveOrientationFromRequest($request));
+
+        return $pdf->stream('sms_'.now()->format('Y-m-d_His').'.pdf');
+    }
+
+    /**
+     * @return array{desde: string, ate: string, cliente: mixed, tipo: ?string, telemovel: ?string}
+     */
+    private function smsFiltersFromRequest(Request $request): array
+    {
+        $desde = $this->normalizeRelatorioDate($request->get('sms_desde')) ?: $this->marcacoesDefaultDesde();
+        $ate = $this->normalizeRelatorioDate($request->get('sms_ate')) ?: $this->marcacoesDefaultAte();
+        $tipo = $request->get('sms_tipo');
+        $tipo = is_string($tipo) && $tipo !== '' ? $tipo : null;
+        $telemovel = $request->get('sms_telemovel');
+        $telemovel = is_string($telemovel) ? trim($telemovel) : null;
+        if ($telemovel === '') {
+            $telemovel = null;
+        }
+
+        return [
+            'desde' => $desde,
+            'ate' => $ate,
+            'cliente' => $request->get('sms_cliente'),
+            'tipo' => $tipo,
+            'telemovel' => $telemovel,
+        ];
+    }
+
+    /**
+     * @param  array{store_id: ?int, scope: string, store_ids: list<int>}  $storeCtx
+     * @param  array{desde: string, ate: string, cliente: mixed, tipo: ?string, telemovel: ?string}  $filters
+     * @return array<int, string>
+     */
+    private function smsFiltrosResumo(array $storeCtx, array $filters): array
+    {
+        $lines = [
+            $this->relatorioLojaFiltroLine($storeCtx),
+            'Período: '.Carbon::parse($filters['desde'])->format('d/m/Y').' a '.Carbon::parse($filters['ate'])->format('d/m/Y'),
+        ];
+
+        if ($cid = $filters['cliente'] ?? null) {
+            $lines[] = 'Cliente: '.(Client::query()->forOrganization(current_organization_id())->find($cid)?->name ?? '—');
+        }
+        if ($tipo = $filters['tipo'] ?? null) {
+            $lines[] = 'Tipo: '.(SmsMessage::typeLabels()[$tipo] ?? $tipo);
+        }
+        if ($tel = $filters['telemovel'] ?? null) {
+            $lines[] = 'Telemóvel: '.$tel;
+        }
+
+        return $lines;
     }
 
     /**

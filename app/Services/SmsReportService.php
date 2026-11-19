@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Client;
 use App\Models\SmsMessage;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
@@ -35,71 +36,87 @@ class SmsReportService
 
     /**
      * @param  list<int>  $storeIds
+     * @param  array{
+     *   desde?: ?string,
+     *   ate?: ?string,
+     *   cliente?: mixed,
+     *   tipo?: ?string,
+     *   telemovel?: ?string
+     * }  $filters
      */
-    public function reportQuery(array $storeIds, int $year, int $month): Builder
+    public function reportQuery(array $storeIds, array $filters = []): Builder
     {
         $storeIds = $this->normalizeStoreIds($storeIds);
         $anchorStoreId = $storeIds[0];
-        $today = StoreBusinessTime::nowForStore($anchorStoreId)->startOfDay();
-        $year = max($this->minYear($storeIds), min($today->year, $year));
-        $month = max(1, min(12, $month));
-        if ($year === $today->year && $month > $today->month) {
-            $month = $today->month;
+        $tz = StoreBusinessTime::timezoneForStore($anchorStoreId);
+
+        $desde = $filters['desde'] ?? null;
+        $ate = $filters['ate'] ?? null;
+        if (! is_string($desde) || $desde === '') {
+            $desde = StoreBusinessTime::nowForStore($anchorStoreId)->copy()->startOfMonth()->toDateString();
+        }
+        if (! is_string($ate) || $ate === '') {
+            $ate = StoreBusinessTime::nowForStore($anchorStoreId)->copy()->endOfMonth()->toDateString();
         }
 
-        $start = Carbon::create($year, $month, 1, 0, 0, 0, $today->timezoneName)->startOfMonth()->utc();
-        $end = Carbon::create($year, $month, 1, 0, 0, 0, $today->timezoneName)->endOfMonth()->endOfDay()->utc();
+        $start = Carbon::createFromFormat('Y-m-d', $desde, $tz)->startOfDay()->utc();
+        $end = Carbon::createFromFormat('Y-m-d', $ate, $tz)->endOfDay()->utc();
 
-        return SmsMessage::query()
+        $query = SmsMessage::query()
             ->whereIn('store_id', $storeIds)
             ->whereBetween('sent_at', [$start, $end])
             ->with(['client:id,name']);
-    }
 
-    /**
-     * @return array<int, string>
-     */
-    public function monthOptions(): array
-    {
-        return [
-            1 => 'Janeiro', 2 => 'Fevereiro', 3 => 'Março', 4 => 'Abril',
-            5 => 'Maio', 6 => 'Junho', 7 => 'Julho', 8 => 'Agosto',
-            9 => 'Setembro', 10 => 'Outubro', 11 => 'Novembro', 12 => 'Dezembro',
-        ];
+        $cliente = $filters['cliente'] ?? null;
+        if ($cliente !== null && $cliente !== '') {
+            $query->where('client_id', (int) $cliente);
+        }
+
+        $tipo = $filters['tipo'] ?? null;
+        if (is_string($tipo) && $tipo !== '' && array_key_exists($tipo, SmsMessage::typeLabels())) {
+            $query->where('type', $tipo);
+        }
+
+        $telemovel = $filters['telemovel'] ?? null;
+        if (is_string($telemovel) && trim($telemovel) !== '') {
+            $raw = trim($telemovel);
+            $digits = preg_replace('/\D+/', '', $raw) ?: '';
+            $query->where(function (Builder $q) use ($raw, $digits) {
+                $q->where('to_phone', 'like', '%'.$raw.'%');
+                if ($digits !== '' && $digits !== $raw) {
+                    $q->orWhere('to_phone', 'like', '%'.$digits.'%');
+                }
+            });
+        }
+
+        return $query;
     }
 
     /**
      * @param  list<int>  $storeIds
-     * @return array<int, int>
+     * @return Collection<int, object{id: int, name: string}>
      */
-    public function availableYears(array $storeIds): array
+    public function clientesOpts(array $storeIds): Collection
     {
         $storeIds = $this->normalizeStoreIds($storeIds);
-        $today = StoreBusinessTime::nowForStore($storeIds[0]);
+        $clientIds = SmsMessage::query()
+            ->whereIn('store_id', $storeIds)
+            ->whereNotNull('client_id')
+            ->distinct()
+            ->pluck('client_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->values()
+            ->all();
 
-        return range($this->minYear($storeIds), $today->year);
-    }
+        if ($clientIds === []) {
+            return collect();
+        }
 
-    public function periodLabel(int $year, int $month, ?int $timezoneStoreId = null): string
-    {
-        $tz = StoreBusinessTime::timezoneForStore($timezoneStoreId ?? current_store_id());
-
-        return Carbon::create($year, $month, 1, 0, 0, 0, $tz)
-            ->locale('pt')
-            ->translatedFormat('F Y');
-    }
-
-    /**
-     * @param  list<int>  $storeIds
-     * @return Collection<int, object{month: int, count: int}>
-     */
-    public function countsByTypeForPeriod(array $storeIds, int $year, int $month): Collection
-    {
-        return $this->reportQuery($storeIds, $year, $month)
-            ->selectRaw('type, COUNT(*) as total')
-            ->groupBy('type')
-            ->orderBy('type')
-            ->get();
+        return Client::query()
+            ->whereIn('id', $clientIds)
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     /**
@@ -114,26 +131,5 @@ class SmsReportService
         }
 
         return $ids;
-    }
-
-    /**
-     * @param  list<int>  $storeIds
-     */
-    private function minYear(array $storeIds): int
-    {
-        $storeIds = $this->normalizeStoreIds($storeIds);
-        $anchorStoreId = $storeIds[0];
-        $first = SmsMessage::query()
-            ->whereIn('store_id', $storeIds)
-            ->orderBy('sent_at')
-            ->value('sent_at');
-
-        if ($first === null) {
-            return StoreBusinessTime::nowForStore($anchorStoreId)->year;
-        }
-
-        return StoreBusinessTime::toUtcInstant($first)
-            ?->timezone(StoreBusinessTime::timezoneForStore($anchorStoreId))
-            ->year ?? StoreBusinessTime::nowForStore($anchorStoreId)->year;
     }
 }
