@@ -16,7 +16,7 @@ use DateTimeInterface;
 class ActivityLogDisplay
 {
     /** Atributos omitidos na listagem (ex.: título auto-gerado, já não registado). */
-    private const HIDDEN_CHANGE_ATTRIBUTES = ['title', 'password', 'synthetic', 'synthetic_causer_label'];
+    private const HIDDEN_CHANGE_ATTRIBUTES = ['title', 'password', 'synthetic', 'synthetic_causer_label', 'channel', 'timing'];
 
     /** @var array<int, string> */
     private static array $userNameCache = [];

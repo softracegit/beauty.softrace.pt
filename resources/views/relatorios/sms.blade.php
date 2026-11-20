@@ -68,7 +68,18 @@
     </div>
   </form>
 
-  @php $counts = $summaryCounts ?? ['today' => 0, 'week' => 0, 'month' => 0]; @endphp
+  @php
+    $counts = $summaryCounts ?? ['today' => 0, 'week' => 0, 'month' => 0];
+    $cost = $smsCostEstimate ?? ['total_eur' => 0, 'unit_eur' => 0, 'unit_usd' => 0, 'count' => 0];
+    $periodLabel = trim(($smsDesde ?? '').' a '.($smsAte ?? ''), ' a ');
+    if (($smsDesde ?? '') !== '' && ($smsAte ?? '') !== '') {
+      try {
+        $periodLabel = \Carbon\Carbon::parse($smsDesde)->format('d/m/Y').' – '.\Carbon\Carbon::parse($smsAte)->format('d/m/Y');
+      } catch (\Throwable) {
+        $periodLabel = ($smsDesde ?? '').' – '.($smsAte ?? '');
+      }
+    }
+  @endphp
   <div class="dash-kpi-strip mb-4">
     <div class="dash-kpi">
       <div class="dash-kpi-icon primary"><i class="ph-duotone ph-chat-circle-text"></i></div>
@@ -89,6 +100,41 @@
       <div class="dash-kpi-body">
         <div class="dash-kpi-value">{{ number_format((int) ($counts['month'] ?? 0), 0, ',', '.') }}</div>
         <div class="dash-kpi-label">Enviadas este mês</div>
+      </div>
+    </div>
+    @php $bucketDays = (int) ($smsDailyBreakdown['bucket_days'] ?? 1); @endphp
+    <a
+      href="#smsCostBreakdownModal"
+      class="dash-kpi dash-kpi--link"
+      data-bs-toggle="modal"
+      data-bs-target="#smsCostBreakdownModal"
+      title="Estimativa Twilio: {{ number_format((float) ($cost['unit_usd'] ?? 0), 5, ',', '.') }} USD/SMS × taxa USD→EUR. 1 SMS ≈ 1 segmento. Clique para ver o detalhe."
+      aria-label="Ver custo aproximado do período"
+    >
+      <div class="dash-kpi-icon warning"><i class="ph-duotone ph-currency-eur"></i></div>
+      <div class="dash-kpi-body">
+        <div class="dash-kpi-value">{{ number_format((float) ($cost['total_eur'] ?? 0), 2, ',', '.') }} €</div>
+        <div class="dash-kpi-label">Custo aproximado (período)</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="modal fade" id="smsCostBreakdownModal" tabindex="-1" aria-labelledby="smsCostBreakdownModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title fw-semibold mb-0" id="smsCostBreakdownModalLabel">
+              Custo aproximado {{ $bucketDays > 1 ? 'por períodos de '.$bucketDays.' dias' : 'por dia' }}
+            </h5>
+            <div class="small text-muted mt-1">{{ $periodLabel }} · {{ number_format((int) ($cost['count'] ?? 0), 0, ',', '.') }} SMS · {{ number_format((float) ($cost['total_eur'] ?? 0), 2, ',', '.') }} €</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="smsCostBreakdownChart" style="min-height: 420px;"></div>
+          <p class="small text-muted mb-0 mt-2">Valores aproximados ({{ number_format((float) ($cost['unit_usd'] ?? 0), 5, ',', '.') }} USD/SMS ≈ {{ number_format((float) ($cost['unit_eur'] ?? 0), 4, ',', '.') }} €/SMS){{ $bucketDays > 1 ? ' · barras agrupadas de '.$bucketDays.' em '.$bucketDays.' dias' : '' }}.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -143,4 +189,76 @@
 
 @section('js')
   @include('relatorios.partials.pdf-print-dropdown-script')
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var modalEl = document.getElementById('smsCostBreakdownModal');
+    var chartEl = document.getElementById('smsCostBreakdownChart');
+    if (!modalEl || !chartEl || typeof ApexCharts === 'undefined') return;
+
+    var breakdown = @json($smsDailyBreakdown ?? ['labels' => [], 'counts' => [], 'costs_eur' => []]);
+    var chart = null;
+    var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || '#0d6efd';
+    var muted = getComputedStyle(document.documentElement).getPropertyValue('--muted-color').trim() || '#94a3b8';
+    var warning = getComputedStyle(document.documentElement).getPropertyValue('--warning-color').trim() || '#f59e0b';
+
+    modalEl.addEventListener('shown.bs.modal', function () {
+      if (chart) {
+        chart.resize();
+        return;
+      }
+      chart = new ApexCharts(chartEl, {
+        chart: {
+          type: 'line',
+          height: 420,
+          toolbar: { show: false },
+          fontFamily: 'inherit',
+          stacked: false
+        },
+        series: [
+          { name: 'Envios', type: 'column', data: breakdown.counts || [] },
+          { name: 'Custo (€)', type: 'column', data: breakdown.costs_eur || [] }
+        ],
+        xaxis: {
+          categories: breakdown.labels || [],
+          labels: { style: { colors: muted, fontSize: '11px' }, rotate: -45, hideOverlappingLabels: true }
+        },
+        yaxis: [
+          {
+            seriesName: 'Envios',
+            title: { text: 'Envios', style: { color: muted } },
+            labels: { style: { colors: muted }, formatter: function (v) { return Math.round(v); } },
+            min: 0,
+            forceNiceScale: true
+          },
+          {
+            seriesName: 'Custo (€)',
+            opposite: true,
+            title: { text: 'Custo (€)', style: { color: muted } },
+            labels: {
+              style: { colors: muted },
+              formatter: function (v) { return Number(v).toFixed(2).replace('.', ',') + ' €'; }
+            },
+            min: 0,
+            forceNiceScale: true
+          }
+        ],
+        colors: [accent, warning],
+        plotOptions: { bar: { borderRadius: 3, columnWidth: '55%', dataLabels: { position: 'top' } } },
+        dataLabels: { enabled: false },
+        stroke: { width: [0, 0] },
+        grid: { borderColor: 'rgba(0,0,0,0.06)', strokeDashArray: 4 },
+        legend: { position: 'top', horizontalAlign: 'left' },
+        tooltip: {
+          shared: true,
+          intersect: false,
+          y: [
+            { formatter: function (v) { return Math.round(v) + ' SMS'; } },
+            { formatter: function (v) { return Number(v).toFixed(2).replace('.', ',') + ' €'; } }
+          ]
+        }
+      });
+      chart.render();
+    });
+  });
+  </script>
 @endsection

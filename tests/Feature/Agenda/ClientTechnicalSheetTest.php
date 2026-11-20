@@ -111,6 +111,23 @@ class ClientTechnicalSheetTest extends TestCase
         $response->assertSee('tab-resumo', false);
     }
 
+    public function test_ficha_tecnica_timeline_shows_activity_log_button_for_admin(): void
+    {
+        $fx = $this->fixture();
+        $this->actingAs($fx['staff']);
+
+        $event = $fx['event']->fresh(['eventServiceItems.service', 'user', 'sales']);
+        $html = view('clientes.partials.ficha-tecnica', [
+            'cliente' => $fx['client'],
+            'marcacoes' => collect([$event]),
+            'stats' => null,
+        ])->render();
+
+        $this->assertStringContainsString('js-marcacao-activity-log-trigger', $html);
+        $this->assertStringContainsString('Ver logs', $html);
+        $this->assertStringContainsString(route('agenda.events.activity_log', $fx['event']), $html);
+    }
+
     public function test_event_show_returns_client_alerts_and_technical_fields(): void
     {
         $fx = $this->fixture();

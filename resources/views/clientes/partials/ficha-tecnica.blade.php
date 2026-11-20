@@ -244,6 +244,17 @@
                                 >
                                     <i class="ph ph-file-text" aria-hidden="true"></i>
                                 </button>
+                                @if(auth()->user()?->isAdmin())
+                                    <button
+                                        type="button"
+                                        class="client-ficha-timeline__action-btn client-ficha-timeline__action-btn--logs js-marcacao-activity-log-trigger"
+                                        data-activity-log-url="{{ route('agenda.events.activity_log', $ev) }}"
+                                        title="Ver logs"
+                                        aria-label="Ver logs da marcação"
+                                    >
+                                        <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
+                                    </button>
+                                @endif
                                 <a
                                     href="{{ route('agenda.index', ['event' => $ev->id]) }}"
                                     class="client-ficha-timeline__action-btn client-ficha-timeline__action-btn--calendar"

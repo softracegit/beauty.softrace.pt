@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\BookingSmsActionLink;
 use App\Models\CalendarEvent;
 use App\Models\SmsMessage;
+use App\Services\MarcacaoReminderActivityLogger;
 use App\Services\TwilioSmsService;
 use App\Support\BookingLocale;
 use App\Support\BookingPublicUrl;
@@ -13,7 +14,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class SendBookingReminderSmsJob implements ShouldQueue
 {
@@ -28,7 +28,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
         $this->tries = max(1, (int) config('booking.sms_reminder_max_attempts', 1));
     }
 
-    public function handle(TwilioSmsService $sms): void
+    public function handle(TwilioSmsService $sms, MarcacaoReminderActivityLogger $reminderActivityLogger): void
     {
         $lock = Cache::lock('booking_sms_reminder_event_'.$this->calendarEventId, 120);
 
@@ -92,27 +92,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
 
             $tz = (string) config('booking.business_timezone', config('app.timezone'));
             $startAt = $event->start_at->copy()->timezone($tz);
-            // Marca (Definições → Empresa → Nome da empresa), não o nome da loja.
-            $brandName = trim((string) ($event->store?->organization?->name ?? ''));
-            if ($brandName === '') {
-                $brandName = trim((string) ($event->store?->name ?? config('app.name', 'A sua loja')));
-            }
-            $expiresAt = $event->start_at->copy();
-            $actionLink = BookingSmsActionLink::query()
-                ->where('calendar_event_id', $event->id)
-                ->where('expires_at', '>', now())
-                ->latest('id')
-                ->first();
-            if (! $actionLink) {
-                $actionLink = BookingSmsActionLink::create([
-                    'token' => $this->generateUniqueToken(),
-                    'calendar_event_id' => $event->id,
-                    'expires_at' => $expiresAt,
-                ]);
-            } else {
-                $actionLink->expires_at = $expiresAt;
-                $actionLink->save();
-            }
+            $actionLink = BookingSmsActionLink::findOrCreateForEvent($event);
             $manageUrl = BookingPublicUrl::smsConfirmUrl($actionLink->token, $event->store?->slug);
 
             $previousLocale = app()->getLocale();
@@ -120,7 +100,6 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 BookingLocale::apply(BookingLocale::fromPhone($client->phone));
                 $whenLabel = $this->formatWhenLabel($startAt, $tz);
                 $body = __('booking.sms.reminder_body', [
-                    'store' => $brandName,
                     'when' => $whenLabel,
                     'url' => $manageUrl,
                 ]);
@@ -142,7 +121,7 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 return;
             }
 
-            CalendarEvent::query()
+            $updated = CalendarEvent::query()
                 ->whereKey($event->id)
                 ->whereNull('booking_sms_reminder_sent_at')
                 ->whereNull('booking_sms_reminder_failed_at')
@@ -150,6 +129,10 @@ class SendBookingReminderSmsJob implements ShouldQueue
                     'booking_sms_reminder_sent_at' => now(),
                     'status' => CalendarEvent::STATUS_NOTIFICADO,
                 ]);
+
+            if ($updated > 0) {
+                $reminderActivityLogger->logSmsDayBefore($event);
+            }
         } catch (\Throwable $e) {
             Log::warning('booking_sms_reminder_failed', [
                 'calendar_event_id' => $this->calendarEventId,
@@ -186,15 +169,6 @@ class SendBookingReminderSmsJob implements ShouldQueue
                 'detail' => $detail,
             ]);
         }
-    }
-
-    private function generateUniqueToken(): string
-    {
-        do {
-            $token = Str::lower(Str::random(10));
-        } while (BookingSmsActionLink::query()->where('token', $token)->exists());
-
-        return $token;
     }
 
     private function formatWhenLabel(\Carbon\CarbonInterface $startAt, string $timezone): string

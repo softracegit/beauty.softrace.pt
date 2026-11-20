@@ -296,6 +296,14 @@
     border-color: rgba(100, 116, 139, 0.35);
     color: #475569;
 }
+.client-ficha-timeline__action-btn--logs {
+    color: #64748b;
+}
+.client-ficha-timeline__action-btn--logs:hover {
+    background: #f1f5f9;
+    border-color: rgba(100, 116, 139, 0.35);
+    color: #334155;
+}
 .client-ficha-timeline__action-btn--calendar {
     color: var(--accent-color, #0d6efd);
     border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 28%, #e2e8f0);

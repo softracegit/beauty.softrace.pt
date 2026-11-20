@@ -1,7 +1,11 @@
 <?php
 
+use App\Jobs\SendBookingEmailReminderJob;
 use App\Jobs\SendBookingReminderSmsJob;
+use App\Jobs\SendBookingSameDayEmailReminderJob;
+use App\Jobs\SendBookingSameDayReminderSmsJob;
 use App\Models\CalendarEvent;
+use App\Services\BookingReminderSettings;
 use App\Services\ClientWalletService;
 use App\Services\VendusApiService;
 use App\Services\VendusPaymentMethodResolver;
@@ -74,25 +78,9 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
     $tz = (string) config('booking.business_timezone', config('app.timezone', 'UTC'));
     $nowLocal = CarbonImmutable::now($tz);
     $nowUtc = CarbonImmutable::now('UTC');
-    $startHour = (int) config('booking.sms_reminder_day_before_send_start_hour', 9);
-    $endHour = (int) config('booking.sms_reminder_day_before_send_end_hour', 20);
-    $minMinutesAfterCreated = max(0, (int) config('booking.sms_reminder_min_minutes_after_created', 45));
-    $maxPerRun = max(1, (int) config('booking.sms_reminder_max_per_run', 15));
-    $createdBeforeUtc = $nowUtc->subMinutes($minMinutesAfterCreated);
-
-    if ($endHour > $startHour) {
-        $hour = (int) $nowLocal->format('G');
-        if ($hour < $startHour || $hour >= $endHour) {
-            $this->comment(sprintf(
-                'SMS lembrete: fora da janela de envio (hora local %d; permitido %d–%d).',
-                $hour,
-                $startHour,
-                $endHour
-            ));
-
-            return self::SUCCESS;
-        }
-    }
+    $hourLocal = (int) $nowLocal->format('G');
+    $settingsByStore = [];
+    $dispatchedByStore = [];
 
     // Início do «amanhã» civil na timezone de negócio → intervalo em UTC na BD.
     $tomorrowStartLocal = $nowLocal->addDay()->startOfDay();
@@ -101,6 +89,8 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
     $windowEndUtc = $tomorrowEndLocal->utc();
 
     $count = 0;
+    $skippedDisabled = 0;
+    $skippedWindow = 0;
     $skippedTooSoon = 0;
     $blockedCountry = 0;
     $failed = 0;
@@ -118,26 +108,46 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
                 ->where('phone', '!=', '');
         })
         ->with(['client:id,phone'])
-        ->select(['id', 'start_at', 'created_at', 'client_id'])
+        ->select(['id', 'store_id', 'start_at', 'created_at', 'client_id'])
         ->orderBy('id')
         ->chunkById(100, function ($events) use (
             &$count,
+            &$skippedDisabled,
+            &$skippedWindow,
             &$skippedTooSoon,
             &$blockedCountry,
             &$failed,
-            $maxPerRun,
-            $createdBeforeUtc,
-            $minMinutesAfterCreated
+            &$settingsByStore,
+            &$dispatchedByStore,
+            $nowUtc,
+            $hourLocal
         ): bool {
             foreach ($events as $event) {
-                if ($count >= $maxPerRun) {
-                    return false;
-                }
-                if ($minMinutesAfterCreated > 0
-                    && ($event->created_at === null || $event->created_at->gt($createdBeforeUtc))) {
-                    $skippedTooSoon++;
+                $storeId = (int) ($event->store_id ?? 0);
+                $settings = $settingsByStore[$storeId] ??= BookingReminderSettings::forStore($storeId > 0 ? $storeId : null);
+                if (! $settings['sms_day_before_enabled']) {
+                    $skippedDisabled++;
 
                     continue;
+                }
+                if (! BookingReminderSettings::isWithinDayBeforeSendWindow($settings, $hourLocal)) {
+                    $skippedWindow++;
+
+                    continue;
+                }
+                $maxPerRun = (int) $settings['sms_day_before_max_per_run'];
+                $storeCount = (int) ($dispatchedByStore[$storeId] ?? 0);
+                if ($storeCount >= $maxPerRun) {
+                    continue;
+                }
+                $minMinutesAfterCreated = (int) $settings['min_minutes_after_created'];
+                if ($minMinutesAfterCreated > 0) {
+                    $createdBeforeUtc = $nowUtc->subMinutes($minMinutesAfterCreated);
+                    if ($event->created_at === null || $event->created_at->gt($createdBeforeUtc)) {
+                        $skippedTooSoon++;
+
+                        continue;
+                    }
                 }
                 $phone = $event->client?->phone;
                 if (is_string($phone) && PhoneDisplay::isBlockedForAlphanumericSender($phone)) {
@@ -158,6 +168,7 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
                 }
                 try {
                     SendBookingReminderSmsJob::dispatch((int) $event->id);
+                    $dispatchedByStore[$storeId] = $storeCount + 1;
                     $count++;
                 } catch (\Throwable $e) {
                     $failed++;
@@ -172,11 +183,12 @@ Artisan::command('booking:dispatch-sms-reminders', function () {
         });
 
     $this->info(sprintf(
-        'SMS lembretes despachados: %d (dia da marcação = amanhã %s; TZ=%s; máx/run=%d; adiados delay=%d; país bloqueado=%d; falhas=%d)',
+        'SMS lembretes despachados: %d (dia da marcação = amanhã %s; TZ=%s; desligados=%d; fora janela=%d; adiados delay=%d; país bloqueado=%d; falhas=%d)',
         $count,
         $tomorrowStartLocal->format('Y-m-d'),
         $tz,
-        $maxPerRun,
+        $skippedDisabled,
+        $skippedWindow,
         $skippedTooSoon,
         $blockedCountry,
         $failed
@@ -189,6 +201,353 @@ Schedule::command('booking:dispatch-sms-reminders')
     ->everyMinute()
     // Expiração curta: se o processo morrer a meio, o lock não bloqueia o resto do dia
     // (default do Laravel é 1440 min = 24h — causa «No scheduled commands are ready to run»).
+    ->withoutOverlapping(5);
+
+Artisan::command('booking:dispatch-same-day-sms-reminders', function () {
+    $tz = (string) config('booking.business_timezone', config('app.timezone', 'UTC'));
+    $nowLocal = CarbonImmutable::now($tz);
+    $nowUtc = CarbonImmutable::now('UTC');
+    $minutesNow = ((int) $nowLocal->format('G')) * 60 + (int) $nowLocal->format('i');
+
+    // Janela SQL ampla; filtro fino de lead/janela por loja no loop.
+    $leadWindowStartUtc = $nowUtc->addMinutes(1);
+    $leadWindowEndUtc = $nowUtc->addMinutes(1440);
+    $todayStartLocal = $nowLocal->startOfDay();
+    $todayEndLocal = $todayStartLocal->addDay();
+    $todayStartUtc = $todayStartLocal->utc();
+    $todayEndUtc = $todayEndLocal->utc();
+
+    $count = 0;
+    $skippedDisabled = 0;
+    $skippedWindow = 0;
+    $skippedLead = 0;
+    $blockedCountry = 0;
+    $failed = 0;
+    $settingsByStore = [];
+    $dispatchedByStore = [];
+
+    CalendarEvent::query()
+        ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        ->whereIn('status', SendBookingSameDayReminderSmsJob::ELIGIBLE_STATUSES)
+        ->whereNull('booking_sms_same_day_sent_at')
+        ->whereNull('booking_sms_same_day_failed_at')
+        ->where('start_at', '>=', $todayStartUtc)
+        ->where('start_at', '<', $todayEndUtc)
+        ->where('start_at', '>=', $leadWindowStartUtc)
+        ->where('start_at', '<=', $leadWindowEndUtc)
+        ->whereHas('client', function ($q): void {
+            $q->where('notify_sms_booking_reminders', true)
+                ->whereNotNull('phone')
+                ->where('phone', '!=', '');
+        })
+        ->with(['client:id,phone'])
+        ->select(['id', 'store_id', 'start_at', 'client_id'])
+        ->orderBy('id')
+        ->chunkById(100, function ($events) use (
+            &$count,
+            &$skippedDisabled,
+            &$skippedWindow,
+            &$skippedLead,
+            &$blockedCountry,
+            &$failed,
+            &$settingsByStore,
+            &$dispatchedByStore,
+            $nowUtc,
+            $minutesNow
+        ): bool {
+            foreach ($events as $event) {
+                $storeId = (int) ($event->store_id ?? 0);
+                $settings = $settingsByStore[$storeId] ??= BookingReminderSettings::forStore($storeId > 0 ? $storeId : null);
+                if (! $settings['sms_same_day_enabled']) {
+                    $skippedDisabled++;
+
+                    continue;
+                }
+                if (! BookingReminderSettings::isWithinSameDaySendWindow($settings, $minutesNow)) {
+                    $skippedWindow++;
+
+                    continue;
+                }
+                $leadMin = (int) $settings['same_day_lead_min_minutes'];
+                $leadMax = max($leadMin, (int) $settings['same_day_lead_max_minutes']);
+                $startAt = $event->start_at;
+                $leadStart = $nowUtc->addMinutes($leadMin);
+                $leadEnd = $nowUtc->addMinutes($leadMax);
+                if ($startAt === null || $startAt->lt($leadStart) || $startAt->gt($leadEnd)) {
+                    $skippedLead++;
+
+                    continue;
+                }
+                $maxPerRun = (int) $settings['sms_same_day_max_per_run'];
+                $storeCount = (int) ($dispatchedByStore[$storeId] ?? 0);
+                if ($storeCount >= $maxPerRun) {
+                    continue;
+                }
+                $phone = $event->client?->phone;
+                if (is_string($phone) && PhoneDisplay::isBlockedForAlphanumericSender($phone)) {
+                    $updated = CalendarEvent::query()
+                        ->whereKey($event->id)
+                        ->whereNull('booking_sms_same_day_sent_at')
+                        ->whereNull('booking_sms_same_day_failed_at')
+                        ->update(['booking_sms_same_day_failed_at' => now()]);
+                    if ($updated > 0) {
+                        $blockedCountry++;
+                        Log::info('booking_sms_same_day_blocked_destination_country', [
+                            'calendar_event_id' => (int) $event->id,
+                            'reason' => 'blocked_destination_country',
+                        ]);
+                    }
+
+                    continue;
+                }
+                try {
+                    SendBookingSameDayReminderSmsJob::dispatch((int) $event->id);
+                    $dispatchedByStore[$storeId] = $storeCount + 1;
+                    $count++;
+                } catch (\Throwable $e) {
+                    $failed++;
+                    Log::warning('booking_sms_same_day_dispatch_failed', [
+                        'calendar_event_id' => (int) $event->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return true;
+        });
+
+    $this->info(sprintf(
+        'SMS mesmo dia despachados: %d (hoje %s; TZ=%s; desligados=%d; fora janela=%d; fora lead=%d; país bloqueado=%d; falhas=%d)',
+        $count,
+        $todayStartLocal->format('Y-m-d'),
+        $tz,
+        $skippedDisabled,
+        $skippedWindow,
+        $skippedLead,
+        $blockedCountry,
+        $failed
+    ));
+
+    return self::SUCCESS;
+})->purpose('Despacha SMS de lembrete no próprio dia (2–3h antes, sem link)');
+
+Schedule::command('booking:dispatch-same-day-sms-reminders')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
+Artisan::command('booking:dispatch-same-day-email-reminders', function () {
+    $tz = (string) config('booking.business_timezone', config('app.timezone', 'UTC'));
+    $nowLocal = CarbonImmutable::now($tz);
+    $nowUtc = CarbonImmutable::now('UTC');
+    $minutesNow = ((int) $nowLocal->format('G')) * 60 + (int) $nowLocal->format('i');
+
+    $leadWindowStartUtc = $nowUtc->addMinutes(1);
+    $leadWindowEndUtc = $nowUtc->addMinutes(1440);
+    $todayStartLocal = $nowLocal->startOfDay();
+    $todayEndLocal = $todayStartLocal->addDay();
+    $todayStartUtc = $todayStartLocal->utc();
+    $todayEndUtc = $todayEndLocal->utc();
+
+    $count = 0;
+    $skippedDisabled = 0;
+    $skippedWindow = 0;
+    $skippedLead = 0;
+    $failed = 0;
+    $settingsByStore = [];
+    $dispatchedByStore = [];
+
+    CalendarEvent::query()
+        ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        ->whereIn('status', SendBookingSameDayEmailReminderJob::ELIGIBLE_STATUSES)
+        ->whereNull('booking_email_same_day_sent_at')
+        ->whereNull('booking_email_same_day_failed_at')
+        ->where('start_at', '>=', $todayStartUtc)
+        ->where('start_at', '<', $todayEndUtc)
+        ->where('start_at', '>=', $leadWindowStartUtc)
+        ->where('start_at', '<=', $leadWindowEndUtc)
+        ->whereHas('client', function ($q): void {
+            $q->where('notify_email_booking_reminders', true)
+                ->whereNotNull('email')
+                ->where('email', '!=', '');
+        })
+        ->select(['id', 'store_id', 'start_at', 'client_id'])
+        ->orderBy('id')
+        ->chunkById(100, function ($events) use (
+            &$count,
+            &$skippedDisabled,
+            &$skippedWindow,
+            &$skippedLead,
+            &$failed,
+            &$settingsByStore,
+            &$dispatchedByStore,
+            $nowUtc,
+            $minutesNow
+        ): bool {
+            foreach ($events as $event) {
+                $storeId = (int) ($event->store_id ?? 0);
+                $settings = $settingsByStore[$storeId] ??= BookingReminderSettings::forStore($storeId > 0 ? $storeId : null);
+                if (! $settings['email_same_day_enabled']) {
+                    $skippedDisabled++;
+
+                    continue;
+                }
+                if (! BookingReminderSettings::isWithinSameDaySendWindow($settings, $minutesNow)) {
+                    $skippedWindow++;
+
+                    continue;
+                }
+                $leadMin = (int) $settings['same_day_lead_min_minutes'];
+                $leadMax = max($leadMin, (int) $settings['same_day_lead_max_minutes']);
+                $startAt = $event->start_at;
+                $leadStart = $nowUtc->addMinutes($leadMin);
+                $leadEnd = $nowUtc->addMinutes($leadMax);
+                if ($startAt === null || $startAt->lt($leadStart) || $startAt->gt($leadEnd)) {
+                    $skippedLead++;
+
+                    continue;
+                }
+                $maxPerRun = (int) $settings['email_max_per_run'];
+                $storeCount = (int) ($dispatchedByStore[$storeId] ?? 0);
+                if ($storeCount >= $maxPerRun) {
+                    continue;
+                }
+                try {
+                    SendBookingSameDayEmailReminderJob::dispatch((int) $event->id);
+                    $dispatchedByStore[$storeId] = $storeCount + 1;
+                    $count++;
+                } catch (\Throwable $e) {
+                    $failed++;
+                    Log::warning('booking_email_same_day_dispatch_failed', [
+                        'calendar_event_id' => (int) $event->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return true;
+        });
+
+    $this->info(sprintf(
+        'Email mesmo dia despachados: %d (hoje %s; TZ=%s; desligados=%d; fora janela=%d; fora lead=%d; falhas=%d)',
+        $count,
+        $todayStartLocal->format('Y-m-d'),
+        $tz,
+        $skippedDisabled,
+        $skippedWindow,
+        $skippedLead,
+        $failed
+    ));
+
+    return self::SUCCESS;
+})->purpose('Despacha email de lembrete no próprio dia (2–3h antes, sem botão confirmar)');
+
+Schedule::command('booking:dispatch-same-day-email-reminders')
+    ->everyMinute()
+    ->withoutOverlapping(5);
+
+Artisan::command('booking:dispatch-email-reminders', function () {
+    $tz = (string) config('booking.business_timezone', config('app.timezone', 'UTC'));
+    $nowLocal = CarbonImmutable::now($tz);
+    $nowUtc = CarbonImmutable::now('UTC');
+    $hourLocal = (int) $nowLocal->format('G');
+
+    $tomorrowStartLocal = $nowLocal->addDay()->startOfDay();
+    $tomorrowEndLocal = $tomorrowStartLocal->addDay();
+    $windowStartUtc = $tomorrowStartLocal->utc();
+    $windowEndUtc = $tomorrowEndLocal->utc();
+
+    $count = 0;
+    $skippedDisabled = 0;
+    $skippedWindow = 0;
+    $skippedTooSoon = 0;
+    $failed = 0;
+    $settingsByStore = [];
+    $dispatchedByStore = [];
+
+    CalendarEvent::query()
+        ->where('event_type', CalendarEvent::TYPE_MARCACAO)
+        ->whereIn('status', SendBookingEmailReminderJob::ELIGIBLE_STATUSES)
+        ->whereNull('booking_email_reminder_sent_at')
+        ->whereNull('booking_email_reminder_failed_at')
+        ->where('start_at', '>=', $windowStartUtc)
+        ->where('start_at', '<', $windowEndUtc)
+        ->whereHas('client', function ($q): void {
+            $q->where('notify_email_booking_reminders', true)
+                ->whereNotNull('email')
+                ->where('email', '!=', '');
+        })
+        ->select(['id', 'store_id', 'start_at', 'created_at', 'client_id'])
+        ->orderBy('id')
+        ->chunkById(100, function ($events) use (
+            &$count,
+            &$skippedDisabled,
+            &$skippedWindow,
+            &$skippedTooSoon,
+            &$failed,
+            &$settingsByStore,
+            &$dispatchedByStore,
+            $nowUtc,
+            $hourLocal
+        ): bool {
+            foreach ($events as $event) {
+                $storeId = (int) ($event->store_id ?? 0);
+                $settings = $settingsByStore[$storeId] ??= BookingReminderSettings::forStore($storeId > 0 ? $storeId : null);
+                if (! $settings['email_day_before_enabled']) {
+                    $skippedDisabled++;
+
+                    continue;
+                }
+                if (! BookingReminderSettings::isWithinDayBeforeSendWindow($settings, $hourLocal)) {
+                    $skippedWindow++;
+
+                    continue;
+                }
+                $maxPerRun = (int) $settings['email_max_per_run'];
+                $storeCount = (int) ($dispatchedByStore[$storeId] ?? 0);
+                if ($storeCount >= $maxPerRun) {
+                    continue;
+                }
+                $minMinutesAfterCreated = (int) $settings['min_minutes_after_created'];
+                if ($minMinutesAfterCreated > 0) {
+                    $createdBeforeUtc = $nowUtc->subMinutes($minMinutesAfterCreated);
+                    if ($event->created_at === null || $event->created_at->gt($createdBeforeUtc)) {
+                        $skippedTooSoon++;
+
+                        continue;
+                    }
+                }
+                try {
+                    SendBookingEmailReminderJob::dispatch((int) $event->id);
+                    $dispatchedByStore[$storeId] = $storeCount + 1;
+                    $count++;
+                } catch (\Throwable $e) {
+                    $failed++;
+                    Log::warning('booking_email_reminder_dispatch_failed', [
+                        'calendar_event_id' => (int) $event->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            return true;
+        });
+
+    $this->info(sprintf(
+        'Email lembretes despachados: %d (dia da marcação = amanhã %s; TZ=%s; desligados=%d; fora janela=%d; adiados delay=%d; falhas=%d)',
+        $count,
+        $tomorrowStartLocal->format('Y-m-d'),
+        $tz,
+        $skippedDisabled,
+        $skippedWindow,
+        $skippedTooSoon,
+        $failed
+    ));
+
+    return self::SUCCESS;
+})->purpose('Despacha email de lembrete no dia anterior à marcação');
+
+Schedule::command('booking:dispatch-email-reminders')
+    ->everyMinute()
     ->withoutOverlapping(5);
 
 Schedule::command('staff:send-daily-appointment-digest')

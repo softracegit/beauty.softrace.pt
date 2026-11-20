@@ -1708,6 +1708,12 @@ class CalendarController extends Controller
                 if ($newStartDay !== $oldStartDay) {
                     $updates['booking_sms_reminder_sent_at'] = null;
                     $updates['booking_sms_reminder_failed_at'] = null;
+                    $updates['booking_sms_same_day_sent_at'] = null;
+                    $updates['booking_sms_same_day_failed_at'] = null;
+                    $updates['booking_email_reminder_sent_at'] = null;
+                    $updates['booking_email_reminder_failed_at'] = null;
+                    $updates['booking_email_same_day_sent_at'] = null;
+                    $updates['booking_email_same_day_failed_at'] = null;
                     if ((string) $calendarEvent->status === CalendarEvent::STATUS_NOTIFICADO) {
                         $updates['status'] = CalendarEvent::STATUS_AGENDADO;
                     }

@@ -7,7 +7,6 @@ use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Models\Organization;
 use App\Models\Store;
-use App\Services\TwilioSmsService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -51,7 +50,7 @@ class SendBookingReminderSmsBlockedCountryTest extends TestCase
         ]);
 
         // Sem mock: o job sai antes de Twilio (país bloqueado).
-        (new SendBookingReminderSmsJob((int) $event->id))->handle(app(TwilioSmsService::class));
+        $this->app->call([new SendBookingReminderSmsJob((int) $event->id), 'handle']);
 
         $event->refresh();
         $this->assertNotNull($event->booking_sms_reminder_failed_at);

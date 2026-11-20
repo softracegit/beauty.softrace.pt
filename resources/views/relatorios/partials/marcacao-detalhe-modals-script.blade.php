@@ -34,6 +34,43 @@
       trigger.click();
     });
 
+    document.addEventListener('click', function (e) {
+      var logTrigger = e.target && e.target.closest
+        ? e.target.closest('.js-marcacao-activity-log-trigger')
+        : null;
+      if (!logTrigger) return;
+
+      e.preventDefault();
+      var url = String(logTrigger.getAttribute('data-activity-log-url') || '').trim();
+      var logModalEl = document.getElementById('clienteMarcacaoActivityLogModal');
+      var logBodyEl = document.getElementById('clienteMarcacaoActivityLogBody');
+      if (!url || !logModalEl || !logBodyEl || typeof bootstrap === 'undefined') return;
+
+      logBodyEl.innerHTML = '<p class="text-muted text-center py-3 mb-0"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>A carregar…</p>';
+      bootstrap.Modal.getOrCreateInstance(logModalEl).show();
+
+      fetch(url, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function (r) {
+          return r.json().then(function (res) {
+            if (!r.ok) {
+              throw new Error(res.message || res.error || 'Erro ao carregar logs.');
+            }
+            return res;
+          });
+        })
+        .then(function (res) {
+          logBodyEl.innerHTML = (res && res.html)
+            ? res.html
+            : '<p class="text-muted text-center py-3 mb-0">Nenhuma atividade registada.</p>';
+        })
+        .catch(function (err) {
+          var msg = (err && err.message) ? String(err.message).replace(/</g, '&lt;') : 'Erro ao carregar logs.';
+          logBodyEl.innerHTML = '<p class="text-danger text-center py-3 mb-0">' + msg + '</p>';
+        });
+    });
+
     var reativarModalEl = document.getElementById('reativarMarcacaoModal');
     if (!reativarModalEl) return;
 

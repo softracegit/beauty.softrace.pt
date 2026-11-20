@@ -417,6 +417,11 @@
           </a>
         </li>
         <li>
+          <a class="panel-link {{ request()->routeIs('definicoes.lembretes') ? 'active' : '' }}" href="{{ route('definicoes.lembretes') }}">
+            Lembretes
+          </a>
+        </li>
+        <li>
           <a class="panel-link {{ request()->routeIs('definicoes.pagamentos') ? 'active' : '' }}" href="{{ route('definicoes.pagamentos') }}">
             Pagamentos
           </a>

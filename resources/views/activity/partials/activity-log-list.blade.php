@@ -25,13 +25,15 @@
                     'caixa_aberta' => 'ph ph-lock-open',
                     'caixa_fechada' => 'ph ph-lock-key',
                     'settings_updated' => 'ph ph-gear',
+                    'lembrete_sms' => 'ph ph-chat-text',
+                    'lembrete_email' => 'ph ph-envelope',
                     default => 'ph ph-info',
                 };
                 $eventClass = match($activity->event ?? '') {
                     'created' => 'bg-success-light text-success',
                     'updated' => 'bg-primary-light text-primary',
                     'deleted', 'venda_anulada' => 'bg-danger-light text-danger',
-                    'pre_pagamento', 'marcacao_paga', 'fatura_gerada', 'servicos_alterados', 'caixa_aberta', 'caixa_fechada' => 'bg-success-light text-success',
+                    'pre_pagamento', 'marcacao_paga', 'fatura_gerada', 'servicos_alterados', 'caixa_aberta', 'caixa_fechada', 'lembrete_sms', 'lembrete_email' => 'bg-success-light text-success',
                     'settings_updated' => 'bg-warning-light text-warning',
                     default => 'bg-secondary-light text-secondary',
                 };

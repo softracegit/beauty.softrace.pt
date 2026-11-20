@@ -21,6 +21,8 @@ return new class extends Migration
             // Adicionar campo de condição
             $table->foreignId('property_condition_id')->nullable()->constrained('property_conditions')->nullOnDelete()->after('status');
             
+            // SQLite exige remover o índice antes da coluna.
+            $table->dropIndex(['active']);
             // Remover campo active (o status já indica disponibilidade)
             $table->dropColumn('active');
             

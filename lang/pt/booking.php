@@ -671,7 +671,8 @@ return [
     'sms' => [
         'auth_code' => 'O seu código de acesso é :code. Expira em :minutes minutos.',
         'verification_code' => 'Código de verificação da conta: :code. Expira em :minutes minutos.',
-        'reminder_body' => "Confirmar marcacao :store:\n:url\n\nMarcacao :when\n\nObrigado\n+351300505149 / +351928116651",
+        'reminder_body' => "Confirmar marcacao:\n:url\n\nMarcacao :when\n\nObrigado\n+351300505149 / +351928116651",
+        'same_day_reminder_body' => "Lembrete:\nMarcacao hoje às :time\n\nObrigado\n+351300505149 / +351928116651",
         'reminder_when_today' => 'hoje às :time',
         'reminder_when_tomorrow' => 'amanha às :time',
         'reminder_when_date' => 'em :date às :time',

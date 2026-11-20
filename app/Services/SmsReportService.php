@@ -120,6 +120,162 @@ class SmsReportService
     }
 
     /**
+     * Estimativa de custo Twilio (USD→EUR). 1 registo ≈ 1 segmento.
+     *
+     * @return array{
+     *   count: int,
+     *   unit_usd: float,
+     *   unit_eur: float,
+     *   total_usd: float,
+     *   total_eur: float,
+     *   usd_to_eur: float
+     * }
+     */
+    public function estimateCost(int $count): array
+    {
+        $count = max(0, $count);
+        $unitUsd = max(0.0, (float) config('services.twilio.sms_cost_usd', 0.05010));
+        $usdToEur = max(0.0, (float) config('services.twilio.sms_usd_to_eur', 0.92));
+        $unitEur = round($unitUsd * $usdToEur, 5);
+        $totalUsd = round($count * $unitUsd, 4);
+        $totalEur = round($count * $unitEur, 2);
+
+        return [
+            'count' => $count,
+            'unit_usd' => $unitUsd,
+            'unit_eur' => $unitEur,
+            'total_usd' => $totalUsd,
+            'total_eur' => $totalEur,
+            'usd_to_eur' => $usdToEur,
+        ];
+    }
+
+    /**
+     * Envios e custo aproximado por dia civil (fuso da loja) no período filtrado.
+     *
+     * @param  list<int>  $storeIds
+     * @param  array{
+     *   desde?: ?string,
+     *   ate?: ?string,
+     *   cliente?: mixed,
+     *   tipo?: ?string,
+     *   telemovel?: ?string
+     * }  $filters
+     * @return array{
+     *   labels: list<string>,
+     *   dates: list<string>,
+     *   counts: list<int>,
+     *   costs_eur: list<float>,
+     *   total_count: int,
+     *   total_cost_eur: float,
+     *   bucket_days: int
+     * }
+     */
+    public function dailyBreakdown(array $storeIds, array $filters = []): array
+    {
+        $storeIds = $this->normalizeStoreIds($storeIds);
+        $anchorStoreId = $storeIds[0];
+        $tz = StoreBusinessTime::timezoneForStore($anchorStoreId);
+
+        $desde = $filters['desde'] ?? null;
+        $ate = $filters['ate'] ?? null;
+        if (! is_string($desde) || $desde === '') {
+            $desde = StoreBusinessTime::nowForStore($anchorStoreId)->copy()->startOfMonth()->toDateString();
+        }
+        if (! is_string($ate) || $ate === '') {
+            $ate = StoreBusinessTime::nowForStore($anchorStoreId)->copy()->endOfMonth()->toDateString();
+        }
+
+        $startLocal = Carbon::createFromFormat('Y-m-d', $desde, $tz)->startOfDay();
+        $endLocal = Carbon::createFromFormat('Y-m-d', $ate, $tz)->startOfDay();
+        if ($endLocal->lt($startLocal)) {
+            [$startLocal, $endLocal] = [$endLocal, $startLocal];
+        }
+
+        $byDay = [];
+        $cursor = $startLocal->copy();
+        while ($cursor->lte($endLocal)) {
+            $key = $cursor->toDateString();
+            $byDay[$key] = 0;
+            $cursor->addDay();
+        }
+
+        $sentAts = $this->reportQuery($storeIds, $filters)
+            ->orderBy('sent_at')
+            ->pluck('sent_at');
+
+        foreach ($sentAts as $sentAt) {
+            if ($sentAt === null) {
+                continue;
+            }
+            $dayKey = Carbon::parse($sentAt)->timezone($tz)->toDateString();
+            if (! array_key_exists($dayKey, $byDay)) {
+                continue;
+            }
+            $byDay[$dayKey]++;
+        }
+
+        $dayCount = count($byDay);
+        $bucketDays = $this->chartBucketDays($dayCount);
+        $unitEur = $this->estimateCost(1)['unit_eur'];
+
+        $labels = [];
+        $dates = [];
+        $counts = [];
+        $costs = [];
+        $totalCount = 0;
+
+        $dayEntries = array_values(array_map(
+            static fn (string $date, int $count): array => ['date' => $date, 'count' => $count],
+            array_keys($byDay),
+            array_values($byDay),
+        ));
+
+        for ($i = 0, $n = count($dayEntries); $i < $n; $i += $bucketDays) {
+            $chunk = array_slice($dayEntries, $i, $bucketDays);
+            $chunkCount = 0;
+            foreach ($chunk as $entry) {
+                $chunkCount += (int) $entry['count'];
+            }
+            $firstDate = (string) $chunk[0]['date'];
+            $lastDate = (string) $chunk[count($chunk) - 1]['date'];
+            $firstLabel = Carbon::createFromFormat('Y-m-d', $firstDate, $tz)->format('d/m');
+            $lastLabel = Carbon::createFromFormat('Y-m-d', $lastDate, $tz)->format('d/m');
+
+            $dates[] = $firstDate;
+            $labels[] = $bucketDays === 1 || $firstDate === $lastDate
+                ? $firstLabel
+                : $firstLabel.'–'.$lastLabel;
+            $counts[] = $chunkCount;
+            $costs[] = round($chunkCount * $unitEur, 2);
+            $totalCount += $chunkCount;
+        }
+
+        return [
+            'labels' => $labels,
+            'dates' => $dates,
+            'counts' => $counts,
+            'costs_eur' => $costs,
+            'total_count' => $totalCount,
+            'total_cost_eur' => round($totalCount * $unitEur, 2),
+            'bucket_days' => $bucketDays,
+        ];
+    }
+
+    /** Agrupa barras quando o período é longo (1 = diário, 5 ou 10 = buckets). */
+    public function chartBucketDays(int $dayCount): int
+    {
+        if ($dayCount > 120) {
+            return 10;
+        }
+        if ($dayCount > 45) {
+            return 5;
+        }
+
+        return 1;
+    }
+
+    /**
      * @param  list<int>  $storeIds
      * @return list<int>
      */

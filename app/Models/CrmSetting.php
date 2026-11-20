@@ -72,6 +72,9 @@ class CrmSetting extends Model
 
     public const KEY_EMAIL_USE_BUSINESS_BRANDING = 'email.use_business_branding';
 
+    /** JSON: toggles e timings de lembretes SMS/email (organização). */
+    public const KEY_REMINDERS_SETTINGS = 'reminders.settings';
+
     /** Agenda — tempo pessoal: limitar horas de início/fim ao horário da loja. */
     public const KEY_AGENDA_PERSONAL_TIME_LIMIT_STORE_HOURS = 'agenda.personal_time_limit_store_hours';
 
@@ -113,6 +116,7 @@ class CrmSetting extends Model
             self::KEY_STRIPE_PUBLISHABLE_KEY,
             self::KEY_STRIPE_SECRET_KEY,
             self::KEY_STRIPE_WEBHOOK_SECRET,
+            self::KEY_REMINDERS_SETTINGS,
         ];
     }
 

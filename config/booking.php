@@ -91,6 +91,12 @@ return [
     |
     */
 
+    /** Liga/desliga canais (fallback se ainda não houver valor em crm_settings). */
+    'sms_reminder_enabled' => filter_var(env('BOOKING_SMS_REMINDER_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    'sms_same_day_enabled' => filter_var(env('BOOKING_SMS_SAME_DAY_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    'email_reminder_enabled' => filter_var(env('BOOKING_EMAIL_REMINDER_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    'email_same_day_enabled' => filter_var(env('BOOKING_EMAIL_SAME_DAY_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+
     /** @deprecated Mantido no .env por compatibilidade; o lembrete já não usa antecedência em minutos. */
     'sms_reminder_lead_minutes' => max(1, (int) env('BOOKING_SMS_REMINDER_LEAD_MINUTES', 120)),
 
@@ -131,6 +137,39 @@ return [
 
     /** Tentativas do job de envio antes de marcar a marcação como falhada (sem reenvio futuro). */
     'sms_reminder_max_attempts' => max(1, (int) env('BOOKING_SMS_REMINDER_MAX_ATTEMPTS', 1)),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Lembretes SMS no próprio dia (sem link)
+    |--------------------------------------------------------------------------
+    |
+    | Janela de antecedência: start_at entre lead_max e lead_min minutos no futuro.
+    | Ex.: 120–180 = enviar quando faltam entre 2h e 3h. Cron + max_per_run espalha.
+    | Só entre sms_same_day_send_start e sms_same_day_send_end (hora local).
+    |
+    */
+
+    'sms_same_day_lead_min_minutes' => max(1, (int) env('BOOKING_SMS_SAME_DAY_LEAD_MIN_MINUTES', 120)),
+
+    'sms_same_day_lead_max_minutes' => max(1, (int) env('BOOKING_SMS_SAME_DAY_LEAD_MAX_MINUTES', 180)),
+
+    /** Minutos desde meia-noite (local) para início da janela de envio (08:30 = 510). */
+    'sms_same_day_send_start_minutes' => max(0, min(24 * 60 - 1, (int) env('BOOKING_SMS_SAME_DAY_SEND_START_MINUTES', 8 * 60 + 30))),
+
+    /** Minutos desde meia-noite (local), exclusivo, para fim da janela (18:00 = 1080). */
+    'sms_same_day_send_end_minutes' => max(1, min(24 * 60, (int) env('BOOKING_SMS_SAME_DAY_SEND_END_MINUTES', 18 * 60))),
+
+    'sms_same_day_max_per_run' => max(1, (int) env('BOOKING_SMS_SAME_DAY_MAX_PER_RUN', 3)),
+
+    'sms_same_day_max_attempts' => max(1, (int) env('BOOKING_SMS_SAME_DAY_MAX_ATTEMPTS', 1)),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Lembretes email (dia anterior)
+    |--------------------------------------------------------------------------
+    */
+
+    'email_reminder_max_per_run' => max(1, (int) env('BOOKING_EMAIL_REMINDER_MAX_PER_RUN', 10)),
 
     /*
     |--------------------------------------------------------------------------

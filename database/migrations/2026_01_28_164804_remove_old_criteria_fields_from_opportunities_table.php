@@ -15,10 +15,12 @@ return new class extends Migration
             // Remover campos antigos de critérios de busca
             if (Schema::hasColumn('opportunities', 'transaction_type_id')) {
                 $table->dropForeign(['transaction_type_id']);
+                $table->dropIndex(['transaction_type_id']);
                 $table->dropColumn('transaction_type_id');
             }
             if (Schema::hasColumn('opportunities', 'property_type_id')) {
                 $table->dropForeign(['property_type_id']);
+                $table->dropIndex(['property_type_id']);
                 $table->dropColumn('property_type_id');
             }
             if (Schema::hasColumn('opportunities', 'min_price')) {
@@ -29,15 +31,19 @@ return new class extends Migration
             }
             if (Schema::hasColumn('opportunities', 'property_typology_id')) {
                 $table->dropForeign(['property_typology_id']);
+                $table->dropIndex(['property_typology_id']);
                 $table->dropColumn('property_typology_id');
             }
             if (Schema::hasColumn('opportunities', 'id_district')) {
+                $table->dropIndex(['id_district']);
                 $table->dropColumn('id_district');
             }
             if (Schema::hasColumn('opportunities', 'id_city')) {
+                $table->dropIndex(['id_city']);
                 $table->dropColumn('id_city');
             }
             if (Schema::hasColumn('opportunities', 'id_parish')) {
+                $table->dropIndex(['id_parish']);
                 $table->dropColumn('id_parish');
             }
         });

@@ -142,6 +142,7 @@
             'definicoes.equipa' => 'Equipa',
             'definicoes.tempo-pessoal' => 'Tempo pessoal',
             'definicoes.marcacoes' => 'Booking',
+            'definicoes.lembretes' => 'Lembretes',
             'definicoes.etiquetas' => 'Etiquetas',
             'definicoes.notificacoes' => 'Notificações',
             'definicoes.pagamentos' => 'Pagamentos',

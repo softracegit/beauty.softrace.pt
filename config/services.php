@@ -43,6 +43,10 @@ return [
             ? env('TWILIO_AUTH_TOKEN_SANDBOX', env('TWILIO_AUTH_TOKEN', env('TWILIO_TOKEN')))
             : env('TWILIO_AUTH_TOKEN', env('TWILIO_TOKEN')),
         'sms_from' => env('TWILIO_SMS_FROM', env('TWILIO_FROM')),
+        /** Custo unitário Twilio por SMS (USD), para estimativas no relatório. */
+        'sms_cost_usd' => (float) env('TWILIO_SMS_COST_USD', 0.05010),
+        /** Taxa aproximada USD→EUR (1 USD = X EUR). Ajustável sem código. */
+        'sms_usd_to_eur' => (float) env('TWILIO_SMS_USD_TO_EUR', 0.92),
     ],
 
     'vendus' => [

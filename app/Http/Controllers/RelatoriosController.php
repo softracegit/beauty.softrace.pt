@@ -1224,11 +1224,15 @@ class RelatoriosController extends Controller
             ->paginate(50)
             ->withQueryString();
 
+        $dailyBreakdown = $this->smsReportService->dailyBreakdown($storeIds, $filters);
+
         return view('relatorios.sms', [
             'pageTitle' => 'Relatórios — SMS',
             'reportStoreFilter' => $storeCtx,
             'messages' => $messages,
             'summaryCounts' => $this->smsReportService->summaryCounts($storeIds),
+            'smsCostEstimate' => $this->smsReportService->estimateCost((int) ($dailyBreakdown['total_count'] ?? 0)),
+            'smsDailyBreakdown' => $dailyBreakdown,
             'smsDesde' => $filters['desde'],
             'smsAte' => $filters['ate'],
             'smsCliente' => $filters['cliente'],

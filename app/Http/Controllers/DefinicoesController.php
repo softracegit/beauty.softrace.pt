@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PersonalTimeType;
 use App\Models\User;
 use App\Models\UserNotificationPreference;
+use App\Services\BookingReminderSettings;
 use App\Services\ClientTagService;
 use App\Services\StoreBusinessSettingsService;
 use App\Services\StoreOperationalSettingsService;
@@ -495,6 +496,35 @@ class DefinicoesController extends Controller
         return redirect()
             ->route('definicoes.pagamentos')
             ->with('status', 'Stripe ativado e configurado para toda a organização.');
+    }
+
+    public function lembretes(): View
+    {
+        $storeId = current_store_id();
+
+        return view('definicoes.lembretes', [
+            'pageTitle' => 'Lembretes',
+            'reminders' => BookingReminderSettings::forStore($storeId),
+        ]);
+    }
+
+    public function updateLembretes(Request $request): RedirectResponse
+    {
+        $storeId = current_store_id();
+        $settings = BookingReminderSettings::validateAndNormalize($request->all(), $storeId);
+        BookingReminderSettings::save($settings, $storeId);
+
+        $store = app(CurrentStore::class)->get();
+        $this->settingsActivityLogger->logSection(
+            $store,
+            'lembretes',
+            'Definições de Lembretes actualizadas',
+            ['Canais e timings de SMS/email de marcação'],
+        );
+
+        return redirect()
+            ->route('definicoes.lembretes')
+            ->with('status', 'Definições de Lembretes guardadas.');
     }
 
     public function notificacoes(): View

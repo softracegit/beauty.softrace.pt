@@ -671,7 +671,8 @@ return [
     'sms' => [
         'auth_code' => 'Your access code is :code. It expires in :minutes minutes.',
         'verification_code' => 'Account verification code: :code. It expires in :minutes minutes.',
-        'reminder_body' => "Confirm appointment :store:\n:url\n\nAppointment :when\n\nThank you\n+351300505149 / +351928116651",
+        'reminder_body' => "Confirm appointment:\n:url\n\nAppointment :when\n\nThank you\n+351300505149 / +351928116651",
+        'same_day_reminder_body' => "Reminder:\nAppointment today at :time\n\nThank you\n+351300505149 / +351928116651",
         'reminder_when_today' => 'today at :time',
         'reminder_when_tomorrow' => 'tomorrow at :time',
         'reminder_when_date' => 'on :date at :time',

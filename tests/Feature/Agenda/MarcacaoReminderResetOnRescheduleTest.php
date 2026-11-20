@@ -89,6 +89,8 @@ class MarcacaoReminderResetOnRescheduleTest extends TestCase
             'service_id' => $fx['service']->id,
             'booking_sms_reminder_sent_at' => now(),
             'booking_sms_reminder_failed_at' => null,
+            'booking_sms_same_day_sent_at' => now(),
+            'booking_email_reminder_sent_at' => now(),
         ]);
         CalendarEventService::query()->create([
             'calendar_event_id' => $event->id,
@@ -112,6 +114,8 @@ class MarcacaoReminderResetOnRescheduleTest extends TestCase
         $event->refresh();
         $this->assertNull($event->booking_sms_reminder_sent_at);
         $this->assertNull($event->booking_sms_reminder_failed_at);
+        $this->assertNull($event->booking_sms_same_day_sent_at);
+        $this->assertNull($event->booking_email_reminder_sent_at);
         $this->assertSame(CalendarEvent::STATUS_AGENDADO, $event->status);
     }
 

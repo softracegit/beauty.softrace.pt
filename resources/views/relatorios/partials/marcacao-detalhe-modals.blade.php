@@ -29,6 +29,11 @@
     }
     .marcacao-detalhe-offcanvas .offcanvas-header {
       padding: 1rem 1.75rem;
+      gap: 0.75rem;
+    }
+    .marcacao-detalhe-offcanvas .offcanvas-header .btn-close {
+      margin: 0;
+      order: -1;
     }
     .marcacao-detalhe-offcanvas .offcanvas-body {
       flex: 1 1 auto;
@@ -70,14 +75,28 @@
     data-bs-scroll="true"
   >
     <div class="offcanvas-header border-bottom">
-      <h5 class="offcanvas-title mb-0 fw-semibold" id="marcacaoDetalheModalLabel">Detalhes da marcação</h5>
+      <h5 class="offcanvas-title mb-0 fw-semibold" id="marcacaoDetalheModalLabel">Ficha técnica</h5>
       <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     </div>
     <div class="offcanvas-body csheet-modal-body" id="marcacaoDetalheModalBody"></div>
-    <div class="border-top marcacao-detalhe-offcanvas__footer d-flex flex-wrap align-items-center justify-content-end gap-2" id="marcacaoDetalheModalFooter"></div>
+    <div class="border-top marcacao-detalhe-offcanvas__footer d-flex flex-wrap align-items-center justify-content-between gap-2" id="marcacaoDetalheModalFooter"></div>
   </div>
 
   @if(auth()->user()?->isAdmin())
+    <div class="modal fade" id="clienteMarcacaoActivityLogModal" tabindex="-1" aria-labelledby="clienteMarcacaoActivityLogModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-semibold" id="clienteMarcacaoActivityLogModalLabel">Histórico da marcação</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body py-3" id="clienteMarcacaoActivityLogBody">
+            <p class="text-muted text-center py-3 mb-0">A carregar…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="reativarMarcacaoModal" tabindex="-1" aria-labelledby="reativarMarcacaoModalLabel" aria-hidden="true" data-bs-backdrop="static">
       <div class="modal-dialog">
         <div class="modal-content">

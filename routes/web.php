@@ -271,6 +271,8 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
         Route::post('negocio', [DefinicoesController::class, 'updateNegocio'])->name('negocio.update');
         Route::get('marcacoes', [DefinicoesController::class, 'marcacoes'])->name('marcacoes');
         Route::post('marcacoes', [DefinicoesController::class, 'updateMarcacoes'])->name('marcacoes.update');
+        Route::get('lembretes', [DefinicoesController::class, 'lembretes'])->name('lembretes');
+        Route::post('lembretes', [DefinicoesController::class, 'updateLembretes'])->name('lembretes.update');
         Route::get('equipa', [DefinicoesController::class, 'equipa'])->name('equipa');
         Route::post('equipa', [DefinicoesController::class, 'updateEquipa'])->name('equipa.update');
         Route::get('tempo-pessoal', [DefinicoesController::class, 'tempoPessoal'])->name('tempo-pessoal');

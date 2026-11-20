@@ -30,19 +30,67 @@ final class MarcacaoMailCopy
         12 => 'dezembro',
     ];
 
+    /**
+     * Nome mostrado ao cliente nos emails (marca/empresa).
+     * Alias de {@see organizationName()} — não usar o nome da loja.
+     */
     public static function storeName(?Store $store): string
     {
-        $name = trim((string) ($store?->name ?? ''));
-        if ($name !== '') {
-            return $name;
+        return self::organizationName($store);
+    }
+
+    /**
+     * Nome da empresa (organização) para lembretes SMS/email.
+     * Fallback: nome da loja / branding.
+     */
+    public static function organizationName(?Store $store): string
+    {
+        if ($store === null) {
+            return StoreMailBranding::resolve(null)['name'];
+        }
+
+        $store->loadMissing('organization');
+        $org = trim((string) ($store->organization?->name ?? ''));
+        if ($org !== '') {
+            return $org;
+        }
+
+        $loja = trim((string) ($store->name ?? ''));
+        if ($loja !== '') {
+            return $loja;
         }
 
         return StoreMailBranding::resolve($store)['name'];
     }
 
+    /**
+     * Nome «Empresa Loja» (ex.: FadaStudio Aveiro Centro).
+     * Se um faltar, usa o outro; se forem iguais, não duplica.
+     */
+    public static function brandAndStoreName(?Store $store): string
+    {
+        if ($store === null) {
+            return StoreMailBranding::resolve(null)['name'];
+        }
+
+        $store->loadMissing('organization');
+        $org = trim((string) ($store->organization?->name ?? ''));
+        $loja = trim((string) ($store->name ?? ''));
+
+        if ($org !== '' && $loja !== '') {
+            if (mb_strtolower($org) === mb_strtolower($loja)) {
+                return $org;
+            }
+
+            return $org.' '.$loja;
+        }
+
+        return self::organizationName($store);
+    }
+
     public static function subject(string $base, ?Store $store): string
     {
-        return $base.' - '.self::storeName($store);
+        return $base.' - '.self::organizationName($store);
     }
 
     /**
