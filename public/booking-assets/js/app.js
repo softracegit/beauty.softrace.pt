@@ -2236,6 +2236,7 @@
 
         var bookingApp = document.querySelector('.booking-app[data-booking-availability-url]');
         var availabilityUrl = bookingApp ? bookingApp.getAttribute('data-booking-availability-url') : '';
+        var suggestedSlotsEnabled = !bookingApp || bookingApp.getAttribute('data-booking-suggested-slots') !== '0';
         var nationalHolidaysSet = (function () {
             var set = {};
             var raw = bookingApp ? bookingApp.getAttribute('data-booking-national-holidays') : '';
@@ -2526,6 +2527,18 @@
             }
 
             var split = splitSlotsMorningAfternoon(filtered);
+
+            if (!suggestedSlotsEnabled) {
+                suggestedWrap.classList.add('d-none');
+                suggestedList.innerHTML = '';
+                moreBtn.classList.add('d-none');
+                moreBtn.setAttribute('aria-expanded', 'true');
+                setSlotsPeriodsWrapperVisible(true);
+                fillSlotPeriod(morningWrap, split.morning);
+                fillSlotPeriod(afternoonWrap, split.afternoon);
+                return;
+            }
+
             var suggestedTimes = pickSuggestedSlotTimes(filtered);
             var suggestedSet = {};
             suggestedTimes.forEach(function (t) {
@@ -2611,7 +2624,9 @@
             }
 
             slotsUiExpanded =
-                slotsUiExpanded || shouldOpenMoreSlotsForSelection(filtered, selectedTime);
+                !suggestedSlotsEnabled ||
+                slotsUiExpanded ||
+                shouldOpenMoreSlotsForSelection(filtered, selectedTime);
 
             layoutSlotsPanels();
 
@@ -2642,12 +2657,12 @@
 
             morningWrap.innerHTML = '';
             afternoonWrap.innerHTML = '';
-            slotsUiExpanded = false;
+            slotsUiExpanded = !suggestedSlotsEnabled;
             suggestedWrap.classList.add('d-none');
             suggestedList.innerHTML = '';
             moreBtn.classList.add('d-none');
             showSlotsStatus('loading', t('slots_loading'));
-            setSlotsPeriodsWrapperVisible(false);
+            setSlotsPeriodsWrapperVisible(!suggestedSlotsEnabled);
 
             if (availabilityAbort) {
                 availabilityAbort.abort();
@@ -2817,6 +2832,9 @@
         });
 
         moreBtn.addEventListener('click', function () {
+            if (!suggestedSlotsEnabled) {
+                return;
+            }
             var list = cachedFilteredSlots;
             if (!list || !list.length) {
                 return;

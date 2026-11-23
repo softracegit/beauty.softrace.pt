@@ -92,6 +92,26 @@
     Define os horários apresentados ao cliente no Booking (ex.: 10:00, 10:30…). A agenda interna e a duração dos serviços não são alteradas.
   </p>
 
+  <div class="mt-4 py-3 border-top">
+    <div class="d-flex align-items-center gap-2">
+      <label class="fw-semibold mb-0" for="{{ $idPrefix }}booking_suggested_slots_enabled" style="cursor: pointer">Próximos horários sugeridos</label>
+      <div class="form-check form-switch m-0">
+        <input type="hidden" name="booking_suggested_slots_enabled" value="0">
+        <input
+          class="form-check-input"
+          type="checkbox"
+          name="booking_suggested_slots_enabled"
+          value="1"
+          id="{{ $idPrefix }}booking_suggested_slots_enabled"
+          @checked((bool) old('booking_suggested_slots_enabled', $bookingSuggestedSlotsEnabled ?? true))
+        >
+      </div>
+    </div>
+    <p class="small text-muted mb-0 mt-2">
+      Ligado: mostra primeiro alguns horários sugeridos. Desligado: todos os horários livres (manhã e tarde) de imediato.
+    </p>
+  </div>
+
   <div class="row g-3 align-items-end mt-3">
     <div class="col-12 col-md-4 col-lg-3">
       <label for="{{ $idPrefix }}booking_slot_hold_minutes" class="form-label fw-semibold mb-1">Reserva temporária do slot</label>

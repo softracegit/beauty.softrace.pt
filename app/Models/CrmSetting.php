@@ -40,6 +40,12 @@ class CrmSetting extends Model
     /** Intervalo (minutos) entre horários oferecidos no Booking público. */
     public const KEY_BOOKING_SLOT_INTERVAL_MINUTES = 'booking.slot_interval_minutes';
 
+    /**
+     * Booking público: mostrar «Próximos horários sugeridos» (até 2 manhã + 2 tarde).
+     * Desligado → lista completa manhã/tarde de imediato.
+     */
+    public const KEY_BOOKING_SUGGESTED_SLOTS_ENABLED = 'booking.suggested_slots_enabled';
+
     public const KEY_BOOKING_ANY_STAFF_RULE = 'booking.any_staff_rule';
 
     public const KEY_BOOKING_CANCELLATION_NOTICE_HOURS = 'booking.cancellation_notice_hours';
@@ -450,6 +456,17 @@ class CrmSetting extends Model
         }
 
         return $value;
+    }
+
+    /** Se true, o passo data/hora mostra primeiro os horários sugeridos; se false, manhã+tarde completos. */
+    public static function bookingSuggestedSlotsEnabled(?int $storeId = null): bool
+    {
+        return self::getBool(self::KEY_BOOKING_SUGGESTED_SLOTS_ENABLED, true, $storeId);
+    }
+
+    public static function setBookingSuggestedSlotsEnabled(bool $enabled, ?int $storeId = null): void
+    {
+        self::setBool(self::KEY_BOOKING_SUGGESTED_SLOTS_ENABLED, $enabled, $storeId);
     }
 
     public static function bookingCancellationNoticeHours(?int $storeId = null): int

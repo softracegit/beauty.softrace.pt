@@ -21,6 +21,7 @@
         data-booking-availability-url="{{ route('booking.availability', ['store' => $bookingStoreSlug], false) }}"
         data-booking-valid-agent-ids="{{ implode(',', $bookingValidAgentIds ?? []) }}"
         data-booking-national-holidays="{{ e(json_encode($bookingNationalHolidays)) }}"
+        data-booking-suggested-slots="{{ \App\Models\CrmSetting::bookingSuggestedSlotsEnabled(($bookingStore ?? null)?->id) ? '1' : '0' }}"
     >
         @include('booking.partials.navbar')
 

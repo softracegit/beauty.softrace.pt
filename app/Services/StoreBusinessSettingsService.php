@@ -256,6 +256,7 @@ class StoreBusinessSettingsService
             'personal_time_limit_store_hours' => $forStore ? 'equipa' : null,
             'pos_gorjeta_enabled', 'online_booking_payment_required' => $forStore ? 'pagamentos' : null,
             'booking_slot_hold_minutes', 'booking_cart_ttl_hours', 'booking_slot_interval_minutes',
+            'booking_suggested_slots_enabled',
             'booking_cancellation_notice_hours', 'booking_any_staff_rule',
             'booking_any_staff_rule_options', 'booking_theme', 'booking_domain' => $forStore ? 'booking' : null,
             default => null,
@@ -424,6 +425,7 @@ class StoreBusinessSettingsService
         if ($request->filled('booking_slot_hold_minutes')
             || $request->filled('booking_cart_ttl_hours')
             || $request->filled('booking_slot_interval_minutes')
+            || $request->exists('booking_suggested_slots_enabled')
             || $request->filled('booking_cancellation_notice_hours')
             || $request->filled('booking_any_staff_rule')
             || $request->filled('booking_theme')) {

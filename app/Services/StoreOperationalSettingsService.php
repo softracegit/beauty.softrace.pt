@@ -118,6 +118,7 @@ class StoreOperationalSettingsService
             CrmSetting::bookingSlotHoldMinutes($storeId),
             CrmSetting::bookingCartTtlHours($storeId),
             CrmSetting::bookingSlotIntervalMinutes($storeId),
+            CrmSetting::bookingSuggestedSlotsEnabled($storeId) ? '1' : '0',
             CrmSetting::bookingCancellationNoticeHours($storeId),
             CrmSetting::bookingAnyStaffRule($storeId),
             CrmSetting::bookingTheme($storeId),
@@ -151,6 +152,7 @@ class StoreOperationalSettingsService
             'bookingCartTtlHours' => CrmSetting::bookingCartTtlHours($storeId),
             'bookingSlotIntervalMinutes' => CrmSetting::bookingSlotIntervalMinutes($storeId),
             'bookingSlotIntervalOptions' => CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS,
+            'bookingSuggestedSlotsEnabled' => CrmSetting::bookingSuggestedSlotsEnabled($storeId),
             'bookingCancellationNoticeHours' => CrmSetting::bookingCancellationNoticeHours($storeId),
             'bookingAnyStaffRules' => CrmSetting::bookingAnyStaffRulesUi(),
             'bookingAnyStaffRule' => CrmSetting::bookingAnyStaffRule($storeId),
@@ -199,6 +201,7 @@ class StoreOperationalSettingsService
                 'integer',
                 'in:'.implode(',', CrmSetting::BOOKING_SLOT_INTERVAL_MINUTES_OPTIONS),
             ],
+            'booking_suggested_slots_enabled' => ['sometimes', 'boolean'],
             'booking_cancellation_notice_hours' => [
                 'required',
                 'integer',
@@ -240,6 +243,9 @@ class StoreOperationalSettingsService
             'booking_slot_hold_minutes' => (int) $validated['booking_slot_hold_minutes'],
             'booking_cart_ttl_hours' => (int) $validated['booking_cart_ttl_hours'],
             'booking_slot_interval_minutes' => (int) $validated['booking_slot_interval_minutes'],
+            'booking_suggested_slots_enabled' => $request->exists('booking_suggested_slots_enabled')
+                ? $request->boolean('booking_suggested_slots_enabled')
+                : CrmSetting::bookingSuggestedSlotsEnabled($fallbackStoreIdForRule),
             'booking_cancellation_notice_hours' => (int) $validated['booking_cancellation_notice_hours'],
             'booking_any_staff_rule' => $selectedRule,
             'booking_theme' => array_key_exists('booking_theme', $validated)
@@ -274,6 +280,9 @@ class StoreOperationalSettingsService
         CrmSetting::setInt(CrmSetting::KEY_BOOKING_SLOT_HOLD_MINUTES, $data['booking_slot_hold_minutes'], $storeId);
         CrmSetting::setBookingCartTtlHours($data['booking_cart_ttl_hours'], $storeId);
         CrmSetting::setInt(CrmSetting::KEY_BOOKING_SLOT_INTERVAL_MINUTES, $data['booking_slot_interval_minutes'], $storeId);
+        if (array_key_exists('booking_suggested_slots_enabled', $data)) {
+            CrmSetting::setBookingSuggestedSlotsEnabled((bool) $data['booking_suggested_slots_enabled'], $storeId);
+        }
         CrmSetting::setBookingCancellationNoticeHours($data['booking_cancellation_notice_hours'], $storeId);
         CrmSetting::setString(CrmSetting::KEY_BOOKING_ANY_STAFF_RULE, $data['booking_any_staff_rule'], $storeId);
         if ($data['booking_theme'] !== null) {
@@ -345,6 +354,7 @@ class StoreOperationalSettingsService
             'booking_slot_hold_minutes' => CrmSetting::bookingSlotHoldMinutes($repId),
             'booking_cart_ttl_hours' => CrmSetting::bookingCartTtlHours($repId),
             'booking_slot_interval_minutes' => CrmSetting::bookingSlotIntervalMinutes($repId),
+            'booking_suggested_slots_enabled' => CrmSetting::bookingSuggestedSlotsEnabled($repId),
             'booking_cancellation_notice_hours' => CrmSetting::bookingCancellationNoticeHours($repId),
             'booking_any_staff_rule' => CrmSetting::bookingAnyStaffRule($repId),
             'booking_theme' => CrmSetting::bookingTheme($repId),
