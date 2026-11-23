@@ -584,17 +584,8 @@ class AgentController extends Controller
     {
         return [
             'nullable',
-            function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
-                if (! in_array($request->input('role'), User::rolesWithSpecialization(), true)) {
-                    return;
-                }
-                if ($value === null || $value === '') {
-                    return;
-                }
-                if (! array_key_exists((string) $value, Agent::specializations())) {
-                    $fail('A especialização selecionada é inválida.');
-                }
-            },
+            'string',
+            'max:120',
         ];
     }
 
@@ -607,9 +598,8 @@ class AgentController extends Controller
         if (! in_array($validated['role'], User::rolesWithSpecialization(), true)) {
             $validated['specialization'] = null;
         } else {
-            $validated['specialization'] = $validated['specialization'] !== '' && $validated['specialization'] !== null
-                ? (string) $validated['specialization']
-                : null;
+            $rawSpec = trim((string) ($validated['specialization'] ?? ''));
+            $validated['specialization'] = $rawSpec !== '' ? $rawSpec : null;
         }
 
         return $validated;

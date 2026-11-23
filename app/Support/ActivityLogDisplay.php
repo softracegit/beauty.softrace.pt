@@ -70,7 +70,7 @@ class ActivityLogDisplay
         'retention_fee_rate' => 'Taxa de retenção',
         'retention_fee_unit' => 'Unidade retenção',
         'retention_fee_effective_from' => 'Retenção a partir de',
-        'specialization' => 'Especialização',
+        'specialization' => 'Especialização / Descrição',
     ];
 
     /** @var array<string, string> */

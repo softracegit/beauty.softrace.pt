@@ -497,7 +497,7 @@
 (function() {
     var roleSel = document.querySelector('select[name="role"]');
     var wrap = document.getElementById('agentSpecializationFieldWrap');
-    var specSel = wrap ? wrap.querySelector('select[name="specialization"]') : null;
+    var specSel = wrap ? wrap.querySelector('input[name="specialization"]') : null;
     var commissionWrap = document.getElementById('agentCommissionFieldWrap');
     var retentionWrap = document.getElementById('agentRetentionFeeFieldWrap');
     var rolesWithSpec = @json(\App\Models\User::rolesWithSpecialization());

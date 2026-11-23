@@ -155,7 +155,7 @@
                         <div class="uview-detail-title">Dados Profissionais</div>
                         @if($showEspecializacao)
                         <div class="uview-detail-row">
-                            <div class="uview-detail-label">Especialização</div>
+                            <div class="uview-detail-label">Especialização / Descrição</div>
                             <div class="uview-detail-value">{{ \App\Models\Agent::specializationLabel($agente->specialization) }}</div>
                         </div>
                         @endif
