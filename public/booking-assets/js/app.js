@@ -428,9 +428,9 @@
             return '';
         }
         var weekday = new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(d);
-        var monthLabel = new Intl.DateTimeFormat(locale, { month: 'long' }).format(d);
+        var monthLabel = new Intl.DateTimeFormat(locale, { month: 'short' }).format(d);
         var weekdayCap = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-        var monthCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+        var monthCap = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1).replace(/\.$/, '');
         return weekdayCap + ', ' + day + ' ' + monthCap;
     }
     var formatDateLabelPt = formatDateLabel;
@@ -915,10 +915,9 @@
         if (!document.body.classList.contains('booking-page--datetime')) {
             return;
         }
-        var back = document.querySelector('.booking-navbar__back');
-        if (back) {
+        document.querySelectorAll('.booking-navbar__back, .booking-minimal-back').forEach(function (back) {
             back.setAttribute('href', tech.agentLandingUrl);
-        }
+        });
     }
 
     function saveDateTimeSelection(payload) {
@@ -2361,8 +2360,16 @@
         }
 
         function formatWeekdayShort(date) {
-            var text = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(date).replace('.', '');
-            return text.charAt(0).toUpperCase() + text.slice(1);
+            var text = new Intl.DateTimeFormat(locale, { weekday: 'short' })
+                .format(date)
+                .replace(/\./g, '')
+                .trim();
+            // pt/es podem devolver "segunda"/"segunda-feira" — calendário usa 3 letras (Seg, Ter…).
+            text = text.split(/[\s\-_\/]+/)[0] || text;
+            if (text.length > 3) {
+                text = text.slice(0, 3);
+            }
+            return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
         }
 
         selectedDateObj = parseIsoDate(selectedDate) || new Date(today);
@@ -2776,7 +2783,18 @@
         }
 
         var baseLocale = (flatpickr && flatpickr.l10ns && flatpickr.l10ns.pt) ? flatpickr.l10ns.pt : {};
-        var calendarLocale = Object.assign({}, baseLocale, { firstDayOfWeek: 1 });
+        var weekdayShorthand = [];
+        var weekdayProbe = new Date(2024, 0, 7); // domingo
+        for (var wi = 0; wi < 7; wi += 1) {
+            weekdayShorthand.push(formatWeekdayShort(addDays(weekdayProbe, wi)));
+        }
+        var calendarLocale = Object.assign({}, baseLocale, {
+            firstDayOfWeek: 1,
+            weekdays: Object.assign({}, (baseLocale.weekdays || {}), {
+                shorthand: weekdayShorthand,
+                longhand: (baseLocale.weekdays && baseLocale.weekdays.longhand) || weekdayShorthand,
+            }),
+        });
 
         var fp = flatpickr(calendarInput, {
             inline: true,

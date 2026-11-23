@@ -400,7 +400,7 @@
 
 .booking-theme--refined .booking-summary-datetime__icon {
     background: transparent;
-    border-color: var(--booking-border);
+    border: 0;
 }
 
 /* Lista de serviços: caixa destacada (total e botão ficam fora) */
@@ -450,7 +450,10 @@
     border-color: var(--booking-border);
 }
 
-.booking-theme--refined .booking-technician-row.is-selected, .booking-theme--refined .booking-datetime-slot.is-selected, .booking-theme--refined .booking-datetime-slot:has(input:checked) {
+.booking-theme--refined .booking-technician-row.is-selected,
+.booking-theme--refined .booking-technician-row:has(input:checked),
+.booking-theme--refined .booking-datetime-slot.is-selected,
+.booking-theme--refined .booking-datetime-slot:has(input:checked) {
     background: rgba(17, 17, 17, 0.03);
     border-color: var(--booking-accent);
 }

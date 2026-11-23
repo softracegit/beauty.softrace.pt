@@ -31,7 +31,7 @@
                     <div class="col-lg-8 booking-elegant-main">
                         <main class="pt-1">
                             @include('booking.partials.elegant-flow-header', [
-                                'elegantActiveStep' => 3,
+                                'elegantActiveStep' => ($bookingSkipStaffStep ?? false) ? 2 : 3,
                                 'elegantFlowTitle' => __('booking.flow.datetime_heading'),
                             ])
                             <div @class(['d-flex align-items-center mb-3 ps-1 booking-page-main-heading', 'booking-elegant-hide-heading' => ($bookingUsesRefinedLayout ?? false)])>

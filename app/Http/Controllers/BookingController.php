@@ -34,6 +34,8 @@ class BookingController extends Controller
      */
     public function index(): View
     {
+        $this->forgetPresetAgent();
+
         return view('booking.index', array_merge(
             $this->bookingServicesIndexViewData(),
             [
@@ -69,11 +71,18 @@ class BookingController extends Controller
             $canBook ? (int) $agent->id : null,
         );
 
+        $usePreset = $canBook && $serviceIds !== [];
+        if ($usePreset) {
+            $this->rememberPresetAgent($agent);
+        } else {
+            $this->forgetPresetAgent();
+        }
+
         return view('booking.index', array_merge($viewData, [
-            'bookingPresetAgent' => $canBook && $serviceIds !== []
+            'bookingPresetAgent' => $usePreset
                 ? $this->bookingPresetAgentPayload($agent)
                 : null,
-            'bookingSkipStaffStep' => $canBook && $serviceIds !== [],
+            'bookingSkipStaffStep' => $usePreset,
             'bookingAgentEmpty' => ! $canBook || $serviceIds === [] || $viewData['categories']->isEmpty(),
         ]));
     }
@@ -201,10 +210,10 @@ class BookingController extends Controller
             ->values()
             ->all();
 
-        return view('booking.datetime', [
+        return view('booking.datetime', array_merge($this->bookingPresetFlowViewData(), [
             'businessName' => $this->bookingBusinessName(),
             'bookingValidAgentIds' => $validAgentIds,
-        ]);
+        ]));
     }
 
     /**
@@ -373,8 +382,16 @@ class BookingController extends Controller
     /**
      * Escolha de técnica (passo intermédio entre serviços e data/hora).
      */
-    public function technician(): View
+    public function technician(): View|RedirectResponse
     {
+        $preset = $this->bookingPresetFlowViewData();
+        if ($preset['bookingSkipStaffStep'] && is_array($preset['bookingPresetAgent'] ?? null)) {
+            $agentUrl = (string) ($preset['bookingPresetAgent']['url'] ?? '');
+            if ($agentUrl !== '') {
+                return redirect()->to($agentUrl);
+            }
+        }
+
         $technicians = Agent::query()
             ->where('store_id', $this->bookingStoreId())
             ->where('status', Agent::STATUS_ACTIVE)
@@ -404,10 +421,10 @@ class BookingController extends Controller
             })
             ->values();
 
-        return view('booking.technician', [
+        return view('booking.technician', array_merge($preset, [
             'businessName' => $this->bookingBusinessName(),
             'technicians' => $technicians,
-        ]);
+        ]));
     }
 
     /**
@@ -440,7 +457,7 @@ class BookingController extends Controller
             ? app(ClientWalletService::class)->getBalanceCents($client)
             : 0;
 
-        return view('booking.step3', [
+        return view('booking.step3', array_merge($this->bookingPresetFlowViewData(), [
             'businessName' => $this->bookingBusinessName(),
             'bookingClientUser' => $isBookingClient ? $user : null,
             'bookingClient' => $client,
@@ -451,7 +468,7 @@ class BookingController extends Controller
             'bookingPaymentCompleteUrl' => route('booking.payment.complete', ['store' => $this->bookingStoreSlug()]),
             'bookingConfirmWithoutPaymentUrl' => route('booking.confirm.without_payment', ['store' => $this->bookingStoreSlug()]),
             'bookingCancellationPreviewUrl' => route('booking.cancellation.preview', ['store' => $this->bookingStoreSlug()]),
-        ]);
+        ]));
     }
 
     /**
@@ -703,6 +720,69 @@ class BookingController extends Controller
     private function bookingStore(): Store
     {
         return app(CurrentStore::class)->get();
+    }
+
+    private function presetAgentSessionKey(): string
+    {
+        return 'booking.preset_agent_id.'.$this->bookingStoreId();
+    }
+
+    private function rememberPresetAgent(Agent $agent): void
+    {
+        session([$this->presetAgentSessionKey() => (int) $agent->id]);
+    }
+
+    private function forgetPresetAgent(): void
+    {
+        session()->forget($this->presetAgentSessionKey());
+    }
+
+    /**
+     * Mantém o fluxo «URL da técnica» nos passos seguintes (data/hora, checkout),
+     * para o «Voltar» não cair no staff geral.
+     *
+     * @return array{bookingPresetAgent: array<string, mixed>|null, bookingSkipStaffStep: bool}
+     */
+    private function bookingPresetFlowViewData(): array
+    {
+        $agentId = (int) session($this->presetAgentSessionKey(), 0);
+        if ($agentId <= 0) {
+            return [
+                'bookingPresetAgent' => null,
+                'bookingSkipStaffStep' => false,
+            ];
+        }
+
+        $agent = Agent::query()
+            ->whereKey($agentId)
+            ->where('store_id', $this->bookingStoreId())
+            ->with(['user', 'services'])
+            ->first();
+
+        if (! $agent instanceof Agent || ! $agent->isEligibleForPublicBookingPage()) {
+            $this->forgetPresetAgent();
+
+            return [
+                'bookingPresetAgent' => null,
+                'bookingSkipStaffStep' => false,
+            ];
+        }
+
+        $hasBookableService = $agent->services
+            ->contains(fn (Service $service): bool => $service->isBookableOnline());
+        if (! $hasBookableService) {
+            $this->forgetPresetAgent();
+
+            return [
+                'bookingPresetAgent' => null,
+                'bookingSkipStaffStep' => false,
+            ];
+        }
+
+        return [
+            'bookingPresetAgent' => $this->bookingPresetAgentPayload($agent),
+            'bookingSkipStaffStep' => true,
+        ];
     }
 
     /**

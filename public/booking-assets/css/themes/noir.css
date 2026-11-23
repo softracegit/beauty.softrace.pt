@@ -125,6 +125,7 @@
 }
 
 [data-booking-theme="noir"] .booking-technician-row.is-selected,
+[data-booking-theme="noir"] .booking-technician-row:has(input:checked),
 [data-booking-theme="noir"] .booking-datetime-slot.is-selected,
 [data-booking-theme="noir"] .booking-datetime-slot:has(input:checked) {
     background: rgba(157, 140, 255, 0.08);
@@ -152,8 +153,8 @@
 }
 
 [data-booking-theme="noir"] .booking-summary-datetime__icon {
-    background: var(--booking-surface);
-    border-color: var(--booking-border);
+    background: transparent;
+    border: 0;
     color: var(--booking-accent);
 }
 

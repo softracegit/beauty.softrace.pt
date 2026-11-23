@@ -178,6 +178,7 @@
 
 /* — Selecção — */
 [data-booking-theme="sage"] .booking-technician-row.is-selected,
+[data-booking-theme="sage"] .booking-technician-row:has(input:checked),
 [data-booking-theme="sage"] .booking-datetime-slot.is-selected,
 [data-booking-theme="sage"] .booking-datetime-slot:has(input:checked) {
     background: rgba(45, 95, 58, 0.06);
@@ -210,8 +211,8 @@
 
 /* — Resumo — */
 [data-booking-theme="sage"] .booking-summary-datetime__icon {
-    background: var(--booking-surface-raised);
-    border-color: var(--booking-border);
+    background: transparent;
+    border: 0;
     color: var(--booking-accent);
 }
 
