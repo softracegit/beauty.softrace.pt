@@ -152,10 +152,17 @@
             <div class="csheet-field-card__value">
               @if($isEmpty)
                 <span class="csheet-field-card__empty">---</span>
+              @elseif(
+                ($f['type'] ?? '') === 'material'
+                || (is_array($f['value']) && ! array_is_list($f['value']) && (isset($f['value']['name']) || isset($f['value']['id'])))
+              )
+                @include('partials.clinical-material-value', ['value' => $f['value']])
               @elseif(is_array($f['value']))
                 <div class="csheet-chips">
                   @foreach($f['value'] as $chip)
-                    <span class="csheet-chip">{{ $chip }}</span>
+                    @if(is_scalar($chip) || $chip === null)
+                      <span class="csheet-chip">{{ $chip }}</span>
+                    @endif
                   @endforeach
                 </div>
               @elseif(is_bool($f['value']))

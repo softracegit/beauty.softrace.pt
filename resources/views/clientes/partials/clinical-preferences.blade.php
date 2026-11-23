@@ -11,7 +11,11 @@
             return $val ? 'Sim' : 'Não';
         }
         if (is_array($val)) {
-            return implode(', ', array_map('strval', $val));
+            if (! array_is_list($val) && (isset($val['name']) || isset($val['id']))) {
+                return app(\App\Services\ClinicalSheetService::class)->formatDisplayValue($val);
+            }
+
+            return implode(', ', array_map(fn ($item) => is_scalar($item) || $item === null ? (string) $item : '', $val));
         }
 
         return (string) $val;
@@ -72,10 +76,14 @@
                             <div class="csheet-tile{{ $display === '—' ? ' csheet-tile--empty' : '' }}{{ ($field['input_type'] ?? '') === 'textarea' ? ' csheet-tile--wide' : '' }}">
                                 <div class="csheet-tile__label">{{ $field['label'] ?? $key }}</div>
                                 <div class="csheet-tile__value">
-                                    @if(is_array($val) && $val !== [])
+                                    @if(is_array($val) && $val !== [] && ! array_is_list($val) && (isset($val['name']) || isset($val['id'])))
+                                        @include('partials.clinical-material-value', ['value' => $val])
+                                    @elseif(is_array($val) && $val !== [])
                                         <div class="csheet-chips">
                                             @foreach($val as $chip)
-                                                <span class="csheet-chip">{{ $chip }}</span>
+                                                @if(is_scalar($chip) || $chip === null)
+                                                    <span class="csheet-chip">{{ $chip }}</span>
+                                                @endif
                                             @endforeach
                                         </div>
                                     @elseif(is_bool($val))

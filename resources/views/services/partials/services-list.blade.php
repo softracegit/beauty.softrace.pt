@@ -11,6 +11,7 @@
             ? optional($choiceOpts->sortBy('duration')->first())->formatted_duration
             : null;
         $extrasN = (int) ($service->extras_count ?? ($service->relationLoaded('extras') ? $service->extras->count() : 0));
+        $futureN = (int) ($service->future_marcacoes_count ?? 0);
     @endphp
     <div class="service-item-row {{ $hasOpts ? 'service-item-row--has-options' : '' }}" data-service-id="{{ $service->id }}" data-hidden-from-booking="{{ $service->hidden_from_booking ? '1' : '0' }}">
         <div class="service-drag-handle" aria-label="Arrastar para reordenar">
@@ -28,6 +29,7 @@
                         @if($extrasN > 0)
                             <span class="badge text-bg-light">{{ $extrasN }} extra(s)</span>
                         @endif
+                        @include('services.partials.service-future-marcacoes-badge', ['count' => $futureN])
                         @include('services.partials.service-members-avatars', ['service' => $service])
                     </div>
                 </div>
@@ -55,6 +57,7 @@
                         @if($extrasN > 0)
                             <span class="badge text-bg-light">{{ $extrasN }} extra(s)</span>
                         @endif
+                        @include('services.partials.service-future-marcacoes-badge', ['count' => $futureN])
                         @include('services.partials.service-members-avatars', ['service' => $service])
                     </div>
                 </div>

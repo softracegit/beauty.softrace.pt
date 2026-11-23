@@ -6,6 +6,7 @@ use App\Models\CalendarEvent;
 use App\Models\Category;
 use App\Models\CategoryClinicalField;
 use App\Models\Client;
+use App\Models\Material;
 use App\Models\Service;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
@@ -82,6 +83,9 @@ class ClinicalSheetService
     public function schemaPayload(iterable $categoryIds): array
     {
         $categories = $this->loadCategoriesWithFields($categoryIds);
+        $materialsById = $this->materialsCatalogForFields(
+            $categories->flatMap(fn (Category $cat) => $cat->clinicalFields)
+        );
         $out = [];
         $hasSession = false;
         foreach ($categories as $cat) {
@@ -94,7 +98,14 @@ class ClinicalSheetService
             $out[] = [
                 'category_id' => $cat->id,
                 'category_name' => $cat->name,
-                'fields' => $fields->map(fn (CategoryClinicalField $f) => $f->toSchemaArray())->values()->all(),
+                'fields' => $fields->map(function (CategoryClinicalField $f) use ($materialsById) {
+                    $schema = $f->toSchemaArray();
+                    if ($f->input_type === CategoryClinicalField::TYPE_MATERIAL) {
+                        $schema['material_choices'] = $this->resolveMaterialChoices($f, $materialsById);
+                    }
+
+                    return $schema;
+                })->values()->all(),
             ];
         }
 
@@ -133,10 +144,7 @@ class ClinicalSheetService
             $block = [];
             foreach ($fields as $field) {
                 $value = array_key_exists($field->key, $raw) ? $raw[$field->key] : null;
-                // Allow nested { value: ... } from UI
-                if (is_array($value) && array_key_exists('value', $value) && count($value) <= 3) {
-                    $value = $value['value'];
-                }
+                $value = $this->unwrapSubmittedFieldValue($field, $value);
                 $normalized = $this->normalizeValue($field, $value);
                 if ($normalized === null && ! $field->is_required) {
                     continue;
@@ -178,20 +186,14 @@ class ClinicalSheetService
             // Obrigatórios só quando a categoria já tem algum valor (a ficha está a ser preenchida).
             $categoryHasAnyValue = false;
             foreach ($cat->clinicalFields as $probeField) {
-                $probe = $raw[$probeField->key] ?? null;
-                if (is_array($probe) && array_key_exists('value', $probe)) {
-                    $probe = $probe['value'];
-                }
-                if (! ($probe === null || $probe === '' || $probe === [])) {
+                $probe = $this->unwrapSubmittedFieldValue($probeField, $raw[$probeField->key] ?? null);
+                if (! $this->isEmptyValue($probeField, $probe)) {
                     $categoryHasAnyValue = true;
                     break;
                 }
             }
             foreach ($cat->clinicalFields as $field) {
-                $value = $raw[$field->key] ?? null;
-                if (is_array($value) && array_key_exists('value', $value)) {
-                    $value = $value['value'];
-                }
+                $value = $this->unwrapSubmittedFieldValue($field, $raw[$field->key] ?? null);
                 $attr = "clinical_sheet.by_category.{$catId}.{$field->key}";
                 try {
                     $this->assertValidValue($field, $value, $categoryHasAnyValue);
@@ -215,11 +217,33 @@ class ClinicalSheetService
      */
     public function assertValidValue(CategoryClinicalField $field, mixed $value, bool $enforceRequired = true): void
     {
-        $empty = $value === null || $value === '' || $value === [];
-        if ($empty) {
+        if ($this->isEmptyValue($field, $value)) {
             if ($enforceRequired && $field->is_required) {
                 throw ValidationException::withMessages([
                     $field->key => ['O campo '.$field->label.' é obrigatório.'],
+                ]);
+            }
+
+            return;
+        }
+
+        if ($field->input_type === CategoryClinicalField::TYPE_MATERIAL) {
+            $materialId = $this->extractMaterialId($value);
+            if ($materialId === null) {
+                throw ValidationException::withMessages([
+                    $field->key => ['Valor inválido para '.$field->label.'.'],
+                ]);
+            }
+            $allowed = $this->allowedMaterialIds($field);
+            if ($allowed !== [] && ! in_array($materialId, $allowed, true)) {
+                throw ValidationException::withMessages([
+                    $field->key => ['Valor inválido para '.$field->label.'.'],
+                ]);
+            }
+            // withTrashed: fichas antigas com material arquivado continuam válidas ao regravar
+            if (! Material::withTrashed()->whereKey($materialId)->exists()) {
+                throw ValidationException::withMessages([
+                    $field->key => ['Material inválido para '.$field->label.'.'],
                 ]);
             }
 
@@ -262,8 +286,11 @@ class ClinicalSheetService
 
     public function normalizeValue(CategoryClinicalField $field, mixed $value): mixed
     {
-        if ($value === null || $value === '') {
+        if ($this->isEmptyValue($field, $value)) {
             return null;
+        }
+        if ($field->input_type === CategoryClinicalField::TYPE_MATERIAL) {
+            return $this->normalizeMaterialValue($value);
         }
         if ($field->input_type === CategoryClinicalField::TYPE_BOOL) {
             return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? (bool) $value;
@@ -332,9 +359,13 @@ class ClinicalSheetService
                     if ($value === null || $value === '' || $value === []) {
                         continue;
                     }
-                    $hash = json_encode($value, JSON_UNESCAPED_UNICODE);
+                    $canonical = $this->canonicalizePreferenceValue($value);
+                    $hash = $this->preferenceValueHash($canonical);
+                    if ($hash === '') {
+                        continue;
+                    }
                     if (! isset($tally[$cid][$key][$hash])) {
-                        $tally[$cid][$key][$hash] = ['value' => $value, 'count' => 0, 'first_seen' => $order];
+                        $tally[$cid][$key][$hash] = ['value' => $canonical, 'count' => 0, 'first_seen' => $order];
                     }
                     $tally[$cid][$key][$hash]['count']++;
                 }
@@ -529,10 +560,217 @@ class ClinicalSheetService
             return $value ? 'Sim' : 'Não';
         }
         if (is_array($value)) {
+            if (isset($value['name']) || isset($value['id'])) {
+                $name = trim((string) ($value['name'] ?? ''));
+                $code = trim((string) ($value['code'] ?? ''));
+                $brand = trim((string) ($value['brand'] ?? ''));
+                $finish = trim((string) ($value['finish_label'] ?? $value['finish'] ?? ''));
+                $parts = [];
+                if ($name !== '' && $code !== '') {
+                    $parts[] = $name.' ('.$code.')';
+                } elseif ($name !== '') {
+                    $parts[] = $name;
+                } elseif ($code !== '') {
+                    $parts[] = $code;
+                } elseif (isset($value['id'])) {
+                    $parts[] = '#'.$value['id'];
+                }
+                if ($brand !== '') {
+                    $parts[] = $brand;
+                }
+                if ($finish !== '') {
+                    $parts[] = $finish;
+                }
+
+                return implode(' · ', $parts);
+            }
+
+            if (array_is_list($value)) {
+                return implode(', ', array_map(fn ($item) => is_scalar($item) || $item === null ? (string) $item : '', $value));
+            }
+
             return implode(', ', array_map('strval', $value));
         }
 
         return (string) $value;
+    }
+
+    /**
+     * @param  Collection<int, CategoryClinicalField>  $fields
+     * @return Collection<int, Material>
+     */
+    private function materialsCatalogForFields(Collection $fields): Collection
+    {
+        $neededIds = [];
+        $needsAll = false;
+        $orgIds = [];
+        foreach ($fields as $field) {
+            if ($field->input_type !== CategoryClinicalField::TYPE_MATERIAL) {
+                continue;
+            }
+            $orgIds[] = (int) $field->organization_id;
+            $opts = array_values(array_filter(array_map('intval', $field->options ?? [])));
+            if ($opts === []) {
+                $needsAll = true;
+            } else {
+                foreach ($opts as $id) {
+                    $neededIds[$id] = true;
+                }
+            }
+        }
+        if (! $needsAll && $neededIds === []) {
+            return collect();
+        }
+
+        $query = Material::query()->active()->ordered();
+        $orgIds = array_values(array_unique(array_filter($orgIds)));
+        if ($orgIds !== []) {
+            $query->whereIn('organization_id', $orgIds);
+        }
+        if (! $needsAll) {
+            $query->whereIn('id', array_keys($neededIds));
+        }
+
+        return $query->get()->keyBy('id');
+    }
+
+    /**
+     * @param  Collection<int, Material>  $materialsById
+     * @return list<array{id: int, name: string, code: ?string, hex: ?string}>
+     */
+    private function resolveMaterialChoices(CategoryClinicalField $field, Collection $materialsById): array
+    {
+        $allowed = $this->allowedMaterialIds($field);
+        $pool = $materialsById;
+        if ($allowed !== []) {
+            $pool = $materialsById->only($allowed);
+        } elseif ($field->organization_id) {
+            $pool = $materialsById->where('organization_id', (int) $field->organization_id);
+        }
+
+        return $pool->values()->map(fn (Material $m) => $m->toChoiceArray())->all();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function allowedMaterialIds(CategoryClinicalField $field): array
+    {
+        return array_values(array_filter(array_map('intval', $field->options ?? []), fn ($id) => $id > 0));
+    }
+
+    private function unwrapSubmittedFieldValue(CategoryClinicalField $field, mixed $value): mixed
+    {
+        if (! is_array($value) || ! array_key_exists('value', $value)) {
+            return $value;
+        }
+        // Material snapshot shape {id,name,code,hex} must not be unwrapped.
+        if ($field->input_type === CategoryClinicalField::TYPE_MATERIAL && $this->extractMaterialId($value) !== null && ! array_key_exists('label', $value)) {
+            return $value;
+        }
+        // Allow nested { value: ... } from UI / snapshot entry
+        if (count($value) <= 3 || array_key_exists('label', $value) || array_key_exists('type', $value)) {
+            return $value['value'];
+        }
+
+        return $value;
+    }
+
+    private function isEmptyValue(CategoryClinicalField $field, mixed $value): bool
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return true;
+        }
+        if ($field->input_type === CategoryClinicalField::TYPE_MATERIAL) {
+            return $this->extractMaterialId($value) === null;
+        }
+
+        return false;
+    }
+
+    private function extractMaterialId(mixed $value): ?int
+    {
+        if (is_numeric($value)) {
+            $id = (int) $value;
+
+            return $id > 0 ? $id : null;
+        }
+        if (is_array($value) && isset($value['id']) && is_numeric($value['id'])) {
+            $id = (int) $value['id'];
+
+            return $id > 0 ? $id : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Valor canónico para preferências (materiais → snapshot por id, sem stock).
+     */
+    private function canonicalizePreferenceValue(mixed $value): mixed
+    {
+        if ($this->extractMaterialId($value) !== null) {
+            return $this->normalizeMaterialValue($value) ?? $value;
+        }
+
+        return $value;
+    }
+
+    /**
+     * Hash de comparação: materiais pelo id; resto por JSON.
+     */
+    private function preferenceValueHash(mixed $value): string
+    {
+        $materialId = $this->extractMaterialId($value);
+        if ($materialId !== null) {
+            return 'material:'.$materialId;
+        }
+        $encoded = json_encode($value, JSON_UNESCAPED_UNICODE);
+
+        return is_string($encoded) ? $encoded : '';
+    }
+
+    /**
+     * @return array{id: int, name: string, code: ?string, brand: ?string, finish: ?string, finish_label: ?string, hex: ?string, photo_path: ?string}|null
+     */
+    private function normalizeMaterialValue(mixed $value): ?array
+    {
+        $id = $this->extractMaterialId($value);
+        if ($id === null) {
+            return null;
+        }
+        $material = Material::withTrashed()->find($id);
+        if (! $material) {
+            if (is_array($value) && isset($value['name'])) {
+                $finish = isset($value['finish']) && $value['finish'] !== '' ? (string) $value['finish'] : null;
+                $photoPath = isset($value['photo_path']) && $value['photo_path'] !== ''
+                    ? (string) $value['photo_path']
+                    : null;
+
+                return [
+                    'id' => $id,
+                    'name' => (string) $value['name'],
+                    'code' => isset($value['code']) && $value['code'] !== '' ? (string) $value['code'] : null,
+                    'brand' => isset($value['brand']) && $value['brand'] !== '' ? (string) $value['brand'] : null,
+                    'finish' => $finish,
+                    'finish_label' => isset($value['finish_label']) && $value['finish_label'] !== ''
+                        ? (string) $value['finish_label']
+                        : Material::finishLabel($finish),
+                    'hex' => isset($value['hex']) && $value['hex'] !== '' ? (string) $value['hex'] : null,
+                    'photo_path' => $photoPath,
+                    'archived' => true,
+                ];
+            }
+
+            return null;
+        }
+
+        $snap = $material->toSnapshotArray();
+        if ($material->trashed()) {
+            $snap['archived'] = true;
+        }
+
+        return $snap;
     }
 
     public function normalizeSheetColumn(mixed $raw): ?array

@@ -28,6 +28,7 @@ use App\Http\Controllers\DealController;
 use App\Http\Controllers\DevErrorTestController;
 use App\Http\Controllers\DefinicoesController;
 use App\Http\Controllers\ExtraController;
+use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\FeeController;
 use App\Http\Controllers\HelpController;
 use App\Http\Controllers\LeadController;
@@ -449,6 +450,19 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('fees/{fee}', [FeeController::class, 'show'])->name('fees.show');
     Route::match(['put', 'patch'], 'fees/{fee}', [FeeController::class, 'update'])->name('fees.update');
     Route::delete('fees/{fee}', [FeeController::class, 'destroy'])->name('fees.destroy');
+
+    Route::get('materials', [MaterialController::class, 'index'])->name('materials.index');
+    Route::get('materials/list', [MaterialController::class, 'list'])->name('materials.list');
+    Route::post('materials', [MaterialController::class, 'store'])->name('materials.store');
+    Route::post('materials/{id}/restore', [MaterialController::class, 'restore'])->name('materials.restore')->whereNumber('id');
+    Route::get('materials/{material}', [MaterialController::class, 'show'])->name('materials.show');
+    Route::match(['put', 'patch'], 'materials/{material}', [MaterialController::class, 'update'])->name('materials.update');
+    Route::delete('materials/{material}', [MaterialController::class, 'destroy'])->name('materials.destroy');
+    Route::get('material-categories/{materialCategory}', [MaterialController::class, 'showCategory'])->name('materials.categories.show');
+    Route::post('material-categories', [MaterialController::class, 'storeCategory'])->name('materials.categories.store');
+    Route::match(['put', 'patch'], 'material-categories/{materialCategory}', [MaterialController::class, 'updateCategory'])->name('materials.categories.update');
+    Route::delete('material-categories/{materialCategory}', [MaterialController::class, 'destroyCategory'])->name('materials.categories.destroy');
+    Route::post('material-categories/{materialCategory}/materials/reorder', [MaterialController::class, 'reorder'])->name('materials.reorder');
 
     Route::prefix('marketing')->name('marketing.')->group(function () {
         Route::get('campanhas-sms', [MarketingSmsController::class, 'index'])->name('campanhas-sms');

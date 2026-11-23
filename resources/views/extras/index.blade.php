@@ -184,7 +184,8 @@
     padding-top: 1.5rem;
     border-top: 1px solid var(--border-color-light, #eef0f3);
 }
-#deleteExtraConfirmModal {
+#deleteExtraConfirmModal,
+#deleteExtraCategoryConfirmModal {
     --bs-modal-zindex: 1085;
 }
 .services-offcanvas__associated {
@@ -641,6 +642,11 @@
 <script src="{{ asset('template/vendor/dragula/dragula.min.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    var pendingExtraCategoryDeleteId = null;
+    function toast(msg, type) {
+        if (typeof window.showToast === 'function') window.showToast(msg, type || 'error');
+        else if (type === 'error') console.error(msg);
+    }
     // --- Categorias: selects de cor com Choices.js (mesma lógica que Serviços) ---
     var extraCategoryColorChoices = null;
     if (typeof Choices !== 'undefined') {
@@ -850,19 +856,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (e.target.closest('.extra-category-delete-btn')) {
             e.preventDefault();
-            if (!confirm('Eliminar esta categoria? Só é possível se não tiver extras (incluindo no Arquivo).')) return;
-            var csrf = document.querySelector('input[name="_token"]')?.value || '';
-            fetch('{{ url('extra-categories') }}/' + categoryId, {
-                method: 'DELETE',
-                headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-            })
+            pendingExtraCategoryDeleteId = categoryId;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteExtraCategoryConfirmModal')).show();
+        }
+    });
+
+    document.getElementById('deleteExtraCategoryConfirmBtn')?.addEventListener('click', function () {
+        var categoryId = pendingExtraCategoryDeleteId;
+        if (!categoryId) return;
+        pendingExtraCategoryDeleteId = null;
+        bootstrap.Modal.getInstance(document.getElementById('deleteExtraCategoryConfirmModal'))?.hide();
+        var csrf = document.querySelector('input[name="_token"]')?.value
+            || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            || '';
+        fetch('{{ url('extra-categories') }}/' + categoryId, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+        })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (data.success) window.location.reload();
-                else alert(data.message || 'Erro ao eliminar.');
+                else toast(data.message || 'Erro ao eliminar.', 'error');
             })
-            .catch(function() { alert('Erro ao eliminar categoria.'); });
-        }
+            .catch(function() { toast('Erro ao eliminar categoria.', 'error'); });
     });
 
     // Ao alterar a cor no modal Editar Categoria: atualizar em tempo real a borda dos extras e o ponto na sidebar
@@ -1142,10 +1158,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('editExtraModal')).hide();
                 window.location.reload();
             } else {
-                alert(data.message || 'Erro ao arquivar.');
+                toast(data.message || 'Erro ao arquivar.', 'error');
             }
         })
-        .catch(function() { alert('Erro ao arquivar extra.'); });
+            .catch(function() { toast('Erro ao arquivar extra.', 'error'); });
     });
 
     // Dragula — reordenar extras por categoria
@@ -1374,6 +1390,25 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="deleteExtraConfirmBtn">Arquivar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal eliminar categoria de extra -->
+<div class="modal fade" id="deleteExtraCategoryConfirmModal" tabindex="-1" aria-labelledby="deleteExtraCategoryConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="deleteExtraCategoryConfirmModalLabel">Eliminar categoria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Tem a certeza que deseja eliminar esta categoria? Só é possível se não tiver extras (incluindo no Arquivo).</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="deleteExtraCategoryConfirmBtn">Eliminar</button>
             </div>
         </div>
     </div>

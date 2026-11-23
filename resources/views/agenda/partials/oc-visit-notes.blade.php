@@ -6,7 +6,7 @@
   $pfx = $prefix ?? 'agendaOc';
 @endphp
 <div class="agenda-oc-field agenda-oc-notes-row">
-  <div class="agenda-oc-clinical-progress-field d-none" id="{{ $pfx }}ClinicalSheetWrap" aria-hidden="true" hidden>
+  <div class="agenda-oc-clinical-progress-field" id="{{ $pfx }}ClinicalSheetWrap">
     <label class="form-label fw-semibold" id="{{ $pfx }}ClinicalProgressLabel">Ficha técnica da marcação</label>
     <button
       type="button"

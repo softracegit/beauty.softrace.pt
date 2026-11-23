@@ -41,7 +41,12 @@ class ServiceController extends Controller
                     'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
                     'options' => fn ($oq) => $oq->orderBy('sort_order'),
                 ])
-                ->withCount(['extras', 'fees', 'agents'])
+                ->withCount([
+                    'extras',
+                    'fees',
+                    'agents',
+                    'futureActiveMarcacoes as future_marcacoes_count',
+                ])
                 ->orderBy('sort_order')])
             ->get()
             ->map(fn (Category $cat) => [
@@ -66,7 +71,12 @@ class ServiceController extends Controller
                 'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ])
-            ->withCount(['extras', 'fees', 'agents'])
+            ->withCount([
+                'extras',
+                'fees',
+                'agents',
+                'futureActiveMarcacoes as future_marcacoes_count',
+            ])
             ->orderBy('sort_order')
             ->get();
 
@@ -238,7 +248,12 @@ class ServiceController extends Controller
                 'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ])
-            ->withCount(['extras', 'fees', 'agents'])
+            ->withCount([
+                'extras',
+                'fees',
+                'agents',
+                'futureActiveMarcacoes as future_marcacoes_count',
+            ])
             ->orderByDesc('deleted_at')
             ->orderBy('name')
             ->get();

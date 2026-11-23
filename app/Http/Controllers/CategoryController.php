@@ -9,6 +9,8 @@ use App\Models\CategoryClinicalField;
 use App\Models\Extra;
 use App\Models\ExtraCategory;
 use App\Models\Fee;
+use App\Models\Material;
+use App\Models\MaterialCategory;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -46,7 +48,12 @@ class CategoryController extends Controller
                     'fees',
                     'options',
                 ])
-                ->withCount(['extras', 'fees', 'agents'])
+                ->withCount([
+                    'extras',
+                    'fees',
+                    'agents',
+                    'futureActiveMarcacoes as future_marcacoes_count',
+                ])
                 ->orderBy('sort_order')])
             ->withCount('services')
             ->get();
@@ -60,6 +67,13 @@ class CategoryController extends Controller
             ->with(['extras' => fn ($q) => $q->orderBy('sort_order')])
             ->get();
         $fees = Fee::forOrganization($organizationId)->orderBy('sort_order')->orderBy('name')->get();
+        $materials = Material::forOrganization($organizationId)
+            ->with('materialCategory:id,name,color')
+            ->ordered()
+            ->get();
+        $materialCategories = MaterialCategory::forOrganization($organizationId)
+            ->orderBy('sort_order')
+            ->get();
 
         return view('services.index', [
             'categories' => $categories,
@@ -67,6 +81,8 @@ class CategoryController extends Controller
             'extras' => $extras,
             'extraCategories' => $extraCategories,
             'fees' => $fees,
+            'materials' => $materials,
+            'materialCategories' => $materialCategories,
             'archivedServicesCount' => $archivedServicesCount,
         ]);
     }
@@ -334,7 +350,7 @@ class CategoryController extends Controller
             'label' => ['required', 'string', 'max:255'],
             'input_type' => ['required', Rule::in(CategoryClinicalField::inputTypes())],
             'options' => ['nullable', 'array'],
-            'options.*' => ['string', 'max:255'],
+            'options.*' => ['nullable'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
             'is_required' => ['sometimes', 'boolean'],
@@ -361,17 +377,44 @@ class CategoryController extends Controller
             $data['key'] = $key;
         }
 
-        $needsOptions = in_array($data['input_type'], [
-            CategoryClinicalField::TYPE_SELECT,
-            CategoryClinicalField::TYPE_MULTISELECT,
-        ], true);
-        $options = array_values(array_filter(array_map('trim', $data['options'] ?? []), fn ($o) => $o !== ''));
-        if ($needsOptions && $options === []) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'options' => ['Indique pelo menos uma opção para este tipo de campo.'],
-            ]);
+        if ($data['input_type'] === CategoryClinicalField::TYPE_MATERIAL) {
+            $rawIds = collect($data['options'] ?? [])
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($id) => $id > 0)
+                ->unique()
+                ->values();
+            if ($rawIds->isNotEmpty()) {
+                $validIds = Material::forOrganization(current_organization_id())
+                    ->whereIn('id', $rawIds->all())
+                    ->pluck('id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+                $invalid = $rawIds->reject(fn ($id) => in_array($id, $validIds, true))->values();
+                if ($invalid->isNotEmpty()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'options' => ['Um ou mais materiais selecionados são inválidos.'],
+                    ]);
+                }
+                $data['options'] = array_map('strval', $validIds);
+            } else {
+                $data['options'] = [];
+            }
+        } else {
+            $needsOptions = in_array($data['input_type'], [
+                CategoryClinicalField::TYPE_SELECT,
+                CategoryClinicalField::TYPE_MULTISELECT,
+            ], true);
+            $options = array_values(array_filter(array_map(
+                fn ($o) => trim((string) $o),
+                $data['options'] ?? []
+            ), fn ($o) => $o !== ''));
+            if ($needsOptions && $options === []) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'options' => ['Indique pelo menos uma opção para este tipo de campo.'],
+                ]);
+            }
+            $data['options'] = $needsOptions ? $options : null;
         }
-        $data['options'] = $needsOptions ? $options : null;
         $data['label'] = $label;
         $data['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : ($existing?->is_active ?? true);
         $data['is_required'] = $request->has('is_required') ? $request->boolean('is_required') : ($existing?->is_required ?? false);

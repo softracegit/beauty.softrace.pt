@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedCategoryId === '') selectedCategoryId = 'all';
     let servicesDrake = null;       // vista de uma categoria (#servicesList)
     let servicesDrakesAll = [];     // vista "Todas" (vários .services-group-list)
+    let pendingCategoryDeleteId = null;
+    let pendingVariantDelete = null;
 
     function escapeHtml(str) {
         if (str == null) {
@@ -82,6 +84,15 @@ document.addEventListener('DOMContentLoaded', function() {
             `<span class="badge text-bg-light">${agentsN} membro${agentsN === 1 ? '' : 's'}</span>` +
             avatarsHtml +
             `</button>`
+        );
+    }
+
+    function renderServiceFutureMarcacoesBadge(count) {
+        const n = parseInt(count, 10) || 0;
+        const title = 'Marcações futuras activas (ainda não terminadas / pagas / canceladas)';
+        return (
+            `<span class="badge text-bg-light" title="${escapeHtml(title)}">` +
+            `${n} marca${n === 1 ? 'ção' : 'ções'}</span>`
         );
     }
 
@@ -716,8 +727,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (action === 'duplicate') {
                     duplicateVariant(prefix, key);
                 } else if (action === 'delete') {
-                    if (!confirm('Eliminar esta variante?')) return;
-                    deleteVariant(prefix, key);
+                    pendingVariantDelete = { prefix: prefix, key: key };
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteServiceVariantConfirmModal')).show();
                 }
                 return;
             }
@@ -821,6 +832,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     let editCategoryColorChoices = null; // instância para atualizar a cor ao abrir o modal
     let editCategoryLoadToken = 0;
+    let clinicalFieldsDrake = null;
 
     function parseCategoryHiddenFromBooking(value) {
         return value === true || value === 1 || value === '1';
@@ -949,10 +961,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return ({
             text: 'Texto',
             textarea: 'Texto longo',
-            select: 'Select',
-            multiselect: 'Multi-select',
+            select: 'Seleção única',
+            multiselect: 'Seleção múltipla',
             number: 'Número',
-            bool: 'Sim/Não'
+            bool: 'Sim/Não',
+            material: 'Material'
         })[type] || type;
     }
 
@@ -980,56 +993,144 @@ document.addEventListener('DOMContentLoaded', function() {
         keyEl.value = clinicalFieldSlugify(labelEl.value);
     }
 
+    function destroyClinicalFieldsDrake() {
+        if (clinicalFieldsDrake) {
+            clinicalFieldsDrake.destroy();
+            clinicalFieldsDrake = null;
+        }
+    }
+
+    function persistClinicalFieldsOrder() {
+        const list = document.getElementById('clinicalFieldsList');
+        const categoryId = document.getElementById('editCategoryId')?.value;
+        if (!list || !categoryId) return;
+        const order = Array.prototype.map.call(
+            list.querySelectorAll('.clinical-field-card[data-field-id]'),
+            function (row) { return row.getAttribute('data-field-id'); }
+        ).filter(function (id) { return isPersistedClinicalFieldId(id); })
+            .map(function (id) { return Number(id); });
+        if (!order.length) return;
+        // Reordenar também o cache local
+        const byId = {};
+        (list._fields || []).forEach(function (f) { byId[String(f.id)] = f; });
+        list._fields = order.map(function (id) { return byId[String(id)]; }).filter(Boolean);
+        fetch(`/categories/${encodeURIComponent(categoryId)}/clinical-fields/reorder`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ order: order }),
+        })
+            .then(function (r) { return r.json().then(function (res) { return { ok: r.ok, res: res }; }); })
+            .then(function (x) {
+                if (!x.ok) throw new Error((x.res && x.res.message) || 'Erro ao reordenar.');
+            })
+            .catch(function (err) {
+                console.error(err);
+                showToast(err.message || 'Erro ao reordenar campos', 'error');
+            });
+    }
+
+    function initClinicalFieldsDrake() {
+        if (typeof dragula === 'undefined') return;
+        destroyClinicalFieldsDrake();
+        const list = document.getElementById('clinicalFieldsList');
+        if (!list || list.querySelectorAll('.clinical-field-card[data-field-id]').length < 2) return;
+        clinicalFieldsDrake = dragula([list], {
+            moves: function (el, source, handle) {
+                if (!el.classList.contains('clinical-field-card')) return false;
+                return !!(handle && (handle.classList.contains('service-drag-handle') || handle.closest('.service-drag-handle')));
+            },
+            accepts: function (el, target) {
+                return target === list;
+            },
+            revertOnSpill: true,
+            mirrorContainer: document.body,
+        });
+        clinicalFieldsDrake.on('drop', function () {
+            persistClinicalFieldsOrder();
+        });
+    }
+
     function renderClinicalFieldsList(fields) {
         const list = document.getElementById('clinicalFieldsList');
         const empty = document.getElementById('clinicalFieldsEmpty');
         if (!list) return;
-        const active = (fields || []).filter(function(f) { return f && f.is_active !== false; });
-        const inactive = (fields || []).filter(function(f) { return f && f.is_active === false; });
-        const all = active.concat(inactive);
+        destroyClinicalFieldsDrake();
+        const sorted = (fields || []).slice().sort(function (a, b) {
+            const ao = a && a.sort_order != null ? Number(a.sort_order) : 0;
+            const bo = b && b.sort_order != null ? Number(b.sort_order) : 0;
+            if (ao !== bo) return ao - bo;
+            return (Number(a && a.id) || 0) - (Number(b && b.id) || 0);
+        });
         list.innerHTML = '';
-        if (empty) empty.classList.toggle('d-none', all.length > 0);
-        all.forEach(function(f) {
+        if (empty) empty.classList.toggle('d-none', sorted.length > 0);
+        sorted.forEach(function(f) {
             const row = document.createElement('div');
             const isActive = f.is_active !== false;
             row.className = 'clinical-field-card';
             row.dataset.fieldId = String(f.id);
             row.innerHTML =
-                '<div class="clinical-field-card__summary">' +
-                    '<div class="min-w-0">' +
-                        '<div class="fw-semibold small text-truncate">' + escapeHtml(f.label || f.key) +
-                            (f.is_required ? ' <span class="text-danger">*</span>' : '') +
+                '<div class="service-drag-handle" aria-label="Arrastar para reordenar" title="Arrastar para reordenar">' +
+                    '<span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>' +
+                '</div>' +
+                '<div class="clinical-field-card__body">' +
+                    '<div class="clinical-field-card__summary">' +
+                        '<div class="min-w-0">' +
+                            '<div class="fw-semibold small text-truncate">' + escapeHtml(f.label || f.key) +
+                                (f.is_required ? ' <span class="text-danger">*</span>' : '') +
+                            '</div>' +
+                            '<div class="text-muted" style="font-size:0.72rem;">' +
+                                '<span class="clinical-field-status clinical-field-status--' + (isActive ? 'active' : 'inactive') + '">' +
+                                    (isActive ? 'Ativo' : 'Inativo') +
+                                '</span>' +
+                                ' · ' + escapeHtml(f.key) +
+                                ' · ' + escapeHtml(clinicalFieldTypeLabel(f.input_type)) +
+                            '</div>' +
                         '</div>' +
-                        '<div class="text-muted" style="font-size:0.72rem;">' +
-                            '<span class="clinical-field-status clinical-field-status--' + (isActive ? 'active' : 'inactive') + '">' +
-                                (isActive ? 'Ativo' : 'Inativo') +
-                            '</span>' +
-                            ' · ' + escapeHtml(f.key) +
-                            ' · ' + escapeHtml(clinicalFieldTypeLabel(f.input_type)) +
+                        '<div class="d-flex gap-2 flex-shrink-0 clinical-field-card__actions">' +
+                            '<button type="button" class="btn btn-sm btn-outline-secondary clinical-field-edit" title="Editar" aria-label="Editar">' +
+                                '<i class="ph ph-pencil-simple" aria-hidden="true"></i>' +
+                            '</button>' +
                         '</div>' +
-                    '</div>' +
-                    '<div class="d-flex gap-2 flex-shrink-0 clinical-field-card__actions">' +
-                        '<button type="button" class="btn btn-sm btn-outline-secondary clinical-field-edit" title="Editar" aria-label="Editar">' +
-                            '<i class="ph ph-pencil-simple" aria-hidden="true"></i>' +
-                        '</button>' +
                     '</div>' +
                 '</div>';
             list.appendChild(row);
         });
-        list._fields = fields || [];
+        list._fields = sorted;
+        initClinicalFieldsDrake();
+    }
+
+    function setCategoryUnderStack(active) {
+        const catEl = document.getElementById('editCategoryModal');
+        if (!catEl) return;
+        catEl.classList.toggle('services-offcanvas--under-stack', !!active);
+        // O focus trap do offcanvas de trás impede editar o de cima — desactivar enquanto o stack está aberto.
+        const catOc = bootstrap.Offcanvas.getInstance(catEl);
+        if (catOc && catOc._focustrap) {
+            if (active) {
+                catOc._focustrap.deactivate();
+            } else if (catEl.classList.contains('show')) {
+                catOc._focustrap.activate();
+            }
+        }
     }
 
     function hideClinicalFieldEditor() {
-        const modalEl = document.getElementById('clinicalFieldModal');
-        if (modalEl) {
-            bootstrap.Modal.getInstance(modalEl)?.hide();
+        const panelEl = document.getElementById('clinicalFieldOffcanvas');
+        if (panelEl) {
+            bootstrap.Offcanvas.getInstance(panelEl)?.hide();
         }
+        setCategoryUnderStack(false);
         const idEl = document.getElementById('clinicalFieldEditId');
         if (idEl) idEl.value = '';
     }
 
     function showClinicalFieldEditor(field) {
-        const title = document.getElementById('clinicalFieldModalLabel');
+        const title = document.getElementById('clinicalFieldOffcanvasLabel');
         const isPersisted = !!(field && isPersistedClinicalFieldId(field.id));
         const hasId = !!(field && field.id);
         if (title) title.textContent = hasId ? 'Editar campo' : 'Adicionar campo';
@@ -1038,9 +1139,21 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('clinicalFieldLabel').value = field && field.label ? field.label : '';
         document.getElementById('clinicalFieldKey').value = field && field.key ? field.key : '';
         document.getElementById('clinicalFieldType').value = field && field.input_type ? field.input_type : 'text';
-        document.getElementById('clinicalFieldOptions').value = field && Array.isArray(field.options) ? field.options.join('\n') : '';
+        document.getElementById('clinicalFieldOptions').value = field && Array.isArray(field.options) && field.input_type !== 'material'
+            ? field.options.join('\n')
+            : '';
         document.getElementById('clinicalFieldRequired').checked = !!(field && field.is_required);
         document.getElementById('clinicalFieldActive').checked = !field || field.is_active !== false;
+        const materialOpts = field && field.input_type === 'material' && Array.isArray(field.options) ? field.options : [];
+        // Novo campo: nada seleccionado. Campo existente com options [] (= todos dinâmicos): marcar todos.
+        setClinicalFieldMaterialSelection(materialOpts, {
+            emptyMeansAll: !!(field && field.input_type === 'material' && materialOpts.length === 0 && hasId),
+        });
+        const materialsSearch = document.getElementById('clinicalFieldMaterialsSearch');
+        if (materialsSearch) {
+            materialsSearch.value = '';
+            filterClinicalFieldMaterialsList();
+        }
         clinicalFieldKeyTouched = isPersisted || (hasId && !!field.key);
         const keyEl = document.getElementById('clinicalFieldKey');
         if (keyEl) {
@@ -1050,19 +1163,304 @@ document.addEventListener('DOMContentLoaded', function() {
             keyEl.required = !isPersisted;
         }
         syncClinicalFieldOptionsVisibility();
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('clinicalFieldModal')).show();
+        setCategoryUnderStack(true);
+        bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('clinicalFieldOffcanvas'), {
+            backdrop: false,
+            scroll: true,
+        }).show();
         requestAnimationFrame(function () {
             document.getElementById('clinicalFieldLabel')?.focus();
         });
     }
 
+    function setClinicalFieldMaterialSelection(ids, opts) {
+        const list = Array.isArray(ids) ? ids : [];
+        const emptyMeansAll = !!(opts && opts.emptyMeansAll);
+        if (list.length === 0) {
+            document.querySelectorAll('.clinical-field-material-cb').forEach(function (cb) {
+                cb.checked = emptyMeansAll && !cb.disabled;
+            });
+            syncClinicalFieldMaterialSelectState();
+            return;
+        }
+        const selected = new Set(list.map(function (id) { return String(id); }));
+        document.querySelectorAll('.clinical-field-material-cb').forEach(function (cb) {
+            cb.checked = selected.has(String(cb.value));
+        });
+        syncClinicalFieldMaterialSelectState();
+    }
+
+    function getClinicalFieldMaterialSelection() {
+        return Array.prototype.map.call(
+            document.querySelectorAll('.clinical-field-material-cb:checked'),
+            function (cb) { return String(cb.value); }
+        );
+    }
+
+    function clinicalFieldMaterialCbsForCategory(catName) {
+        return Array.prototype.filter.call(
+            document.querySelectorAll('.clinical-field-material-cb'),
+            function (cb) { return cb.getAttribute('data-material-category-name') === catName; }
+        );
+    }
+
+    function syncClinicalFieldMaterialSelectState() {
+        const list = document.getElementById('clinicalFieldMaterialsList');
+        if (!list) return;
+        const selectAll = list.querySelector('[data-clinical-field-materials-select-all]');
+        const categoryCheckboxes = list.querySelectorAll('.clinical-field-material-select-cat');
+        const materialCheckboxes = list.querySelectorAll('.clinical-field-material-cb:not(:disabled)');
+
+        categoryCheckboxes.forEach(function (catCb) {
+            const catName = catCb.getAttribute('data-category-name') || '';
+            const cbs = clinicalFieldMaterialCbsForCategory(catName).filter(function (cb) { return !cb.disabled; });
+            const checked = cbs.filter(function (cb) { return cb.checked; }).length;
+            catCb.checked = cbs.length > 0 && checked === cbs.length;
+            catCb.indeterminate = checked > 0 && checked < cbs.length;
+            catCb.disabled = cbs.length === 0;
+        });
+
+        if (selectAll) {
+            const total = materialCheckboxes.length;
+            const checked = Array.prototype.filter.call(materialCheckboxes, function (cb) { return cb.checked; }).length;
+            selectAll.checked = total > 0 && checked === total;
+            selectAll.indeterminate = checked > 0 && checked < total;
+            selectAll.disabled = total === 0;
+        }
+    }
+
     function syncClinicalFieldOptionsVisibility() {
         const type = document.getElementById('clinicalFieldType')?.value;
         const wrap = document.getElementById('clinicalFieldOptionsWrap');
-        if (!wrap) return;
+        const materialsWrap = document.getElementById('clinicalFieldMaterialsWrap');
         const needs = type === 'select' || type === 'multiselect';
-        wrap.classList.toggle('d-none', !needs);
+        if (wrap) wrap.classList.toggle('d-none', !needs);
+        if (materialsWrap) materialsWrap.classList.toggle('d-none', type !== 'material');
     }
+
+    function clinicalFieldMaterialSwatchStyle(material) {
+        const photo = material && (material.photo_url || '');
+        const hex = material && material.hex ? String(material.hex) : '';
+        if (photo) {
+            return 'background-image:url(' + JSON.stringify(String(photo)) + ');';
+        }
+        if (hex) {
+            return 'background:' + hex + ';';
+        }
+        return 'background:transparent;border-style:dashed;';
+    }
+
+    function clinicalFieldMaterialSearchBlob(material, catName) {
+        return [material.name, material.code, material.brand, material.finish_label || material.finish, catName]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+    }
+
+    function filterClinicalFieldMaterialsList() {
+        const list = document.getElementById('clinicalFieldMaterialsList');
+        const input = document.getElementById('clinicalFieldMaterialsSearch');
+        if (!list) return;
+        const q = String(input && input.value || '').trim().toLowerCase();
+        list.querySelectorAll('.clinical-field-material-row').forEach(function (row) {
+            const blob = row.getAttribute('data-material-search') || '';
+            row.classList.toggle('is-filtered-out', q !== '' && blob.indexOf(q) === -1);
+        });
+        list.querySelectorAll('.clinical-field-material-cat-block').forEach(function (block) {
+            const visible = block.querySelectorAll('.clinical-field-material-row:not(.is-filtered-out)').length;
+            block.classList.toggle('is-filtered-out', q !== '' && visible === 0);
+        });
+    }
+
+    function appendClinicalFieldMaterialCheckbox(material) {
+        const list = document.getElementById('clinicalFieldMaterialsList');
+        if (!list || !material || !material.id) return;
+        document.getElementById('clinicalFieldMaterialsEmpty')?.remove();
+        ensureClinicalFieldMaterialsSearch(list);
+        const catName = material.category_name || 'Sem categoria';
+        let catBlock = Array.prototype.find.call(
+            list.querySelectorAll('.clinical-field-material-cat-block'),
+            function (el) { return el.getAttribute('data-category-name') === catName; }
+        );
+        if (!catBlock) {
+            ensureClinicalFieldMaterialsSelectAllRow(list);
+            const catSlug = clinicalFieldMaterialCatSlug(catName);
+            catBlock = document.createElement('div');
+            catBlock.className = 'clinical-field-material-cat-block mb-3';
+            catBlock.setAttribute('data-category-name', catName);
+            catBlock.innerHTML =
+                '<div class="form-check mb-2 mt-2 clinical-field-material-cat" data-category-name="' + escapeHtml(catName) + '">' +
+                    '<input type="checkbox" class="form-check-input clinical-field-material-select-cat" id="clinicalFieldMaterialsCat' + catSlug + '" data-category-name="' + escapeHtml(catName) + '" aria-label="Seleccionar todos em ' + escapeHtml(catName) + '">' +
+                    '<label class="form-check-label fw-semibold" for="clinicalFieldMaterialsCat' + catSlug + '">' +
+                        escapeHtml(catName) +
+                        ' <span class="badge bg-secondary ms-2 clinical-field-material-cat-count">1</span>' +
+                    '</label>' +
+                '</div>';
+            list.appendChild(catBlock);
+        } else {
+            const countBadge = catBlock.querySelector('.clinical-field-material-cat-count');
+            if (countBadge) {
+                const n = clinicalFieldMaterialCbsForCategory(catName).filter(function (cb) { return !cb.disabled; }).length + 1;
+                countBadge.textContent = String(n);
+            }
+        }
+        const wrap = document.createElement('div');
+        wrap.className = 'form-check ms-3 mb-2 clinical-field-material-row';
+        wrap.setAttribute('data-material-category-name', catName);
+        wrap.setAttribute('data-material-search', clinicalFieldMaterialSearchBlob(material, catName));
+        const id = 'clinicalFieldMaterial' + material.id;
+        var metaBits = [];
+        if (material.code) metaBits.push(escapeHtml(material.code));
+        if (material.brand) metaBits.push(escapeHtml(material.brand));
+        if (material.finish_label || material.finish) metaBits.push(escapeHtml(material.finish_label || material.finish));
+        wrap.innerHTML =
+            '<input class="form-check-input clinical-field-material-cb" type="checkbox" value="' + String(material.id) + '" id="' + id + '" data-material-category-name="' + escapeHtml(catName) + '" checked>' +
+            '<label class="form-check-label d-flex align-items-center gap-2 w-100" for="' + id + '">' +
+                '<span class="clinical-field-material-swatch" style="' + clinicalFieldMaterialSwatchStyle(material) + '" aria-hidden="true"></span>' +
+                '<span class="flex-grow-1">' + escapeHtml(material.name || '') + '</span>' +
+                (metaBits.length ? '<span class="text-muted small">' + metaBits.join(' · ') + '</span>' : '') +
+            '</label>';
+        catBlock.appendChild(wrap);
+        bumpClinicalFieldMaterialsSelectAllCount(list);
+        syncClinicalFieldMaterialSelectState();
+        filterClinicalFieldMaterialsList();
+    }
+
+    function ensureClinicalFieldMaterialsSearch(list) {
+        if (!list || list.querySelector('#clinicalFieldMaterialsSearch')) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'clinical-field-materials-search';
+        wrap.innerHTML =
+            '<label class="visually-hidden" for="clinicalFieldMaterialsSearch">Pesquisar materiais</label>' +
+            '<input type="search" class="form-control form-control-sm" id="clinicalFieldMaterialsSearch" placeholder="Pesquisar nome, referência, marca…" autocomplete="off">';
+        list.insertBefore(wrap, list.firstChild);
+    }
+
+    function clinicalFieldMaterialCatSlug(catName) {
+        return String(catName || 'sem-categoria')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '') || 'sem-categoria';
+    }
+
+    function ensureClinicalFieldMaterialsSelectAllRow(list) {
+        if (!list || list.querySelector('[data-clinical-field-materials-select-all]')) return;
+        document.getElementById('clinicalFieldMaterialsEmpty')?.remove();
+        ensureClinicalFieldMaterialsSearch(list);
+        const row = document.createElement('div');
+        row.className = 'form-check mb-2 pb-2 border-bottom';
+        row.innerHTML =
+            '<input type="checkbox" class="form-check-input" id="clinicalFieldMaterialsSelectAll" data-clinical-field-materials-select-all aria-label="Seleccionar todos os materiais">' +
+            '<label class="form-check-label fw-semibold" for="clinicalFieldMaterialsSelectAll">' +
+                'Todos os materiais <span class="badge bg-secondary ms-2" data-clinical-field-materials-count>0</span>' +
+            '</label>';
+        const search = list.querySelector('.clinical-field-materials-search');
+        if (search && search.nextSibling) {
+            list.insertBefore(row, search.nextSibling);
+        } else {
+            list.appendChild(row);
+        }
+    }
+
+    function bumpClinicalFieldMaterialsSelectAllCount(list) {
+        const badge = list && list.querySelector('[data-clinical-field-materials-count], #clinicalFieldMaterialsSelectAll + label .badge');
+        if (!badge) return;
+        const n = list.querySelectorAll('.clinical-field-material-cb:not(:disabled)').length;
+        badge.textContent = String(n);
+    }
+
+    function normalizeClinicalMaterialHex(v) {
+        v = String(v || '').trim();
+        if (!v) return '';
+        if (/^[0-9A-Fa-f]{6}$/.test(v)) v = '#' + v;
+        return /^#[0-9A-Fa-f]{6}$/.test(v) ? v.toLowerCase() : v;
+    }
+
+    document.getElementById('clinicalFieldMaterialCreateToggle')?.addEventListener('click', function () {
+        const modalEl = document.getElementById('clinicalFieldCreateMaterialModal');
+        if (!modalEl) return;
+        document.getElementById('clinicalFieldNewMaterialName').value = '';
+        document.getElementById('clinicalFieldNewMaterialCode').value = '';
+        document.getElementById('clinicalFieldNewMaterialBrand').value = '';
+        document.getElementById('clinicalFieldNewMaterialFinish').value = '';
+        document.getElementById('clinicalFieldNewMaterialStock').value = '';
+        document.getElementById('clinicalFieldNewMaterialHex').value = '';
+        document.getElementById('clinicalFieldNewMaterialHexPicker').value = '#bfdbfe';
+        const photoEl = document.getElementById('clinicalFieldNewMaterialPhoto');
+        if (photoEl) photoEl.value = '';
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        requestAnimationFrame(function () {
+            document.getElementById('clinicalFieldNewMaterialName')?.focus();
+        });
+    });
+    document.getElementById('clinicalFieldNewMaterialHexPicker')?.addEventListener('input', function () {
+        const hexEl = document.getElementById('clinicalFieldNewMaterialHex');
+        if (hexEl) hexEl.value = this.value;
+    });
+    document.getElementById('clinicalFieldMaterialCreateSave')?.addEventListener('click', function () {
+        const catId = document.getElementById('clinicalFieldNewMaterialCategory')?.value;
+        const name = (document.getElementById('clinicalFieldNewMaterialName')?.value || '').trim();
+        const code = (document.getElementById('clinicalFieldNewMaterialCode')?.value || '').trim();
+        const brand = (document.getElementById('clinicalFieldNewMaterialBrand')?.value || '').trim();
+        const finish = document.getElementById('clinicalFieldNewMaterialFinish')?.value || '';
+        const stock = document.getElementById('clinicalFieldNewMaterialStock')?.value || '';
+        const photoEl = document.getElementById('clinicalFieldNewMaterialPhoto');
+        const hexRaw = normalizeClinicalMaterialHex(document.getElementById('clinicalFieldNewMaterialHex')?.value || '');
+        if (!catId) {
+            showToast('Selecione a categoria do material.', 'error');
+            return;
+        }
+        if (!name) {
+            showToast('Indique o nome do material.', 'error');
+            return;
+        }
+        if (hexRaw && !/^#[0-9a-fA-F]{6}$/.test(hexRaw)) {
+            showToast('Cor inválida. Use #RRGGBB.', 'error');
+            return;
+        }
+        const btn = this;
+        btn.disabled = true;
+        const fd = new FormData();
+        fd.append('material_category_id', String(catId));
+        fd.append('name', name);
+        fd.append('code', code);
+        fd.append('brand', brand);
+        fd.append('finish', finish);
+        fd.append('hex', hexRaw);
+        fd.append('stock', stock);
+        fd.append('is_active', '1');
+        if (photoEl && photoEl.files && photoEl.files[0]) {
+            fd.append('photo', photoEl.files[0]);
+        }
+        fetch('/materials', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: fd,
+        })
+            .then(function (r) { return r.json().then(function (res) { return { ok: r.ok, res: res }; }); })
+            .then(function (x) {
+                if (!x.ok) {
+                    var msg = (x.res && x.res.message) || 'Não foi possível criar o material.';
+                    if (x.res && x.res.errors) msg = Object.values(x.res.errors)[0][0] || msg;
+                    throw new Error(msg);
+                }
+                const material = x.res.material || {};
+                const catSelect = document.getElementById('clinicalFieldNewMaterialCategory');
+                const catOpt = catSelect && catSelect.selectedOptions && catSelect.selectedOptions[0];
+                if (!material.category_name && catOpt) material.category_name = catOpt.textContent;
+                appendClinicalFieldMaterialCheckbox(material);
+                bootstrap.Modal.getInstance(document.getElementById('clinicalFieldCreateMaterialModal'))?.hide();
+                showToast('Material criado e seleccionado.', 'success');
+            })
+            .catch(function (err) { showToast(err.message || 'Erro ao criar material.', 'error'); })
+            .finally(function () { btn.disabled = false; });
+    });
 
     function currentClinicalFields() {
         const list = document.getElementById('clinicalFieldsList');
@@ -1089,17 +1487,54 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('clinicalFieldAddBtn')?.addEventListener('click', function() {
         showClinicalFieldEditor(null);
     });
-    document.getElementById('clinicalFieldType')?.addEventListener('change', syncClinicalFieldOptionsVisibility);
+    document.getElementById('clinicalFieldType')?.addEventListener('change', function () {
+        syncClinicalFieldOptionsVisibility();
+        if (this.value === 'material') {
+            setClinicalFieldMaterialSelection([], { emptyMeansAll: false });
+        }
+    });
     document.getElementById('clinicalFieldLabel')?.addEventListener('input', syncClinicalFieldKeyFromLabel);
     document.getElementById('clinicalFieldKey')?.addEventListener('input', function() {
         clinicalFieldKeyTouched = true;
     });
     document.getElementById('clinicalFieldsList')?.addEventListener('click', function(e) {
+        if (e.target.closest('.service-drag-handle')) return;
         const row = e.target.closest('.clinical-field-card[data-field-id]');
         if (!row) return;
         const fieldId = row.dataset.fieldId;
         const field = currentClinicalFields().find(function(f) { return String(f.id) === String(fieldId); });
         if (field) showClinicalFieldEditor(field);
+    });
+    document.getElementById('clinicalFieldMaterialsList')?.addEventListener('input', function (e) {
+        if (e.target && e.target.id === 'clinicalFieldMaterialsSearch') {
+            filterClinicalFieldMaterialsList();
+        }
+    });
+
+    document.getElementById('clinicalFieldMaterialsList')?.addEventListener('change', function (e) {
+        const t = e.target;
+        if (!t) return;
+        const list = document.getElementById('clinicalFieldMaterialsList');
+        if (t.matches('[data-clinical-field-materials-select-all]')) {
+            list.querySelectorAll('.clinical-field-material-cb:not(:disabled)').forEach(function (cb) {
+                cb.checked = t.checked;
+            });
+            t.indeterminate = false;
+            syncClinicalFieldMaterialSelectState();
+            return;
+        }
+        if (t.classList.contains('clinical-field-material-select-cat')) {
+            const catName = t.getAttribute('data-category-name') || '';
+            clinicalFieldMaterialCbsForCategory(catName).filter(function (cb) { return !cb.disabled; }).forEach(function (cb) {
+                cb.checked = t.checked;
+            });
+            t.indeterminate = false;
+            syncClinicalFieldMaterialSelectState();
+            return;
+        }
+        if (t.classList.contains('clinical-field-material-cb')) {
+            syncClinicalFieldMaterialSelectState();
+        }
     });
 
     function saveClinicalFieldFromModal() {
@@ -1108,11 +1543,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const type = document.getElementById('clinicalFieldType')?.value;
         const optionsRaw = document.getElementById('clinicalFieldOptions')?.value || '';
         const options = optionsRaw.split(/\r?\n/).map(function(s) { return s.trim(); }).filter(Boolean);
+        let fieldOptions = null;
+        if (type === 'select' || type === 'multiselect') {
+            fieldOptions = options;
+        } else if (type === 'material') {
+            fieldOptions = getClinicalFieldMaterialSelection();
+            if (!fieldOptions.length) {
+                showToast('Seleccione pelo menos um material.', 'error');
+                return;
+            }
+            // Todos os activos seleccionados → [] (lista dinâmica no backend)
+            const selectable = Array.from(document.querySelectorAll('.clinical-field-material-cb:not(:disabled)'));
+            const allSelected = selectable.length > 0 && selectable.every(function (cb) { return cb.checked; });
+            if (allSelected) {
+                fieldOptions = [];
+            }
+        }
         const payload = {
             label: (document.getElementById('clinicalFieldLabel')?.value || '').trim(),
             key: (document.getElementById('clinicalFieldKey')?.value || '').trim() || null,
             input_type: type,
-            options: (type === 'select' || type === 'multiselect') ? options : null,
+            options: fieldOptions,
             is_required: !!document.getElementById('clinicalFieldRequired')?.checked,
             is_active: !!document.getElementById('clinicalFieldActive')?.checked,
         };
@@ -1320,25 +1771,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast('Sem permissão para eliminar categorias.', 'error');
                     return;
                 }
-                if (!confirm('Tem certeza que deseja eliminar esta categoria? Os serviços da categoria também serão afetados.')) return;
-                fetch(`/categories/${categoryId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json',
-                    }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast(data.message, 'success');
-                        location.reload();
-                    } else {
-                        showToast(data.message || 'Erro ao eliminar categoria', 'error');
-                    }
-                })
-                .catch(err => { console.error(err); showToast('Erro ao eliminar categoria', 'error'); });
+                pendingCategoryDeleteId = categoryId;
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteCategoryConfirmModal')).show();
             }
         });
     }
@@ -1528,30 +1962,38 @@ document.addEventListener('DOMContentLoaded', function() {
         return services.map(function (service) {
             const opts = service.options && service.options.length ? service.options : [];
             const hasOpts = opts.length > 0;
+            // "Desde" só nas variantes de escolha única — as adicionais somam-se a essas
+            const choiceOpts = hasOpts
+                ? opts.filter(function (x) { return x.type !== 'addon' || !!x.is_baseline; })
+                : [];
+            const desdeOpts = choiceOpts.length ? choiceOpts : opts;
             let fromOnline = null;
             if (hasOpts) {
                 fromOnline = Math.min.apply(
                     null,
-                    opts.map(function (x) {
+                    desdeOpts.map(function (x) {
                         return parseFloat(x.online_price);
                     }),
                 );
             }
             const extrasN = service.extras_count || (service.extras && service.extras.length) || 0;
+            const futureN = parseInt(service.future_marcacoes_count, 10) || 0;
             const variantsN = opts.length;
             let fromDurationLabel = '';
             if (hasOpts) {
-                const minDur = Math.min.apply(null, opts.map(function (x) { return parseInt(x.duration, 10) || 0; }));
+                const minDur = Math.min.apply(null, desdeOpts.map(function (x) { return parseInt(x.duration, 10) || 0; }));
                 fromDurationLabel = formatDuration(minDur);
             }
             const membersTrigger = renderServiceMembersTrigger(service);
+            const futureBadge = renderServiceFutureMarcacoesBadge(futureN);
             const variantsBadges = hasOpts
                 ? `<span class="badge text-bg-light">${variantsN} variante${variantsN === 1 ? '' : 's'}</span>` +
                   (extrasN > 0 ? `<span class="badge text-bg-light">${extrasN} extra(s)</span>` : '') +
+                  futureBadge +
                   membersTrigger
                 : '';
             const simpleBadges = !hasOpts
-                ? (extrasN > 0 ? `<span class="badge text-bg-light">${extrasN} extra(s)</span>` : '') + membersTrigger
+                ? (extrasN > 0 ? `<span class="badge text-bg-light">${extrasN} extra(s)</span>` : '') + futureBadge + membersTrigger
                 : '';
             const categoryMeta = archived && service.category && service.category.name
                 ? `<div class="text-muted small">${escapeHtml(service.category.name)}</div>`
@@ -1570,16 +2012,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if (hasOpts) {
                 const variantRows = opts
                     .map(function (opt) {
+                        const isAddon = opt.type === 'addon' && !opt.is_baseline;
+                        const addonBadge = isAddon
+                            ? ' <span class="badge text-bg-light fw-normal ms-1">Adicional</span>'
+                            : '';
+                        const plus = isAddon ? '+' : '';
                         return (
                             '<div class="service-item-variant-row">' +
                             '<span class="service-item-variant-name">' +
                             escapeHtml(opt.name) +
+                            addonBadge +
                             '</span>' +
                             '<span class="service-item-variant-duration">' +
-                            escapeHtml(formatDuration(opt.duration)) +
+                            plus + escapeHtml(formatDuration(opt.duration)) +
                             '</span>' +
                             '<span class="service-item-variant-price">' +
-                            escapeHtml(formatPrice(opt.price)) +
+                            plus + escapeHtml(formatPrice(opt.price)) +
                             '</span>' +
                             '</div>'
                         );
@@ -2142,6 +2590,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         bootstrap.Modal.getInstance(document.getElementById('deleteServiceConfirmModal'))?.hide();
         deleteServiceById(serviceId);
+    });
+
+    document.getElementById('deleteCategoryConfirmBtn')?.addEventListener('click', function () {
+        const categoryId = pendingCategoryDeleteId;
+        if (!categoryId) return;
+        pendingCategoryDeleteId = null;
+        bootstrap.Modal.getInstance(document.getElementById('deleteCategoryConfirmModal'))?.hide();
+        fetch(`/categories/${categoryId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+            }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    location.reload();
+                } else {
+                    showToast(data.message || 'Erro ao eliminar categoria', 'error');
+                }
+            })
+            .catch(err => { console.error(err); showToast('Erro ao eliminar categoria', 'error'); });
+    });
+
+    document.getElementById('deleteServiceVariantConfirmBtn')?.addEventListener('click', function () {
+        const pending = pendingVariantDelete;
+        pendingVariantDelete = null;
+        bootstrap.Modal.getInstance(document.getElementById('deleteServiceVariantConfirmModal'))?.hide();
+        if (!pending || !pending.prefix || !pending.key) return;
+        deleteVariant(pending.prefix, pending.key);
+    });
+
+    document.getElementById('editCategoryModal')?.addEventListener('hidden.bs.offcanvas', function () {
+        hideClinicalFieldEditor();
+    });
+
+    document.getElementById('clinicalFieldOffcanvas')?.addEventListener('hidden.bs.offcanvas', function () {
+        setCategoryUnderStack(false);
+        const idEl = document.getElementById('clinicalFieldEditId');
+        if (idEl) idEl.value = '';
+    });
+
+    document.getElementById('editCategoryStackScrim')?.addEventListener('click', function () {
+        hideClinicalFieldEditor();
     });
 
     // Initialize on page load

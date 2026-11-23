@@ -61,6 +61,7 @@ class NavigationLogDisplay
         'extras.show' => 'Catálogo → Extra',
         'extras.edit' => 'Catálogo → Editar extra',
         'fees.index' => 'Catálogo → Taxas',
+        'materials.index' => 'Catálogo → Materiais',
         'fees.show' => 'Catálogo → Taxa',
         'relatorios.vendas' => 'Relatórios → Vendas',
         'relatorios.marcacoes' => 'Relatórios → Marcações',

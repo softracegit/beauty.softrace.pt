@@ -170,7 +170,7 @@
     </div>
 
     @if(!$crmPrivacyLocked && $navUser->canAccessCatalog())
-    <div class="sidebar-panel-section {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') || request()->routeIs('fees.*') ? 'active' : '' }}" data-section="catalogue">
+    <div class="sidebar-panel-section {{ request()->routeIs('services.*') || request()->routeIs('categories.*') || request()->routeIs('extras.*') || request()->routeIs('fees.*') || request()->routeIs('materials.*') ? 'active' : '' }}" data-section="catalogue">
       <div class="sidebar-panel-header">
         <h6>Catálogo</h6>
         <button class="sidebar-panel-close btn-close" aria-label="Close"></button>
@@ -199,6 +199,11 @@
         <li>
           <a class="panel-link {{ request()->routeIs('fees.*') ? 'active' : '' }}" href="{{ route('fees.index') }}">
             Taxas
+          </a>
+        </li>
+        <li>
+          <a class="panel-link {{ request()->routeIs('materials.*') ? 'active' : '' }}" href="{{ route('materials.index') }}">
+            Materiais
           </a>
         </li>
         <li>

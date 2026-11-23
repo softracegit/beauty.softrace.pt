@@ -3215,12 +3215,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function agendaClinicalIsEmpty(v) {
-        return v == null || v === '' || (Array.isArray(v) && !v.length);
+        if (v == null || v === '') return true;
+        if (Array.isArray(v) && !v.length) return true;
+        if (v && typeof v === 'object' && !Array.isArray(v) && Object.prototype.hasOwnProperty.call(v, 'id')) {
+            return !(v.id > 0 || String(v.id || '').trim() !== '');
+        }
+        return false;
+    }
+
+    function agendaClinicalMaterialId(v) {
+        if (v == null || v === '') return '';
+        if (typeof v === 'object' && !Array.isArray(v) && v.id != null) return String(v.id);
+        return String(v);
     }
 
     function agendaClinicalDisplay(v) {
         if (v === true || v === 'true' || v === 1 || v === '1') return 'Sim';
         if (v === false || v === 'false' || v === 0 || v === '0') return 'Não';
+        if (v && typeof v === 'object' && !Array.isArray(v) && (v.name || v.code || v.id)) {
+            var name = String(v.name || '').trim();
+            var code = String(v.code || '').trim();
+            if (name && code) return name + ' (' + code + ')';
+            if (name) return name;
+            if (code) return code;
+            return v.id != null ? '#' + v.id : '';
+        }
         return Array.isArray(v) ? v.join(', ') : String(v);
     }
 
@@ -3249,12 +3268,70 @@ document.addEventListener('DOMContentLoaded', function() {
         var type = field.input_type;
         var control = type;
         if ((type === 'select' || type === 'multiselect') && agendaClinicalUsePills(field)) control = type === 'select' ? 'pills' : 'pills-multi';
-        var wide = type === 'textarea' || control === 'pills' || control === 'pills-multi' || type === 'multiselect';
+        if (type === 'material') control = 'material-pills';
+        var wide = type === 'textarea' || control === 'pills' || control === 'pills-multi' || control === 'material-pills' || type === 'multiselect';
         var html = '<div class="csheet-field' + (wide ? ' csheet-field--wide' : '') + '" data-category-id="' + agendaClinicalEscape(categoryId) + '" data-field-key="' + agendaClinicalEscape(field.key) + '" data-input-type="' + agendaClinicalEscape(type) + '" data-control="' + control + '">';
         html += '<label class="csheet-field__label" for="' + id + '">' + label + req;
         if (fromPref) html += ' <span class="csheet-pref-badge" title="Pré-preenchido com a preferência do cliente"><i class="ph ph-heart"></i> Preferência</span>';
         html += '</label>';
-        if (control === 'pills' || control === 'pills-multi') {
+        if (control === 'material-pills') {
+            var materials = Array.isArray(field.material_choices) ? field.material_choices.slice() : [];
+            var selectedId = agendaClinicalMaterialId(value);
+            // Valor actual arquivado / fora do catálogo activo → manter visível na ficha
+            if (selectedId && !materials.some(function(m) { return String(m.id) === selectedId; })) {
+                var orphan = (value && typeof value === 'object' && !Array.isArray(value)) ? value : { id: selectedId };
+                var orphanPhoto = orphan.photo_url || '';
+                if (!orphanPhoto && orphan.photo_path) {
+                    orphanPhoto = '/storage/' + String(orphan.photo_path).replace(/^\/+/, '');
+                }
+                materials.unshift({
+                    id: orphan.id != null ? orphan.id : selectedId,
+                    name: orphan.name || ('#' + selectedId),
+                    code: orphan.code || null,
+                    brand: orphan.brand || null,
+                    finish: orphan.finish || null,
+                    finish_label: orphan.finish_label || null,
+                    hex: orphan.hex || null,
+                    photo_url: orphanPhoto || null,
+                    archived: true
+                });
+            }
+            html += '<div class="csheet-material-picker" data-material-picker>';
+            if (materials.length >= 6) {
+                html += '<div class="csheet-material-search">';
+                html += '<label class="visually-hidden" for="' + id + '_search">Pesquisar materiais</label>';
+                html += '<input type="search" class="form-control form-control-sm" id="' + id + '_search" data-csheet-material-search placeholder="Pesquisar…" autocomplete="off">';
+                html += '</div>';
+            }
+            html += '<div class="csheet-pills csheet-material-pills" id="' + id + '" role="radiogroup">';
+            if (!materials.length) {
+                html += '<span class="text-muted small">Sem materiais no catálogo.</span>';
+            }
+            materials.forEach(function(m) {
+                var mid = String(m.id);
+                var on = selectedId !== '' && selectedId === mid;
+                var photoUrl = m.photo_url || '';
+                if (!photoUrl && m.photo_path) {
+                    photoUrl = '/storage/' + String(m.photo_path).replace(/^\/+/, '');
+                }
+                var swatchStyle = photoUrl
+                    ? 'background-image:url(' + JSON.stringify(String(photoUrl)) + ');background-size:cover;background-position:center;'
+                    : (m.hex
+                        ? 'background:' + agendaClinicalEscape(m.hex) + ';'
+                        : 'background:transparent;border-style:dashed;');
+                var meta = agendaClinicalEscape(m.name || ('#' + mid));
+                if (m.code) meta += ' <span class="csheet-material-pill__code">' + agendaClinicalEscape(m.code) + '</span>';
+                if (m.brand) meta += ' <span class="csheet-material-pill__code">' + agendaClinicalEscape(m.brand) + '</span>';
+                if (m.finish_label || m.finish) meta += ' <span class="csheet-material-pill__code">' + agendaClinicalEscape(m.finish_label || m.finish) + '</span>';
+                if (m.archived) meta += ' <span class="csheet-material-pill__archived">Arquivado</span>';
+                var searchBlob = [m.name, m.code, m.brand, m.finish_label || m.finish].filter(Boolean).join(' ').toLowerCase();
+                html += '<button type="button" class="csheet-pill csheet-material-pill' + (on ? ' is-active' : '') + (m.archived ? ' is-archived' : '') + '" data-value="' + agendaClinicalEscape(mid) + '" data-material-search="' + agendaClinicalEscape(searchBlob) + '" aria-pressed="' + (on ? 'true' : 'false') + '">';
+                html += '<span class="csheet-material-pill__swatch" style="' + swatchStyle + '" aria-hidden="true"></span>';
+                html += '<span class="csheet-material-pill__label">' + meta + '</span>';
+                html += '</button>';
+            });
+            html += '</div></div>';
+        } else if (control === 'pills' || control === 'pills-multi') {
             var selected = Array.isArray(value) ? value.map(String) : (agendaClinicalIsEmpty(value) ? [] : [String(value)]);
             html += '<div class="csheet-pills" id="' + id + '" role="' + (control === 'pills' ? 'radiogroup' : 'group') + '">';
             opts.forEach(function(o) {
@@ -3317,8 +3394,10 @@ document.addEventListener('DOMContentLoaded', function() {
         var subEl = $id(prefix + 'ClinicalProgressSub');
         var barEl = $id(prefix + 'ClinicalProgressBar');
         var btn = $id(prefix + 'ClinicalProgressBtn');
-        // Card sempre visível (lado a lado com Observações), mesmo sem serviços/categorias.
-        if (wrap) wrap.classList.remove('d-none');
+        // Card lado a lado com Observações — respeitar hide temporário (hidden / data-clinical-ui-disabled).
+        if (wrap && !wrap.hasAttribute('hidden') && wrap.getAttribute('data-clinical-ui-disabled') !== '1') {
+            wrap.classList.remove('d-none');
+        }
 
         if (!total) {
             var hasServices = agendaClinicalSelectedServicesList(prefix).length > 0;
@@ -3626,9 +3705,12 @@ document.addEventListener('DOMContentLoaded', function() {
             var type = wrap.getAttribute('data-input-type');
             var control = wrap.getAttribute('data-control');
             var value = null;
-            if (control === 'pills' || control === 'pills-multi') {
+            if (control === 'pills' || control === 'pills-multi' || control === 'material-pills') {
                 var on = Array.prototype.map.call(wrap.querySelectorAll('.csheet-pill.is-active'), function(b) { return b.getAttribute('data-value'); });
-                value = control === 'pills' ? (on[0] || null) : on;
+                value = (control === 'pills' || control === 'material-pills') ? (on[0] || null) : on;
+                if (control === 'material-pills' && value != null) {
+                    value = String(value);
+                }
             } else if (type === 'multiselect') {
                 value = Array.prototype.map.call(wrap.querySelectorAll('input[type=checkbox]:checked'), function(i) { return i.value; });
             } else if (type === 'bool') {
@@ -3730,7 +3812,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var layer = pill.closest('.agenda-oc-clinical-layer');
             if (layer && layer.classList.contains('is-readonly')) return;
             var wrap = pill.closest('.csheet-field');
-            var single = wrap && wrap.getAttribute('data-control') === 'pills';
+            var control = wrap ? wrap.getAttribute('data-control') : '';
+            var single = control === 'pills' || control === 'material-pills';
             var willBeOn = !pill.classList.contains('is-active');
             if (single) {
                 wrap.querySelectorAll('.csheet-pill').forEach(function(b) {
@@ -3749,6 +3832,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sw.closest('.agenda-oc-clinical-layer.is-readonly')) return;
         var lbl = sw.parentElement.querySelector('.form-check-label');
         if (lbl) lbl.textContent = sw.checked ? 'Sim' : 'Não';
+    });
+
+    document.addEventListener('input', function(e) {
+        var search = e.target.closest('[data-csheet-material-search]');
+        if (!search) return;
+        var picker = search.closest('[data-material-picker]');
+        if (!picker) return;
+        var q = String(search.value || '').trim().toLowerCase();
+        picker.querySelectorAll('.csheet-material-pill').forEach(function(pill) {
+            var blob = pill.getAttribute('data-material-search') || '';
+            pill.classList.toggle('is-filtered-out', q !== '' && blob.indexOf(q) === -1);
+        });
     });
 
     document.addEventListener('keydown', function(e) {

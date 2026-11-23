@@ -253,10 +253,51 @@
     padding-left: 0.9rem;
     padding-right: 0.9rem;
 }
-#serviceVariantModal,
-#deleteServiceConfirmModal,
-#clinicalFieldModal {
+/* Modais por cima do offcanvas empilhado (tema fixa .modal em 1055) */
+#serviceVariantModal.modal,
+#deleteServiceConfirmModal.modal,
+#clinicalFieldCreateMaterialModal.modal,
+#deleteCategoryConfirmModal.modal,
+#deleteServiceVariantConfirmModal.modal {
     --bs-modal-zindex: 1085;
+    z-index: 1085;
+}
+body:has(#serviceVariantModal.show) .modal-backdrop,
+body:has(#deleteServiceConfirmModal.show) .modal-backdrop,
+body:has(#clinicalFieldCreateMaterialModal.show) .modal-backdrop,
+body:has(#deleteCategoryConfirmModal.show) .modal-backdrop,
+body:has(#deleteServiceVariantConfirmModal.show) .modal-backdrop {
+    z-index: 1080;
+}
+.services-offcanvas.services-offcanvas--stack {
+    /* Mais largo que o anterior, mas com faixa clara do painel de trás (~3.5rem) */
+    --bs-offcanvas-width: calc(50vw - 3.5rem) !important;
+    width: calc(50vw - 3.5rem) !important;
+    z-index: 1065;
+    box-shadow: -8px 0 28px rgba(15, 23, 42, 0.08);
+}
+.services-offcanvas.services-offcanvas--stack:focus,
+.services-offcanvas.services-offcanvas--stack:focus-visible {
+    outline: none;
+}
+/* Overlay no offcanvas de trás enquanto o stack está aberto */
+.services-offcanvas__stack-scrim {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: rgba(15, 23, 42, 0.32);
+    border-radius: inherit;
+    cursor: pointer;
+}
+.services-offcanvas.services-offcanvas--under-stack .services-offcanvas__stack-scrim {
+    display: block;
+}
+@media (max-width: 991.98px) {
+    .services-offcanvas.services-offcanvas--stack {
+        --bs-offcanvas-width: calc(100vw - 1.25rem) !important;
+        width: calc(100vw - 1.25rem) !important;
+    }
 }
 .services-offcanvas__footer {
     flex-shrink: 0;
@@ -277,11 +318,54 @@
     justify-content: center;
 }
 .clinical-field-card {
+    position: relative;
+    display: block;
+    margin-bottom: 0;
+}
+.clinical-field-card .service-drag-handle {
+    position: absolute;
+    left: -1.15rem;
+    top: 0;
+    bottom: 0;
+    padding-right: 0;
+    opacity: 0;
+    z-index: 2;
+}
+.clinical-field-card:hover .service-drag-handle,
+.gu-mirror.clinical-field-card .service-drag-handle {
+    opacity: 1;
+}
+.clinical-field-card__body {
+    width: 100%;
     border: 1px solid var(--border-color-light, #e5e7eb);
     border-radius: 0.55rem;
     background: #fff;
     padding: 0.7rem 0.8rem;
     cursor: pointer;
+}
+.clinical-field-card:hover .clinical-field-card__body {
+    border-color: color-mix(in srgb, var(--accent-color, #5b8def) 35%, #e5e7eb);
+}
+.clinical-field-material-swatch {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 0.3rem;
+    border: 1px solid rgba(0,0,0,0.12);
+    flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
+}
+.clinical-field-materials-search {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+.clinical-field-material-row.is-filtered-out,
+.clinical-field-material-cat-block.is-filtered-out {
+    display: none !important;
 }
 .clinical-field-status {
     font-weight: 600;
@@ -298,8 +382,31 @@
     justify-content: space-between;
     gap: 0.75rem;
 }
-.clinical-field-card:hover {
-    border-color: color-mix(in srgb, var(--accent-color, #5b8def) 35%, #e5e7eb);
+.clinical-field-ghost-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    border: 0;
+    border-radius: 0.35rem;
+    background: transparent;
+    color: var(--muted-color, #6b7280);
+    box-shadow: none;
+    text-decoration: none !important;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    padding: 0.2rem 0.4rem;
+    min-height: 1.5rem;
+}
+.clinical-field-ghost-btn:hover,
+.clinical-field-ghost-btn:focus {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--heading-color, #111827);
+}
+a.clinical-field-ghost-btn {
+    width: 1.5rem;
+    padding-left: 0;
+    padding-right: 0;
 }
 @media (max-width: 767.98px) {
     .services-offcanvas {
@@ -854,6 +961,7 @@
 
 <!-- Criar / editar categoria — offcanvas (mesmo padding da agenda) -->
 <div class="offcanvas offcanvas-end services-offcanvas" tabindex="-1" id="editCategoryModal" aria-labelledby="editCategoryOffcanvasLabel" data-bs-scroll="true" data-mode="edit">
+    <div class="services-offcanvas__stack-scrim" id="editCategoryStackScrim" aria-hidden="true" title="Fechar campo"></div>
     <div class="offcanvas-header border-bottom">
         <h5 class="offcanvas-title fw-semibold mb-0" id="editCategoryOffcanvasLabel">Editar categoria</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
@@ -909,7 +1017,7 @@
             <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                 <div>
                     <h6 class="mb-0">Ficha técnica</h6>
-                    <div class="form-text mb-0">Campos técnicos da categoria</div>
+                    <div class="form-text mb-0">Campos técnicos da categoria — arraste para ordenar</div>
                 </div>
                 <button type="button" class="btn btn-sm btn-outline-primary" id="clinicalFieldAddBtn"><i class="ph ph-plus me-1" aria-hidden="true"></i>Adicionar campo</button>
             </div>
@@ -1055,58 +1163,258 @@
     </form>
 </div>
 
-<!-- Modal criar / editar campo da ficha técnica -->
-<div class="modal fade" id="clinicalFieldModal" tabindex="-1" aria-labelledby="clinicalFieldModalLabel" aria-hidden="true">
+<!-- Campo da ficha técnica — offcanvas em stack sobre a categoria -->
+<div class="offcanvas offcanvas-end services-offcanvas services-offcanvas--stack" tabindex="-1" id="clinicalFieldOffcanvas" aria-labelledby="clinicalFieldOffcanvasLabel" data-bs-scroll="true" data-bs-backdrop="false">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title fw-semibold mb-0" id="clinicalFieldOffcanvasLabel">Adicionar campo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+    </div>
+    <form id="clinicalFieldForm" class="services-offcanvas__form">
+        <input type="hidden" id="clinicalFieldEditId" value="">
+        <div class="offcanvas-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="clinicalFieldLabel">Label <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="clinicalFieldLabel" maxlength="255" placeholder="Ex: Formato" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="clinicalFieldKey">Chave</label>
+                    <input type="text" class="form-control" id="clinicalFieldKey" maxlength="64" placeholder="formato" pattern="[a-z][a-z0-9_]*" autocomplete="off">
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="clinicalFieldType">Tipo</label>
+                    <select class="form-select" id="clinicalFieldType">
+                        <option value="text">Texto</option>
+                        <option value="textarea">Texto longo</option>
+                        <option value="select">Seleção única</option>
+                        <option value="multiselect">Seleção múltipla</option>
+                        <option value="number">Número</option>
+                        <option value="bool">Sim / Não</option>
+                        <option value="material">Material</option>
+                    </select>
+                </div>
+                <div class="col-12" id="clinicalFieldOptionsWrap">
+                    <label class="form-label" for="clinicalFieldOptions">Opções <span class="text-muted fw-normal">(uma por linha)</span></label>
+                    <textarea class="form-control" id="clinicalFieldOptions" rows="3" placeholder="Amêndoa&#10;Oval&#10;Quadrado"></textarea>
+                </div>
+                <div class="col-12 d-none" id="clinicalFieldMaterialsWrap">
+                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                        <label class="form-label mb-0">Materiais associados</label>
+                        <div class="d-flex align-items-center gap-1">
+                            <button type="button" class="clinical-field-ghost-btn" id="clinicalFieldMaterialCreateToggle">Criar material…</button>
+                            <a href="{{ route('materials.index') }}" class="clinical-field-ghost-btn" target="_blank" rel="noopener" title="Gerir materiais" aria-label="Gerir materiais">
+                                <i class="ph ph-gear" aria-hidden="true"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="border rounded p-3" style="max-height: 260px; overflow-y: auto;" id="clinicalFieldMaterialsList">
+                        @php
+                            $materialsList = $materials ?? collect();
+                            $materialsByCategory = $materialsList->groupBy(fn ($m) => $m->materialCategory?->name ?: 'Sem categoria');
+                            $materialsSelectableCount = $materialsList->where('is_active', true)->count();
+                        @endphp
+                        @forelse($materialsByCategory as $catName => $catMaterials)
+                            @if($loop->first)
+                                <div class="clinical-field-materials-search">
+                                    <label class="visually-hidden" for="clinicalFieldMaterialsSearch">Pesquisar materiais</label>
+                                    <input
+                                        type="search"
+                                        class="form-control form-control-sm"
+                                        id="clinicalFieldMaterialsSearch"
+                                        placeholder="Pesquisar nome, referência, marca…"
+                                        autocomplete="off"
+                                    >
+                                </div>
+                                <div class="form-check mb-2 pb-2 border-bottom">
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input"
+                                        id="clinicalFieldMaterialsSelectAll"
+                                        data-clinical-field-materials-select-all
+                                        aria-label="Seleccionar todos os materiais"
+                                    >
+                                    <label class="form-check-label fw-semibold" for="clinicalFieldMaterialsSelectAll">
+                                        Todos os materiais
+                                        <span class="badge bg-secondary ms-2" data-clinical-field-materials-count>{{ $materialsSelectableCount }}</span>
+                                    </label>
+                                </div>
+                            @endif
+                            @php
+                                $catSlug = \Illuminate\Support\Str::slug($catName) ?: 'sem-categoria';
+                                $catSelectable = $catMaterials->where('is_active', true)->count();
+                            @endphp
+                            <div class="clinical-field-material-cat-block mb-3" data-category-name="{{ $catName }}">
+                                <div class="form-check mb-2 mt-2 clinical-field-material-cat" data-category-name="{{ $catName }}">
+                                    <input
+                                        type="checkbox"
+                                        class="form-check-input clinical-field-material-select-cat"
+                                        id="clinicalFieldMaterialsCat{{ $catSlug }}"
+                                        data-category-name="{{ $catName }}"
+                                        aria-label="Seleccionar todos em {{ $catName }}"
+                                        @disabled($catSelectable === 0)
+                                    >
+                                    <label class="form-check-label fw-semibold" for="clinicalFieldMaterialsCat{{ $catSlug }}">
+                                        {{ $catName }}
+                                        <span class="badge bg-secondary ms-2 clinical-field-material-cat-count">{{ $catSelectable }}</span>
+                                    </label>
+                                </div>
+                                @foreach($catMaterials as $material)
+                                    @php
+                                        $matMeta = array_values(array_filter([
+                                            $material->code,
+                                            $material->brand,
+                                            \App\Models\Material::finishLabel($material->finish),
+                                        ]));
+                                        $photoUrl = $material->photoUrl();
+                                        $hex = $material->hex;
+                                        if ($photoUrl) {
+                                            $swatchStyle = 'background-image:url('.e($photoUrl).');';
+                                        } elseif ($hex) {
+                                            $swatchStyle = 'background:'.e($hex).';';
+                                        } else {
+                                            $swatchStyle = 'background:transparent;border-style:dashed;';
+                                        }
+                                        $searchBlob = mb_strtolower(trim(implode(' ', array_filter([
+                                            $material->name,
+                                            $material->code,
+                                            $material->brand,
+                                            \App\Models\Material::finishLabel($material->finish),
+                                            $catName,
+                                        ]))));
+                                    @endphp
+                                    <div
+                                        class="form-check ms-3 mb-2 clinical-field-material-row"
+                                        data-material-category-name="{{ $catName }}"
+                                        data-material-search="{{ $searchBlob }}"
+                                    >
+                                        <input
+                                            class="form-check-input clinical-field-material-cb"
+                                            type="checkbox"
+                                            value="{{ $material->id }}"
+                                            id="clinicalFieldMaterial{{ $material->id }}"
+                                            data-material-category-name="{{ $catName }}"
+                                            @disabled(! $material->is_active)
+                                        >
+                                        <label class="form-check-label d-flex align-items-center gap-2 w-100" for="clinicalFieldMaterial{{ $material->id }}">
+                                            <span class="clinical-field-material-swatch" style="{{ $swatchStyle }}" aria-hidden="true"></span>
+                                            <span class="flex-grow-1">{{ $material->name }}</span>
+                                            @if($matMeta)
+                                                <span class="text-muted small">{{ implode(' · ', $matMeta) }}</span>
+                                            @endif
+                                            @unless($material->is_active)
+                                                <span class="badge bg-secondary">Inactivo</span>
+                                            @endunless
+                                        </label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @empty
+                            <p class="text-muted small mb-0" id="clinicalFieldMaterialsEmpty">Ainda não há materiais. Use «Criar material…» acima.</p>
+                        @endforelse
+                    </div>
+                </div>
+                <div class="col-12 d-flex flex-wrap gap-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="clinicalFieldRequired">
+                        <label class="form-check-label" for="clinicalFieldRequired">Obrigatório</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="clinicalFieldActive" checked>
+                        <label class="form-check-label" for="clinicalFieldActive">Activo</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="border-top services-offcanvas__footer d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-light" data-bs-dismiss="offcanvas" id="clinicalFieldCancelBtn">Cancelar</button>
+            <button type="submit" class="btn btn-primary" id="clinicalFieldSaveBtn">Guardar campo</button>
+        </div>
+    </form>
+</div>
+
+<!-- Modal criar material (a partir do campo) -->
+<div class="modal fade" id="clinicalFieldCreateMaterialModal" tabindex="-1" aria-labelledby="clinicalFieldCreateMaterialModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-semibold" id="clinicalFieldModalLabel">Adicionar campo</h5>
+                <h5 class="modal-title fw-semibold" id="clinicalFieldCreateMaterialModalLabel">Criar material</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-            <form id="clinicalFieldForm">
-                <input type="hidden" id="clinicalFieldEditId" value="">
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold" for="clinicalFieldLabel">Label <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="clinicalFieldLabel" maxlength="255" placeholder="Ex: Formato" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold" for="clinicalFieldKey">Chave</label>
-                            <input type="text" class="form-control" id="clinicalFieldKey" maxlength="64" placeholder="formato" pattern="[a-z][a-z0-9_]*" autocomplete="off">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold" for="clinicalFieldType">Tipo</label>
-                            <select class="form-select" id="clinicalFieldType">
-                                <option value="text">Texto</option>
-                                <option value="textarea">Texto longo</option>
-                                <option value="select">Select</option>
-                                <option value="multiselect">Multi-select</option>
-                                <option value="number">Número</option>
-                                <option value="bool">Sim / Não</option>
-                            </select>
-                        </div>
-                        <div class="col-12" id="clinicalFieldOptionsWrap">
-                            <label class="form-label fw-semibold" for="clinicalFieldOptions">Opções <span class="text-muted fw-normal">(uma por linha)</span></label>
-                            <textarea class="form-control" id="clinicalFieldOptions" rows="3" placeholder="Amêndoa&#10;Oval&#10;Quadrado"></textarea>
-                        </div>
-                        <div class="col-12 d-flex flex-wrap gap-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="clinicalFieldRequired">
-                                <label class="form-check-label" for="clinicalFieldRequired">Obrigatório</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="clinicalFieldActive" checked>
-                                <label class="form-check-label" for="clinicalFieldActive">Activo</label>
-                            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="clinicalFieldNewMaterialName">Nome <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="clinicalFieldNewMaterialName" maxlength="255" placeholder="Ex: Ruby Red">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="clinicalFieldNewMaterialCategory">Categoria <span class="text-danger">*</span></label>
+                        <select class="form-select" id="clinicalFieldNewMaterialCategory">
+                            <option value="">— Selecionar —</option>
+                            @foreach(($materialCategories ?? collect()) as $matCat)
+                                <option value="{{ $matCat->id }}">{{ $matCat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="clinicalFieldNewMaterialBrand">Marca</label>
+                        <input type="text" class="form-control" id="clinicalFieldNewMaterialBrand" maxlength="128" placeholder="Ex: Gelish">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="clinicalFieldNewMaterialCode">Referência</label>
+                        <input type="text" class="form-control" id="clinicalFieldNewMaterialCode" maxlength="64" placeholder="RR-01">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="clinicalFieldNewMaterialHex">Cor <span class="text-muted fw-normal">(opcional)</span></label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="color" class="form-control form-control-color" id="clinicalFieldNewMaterialHexPicker" value="#bfdbfe" aria-label="Cor">
+                            <input type="text" class="form-control" id="clinicalFieldNewMaterialHex" maxlength="7" placeholder="#RRGGBB">
                         </div>
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="clinicalFieldNewMaterialFinish">Acabamento</label>
+                        <select class="form-select" id="clinicalFieldNewMaterialFinish">
+                            <option value="">— Sem acabamento —</option>
+                            @foreach(\App\Models\Material::finishOptions() as $finishKey)
+                                <option value="{{ $finishKey }}">{{ \App\Models\Material::finishLabel($finishKey) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="clinicalFieldNewMaterialStock">Stock</label>
+                        <input type="number" class="form-control" id="clinicalFieldNewMaterialStock" min="0" max="999999" step="1" placeholder="Quantidade">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="clinicalFieldNewMaterialPhoto">Foto</label>
+                        <input type="file" class="form-control" id="clinicalFieldNewMaterialPhoto" accept="image/jpeg,image/png,image/webp">
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="clinicalFieldCancelBtn">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="clinicalFieldSaveBtn">Guardar campo</button>
-                </div>
-            </form>
+                @if(($materialCategories ?? collect())->isEmpty())
+                    <p class="text-muted small mt-3 mb-0">Ainda não há categorias de materiais. Crie uma em <a href="{{ route('materials.index') }}" target="_blank" rel="noopener">Catálogo → Materiais</a>.</p>
+                @endif
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal" id="clinicalFieldMaterialCreateCancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="clinicalFieldMaterialCreateSave">Criar e seleccionar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal eliminar categoria de serviço -->
+<div class="modal fade" id="deleteCategoryConfirmModal" tabindex="-1" aria-labelledby="deleteCategoryConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="deleteCategoryConfirmModalLabel">Eliminar categoria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Tem a certeza que deseja eliminar esta categoria? Os serviços da categoria também serão afectados.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="deleteCategoryConfirmBtn">Eliminar</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1125,6 +1433,25 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="deleteServiceConfirmBtn">Arquivar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal eliminar variante (rascunho no formulário) -->
+<div class="modal fade" id="deleteServiceVariantConfirmModal" tabindex="-1" aria-labelledby="deleteServiceVariantConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="deleteServiceVariantConfirmModalLabel">Eliminar variante</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Tem a certeza que deseja eliminar esta variante?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="deleteServiceVariantConfirmBtn">Eliminar</button>
             </div>
         </div>
     </div>

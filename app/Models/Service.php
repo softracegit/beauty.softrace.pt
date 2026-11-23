@@ -139,7 +139,7 @@ class Service extends Model
      */
     public function calendarEvents(): BelongsToMany
     {
-        return $this->belongsToMany(\App\Models\CalendarEvent::class, 'calendar_event_services')
+        return $this->belongsToMany(CalendarEvent::class, 'calendar_event_services')
             ->withPivot(
                 'id',
                 'service_option_id',
@@ -153,6 +153,30 @@ class Service extends Model
                 'sort_order',
             )
             ->withTimestamps();
+    }
+
+    /**
+     * Marcações futuras ainda «abertas» (não terminadas / pagas / canceladas / faltou).
+     * Útil para saber quando um serviço oculto no booking já pode ser arquivado.
+     */
+    public function futureActiveMarcacoes(): BelongsToMany
+    {
+        $terminal = [
+            CalendarEvent::STATUS_TERMINADO,
+            CalendarEvent::STATUS_FALTOU,
+            CalendarEvent::STATUS_CANCELADO,
+            CalendarEvent::STATUS_ANULADO,
+            CalendarEvent::STATUS_COMPLETO,
+        ];
+
+        return $this->belongsToMany(CalendarEvent::class, 'calendar_event_services')
+            ->where('calendar_events.event_type', CalendarEvent::TYPE_MARCACAO)
+            ->whereNull('calendar_events.personal_time_type_id')
+            ->where('calendar_events.start_at', '>=', now()->utc())
+            ->where(function ($q) use ($terminal) {
+                $q->whereNull('calendar_events.status')
+                    ->orWhereNotIn('calendar_events.status', $terminal);
+            });
     }
 
     /**

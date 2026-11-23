@@ -20,6 +20,8 @@ class CategoryClinicalField extends Model
 
     public const TYPE_BOOL = 'bool';
 
+    public const TYPE_MATERIAL = 'material';
+
     protected $fillable = [
         'category_id',
         'organization_id',
@@ -51,6 +53,7 @@ class CategoryClinicalField extends Model
             self::TYPE_MULTISELECT,
             self::TYPE_NUMBER,
             self::TYPE_BOOL,
+            self::TYPE_MATERIAL,
         ];
     }
 
