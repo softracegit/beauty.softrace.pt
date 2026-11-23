@@ -212,7 +212,8 @@ class ComissoesReportTest extends TestCase
             'calendarEvent.user',
         ]);
 
-        $lines = app(ComissoesReportService::class)->linesCollection(collect([$sale]));
+        $storeIds = [(int) $fx['store']->id];
+        $lines = app(ComissoesReportService::class)->linesCollection(collect([$sale]), null, null, $storeIds);
         $line = $lines->first();
 
         $this->assertSame(27.0, (float) $line->valor_com_iva);
@@ -220,6 +221,13 @@ class ComissoesReportTest extends TestCase
         $this->assertEqualsWithDelta(21.95, (float) $line->valor_sem_iva, 0.01);
         $this->assertEqualsWithDelta(11.67, (float) $line->comissao_sem_iva, 0.01); // 60% de 21,95 − 1,50
         $this->assertSame('1,50 €', $line->retencao_taxa);
+        $this->assertSame(1.5, (float) $line->retencao_com_iva);
+        $this->assertSame(1.5, (float) $line->retencao_sem_iva);
+
+        $totais = app(ComissoesReportService::class)->totaisRodape($lines);
+        $this->assertSame(1.5, (float) $totais['total_retencao_com_iva']);
+        $this->assertSame(1.5, (float) $totais['total_retencao_sem_iva']);
+        $this->assertSame(14.7, (float) $totais['total_comissao_com_iva']);
 
         // Antes da data de início: sem retenção.
         AgentRetentionFeePeriod::query()->where('agent_id', $agent->id)->delete();
@@ -231,7 +239,7 @@ class ComissoesReportTest extends TestCase
         ]);
         $agent->refreshRetentionFeeCache();
 
-        $linesBefore = app(ComissoesReportService::class)->linesCollection(collect([$sale]));
+        $linesBefore = app(ComissoesReportService::class)->linesCollection(collect([$sale]), null, null, $storeIds);
         $this->assertNull($linesBefore->first()->retencao_taxa);
         $this->assertSame(16.2, (float) $linesBefore->first()->comissao_com_iva); // 60% de 27
     }

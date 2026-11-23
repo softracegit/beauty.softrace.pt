@@ -141,6 +141,9 @@ class ComissoesReportService
      *     valor_com_iva: float,
      *     valor_sem_iva: float,
      *     comissao_taxa: ?string,
+     *     retencao_taxa: ?string,
+     *     retencao_com_iva: float,
+     *     retencao_sem_iva: float,
      *     comissao_com_iva: float,
      *     comissao_sem_iva: float
      * }>
@@ -283,6 +286,8 @@ class ComissoesReportService
             $retentionPeriod = $agent?->retentionFeePeriodForDate($saleDate);
             // Em € a retenção deduz-se 1× por fatura+técnica; o badge só na linha onde foi aplicada.
             $retencaoTaxa = null;
+            $retencaoComIva = 0.0;
+            $retencaoSemIva = 0.0;
 
             // 1) Comissão sobre o valor (c/ ou s/ IVA). 2) Retenção descontada depois, no valor a pagar.
             [$comissaoComIva, $comissaoSemIva] = $this->commissionAmounts(
@@ -305,6 +310,9 @@ class ComissoesReportService
                     }
                 }
 
+                $comissaoAntesComIva = $comissaoComIva;
+                $comissaoAntesSemIva = $comissaoSemIva;
+
                 [$comissaoComIva, $comissaoSemIva] = $this->subtractRetentionFromCommission(
                     $comissaoComIva,
                     $comissaoSemIva,
@@ -316,6 +324,9 @@ class ComissoesReportService
                     $userId,
                     $retentionEuroCounted,
                 );
+
+                $retencaoComIva = max(0, round($comissaoAntesComIva - $comissaoComIva, 2));
+                $retencaoSemIva = max(0, round($comissaoAntesSemIva - $comissaoSemIva, 2));
 
                 if ($showRetencaoBadge) {
                     $retencaoTaxa = $retentionPeriod->formatDisplay();
@@ -335,6 +346,8 @@ class ComissoesReportService
                 'valor_sem_iva' => $valorSemIva,
                 'comissao_taxa' => $comissaoTaxa,
                 'retencao_taxa' => $retencaoTaxa,
+                'retencao_com_iva' => $retencaoComIva,
+                'retencao_sem_iva' => $retencaoSemIva,
                 'comissao_com_iva' => $comissaoComIva,
                 'comissao_sem_iva' => $comissaoSemIva,
             ]);
@@ -496,21 +509,26 @@ class ComissoesReportService
     /**
      * @param  Collection<int, object>  $lines
      * @param  array{desde?: ?string, ate?: ?string, cliente?: mixed, servico?: mixed, tecnico?: mixed, estado?: ?string}  $filters
-     * @return array{total_comissao_com_iva: float, total_comissao_sem_iva: float}
+     * @return array{total_comissao_com_iva: float, total_comissao_sem_iva: float, total_retencao_com_iva: float, total_retencao_sem_iva: float}
      */
     public function totaisRodape(Collection $lines, array $filters = []): array
     {
+        $retencao = [
+            'total_retencao_com_iva' => round((float) $lines->sum(fn (object $line) => (float) ($line->retencao_com_iva ?? 0)), 2),
+            'total_retencao_sem_iva' => round((float) $lines->sum(fn (object $line) => (float) ($line->retencao_sem_iva ?? 0)), 2),
+        ];
+
         $historical = $this->zappyCommissionHistorico->footerTotals($filters, $lines)
             ?? $this->historicalFooterFromConfigFile($filters, $lines);
 
         if ($historical !== null) {
-            return $historical;
+            return array_merge($historical, $retencao);
         }
 
-        return [
+        return array_merge([
             'total_comissao_com_iva' => round((float) $lines->sum(fn (object $line) => (float) $line->comissao_com_iva), 2),
             'total_comissao_sem_iva' => round((float) $lines->sum(fn (object $line) => (float) $line->comissao_sem_iva), 2),
-        ];
+        ], $retencao);
     }
 
     /**

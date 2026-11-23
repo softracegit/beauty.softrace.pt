@@ -208,8 +208,11 @@
         <tfoot class="table-light">
           <tr class="fw-bold" id="comissoesTotaisRow"
             data-total-com-iva="{{ $comissoesTotais['total_comissao_com_iva'] ?? 0 }}"
-            data-total-sem-iva="{{ $comissoesTotais['total_comissao_sem_iva'] ?? 0 }}">
-            <td colspan="8" class="text-end">Total comissões a pagar</td>
+            data-total-sem-iva="{{ $comissoesTotais['total_comissao_sem_iva'] ?? 0 }}"
+            data-total-retencao-com-iva="{{ $comissoesTotais['total_retencao_com_iva'] ?? 0 }}"
+            data-total-retencao-sem-iva="{{ $comissoesTotais['total_retencao_sem_iva'] ?? 0 }}">
+            <td colspan="7" class="text-end">Total comissões a pagar</td>
+            <td class="text-end text-nowrap" id="comissoesTotalRetencao">{{ number_format($comissoesTotais['total_retencao_com_iva'] ?? 0, 2, ',', ' ') }}€</td>
             <td class="text-end text-nowrap" id="comissoesTotalComissao">{{ number_format($comissoesTotais['total_comissao_com_iva'] ?? 0, 2, ',', ' ') }}€</td>
           </tr>
         </tfoot>
@@ -231,6 +234,7 @@
       var COLUMN_ORDER = @json(array_keys($comissoesPdfColumnOptions ?? []));
       var cb = document.getElementById('comissoesComIva');
       var totalEl = document.getElementById('comissoesTotalComissao');
+      var totalRetencaoEl = document.getElementById('comissoesTotalRetencao');
       var printLink = document.querySelector('.js-comissoes-print-link');
       var colsWarning = document.querySelector('.js-comissoes-pdf-cols-warning');
       var colCheckboxes = document.querySelectorAll('.js-comissoes-pdf-col');
@@ -369,11 +373,19 @@
         });
 
         var totaisRow = document.getElementById('comissoesTotaisRow');
-        if (totalEl && totaisRow) {
-          var total = comIva
-            ? parseFloat(totaisRow.getAttribute('data-total-com-iva') || '0')
-            : parseFloat(totaisRow.getAttribute('data-total-sem-iva') || '0');
-          totalEl.textContent = formatEuro(total);
+        if (totaisRow) {
+          if (totalEl) {
+            var total = comIva
+              ? parseFloat(totaisRow.getAttribute('data-total-com-iva') || '0')
+              : parseFloat(totaisRow.getAttribute('data-total-sem-iva') || '0');
+            totalEl.textContent = formatEuro(total);
+          }
+          if (totalRetencaoEl) {
+            var totalRetencao = comIva
+              ? parseFloat(totaisRow.getAttribute('data-total-retencao-com-iva') || '0')
+              : parseFloat(totaisRow.getAttribute('data-total-retencao-sem-iva') || '0');
+            totalRetencaoEl.textContent = formatEuro(totalRetencao);
+          }
         }
       }
 

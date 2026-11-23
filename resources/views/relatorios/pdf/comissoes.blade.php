@@ -27,6 +27,9 @@
     $labels = $pdfColumnLabels ?? [];
     $colCount = count($columns);
     $totalValue = (float) ($comIva ? ($comissoesTotais['total_comissao_com_iva'] ?? 0) : ($comissoesTotais['total_comissao_sem_iva'] ?? 0));
+    $totalRetencao = (float) ($comIva ? ($comissoesTotais['total_retencao_com_iva'] ?? 0) : ($comissoesTotais['total_retencao_sem_iva'] ?? 0));
+    $retencaoColIdx = array_search('retencao_taxa', $columns, true);
+    $comissaoColIdx = array_search('valor_comissao', $columns, true);
   @endphp
   <div class="header">
     <h1>Relatório de comissões</h1>
@@ -90,13 +93,42 @@
       @endforeach
     </tbody>
     @if(!empty($comissoesTotais) && $colCount > 0)
+      @php
+        $firstTotalIdx = false;
+        foreach (['retencao_taxa', 'valor_comissao'] as $totalKey) {
+          $idx = array_search($totalKey, $columns, true);
+          if ($idx !== false && ($firstTotalIdx === false || $idx < $firstTotalIdx)) {
+            $firstTotalIdx = $idx;
+          }
+        }
+        if ($firstTotalIdx === false) {
+          $firstTotalIdx = $colCount;
+        }
+      @endphp
       <tfoot>
         <tr>
           @if($colCount === 1)
-            <td class="text-end text-nowrap" style="font-weight:bold;">Total comissões a pagar ({{ $ivaLabel }}): {{ number_format($totalValue, 2, ',', ' ') }}€</td>
+            <td class="text-end text-nowrap" style="font-weight:bold;">
+              @if($retencaoColIdx === 0)
+                Total retenção ({{ $ivaLabel }}): {{ number_format($totalRetencao, 2, ',', ' ') }}€
+              @else
+                Total comissões a pagar ({{ $ivaLabel }}): {{ number_format($totalValue, 2, ',', ' ') }}€
+              @endif
+            </td>
           @else
-            <td colspan="{{ $colCount - 1 }}" class="text-end" style="font-weight:bold;">Total comissões a pagar ({{ $ivaLabel }})</td>
-            <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($totalValue, 2, ',', ' ') }}€</td>
+            @if($firstTotalIdx > 0)
+              <td colspan="{{ $firstTotalIdx }}" class="text-end" style="font-weight:bold;">Total comissões a pagar ({{ $ivaLabel }})</td>
+            @endif
+            @for($i = $firstTotalIdx; $i < $colCount; $i++)
+              @php $colKey = $columns[$i]; @endphp
+              @if($colKey === 'retencao_taxa')
+                <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($totalRetencao, 2, ',', ' ') }}€</td>
+              @elseif($colKey === 'valor_comissao')
+                <td class="text-end text-nowrap" style="font-weight:bold;">{{ number_format($totalValue, 2, ',', ' ') }}€</td>
+              @else
+                <td></td>
+              @endif
+            @endfor
           @endif
         </tr>
       </tfoot>

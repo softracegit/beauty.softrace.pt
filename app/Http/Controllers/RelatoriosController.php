@@ -1021,7 +1021,7 @@ class RelatoriosController extends Controller
                 '',
                 '',
                 '',
-                '',
+                round((float) ($totais['total_retencao_com_iva'] ?? 0), 2),
                 round((float) ($totais['total_comissao_com_iva'] ?? 0), 2),
                 round((float) ($totais['total_comissao_sem_iva'] ?? 0), 2),
             ],
@@ -1069,7 +1069,7 @@ class RelatoriosController extends Controller
      * @return array{
      *   filters: array{desde: string, ate: string, cliente: mixed, servico: mixed, tecnico: mixed|null, estado: ?string, store_ids: list<int>},
      *   lines: Collection<int, object>,
-     *   totais: array{total_comissao_com_iva: float, total_comissao_sem_iva: float},
+     *   totais: array{total_comissao_com_iva: float, total_comissao_sem_iva: float, total_retencao_com_iva: float, total_retencao_sem_iva: float},
      *   usesHistoricalFooter: bool
      * }
      */
