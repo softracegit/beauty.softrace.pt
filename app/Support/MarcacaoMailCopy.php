@@ -282,6 +282,15 @@ final class MarcacaoMailCopy
             .$meta
             .'</span>';
 
+        $notes = trim((string) ($event->description ?? ''));
+        if ($notes !== '') {
+            $inner .= '<br>'
+                .'<span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;color:#334155;">'
+                .'<strong style="color:#111827;">Observações:</strong> '
+                .nl2br(e($notes))
+                .'</span>';
+        }
+
         $alerts = self::alertsBox($event->client, withTitle: false, withBorder: false);
         if ($alerts !== null) {
             $inner .= '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;margin:0;mso-table-lspace:0pt;mso-table-rspace:0pt;">'

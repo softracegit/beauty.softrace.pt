@@ -2,8 +2,10 @@
 
 namespace Tests\Unit;
 
+use App\Models\CalendarEvent;
 use App\Models\Client;
 use App\Support\MarcacaoMailCopy;
+use Carbon\Carbon;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -72,5 +74,43 @@ class MarcacaoMailCopyAlertsBoxTest extends TestCase
         $this->assertStringContainsString('&lt;b&gt;risco&lt;/b&gt;', $html);
         $this->assertStringContainsString('&amp;', $html);
         $this->assertStringNotContainsString('<b>risco</b>', $html);
+    }
+
+    #[Test]
+    public function digest_event_block_includes_appointment_notes_when_present(): void
+    {
+        $event = new CalendarEvent([
+            'status' => CalendarEvent::STATUS_AGENDADO,
+            'start_at' => Carbon::parse('2026-10-23 10:00:00'),
+            'end_at' => Carbon::parse('2026-10-23 11:00:00'),
+            'description' => "Chega 10 min tarde\nTrazer amostra",
+        ]);
+        $event->setRelation('client', new Client(['name' => 'Ana']));
+        $event->setRelation('eventServices', collect());
+        $event->setRelation('eventServiceItems', collect());
+
+        $html = (string) MarcacaoMailCopy::digestEventBlock($event, null);
+
+        $this->assertStringContainsString('Observações:', $html);
+        $this->assertStringContainsString('Chega 10 min tarde', $html);
+        $this->assertStringContainsString('Trazer amostra', $html);
+    }
+
+    #[Test]
+    public function digest_event_block_omits_notes_when_empty(): void
+    {
+        $event = new CalendarEvent([
+            'status' => CalendarEvent::STATUS_AGENDADO,
+            'start_at' => Carbon::parse('2026-10-23 10:00:00'),
+            'end_at' => Carbon::parse('2026-10-23 11:00:00'),
+            'description' => '   ',
+        ]);
+        $event->setRelation('client', new Client(['name' => 'Ana']));
+        $event->setRelation('eventServices', collect());
+        $event->setRelation('eventServiceItems', collect());
+
+        $html = (string) MarcacaoMailCopy::digestEventBlock($event, null);
+
+        $this->assertStringNotContainsString('Observações:', $html);
     }
 }
