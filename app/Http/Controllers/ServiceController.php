@@ -241,10 +241,11 @@ class ServiceController extends Controller
      */
     public function archived(): JsonResponse
     {
-        $services = Service::forOrganization(current_organization_id())
+        $organizationId = current_organization_id();
+        $services = Service::forOrganization($organizationId)
             ->onlyTrashed()
             ->with([
-                'category',
+                'category' => fn ($q) => $q->withTrashed(),
                 'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ])
@@ -258,8 +259,16 @@ class ServiceController extends Controller
             ->orderBy('name')
             ->get();
 
+        $archivedCategories = Category::forOrganization($organizationId)
+            ->onlyTrashed()
+            ->withCount(['services as trashed_services_count' => fn ($q) => $q->onlyTrashed()])
+            ->orderByDesc('deleted_at')
+            ->orderBy('name')
+            ->get();
+
         return response()->json([
             'services' => $services,
+            'archived_categories' => $archivedCategories,
             'archived_services_count' => $services->count(),
         ]);
     }
@@ -277,7 +286,14 @@ class ServiceController extends Controller
             ], 403);
         }
 
+        $categoryId = (int) $service->category_id;
         $service->delete();
+
+        // Se não restam serviços activos, a categoria passa também para o Arquivo.
+        $category = Category::query()->whereKey($categoryId)->first();
+        if ($category && $category->services()->count() === 0) {
+            $category->delete();
+        }
 
         return response()->json([
             'success' => true,
@@ -315,6 +331,11 @@ class ServiceController extends Controller
 
         if ($service->trashed()) {
             $service->restore();
+        }
+
+        $category = Category::withTrashed()->whereKey($service->category_id)->first();
+        if ($category && $category->trashed()) {
+            $category->restore();
         }
 
         return response()->json([

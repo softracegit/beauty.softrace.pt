@@ -15,6 +15,7 @@ use App\Models\Service;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -31,7 +32,7 @@ class CategoryController extends Controller
 
         // Only return JSON if explicitly requested via AJAX (lista + counts para badges)
         if ($request->ajax() && $request->header('X-Requested-With') === 'XMLHttpRequest') {
-            $categories = Category::forOrganization($organizationId)->orderBy('sort_order')->withCount('services')->get();
+            $categories = $this->sidebarCategoriesQuery($organizationId)->get();
 
             return response()->json([
                 'categories' => $categories,
@@ -40,7 +41,7 @@ class CategoryController extends Controller
         }
 
         $selectedCategory = null; // por defeito: "Todas as categorias"
-        $categories = Category::forOrganization($organizationId)->orderBy('sort_order')
+        $categories = $this->sidebarCategoriesQuery($organizationId)
             ->with(['services' => fn ($q) => $q
                 ->with([
                     'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
@@ -55,7 +56,6 @@ class CategoryController extends Controller
                     'futureActiveMarcacoes as future_marcacoes_count',
                 ])
                 ->orderBy('sort_order')])
-            ->withCount('services')
             ->get();
         $extras = Extra::query()
             ->whereHas('extraCategory', fn ($q) => $q->where('organization_id', $organizationId))
@@ -156,7 +156,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * Remove the specified category
+     * Arquiva a categoria (soft-delete) e todos os seus serviços activos.
      */
     public function destroy(Request $request, Category $category)
     {
@@ -165,38 +165,104 @@ class CategoryController extends Controller
             if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Sem permissão para eliminar categorias.',
+                    'message' => 'Sem permissão para arquivar categorias.',
                 ], 403);
             }
 
             return redirect()->route('services.index')
-                ->with('error', 'Sem permissão para eliminar categorias.');
+                ->with('error', 'Sem permissão para arquivar categorias.');
         }
 
-        // Inclui serviços no Arquivo: apagar a categoria faria cascade e apagava-os da BD.
-        if ($category->services()->withTrashed()->count() > 0) {
-            if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Não é possível eliminar uma categoria que possui serviços (incluindo no Arquivo).',
-                ], 422);
+        $archivedServices = 0;
+        DB::transaction(function () use ($category, &$archivedServices): void {
+            $services = Service::query()->where('category_id', $category->id)->get();
+            foreach ($services as $service) {
+                $service->delete();
+                $archivedServices++;
             }
+            if (! $category->trashed()) {
+                $category->delete();
+            }
+        });
 
-            return redirect()->route('services.index')
-                ->with('error', 'Não é possível eliminar uma categoria que possui serviços (incluindo no Arquivo).');
-        }
-
-        $category->delete();
+        $message = $archivedServices > 0
+            ? "Categoria e {$archivedServices} serviço(s) movidos para o Arquivo."
+            : 'Categoria movida para o Arquivo.';
 
         if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Categoria eliminada com sucesso.',
+                'message' => $message,
+                'archived_services_count' => Service::forOrganization(current_organization_id())->onlyTrashed()->count(),
             ]);
         }
 
-        return redirect()->route('services.index')
-            ->with('success', 'Categoria eliminada com sucesso.');
+        return redirect()->route('services.index')->with('success', $message);
+    }
+
+    /**
+     * Restaura uma categoria do Arquivo e todos os seus serviços arquivados.
+     */
+    public function restore(int $id): JsonResponse
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->canDeleteCatalogServicesAndCategories()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sem permissão para restaurar categorias.',
+            ], 403);
+        }
+
+        $category = Category::withTrashed()
+            ->forOrganization(current_organization_id())
+            ->whereKey($id)
+            ->first();
+
+        if (! $category) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Categoria não encontrada no Arquivo.',
+            ], 404);
+        }
+
+        $restoredServices = 0;
+        DB::transaction(function () use ($category, &$restoredServices): void {
+            if ($category->trashed()) {
+                $category->restore();
+            }
+            $services = Service::onlyTrashed()->where('category_id', $category->id)->get();
+            foreach ($services as $service) {
+                $service->restore();
+                $restoredServices++;
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => $restoredServices > 0
+                ? "Categoria e {$restoredServices} serviço(s) restaurados."
+                : 'Categoria restaurada.',
+            'category' => $category->fresh(),
+            'archived_services_count' => Service::forOrganization(current_organization_id())->onlyTrashed()->count(),
+        ]);
+    }
+
+    /**
+     * Categorias visíveis na sidebar: activas, e sem “só serviços no Arquivo”.
+     * (Categorias novas vazias continuam visíveis.)
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<Category>
+     */
+    private function sidebarCategoriesQuery(int $organizationId)
+    {
+        // Activas; esconde as que só têm serviços no Arquivo (vazias novas continuam).
+        return Category::forOrganization($organizationId)
+            ->orderBy('sort_order')
+            ->withCount('services')
+            ->where(function ($q) {
+                $q->has('services')
+                    ->orWhereDoesntHave('services', fn ($sq) => $sq->onlyTrashed());
+            });
     }
 
     /**

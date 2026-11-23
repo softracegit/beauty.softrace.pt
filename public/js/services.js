@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         return `
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-trash me-2"></i>Eliminar</a></li>`;
+                            <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-archive me-2"></i>Arquivar categoria</a></li>`;
     }
 
     function categoryHeaderHtml(categoryId, categoryName) {
@@ -1768,7 +1768,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.target.closest('.category-header-delete-btn')) {
                 e.preventDefault();
                 if (!canDeleteCatalog) {
-                    showToast('Sem permissão para eliminar categorias.', 'error');
+                    showToast('Sem permissão para arquivar categorias.', 'error');
                     return;
                 }
                 pendingCategoryDeleteId = categoryId;
@@ -1793,7 +1793,35 @@ document.addEventListener('DOMContentLoaded', function() {
         else loadServices(categoryId);
     }
 
-    /** GET /services/arquivo → serviços soft-deleted. */
+    function renderArchivedCategories(categories) {
+        if (!categories.length) {
+            return '';
+        }
+        const rows = categories.map(function (cat) {
+            const count = Number(cat.trashed_services_count ?? 0);
+            const countLabel = count === 1 ? '1 serviço' : `${count} serviços`;
+            const restoreBtn = canDeleteCatalog
+                ? `<button type="button" class="btn btn-sm btn-outline-primary category-archive-restore-btn" data-restore-category-id="${cat.id}">Restaurar</button>`
+                : '';
+            return `
+                <div class="archive-category-row" data-archived-category-id="${cat.id}">
+                    <div class="archive-category-row__meta">
+                        <p class="archive-category-row__name">${escapeHtml(cat.name || 'Categoria')}</p>
+                        <div class="archive-category-row__count">${countLabel} arquivado(s)</div>
+                    </div>
+                    ${restoreBtn}
+                </div>
+            `;
+        }).join('');
+        return `
+            <div class="mb-4">
+                <h6 class="text-muted text-uppercase small mb-2">Categorias arquivadas</h6>
+                ${rows}
+            </div>
+        `;
+    }
+
+    /** GET /services/arquivo → categorias e serviços soft-deleted. */
     function loadArchivedServices() {
         fetch('/services/arquivo', {
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -1802,16 +1830,25 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             const container = document.getElementById('servicesListContainer');
             const services = data.services || [];
+            const archivedCategories = data.archived_categories || [];
             updateArchivedBadge(data.archived_services_count ?? services.length);
+            const categoriesHtml = renderArchivedCategories(archivedCategories);
+            const showServicesSection = services.length > 0 || archivedCategories.length === 0;
+            const servicesHeading = archivedCategories.length && services.length > 0
+                ? '<h6 class="text-muted text-uppercase small mb-2">Serviços arquivados</h6>'
+                : '';
+            const servicesListHtml = showServicesSection
+                ? `<div id="servicesList" data-archived="1">${renderServicesList(services, '#6c757d', { archived: true })}</div>`
+                : '<div id="servicesList" data-archived="1"></div>';
             container.innerHTML = `
                 <div class="services-category-header mb-3 d-flex align-items-center flex-wrap gap-2">
                     <div class="d-flex align-items-center min-w-0">
                         <h5 class="mb-0 services-category-title text-truncate">Arquivo</h5>
                     </div>
                 </div>
-                <div id="servicesList" data-archived="1">
-                    ${renderServicesList(services, '#6c757d', { archived: true })}
-                </div>
+                ${categoriesHtml}
+                ${servicesHeading}
+                ${servicesListHtml}
             `;
             if (servicesDrake) { servicesDrake.destroy(); servicesDrake = null; }
             if (servicesDrakesAll.length) {
@@ -1920,6 +1957,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             let categories = Array.isArray(data) ? data : (data?.data ?? data?.categories ?? Object.values(data || {}));
             if (!Array.isArray(categories)) return;
+            const visibleIds = new Set(categories.map(c => String(c?.id)).filter(Boolean));
             let total = 0;
             categories.forEach(cat => {
                 if (!cat?.id) return;
@@ -1929,6 +1967,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 total += Number(count) || 0;
                 if (badge) {
                     badge.textContent = count;
+                }
+            });
+            document.querySelectorAll('#categoriesList [data-category-id]').forEach(el => {
+                const id = el.getAttribute('data-category-id');
+                if (!id || id === 'all' || id === 'archive') return;
+                if (!visibleIds.has(String(id))) {
+                    el.remove();
+                    if (String(selectedCategoryId) === String(id)) {
+                        selectCategory('all');
+                    }
                 }
             });
             const allBadge = document.querySelector('#categoriesList [data-category-id="all"] .badge');
@@ -2511,6 +2559,35 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function restoreCategoryById(categoryId) {
+        if (!canDeleteCatalog) {
+            showToast('Sem permissão para restaurar categorias.', 'error');
+            return;
+        }
+
+        fetch(`/categories/${categoryId}/restore`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest',
+                Accept: 'application/json',
+            },
+        })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok && data.success) {
+                    showToast(data.message, 'success');
+                    location.reload();
+                } else {
+                    showToast(data.message || 'Erro ao restaurar categoria', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error restoring category:', error);
+                showToast('Erro ao restaurar categoria', 'error');
+            });
+    }
+
     // --- Lista dinâmica: abrir editar ao clicar no card ---
     function attachServiceEventListeners() {
         document.querySelectorAll('.service-archive-restore-btn').forEach(btn => {
@@ -2520,6 +2597,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const serviceId = this.getAttribute('data-restore-service-id');
                 if (serviceId) {
                     restoreServiceById(serviceId);
+                }
+            });
+        });
+
+        document.querySelectorAll('.category-archive-restore-btn').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const categoryId = this.getAttribute('data-restore-category-id');
+                if (categoryId) {
+                    restoreCategoryById(categoryId);
                 }
             });
         });
@@ -2611,10 +2699,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     showToast(data.message, 'success');
                     location.reload();
                 } else {
-                    showToast(data.message || 'Erro ao eliminar categoria', 'error');
+                    showToast(data.message || 'Erro ao arquivar categoria', 'error');
                 }
             })
-            .catch(err => { console.error(err); showToast('Erro ao eliminar categoria', 'error'); });
+            .catch(err => { console.error(err); showToast('Erro ao arquivar categoria', 'error'); });
     });
 
     document.getElementById('deleteServiceVariantConfirmBtn')?.addEventListener('click', function () {

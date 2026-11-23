@@ -409,6 +409,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::match(['post', 'put'], 'categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+    Route::post('categories/{id}/restore', [CategoryController::class, 'restore'])->name('categories.restore')->whereNumber('id');
     Route::get('categories/{category}/clinical-fields', [CategoryController::class, 'clinicalFieldsIndex'])->name('categories.clinical-fields.index');
     Route::post('categories/{category}/clinical-fields', [CategoryController::class, 'clinicalFieldsStore'])->name('categories.clinical-fields.store');
     Route::post('categories/{category}/clinical-fields/reorder', [CategoryController::class, 'clinicalFieldsReorder'])->name('categories.clinical-fields.reorder');

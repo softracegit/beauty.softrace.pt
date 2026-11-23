@@ -758,8 +758,31 @@ a.clinical-field-ghost-btn {
 .service-item-row--archived .service-item {
     cursor: default;
 }
-.service-archive-restore-btn {
+.service-archive-restore-btn,
+.category-archive-restore-btn {
     flex-shrink: 0;
+}
+.archive-category-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--bs-border-color, #e5e7eb);
+    border-radius: var(--radius-md, 0.5rem);
+    margin-bottom: 0.5rem;
+    background: var(--bs-body-bg, #fff);
+}
+.archive-category-row__meta {
+    min-width: 0;
+}
+.archive-category-row__name {
+    font-weight: 600;
+    margin: 0;
+}
+.archive-category-row__count {
+    font-size: 0.85rem;
+    color: var(--muted-color, #6b7280);
 }
 .contacts-groups-list .contacts-group-item {
     border-radius: var(--radius-md) !important;
@@ -913,7 +936,7 @@ a.clinical-field-ghost-btn {
                                 <li><a class="dropdown-item category-header-add-service-btn" href="#"><i class="ph ph-plus me-2"></i>Adicionar serviço</a></li>
                                 @if($canDeleteCatalog)
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-trash me-2"></i>Eliminar</a></li>
+                                <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-archive me-2"></i>Arquivar categoria</a></li>
                                 @endif
                             </ul>
                         </div>
@@ -938,7 +961,7 @@ a.clinical-field-ghost-btn {
                                         <li><a class="dropdown-item category-header-add-service-btn" href="#"><i class="ph ph-plus me-2"></i>Adicionar serviço</a></li>
                                         @if($canDeleteCatalog)
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-trash me-2"></i>Eliminar</a></li>
+                                        <li><a class="dropdown-item category-header-delete-btn text-danger" href="#"><i class="ph ph-archive me-2"></i>Arquivar categoria</a></li>
                                         @endif
                                     </ul>
                                 </div>
@@ -1400,20 +1423,20 @@ a.clinical-field-ghost-btn {
     </div>
 </div>
 
-<!-- Modal eliminar categoria de serviço -->
+<!-- Modal arquivar categoria de serviço -->
 <div class="modal fade" id="deleteCategoryConfirmModal" tabindex="-1" aria-labelledby="deleteCategoryConfirmModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-semibold" id="deleteCategoryConfirmModalLabel">Eliminar categoria</h5>
+                <h5 class="modal-title fw-semibold" id="deleteCategoryConfirmModalLabel">Arquivar categoria</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
-                <p class="mb-0">Tem a certeza que deseja eliminar esta categoria? Os serviços da categoria também serão afectados.</p>
+                <p class="mb-0">A categoria e todos os seus serviços passam para o Arquivo. Deixam de aparecer no painel e nas marcações novas; o histórico mantém-se.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" id="deleteCategoryConfirmBtn">Eliminar</button>
+                <button type="button" class="btn btn-danger" id="deleteCategoryConfirmBtn">Arquivar</button>
             </div>
         </div>
     </div>
