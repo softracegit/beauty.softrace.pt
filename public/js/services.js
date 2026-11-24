@@ -340,9 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const color = getCategoryColorForPrefix(prefix);
         list.innerHTML = items.map(function (item, idx) {
-            const desc = item.description
-                ? '<p class="text-muted small mb-1 text-truncate">' + escapeHtml(item.description) + '</p>'
-                : '';
+            const shortHtml = renderCatalogItemCopy(item);
             const upDisabled = idx === 0 ? ' disabled' : '';
             const downDisabled = idx === items.length - 1 ? ' disabled' : '';
             const isAddon = item.type === 'addon' && !item.is_baseline;
@@ -357,7 +355,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         '<div class="card-body d-flex justify-content-between align-items-center gap-3">' +
                             '<div class="service-item-left min-w-0">' +
                                 '<h6 class="mb-0 service-item-name text-truncate">' + escapeHtml(item.name || 'Sem nome') + addonBadge + '</h6>' +
-                                desc +
+                                shortHtml +
                                 '<div class="text-muted small">' + plus + escapeHtml(formatVariantDuration(item.duration)) + '</div>' +
                             '</div>' +
                             '<div class="d-flex align-items-center gap-2 flex-shrink-0">' +
@@ -2098,10 +2096,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         const plus = isAddon ? '+' : '';
                         return (
                             '<div class="service-item-variant-row">' +
+                            '<div class="service-item-variant-copy min-w-0">' +
                             '<span class="service-item-variant-name">' +
                             escapeHtml(opt.name) +
                             addonBadge +
                             '</span>' +
+                            renderCatalogItemCopy(opt) +
+                            '</div>' +
                             '<span class="service-item-variant-duration">' +
                             plus + escapeHtml(formatDuration(opt.duration)) +
                             '</span>' +

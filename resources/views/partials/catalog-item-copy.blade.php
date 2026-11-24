@@ -1,4 +1,4 @@
-{{-- Frase curta na lista CRM (serviços / extras). Variantes: só no offcanvas. --}}
+{{-- Frase curta na lista CRM (serviços / extras / variantes). --}}
 @php
     $short = trim((string) ($shortDescription ?? ''));
 @endphp

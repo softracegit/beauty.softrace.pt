@@ -690,6 +690,16 @@ a.clinical-field-ghost-btn {
     font-size: 0.8125rem;
     line-height: 1.35;
 }
+.service-item-variant-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+.service-item-variant-copy .catalog-item-short {
+    margin-top: 0;
+    padding-left: 0.9rem;
+}
 .service-item-variant-name {
     display: flex;
     align-items: baseline;

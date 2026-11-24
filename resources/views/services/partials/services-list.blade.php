@@ -44,7 +44,12 @@
             <div class="service-item-variants">
                 @foreach($service->options as $opt)
                     <div class="service-item-variant-row">
-                        <span class="service-item-variant-name">{{ $opt->name }}@if($opt->isAddon()) <span class="badge text-bg-light fw-normal ms-1">Adicional</span>@endif</span>
+                        <div class="service-item-variant-copy min-w-0">
+                            <span class="service-item-variant-name">{{ $opt->name }}@if($opt->isAddon()) <span class="badge text-bg-light fw-normal ms-1">Adicional</span>@endif</span>
+                            @include('partials.catalog-item-copy', [
+                                'shortDescription' => $opt->short_description,
+                            ])
+                        </div>
                         <span class="service-item-variant-duration">{{ $opt->isAddon() ? '+' : '' }}{{ $opt->formatted_duration }}</span>
                         <span class="service-item-variant-price">{{ $opt->isAddon() ? '+' : '' }}{{ $opt->formatted_price }}</span>
                     </div>
