@@ -3885,13 +3885,18 @@
         top.className = 'booking-modal-option__top';
 
         var main = buildModalOptionMain(item);
-        if (included) {
+        // Adicionais: o toggle fica depois do Sim/Não no DOM (em mobile o CSS coloca-o abaixo).
+        var isAddonRow = !!(extraClass && String(extraClass).indexOf('booking-modal-option--addon') !== -1);
+        if (included && !isAddonRow) {
             main.appendChild(included.toggle);
         }
         top.appendChild(main);
         top.appendChild(buildModalOptionAside(priceLabel, durationLabel));
         if (controlEl) {
             top.appendChild(controlEl);
+        }
+        if (included && isAddonRow) {
+            top.appendChild(included.toggle);
         }
         root.appendChild(top);
 
@@ -4068,6 +4073,9 @@
         }
         if (els.modalFooterEdit) {
             els.modalFooterEdit.classList.toggle('d-none', !isEdit);
+        }
+        if (els.modalRemoveLine) {
+            els.modalRemoveLine.classList.toggle('d-none', !isEdit);
         }
     }
 

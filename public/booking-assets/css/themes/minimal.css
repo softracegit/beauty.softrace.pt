@@ -423,7 +423,7 @@
     [data-booking-theme="minimal"] #bookingModal .modal-dialog {
         left: auto;
         top: 0;
-        width: min(40rem, 56vw);
+        width: min(34rem, 48vw);
         height: 100%;
         max-height: none;
         align-items: stretch;
@@ -610,10 +610,22 @@
     white-space: nowrap;
 }
 
-[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back {
-    width: 3rem;
-    padding-left: 0;
-    padding-right: 0;
+/* Remover / Voltar: círculos com a mesma altura do Continuar (Remover sempre à esquerda no DOM) */
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back,
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-remove,
+[data-booking-theme="minimal"] .booking-modal-footer #booking-modal-remove-line {
+    box-sizing: border-box;
+    flex: 0 0 var(--booking-action-btn-min-height);
+    width: var(--booking-action-btn-min-height);
+    height: var(--booking-action-btn-min-height);
+    min-width: var(--booking-action-btn-min-height);
+    min-height: var(--booking-action-btn-min-height);
+    padding: 0 !important;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
     border-color: var(--booking-border);
     background: var(--booking-surface);
     color: var(--booking-text);
@@ -621,13 +633,19 @@
 
 [data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back:hover,
 [data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back:focus-visible,
-[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back:active {
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-back:active,
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-remove:hover,
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-remove:focus-visible,
+[data-booking-theme="minimal"] .booking-modal-footer .booking-modal-remove:active,
+[data-booking-theme="minimal"] .booking-modal-footer #booking-modal-remove-line:hover,
+[data-booking-theme="minimal"] .booking-modal-footer #booking-modal-remove-line:focus-visible,
+[data-booking-theme="minimal"] .booking-modal-footer #booking-modal-remove-line:active {
     border-color: var(--booking-text);
     background: var(--booking-min-soft);
     color: var(--booking-text);
 }
 
-/* Editar: "Remover" e "Guardar" lado a lado */
+/* Editar: painel do Continuar/Guardar */
 [data-booking-theme="minimal"] .booking-modal-footer__pane--edit {
     flex-wrap: nowrap;
     gap: 0.5rem;
@@ -636,10 +654,6 @@
 [data-booking-theme="minimal"] .booking-modal-footer__pane--edit .btn {
     flex: 1 1 0;
     min-width: 0;
-}
-
-[data-booking-theme="minimal"] .booking-modal-footer__pane--edit #booking-modal-remove-line {
-    flex: 0 1 auto;
 }
 
 [data-booking-theme="minimal"] .booking-modal-footer__pane {
@@ -921,14 +935,8 @@ body[data-booking-theme="minimal"] .booking-legal-footer--minimal {
     white-space: nowrap;
 }
 
-[data-booking-theme="minimal"] .booking-modal-footer__pane--edit #booking-modal-remove-line {
+[data-booking-theme="minimal"] .booking-modal-footer #booking-modal-remove-line {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 3rem;
-    width: 3rem;
-    padding: 0;
 }
 
 [data-booking-theme="minimal"] .booking-modal-remove__icon {

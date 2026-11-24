@@ -3053,6 +3053,16 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     cursor: pointer;
 }
 
+@media (max-width: 767.98px) {
+    .booking-modal-option__aside {
+        margin-right: -0.2rem;
+    }
+
+    .booking-modal-option__radio {
+        padding-left: 0;
+    }
+}
+
 .booking-modal-options-error {
     font-weight: 500;
 }
@@ -4259,6 +4269,38 @@ body:has(#booking-slot-hold-expired-modal.show) .modal-backdrop:last-of-type {
     cursor: default;
 }
 
+/* Desktop: frase | preço | Sim/Não; «O que está incluído» sob a frase */
+.booking-modal-option--addon .booking-modal-option__top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+        "main aside choice"
+        "included . .";
+    align-items: start;
+    column-gap: 0.75rem;
+    row-gap: 0.35rem;
+}
+
+.booking-modal-option--addon .booking-modal-option__main {
+    grid-area: main;
+    min-width: 0;
+}
+
+.booking-modal-option--addon .booking-modal-option__aside {
+    grid-area: aside;
+    align-self: start;
+    margin-right: 0;
+}
+
+.booking-modal-option--addon .booking-modal-addon-choice {
+    grid-area: choice;
+    align-self: start;
+}
+
+.booking-modal-option--addon .booking-modal-option__included-toggle {
+    grid-area: included;
+}
+
 .booking-modal-addon-choice {
     flex: 0 0 auto;
     align-self: center;
@@ -4339,6 +4381,31 @@ body:has(#booking-slot-hold-expired-modal.show) .modal-backdrop:last-of-type {
 @media (prefers-reduced-motion: reduce) {
     .booking-modal-option--missing .booking-modal-addon-choice {
         animation: none;
+    }
+}
+
+/* Mobile: frase | preço; depois Sim/Não; depois «O que está incluído» */
+@media (max-width: 767.98px) {
+    .booking-modal-option--addon .booking-modal-option__top {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "main aside"
+            "choice choice"
+            "included included";
+        column-gap: 0.65rem;
+        row-gap: 0.65rem;
+    }
+
+    .booking-modal-option--addon .booking-modal-option__aside {
+        padding-left: 0;
+    }
+
+    .booking-modal-option--addon .booking-modal-addon-choice {
+        justify-self: start;
+    }
+
+    .booking-modal-option--addon .booking-modal-option__description {
+        width: 100%;
     }
 }
 

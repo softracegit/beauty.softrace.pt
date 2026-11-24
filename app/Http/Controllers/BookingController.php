@@ -9,6 +9,7 @@ use App\Models\CalendarEvent;
 use App\Models\Category;
 use App\Models\Client;
 use App\Models\CrmSetting;
+use App\Models\ExtraCategory;
 use App\Models\Service;
 use App\Models\Store;
 use App\Models\User;
@@ -110,8 +111,16 @@ class BookingController extends Controller
                                 $oq->orderBy('sort_order');
                             },
                             'extras' => function ($eq) {
-                                $eq->orderBy('sort_order')
-                                    ->with('extraCategory');
+                                // Mesma ordem do CRM: categoria de extras → sort_order do extra
+                                $eq->with('extraCategory')
+                                    ->orderBy(
+                                        ExtraCategory::query()
+                                            ->select('sort_order')
+                                            ->whereColumn('extra_categories.id', 'extras.extra_category_id')
+                                            ->limit(1)
+                                    )
+                                    ->orderBy('extras.sort_order')
+                                    ->orderBy('extras.id');
                             },
                             'fees' => function ($fq) {
                                 $fq->orderBy('sort_order')->orderBy('name');
@@ -155,10 +164,12 @@ class BookingController extends Controller
                     'extras',
                     $service->extras
                         ->filter(fn ($extra): bool => in_array((int) $extra->id, $allowed, true))
-                        ->sortBy([
-                            fn ($extra): int => (int) ($extra->extraCategory?->sort_order ?? PHP_INT_MAX),
-                            fn ($extra): int => (int) ($extra->sort_order ?? 0),
-                            fn ($extra): int => (int) $extra->id,
+                        // Um único callback (tuplo): sortBy([fn, fn, ...]) trata cada fn como comparador ($a,$b),
+                        // o que inverte / baralha a ordem em vez de extrair chaves de ordenação.
+                        ->sortBy(fn ($extra): array => [
+                            (int) ($extra->extraCategory?->sort_order ?? PHP_INT_MAX),
+                            (int) ($extra->sort_order ?? 0),
+                            (int) $extra->id,
                         ])
                         ->values(),
                 );

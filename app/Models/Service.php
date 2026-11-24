@@ -128,7 +128,15 @@ class Service extends Model
      */
     public function extras(): BelongsToMany
     {
-        return $this->belongsToMany(Extra::class, 'service_extra');
+        return $this->belongsToMany(Extra::class, 'service_extra')
+            ->orderBy(
+                ExtraCategory::query()
+                    ->select('sort_order')
+                    ->whereColumn('extra_categories.id', 'extras.extra_category_id')
+                    ->limit(1)
+            )
+            ->orderBy('extras.sort_order')
+            ->orderBy('extras.id');
     }
 
     public function fees(): BelongsToMany

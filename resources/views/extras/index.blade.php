@@ -463,6 +463,10 @@
 }
 .contacts-groups-list .contacts-group-item {
     border-radius: var(--radius-md) !important;
+    cursor: grab;
+}
+.contacts-groups-list .contacts-group-item[data-category-id="all"] {
+    cursor: default;
 }
 .contacts-groups-list .contacts-group-item:hover {
     color: var(--accent-color) !important;
@@ -470,6 +474,11 @@
 }
 .contacts-groups-list .contacts-group-item.active:hover {
     background: color-mix(in srgb, var(--accent-color), transparent 90%) !important;
+}
+.gu-mirror.contacts-group-item {
+    cursor: grabbing;
+    opacity: 0.92;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 .contacts-groups-header {
     padding: 0.3rem 1.25rem 1.3rem !important;
@@ -496,8 +505,8 @@
     <div class="contacts-sidebar" id="extrasSidebar">
         <button class="contacts-sidebar-close d-lg-none" id="extrasSidebarClose" aria-label="Fechar"><i class="ph ph-x"></i></button>
         <div class="contacts-groups">
-            <div class="contacts-groups-list">
-                <a href="{{ route('extras.index') }}" class="contacts-group-item {{ !$selectedCategory && empty($viewArchive) ? 'active' : '' }}">
+            <div class="contacts-groups-list" id="extraCategoriesList" data-sortable="extra-categories">
+                <a href="{{ route('extras.index') }}" class="contacts-group-item {{ !$selectedCategory && empty($viewArchive) ? 'active' : '' }}" data-category-id="all">
                     <span class="contacts-group-dot" style="background: var(--bs-secondary);"></span>
                     <span>Todas as categorias</span>
                     <span class="badge">{{ $categories->sum(fn($c) => $c->extras_count ?? 0) }}</span>
@@ -1212,7 +1221,81 @@ document.addEventListener('DOMContentLoaded', function() {
             persistExtrasOrder(target);
         });
     }
+
+    function initExtraCategoriesSidebarDragula() {
+        if (typeof dragula === 'undefined') return;
+        var list = document.getElementById('extraCategoriesList');
+        if (!list) return;
+        var isReorderable = function(el) {
+            if (!el || !el.classList || !el.classList.contains('contacts-group-item')) return false;
+            var id = el.getAttribute('data-category-id');
+            return !!(id && /^\d+$/.test(id));
+        };
+        var dragMoved = false;
+        var drake = dragula([list], {
+            moves: function(el, source, handle) {
+                if (!isReorderable(el)) return false;
+                if (handle && handle.closest && handle.closest('.services-category-sidebar-edit')) return false;
+                return true;
+            },
+            accepts: function(el, target, source, sibling) {
+                var allItem = list.querySelector('.contacts-group-item[data-category-id="all"]');
+                if (sibling && sibling.getAttribute('data-category-id') === 'all') return false;
+                if (sibling === allItem) return false;
+                return true;
+            },
+            revertOnSpill: true,
+            copy: false
+        });
+        drake.on('cloned', function() { dragMoved = true; });
+        drake.on('drop', function() {
+            dragMoved = true;
+            var allItem = list.querySelector('.contacts-group-item[data-category-id="all"]');
+            if (allItem && list.firstElementChild !== allItem) {
+                list.insertBefore(allItem, list.firstElementChild);
+            }
+            var order = Array.from(list.querySelectorAll('.contacts-group-item[data-category-id]'))
+                .map(function(el) { return el.getAttribute('data-category-id'); })
+                .filter(function(id) { return /^\d+$/.test(id); })
+                .map(function(id) { return parseInt(id, 10); });
+            if (!order.length) return;
+            var csrf = document.querySelector('input[name="_token"]')?.value
+                || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                || '';
+            fetch('{{ url('extra-categories/reorder') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ order: order })
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data.success) {
+                    toast('Ordem das categorias atualizada', 'success');
+                    // Vista "Todas": refrescar para reflectir a nova ordem nos blocos
+                    var activeCat = list.querySelector('.contacts-group-item.active');
+                    if (activeCat && activeCat.getAttribute('data-category-id') === 'all') {
+                        window.location.reload();
+                    }
+                } else {
+                    toast(data.message || 'Erro ao reordenar categorias', 'error');
+                }
+            }).catch(function() {
+                toast('Erro ao reordenar categorias', 'error');
+            });
+        });
+        list.addEventListener('click', function(e) {
+            if (!dragMoved) return;
+            e.preventDefault();
+            e.stopPropagation();
+            dragMoved = false;
+        }, true);
+    }
+
     initExtrasDragula();
+    initExtraCategoriesSidebarDragula();
 });
 </script>
 

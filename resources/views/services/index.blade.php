@@ -687,7 +687,7 @@ a.clinical-field-ghost-btn {
 }
 .service-item-variant-row {
     padding: 0.2rem 0;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     line-height: 1.35;
 }
 .service-item-variant-name {
@@ -696,7 +696,7 @@ a.clinical-field-ghost-btn {
     gap: 0.4rem;
     min-width: 0;
     font-weight: 500;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: var(--heading-color, #1e293b);
 }
 .service-item-variant-name::before {
@@ -705,7 +705,7 @@ a.clinical-field-ghost-btn {
     color: inherit;
 }
 .service-item-variant-duration {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     color: var(--muted-color, #6b7280);
     white-space: nowrap;
     text-align: right;
@@ -719,7 +719,7 @@ a.clinical-field-ghost-btn {
     margin-right: 0.85rem;
 }
 .service-item-variant-price {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     color: var(--heading-color, #1e293b);
 }
@@ -803,6 +803,10 @@ a.clinical-field-ghost-btn {
 }
 .contacts-groups-list .contacts-group-item {
     border-radius: var(--radius-md) !important;
+    cursor: grab;
+}
+.contacts-groups-list .contacts-group-item[data-category-id="all"] {
+    cursor: default;
 }
 .contacts-groups-list .contacts-group-item:hover {
     color: var(--accent-color) !important;
@@ -810,6 +814,11 @@ a.clinical-field-ghost-btn {
 }
 .contacts-groups-list .contacts-group-item.active:hover {
     background: color-mix(in srgb, var(--accent-color), transparent 90%) !important;
+}
+.gu-mirror.contacts-group-item {
+    cursor: grabbing;
+    opacity: 0.92;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 .contacts-groups-header {
     padding: 0.3rem 1.25rem 1.3rem !important;

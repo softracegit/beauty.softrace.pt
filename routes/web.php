@@ -27,6 +27,7 @@ use App\Http\Controllers\YearRecapController;
 use App\Http\Controllers\DealController;
 use App\Http\Controllers\DevErrorTestController;
 use App\Http\Controllers\DefinicoesController;
+use App\Http\Controllers\ExtraCategoryController;
 use App\Http\Controllers\ExtraController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\FeeController;
@@ -441,6 +442,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::match(['put', 'patch'], 'extras/{extra}', [ExtraController::class, 'update'])->name('extras.update');
     Route::delete('extras/{extra}', [ExtraController::class, 'destroy'])->name('extras.destroy');
     Route::get('extra-categories/{extraCategory}', [ExtraController::class, 'showCategory'])->name('extras.categories.show');
+    Route::post('extra-categories/reorder', [ExtraCategoryController::class, 'reorder'])->name('extras.categories.reorder');
     Route::post('extra-categories', [ExtraController::class, 'storeCategory'])->name('extras.categories.store');
     Route::match(['put', 'patch'], 'extra-categories/{extraCategory}', [ExtraController::class, 'updateCategory'])->name('extras.categories.update');
     Route::delete('extra-categories/{extraCategory}', [ExtraController::class, 'destroyCategory'])->name('extras.categories.destroy');

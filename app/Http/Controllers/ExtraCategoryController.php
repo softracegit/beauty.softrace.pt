@@ -6,9 +6,44 @@ use App\Http\Requests\StoreExtraCategoryRequest;
 use App\Http\Requests\UpdateExtraCategoryRequest;
 use App\Models\ExtraCategory;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ExtraCategoryController extends Controller
 {
+    /**
+     * Reordenar categorias de extras (sidebar).
+     */
+    public function reorder(Request $request): JsonResponse
+    {
+        $request->validate([
+            'order' => ['required', 'array'],
+            'order.*' => ['required', 'integer', 'exists:extra_categories,id'],
+        ]);
+
+        $organizationId = current_organization_id();
+        $idsInOrg = ExtraCategory::forOrganization($organizationId)
+            ->whereIn('id', $request->order)
+            ->pluck('id')
+            ->count();
+        if ($idsInOrg !== count($request->order)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ordem inválida para esta organização.',
+            ], 422);
+        }
+
+        foreach ($request->order as $index => $categoryId) {
+            ExtraCategory::forOrganization($organizationId)
+                ->whereKey($categoryId)
+                ->update(['sort_order' => $index + 1]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ordem das categorias de extras atualizada com sucesso.',
+        ]);
+    }
+
     public function store(StoreExtraCategoryRequest $request): JsonResponse
     {
         $data = $request->validated();

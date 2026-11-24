@@ -2158,6 +2158,96 @@ document.addEventListener('DOMContentLoaded', function() {
         return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(price);
     }
 
+    // --- Dragula (reordenar categorias na sidebar) ---
+    let categoriesSidebarDrake = null;
+    function initCategoriesSidebarDragula() {
+        if (typeof dragula === 'undefined') return;
+        const list = document.getElementById('categoriesList');
+        if (!list) return;
+        if (categoriesSidebarDrake) {
+            categoriesSidebarDrake.destroy();
+            categoriesSidebarDrake = null;
+        }
+        const isReorderableCategory = function (el) {
+            if (!el || !el.classList || !el.classList.contains('contacts-group-item')) return false;
+            const id = el.getAttribute('data-category-id');
+            return !!(id && /^\d+$/.test(id));
+        };
+        let categoryDragMoved = false;
+        categoriesSidebarDrake = dragula([list], {
+            moves: function (el, source, handle) {
+                if (!isReorderableCategory(el)) return false;
+                // Não iniciar drag a partir do botão editar
+                if (handle && handle.closest && handle.closest('.services-category-sidebar-edit')) return false;
+                return true;
+            },
+            accepts: function (el, target, source, sibling) {
+                // Manter "Todas as categorias" no topo
+                if (sibling && sibling.getAttribute('data-category-id') === 'all') {
+                    return false;
+                }
+                const first = list.querySelector('.contacts-group-item[data-category-id="all"]');
+                // Não permitir drop antes de "Todas"
+                if (sibling === first) {
+                    return false;
+                }
+                return true;
+            },
+            revertOnSpill: true,
+            copy: false,
+        });
+        categoriesSidebarDrake.on('drag', function () {
+            categoryDragMoved = false;
+        });
+        categoriesSidebarDrake.on('cloned', function () {
+            categoryDragMoved = true;
+        });
+        categoriesSidebarDrake.on('drop', function () {
+            categoryDragMoved = true;
+            // Garantir "Todas" no topo após drop
+            const allItem = list.querySelector('.contacts-group-item[data-category-id="all"]');
+            if (allItem && list.firstElementChild !== allItem) {
+                list.insertBefore(allItem, list.firstElementChild);
+            }
+            const order = Array.from(list.querySelectorAll('.contacts-group-item[data-category-id]'))
+                .map(function (el) { return el.getAttribute('data-category-id'); })
+                .filter(function (id) { return /^\d+$/.test(id); })
+                .map(function (id) { return parseInt(id, 10); });
+            if (!order.length) return;
+            fetch('/categories/reorder', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ order: order }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        showToast('Ordem das categorias atualizada', 'success');
+                        // Vista "Todas": refrescar blocos para reflectir a nova ordem
+                        if (selectedCategoryId === 'all' && typeof selectCategory === 'function') {
+                            selectCategory('all');
+                        }
+                    } else {
+                        showToast(data.message || 'Erro ao reordenar categorias', 'error');
+                    }
+                })
+                .catch(function () {
+                    showToast('Erro ao reordenar categorias', 'error');
+                });
+        });
+        list.addEventListener('click', function (e) {
+            if (!categoryDragMoved) return;
+            e.preventDefault();
+            e.stopPropagation();
+            categoryDragMoved = false;
+        }, true);
+    }
+
     // --- Dragula (reordenar serviços) --- vista de uma categoria (#servicesList) ou vista "Todas" (uma instância para todas as listas)
     function initServicesDragula() {
         if (typeof dragula === 'undefined') return;
@@ -2765,6 +2855,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize on page load
     attachServiceEventListeners();
+    initCategoriesSidebarDragula();
     initServicesDragula();
 
     /** Filtra linhas pelo termo actual (mantém-se após editar/guardar / mudança de categoria). */

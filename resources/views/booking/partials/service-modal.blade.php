@@ -30,6 +30,8 @@
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0 booking-modal-footer">
+                {{-- Remover sempre à esquerda (só no modo editar) --}}
+                <button type="button" class="btn btn-outline-dark booking-modal-remove d-none" id="booking-modal-remove-line" aria-label="{{ __('booking.partials.service_modal_remove') }}" title="{{ __('booking.partials.service_modal_remove') }}"><i class="bi bi-trash3 booking-modal-remove__icon" aria-hidden="true"></i><span class="booking-modal-remove__label">{{ __('booking.partials.service_modal_remove') }}</span></button>
                 <button type="button" class="btn btn-outline-dark booking-modal-back d-none" id="booking-modal-back" aria-label="{{ __('booking.partials.service_modal_back') }}">
                     <i class="bi bi-arrow-left" aria-hidden="true"></i>
                 </button>
@@ -37,8 +39,7 @@
                     <button type="button" class="btn btn-dark w-100" id="booking-modal-confirm" data-label-continue="{{ __('booking.partials.service_modal_continue') }}">{{ __('booking.partials.service_modal_add') }}</button>
                 </div>
                 <div id="booking-modal-footer-edit" class="booking-modal-footer__pane booking-modal-footer__pane--edit w-100 d-none">
-                    <button type="button" class="btn btn-outline-danger" id="booking-modal-remove-line" aria-label="{{ __('booking.partials.service_modal_remove') }}" title="{{ __('booking.partials.service_modal_remove') }}"><i class="bi bi-trash3 booking-modal-remove__icon" aria-hidden="true"></i><span class="booking-modal-remove__label">{{ __('booking.partials.service_modal_remove') }}</span></button>
-                    <button type="button" class="btn btn-dark" id="booking-modal-apply-edit" data-label-continue="{{ __('booking.partials.service_modal_continue') }}">{{ __('booking.partials.service_modal_apply') }}</button>
+                    <button type="button" class="btn btn-dark w-100" id="booking-modal-apply-edit" data-label-continue="{{ __('booking.partials.service_modal_continue') }}">{{ __('booking.partials.service_modal_apply') }}</button>
                 </div>
             </div>
         </div>

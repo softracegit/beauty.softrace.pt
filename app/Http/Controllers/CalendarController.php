@@ -3237,9 +3237,9 @@ class CalendarController extends Controller
             ->get();
 
         $sortedStores = $stores
-            ->sortBy([
-                fn ($s) => (int) $s->id === $currentStoreId ? 0 : 1,
-                fn ($s) => mb_strtolower((string) $s->name),
+            ->sortBy(fn ($s): array => [
+                (int) $s->id === $currentStoreId ? 0 : 1,
+                mb_strtolower((string) $s->name),
             ])
             ->values();
 
