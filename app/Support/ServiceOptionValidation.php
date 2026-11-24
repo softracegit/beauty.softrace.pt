@@ -15,6 +15,7 @@ final class ServiceOptionValidation
         return [
             "{$prefix}.*.name" => ['required', 'string', 'max:255'],
             "{$prefix}.*.description" => ['nullable', 'string'],
+            "{$prefix}.*.short_description" => ['nullable', 'string', 'max:255'],
             "{$prefix}.*.duration" => ['required', 'integer', 'min:1'],
             "{$prefix}.*.price" => ['required', 'numeric', 'min:0'],
             "{$prefix}.*.online_price" => ['required', 'numeric', 'min:0'],

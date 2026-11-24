@@ -135,6 +135,7 @@ class ExtraController extends Controller
                 'extra_category_id' => $extra->extra_category_id,
                 'name' => $extra->name,
                 'description' => $extra->description ?? '',
+                'short_description' => $extra->short_description ?? '',
                 'price' => (float) $extra->price,
                 'duration' => (int) $extra->duration,
                 'service_ids' => $extra->services->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),

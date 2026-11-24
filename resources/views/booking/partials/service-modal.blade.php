@@ -26,8 +26,7 @@
                     <p id="booking-modal-options-error" class="booking-modal-options-error text-danger small mt-2 mb-0 d-none" role="alert"></p>
                 </div>
                 <div id="booking-modal-extras-wrap" class="d-none mt-3">
-                    <p class="small fw-semibold text-dark mb-2 booking-modal-extras-title" data-label-question="{{ __('booking.partials.service_modal_extras_question') }}">{{ __('booking.partials.service_modal_extras') }}</p>
-                    <div id="booking-modal-extras" class="booking-modal-options" role="group" aria-label="{{ __('booking.partials.service_modal_extras_aria') }}"></div>
+                    <div id="booking-modal-extras" class="booking-modal-extras" aria-label="{{ __('booking.partials.service_modal_extras_aria') }}"></div>
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0 booking-modal-footer">

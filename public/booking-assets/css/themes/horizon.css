@@ -340,8 +340,8 @@
     background: rgba(0, 201, 167, 0.04);
 }
 
-[data-booking-theme="horizon"] .booking-row__chevron {
-    color: var(--booking-accent);
+[data-booking-theme="horizon"] .booking-row__chevron input[type="radio"] {
+    accent-color: var(--booking-accent);
 }
 
 [data-booking-theme="horizon"] .booking-category-heading {

@@ -56,6 +56,8 @@ return [
         'agent_empty_title' => 'No se encontraron servicios.',
         'price_from' => 'Desde',
         'summary_title' => 'Resumen de la reserva',
+        'whats_included' => 'Qué está incluido',
+        'whats_included_hide' => 'Ocultar descripción',
     ],
 
     'auth' => [
@@ -492,6 +494,8 @@ return [
         'service_already_in_cart' => 'Este servicio ya está en tu reserva. Usa Editar en el resumen para cambiar la opción.',
         'price_just_increased' => 'Este servicio acaba de subir de precio',
         'price_just_increased_cart_kept' => 'Acaba de subir de precio — en tu carrito se mantiene :price',
+        'whats_included' => 'Qué está incluido',
+        'whats_included_hide' => 'Ocultar descripción',
         'nif_invalid' => 'Introduce un NIF de 9 dígitos.',
         'invoice_email_required' => 'Introduce el correo electrónico para recibir la factura.',
         'name_full_required' => 'Por favor, introduce nombre y apellido',

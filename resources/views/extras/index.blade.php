@@ -394,8 +394,14 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto 8.5rem;
     column-gap: 1rem;
-    align-items: center;
+    align-items: start;
     width: 100%;
+}
+.catalog-item-short {
+    margin-top: 0.2rem;
+    font-size: 0.8125rem;
+    color: var(--muted-color, #6b7280);
+    line-height: 1.35;
 }
 .service-item-header-meta:empty {
     width: 0;
@@ -981,6 +987,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('editExtraCategoryId').value = data.extra_category_id || '';
                 document.getElementById('editExtraName').value = data.name || '';
                 document.getElementById('editExtraDescription').value = data.description || '';
+                var shortDescEl = document.getElementById('editExtraShortDescription');
+                if (shortDescEl) shortDescEl.value = data.short_description || '';
                 document.getElementById('editExtraPrice').value = data.price ?? 0;
                 document.getElementById('editExtraDuration').value = data.duration ?? 0;
                 var rawIds = data.service_ids;
@@ -1286,8 +1294,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             <div class="mb-3">
+                <label class="form-label" for="addExtraShortDescription">Descrição curta</label>
+                <input type="text" class="form-control" name="short_description" id="addExtraShortDescription" maxlength="255" placeholder="Frase breve sob o nome no booking">
+            </div>
+            <div class="mb-3">
                 <label class="form-label">Descrição</label>
                 <textarea class="form-control" name="description" rows="3"></textarea>
+                <div class="form-text">No booking aparece atrás de «O que está incluído?».</div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -1341,8 +1354,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
             <div class="mb-3">
+                <label class="form-label" for="editExtraShortDescription">Descrição curta</label>
+                <input type="text" class="form-control" name="short_description" id="editExtraShortDescription" maxlength="255" placeholder="Frase breve sob o nome no booking">
+            </div>
+            <div class="mb-3">
                 <label class="form-label">Descrição</label>
                 <textarea class="form-control" name="description" id="editExtraDescription" rows="3"></textarea>
+                <div class="form-text">No booking aparece atrás de «O que está incluído?».</div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">

@@ -12,6 +12,9 @@
             <div class="service-item-header">
                 <div class="min-w-0">
                     <h6 class="mb-0 service-item-name">{{ $extra->name }}</h6>
+                    @include('partials.catalog-item-copy', [
+                        'shortDescription' => $extra->short_description,
+                    ])
                     @if($archived && $extra->extraCategory)
                         <div class="text-muted small">{{ $extra->extraCategory->name }}</div>
                     @endif

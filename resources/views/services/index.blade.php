@@ -664,8 +664,14 @@ a.clinical-field-ghost-btn {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto 8.5rem;
     column-gap: 1rem;
-    align-items: center;
+    align-items: start;
     width: 100%;
+}
+.catalog-item-short {
+    margin-top: 0.2rem;
+    font-size: 0.8125rem;
+    color: var(--muted-color, #6b7280);
+    line-height: 1.35;
 }
 .service-item-body--has-options > .service-item-header {
     margin-bottom: 0.45rem;
@@ -680,16 +686,26 @@ a.clinical-field-ghost-btn {
     width: 100%;
 }
 .service-item-variant-row {
-    padding: 0.28rem 0;
-    font-size: 0.875rem;
+    padding: 0.2rem 0;
+    font-size: 0.75rem;
     line-height: 1.35;
 }
 .service-item-variant-name {
-    font-weight: 500;
-    color: var(--muted-color, #6b7280);
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
     min-width: 0;
+    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--heading-color, #1e293b);
+}
+.service-item-variant-name::before {
+    content: '•';
+    flex-shrink: 0;
+    color: inherit;
 }
 .service-item-variant-duration {
+    font-size: 0.75rem;
     color: var(--muted-color, #6b7280);
     white-space: nowrap;
     text-align: right;
@@ -703,6 +719,7 @@ a.clinical-field-ghost-btn {
     margin-right: 0.85rem;
 }
 .service-item-variant-price {
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--heading-color, #1e293b);
 }
@@ -1079,8 +1096,13 @@ a.clinical-field-ghost-btn {
                 </div>
             </div>
             <div class="mb-3">
+                <label class="form-label" for="addServiceShortDescription">Descrição curta</label>
+                <input type="text" class="form-control" name="short_description" id="addServiceShortDescription" maxlength="255" placeholder="Frase breve sob o nome no booking">
+            </div>
+            <div class="mb-3">
                 <label class="form-label" for="addServiceDescription">Descrição</label>
                 <textarea class="form-control" name="description" id="addServiceDescription" rows="3"></textarea>
+                <div class="form-text">No booking aparece atrás de «O que está incluído?».</div>
             </div>
             @include('services.partials.service-pricing-block', ['prefix' => 'add'])
             <div class="services-offcanvas__check services-offcanvas__check--booking">
@@ -1142,8 +1164,13 @@ a.clinical-field-ghost-btn {
                 </div>
             </div>
             <div class="mb-3">
+                <label class="form-label" for="editServiceShortDescription">Descrição curta</label>
+                <input type="text" class="form-control" name="short_description" id="editServiceShortDescription" maxlength="255" placeholder="Frase breve sob o nome no booking">
+            </div>
+            <div class="mb-3">
                 <label class="form-label" for="editServiceDescription">Descrição</label>
                 <textarea class="form-control" name="description" id="editServiceDescription" rows="3"></textarea>
+                <div class="form-text">No booking aparece atrás de «O que está incluído?».</div>
             </div>
             @include('services.partials.service-pricing-block', ['prefix' => 'edit'])
             <div class="services-offcanvas__check services-offcanvas__check--booking">
@@ -1497,8 +1524,13 @@ a.clinical-field-ghost-btn {
                         <input type="text" class="form-control" id="serviceVariantName" maxlength="255" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label fw-semibold" for="serviceVariantShortDescription">Descrição curta</label>
+                        <input type="text" class="form-control" id="serviceVariantShortDescription" maxlength="255" placeholder="Frase breve sob o nome no booking">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold" for="serviceVariantDescription">Descrição</label>
                         <textarea class="form-control" id="serviceVariantDescription" rows="2"></textarea>
+                        <div class="form-text">No booking aparece atrás de «O que está incluído».</div>
                     </div>
                     <div class="mb-3" id="serviceVariantTypeWrap">
                         <label class="form-label fw-semibold" for="serviceVariantType">Tipo</label>

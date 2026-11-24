@@ -24,8 +24,12 @@
                 <input type="text" class="form-control" name="name" required maxlength="255">
             </div>
             <div class="mb-3">
+                <label class="form-label" for="createExtraShortDescription">Descrição curta</label>
+                <input type="text" class="form-control" name="short_description" id="createExtraShortDescription" maxlength="255" value="{{ old('short_description') }}">
+            </div>
+            <div class="mb-3">
                 <label class="form-label">Descrição</label>
-                <textarea class="form-control" name="description" rows="3"></textarea>
+                <textarea class="form-control" name="description" rows="3">{{ old('description') }}</textarea>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">

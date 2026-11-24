@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
+use App\Models\Agent;
 use App\Models\Category;
 use App\Models\CategoryClinicalField;
 use App\Models\Extra;
@@ -44,7 +45,10 @@ class CategoryController extends Controller
         $categories = $this->sidebarCategoriesQuery($organizationId)
             ->with(['services' => fn ($q) => $q
                 ->with([
-                    'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+                    'agents' => fn ($aq) => $aq
+                        ->where('agents.status', Agent::STATUS_ACTIVE)
+                        ->with(['store:id,name'])
+                        ->orderBy('agents.name'),
                     'extras',
                     'fees',
                     'options',
@@ -52,7 +56,7 @@ class CategoryController extends Controller
                 ->withCount([
                     'extras',
                     'fees',
-                    'agents',
+                    'agents' => fn ($aq) => $aq->where('agents.status', Agent::STATUS_ACTIVE),
                     'futureActiveMarcacoes as future_marcacoes_count',
                 ])
                 ->orderBy('sort_order')])

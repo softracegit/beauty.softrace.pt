@@ -56,6 +56,8 @@ return [
         'agent_empty_title' => 'No services found.',
         'price_from' => 'From',
         'summary_title' => 'Booking summary',
+        'whats_included' => "What's included",
+        'whats_included_hide' => 'Hide description',
     ],
 
     'auth' => [
@@ -492,6 +494,8 @@ return [
         'service_already_in_cart' => 'This service is already in your booking. Use Edit in the summary to change the option.',
         'price_just_increased' => 'This service just got more expensive',
         'price_just_increased_cart_kept' => 'Just got more expensive — your cart still has :price',
+        'whats_included' => "What's included",
+        'whats_included_hide' => 'Hide description',
         'nif_invalid' => 'Enter a tax ID with 9 digits.',
         'invoice_email_required' => 'Enter the email address to receive the invoice.',
         'name_full_required' => 'Please enter your first and last name',

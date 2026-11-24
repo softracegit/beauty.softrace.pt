@@ -335,13 +335,11 @@
 }
 
 .booking-theme--refined .booking-row__duration {
-    font-size: 0.78rem;
     color: var(--booking-muted);
 }
 
-.booking-theme--refined .booking-row__chevron {
-    color: #b8b2aa;
-    font-size: 0.95rem;
+.booking-theme--refined .booking-row__chevron input[type="radio"] {
+    accent-color: #b8b2aa;
 }
 
 /* —— Resumo —— */

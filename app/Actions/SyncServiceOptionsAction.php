@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 final class SyncServiceOptionsAction
 {
     /**
-     * @param  list<array{name: string, description?: ?string, duration: int, price: float|string, online_price: float|string, sort_order?: int, is_baseline?: bool, type?: string}>  $options
+     * @param  list<array{name: string, description?: ?string, short_description?: ?string, duration: int, price: float|string, online_price: float|string, sort_order?: int, is_baseline?: bool, type?: string}>  $options
      */
     public function execute(Service $service, bool $hasOptions, array $options): void
     {
@@ -31,11 +31,13 @@ final class SyncServiceOptionsAction
                 $isBaseline = ! empty($row['is_baseline']);
                 $name = (string) $row['name'];
                 $description = isset($row['description']) ? trim((string) $row['description']) : '';
+                $shortDescription = isset($row['short_description']) ? trim((string) $row['short_description']) : '';
 
                 $attributes = [
                     'service_id' => $service->id,
                     'name' => $name,
                     'description' => $description !== '' ? $description : null,
+                    'short_description' => $shortDescription !== '' ? $shortDescription : null,
                     'duration' => (int) $row['duration'],
                     'price' => (float) $row['price'],
                     'online_price' => (float) $row['online_price'],

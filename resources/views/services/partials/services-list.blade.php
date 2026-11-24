@@ -24,6 +24,9 @@
             <div class="service-item-header">
                 <div class="min-w-0">
                     <h6 class="mb-0 service-item-name">{{ $service->name }}@if($service->hidden_from_booking)<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>@endif</h6>
+                    @include('partials.catalog-item-copy', [
+                        'shortDescription' => $service->short_description,
+                    ])
                     <div class="service-item-badges">
                         <span class="badge text-bg-light">{{ $variantsN }} variante{{ $variantsN === 1 ? '' : 's' }}</span>
                         @if($extrasN > 0)
@@ -53,6 +56,9 @@
             <div class="service-item-header">
                 <div class="min-w-0">
                     <h6 class="mb-0 service-item-name">{{ $service->name }}@if($service->hidden_from_booking)<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>@endif</h6>
+                    @include('partials.catalog-item-copy', [
+                        'shortDescription' => $service->short_description,
+                    ])
                     <div class="service-item-badges">
                         @if($extrasN > 0)
                             <span class="badge text-bg-light">{{ $extrasN }} extra(s)</span>

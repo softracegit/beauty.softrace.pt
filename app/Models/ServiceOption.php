@@ -14,7 +14,7 @@ class ServiceOption extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['service_id', 'name', 'description', 'duration', 'price', 'online_price', 'sort_order', 'is_baseline', 'type'])
+            ->logOnly(['service_id', 'name', 'description', 'short_description', 'duration', 'price', 'online_price', 'sort_order', 'is_baseline', 'type'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Opção de serviço criada',
@@ -44,6 +44,7 @@ class ServiceOption extends Model
         'service_id',
         'name',
         'description',
+        'short_description',
         'duration',
         'price',
         'online_price',

@@ -19,7 +19,7 @@ class Service extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['category_id', 'name', 'description', 'duration', 'price', 'online_price', 'sort_order', 'hidden_from_booking'])
+            ->logOnly(['category_id', 'name', 'description', 'short_description', 'duration', 'price', 'online_price', 'sort_order', 'hidden_from_booking'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Serviço criado',
@@ -35,6 +35,7 @@ class Service extends Model
         'category_id',
         'name',
         'description',
+        'short_description',
         'duration',
         'price',
         'online_price',
@@ -111,6 +112,15 @@ class Service extends Model
     public function agents(): BelongsToMany
     {
         return $this->belongsToMany(Agent::class);
+    }
+
+    /**
+     * Agentes activos associados (contagens e avatares nas listas do CRM).
+     */
+    public function activeAgents(): BelongsToMany
+    {
+        return $this->belongsToMany(Agent::class)
+            ->where('agents.status', Agent::STATUS_ACTIVE);
     }
 
     /**

@@ -24,6 +24,8 @@
                 <input type="text" class="form-control" name="name" value="{{ old('name', $extra->name) }}" required maxlength="255">
             </div>
             <div class="mb-3">
+                <label class="form-label" for="editExtraShortDescriptionPage">Descrição curta</label>
+                <input type="text" class="form-control mb-3" name="short_description" id="editExtraShortDescriptionPage" maxlength="255" value="{{ old('short_description', $extra->short_description) }}">
                 <label class="form-label">Descrição</label>
                 <textarea class="form-control" name="description" rows="3">{{ old('description', $extra->description) }}</textarea>
             </div>

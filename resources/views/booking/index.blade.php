@@ -122,15 +122,21 @@
                                                         })->values()->all();
                                                         $extrasPayload = $service->extras->map(static function ($extra) use ($bookingIssuePriceToken) {
                                                             $extraPrice = round((float) $extra->price, 2);
+                                                            $extraCategory = $extra->extraCategory;
 
                                                             return [
                                                                 'id' => (int) $extra->id,
                                                                 'name' => $extra->name,
+                                                                'shortDescription' => $extra->short_description ? (string) $extra->short_description : null,
+                                                                'description' => $extra->description ? strip_tags((string) $extra->description) : null,
                                                                 'duration' => $extra->formatted_duration,
                                                                 'durationMinutes' => (int) ($extra->duration ?? 0),
                                                                 'price' => $extraPrice,
                                                                 'priceFormatted' => $extra->formatted_price,
                                                                 'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_EXTRA, (int) $extra->id, $extraPrice),
+                                                                'categoryId' => $extra->extra_category_id ? (int) $extra->extra_category_id : null,
+                                                                'categoryName' => $extraCategory?->name ? (string) $extraCategory->name : null,
+                                                                'categorySortOrder' => (int) ($extraCategory?->sort_order ?? 0),
                                                             ];
                                                         })->values()->all();
                                                         $hasOptions = $service->options->isNotEmpty();
@@ -156,6 +162,8 @@
                                                                     'id' => $opt->id,
                                                                     'name' => $opt->name,
                                                                     'type' => \App\Models\ServiceOption::normalizeType($opt->type),
+                                                                    'shortDescription' => $opt->short_description ? (string) $opt->short_description : null,
+                                                                    'description' => $opt->description ? strip_tags((string) $opt->description) : null,
                                                                     'duration' => $opt->formatted_duration,
                                                                     'durationMinutes' => (int) $opt->duration,
                                                                     'price' => $p,
@@ -166,6 +174,8 @@
                                                             $payload = [
                                                                 'id' => $service->id,
                                                                 'name' => $service->name,
+                                                                'shortDescription' => $service->short_description ? (string) $service->short_description : null,
+                                                                'description' => $service->description ? strip_tags((string) $service->description) : null,
                                                                 'hasOptions' => true,
                                                                 'summaryPriceLabel' => $rowPriceLabel,
                                                                 'summaryDurationLabel' => $rowDurationLabel,
@@ -182,6 +192,8 @@
                                                             $payload = [
                                                                 'id' => $service->id,
                                                                 'name' => $service->name,
+                                                                'shortDescription' => $service->short_description ? (string) $service->short_description : null,
+                                                                'description' => $service->description ? strip_tags((string) $service->description) : null,
                                                                 'duration' => $service->formatted_duration,
                                                                 'durationMinutes' => (int) ($service->duration ?? 0),
                                                                 'price' => $price,
@@ -191,28 +203,53 @@
                                                                 'fees' => $feesPayload,
                                                             ];
                                                         }
+                                                        $serviceShortDescription = trim((string) ($service->short_description ?? ''));
+                                                        $serviceFullDescription = trim(strip_tags((string) ($service->description ?? '')));
+                                                        $serviceHasCopy = $serviceShortDescription !== '' || $serviceFullDescription !== '';
                                                     @endphp
                                                     <li class="list-group-item p-0 border-start-0 border-end-0">
-                                                        <button
-                                                            type="button"
-                                                            class="booking-row booking-row--btn w-100 text-start"
+                                                        <div
+                                                            class="booking-row booking-row--btn w-100 text-start{{ $serviceHasCopy ? ' booking-row--has-copy' : '' }}"
+                                                            role="button"
+                                                            tabindex="0"
                                                             data-service='@json($payload)'
                                                         >
-                                                            <span class="booking-row__text">
-                                                                <span class="booking-row__name">{{ $service->name }}@if($hasOptions && ($rowChoiceCount ?? 0) > 1 && ($bookingTheme ?? null) === \App\Support\BookingTheme::MINIMAL)<span class="booking-row__tag">{{ __('booking.partials.options_count', ['count' => $rowChoiceCount]) }}</span>@endif</span>
-                                                                <span class="booking-row__duration">{{ $rowDurationLabel }}</span>
-                                                                <span class="booking-row__price-nudge d-none" hidden></span>
-                                                                @if($service->description)
-                                                                    <span class="booking-row__meta">{{ \Illuminate\Support\Str::limit(strip_tags($service->description), 80) }}</span>
-                                                                @endif
-                                                            </span>
-                                                            <span class="booking-row__aside">
-                                                                <span class="booking-row__price">{{ $rowPriceLabel }}</span>
-                                                                <span class="booking-row__chevron" aria-hidden="true">
-                                                                    <i class="bi bi-chevron-right"></i>
+                                                            <span class="booking-row__top">
+                                                                <span class="booking-row__text">
+                                                                    <span class="booking-row__name">{{ $service->name }}</span>
+                                                                    @if($serviceShortDescription !== '')
+                                                                        <span class="booking-row__short">{{ $serviceShortDescription }}</span>
+                                                                    @endif
+                                                                    <span class="booking-row__price-nudge d-none" hidden></span>
+                                                                    @if($serviceFullDescription !== '')
+                                                                        <button
+                                                                            type="button"
+                                                                            class="booking-row__included-toggle"
+                                                                            aria-expanded="false"
+                                                                        >
+                                                                            <span>{{ __('booking.services.whats_included') }}</span>
+                                                                            <i class="bi bi-caret-down-fill booking-row__included-caret" aria-hidden="true"></i>
+                                                                        </button>
+                                                                    @endif
+                                                                </span>
+                                                                <span class="booking-row__aside">
+                                                                    <span class="booking-row__aside-meta">
+                                                                        @if($rowDurationLabel)
+                                                                            <span class="booking-row__duration">{{ $rowDurationLabel }}</span>
+                                                                            <span class="booking-row__aside-sep" aria-hidden="true">·</span>
+                                                                        @endif
+                                                                        <span class="booking-row__price">{{ $rowPriceLabel }}</span>
+                                                                    </span>
+                                                                    <span class="booking-row__chevron booking-modal-option__radio" aria-hidden="true">
+                                                                        {{-- Sem name: é só indicador visual; o estado vem do resumo via JS (name partilhado só deixava 1 checked). --}}
+                                                                        <input type="radio" value="{{ $service->id }}" tabindex="-1">
+                                                                    </span>
                                                                 </span>
                                                             </span>
-                                                        </button>
+                                                            @if($serviceFullDescription !== '')
+                                                                <span class="booking-row__description is-collapsed">{{ $serviceFullDescription }}</span>
+                                                            @endif
+                                                        </div>
                                                     </li>
                                                 @endforeach
                                             </ul>

@@ -98,8 +98,8 @@
     background: rgba(194, 101, 10, 0.04);
 }
 
-[data-booking-theme="breeze"] .booking-row__chevron {
-    color: var(--booking-accent-soft);
+[data-booking-theme="breeze"] .booking-row__chevron input[type="radio"] {
+    accent-color: var(--booking-accent-soft);
 }
 
 /* — Botões primários — */

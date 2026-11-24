@@ -583,6 +583,31 @@
         el.textContent = state.items.length > 0 ? hasItemsText : emptyText;
     }
 
+    /** Marca na lista o serviço que está no resumo (radio ativo). Sem name no input — senão o grupo nativo desmarca os outros. */
+    function syncServiceListSelection() {
+        var selectedIds = {};
+        (state.items || []).forEach(function (line) {
+            if (line && line.id != null && line.id !== '') {
+                selectedIds[String(line.id)] = true;
+            }
+        });
+        document.querySelectorAll('.booking-row--btn[data-service]').forEach(function (btn) {
+            var payload = parseServicePayload(btn.getAttribute('data-service'));
+            var selected = !!(payload && payload.id != null && selectedIds[String(payload.id)]);
+            btn.classList.toggle('is-selected', selected);
+            btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            var radio = btn.querySelector('.booking-row__chevron input[type="radio"]');
+            if (radio) {
+                radio.checked = selected;
+                if (selected) {
+                    radio.setAttribute('checked', 'checked');
+                } else {
+                    radio.removeAttribute('checked');
+                }
+            }
+        });
+    }
+
     function renderSummary() {
         var holdPromise = Promise.resolve();
         try {
@@ -751,6 +776,7 @@
             return holdPromise;
         } finally {
             syncBookingServicesPageHeading();
+            syncServiceListSelection();
         }
     }
 
@@ -3242,21 +3268,6 @@
         if (!els.modalSingle || !els.modalSingleWrap || !service) {
             return;
         }
-        var label = document.createElement('label');
-        label.className = 'booking-modal-option booking-modal-option--single';
-        var main = document.createElement('div');
-        main.className = 'booking-modal-option__main';
-        var nameEl = document.createElement('span');
-        nameEl.className = 'booking-modal-option__name';
-        nameEl.textContent = service.name || '';
-        var metaEl = document.createElement('span');
-        metaEl.className = 'booking-modal-option__meta';
-        metaEl.textContent = joinPriceAndDuration(
-            service.priceFormatted || formatMoneyEUR(service.price),
-            service.duration
-        );
-        main.appendChild(nameEl);
-        main.appendChild(metaEl);
         var radWrap = document.createElement('div');
         radWrap.className = 'booking-modal-option__radio';
         var input = document.createElement('input');
@@ -3265,9 +3276,15 @@
         input.checked = true;
         input.setAttribute('aria-label', service.name || '');
         radWrap.appendChild(input);
-        label.appendChild(main);
-        label.appendChild(radWrap);
-        els.modalSingle.appendChild(label);
+        els.modalSingle.appendChild(
+            assembleModalOption(
+                service,
+                service.priceFormatted || formatMoneyEUR(service.price),
+                service.duration,
+                radWrap,
+                'booking-modal-option--single'
+            )
+        );
         els.modalSingleWrap.classList.remove('d-none');
     }
 
@@ -3356,6 +3373,32 @@
             }
         }
         return [];
+    }
+
+    /** Agrupa extras pelas categorias do CRM (ordem da categoria, depois ordem do extra). */
+    function groupExtrasByCategory(extras) {
+        var groups = [];
+        var map = {};
+        (extras || []).forEach(function (ex) {
+            var key = ex.categoryId != null && ex.categoryId !== '' ? String(ex.categoryId) : '_none';
+            if (!map[key]) {
+                map[key] = {
+                    id: key === '_none' ? null : ex.categoryId,
+                    name: ex.categoryName ? String(ex.categoryName) : '',
+                    sortOrder: Number(ex.categorySortOrder) || 0,
+                    extras: [],
+                };
+                groups.push(map[key]);
+            }
+            map[key].extras.push(ex);
+        });
+        groups.sort(function (a, b) {
+            if (a.sortOrder !== b.sortOrder) {
+                return a.sortOrder - b.sortOrder;
+            }
+            return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: 'base' });
+        });
+        return groups;
     }
 
     /** Variante adicional: soma-se à variante escolhida (interruptor), em vez de a substituir. */
@@ -3758,6 +3801,158 @@
         return { price: priceLabel, duration: durationLabel };
     }
 
+    function buildIncludedParts(description) {
+        var desc = description != null ? String(description).trim() : '';
+        if (!desc) {
+            return null;
+        }
+        var toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'booking-modal-option__included-toggle';
+        toggle.setAttribute('aria-expanded', 'false');
+        var label = document.createElement('span');
+        label.textContent = t('whats_included');
+        var caret = document.createElement('i');
+        caret.className = 'bi bi-caret-down-fill booking-modal-option__included-caret';
+        caret.setAttribute('aria-hidden', 'true');
+        toggle.appendChild(label);
+        toggle.appendChild(caret);
+        var body = document.createElement('div');
+        body.className = 'booking-modal-option__description is-collapsed';
+        body.textContent = desc;
+        function onToggle(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open = body.classList.toggle('is-collapsed') === false;
+            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            caret.classList.toggle('bi-caret-down-fill', !open);
+            caret.classList.toggle('bi-caret-up-fill', open);
+        }
+        toggle.addEventListener('click', onToggle);
+        toggle.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        body.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+        body.addEventListener('mousedown', function (e) {
+            e.stopPropagation();
+        });
+        return { toggle: toggle, body: body };
+    }
+
+    function buildModalOptionMain(item) {
+        var main = document.createElement('div');
+        main.className = 'booking-modal-option__main';
+        var nameEl = document.createElement('span');
+        nameEl.className = 'booking-modal-option__name';
+        nameEl.textContent = (item && item.name) || '';
+        main.appendChild(nameEl);
+        var shortDesc = item && (item.shortDescription || item.short_description);
+        if (shortDesc) {
+            var shortEl = document.createElement('span');
+            shortEl.className = 'booking-modal-option__short';
+            shortEl.textContent = String(shortDesc);
+            main.appendChild(shortEl);
+        }
+        return main;
+    }
+
+    /**
+     * Monta opção/extra.
+     * Clique no card selecciona radio/checkbox; o link e a descrição não disparam essa escolha.
+     */
+    function assembleModalOption(item, priceLabel, durationLabel, controlEl, extraClass) {
+        var root = document.createElement('div');
+        root.className = 'booking-modal-option' + (extraClass ? ' ' + extraClass : '');
+        var shortDesc = item && (item.shortDescription || item.short_description);
+        var fullDesc = item && item.description;
+        var hasCopy =
+            (shortDesc != null && String(shortDesc).trim() !== '') ||
+            (fullDesc != null && String(fullDesc).trim() !== '');
+        if (hasCopy) {
+            root.classList.add('booking-modal-option--has-copy');
+        }
+        var included = buildIncludedParts(item && item.description);
+
+        var input =
+            controlEl && controlEl.classList.contains('booking-modal-option__radio')
+                ? controlEl.querySelector('input')
+                : null;
+
+        var top = document.createElement('div');
+        top.className = 'booking-modal-option__top';
+
+        var main = buildModalOptionMain(item);
+        if (included) {
+            main.appendChild(included.toggle);
+        }
+        top.appendChild(main);
+        top.appendChild(buildModalOptionAside(priceLabel, durationLabel));
+        if (controlEl) {
+            top.appendChild(controlEl);
+        }
+        root.appendChild(top);
+
+        if (included) {
+            root.appendChild(included.body);
+        }
+
+        if (input) {
+            root.addEventListener('click', function (e) {
+                if (
+                    e.target.closest('.booking-modal-option__included-toggle') ||
+                    e.target.closest('.booking-modal-option__description') ||
+                    e.target.closest('.booking-modal-option__radio') ||
+                    e.target.closest('.booking-modal-addon-choice')
+                ) {
+                    return;
+                }
+                if (input.type === 'checkbox') {
+                    input.checked = !input.checked;
+                } else if (input.type === 'radio') {
+                    if (input.checked) {
+                        return;
+                    }
+                    input.checked = true;
+                } else {
+                    return;
+                }
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        }
+
+        return root;
+    }
+
+    function buildModalOptionAside(priceLabel, durationLabel) {
+        var aside = document.createElement('div');
+        aside.className = 'booking-modal-option__aside';
+        var dur = (durationLabel || '').trim();
+        var price = (priceLabel || '').trim();
+        if (dur) {
+            var durEl = document.createElement('span');
+            durEl.className = 'booking-modal-option__duration';
+            durEl.textContent = dur;
+            aside.appendChild(durEl);
+            if (price) {
+                var sep = document.createElement('span');
+                sep.className = 'booking-modal-option__aside-sep';
+                sep.setAttribute('aria-hidden', 'true');
+                sep.textContent = '·';
+                aside.appendChild(sep);
+            }
+        }
+        if (price) {
+            var priceEl = document.createElement('span');
+            priceEl.className = 'booking-modal-option__price';
+            priceEl.textContent = price;
+            aside.appendChild(priceEl);
+        }
+        return aside;
+    }
+
     function joinPriceAndDuration(pricePart, durationPart) {
         var p = (pricePart || '').trim();
         var d = (durationPart || '').trim();
@@ -3765,6 +3960,20 @@
             return p + ' · ' + d;
         }
         return p || d;
+    }
+
+    function copyServiceCopyFields(from, to) {
+        if (!from || !to) {
+            return to;
+        }
+        var shortDesc = from.shortDescription != null ? from.shortDescription : from.short_description;
+        if (shortDesc != null && String(shortDesc).trim() !== '') {
+            to.shortDescription = String(shortDesc);
+        }
+        if (from.description != null && String(from.description).trim() !== '') {
+            to.description = String(from.description);
+        }
+        return to;
     }
 
     function cloneServiceForEditStorage(svc) {
@@ -3785,6 +3994,7 @@
             catalogMinPrice: svc.catalogMinPrice,
             fees: feesFromServiceSnapshot(svc),
         };
+        copyServiceCopyFields(svc, o);
         if (svc.price_token) {
             o.price_token = String(svc.price_token);
         }
@@ -3800,6 +4010,7 @@
                     price: opt.price,
                     priceFormatted: opt.priceFormatted,
                 };
+                copyServiceCopyFields(opt, optRow);
                 if (opt.price_token) {
                     optRow.price_token = String(opt.price_token);
                 }
@@ -3817,6 +4028,16 @@
                     price: ex.price,
                     priceFormatted: ex.priceFormatted,
                 };
+                copyServiceCopyFields(ex, exRow);
+                if (ex.categoryId != null && ex.categoryId !== '') {
+                    exRow.categoryId = ex.categoryId;
+                }
+                if (ex.categoryName) {
+                    exRow.categoryName = String(ex.categoryName);
+                }
+                if (ex.categorySortOrder != null) {
+                    exRow.categorySortOrder = Number(ex.categorySortOrder) || 0;
+                }
                 if (ex.price_token) {
                     exRow.price_token = String(ex.price_token);
                 }
@@ -3880,21 +4101,6 @@
             var addonOpts = getAddonOptions(service);
             if (els.modalOptions) {
                 choiceOpts.forEach(function (opt) {
-                    var label = document.createElement('label');
-                    label.className = 'booking-modal-option';
-                    var main = document.createElement('div');
-                    main.className = 'booking-modal-option__main';
-                    var nameEl = document.createElement('span');
-                    nameEl.className = 'booking-modal-option__name';
-                    nameEl.textContent = opt.name;
-                    var metaEl = document.createElement('span');
-                    metaEl.className = 'booking-modal-option__meta';
-                    metaEl.textContent = joinPriceAndDuration(
-                        opt.priceFormatted != null ? opt.priceFormatted : formatMoneyEUR(opt.price),
-                        opt.duration
-                    );
-                    main.appendChild(nameEl);
-                    main.appendChild(metaEl);
                     var radWrap = document.createElement('div');
                     radWrap.className = 'booking-modal-option__radio';
                     var input = document.createElement('input');
@@ -3914,9 +4120,14 @@
                         updateModalMetaFromSelection(service);
                     });
                     radWrap.appendChild(input);
-                    label.appendChild(main);
-                    label.appendChild(radWrap);
-                    els.modalOptions.appendChild(label);
+                    els.modalOptions.appendChild(
+                        assembleModalOption(
+                            opt,
+                            opt.priceFormatted != null ? opt.priceFormatted : formatMoneyEUR(opt.price),
+                            opt.duration,
+                            radWrap
+                        )
+                    );
                 });
             }
             if (els.modalAddons && addonOpts.length) {
@@ -3924,23 +4135,7 @@
                 // Ao editar uma linha, o cliente já respondeu a cada adicional: Sim às que tem, Não às outras
                 var addonsAnswered = Array.isArray(preselectAddonIds) && state.pending && state.pending.mode === 'edit';
                 addonOpts.forEach(function (addon) {
-                    var label = document.createElement('div');
-                    label.className = 'booking-modal-option booking-modal-option--addon';
-                    label.setAttribute('data-addon-id', String(addon.id));
-                    var main = document.createElement('div');
-                    main.className = 'booking-modal-option__main';
-                    var nameEl = document.createElement('span');
-                    nameEl.className = 'booking-modal-option__name';
-                    nameEl.textContent = addon.name;
-                    var metaEl = document.createElement('span');
-                    metaEl.className = 'booking-modal-option__meta';
                     var addonPrice = addon.priceFormatted != null ? addon.priceFormatted : formatMoneyEUR(addon.price);
-                    metaEl.textContent = joinPriceAndDuration(
-                        '+' + addonPrice,
-                        addon.duration ? '+' + addon.duration : ''
-                    );
-                    main.appendChild(nameEl);
-                    main.appendChild(metaEl);
                     // Resposta obrigatória: nenhuma das duas vem marcada ao adicionar
                     var isPreselected = (preselectAddonIds || []).some(function (id) {
                         return String(id) === String(addon.id);
@@ -3949,9 +4144,17 @@
                     choice.className = 'booking-modal-addon-choice';
                     choice.setAttribute('role', 'radiogroup');
                     choice.setAttribute('aria-label', addon.name);
+                    var label = assembleModalOption(
+                        addon,
+                        '+' + addonPrice,
+                        addon.duration ? '+' + addon.duration : '',
+                        choice,
+                        'booking-modal-option--addon'
+                    );
+                    label.setAttribute('data-addon-id', String(addon.id));
                     [
-                        { value: '0', text: t('addon_answer_no') },
                         { value: '1', text: t('addon_answer_yes') },
+                        { value: '0', text: t('addon_answer_no') },
                     ].forEach(function (opt) {
                         var optLabel = document.createElement('label');
                         optLabel.className = 'booking-modal-addon-choice__item';
@@ -3979,8 +4182,6 @@
                         optLabel.appendChild(span);
                         choice.appendChild(optLabel);
                     });
-                    label.appendChild(main);
-                    label.appendChild(choice);
                     els.modalAddons.appendChild(label);
                 });
             }
@@ -3995,44 +4196,50 @@
 
         if (extras.length > 0 && els.modalExtrasWrap && els.modalExtras) {
             els.modalExtrasWrap.classList.remove('d-none');
-            extras.forEach(function (ex) {
-                var label = document.createElement('label');
-                label.className = 'booking-modal-option';
-                var main = document.createElement('div');
-                main.className = 'booking-modal-option__main';
-                var nameEl = document.createElement('span');
-                nameEl.className = 'booking-modal-option__name';
-                nameEl.textContent = ex.name;
-                var metaEl = document.createElement('span');
-                metaEl.className = 'booking-modal-option__meta';
-                metaEl.textContent = joinPriceAndDuration(
-                    ex.priceFormatted != null ? ex.priceFormatted : formatMoneyEUR(ex.price),
-                    ex.duration
-                );
-                main.appendChild(nameEl);
-                main.appendChild(metaEl);
-                var checkWrap = document.createElement('div');
-                checkWrap.className = 'booking-modal-option__radio';
-                var input = document.createElement('input');
-                input.type = 'checkbox';
-                input.name = 'booking-service-extra';
-                input.value = String(ex.id);
-                input.setAttribute('aria-label', ex.name);
-                if (
-                    preselectExtraIds.some(function (id) {
-                        return String(id) === String(ex.id);
-                    })
-                ) {
-                    input.checked = true;
+            groupExtrasByCategory(extras).forEach(function (group) {
+                var block = document.createElement('div');
+                block.className = 'booking-modal-extras-group';
+                var title = document.createElement('p');
+                title.className = 'small fw-semibold text-dark mb-2';
+                title.textContent = group.name || t('extra_fallback');
+                var list = document.createElement('div');
+                list.className = 'booking-modal-options';
+                list.setAttribute('role', 'group');
+                if (group.name) {
+                    list.setAttribute('aria-label', group.name);
                 }
-                input.addEventListener('change', function () {
-                    syncPendingExtrasFromDom();
-                    updateModalMetaFromSelection(service);
+                group.extras.forEach(function (ex) {
+                    var checkWrap = document.createElement('div');
+                    checkWrap.className = 'booking-modal-option__radio';
+                    var input = document.createElement('input');
+                    input.type = 'checkbox';
+                    input.name = 'booking-service-extra';
+                    input.value = String(ex.id);
+                    input.setAttribute('aria-label', ex.name);
+                    if (
+                        preselectExtraIds.some(function (id) {
+                            return String(id) === String(ex.id);
+                        })
+                    ) {
+                        input.checked = true;
+                    }
+                    input.addEventListener('change', function () {
+                        syncPendingExtrasFromDom();
+                        updateModalMetaFromSelection(service);
+                    });
+                    checkWrap.appendChild(input);
+                    list.appendChild(
+                        assembleModalOption(
+                            ex,
+                            ex.priceFormatted != null ? ex.priceFormatted : formatMoneyEUR(ex.price),
+                            ex.duration,
+                            checkWrap
+                        )
+                    );
                 });
-                checkWrap.appendChild(input);
-                label.appendChild(main);
-                label.appendChild(checkWrap);
-                els.modalExtras.appendChild(label);
+                block.appendChild(title);
+                block.appendChild(list);
+                els.modalExtras.appendChild(block);
             });
             syncPendingExtrasFromDom();
         }
@@ -4048,44 +4255,69 @@
         setModalConfirmEnabled(true);
     }
 
-    function mergeServiceSnapshotFromOptionsCatalog(svc, line) {
-        if (getNormalizedServiceOptions(svc).length > 0) {
-            return svc;
+    /** Catálogo vivo da página de serviços (mesmo payload do “adicionar”). */
+    function findLiveCatalogService(serviceId) {
+        if (serviceId == null || serviceId === '') {
+            return null;
         }
-        if (!line || line.id == null) {
-            return svc;
+        var want = String(serviceId);
+        var buttons = document.querySelectorAll('[data-service]');
+        for (var i = 0; i < buttons.length; i++) {
+            var payload = parseServicePayload(buttons[i].getAttribute('data-service'));
+            if (payload && payload.id != null && String(payload.id) === want) {
+                return payload;
+            }
         }
         var el = document.getElementById('booking-services-options-catalog');
         if (!el || !el.textContent) {
-            return svc;
+            return null;
         }
         try {
             var catalog = JSON.parse(el.textContent);
-            var entry = catalog[String(line.id)] != null ? catalog[String(line.id)] : catalog[line.id];
-            if (!entry) {
-                return svc;
-            }
-            var merged = Object.assign({}, svc, {
-                name: entry.name || svc.name,
-                summaryPriceLabel: entry.summaryPriceLabel,
-                summaryDurationLabel: entry.summaryDurationLabel,
-            });
-            merged.options = getNormalizedServiceOptions(entry);
-            merged.extras = getNormalizedServiceExtras(entry);
-            var catalogFees = feesFromServiceSnapshot(entry);
-            if (catalogFees.length) {
-                merged.fees = catalogFees;
-            }
-            if (merged.options.length) {
-                return merged;
-            }
-            if (merged.extras.length) {
-                return merged;
-            }
-        } catch (e2) {
-            /* ignore */
+            var entry = catalog[want] != null ? catalog[want] : catalog[serviceId];
+            return entry || null;
+        } catch (e) {
+            return null;
         }
-        return svc;
+    }
+
+    function mergeServiceSnapshotFromOptionsCatalog(svc, line) {
+        if (!line || line.id == null) {
+            return svc;
+        }
+        var entry = findLiveCatalogService(line.id);
+        if (!entry) {
+            return svc;
+        }
+        var merged = Object.assign({}, svc, {
+            name: entry.name || svc.name,
+            summaryPriceLabel: entry.summaryPriceLabel != null ? entry.summaryPriceLabel : svc.summaryPriceLabel,
+            summaryDurationLabel:
+                entry.summaryDurationLabel != null ? entry.summaryDurationLabel : svc.summaryDurationLabel,
+            duration: entry.duration != null ? entry.duration : svc.duration,
+            durationMinutes:
+                entry.durationMinutes != null ? entry.durationMinutes : svc.durationMinutes,
+            price: entry.price != null ? entry.price : svc.price,
+            priceFormatted: entry.priceFormatted != null ? entry.priceFormatted : svc.priceFormatted,
+            catalogMinPrice: entry.catalogMinPrice != null ? entry.catalogMinPrice : svc.catalogMinPrice,
+        });
+        copyServiceCopyFields(entry, merged);
+        if (entry.price_token) {
+            merged.price_token = String(entry.price_token);
+        }
+        var liveOptions = getNormalizedServiceOptions(entry);
+        if (liveOptions.length) {
+            merged.options = liveOptions;
+        }
+        var liveExtras = getNormalizedServiceExtras(entry);
+        if (liveExtras.length) {
+            merged.extras = liveExtras;
+        }
+        var catalogFees = feesFromServiceSnapshot(entry);
+        if (catalogFees.length) {
+            merged.fees = catalogFees;
+        }
+        return merged;
     }
 
     function openModal(service) {
@@ -4111,14 +4343,17 @@
         if (!els.modalTitle || !els.modalMeta) {
             return;
         }
-        var raw = line.editSnapshot || buildFallbackEditSnapshot(line);
+        var live = findLiveCatalogService(line.id);
+        var raw = live || line.editSnapshot || buildFallbackEditSnapshot(line);
         var svc;
         try {
             svc = JSON.parse(JSON.stringify(raw));
         } catch (e) {
             svc = raw;
         }
-        svc = mergeServiceSnapshotFromOptionsCatalog(svc, line);
+        if (!live) {
+            svc = mergeServiceSnapshotFromOptionsCatalog(svc, line);
+        }
         svc.options = getNormalizedServiceOptions(svc);
         svc.extras = getNormalizedServiceExtras(svc);
         state.pending = {
@@ -4271,6 +4506,7 @@
         persist();
         renderSummary();
         closeModal();
+        syncServiceListSelection();
     }
 
     function lastSeenPricesStorageKey() {
@@ -4384,7 +4620,39 @@
     function bindServiceButtons() {
         var buttons = document.querySelectorAll('.booking-row--btn[data-service]');
         buttons.forEach(function (btn) {
-            btn.addEventListener('click', function () {
+            var includedToggle = btn.querySelector('.booking-row__included-toggle');
+            if (includedToggle) {
+                function toggleIncluded(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var desc = btn.querySelector('.booking-row__description');
+                    if (!desc) {
+                        return;
+                    }
+                    var open = desc.classList.toggle('is-collapsed') === false;
+                    includedToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    var caret = includedToggle.querySelector('.booking-row__included-caret');
+                    if (caret) {
+                        caret.classList.toggle('bi-caret-down-fill', !open);
+                        caret.classList.toggle('bi-caret-up-fill', open);
+                    }
+                }
+                includedToggle.addEventListener('click', toggleIncluded);
+                includedToggle.addEventListener('mousedown', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            }
+            var includedDesc = btn.querySelector('.booking-row__description');
+            if (includedDesc) {
+                includedDesc.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                });
+                includedDesc.addEventListener('mousedown', function (e) {
+                    e.stopPropagation();
+                });
+            }
+            function openFromRow() {
                 var payload = parseServicePayload(btn.getAttribute('data-service'));
                 if (!payload) {
                     return;
@@ -4399,6 +4667,22 @@
                     return;
                 }
                 openModal(payload);
+            }
+            btn.addEventListener('click', function (e) {
+                if (e.target.closest('.booking-row__included-toggle')) {
+                    return;
+                }
+                openFromRow();
+            });
+            btn.addEventListener('keydown', function (e) {
+                if (e.key !== 'Enter' && e.key !== ' ') {
+                    return;
+                }
+                if (e.target.closest('.booking-row__included-toggle')) {
+                    return;
+                }
+                e.preventDefault();
+                openFromRow();
             });
         });
         applyCatalogPriceIncreaseNudges();

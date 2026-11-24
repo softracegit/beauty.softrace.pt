@@ -277,6 +277,13 @@
     border-color: var(--booking-text);
 }
 
+[data-booking-theme="minimal"] .booking-row.is-selected,
+[data-booking-theme="minimal"] .booking-row:has(.booking-row__chevron input:checked) {
+    border-color: var(--booking-text);
+    background: var(--booking-min-soft);
+    box-shadow: none;
+}
+
 [data-booking-theme="minimal"] .booking-row__name {
     font-weight: 700;
 }
@@ -294,33 +301,26 @@
     white-space: nowrap;
 }
 
-[data-booking-theme="minimal"] .booking-row__price {
-    margin-right: 0.7rem;
-}
-
-/* A seta passa a um botão "+" */
+/* Lista: radio nativo (igual variantes / staff), sem hover especial */
 [data-booking-theme="minimal"] .booking-row__chevron {
-    width: 1.9rem;
-    height: 1.9rem;
-    border-radius: 50%;
-    background: var(--booking-min-soft);
-    color: var(--booking-text);
-}
-
-[data-booking-theme="minimal"] .booking-row__chevron .bi {
-    display: none;
+    background: transparent;
+    border: 0;
+    width: auto;
+    height: auto;
 }
 
 [data-booking-theme="minimal"] .booking-row__chevron::before {
-    content: "+";
-    font-size: 1.15rem;
-    font-weight: 500;
-    line-height: 1;
+    content: none;
+}
+
+[data-booking-theme="minimal"] .booking-row__chevron input[type="radio"] {
+    accent-color: var(--booking-text);
 }
 
 [data-booking-theme="minimal"] .booking-row:hover .booking-row__chevron {
-    background: var(--booking-text);
-    color: #fff;
+    background: transparent;
+    color: inherit;
+    border-color: transparent;
 }
 
 /* ---- Resumo ----
@@ -423,7 +423,7 @@
     [data-booking-theme="minimal"] #bookingModal .modal-dialog {
         left: auto;
         top: 0;
-        width: min(32rem, 46vw);
+        width: min(40rem, 56vw);
         height: 100%;
         max-height: none;
         align-items: stretch;

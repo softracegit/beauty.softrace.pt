@@ -97,8 +97,8 @@
     background: rgba(181, 23, 78, 0.04);
 }
 
-[data-booking-theme="aurora"] .booking-row__chevron {
-    color: var(--booking-accent-soft);
+[data-booking-theme="aurora"] .booking-row__chevron input[type="radio"] {
+    accent-color: var(--booking-accent-soft);
 }
 
 /* — Botões primários — */

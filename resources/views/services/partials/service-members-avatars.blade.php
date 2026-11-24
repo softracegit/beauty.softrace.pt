@@ -1,6 +1,8 @@
 @php
     $members = $service->relationLoaded('agents')
-        ? $service->agents->values()
+        ? $service->agents
+            ->filter(static fn ($agent) => ($agent->status ?? null) === \App\Models\Agent::STATUS_ACTIVE)
+            ->values()
         : collect();
     $agentsN = (int) ($service->agents_count ?? $members->count());
     $maxVisible = 5;

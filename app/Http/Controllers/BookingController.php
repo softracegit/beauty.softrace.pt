@@ -110,7 +110,8 @@ class BookingController extends Controller
                                 $oq->orderBy('sort_order');
                             },
                             'extras' => function ($eq) {
-                                $eq->orderBy('sort_order');
+                                $eq->orderBy('sort_order')
+                                    ->with('extraCategory');
                             },
                             'fees' => function ($fq) {
                                 $fq->orderBy('sort_order')->orderBy('name');
@@ -154,6 +155,11 @@ class BookingController extends Controller
                     'extras',
                     $service->extras
                         ->filter(fn ($extra): bool => in_array((int) $extra->id, $allowed, true))
+                        ->sortBy([
+                            fn ($extra): int => (int) ($extra->extraCategory?->sort_order ?? PHP_INT_MAX),
+                            fn ($extra): int => (int) ($extra->sort_order ?? 0),
+                            fn ($extra): int => (int) $extra->id,
+                        ])
                         ->values(),
                 );
             });

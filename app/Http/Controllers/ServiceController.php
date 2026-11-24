@@ -38,13 +38,16 @@ class ServiceController extends Controller
         $groups = Category::forOrganization(current_organization_id())->orderBy('sort_order')
             ->with(['services' => fn ($q) => $q
                 ->with([
-                    'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+                    'agents' => fn ($aq) => $aq
+                        ->where('agents.status', Agent::STATUS_ACTIVE)
+                        ->with(['store:id,name'])
+                        ->orderBy('agents.name'),
                     'options' => fn ($oq) => $oq->orderBy('sort_order'),
                 ])
                 ->withCount([
                     'extras',
                     'fees',
-                    'agents',
+                    'agents' => fn ($aq) => $aq->where('agents.status', Agent::STATUS_ACTIVE),
                     'futureActiveMarcacoes as future_marcacoes_count',
                 ])
                 ->orderBy('sort_order')])
@@ -68,13 +71,16 @@ class ServiceController extends Controller
 
         $services = $category->services()
             ->with([
-                'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+                'agents' => fn ($aq) => $aq
+                    ->where('agents.status', Agent::STATUS_ACTIVE)
+                    ->with(['store:id,name'])
+                    ->orderBy('agents.name'),
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ])
             ->withCount([
                 'extras',
                 'fees',
-                'agents',
+                'agents' => fn ($aq) => $aq->where('agents.status', Agent::STATUS_ACTIVE),
                 'futureActiveMarcacoes as future_marcacoes_count',
             ])
             ->orderBy('sort_order')
@@ -246,13 +252,16 @@ class ServiceController extends Controller
             ->onlyTrashed()
             ->with([
                 'category' => fn ($q) => $q->withTrashed(),
-                'agents' => fn ($aq) => $aq->with(['store:id,name'])->orderBy('agents.name'),
+                'agents' => fn ($aq) => $aq
+                    ->where('agents.status', Agent::STATUS_ACTIVE)
+                    ->with(['store:id,name'])
+                    ->orderBy('agents.name'),
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ])
             ->withCount([
                 'extras',
                 'fees',
-                'agents',
+                'agents' => fn ($aq) => $aq->where('agents.status', Agent::STATUS_ACTIVE),
                 'futureActiveMarcacoes as future_marcacoes_count',
             ])
             ->orderByDesc('deleted_at')

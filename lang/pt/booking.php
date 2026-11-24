@@ -56,6 +56,8 @@ return [
         'agent_empty_title' => 'Sem serviços encontrados.',
         'price_from' => 'Desde',
         'summary_title' => 'Resumo da marcação',
+        'whats_included' => 'O que está incluído',
+        'whats_included_hide' => 'Ocultar descrição',
     ],
 
     'auth' => [
@@ -492,6 +494,8 @@ return [
         'service_already_in_cart' => 'Este serviço já está na marcação. Use Editar no resumo para mudar a opção.',
         'price_just_increased' => 'Este serviço acabou de ficar mais caro',
         'price_just_increased_cart_kept' => 'Acabou de ficar mais caro — no seu carrinho mantém-se :price',
+        'whats_included' => 'O que está incluído',
+        'whats_included_hide' => 'Ocultar descrição',
         'nif_invalid' => 'Indique um NIF com 9 dígitos.',
         'invoice_email_required' => 'Indique o email para receber a fatura.',
         'name_full_required' => 'Por favor preencha Nome e Apelido',

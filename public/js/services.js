@@ -25,6 +25,17 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/"/g, '&quot;');
     }
 
+    function renderCatalogItemCopy(item) {
+        if (!item) {
+            return '';
+        }
+        const shortDesc = String(item.short_description || '').trim();
+        if (!shortDesc) {
+            return '';
+        }
+        return `<div class="catalog-item-short">${escapeHtml(shortDesc)}</div>`;
+    }
+
     function agentInitials(name) {
         const parts = String(name || '')
             .trim()
@@ -41,16 +52,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function normalizeServiceMembers(service) {
         const agents = Array.isArray(service.agents) ? service.agents : [];
-        return agents.map(function (agent) {
-            const store = agent.store || {};
-            return {
-                id: agent.id,
-                name: agent.name || '',
-                avatar: agent.avatar || null,
-                store_id: agent.store_id || store.id || 0,
-                store_name: store.name || agent.store_name || 'Sem loja',
-            };
-        });
+        return agents
+            .filter(function (agent) {
+                // Lista CRM: só técnicas activas (status ausente = legado já filtrado no servidor)
+                return !agent.status || agent.status === 'active';
+            })
+            .map(function (agent) {
+                const store = agent.store || {};
+                return {
+                    id: agent.id,
+                    name: agent.name || '',
+                    avatar: agent.avatar || null,
+                    store_id: agent.store_id || store.id || 0,
+                    store_name: store.name || agent.store_name || 'Sem loja',
+                };
+            });
     }
 
     function renderServiceMembersTrigger(service) {
@@ -215,6 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
             online: prefix + 'ServiceOnlinePrice',
             name: prefix + 'ServiceName',
             description: prefix + 'ServiceDescription',
+            shortDescription: prefix + 'ServiceShortDescription',
             category: prefix === 'add' ? 'addServiceCategorySelect' : 'editServiceCategoryId',
             simpleWrap: prefix + 'ServiceSimplePricingWrap',
             list: prefix + 'ServiceVariantsList',
@@ -253,6 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
             online_price: document.getElementById(ids.online)?.value || '',
             name: (document.getElementById(ids.name)?.value || '').trim(),
             description: (document.getElementById(ids.description)?.value || '').trim(),
+            short_description: (document.getElementById(ids.shortDescription)?.value || '').trim(),
         };
     }
 
@@ -340,7 +358,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             '<div class="service-item-left min-w-0">' +
                                 '<h6 class="mb-0 service-item-name text-truncate">' + escapeHtml(item.name || 'Sem nome') + addonBadge + '</h6>' +
                                 desc +
-                                '<div class="text-muted small"><i class="ph ph-clock me-1"></i>' + plus + escapeHtml(formatVariantDuration(item.duration)) + '</div>' +
+                                '<div class="text-muted small">' + plus + escapeHtml(formatVariantDuration(item.duration)) + '</div>' +
                             '</div>' +
                             '<div class="d-flex align-items-center gap-2 flex-shrink-0">' +
                                 '<span class="service-item-price">' + plus + escapeHtml(formatVariantPrice(item.price)) + '</span>' +
@@ -429,6 +447,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const simple = readSimplePricing(prefix);
         document.getElementById('serviceVariantName').value = itemOrNull ? (itemOrNull.name || '') : '';
+        const shortDescEl = document.getElementById('serviceVariantShortDescription');
+        if (shortDescEl) {
+            shortDescEl.value = itemOrNull ? (itemOrNull.short_description || '') : '';
+        }
         document.getElementById('serviceVariantDescription').value = itemOrNull ? (itemOrNull.description || '') : '';
         const typeSelect = document.getElementById('serviceVariantType');
         const typeHelp = document.getElementById('serviceVariantTypeHelp');
@@ -459,6 +481,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function collectVariantFromModal() {
         const name = (document.getElementById('serviceVariantName')?.value || '').trim();
+        const shortDescription = (document.getElementById('serviceVariantShortDescription')?.value || '').trim();
         const description = (document.getElementById('serviceVariantDescription')?.value || '').trim();
         const duration = parseInt(document.getElementById('serviceVariantDuration')?.value, 10);
         const price = document.getElementById('serviceVariantPrice')?.value;
@@ -485,6 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return {
             name: name,
+            short_description: shortDescription,
             description: description,
             duration: duration,
             price: price,
@@ -537,6 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     key: nextVariantKey(),
                     id: null,
                     name: baseName,
+                    short_description: simple.short_description || '',
                     description: simple.description || '',
                     duration: parseInt(simple.duration, 10) || 60,
                     price: simple.price,
@@ -548,6 +573,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     key: nextVariantKey(),
                     id: null,
                     name: data.name,
+                    short_description: data.short_description || '',
                     description: data.description,
                     duration: data.duration,
                     price: data.price,
@@ -561,6 +587,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 key: nextVariantKey(),
                 id: null,
                 name: data.name,
+                short_description: data.short_description || '',
                 description: data.description,
                 duration: data.duration,
                 price: data.price,
@@ -594,6 +621,7 @@ document.addEventListener('DOMContentLoaded', function() {
             key: nextVariantKey(),
             id: null,
             name: (src.name || 'Variante') + ' (cópia)',
+            short_description: src.short_description || '',
             description: src.description || '',
             duration: src.duration,
             price: src.price,
@@ -643,6 +671,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 key: nextVariantKey(),
                 id: opt.id || null,
                 name: opt.name || '',
+                short_description: opt.short_description || '',
                 description: opt.description || '',
                 duration: opt.duration,
                 price: opt.price,
@@ -665,6 +694,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (items.length < 2) return;
         items.forEach(function (o, i) {
             formData.append('options[' + i + '][name]', o.name);
+            formData.append('options[' + i + '][short_description]', o.short_description || '');
             formData.append('options[' + i + '][description]', o.description || '');
             formData.append('options[' + i + '][duration]', String(o.duration));
             formData.append('options[' + i + '][price]', String(o.price));
@@ -2058,6 +2088,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const clickableClass = archived ? 'service-item' : 'service-item service-item-clickable';
             let bodyHtml;
             if (hasOpts) {
+                const serviceCopyHtml = renderCatalogItemCopy(service);
                 const variantRows = opts
                     .map(function (opt) {
                         const isAddon = opt.type === 'addon' && !opt.is_baseline;
@@ -2085,18 +2116,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     `<div class="card-body service-item-body--has-options py-3 pe-2">` +
                     `<div class="service-item-header">` +
                     `<div class="min-w-0"><h6 class="mb-0 service-item-name">${nameHtml}</h6>` +
-                    `${categoryMeta}<div class="service-item-badges">${variantsBadges}${restoreBtn}</div></div>` +
+                    `${serviceCopyHtml}${categoryMeta}<div class="service-item-badges">${variantsBadges}${restoreBtn}</div></div>` +
                     `<span class="service-item-desde-duration" title="Menor duração"><span class="small fw-normal">Desde</span> ${escapeHtml(fromDurationLabel)}</span>` +
                     `<span class="service-item-price" title="Menor preço online"><span class="small fw-normal">Desde</span> ${formatPrice(fromOnline)}</span>` +
                     `</div>` +
                     `<div class="service-item-variants">${variantRows}</div>` +
                     `</div>`;
             } else {
+                const serviceCopyHtml = renderCatalogItemCopy(service);
                 bodyHtml =
                     `<div class="card-body service-item-body--simple py-3 pe-2">` +
                     `<div class="service-item-header">` +
                     `<div class="min-w-0"><h6 class="mb-0 service-item-name">${nameHtml}</h6>` +
-                    `${categoryMeta}<div class="service-item-badges">${simpleBadges}${restoreBtn}</div></div>` +
+                    `${serviceCopyHtml}${categoryMeta}<div class="service-item-badges">${simpleBadges}${restoreBtn}</div></div>` +
                     `<span class="service-item-desde-duration" title="Duração">${escapeHtml(formatDuration(service.duration))}</span>` +
                     `<span class="service-item-price" title="Preço normal">${formatPrice(service.price)}</span>` +
                     `</div></div>`;
@@ -2468,6 +2500,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('editServiceCategoryId').value = service.category_id;
                 document.getElementById('editServiceName').value = service.name;
                 document.getElementById('editServiceDescription').value = service.description || '';
+                const shortDescEl = document.getElementById('editServiceShortDescription');
+                if (shortDescEl) {
+                    shortDescEl.value = service.short_description || '';
+                }
                 document.getElementById('editServiceDuration').value = service.duration;
                 document.getElementById('editServicePrice').value = service.price;
                 document.getElementById('editServiceOnlinePrice').value = service.online_price || '';

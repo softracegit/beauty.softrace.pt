@@ -2627,15 +2627,23 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
 /* Linha de serviço (botão dentro do list-group) */
 .booking-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
     padding: 1rem 1.125rem;
     text-decoration: none;
     color: inherit;
     transition: background-color 0.12s ease;
     border: none;
     background: transparent;
+}
+
+.booking-row__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
 }
 
 .booking-row:hover {
@@ -2655,6 +2663,14 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     text-align: left;
 }
 
+.booking-row.is-selected,
+.booking-row:has(.booking-row__chevron input:checked) {
+    background-color: var(--booking-min-soft, #f7f7f8);
+    box-shadow: inset 0 0 0 1px var(--booking-text, #111827);
+    position: relative;
+    z-index: 1;
+}
+
 .booking-row__text {
     flex: 1;
     min-width: 0;
@@ -2669,21 +2685,79 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     letter-spacing: -0.02em;
 }
 
-.booking-row__duration {
+.booking-row__short {
     font-size: 0.8125rem;
     color: var(--booking-muted);
     line-height: 1.35;
-    margin-top: 0.1rem;
+}
+
+.booking-row__included-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: auto;
+    max-width: 100%;
+    align-self: flex-start;
+    margin: 0.15rem 0 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #7eb0e0;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.booking-row__included-toggle > span {
+    text-decoration: none;
+}
+
+.booking-row__included-caret {
+    font-size: 0.7em;
+    line-height: 1;
+}
+
+.booking-row__included-toggle:hover {
+    color: #5a9ad4;
+}
+
+.booking-row__description {
+    display: block;
+    width: 100%;
+    align-self: stretch;
+    font-size: 0.8125rem;
+    color: var(--booking-muted);
+    line-height: 1.45;
+    margin-top: 0.25rem;
+    white-space: pre-line;
+}
+
+.booking-row__description.is-collapsed {
+    display: none;
 }
 
 .booking-row__price {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     font-weight: 600;
     letter-spacing: -0.02em;
     line-height: 1.2;
-    margin-right: 0.85rem;
-    display: flex;
-    align-items: center;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.booking-row__duration,
+.booking-row__aside-sep {
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0;
+    color: var(--booking-muted);
+    white-space: nowrap;
 }
 
 .booking-row__price-nudge {
@@ -2711,16 +2785,62 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     display: flex;
     flex-direction: row;
     align-items: center;
-    align-self: stretch;
+    align-self: flex-start;
+    gap: 0.9rem;
+}
+
+.booking-row__aside-meta {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.3rem;
+    line-height: 1;
+}
+
+/* Com frase curta e/ou descrição: preço em cima, duração por baixo */
+.booking-row--has-copy .booking-row__aside {
+    align-items: flex-start;
+}
+
+.booking-row--has-copy .booking-row__aside-meta {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+    padding-top: 0.2rem;
+}
+
+.booking-row--has-copy .booking-row__aside-sep {
+    display: none;
+}
+
+.booking-row--has-copy .booking-row__price {
+    order: -1;
+}
+
+.booking-row--has-copy .booking-row__duration {
+    font-size: 0.75rem;
+    line-height: 1.15;
+}
+
+.booking-row--has-copy .booking-row__chevron {
+    margin-top: 0.05rem;
 }
 
 .booking-row__chevron {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #adb5bd;
-    font-size: 1.15rem;
     flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 0.1rem;
+    padding-left: 0;
+    pointer-events: none;
+}
+
+.booking-row__chevron input[type="radio"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0;
+    accent-color: var(--booking-text, #111827);
+    pointer-events: none;
 }
 
 /* Modal — variantes do serviço (radio à direita) */
@@ -2734,16 +2854,44 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     background: #fff;
 }
 
+.booking-modal-extras {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
 .booking-modal-option {
     display: flex;
+    flex-direction: column;
     align-items: stretch;
-    justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.35rem;
     padding: 0.75rem 0.85rem;
     margin: 0;
     cursor: pointer;
     border-bottom: 1px solid var(--booking-border);
     transition: background-color 0.12s ease;
+}
+
+.booking-modal-option__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.booking-modal-option--has-copy .booking-modal-option__top {
+    align-items: flex-start;
+}
+
+.booking-modal-option__hit {
+    display: block;
+    min-width: 0;
+    cursor: pointer;
+}
+
+.booking-modal-option__hit--aside {
+    flex-shrink: 0;
 }
 
 .booking-modal-option:last-child {
@@ -2760,6 +2908,7 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+    justify-content: flex-start;
 }
 
 .booking-modal-option__name {
@@ -2768,17 +2917,133 @@ body:has(#booking-auth-modal.show) .booking-support-whatsapp {
     line-height: 1.35;
 }
 
+.booking-modal-option__short {
+    font-size: 0.8125rem;
+    color: var(--booking-muted);
+    line-height: 1.35;
+}
+
+.booking-modal-option__included-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: auto;
+    max-width: 100%;
+    align-self: flex-start;
+    margin: 0.1rem 0 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #7eb0e0;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.booking-modal-option__included-toggle > span {
+    text-decoration: none;
+}
+
+.booking-modal-option__included-toggle:hover {
+    color: #5a9ad4;
+}
+
+.booking-modal-option__included-caret {
+    font-size: 0.7em;
+    line-height: 1;
+}
+
+.booking-modal-option__description {
+    display: block;
+    width: 100%;
+    align-self: stretch;
+    font-size: 0.8125rem;
+    color: var(--booking-muted);
+    line-height: 1.45;
+    margin-top: 0.2rem;
+    white-space: pre-line;
+}
+
+.booking-modal-option__description.is-collapsed {
+    display: none;
+}
+
 .booking-modal-option__meta {
     font-size: 0.8125rem;
     color: var(--booking-muted);
     line-height: 1.35;
 }
 
+.booking-modal-option__aside {
+    flex-shrink: 0;
+    align-self: center;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.3rem;
+    text-align: right;
+    padding-left: 0.35rem;
+    margin-right: 0.55rem;
+    min-height: 1.35em;
+}
+
+.booking-modal-option__price {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.booking-modal-option__duration,
+.booking-modal-option__aside-sep {
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    color: var(--booking-muted);
+    white-space: nowrap;
+}
+
+/* Com frase curta e/ou descrição: preço em cima, duração por baixo */
+.booking-modal-option--has-copy .booking-modal-option__aside {
+    align-self: flex-start;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.1rem;
+    padding-top: 0.2rem;
+}
+
+.booking-modal-option--has-copy .booking-modal-option__aside-sep {
+    display: none;
+}
+
+.booking-modal-option--has-copy .booking-modal-option__price {
+    order: -1;
+}
+
+.booking-modal-option--has-copy .booking-modal-option__duration {
+    font-size: 0.75rem;
+    line-height: 1.15;
+}
+
 .booking-modal-option__radio {
     flex-shrink: 0;
+    align-self: flex-start;
     display: flex;
     align-items: center;
     padding-left: 0.25rem;
+    min-height: 1.35em;
+}
+
+.booking-modal-option--has-copy .booking-modal-option__radio {
+    margin-top: 0.05rem;
 }
 
 .booking-modal-option__radio input {
@@ -3990,18 +4255,24 @@ body:has(#booking-slot-hold-expired-modal.show) .modal-backdrop:last-of-type {
 
 /* Adicionais: resposta obrigatória Sim / Não (sem resposta por defeito) */
 .booking-modal-option--addon {
-    align-items: center;
+    align-items: stretch;
     cursor: default;
 }
 
 .booking-modal-addon-choice {
     flex: 0 0 auto;
+    align-self: center;
     display: inline-flex;
     gap: 0.25rem;
     padding: 0.2rem;
     border: 1px solid var(--booking-border, #e5e7eb);
     border-radius: 999px;
     background: var(--booking-surface, #fff);
+}
+
+.booking-modal-option--has-copy .booking-modal-addon-choice {
+    align-self: flex-start;
+    margin-top: 0;
 }
 
 .booking-modal-addon-choice__item {

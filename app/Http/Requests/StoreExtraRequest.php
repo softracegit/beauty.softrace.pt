@@ -18,6 +18,7 @@ class StoreExtraRequest extends FormRequest
             'extra_category_id' => ['required', Rule::exists('extra_categories', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'short_description' => ['nullable', 'string', 'max:255'],
             'price' => ['required', 'numeric', 'min:0'],
             'duration' => ['required', 'integer', 'min:0'],
             'service_ids' => ['nullable', 'array'],
