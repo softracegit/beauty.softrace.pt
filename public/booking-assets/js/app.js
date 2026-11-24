@@ -3833,12 +3833,7 @@
             e.preventDefault();
             e.stopPropagation();
         });
-        body.addEventListener('click', function (e) {
-            e.stopPropagation();
-        });
-        body.addEventListener('mousedown', function (e) {
-            e.stopPropagation();
-        });
+        // A descrição aberta também selecciona o card; só o link «O que está incluído» bloqueia.
         return { toggle: toggle, body: body };
     }
 
@@ -3908,7 +3903,6 @@
             root.addEventListener('click', function (e) {
                 if (
                     e.target.closest('.booking-modal-option__included-toggle') ||
-                    e.target.closest('.booking-modal-option__description') ||
                     e.target.closest('.booking-modal-option__radio') ||
                     e.target.closest('.booking-modal-addon-choice')
                 ) {
@@ -4651,15 +4645,7 @@
                     e.stopPropagation();
                 });
             }
-            var includedDesc = btn.querySelector('.booking-row__description');
-            if (includedDesc) {
-                includedDesc.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                });
-                includedDesc.addEventListener('mousedown', function (e) {
-                    e.stopPropagation();
-                });
-            }
+            // Clique na descrição aberta também abre/selecciona o serviço; só o link bloqueia.
             function openFromRow() {
                 var payload = parseServicePayload(btn.getAttribute('data-service'));
                 if (!payload) {
