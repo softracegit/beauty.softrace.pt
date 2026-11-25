@@ -1512,6 +1512,7 @@ button.booking-offcanvas-nav__link {
     background: color-mix(in srgb, var(--booking-text, #111827) 3%, transparent);
     line-height: 1.45;
     font-size: 0.95rem;
+    white-space: pre-line;
 }
 
 .booking-slots__day {
