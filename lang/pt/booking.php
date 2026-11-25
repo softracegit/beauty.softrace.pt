@@ -129,7 +129,7 @@ return [
         'technician_page_title' => 'Técnica',
         'technician_heading' => 'Escolha o staff',
         'any_staff' => 'Qualquer staff',
-        'no_preference' => 'Sem preferência de técnica',
+        'no_preference' => 'Sem preferência de staff',
         'select_any_aria' => 'Selecionar qualquer staff',
         'select_technician_aria' => 'Selecionar :name',
         'default_specialization' => 'Técnica',
