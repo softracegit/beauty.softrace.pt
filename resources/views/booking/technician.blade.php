@@ -22,6 +22,9 @@
                             </div>
 
                             <section class="booking-category-section mb-4 pb-1">
+                                <p id="booking-technician-empty" class="booking-technician-empty text-muted mb-0 d-none" role="status" aria-live="polite">
+                                    {{ __('booking.js.staff_unavailable_for_cart') }}
+                                </p>
                                 <ul id="booking-technician-list" class="list-unstyled mb-0 booking-technician-list" role="list">
                                     <li class="booking-technician-row booking-technician-row--any" data-tech-id="any" data-any-staff="1" data-tech-specialization="{{ __('booking.flow.no_preference') }}" data-tech-avatar="" data-tech-service-ids='[]'>
                                         <label class="booking-technician-row__label" for="booking-technician-any">

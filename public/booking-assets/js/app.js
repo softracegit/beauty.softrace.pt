@@ -931,6 +931,10 @@
                 clearPersistedBookingSelection();
                 return null;
             }
+            if (String(data.id) === 'any') {
+                data.name = t('any_staff') || data.name || '';
+                data.specialization = t('no_preference') || data.specialization || '';
+            }
             return data;
         } catch (e) {
             return null;
@@ -3081,8 +3085,11 @@
             }
         });
 
-        var chosenSet = eligibleAll.length ? eligibleAll : (extraPairs.length ? [] : eligibleAny);
-        var hideAny = extraPairs.length > 0 && eligibleAll.length === 0;
+        // Com vários serviços (ou extras), só quem cobre o carrinho completo.
+        // Sem ninguém: mensagem a pedir marcações individuais — sem fallback a staff parcial.
+        var needsFullCoverage = serviceIds.length > 1 || extraPairs.length > 0;
+        var chosenSet = eligibleAll.length ? eligibleAll : (needsFullCoverage ? [] : eligibleAny);
+        var hideAny = needsFullCoverage && eligibleAll.length === 0;
         rows.forEach(function (row) {
             var isAnyStaff = row.getAttribute('data-any-staff') === '1';
             var isVisible = isAnyStaff ? !hideAny : chosenSet.indexOf(row) !== -1;
@@ -3092,6 +3099,16 @@
                 input.disabled = !isVisible;
             }
         });
+
+        var visibleCount = rows.filter(function (row) {
+            return !row.classList.contains('is-hidden-tech');
+        }).length;
+        var emptyEl = document.getElementById('booking-technician-empty');
+        if (emptyEl) {
+            emptyEl.textContent = t('staff_unavailable_for_cart');
+            emptyEl.classList.toggle('d-none', visibleCount > 0);
+        }
+        list.classList.toggle('d-none', visibleCount === 0);
 
         var previous = getTechnicianSelection();
         var previousId = previous ? String(previous.id) : null;
@@ -3109,6 +3126,9 @@
             }
         });
         if (previousId && !hasPreviousVisible) {
+            clearTechnicianSelection();
+        }
+        if (visibleCount === 0) {
             clearTechnicianSelection();
         }
 

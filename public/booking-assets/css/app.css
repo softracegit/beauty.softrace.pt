@@ -1505,6 +1505,15 @@ button.booking-offcanvas-nav__link {
     display: none;
 }
 
+.booking-technician-empty {
+    padding: 1rem 1.1rem;
+    border: 1px dashed color-mix(in srgb, var(--booking-text, #111827) 18%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--booking-text, #111827) 3%, transparent);
+    line-height: 1.45;
+    font-size: 0.95rem;
+}
+
 .booking-slots__day {
     letter-spacing: -0.01em;
 }
