@@ -18,34 +18,30 @@
   }
 @endphp
 
-<div class="py-3" data-deposit-policy-root>
-  <div class="py-3 border-bottom">
-    <div class="d-flex align-items-center justify-content-between gap-3">
-      <label class="fw-semibold mb-0" for="{{ $idPrefix }}deposit_agenda_enabled" style="cursor: pointer">Agenda</label>
-      <div class="form-check form-switch m-0 flex-shrink-0">
-        <input type="hidden" name="deposit_agenda_enabled" value="0">
-        <input class="form-check-input" type="checkbox" name="deposit_agenda_enabled" value="1"
-          id="{{ $idPrefix }}deposit_agenda_enabled" @checked($agendaOn)>
-      </div>
+<div data-deposit-policy-root>
+  <div class="pay-toggle-row border-bottom">
+    <input type="hidden" name="deposit_agenda_enabled" value="0">
+    <div class="form-check form-switch d-flex align-items-center justify-content-between gap-3 m-0 p-0">
+      <label class="form-check-label fw-semibold mb-0" for="{{ $idPrefix }}deposit_agenda_enabled">Agenda</label>
+      <input class="form-check-input m-0 flex-shrink-0" type="checkbox" role="switch" name="deposit_agenda_enabled" value="1"
+        id="{{ $idPrefix }}deposit_agenda_enabled" @checked($agendaOn)>
     </div>
-    <p class="small text-muted mb-0 mt-2">Mostra e permite cobrar o pré-pagamento na agenda.</p>
+    <p class="small text-muted mb-0 mt-1">Mostra e permite cobrar o pré-pagamento na agenda.</p>
   </div>
 
-  <div class="py-3 border-bottom">
-    <div class="d-flex align-items-center justify-content-between gap-3">
-      <label class="fw-semibold mb-0" for="{{ $idPrefix }}deposit_booking_enabled" style="cursor: pointer">Booking</label>
-      <div class="form-check form-switch m-0 flex-shrink-0">
-        <input type="hidden" name="deposit_booking_enabled" value="0">
-        <input class="form-check-input" type="checkbox" name="deposit_booking_enabled" value="1"
-          id="{{ $idPrefix }}deposit_booking_enabled" @checked($bookingOn)>
-      </div>
+  <div class="pay-toggle-row border-bottom">
+    <input type="hidden" name="deposit_booking_enabled" value="0">
+    <div class="form-check form-switch d-flex align-items-center justify-content-between gap-3 m-0 p-0">
+      <label class="form-check-label fw-semibold mb-0" for="{{ $idPrefix }}deposit_booking_enabled">Booking</label>
+      <input class="form-check-input m-0 flex-shrink-0" type="checkbox" role="switch" name="deposit_booking_enabled" value="1"
+        id="{{ $idPrefix }}deposit_booking_enabled" @checked($bookingOn)>
     </div>
-    <p class="small text-muted mb-0 mt-2">Exige o pré-pagamento no site público de marcações.</p>
+    <p class="small text-muted mb-0 mt-1">Exige o pré-pagamento no site público de marcações.</p>
   </div>
 
-  <div class="pt-3 deposit-tiers" data-deposit-tiers-wrap>
-    <p class="fw-semibold mb-2">Regras</p>
-    <p class="small text-muted mb-3">
+  <div class="pay-toggle-row deposit-tiers" data-deposit-tiers-wrap>
+    <p class="fw-semibold mb-1">Regras</p>
+    <p class="small text-muted mb-2">
       As mesmas regras aplicam-se à Agenda e ao Booking quando o respectivo toggle está ligado. Pode editar mesmo com ambos desligados.
     </p>
     <div class="table-responsive">

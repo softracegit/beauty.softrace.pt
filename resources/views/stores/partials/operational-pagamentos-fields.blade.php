@@ -21,15 +21,13 @@
 
 <div class="uedit-section mb-0 mt-4">
   <div class="uedit-section-title">Outras definições de pagamentos</div>
-  <div class="py-3">
-    <div class="d-flex align-items-center justify-content-between gap-3">
-      <label class="fw-semibold mb-0" for="{{ $idPrefix }}pos_gorjeta_enabled" style="cursor: pointer">Gorjeta na caixa</label>
-      <div class="form-check form-switch m-0 flex-shrink-0">
-        <input type="hidden" name="pos_gorjeta_enabled" value="0">
-        <input class="form-check-input" type="checkbox" name="pos_gorjeta_enabled" value="1"
-          id="{{ $idPrefix }}pos_gorjeta_enabled" @checked((bool) old('pos_gorjeta_enabled', $posGorjetaEnabled ?? false))>
-      </div>
+  <div class="pay-toggle-row">
+    <input type="hidden" name="pos_gorjeta_enabled" value="0">
+    <div class="form-check form-switch d-flex align-items-center justify-content-between gap-3 m-0 p-0">
+      <label class="form-check-label fw-semibold mb-0" for="{{ $idPrefix }}pos_gorjeta_enabled">Gorjeta na caixa</label>
+      <input class="form-check-input m-0 flex-shrink-0" type="checkbox" role="switch" name="pos_gorjeta_enabled" value="1"
+        id="{{ $idPrefix }}pos_gorjeta_enabled" @checked((bool) old('pos_gorjeta_enabled', $posGorjetaEnabled ?? false))>
     </div>
-    <p class="small text-muted mb-0 mt-2">Quando desligada, o campo de gorjeta deixa de aparecer no modal de pagamento da agenda.</p>
+    <p class="small text-muted mb-0 mt-1">Quando desligada, o campo de gorjeta deixa de aparecer no modal de pagamento da agenda.</p>
   </div>
 </div>

@@ -11087,6 +11087,23 @@ a.dash-kpi.dash-kpi--link:focus {
   border-bottom: 1px solid var(--border-color-light);
 }
 
+.pay-toggle-row {
+  padding: 0.65rem 0;
+}
+
+.pay-toggle-row:first-child {
+  padding-top: 0;
+}
+
+.pay-toggle-row .form-check-label {
+  cursor: pointer;
+}
+
+.pay-toggle-row .form-check-input {
+  float: none;
+  cursor: pointer;
+}
+
 .uedit-danger-zone {
   border: 1px solid var(--danger-color);
   border-radius: var(--radius-lg);

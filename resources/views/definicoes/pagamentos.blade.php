@@ -50,6 +50,19 @@
       font-size: 0.8rem;
       color: var(--bs-secondary-color);
     }
+    .pay-toggle-row {
+      padding: 0.65rem 0;
+    }
+    .pay-toggle-row:first-child {
+      padding-top: 0;
+    }
+    .pay-toggle-row .form-check-label {
+      cursor: pointer;
+    }
+    .pay-toggle-row .form-check-input {
+      float: none;
+      cursor: pointer;
+    }
     .pay-settings .pay-methods {
       display: grid;
       gap: 0.65rem;
@@ -249,15 +262,13 @@
         <p class="pay-section-lead">Opções da caixa e fluxos auxiliares</p>
       </div>
       <div class="card-body">
-        <div class="py-3">
-          <div class="d-flex align-items-center justify-content-between gap-3">
-            <label class="fw-semibold mb-0" for="pos_gorjeta_enabled" style="cursor: pointer">Gorjeta na caixa</label>
-            <div class="form-check form-switch m-0 flex-shrink-0">
-              <input type="hidden" name="pos_gorjeta_enabled" value="0">
-              <input class="form-check-input" type="checkbox" name="pos_gorjeta_enabled" value="1" id="pos_gorjeta_enabled" @checked($posGorjetaEnabled)>
-            </div>
+        <div class="pay-toggle-row">
+          <input type="hidden" name="pos_gorjeta_enabled" value="0">
+          <div class="form-check form-switch d-flex align-items-center justify-content-between gap-3 m-0 p-0">
+            <label class="form-check-label fw-semibold mb-0" for="pos_gorjeta_enabled">Gorjeta na caixa</label>
+            <input class="form-check-input m-0 flex-shrink-0" type="checkbox" role="switch" name="pos_gorjeta_enabled" value="1" id="pos_gorjeta_enabled" @checked($posGorjetaEnabled)>
           </div>
-          <p class="small text-muted mb-0 mt-2">
+          <p class="small text-muted mb-0 mt-1">
             Quando desligada, o campo de gorjeta deixa de aparecer no modal de pagamento da agenda.
           </p>
         </div>
