@@ -19,6 +19,11 @@
                 @if (session('error'))
                     <div class="alert alert-danger py-2 px-3 small mt-2 mb-2" role="alert">{{ session('error') }}</div>
                 @endif
+                @if (!empty($bookingPreviewHidden))
+                    <div class="alert alert-warning py-2 px-3 small mt-2 mb-2" role="status">
+                        Pré-visualização de serviços ocultos (<code>preview_hidden=1</code>). Não é a vista pública.
+                    </div>
+                @endif
                 @if(!$hasCategories)
                     <div class="row mt-4">
                         <div class="col-12">
@@ -281,8 +286,8 @@
                                 'summaryTitle' => __('booking.services.summary_title'),
                                 'showNextButton' => true,
                                 'nextUrl' => ($bookingSkipStaffStep ?? false)
-                                    ? route('booking.datetime', ['store' => $bookingStoreSlug], false)
-                                    : route('booking.technician', ['store' => $bookingStoreSlug], false),
+                                    ? booking_route('booking.datetime', ['store' => $bookingStoreSlug], false)
+                                    : booking_route('booking.technician', ['store' => $bookingStoreSlug], false),
                             ])
                         </div>
                     </div>

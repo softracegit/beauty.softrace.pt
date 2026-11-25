@@ -2,7 +2,7 @@
     $summaryTitle = $summaryTitle ?? __('booking.partials.summary_title');
     $showNextButton = $showNextButton ?? true;
     $bookingStoreKey = $bookingStoreSlug ?? \App\Models\Store::defaultPublicBookingStoreSlug();
-    $nextUrl = $nextUrl ?? route('booking.datetime', ['store' => $bookingStoreKey], false);
+    $nextUrl = $nextUrl ?? booking_route('booking.datetime', ['store' => $bookingStoreKey], false);
     $nextLabel = $nextLabel ?? __('booking.partials.next');
     $nextClass = $nextClass ?? 'btn-dark';
     $nextRequires = $nextRequires ?? null;

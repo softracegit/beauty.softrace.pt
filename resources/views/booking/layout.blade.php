@@ -52,13 +52,13 @@
     data-booking-width="{{ \App\Models\CrmSetting::bookingWidth(($bookingStore ?? null)?->id) }}"
     data-booking-services="{{ \App\Models\CrmSetting::bookingServicesLayout(($bookingStore ?? null)?->id) }}"
     data-booking-store-slug="{{ $bookingStoreSlug }}"
-    data-booking-index-url="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"
+    data-booking-index-url="{{ booking_route('booking.index', ['store' => $bookingStoreSlug], false) }}"
     @if($bookingPresetAgent)
         data-booking-preset-agent-id="{{ $bookingPresetAgent['id'] }}"
         data-booking-preset-agent-name="{{ $bookingPresetAgent['name'] }}"
         data-booking-preset-agent-specialization="{{ $bookingPresetAgent['specialization'] }}"
         data-booking-preset-agent-avatar="{{ $bookingPresetAgent['avatar'] ?? '' }}"
-        data-booking-preset-agent-url="{{ $bookingPresetAgent['url'] }}"
+        data-booking-preset-agent-url="{{ booking_url_keep_preview($bookingPresetAgent['url']) }}"
         data-booking-skip-staff-step="1"
     @endif
     data-booking-auth-request-code-url="{{ route('booking.auth.request_code', ['store' => $bookingStoreSlug], false) }}"

@@ -72,3 +72,37 @@ if (! function_exists('current_organization_id')) {
         return (int) ($orgId ?? 0);
     }
 }
+
+if (! function_exists('booking_route')) {
+    /**
+     * route() do fluxo de booking — preserva ?preview_hidden=1 entre passos.
+     */
+    function booking_route(string $name, array $parameters = [], bool $absolute = true): string
+    {
+        if (request()->boolean('preview_hidden')) {
+            $parameters['preview_hidden'] = 1;
+        }
+
+        return route($name, $parameters, $absolute);
+    }
+}
+
+if (! function_exists('booking_url_keep_preview')) {
+    /**
+     * Acrescenta preview_hidden=1 a um URL já construído (ex.: URL de agente pré-definido).
+     */
+    function booking_url_keep_preview(?string $url): ?string
+    {
+        if ($url === null || $url === '') {
+            return $url;
+        }
+        if (! request()->boolean('preview_hidden')) {
+            return $url;
+        }
+        if (str_contains($url, 'preview_hidden=')) {
+            return $url;
+        }
+
+        return $url.(str_contains($url, '?') ? '&' : '?').'preview_hidden=1';
+    }
+}

@@ -97,14 +97,21 @@ class BookingController extends Controller
         $store = $this->bookingStore();
         $storeId = (int) $store->id;
         $organizationId = (int) $store->organization_id;
+        // ?preview_hidden=1 — só serviços/categorias ocultos no booking (para testar antes de ativar)
+        $previewHidden = request()->boolean('preview_hidden');
 
-        $categories = Category::query()
+        $categoriesQuery = Category::query()
             ->forOrganization($organizationId)
-            ->visibleInBooking()
+            ->orderBy('sort_order');
+
+        if (! $previewHidden) {
+            $categoriesQuery->visibleInBooking();
+        }
+
+        $categories = $categoriesQuery
             ->with([
-                'services' => function ($q) use ($storeId, $onlyServiceIds) {
+                'services' => function ($q) use ($storeId, $onlyServiceIds, $previewHidden) {
                     $q->activeInStore($storeId)
-                        ->visibleInBooking()
                         ->orderBy('sort_order')
                         ->with([
                             'options' => function ($oq) {
@@ -126,19 +133,46 @@ class BookingController extends Controller
                                 $fq->orderBy('sort_order')->orderBy('name');
                             },
                         ]);
+                    if (! $previewHidden) {
+                        $q->visibleInBooking();
+                    }
                     if ($onlyServiceIds !== null) {
                         $q->whereIn('id', $onlyServiceIds);
                     }
                 },
             ])
-            ->whereHas('services', function ($q) use ($storeId, $onlyServiceIds) {
-                $q->activeInStore($storeId)->visibleInBooking();
+            ->whereHas('services', function ($q) use ($storeId, $onlyServiceIds, $previewHidden) {
+                $q->activeInStore($storeId);
+                if ($previewHidden) {
+                    // Categoria oculta (todos os serviços) OU serviço marcado como oculto
+                    $q->where(function ($inner) {
+                        $inner->where('hidden_from_booking', true)
+                            ->orWhereHas('category', fn (Builder $cq) => $cq->where('hidden_from_booking', true));
+                    });
+                } else {
+                    $q->visibleInBooking();
+                }
                 if ($onlyServiceIds !== null) {
                     $q->whereIn('id', $onlyServiceIds);
                 }
             })
-            ->orderBy('sort_order')
             ->get();
+
+        if ($previewHidden) {
+            $categories = $categories
+                ->map(function (Category $category) {
+                    $services = $category->hidden_from_booking
+                        ? $category->services->values()
+                        : $category->services
+                            ->filter(fn (Service $service): bool => (bool) $service->hidden_from_booking)
+                            ->values();
+                    $category->setRelation('services', $services);
+
+                    return $category;
+                })
+                ->filter(fn (Category $category): bool => $category->services->isNotEmpty())
+                ->values();
+        }
 
         if ($onlyServiceIds !== null) {
             $categories = $categories
@@ -179,6 +213,7 @@ class BookingController extends Controller
         return [
             'categories' => $categories,
             'businessName' => $this->bookingBusinessName(),
+            'bookingPreviewHidden' => $previewHidden,
         ];
     }
 
@@ -202,7 +237,7 @@ class BookingController extends Controller
             'slug' => (string) Agent::normalizeBookingSlug($agent->booking_slug),
             'specialization' => Agent::specializationLabel($agent->specialization) ?? __('booking.flow.default_specialization'),
             'avatar' => $agent->avatar ? asset('storage/'.$agent->avatar) : null,
-            'url' => route('booking.agent', [
+            'url' => booking_route('booking.agent', [
                 'store' => $store->slug,
                 'agent' => Agent::normalizeBookingSlug($agent->booking_slug),
             ], false),
@@ -452,12 +487,12 @@ class BookingController extends Controller
         $user = auth()->user();
         $isBookingClient = $user instanceof User && $user->isBookingClient();
         if (! $isBookingClient) {
-            return redirect()->route('booking.index', ['store' => $this->bookingStoreSlug()]);
+            return redirect()->to(booking_route('booking.index', ['store' => $this->bookingStoreSlug()]));
         }
 
         $client = $isBookingClient ? $user->loadMissing('client')->client : null;
         if ($client && ! $client->belongsToOrganizationOfStore($this->bookingStore())) {
-            return redirect()->route('booking.index', ['store' => $this->bookingStoreSlug()]);
+            return redirect()->to(booking_route('booking.index', ['store' => $this->bookingStoreSlug()]));
         }
 
         $savedCards = collect();

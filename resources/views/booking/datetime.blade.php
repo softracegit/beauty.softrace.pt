@@ -94,7 +94,7 @@
                         @include('booking.partials.summary-panel', [
                             'summaryTitle' => __('booking.partials.summary_title'),
                             'showNextButton' => true,
-                            'nextUrl' => route('booking.step3', ['store' => $bookingStoreSlug], false),
+                            'nextUrl' => booking_route('booking.step3', ['store' => $bookingStoreSlug], false),
                             'nextRequires' => 'datetime',
                         ])
                     </div>

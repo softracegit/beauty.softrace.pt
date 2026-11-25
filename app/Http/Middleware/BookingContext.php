@@ -73,6 +73,7 @@ class BookingContext
         View::share('bookingThemeMeta', BookingTheme::resolved($store->id));
         View::share('bookingUsesRefinedLayout', BookingTheme::usesRefinedLayout($resolvedTheme));
         View::share('bookingIsElegantTheme', BookingTheme::usesRefinedLayout($resolvedTheme));
+        View::share('bookingPreviewHidden', $request->boolean('preview_hidden'));
 
         return $next($request);
     }

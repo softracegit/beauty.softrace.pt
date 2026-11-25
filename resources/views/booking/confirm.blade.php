@@ -44,7 +44,7 @@
                         </div>
                     </div>
                     <div class="d-grid gap-2">
-                        <a href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}" class="btn btn-dark">{{ __('booking.flow.confirm_new_booking') }}</a>
+                        <a href="{{ booking_route('booking.index', ['store' => $bookingStoreSlug], false) }}" class="btn btn-dark">{{ __('booking.flow.confirm_new_booking') }}</a>
                     </div>
                 </main>
             </div>

@@ -76,13 +76,14 @@
     $bookingNavbarStoreTitleUpper = ($bookingUsesRefinedLayout ?? false)
         ? $bookingBusinessDisplayName
         : mb_strtoupper($bookingBusinessDisplayName, 'UTF-8');
-    $bookingIndexUrl = route('booking.index', ['store' => $bookingStoreSlug], false);
+    $bookingIndexUrl = booking_route('booking.index', ['store' => $bookingStoreSlug], false);
+    $bookingPresetAgentUrl = booking_url_keep_preview($bookingPresetAgentUrl) ?? '';
     $bookingNavbarBackUrl = match ($bookingRouteName) {
         'booking.technician' => $bookingIndexUrl,
         'booking.datetime' => $bookingSkipStaffStep && $bookingPresetAgentUrl !== ''
             ? $bookingPresetAgentUrl
-            : route('booking.technician', ['store' => $bookingStoreSlug], false),
-        'booking.step3' => route('booking.datetime', ['store' => $bookingStoreSlug], false),
+            : booking_route('booking.technician', ['store' => $bookingStoreSlug], false),
+        'booking.step3' => booking_route('booking.datetime', ['store' => $bookingStoreSlug], false),
         default => null,
     };
     // Tema Minimal: nome da empresa e loja à esquerda (a loja abre os detalhes, onde se pode mudar de loja)
@@ -156,7 +157,7 @@
                             $isPast = $bookingStepActive !== null && ($isConfirm || $stepNum < $bookingStepActive);
                             $isCurrent = ! $isConfirm && $bookingStepActive !== null && $stepNum === $bookingStepActive;
                             $isFuture = ! $isConfirm && $bookingStepActive !== null && $stepNum > $bookingStepActive;
-                            $stepUrl = route($step['route'], array_merge(['store' => $bookingStoreSlug], $step['routeParams'] ?? []), false);
+                            $stepUrl = booking_route($step['route'], array_merge(['store' => $bookingStoreSlug], $step['routeParams'] ?? []), false);
                         @endphp
                         <li class="booking-navbar-steps__item">
                             @if ($idx > 0)
@@ -178,7 +179,7 @@
             @if ($bookingClientAuthed)
                 <div class="d-flex align-items-center gap-1 gap-md-2">
                     <a
-                        href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}"
+                        href="{{ booking_route('booking.index', ['store' => $bookingStoreSlug], false) }}"
                         class="booking-navbar-new-booking d-none d-lg-inline-flex"
                         aria-label="{{ __('booking.nav.new_booking_aria') }}"
                     >
@@ -207,7 +208,7 @@
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end booking-navbar-account__menu" id="booking-navbar-account-dropdown" aria-labelledby="booking-navbar-account-menu">
                             <li>
-                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('booking.index', ['store' => $bookingStoreSlug], false) }}">
+                                <a class="dropdown-item d-flex align-items-center gap-2" href="{{ booking_route('booking.index', ['store' => $bookingStoreSlug], false) }}">
                                     <i class="bi bi-plus-circle booking-navbar-account__item-icon" aria-hidden="true"></i>
                                     <span>{{ __('booking.nav.new_booking') }}</span>
                                 </a>

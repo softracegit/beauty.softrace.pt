@@ -29,13 +29,15 @@
 {{-- Tema Minimal: "Voltar" numa linha própria, antes do título (em vez da seta na navbar) --}}
 @if (($bookingTheme ?? null) === BookingTheme::MINIMAL)
     @php
-        $minimalPresetAgentUrl = $bookingPresetAgent ? (string) ($bookingPresetAgent['url'] ?? '') : '';
+        $minimalPresetAgentUrl = booking_url_keep_preview(
+            $bookingPresetAgent ? (string) ($bookingPresetAgent['url'] ?? '') : ''
+        ) ?? '';
         $minimalBackUrl = match (request()->route()?->getName()) {
-            'booking.technician' => route('booking.index', ['store' => $bookingStoreSlug], false),
+            'booking.technician' => booking_route('booking.index', ['store' => $bookingStoreSlug], false),
             'booking.datetime' => $bookingSkipStaffStep && $minimalPresetAgentUrl !== ''
                 ? $minimalPresetAgentUrl
-                : route('booking.technician', ['store' => $bookingStoreSlug], false),
-            'booking.step3' => route('booking.datetime', ['store' => $bookingStoreSlug], false),
+                : booking_route('booking.technician', ['store' => $bookingStoreSlug], false),
+            'booking.step3' => booking_route('booking.datetime', ['store' => $bookingStoreSlug], false),
             default => null,
         };
     @endphp
@@ -56,7 +58,7 @@
                 @php
                     $isPast    = $step['num'] < $elegantActiveStep;
                     $isCurrent = $step['num'] === $elegantActiveStep;
-                    $stepUrl   = route($step['route'], array_merge(['store' => $bookingStoreSlug], $step['routeParams'] ?? []), false);
+                    $stepUrl   = booking_route($step['route'], array_merge(['store' => $bookingStoreSlug], $step['routeParams'] ?? []), false);
                     $isLast    = $step['num'] === $totalSteps;
                 @endphp
                 <div
@@ -100,7 +102,7 @@
                 @php
                     $isPast    = $step['num'] < $elegantActiveStep;
                     $isCurrent = $step['num'] === $elegantActiveStep;
-                    $stepUrl   = route($step['route'], array_merge(['store' => $bookingStoreSlug], $step['routeParams'] ?? []), false);
+                    $stepUrl   = booking_route($step['route'], array_merge(['store' => $bookingStoreSlug], $step['routeParams'] ?? []), false);
                 @endphp
                 <li class="booking-elegant-steps__item">
                     @if ($isPast)

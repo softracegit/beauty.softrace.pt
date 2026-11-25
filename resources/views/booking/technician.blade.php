@@ -78,7 +78,7 @@
                         @include('booking.partials.summary-panel', [
                             'summaryTitle' => __('booking.partials.summary_title'),
                             'showNextButton' => true,
-                            'nextUrl' => route('booking.datetime', ['store' => $bookingStoreSlug], false),
+                            'nextUrl' => booking_route('booking.datetime', ['store' => $bookingStoreSlug], false),
                             'nextRequires' => 'technician',
                         ])
                     </div>
