@@ -97,14 +97,17 @@ class BookingController extends Controller
         $store = $this->bookingStore();
         $storeId = (int) $store->id;
         $organizationId = (int) $store->organization_id;
-        // ?preview_hidden=1 — só serviços/categorias ocultos no booking (para testar antes de ativar)
+        // ?preview_hidden=1 — só categorias ocultas no booking (para testar antes de ativar).
+        // Não inclui arquivados (soft-deleted) nem serviços avulsos ocultos em categorias públicas.
         $previewHidden = request()->boolean('preview_hidden');
 
         $categoriesQuery = Category::query()
             ->forOrganization($organizationId)
             ->orderBy('sort_order');
 
-        if (! $previewHidden) {
+        if ($previewHidden) {
+            $categoriesQuery->where('hidden_from_booking', true);
+        } else {
             $categoriesQuery->visibleInBooking();
         }
 
@@ -133,6 +136,8 @@ class BookingController extends Controller
                                 $fq->orderBy('sort_order')->orderBy('name');
                             },
                         ]);
+                    // Em preview de categoria oculta: todos os serviços activos (não arquivados).
+                    // No booking público: só serviços visíveis.
                     if (! $previewHidden) {
                         $q->visibleInBooking();
                     }
@@ -143,13 +148,7 @@ class BookingController extends Controller
             ])
             ->whereHas('services', function ($q) use ($storeId, $onlyServiceIds, $previewHidden) {
                 $q->activeInStore($storeId);
-                if ($previewHidden) {
-                    // Categoria oculta (todos os serviços) OU serviço marcado como oculto
-                    $q->where(function ($inner) {
-                        $inner->where('hidden_from_booking', true)
-                            ->orWhereHas('category', fn (Builder $cq) => $cq->where('hidden_from_booking', true));
-                    });
-                } else {
+                if (! $previewHidden) {
                     $q->visibleInBooking();
                 }
                 if ($onlyServiceIds !== null) {
@@ -157,22 +156,6 @@ class BookingController extends Controller
                 }
             })
             ->get();
-
-        if ($previewHidden) {
-            $categories = $categories
-                ->map(function (Category $category) {
-                    $services = $category->hidden_from_booking
-                        ? $category->services->values()
-                        : $category->services
-                            ->filter(fn (Service $service): bool => (bool) $service->hidden_from_booking)
-                            ->values();
-                    $category->setRelation('services', $services);
-
-                    return $category;
-                })
-                ->filter(fn (Category $category): bool => $category->services->isNotEmpty())
-                ->values();
-        }
 
         if ($onlyServiceIds !== null) {
             $categories = $categories
