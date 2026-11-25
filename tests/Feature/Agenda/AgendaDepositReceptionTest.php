@@ -165,11 +165,10 @@ class AgendaDepositReceptionTest extends TestCase
         ]);
     }
 
-    public function test_manual_mbway_deposit_when_online_payments_disabled(): void
+    public function test_manual_mbway_deposit_in_agenda(): void
     {
         Config::set('booking.deposit_percent', 20);
         $fixture = $this->agendaDepositFixture(50.0);
-        CrmSetting::setBool(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, false, $fixture['store']->id);
 
         $this->actingAs($fixture['staff'])
             ->withSession([SetCurrentStore::SESSION_KEY => $fixture['store']->id])
@@ -190,11 +189,10 @@ class AgendaDepositReceptionTest extends TestCase
         ]);
     }
 
-    public function test_manual_transferencia_deposit_when_online_payments_disabled(): void
+    public function test_manual_transferencia_deposit_in_agenda(): void
     {
         Config::set('booking.deposit_percent', 20);
         $fixture = $this->agendaDepositFixture(50.0);
-        CrmSetting::setBool(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, false, $fixture['store']->id);
 
         $this->actingAs($fixture['staff'])
             ->withSession([SetCurrentStore::SESSION_KEY => $fixture['store']->id])

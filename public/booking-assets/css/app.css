@@ -1058,8 +1058,27 @@ button.booking-offcanvas-nav__link {
 }
 
 .booking-step3-welcome {
-    font-size: 0.9375rem;
-    letter-spacing: -0.015em;
+    font-size: 1.125rem;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+}
+
+.booking-page--step3 .booking-step3-section {
+    margin-bottom: 1rem;
+    padding-bottom: 0;
+}
+
+/* Blocos internos (Fatura / Pré-pagamento) no mesmo card — espaçamento uniforme */
+.booking-page--step3 .booking-step3-block {
+    margin-top: 1.35rem;
+}
+
+.booking-page--step3 .booking-step3-payment {
+    margin-top: 1.85rem;
+}
+
+.booking-page--step3 .booking-invoice-options .form-check + .form-check {
+    margin-top: 0.35rem;
 }
 
 /* Página serviços: âncoras ficam por baixo da navbar + barra de categorias (sticky) */

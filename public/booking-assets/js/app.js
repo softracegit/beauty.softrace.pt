@@ -113,6 +113,35 @@
         );
     }
 
+    /** Preço de catálogo (serviço / variante / extra): 0 € → «Sob consulta». */
+    function isOnRequestPrice(amount) {
+        var n = Number(amount);
+        return !Number.isFinite(n) || Math.round(n * 100) / 100 <= 0;
+    }
+
+    function formatCatalogPriceEUR(amount, opts) {
+        if (isOnRequestPrice(amount)) {
+            return t('price_on_request');
+        }
+        var formatted = formatMoneyEUR(amount);
+        return opts && opts.plus ? '+' + formatted : formatted;
+    }
+
+    /** Usa priceFormatted do PHP quando existe, mas força «Sob consulta» se o valor numérico for 0. */
+    function catalogPriceLabel(item, opts) {
+        if (!item || typeof item !== 'object') {
+            return formatCatalogPriceEUR(0, opts);
+        }
+        if (isOnRequestPrice(item.price)) {
+            return t('price_on_request');
+        }
+        if (item.priceFormatted != null && String(item.priceFormatted).trim() !== '') {
+            var label = String(item.priceFormatted);
+            return opts && opts.plus ? '+' + label : label;
+        }
+        return formatCatalogPriceEUR(item.price, opts);
+    }
+
     function createBookingStorage() {
         function makeNoopStorage() {
             return {
@@ -707,7 +736,7 @@
 
                 var price = document.createElement('span');
                 price.className = 'booking-summary-line__price';
-                price.textContent = line.priceFormatted || formatMoneyEUR(line.price);
+                price.textContent = line.priceFormatted || formatCatalogPriceEUR(line.price);
 
                 var editBtn = document.createElement('button');
                 editBtn.type = 'button';
@@ -759,7 +788,7 @@
             }
 
             if (els.summaryTotalValue) {
-                els.summaryTotalValue.textContent = formatMoneyEUR(getTotalAmount());
+                els.summaryTotalValue.textContent = formatCatalogPriceEUR(getTotalAmount());
             }
             if (els.summaryTotalCount) {
                 var count = state.items.length;
@@ -1287,6 +1316,56 @@
         return pct;
     }
 
+    function getBookingDepositPolicy() {
+        var app = document.querySelector('.booking-app[data-booking-deposit-policy]');
+        if (!app) return null;
+        try {
+            var raw = app.getAttribute('data-booking-deposit-policy') || '';
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function matchDepositTier(subtotal) {
+        var policy = getBookingDepositPolicy();
+        var sub = Math.max(0, parseFloat(subtotal) || 0);
+        var channelOn = policy && (policy.booking_enabled === true
+            || (policy.booking_enabled == null && policy.enabled));
+        if (!channelOn || sub <= 0) {
+            return null;
+        }
+        var tiers = Array.isArray(policy.tiers) ? policy.tiers.slice() : [];
+        tiers.sort(function (a, b) {
+            var au = a && a.up_to != null && a.up_to !== '' ? parseFloat(a.up_to) : Infinity;
+            var bu = b && b.up_to != null && b.up_to !== '' ? parseFloat(b.up_to) : Infinity;
+            return au - bu;
+        });
+        for (var i = 0; i < tiers.length; i++) {
+            var up = tiers[i] && tiers[i].up_to != null && tiers[i].up_to !== '' ? parseFloat(tiers[i].up_to) : null;
+            if (up === null || !Number.isFinite(up) || sub <= up + 0.00001) {
+                return tiers[i];
+            }
+        }
+        return tiers.length ? tiers[tiers.length - 1] : null;
+    }
+
+    function amountFromDepositPolicy(subtotal) {
+        var sub = Math.max(0, parseFloat(subtotal) || 0);
+        var tier = matchDepositTier(sub);
+        if (!tier) {
+            return getBookingDepositPolicy() ? 0 : null;
+        }
+        var value = parseFloat(tier.value) || 0;
+        if (String(tier.mode || '') === 'fixed') {
+            return Math.round(Math.min(Math.max(0, value), sub) * 100) / 100;
+        }
+        var pct = Math.max(0, Math.min(100, value));
+        return Math.round(sub * (pct / 100) * 100) / 100;
+    }
+
     function getWalletBalanceCents() {
         var wrap = document.getElementById('booking-wallet-apply-wrap');
         if (!wrap) {
@@ -1296,9 +1375,11 @@
     }
 
     function getDepositCentsForCheckout() {
-        var pct = getBookingDepositPercent();
         var total = getTotalAmount();
-        var paid = Math.round(total * (pct / 100) * 100) / 100;
+        var fromPolicy = amountFromDepositPolicy(total);
+        var paid = fromPolicy !== null
+            ? fromPolicy
+            : Math.round(total * (getBookingDepositPercent() / 100) * 100) / 100;
         return Math.round(paid * 100);
     }
 
@@ -1614,6 +1695,7 @@
     function updateBookingDepositAmountDisplay() {
         var depEl = document.getElementById('booking-pay-deposit-amount');
         var pctEl = document.getElementById('booking-pay-deposit-pct');
+        var pctWrap = document.getElementById('booking-pay-deposit-pct-wrap');
         var remEl = document.getElementById('booking-pay-remaining-amount');
         var totalEl = document.getElementById('booking-pay-total-amount');
         var cardSectionAmtEl = document.getElementById('booking-pay-card-amount');
@@ -1622,10 +1704,13 @@
         if (!depEl && !pctEl && !remEl) {
             return;
         }
-        var pct = getBookingDepositPercent();
         var total = getTotalAmount();
-        var deposit = Math.round(total * (pct / 100) * 100) / 100;
+        var fromPolicy = amountFromDepositPolicy(total);
+        var deposit = fromPolicy !== null
+            ? fromPolicy
+            : Math.round(total * (getBookingDepositPercent() / 100) * 100) / 100;
         var remaining = Math.round((total - deposit) * 100) / 100;
+        var tier = matchDepositTier(total);
         var walletCents = getExpectedCheckoutWalletCents();
         if (checkoutPaymentState.clientSecret || checkoutPaymentState.bookingPublicId) {
             if (checkoutIntentMatchesWalletPreference()) {
@@ -1648,8 +1733,20 @@
         if (depEl) {
             depEl.textContent = formatMoneyEUR(deposit);
         }
-        if (pctEl) {
-            pctEl.textContent = String(pct);
+        if (pctWrap && pctEl) {
+            if (tier && String(tier.mode || '') === 'percent') {
+                pctWrap.classList.remove('d-none');
+                pctEl.textContent = String(Math.round(parseFloat(tier.value) || 0));
+            } else if (tier && String(tier.mode || '') === 'fixed') {
+                pctWrap.classList.add('d-none');
+            } else {
+                pctWrap.classList.remove('d-none');
+                pctEl.textContent = String(getBookingDepositPercent());
+            }
+        } else if (pctEl) {
+            pctEl.textContent = tier && String(tier.mode || '') === 'percent'
+                ? String(Math.round(parseFloat(tier.value) || 0))
+                : String(getBookingDepositPercent());
         }
         if (remEl) {
             remEl.textContent = formatMoneyEUR(remaining);
@@ -3279,7 +3376,7 @@
         els.modalSingle.appendChild(
             assembleModalOption(
                 service,
-                service.priceFormatted || formatMoneyEUR(service.price),
+                catalogPriceLabel(service),
                 service.duration,
                 radWrap,
                 'booking-modal-option--single'
@@ -3656,7 +3753,7 @@
             duration: formatBookingMinutesLabel(totalMinutes),
             durationMinutes: totalMinutes,
             price: totalPrice,
-            priceFormatted: formatMoneyEUR(totalPrice),
+            priceFormatted: formatCatalogPriceEUR(totalPrice),
             basePrice: basePrice,
             extras: (selectedExtras || []).map(function (ex) {
                 var extraRow = {
@@ -3665,7 +3762,7 @@
                     duration: ex.duration,
                     durationMinutes: Number(ex.durationMinutes) || 0,
                     price: Number(ex.price) || 0,
-                    priceFormatted: ex.priceFormatted || formatMoneyEUR(ex.price),
+                    priceFormatted: catalogPriceLabel(ex),
                 };
                 if (ex.price_token) {
                     extraRow.price_token = String(ex.price_token);
@@ -3680,7 +3777,7 @@
                     duration: a.duration,
                     durationMinutes: Number(a.durationMinutes) || 0,
                     price: Number(a.price) || 0,
-                    priceFormatted: a.priceFormatted || formatMoneyEUR(a.price),
+                    priceFormatted: catalogPriceLabel(a),
                 };
                 if (a.price_token) {
                     addonRow.price_token = String(a.price_token);
@@ -3738,7 +3835,7 @@
         var totalPrice = Math.round((basePrice + extraTotals.price + addonTotals.price) * 100) / 100;
         var totalMinutes = baseMinutes + extraTotals.durationMinutes + addonTotals.durationMinutes;
         var totalsLabel = joinPriceAndDuration(
-            formatMoneyEUR(totalPrice),
+            formatCatalogPriceEUR(totalPrice),
             formatBookingMinutesLabel(totalMinutes),
         );
         els.modalMeta.textContent = totalsLabel;
@@ -3772,13 +3869,14 @@
         if (!opts.length) {
             return { price: '', duration: '' };
         }
-        var minPrice = Infinity;
+        // "Desde" ignora variantes a 0 €; se nenhuma tiver preço > 0 → só «Preço sob consulta»
+        var minPaidPrice = Infinity;
         var minDur = Infinity;
         var maxDur = 0;
         opts.forEach(function (o) {
             var p = Number(o.price);
-            if (!isNaN(p) && p < minPrice) {
-                minPrice = p;
+            if (!isNaN(p) && p > 0 && p < minPaidPrice) {
+                minPaidPrice = p;
             }
             var dm = Number(o.durationMinutes);
             if (!isNaN(dm)) {
@@ -3790,8 +3888,14 @@
                 }
             }
         });
-        var priceLabel =
-            minPrice === Infinity ? '' : 'Desde ' + formatMoneyEUR(minPrice);
+        var priceLabel;
+        if (minPaidPrice === Infinity) {
+            priceLabel = t('price_on_request');
+        } else if (opts.length > 1) {
+            priceLabel = t('price_from') + ' ' + formatMoneyEUR(minPaidPrice);
+        } else {
+            priceLabel = formatMoneyEUR(minPaidPrice);
+        }
         var durationLabel =
             minDur === Infinity
                 ? ''
@@ -4125,7 +4229,7 @@
                     els.modalOptions.appendChild(
                         assembleModalOption(
                             opt,
-                            opt.priceFormatted != null ? opt.priceFormatted : formatMoneyEUR(opt.price),
+                            catalogPriceLabel(opt),
                             opt.duration,
                             radWrap
                         )
@@ -4137,7 +4241,6 @@
                 // Ao editar uma linha, o cliente já respondeu a cada adicional: Sim às que tem, Não às outras
                 var addonsAnswered = Array.isArray(preselectAddonIds) && state.pending && state.pending.mode === 'edit';
                 addonOpts.forEach(function (addon) {
-                    var addonPrice = addon.priceFormatted != null ? addon.priceFormatted : formatMoneyEUR(addon.price);
                     // Resposta obrigatória: nenhuma das duas vem marcada ao adicionar
                     var isPreselected = (preselectAddonIds || []).some(function (id) {
                         return String(id) === String(addon.id);
@@ -4148,7 +4251,7 @@
                     choice.setAttribute('aria-label', addon.name);
                     var label = assembleModalOption(
                         addon,
-                        '+' + addonPrice,
+                        catalogPriceLabel(addon, { plus: true }),
                         addon.duration ? '+' + addon.duration : '',
                         choice,
                         'booking-modal-option--addon'
@@ -4190,7 +4293,7 @@
             syncPendingOptionFromDom();
         } else {
             els.modalMeta.textContent = joinPriceAndDuration(
-                service.priceFormatted || formatMoneyEUR(service.price),
+                catalogPriceLabel(service),
                 service.duration
             );
             renderModalSingleOption(service);
@@ -4233,7 +4336,7 @@
                     list.appendChild(
                         assembleModalOption(
                             ex,
-                            ex.priceFormatted != null ? ex.priceFormatted : formatMoneyEUR(ex.price),
+                            catalogPriceLabel(ex),
                             ex.duration,
                             checkWrap
                         )
@@ -4551,11 +4654,11 @@
             var min = Infinity;
             opts.forEach(function (opt) {
                 var p = Number(opt.price);
-                if (Number.isFinite(p) && p < min) {
+                if (Number.isFinite(p) && p > 0 && p < min) {
                     min = p;
                 }
             });
-            return min === Infinity ? null : Math.round(min * 100) / 100;
+            return min === Infinity ? 0 : Math.round(min * 100) / 100;
         }
         var price = Number(payload.price);
         return Number.isFinite(price) ? Math.round(price * 100) / 100 : null;
@@ -4873,14 +4976,14 @@
             return;
         }
         var send = document.getElementById('booking-send-invoice-email');
-        var phrase = document.getElementById('booking-invoice-email-phrase');
+        var emailRow = document.getElementById('booking-invoice-email-row');
         function syncSendPhrase() {
-            if (!phrase || !send) {
+            if (!emailRow || !send) {
                 return;
             }
-            phrase.classList.toggle('d-none', !send.checked);
+            emailRow.classList.toggle('d-none', !send.checked);
         }
-        if (send && phrase) {
+        if (send && emailRow) {
             send.addEventListener('change', function () {
                 syncSendPhrase();
                 onBookingInvoiceOptsChanged();

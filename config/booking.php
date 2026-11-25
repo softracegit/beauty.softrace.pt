@@ -181,6 +181,7 @@ return [
     |
     */
 
+    // Fallback legado. Em runtime preferir App\Support\DepositPolicy (Definições → Pagamentos → Booking).
     'deposit_percent' => max(0, min(100, (int) env('BOOKING_DEPOSIT_PERCENT', 20))),
 
     'currency' => strtolower((string) env('BOOKING_CURRENCY', 'eur')),

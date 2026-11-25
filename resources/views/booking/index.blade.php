@@ -46,6 +46,13 @@
 
                             return $mins.' min';
                         };
+                        $bookingFmtPrice = static function (float $price): string {
+                            if (round($price, 2) <= 0.0) {
+                                return __('booking.services.price_on_request');
+                            }
+
+                            return number_format($price, 2, ',', '.')."\u{00A0}€";
+                        };
                         $bookingServiceOptionsCatalog = [];
                         $bookingPriceStoreId = (int) ($bookingStore?->id ?? 0);
                         $bookingIssuePriceToken = static function (string $kind, int $id, float $price) use ($bookingPriceStoreId): string {
@@ -120,7 +127,7 @@
                                                                 'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_FEE, (int) $fee->id, $feePrice),
                                                             ];
                                                         })->values()->all();
-                                                        $extrasPayload = $service->extras->map(static function ($extra) use ($bookingIssuePriceToken) {
+                                                        $extrasPayload = $service->extras->map(static function ($extra) use ($bookingIssuePriceToken, $bookingFmtPrice) {
                                                             $extraPrice = round((float) $extra->price, 2);
                                                             $extraCategory = $extra->extraCategory;
 
@@ -132,7 +139,7 @@
                                                                 'duration' => $extra->formatted_duration,
                                                                 'durationMinutes' => (int) ($extra->duration ?? 0),
                                                                 'price' => $extraPrice,
-                                                                'priceFormatted' => $extra->formatted_price,
+                                                                'priceFormatted' => $bookingFmtPrice($extraPrice),
                                                                 'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_EXTRA, (int) $extra->id, $extraPrice),
                                                                 'categoryId' => $extra->extra_category_id ? (int) $extra->extra_category_id : null,
                                                                 'categoryName' => $extraCategory?->name ? (string) $extraCategory->name : null,
@@ -146,16 +153,26 @@
                                                             if ($choiceOptions->isEmpty()) {
                                                                 $choiceOptions = $service->options;
                                                             }
-                                                            $minPrice = (float) $choiceOptions->min(fn ($o) => (float) ($o->online_price ?? $o->price));
+                                                            // "Desde" ignora variantes a 0 € (sob consulta)
+                                                            $paidPrices = $choiceOptions
+                                                                ->map(fn ($o) => round((float) ($o->online_price ?? $o->price), 2))
+                                                                ->filter(fn (float $p) => $p > 0);
+                                                            $minPrice = $paidPrices->isNotEmpty() ? (float) $paidPrices->min() : 0.0;
                                                             $minDur = (int) $choiceOptions->min('duration');
                                                             $maxDur = (int) $choiceOptions->max('duration');
                                                             $rowDurationLabel = $minDur === $maxDur
                                                                 ? $bookingFmtMinutes($minDur)
                                                                 : $bookingFmtMinutes($minDur).'+';
-                                                            // Só há uma escolha (o próprio serviço + adicionais): o preço é fixo, sem "Desde"
+                                                            // Só há uma escolha: preço fixo, sem "Desde". Sem preços > 0: só «Preço sob consulta».
                                                             $rowChoiceCount = $choiceOptions->count();
-                                                            $rowPriceLabel = ($rowChoiceCount > 1 ? __('booking.services.price_from').' ' : '').number_format($minPrice, 2, ',', '.')."\u{00A0}€";
-                                                            $optionsPayload = $service->options->map(static function ($opt) use ($bookingIssuePriceToken) {
+                                                            if ($paidPrices->isEmpty()) {
+                                                                $rowPriceLabel = __('booking.services.price_on_request');
+                                                            } elseif ($rowChoiceCount > 1) {
+                                                                $rowPriceLabel = __('booking.services.price_from').' '.$bookingFmtPrice($minPrice);
+                                                            } else {
+                                                                $rowPriceLabel = $bookingFmtPrice($minPrice);
+                                                            }
+                                                            $optionsPayload = $service->options->map(static function ($opt) use ($bookingIssuePriceToken, $bookingFmtPrice) {
                                                                 $p = round((float) ($opt->online_price ?? $opt->price), 2);
 
                                                                 return [
@@ -167,7 +184,7 @@
                                                                     'duration' => $opt->formatted_duration,
                                                                     'durationMinutes' => (int) $opt->duration,
                                                                     'price' => $p,
-                                                                    'priceFormatted' => number_format($p, 2, ',', '.')."\u{00A0}€",
+                                                                    'priceFormatted' => $bookingFmtPrice($p),
                                                                     'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_OPTION, (int) $opt->id, $p),
                                                                 ];
                                                             })->values()->all();
@@ -188,7 +205,7 @@
                                                         } else {
                                                             $price = round((float) ($service->online_price ?? $service->price), 2);
                                                             $rowDurationLabel = $service->formatted_duration;
-                                                            $rowPriceLabel = number_format($price, 2, ',', '.')."\u{00A0}€";
+                                                            $rowPriceLabel = $bookingFmtPrice($price);
                                                             $payload = [
                                                                 'id' => $service->id,
                                                                 'name' => $service->name,
@@ -197,7 +214,7 @@
                                                                 'duration' => $service->formatted_duration,
                                                                 'durationMinutes' => (int) ($service->duration ?? 0),
                                                                 'price' => $price,
-                                                                'priceFormatted' => number_format($price, 2, ',', '.')."\u{00A0}€",
+                                                                'priceFormatted' => $bookingFmtPrice($price),
                                                                 'price_token' => $bookingIssuePriceToken(\App\Support\BookingCartPriceToken::KIND_SERVICE, (int) $service->id, $price),
                                                                 'extras' => $extrasPayload,
                                                                 'fees' => $feesPayload,

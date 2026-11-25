@@ -77,10 +77,14 @@ class BookingPaymentController extends Controller
         }
 
         $currency = (string) config('booking.currency');
-        $depositPercent = (int) config('booking.deposit_percent');
-
         $total = round((float) $resolved['totalPrice'], 2);
-        $paidAmount = round($total * ($depositPercent / 100), 2);
+        $depositResolved = \App\Support\DepositPolicy::resolve(
+            $storeId,
+            $total,
+            \App\Support\DepositPolicy::CHANNEL_BOOKING,
+        );
+        $depositPercent = (int) ($depositResolved['percent_equivalent'] ?? 0);
+        $paidAmount = round((float) ($depositResolved['amount'] ?? 0), 2);
         $remaining = round($total - $paidAmount, 2);
         if ($paidAmount <= 0) {
             throw ValidationException::withMessages([
@@ -434,7 +438,7 @@ class BookingPaymentController extends Controller
     }
 
     /**
-     * Marcação online sem depósito (quando "Pagamento nas marcações online" está desactivado no CRM).
+     * Marcação online sem depósito (quando o pré-pagamento está desactivado no CRM).
      */
     public function confirmWithoutPayment(Request $request): JsonResponse
     {

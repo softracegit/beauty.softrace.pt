@@ -58,7 +58,7 @@ class StoreBusinessSettingsService
             'emailUseBusinessBranding' => old('email_use_business_branding') !== null
                 ? filter_var(old('email_use_business_branding'), FILTER_VALIDATE_BOOLEAN)
                 : CrmSetting::emailUseBusinessBranding($storeId),
-            'pagamentosNote' => 'Stripe e métodos de pagamento são da organização (Definições → Pagamentos). Aqui só o comportamento desta loja.',
+            'pagamentosNote' => 'Stripe e métodos de pagamento são da organização (Definições → Pagamentos). Aqui só Booking e gorjeta desta loja.',
             'activeTab' => $this->resolveActiveTab($requestedTab, true),
             'showResetBooking' => $this->operationalSettings->storeHasSpecificBookingSettings($store),
             'showResetPagamentos' => $this->operationalSettings->storeHasSpecificPaymentFlagSettings($store),
@@ -254,7 +254,7 @@ class StoreBusinessSettingsService
             'privacy_lock_idle_minutes', 'privacy_lock_pin', 'privacy_lock_pin_confirmation' => 'privacidade',
             'email_use_business_branding' => 'emails',
             'personal_time_limit_store_hours' => $forStore ? 'equipa' : null,
-            'pos_gorjeta_enabled', 'online_booking_payment_required' => $forStore ? 'pagamentos' : null,
+            'pos_gorjeta_enabled', 'deposit_agenda_enabled', 'deposit_booking_enabled', 'deposit_tiers' => $forStore ? 'pagamentos' : null,
             'booking_slot_hold_minutes', 'booking_cart_ttl_hours', 'booking_slot_interval_minutes',
             'booking_suggested_slots_enabled',
             'booking_cancellation_notice_hours', 'booking_any_staff_rule',
@@ -310,7 +310,12 @@ class StoreBusinessSettingsService
             'members.*.agenda_order' => ['nullable', 'integer', 'min:1', 'max:9999'],
             'personal_time_limit_store_hours' => ['nullable', 'boolean'],
             'pos_gorjeta_enabled' => ['sometimes', 'boolean'],
-            'online_booking_payment_required' => ['sometimes', 'boolean'],
+            'deposit_agenda_enabled' => ['sometimes', 'boolean'],
+            'deposit_booking_enabled' => ['sometimes', 'boolean'],
+            'deposit_tiers' => ['nullable', 'array', 'min:1'],
+            'deposit_tiers.*.up_to' => ['nullable', 'numeric', 'min:0'],
+            'deposit_tiers.*.mode' => ['required_with:deposit_tiers', 'string', 'in:percent,fixed'],
+            'deposit_tiers.*.value' => ['required_with:deposit_tiers', 'numeric', 'min:0'],
             'booking_domain' => ['nullable', 'string', 'max:255', 'regex:/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/'],
         ];
 
@@ -418,8 +423,8 @@ class StoreBusinessSettingsService
         );
         $this->operationalSettings->applyPaymentFlagsToStore(
             $request->boolean('pos_gorjeta_enabled'),
-            $request->boolean('online_booking_payment_required'),
             $storeId,
+            $this->operationalSettings->depositPolicyFromRequest($request),
         );
 
         if ($request->filled('booking_slot_hold_minutes')

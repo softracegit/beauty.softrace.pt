@@ -478,6 +478,7 @@ class BookingController extends Controller
             'businessName' => $this->bookingBusinessName(),
             'bookingClientUser' => $isBookingClient ? $user : null,
             'bookingClient' => $client,
+            'bookingStore' => $this->bookingStore(),
             'savedCards' => $savedCards,
             'walletBalanceCents' => $walletBalanceCents,
             'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired,

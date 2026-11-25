@@ -3108,14 +3108,17 @@ class CalendarController extends Controller
         try {
             $preview = $this->agendaDepositService->preview($calendarEvent);
         } catch (\App\Exceptions\AgendaDepositException) {
-            $depositPercent = $this->agendaDepositService->depositPercent();
-            $depositAmount = $depositPercent > 0 && $subtotal > 0.00001
-                ? round($subtotal * ($depositPercent / 100), 2)
-                : 0.0;
-
+            $resolved = \App\Support\DepositPolicy::resolve(
+                (int) $calendarEvent->store_id,
+                $subtotal,
+                \App\Support\DepositPolicy::CHANNEL_AGENDA,
+            );
             $preview = [
-                'deposit_percent' => $depositPercent,
-                'deposit_amount' => $depositAmount,
+                'deposit_percent' => $resolved['percent_equivalent'],
+                'deposit_amount' => $resolved['amount'],
+                'deposit_enabled' => $resolved['enabled'],
+                'deposit_mode' => $resolved['mode'],
+                'deposit_policy' => \App\Support\DepositPolicy::forStore((int) $calendarEvent->store_id),
                 'can_collect' => false,
                 'has_reserva_sale' => $this->agendaDepositService->hasActiveReservaSale((int) $calendarEvent->id),
             ];
@@ -3128,9 +3131,14 @@ class CalendarController extends Controller
                 ->whereNull('detached_at')
                 ->exists();
 
+        $policy = $preview['deposit_policy'] ?? \App\Support\DepositPolicy::forStore((int) $calendarEvent->store_id);
+
         return [
-            'deposit_percent' => (int) ($preview['deposit_percent'] ?? $this->agendaDepositService->depositPercent()),
+            'deposit_percent' => (int) ($preview['deposit_percent'] ?? 0),
             'deposit_amount_expected' => round((float) ($preview['deposit_amount'] ?? 0), 2),
+            'deposit_enabled' => (bool) ($preview['deposit_enabled'] ?? ($policy['agenda_enabled'] ?? false)),
+            'deposit_mode' => $preview['deposit_mode'] ?? null,
+            'deposit_policy' => $policy,
             'can_collect_deposit' => (bool) ($preview['can_collect'] ?? false),
             'has_booking_reserva_sale' => (bool) ($preview['has_reserva_sale'] ?? false),
             'has_saved_cards' => $hasSavedCards,

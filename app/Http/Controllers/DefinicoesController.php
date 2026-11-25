@@ -366,22 +366,21 @@ class DefinicoesController extends Controller
         $storeId = $this->operationalSettings->representativeStoreId($orgId) ?? current_store_id();
         $store = app(CurrentStore::class)->get();
 
-        $request->validate([
+        $request->validate(array_merge([
             'pos_gorjeta_enabled' => ['sometimes', 'boolean'],
-            'online_booking_payment_required' => ['sometimes', 'boolean'],
             'methods' => ['nullable', 'array'],
             'methods.*.code' => ['required', 'string'],
             'methods.*.sort' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'methods.*.agenda' => ['sometimes', 'boolean'],
             'methods.*.booking' => ['sometimes', 'boolean'],
-        ]);
+        ], $this->operationalSettings->depositPolicyValidationRules()));
 
         $overwriteAll = $request->boolean('overwrite_all_stores');
         $this->operationalSettings->applyPaymentFlagsToOrganization(
             $request->boolean('pos_gorjeta_enabled'),
-            $request->boolean('online_booking_payment_required'),
             $orgId,
             $overwriteAll,
+            $this->operationalSettings->depositPolicyFromRequest($request),
         );
 
         $methodRows = [];
@@ -413,7 +412,7 @@ class DefinicoesController extends Controller
             ->route('definicoes.pagamentos')
             ->with('status', $overwriteAll
                 ? 'Pagamentos guardados em todas as lojas.'
-                : 'Pagamentos guardados (lojas com gorjeta/pagamento online específicos na ficha mantêm-se nesses pontos).');
+                : 'Pagamentos guardados (lojas com Booking/gorjeta específicos na ficha mantêm-se nesses pontos).');
     }
 
     public function updatePagamentosStripe(Request $request): RedirectResponse

@@ -10,6 +10,12 @@ class CrmSetting extends Model
 {
     public const KEY_BOOKING_ONLINE_PAYMENT_REQUIRED = 'booking.online_payment_required';
 
+    /**
+     * JSON: política de pré-pagamento (agenda + booking online).
+     * { enabled: bool, tiers: [{ up_to: float|null, mode: percent|fixed, value: float }] }
+     */
+    public const KEY_BOOKING_DEPOSIT_POLICY = 'booking.deposit_policy';
+
     /** Caixa (modal de pagamento na agenda): campo e linha de gorjeta. */
     public const KEY_POS_GORJETA_ENABLED = 'pos.gorjeta_enabled';
 
@@ -211,9 +217,12 @@ class CrmSetting extends Model
         self::setRawValue($key, $value ? '1' : '0', $storeId);
     }
 
+    /**
+     * Pré-pagamento no booking online (toggle Booking em DepositPolicy).
+     */
     public static function onlineBookingPaymentRequired(?int $storeId = null): bool
     {
-        return self::getBool(self::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, true, $storeId);
+        return \App\Support\DepositPolicy::isBookingEnabled($storeId);
     }
 
     /**

@@ -9,7 +9,7 @@
         <input class="form-check-input" type="checkbox" id="booking-send-invoice-email" value="1">
         <label class="form-check-label small" for="booking-send-invoice-email">{{ __('booking.partials.invoice_send_email') }}</label>
     </div>
-    <div id="booking-invoice-email-row" class="mb-3">
+    <div id="booking-invoice-email-row" class="mb-2 d-none">
         <div id="booking-invoice-email-phrase">
             @if($showSupplementEmailInput)
                 <p class="small text-muted mb-0">
@@ -42,7 +42,7 @@
         @endif
     </div>
 
-    <div class="form-check mb-2">
+    <div class="form-check mb-0">
         <input class="form-check-input" type="checkbox" id="booking-want-invoice-nif" value="1">
         <label class="form-check-label small" for="booking-want-invoice-nif">{{ __('booking.partials.invoice_want_nif') }}</label>
     </div>

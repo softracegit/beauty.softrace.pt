@@ -133,7 +133,7 @@ class StoreOperationalSettingsService
     {
         return implode('|', [
             CrmSetting::posGorjetaEnabled($storeId) ? '1' : '0',
-            CrmSetting::onlineBookingPaymentRequired($storeId) ? '1' : '0',
+            md5(json_encode(\App\Support\DepositPolicy::forStore($storeId), JSON_UNESCAPED_UNICODE) ?: ''),
         ]);
     }
 
@@ -380,27 +380,45 @@ class StoreOperationalSettingsService
     }
 
     /**
-     * @return array{onlineBookingPaymentRequired: bool, posGorjetaEnabled: bool}
+     * @return array{
+     *     onlineBookingPaymentRequired: bool,
+     *     posGorjetaEnabled: bool,
+     *     depositPolicy: array{agenda_enabled: bool, booking_enabled: bool, tiers: list<array{up_to: float|null, mode: string, value: float}>}
+     * }
      */
     public function paymentFlagsViewData(int $storeId): array
     {
+        $depositPolicy = \App\Support\DepositPolicy::forStore($storeId);
+
         return [
-            'onlineBookingPaymentRequired' => CrmSetting::onlineBookingPaymentRequired($storeId),
+            'onlineBookingPaymentRequired' => (bool) ($depositPolicy['booking_enabled'] ?? false),
             'posGorjetaEnabled' => CrmSetting::posGorjetaEnabled($storeId),
+            'depositPolicy' => $depositPolicy,
         ];
     }
 
-    public function applyPaymentFlagsToStore(bool $posGorjetaEnabled, bool $onlineBookingPaymentRequired, int $storeId): void
-    {
+    /**
+     * @param  array{agenda_enabled?: mixed, booking_enabled?: mixed, enabled?: mixed, tiers?: mixed}|null  $depositPolicy
+     */
+    public function applyPaymentFlagsToStore(
+        bool $posGorjetaEnabled,
+        int $storeId,
+        ?array $depositPolicy = null,
+    ): void {
         CrmSetting::setBool(CrmSetting::KEY_POS_GORJETA_ENABLED, $posGorjetaEnabled, $storeId);
-        CrmSetting::setBool(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, $onlineBookingPaymentRequired, $storeId);
+        if (is_array($depositPolicy)) {
+            \App\Support\DepositPolicy::setForStore($depositPolicy, $storeId);
+        }
     }
 
+    /**
+     * @param  array{agenda_enabled?: mixed, booking_enabled?: mixed, enabled?: mixed, tiers?: mixed}|null  $depositPolicy
+     */
     public function applyPaymentFlagsToOrganization(
         bool $posGorjetaEnabled,
-        bool $onlineBookingPaymentRequired,
         int $organizationId,
         bool $overwriteAll = false,
+        ?array $depositPolicy = null,
     ): void {
         $repId = $this->representativeStoreId($organizationId);
         $baseline = (! $overwriteAll && $repId !== null) ? $this->paymentFlagsFingerprint($repId) : null;
@@ -411,7 +429,11 @@ class StoreOperationalSettingsService
                 && $this->paymentFlagsFingerprint($storeId) !== $baseline) {
                 continue;
             }
-            $this->applyPaymentFlagsToStore($posGorjetaEnabled, $onlineBookingPaymentRequired, $storeId);
+            $this->applyPaymentFlagsToStore(
+                $posGorjetaEnabled,
+                $storeId,
+                $depositPolicy,
+            );
         }
     }
 
@@ -429,8 +451,8 @@ class StoreOperationalSettingsService
 
         $this->applyPaymentFlagsToStore(
             CrmSetting::posGorjetaEnabled($repId),
-            CrmSetting::onlineBookingPaymentRequired($repId),
             $storeId,
+            \App\Support\DepositPolicy::forStore($repId),
         );
 
         return true;
@@ -446,6 +468,35 @@ class StoreOperationalSettingsService
         }
 
         return $this->paymentFlagsFingerprint($storeId) !== $this->paymentFlagsFingerprint($repId);
+    }
+
+    /**
+     * @return array{enabled: bool, tiers: list<array{up_to: float|null, mode: string, value: float}>}
+     */
+    public function depositPolicyFromRequest(\Illuminate\Http\Request $request): array
+    {
+        return \App\Support\DepositPolicy::normalize([
+            'agenda_enabled' => $request->boolean('deposit_agenda_enabled'),
+            'booking_enabled' => $request->boolean('deposit_booking_enabled'),
+            'tiers' => $request->input('deposit_tiers', []),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function depositPolicyValidationRules(string $prefix = ''): array
+    {
+        $p = $prefix;
+
+        return [
+            $p.'deposit_agenda_enabled' => ['sometimes', 'boolean'],
+            $p.'deposit_booking_enabled' => ['sometimes', 'boolean'],
+            $p.'deposit_tiers' => ['nullable', 'array', 'min:1'],
+            $p.'deposit_tiers.*.up_to' => ['nullable', 'numeric', 'min:0'],
+            $p.'deposit_tiers.*.mode' => ['required_with:'.$p.'deposit_tiers', 'string', 'in:percent,fixed'],
+            $p.'deposit_tiers.*.value' => ['required_with:'.$p.'deposit_tiers', 'numeric', 'min:0'],
+        ];
     }
 
     public function applyPersonalTimeLimitToStore(bool $limit, int $storeId): void

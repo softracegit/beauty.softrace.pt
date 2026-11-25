@@ -13,6 +13,7 @@ use App\Models\ClientWalletTransaction;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Support\ApplicableFees;
+use App\Support\DepositPolicy;
 use App\Support\PaymentMethodCatalog;
 use App\Support\PhoneDisplay;
 use App\Support\StripeCredentials;
@@ -29,9 +30,20 @@ class AgendaDepositService
         private readonly MarcacaoPaymentActivityLogger $paymentActivityLogger,
     ) {}
 
-    public function depositPercent(): int
+    public function depositPercent(?int $storeId = null): int
     {
-        return (int) config('booking.deposit_percent');
+        // Compat: % do primeiro tier percent (ou equivalente). Preferir DepositPolicy::resolve().
+        $policy = DepositPolicy::forStore($storeId);
+        if (! $policy['agenda_enabled']) {
+            return 0;
+        }
+        foreach ($policy['tiers'] as $tier) {
+            if (($tier['mode'] ?? '') === DepositPolicy::MODE_PERCENT) {
+                return (int) round((float) ($tier['value'] ?? 0));
+            }
+        }
+
+        return (int) config('booking.deposit_percent', 20);
     }
 
     public function subtotalFromEvent(CalendarEvent $calendarEvent): float
@@ -69,6 +81,9 @@ class AgendaDepositService
      *     subtotal: float,
      *     deposit_percent: int,
      *     deposit_amount: float,
+     *     deposit_enabled: bool,
+     *     deposit_mode: string|null,
+     *     deposit_policy: array,
      *     booking_paid_amount: float,
      *     has_reserva_sale: bool,
      *     can_collect: bool,
@@ -79,7 +94,9 @@ class AgendaDepositService
     {
         $this->assertMarcacaoCollectible($calendarEvent, false);
 
+        $storeId = (int) $calendarEvent->store_id;
         $subtotal = $this->subtotalFromEvent($calendarEvent);
+        $resolved = DepositPolicy::resolve($storeId, $subtotal, DepositPolicy::CHANNEL_AGENDA);
         $depositAmount = $this->depositAmountForEvent($calendarEvent, $customAmount, $subtotal);
         $bookingPaid = $this->bookingPaidAmount((int) $calendarEvent->id);
         $hasReservaSale = $this->hasActiveReservaSale((int) $calendarEvent->id);
@@ -92,8 +109,11 @@ class AgendaDepositService
 
         return [
             'subtotal' => $subtotal,
-            'deposit_percent' => $this->depositPercent(),
+            'deposit_percent' => $resolved['percent_equivalent'],
             'deposit_amount' => $depositAmount,
+            'deposit_enabled' => $resolved['enabled'],
+            'deposit_mode' => $resolved['mode'],
+            'deposit_policy' => DepositPolicy::forStore($storeId),
             'booking_paid_amount' => $bookingPaid,
             'has_reserva_sale' => $hasReservaSale,
             'can_collect' => $canCollect,
@@ -111,11 +131,13 @@ class AgendaDepositService
             return 0.0;
         }
 
-        $percent = $this->depositPercent();
-        if ($percent > 0) {
-            return round($subtotal * ($percent / 100), 2);
+        $storeId = (int) $calendarEvent->store_id;
+        $policyAmount = DepositPolicy::amountForSubtotal($subtotal, $storeId, DepositPolicy::CHANNEL_AGENDA);
+        if ($policyAmount > 0.00001) {
+            return $policyAmount;
         }
 
+        // Política desligada ou 0%: permitir valor manual (agenda).
         if ($customAmount === null) {
             return 0.0;
         }
@@ -134,6 +156,10 @@ class AgendaDepositService
     public function assertCanCollectDeposit(CalendarEvent $calendarEvent, ?float $customAmount = null): void
     {
         $this->assertMarcacaoCollectible($calendarEvent, true);
+
+        if (! DepositPolicy::isAgendaEnabled((int) $calendarEvent->store_id)) {
+            throw new AgendaDepositException('O pré-pagamento na agenda está desactivado.');
+        }
 
         $subtotal = $this->subtotalFromEvent($calendarEvent);
         if ($subtotal <= 0.00001) {
@@ -644,7 +670,12 @@ class AgendaDepositService
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $this->assertCanCollectDeposit($lockedEvent, $this->depositPercent() > 0 ? null : $depositAmount);
+                $policyAmt = DepositPolicy::amountForSubtotal(
+                    $this->subtotalFromEvent($lockedEvent),
+                    (int) $lockedEvent->store_id,
+                    DepositPolicy::CHANNEL_AGENDA,
+                );
+                $this->assertCanCollectDeposit($lockedEvent, $policyAmt > 0 ? null : $depositAmount);
 
                 $booking = $this->ensureBookingRecord(
                     $lockedEvent,
@@ -713,7 +744,12 @@ class AgendaDepositService
         float $depositAmount,
         int $walletAppliedCents,
     ): Booking {
-        $depositPercent = $this->depositPercent();
+        $resolved = DepositPolicy::resolve(
+            (int) $calendarEvent->store_id,
+            $subtotal,
+            DepositPolicy::CHANNEL_AGENDA,
+        );
+        $depositPercent = $resolved['percent_equivalent'];
         $remaining = round(max(0, $subtotal - $depositAmount), 2);
 
         $booking = Booking::query()

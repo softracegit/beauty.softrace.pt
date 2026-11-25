@@ -199,7 +199,7 @@
         <div class="tab-pane fade {{ $activeTab === 'pagamentos' ? 'show active' : '' }}" id="tab-pagamentos" role="tabpanel">
           @include('stores.partials.operational-pagamentos-fields', [
             'posGorjetaEnabled' => $posGorjetaEnabled ?? false,
-            'onlineBookingPaymentRequired' => $onlineBookingPaymentRequired ?? false,
+            'depositPolicy' => $depositPolicy ?? null,
             'pagamentosNote' => $pagamentosNote ?? null,
             'idPrefix' => 'loja_',
           ])
@@ -307,7 +307,7 @@
           'section' => 'pagamentos',
           'tabs' => ['pagamentos'],
           'label' => 'Repor definições gerais',
-          'body' => 'Gorjeta e pagamento online desta loja voltam a usar a definição geral da organização.',
+          'body' => 'Gorjeta e pré-pagamento desta loja voltam a usar a definição geral da organização.',
         ] : null,
         !empty($showResetBooking) ? [
           'section' => 'booking',

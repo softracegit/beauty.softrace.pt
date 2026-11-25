@@ -26,7 +26,12 @@
         data-booking-payment-intent-url="{{ $bookingPaymentIntentUrl }}"
         data-booking-payment-complete-url="{{ $bookingPaymentCompleteUrl }}"
         data-booking-confirm-without-payment-url="{{ $bookingConfirmWithoutPaymentUrl }}"
-        data-booking-deposit-percent="{{ (int) config('booking.deposit_percent') }}"
+        @php
+            $bookingStoreIdForDeposit = isset($bookingStore) ? (int) $bookingStore->id : \App\Models\Store::defaultPublicBookingStoreId();
+            $bookingDepositPolicy = \App\Support\DepositPolicy::forStore($bookingStoreIdForDeposit);
+        @endphp
+        data-booking-deposit-percent="{{ (int) (\App\Support\DepositPolicy::resolve($bookingStoreIdForDeposit, 100, \App\Support\DepositPolicy::CHANNEL_BOOKING)['percent_equivalent'] ?? 20) }}"
+        data-booking-deposit-policy='@json($bookingDepositPolicy)'
     >
         @include('booking.partials.navbar')
 
@@ -43,7 +48,7 @@
                                 <h1 class="booking-services-heading h6 fw-semibold text-dark mb-0 flex-grow-1 min-width-0">{{ __('booking.flow.step3_heading') }}</h1>
                             </div>
 
-                            <section class="booking-category-section mb-4 pb-1">
+                            <section class="booking-category-section booking-step3-section">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
                                         <div id="booking-checkout-error" class="alert alert-danger py-2 px-3 small mb-3 d-none" role="alert"></div>
@@ -57,7 +62,7 @@
                                                 $welcomeFirst = trim((string) ($bookingClient->name ?? ''));
                                                 $welcomeFirst = $welcomeFirst !== '' ? explode(' ', $welcomeFirst, 2)[0] : '';
                                             @endphp
-                                            <h2 class="h6 fw-semibold text-dark mb-2 booking-step3-welcome">
+                                            <h2 class="fw-semibold text-dark mb-3 booking-step3-welcome">
                                                 @if($welcomeFirst !== '')
                                                     {{ __('booking.flow.welcome_name', ['name' => $welcomeFirst]) }}
                                                 @else
@@ -69,10 +74,6 @@
                                                     <input type="hidden" name="name" value="{{ e($bookingClient->name) }}">
                                                     <input type="hidden" name="email" value="{{ e($bookingClient->email ?? '') }}">
                                                     <input type="hidden" name="phone" value="{{ e($bookingClient->phone ?? '') }}">
-                                                    <div class="rounded-3 bg-light border px-3 py-3 mb-3 small">
-                                                        <div class="mb-2"><span class="text-dark fw-medium">{{ $bookingClient->email ?: '—' }}</span></div>
-                                                        <div class="mb-0"><span class="text-dark fw-medium">{{ $bookingClient->formatted_phone ?? $bookingClient->phone ?? '—' }}</span></div>
-                                                    </div>
                                                     @include('booking.partials.checkout-notes-fields', [
                                                         'notesPlaceholder' => __('booking.flow.notes_placeholder_logged_in'),
                                                     ])
@@ -103,7 +104,7 @@
                                                 </form>
                                             @endif
                                         @else
-                                            <h2 class="h6 fw-semibold text-dark mb-2 booking-step3-welcome">{{ __('booking.flow.welcome') }}</h2>
+                                            <h2 class="fw-semibold text-dark mb-3 booking-step3-welcome">{{ __('booking.flow.welcome') }}</h2>
                                             <form id="booking-checkout-form" novalidate>
                                                 <div class="mb-3">
                                                     <label for="booking-contact-name" class="form-label small text-muted mb-1">{{ __('booking.flow.name_label') }}</label>
@@ -131,90 +132,80 @@
                                             </p>
                                         @endif
 
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section class="booking-category-section mb-4 pb-1"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif aria-label="{{ __('booking.flow.invoice_section_aria') }}">
-                                <div class="card border shadow-sm rounded-3 booking-category-card">
-                                    <div class="card-body">
-                                        <h2 class="h6 fw-semibold text-dark mb-2">{{ __('booking.flow.invoice_heading') }}</h2>
-                                        @include('booking.partials.checkout-invoice-options', ['bookingClient' => $bookingClient ?? null])
-                                    </div>
-                                </div>
-                            </section>
-
-                            <section class="booking-category-section mb-4 pb-1"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif>
-                                <div id="booking-payment-panel" class="card border shadow-sm rounded-3 booking-category-card d-none">
-                                    <div class="card-body p-3 p-md-4">
-                                        <header class="mb-3">
-                                            <h2 class="h6 fw-semibold text-dark mb-2">{{ __('booking.flow.payment_heading') }}</h2>
-                                            <p class="small text-muted mb-0">
-                                                {{ __('booking.flow.payment_intro') }}
-                                            </p>
-                                        </header>
-
-                                        <div class="booking-payment-breakdown rounded-3 mb-3">
-                                            <div class="booking-payment-breakdown__row">
-                                                <span class="booking-payment-breakdown__label">{{ __('booking.flow.payment_total') }}</span>
-                                                <span class="booking-payment-breakdown__value" id="booking-pay-total-amount">—</span>
-                                            </div>
-                                            @php
-                                                $depositLine = __('booking.flow.payment_deposit', ['percent' => 'DEPOSIT_PCT_PLACEHOLDER']);
-                                                [$depositBefore, $depositAfter] = array_pad(explode('DEPOSIT_PCT_PLACEHOLDER', $depositLine, 2), 2, '');
-                                            @endphp
-                                            <div class="booking-payment-breakdown__row">
-                                                <span class="booking-payment-breakdown__label">{!! $depositBefore !!}<span id="booking-pay-deposit-pct">—</span>{!! $depositAfter !!}</span>
-                                                <span class="booking-payment-breakdown__value" id="booking-pay-deposit-amount">—</span>
-                                            </div>
-                                            <div class="booking-payment-breakdown__row booking-payment-breakdown__row--muted">
-                                                <span class="booking-payment-breakdown__label">{{ __('booking.flow.payment_remaining') }}</span>
-                                                <span class="booking-payment-breakdown__value" id="booking-pay-remaining-amount">—</span>
-                                            </div>
+                                        <div class="booking-step3-block booking-step3-invoice"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif aria-label="{{ __('booking.flow.invoice_section_aria') }}">
+                                            <h2 class="h6 fw-semibold text-dark mb-2">{{ __('booking.flow.invoice_heading') }}</h2>
+                                            @include('booking.partials.checkout-invoice-options', ['bookingClient' => $bookingClient ?? null])
                                         </div>
-                                        @if(($walletBalanceCents ?? 0) > 0)
-                                            <div class="booking-payment-wallet-option rounded-3 mb-3" id="booking-wallet-apply-wrap" data-balance-cents="{{ (int) $walletBalanceCents }}">
-                                                <div class="form-check booking-payment-wallet-option__check mb-0">
-                                                    <input class="form-check-input" type="checkbox" id="booking-wallet-apply" value="1" checked>
-                                                    <label class="form-check-label" for="booking-wallet-apply">
-                                                        <span class="booking-payment-wallet-option__title d-block fw-semibold text-dark">
-                                                            {{ __('booking.flow.wallet_use_title') }}
-                                                        </span>
-                                                        @php
-                                                            $walletHint = __('booking.flow.wallet_use_hint', ['balance' => 'WALLET_BALANCE_PLACEHOLDER']);
-                                                            [$walletHintBefore, $walletHintAfter] = array_pad(explode('WALLET_BALANCE_PLACEHOLDER', $walletHint, 2), 2, '');
-                                                        @endphp
-                                                        <span class="booking-payment-wallet-option__hint d-block small text-muted mt-1">
-                                                            {!! $walletHintBefore !!}<strong id="booking-wallet-balance-display">{{ number_format($walletBalanceCents / 100, 2, ',', ' ') }} €</strong>{!! $walletHintAfter !!}
-                                                        </span>
-                                                    </label>
+
+                                        <div id="booking-payment-panel" class="booking-step3-block booking-step3-payment d-none"@if(!($onlineBookingPaymentRequired ?? true)) hidden @endif>
+                                            <header class="mb-3">
+                                                <h2 class="h6 fw-semibold text-dark mb-2">{{ __('booking.flow.payment_heading') }}</h2>
+                                                <p class="small text-muted mb-0">
+                                                    {{ __('booking.flow.payment_intro') }}
+                                                </p>
+                                            </header>
+
+                                            <div class="booking-payment-breakdown rounded-3 mb-3">
+                                                <div class="booking-payment-breakdown__row">
+                                                    <span class="booking-payment-breakdown__label">{{ __('booking.flow.payment_total') }}</span>
+                                                    <span class="booking-payment-breakdown__value" id="booking-pay-total-amount">—</span>
+                                                </div>
+                                                <div class="booking-payment-breakdown__row">
+                                                    <span class="booking-payment-breakdown__label">
+                                                        {{ __('booking.flow.payment_deposit_label') }}<span id="booking-pay-deposit-pct-wrap" class="d-none"> (<span id="booking-pay-deposit-pct">—</span>%)</span>
+                                                    </span>
+                                                    <span class="booking-payment-breakdown__value" id="booking-pay-deposit-amount">—</span>
+                                                </div>
+                                                <div class="booking-payment-breakdown__row booking-payment-breakdown__row--muted">
+                                                    <span class="booking-payment-breakdown__label">{{ __('booking.flow.payment_remaining') }}</span>
+                                                    <span class="booking-payment-breakdown__value" id="booking-pay-remaining-amount">—</span>
                                                 </div>
                                             </div>
-                                        @endif
-                                        <div id="booking-wallet-covers-deposit-msg" class="booking-payment-credits-only rounded-3 mb-3 d-none" role="status">
-                                            <div class="d-flex gap-2 align-items-start">
-                                                <i class="bi bi-check-circle-fill text-success booking-payment-credits-only__icon" aria-hidden="true"></i>
-                                                <div class="small">
-                                                    <p class="fw-semibold text-dark mb-1">{{ __('booking.flow.wallet_covers_title') }}</p>
-                                                    <p class="text-muted mb-0">
-                                                        {{ __('booking.flow.wallet_covers_body') }}
-                                                    </p>
+                                            @if(($walletBalanceCents ?? 0) > 0)
+                                                <div class="booking-payment-wallet-option rounded-3 mb-3" id="booking-wallet-apply-wrap" data-balance-cents="{{ (int) $walletBalanceCents }}">
+                                                    <div class="form-check booking-payment-wallet-option__check mb-0">
+                                                        <input class="form-check-input" type="checkbox" id="booking-wallet-apply" value="1" checked>
+                                                        <label class="form-check-label" for="booking-wallet-apply">
+                                                            <span class="booking-payment-wallet-option__title d-block fw-semibold text-dark">
+                                                                {{ __('booking.flow.wallet_use_title') }}
+                                                            </span>
+                                                            @php
+                                                                $walletHint = __('booking.flow.wallet_use_hint', ['balance' => 'WALLET_BALANCE_PLACEHOLDER']);
+                                                                [$walletHintBefore, $walletHintAfter] = array_pad(explode('WALLET_BALANCE_PLACEHOLDER', $walletHint, 2), 2, '');
+                                                            @endphp
+                                                            <span class="booking-payment-wallet-option__hint d-block small text-muted mt-1">
+                                                                {!! $walletHintBefore !!}<strong id="booking-wallet-balance-display">{{ number_format($walletBalanceCents / 100, 2, ',', ' ') }} €</strong>{!! $walletHintAfter !!}
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                            <div id="booking-wallet-covers-deposit-msg" class="booking-payment-credits-only rounded-3 mb-3 d-none" role="status">
+                                                <div class="d-flex gap-2 align-items-start">
+                                                    <i class="bi bi-check-circle-fill text-success booking-payment-credits-only__icon" aria-hidden="true"></i>
+                                                    <div class="small">
+                                                        <p class="fw-semibold text-dark mb-1">{{ __('booking.flow.wallet_covers_title') }}</p>
+                                                        <p class="text-muted mb-0">
+                                                            {{ __('booking.flow.wallet_covers_body') }}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div id="booking-stripe-payment-wrap" class="booking-payment-card-section">
+                                                <p class="fw-semibold text-dark small mb-1">{{ __('booking.flow.payment_section_title') }}</p>
+                                                <p id="booking-pay-wallet-used-line" class="small text-muted mb-1 d-none">
+                                                    {{ __('booking.flow.wallet_used_line') }}
+                                                    <strong class="text-success" id="booking-pay-wallet-used-amount">—</strong>
+                                                </p>
+                                                <p class="small text-muted mb-3">
+                                                    {{ __('booking.flow.pay_now_line') }}
+                                                    <strong id="booking-pay-card-amount">—</strong>
+                                                </p>
+                                                <div id="booking-stripe-mount" class="mb-2"></div>
+                                                <p id="booking-stripe-error" class="small text-danger mb-0 d-none" role="alert"></p>
+                                            </div>
                                         </div>
-                                        <div id="booking-stripe-payment-wrap" class="booking-payment-card-section">
-                                            <p class="fw-semibold text-dark small mb-1">{{ __('booking.flow.payment_section_title') }}</p>
-                                            <p id="booking-pay-wallet-used-line" class="small text-muted mb-1 d-none">
-                                                {{ __('booking.flow.wallet_used_line') }}
-                                                <strong class="text-success" id="booking-pay-wallet-used-amount">—</strong>
-                                            </p>
-                                            <p class="small text-muted mb-3">
-                                                {{ __('booking.flow.pay_now_line') }}
-                                                <strong id="booking-pay-card-amount">—</strong>
-                                            </p>
-                                            <div id="booking-stripe-mount" class="mb-2"></div>
-                                            <p id="booking-stripe-error" class="small text-danger mb-0 d-none" role="alert"></p>
-                                        </div>
+
                                     </div>
                                 </div>
                             </section>
@@ -230,7 +221,7 @@
                                 </div>
                             @endif
 
-                            <section class="booking-category-section mb-4 pb-1" aria-label="{{ __('booking.flow.cancellation_heading') }}">
+                            <section class="booking-category-section booking-step3-section" aria-label="{{ __('booking.flow.cancellation_heading') }}">
                                 <div class="card border shadow-sm rounded-3 booking-category-card">
                                     <div class="card-body">
                                         <h3 class="h6 fw-semibold text-dark mb-0 pb-3 border-bottom">{{ __('booking.flow.cancellation_heading') }}</h3>
