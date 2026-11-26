@@ -1779,6 +1779,15 @@
     color: var(--bs-body-color, #212529);
     font-weight: 600;
 }
+/* Pai da variante: oculto no browse (grupos bastam); visível só na pesquisa. */
+.agenda-marcacao-test-offcanvas .agenda-oc-service-choice__parent {
+    display: none;
+}
+.agenda-marcacao-test-offcanvas .choices.agenda-oc-service-choices--filtering .agenda-oc-service-choice__parent {
+    display: block;
+    margin-top: 0.1rem;
+    line-height: 1.2;
+}
 .agenda-marcacao-test-offcanvas .choices__inner .agenda-oc-service-choice__meta {
     display: none;
 }

@@ -7207,7 +7207,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetailOcServicesFlat = [];
             svcSel.innerHTML = '<option value="">Escolha primeiro o prestador(a)</option>';
             svcSel.disabled = true;
-            eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
+            eventDetailOcChoicesInstances.service = agendaOcInitServiceChoices(svcSel);
             if (done && !isStale()) {
                 done(null);
             }
@@ -7232,7 +7232,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetailServicesData = data;
                 eventDetailOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
                 agendaOcRebuildServiceSelect(svcSel, data.categories || []);
-                eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
+                eventDetailOcChoicesInstances.service = agendaOcInitServiceChoices(svcSel);
                 eventDetailSelectedServices.forEach(function(item) {
                     var availableExtras = [];
                     (data.categories || []).forEach(function(cat) {
@@ -7263,7 +7263,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 eventDetailOcServicesFlat = [];
                 svcSel.innerHTML = '<option value="">Erro ao carregar</option>';
                 svcSel.disabled = true;
-                eventDetailOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
+                eventDetailOcChoicesInstances.service = agendaOcInitServiceChoices(svcSel);
                 if (done && !isStale()) {
                     done(null);
                 }
@@ -8662,31 +8662,77 @@ document.addEventListener('DOMContentLoaded', function() {
         return n.toFixed(2).replace('.', ',') + ' €';
     }
 
-    function agendaOcServiceOptionCustomPropertiesAttr(name, durPart, priceNum, formattedFromApi) {
+    function agendaOcServiceOptionCustomPropertiesAttr(name, durPart, priceNum, formattedFromApi, parentName, categoryName) {
         try {
-            return JSON.stringify({
+            var payload = {
                 name: String(name == null ? '' : name).trim(),
                 duration: String(durPart == null ? '' : durPart).trim(),
                 price: agendaOcFormatServicePrice(priceNum, formattedFromApi),
-            });
+            };
+            var parent = String(parentName == null ? '' : parentName).trim();
+            var category = String(categoryName == null ? '' : categoryName).trim();
+            if (parent !== '') {
+                payload.parent = parent;
+            }
+            if (category !== '') {
+                payload.category = category;
+            }
+            return JSON.stringify(payload);
         } catch (e) {
             return '{}';
         }
     }
 
+    function agendaOcServiceContextFromGroupLabel(groupLabel) {
+        var gl = String(groupLabel == null ? '' : groupLabel).trim();
+        if (!gl) return { category: '', parent: '' };
+        var sep = ' — ';
+        var idx = gl.indexOf(sep);
+        if (idx < 0) return { category: gl, parent: '' };
+        return {
+            category: gl.slice(0, idx).trim(),
+            parent: gl.slice(idx + sep.length).trim(),
+        };
+    }
+
+    function agendaOcServiceChoiceContextLine(category, parent) {
+        var cat = String(category == null ? '' : category).trim();
+        var par = String(parent == null ? '' : parent).trim();
+        if (cat && par) return cat + ' — ' + par;
+        return par || cat;
+    }
+
     function agendaOcServiceChoiceMetaFromData(data) {
         var cp = (data && data.customProperties) ? data.customProperties : {};
+        if (typeof cp === 'string') {
+            try { cp = JSON.parse(cp) || {}; } catch (e) { cp = {}; }
+        }
+        var parent = String(cp.parent || '').trim();
+        var category = String(cp.category || '').trim();
+        if ((!parent || !category) && data && data.group) {
+            var fromGroup = agendaOcServiceContextFromGroupLabel(data.group.label);
+            if (!parent) parent = fromGroup.parent;
+            if (!category) category = fromGroup.category;
+        }
         return {
             name: String(cp.name || (data && data.label) || '').trim(),
+            parent: parent,
+            category: category,
             duration: String(cp.duration || '').trim(),
             price: String(cp.price || '').trim(),
         };
     }
 
-    function agendaOcServiceChoiceRowHtml(meta) {
+    function agendaOcServiceChoiceRowHtml(meta, opts) {
         var name = String((meta && meta.name) || '').trim();
+        var parent = String((meta && meta.parent) || '').trim();
+        var category = String((meta && meta.category) || '').trim();
         var duration = String((meta && meta.duration) || '').trim();
         var price = String((meta && meta.price) || '').trim();
+        var contextLine = agendaOcServiceChoiceContextLine(category, parent);
+        // Sempre que há contexto (variantes): o Choices não reconstrói o template ao filtrar,
+        // por isso categoria/pai têm de ir no HTML desde a criação da choice (CSS esconde no browse).
+        var showContext = (!opts || opts.showParent !== false) && contextLine !== '';
         var metaHtml = '';
         if (duration || price) {
             metaHtml = '<span class="agenda-oc-service-choice__meta text-nowrap flex-shrink-0 ms-2 d-inline-flex align-items-baseline gap-2">' +
@@ -8700,8 +8746,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 ) +
             '</span>';
         }
+        var labelHtml = '<span class="agenda-oc-service-choice__label min-w-0 text-truncate">' + agendaOcEscapeHtml(name) + '</span>';
+        if (showContext) {
+            labelHtml =
+                '<span class="agenda-oc-service-choice__label-wrap min-w-0">' +
+                    labelHtml +
+                    '<span class="agenda-oc-service-choice__parent small text-muted text-truncate">' +
+                        agendaOcEscapeHtml(contextLine) +
+                    '</span>' +
+                '</span>';
+        }
         return '<span class="agenda-oc-service-choice d-flex justify-content-between align-items-baseline gap-2 w-100">' +
-            '<span class="agenda-oc-service-choice__label min-w-0 text-truncate">' + agendaOcEscapeHtml(name) + '</span>' +
+            labelHtml +
             metaHtml +
         '</span>';
     }
@@ -8758,7 +8814,7 @@ document.addEventListener('DOMContentLoaded', function() {
         agendaOcAddChoicesClasses(div, cn.item);
         div.innerHTML = data.placeholder
             ? agendaOcEscapeHtml(templateOptions.placeholderValue || 'Selecionar serviço')
-            : agendaOcServiceChoiceRowHtml(agendaOcServiceChoiceMetaFromData(data));
+            : agendaOcServiceChoiceRowHtml(agendaOcServiceChoiceMetaFromData(data), { showParent: false });
         div.dataset.item = '';
         div.dataset.id = String(data.id != null ? data.id : '');
         div.dataset.value = rawValue;
@@ -8777,6 +8833,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function agendaOcServiceChoicesOpts() {
         var o = agendaOcCommonChoicesOpts();
         o.allowHTML = true;
+        // Default do Choices (threshold 0.6) é demasiado “fuzzy” e devolve falsos positivos.
+        o.fuseOptions = {
+            includeScore: true,
+            threshold: 0.28,
+            ignoreLocation: true,
+        };
         o.callbackOnCreateTemplates = function(templateOptions) {
             return {
                 choice: agendaOcServiceChoiceTemplate,
@@ -8784,6 +8846,38 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         };
         return o;
+    }
+
+    /** Mostra o serviço pai nas variantes só enquanto há texto na pesquisa (CSS). */
+    function agendaOcBindServiceChoicesFilterParent(selectEl) {
+        if (!selectEl || selectEl.dataset.agendaOcParentFilterBound === '1') {
+            return;
+        }
+        selectEl.dataset.agendaOcParentFilterBound = '1';
+        var sync = function(ev) {
+            var wrap = selectEl.closest('.choices');
+            if (!wrap) return;
+            var q = '';
+            if (ev && ev.type === 'search' && ev.detail && ev.detail.value != null) {
+                q = String(ev.detail.value).trim();
+            } else {
+                var input = wrap.querySelector('input.choices__input');
+                q = input ? String(input.value || '').trim() : '';
+            }
+            wrap.classList.toggle('agenda-oc-service-choices--filtering', q.length > 0);
+        };
+        selectEl.addEventListener('search', sync);
+        selectEl.addEventListener('showDropdown', sync);
+        selectEl.addEventListener('hideDropdown', function() {
+            var wrap = selectEl.closest('.choices');
+            if (wrap) wrap.classList.remove('agenda-oc-service-choices--filtering');
+        });
+    }
+
+    function agendaOcInitServiceChoices(selectEl) {
+        var inst = new Choices(selectEl, agendaOcServiceChoicesOpts());
+        agendaOcBindServiceChoicesFilterParent(selectEl);
+        return inst;
     }
 
     /** Cliente no offcanvas: resultados via API (?q=), não lista completa no DOM. */
@@ -9540,6 +9634,19 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     }
 
+    /** Alinhado com CalendarEventService::formatLineLabel — «pai - variante». */
+    function agendaOcFormatServiceLineLabel(serviceName, optionName) {
+        var parent = String(serviceName == null ? '' : serviceName).trim();
+        var opt = String(optionName == null ? '' : optionName).trim();
+        if (opt !== '' && parent !== '' && parent.toLowerCase() !== opt.toLowerCase()) {
+            return parent + ' - ' + opt;
+        }
+        if (opt !== '') {
+            return opt;
+        }
+        return parent;
+    }
+
     function agendaOcFlattenServicesFromCategories(categories) {
         var out = [];
         (categories || []).forEach(function(cat) {
@@ -9550,14 +9657,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         var dur = parseInt(opt.duration, 10) || 60;
                         var priceNum = opt.price != null && opt.price !== '' ? parseFloat(opt.price) : 0;
                         var optName = String(opt.name || '').trim() || ('Opção #' + opt.id);
-                        if (opt.type === 'addon') {
-                            // Variante adicional: identifica o serviço a que pertence
-                            optName += ' (adicional · ' + String(s.name || '').trim() + ')';
-                        }
+                        var displayName = agendaOcFormatServiceLineLabel(s.name, optName);
                         out.push({
                             service_id: String(s.id),
                             service_option_id: String(opt.id),
-                            name: optName,
+                            name: displayName,
+                            option_name: optName,
                             is_addon: opt.type === 'addon',
                             duration: dur,
                             price: priceNum,
@@ -9862,8 +9967,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             multiList.forEach(function(s) {
                 hasAny = true;
+                var parentName = String(s.name || '').trim() || ('Serviço #' + s.id);
                 var og = document.createElement('optgroup');
-                og.label = catLabel + ' — ' + (s.name || ('Serviço #' + s.id));
+                og.label = catLabel + ' — ' + parentName;
                 (s.options || []).forEach(function(opt) {
                     var optEl = document.createElement('option');
                     optEl.value = String(s.id) + '|' + String(opt.id);
@@ -9872,11 +9978,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     var optName = String(opt.name || '').trim() || ('Opção #' + opt.id);
                     var priceNum = opt.price != null && opt.price !== '' ? parseFloat(opt.price) : 0;
                     var priceLabel = agendaOcFormatServicePrice(priceNum, opt.formatted_price);
-                    optEl.textContent = [optName, durPart, priceLabel].filter(Boolean).join(' ');
+                    // Pesquisa: nome da variante + serviço pai (não a categoria — senão
+                    // "masculina" devolve todos os itens da categoria Estética Masculina, etc.).
+                    // Categoria/pai continuam no customProperties só para o subtítulo na pesquisa.
+                    optEl.textContent = [optName, parentName, durPart, priceLabel].filter(Boolean).join(' ');
                     optEl.dataset.duration = String(dur);
                     optEl.dataset.price = String(priceNum);
                     optEl.dataset.name = optName;
-                    optEl.setAttribute('data-custom-properties', agendaOcServiceOptionCustomPropertiesAttr(optName, durPart, priceNum, opt.formatted_price));
+                    optEl.setAttribute(
+                        'data-custom-properties',
+                        agendaOcServiceOptionCustomPropertiesAttr(
+                            optName,
+                            durPart,
+                            priceNum,
+                            opt.formatted_price,
+                            parentName,
+                            catLabel
+                        )
+                    );
                     og.appendChild(optEl);
                 });
                 svcSel.appendChild(og);
@@ -9901,7 +10020,7 @@ document.addEventListener('DOMContentLoaded', function() {
             agendaOcServicesFlat = [];
             svcSel.innerHTML = '<option value="">Escolha primeiro o prestador(a)</option>';
             svcSel.disabled = true;
-            agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
+            agendaOcChoicesInstances.service = agendaOcInitServiceChoices(svcSel);
             if (done) done();
             return;
         }
@@ -9912,14 +10031,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(function(data) {
                 agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(data.categories);
                 agendaOcRebuildServiceSelect(svcSel, data.categories || []);
-                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
+                agendaOcChoicesInstances.service = agendaOcInitServiceChoices(svcSel);
                 if (done) done();
             })
             .catch(function() {
                 agendaOcServicesFlat = [];
                 svcSel.innerHTML = '<option value="">Erro ao carregar</option>';
                 svcSel.disabled = true;
-                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
+                agendaOcChoicesInstances.service = agendaOcInitServiceChoices(svcSel);
                 if (done) done();
             });
     }
@@ -10067,7 +10186,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 agendaOcServicesFlat = agendaOcFlattenServicesFromCategories(svcData.categories);
                 agendaOcRebuildServiceSelect(svcSel, svcData.categories || []);
-                agendaOcChoicesInstances.service = new Choices(svcSel, agendaOcServiceChoicesOpts());
+                agendaOcChoicesInstances.service = agendaOcInitServiceChoices(svcSel);
 
             })
             .catch(function() {
