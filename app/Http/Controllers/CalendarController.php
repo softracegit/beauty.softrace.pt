@@ -473,7 +473,7 @@ class CalendarController extends Controller
      * Get services for a member (user with agent), grouped by category (for event type "Marcação").
      * Aceita técnicos de qualquer loja acessível (reatribuição cross-store).
      */
-    public function memberServices(User $user)
+    public function memberServices(Request $request, User $user)
     {
         $storeIds = $this->accessibleAgendaStoreIds();
         $agent = Agent::query()
@@ -487,6 +487,15 @@ class CalendarController extends Controller
 
         $agentStoreId = (int) $agent->store_id;
 
+        $includeServiceIds = [];
+        $includeRaw = $request->get('include_service_ids');
+        if (is_string($includeRaw) && $includeRaw !== '') {
+            $includeServiceIds = array_values(array_unique(array_filter(array_map('intval', explode(',', $includeRaw)))));
+        } elseif (is_array($includeRaw)) {
+            $includeServiceIds = array_values(array_unique(array_filter(array_map('intval', $includeRaw))));
+        }
+        $includeLookup = array_fill_keys($includeServiceIds, true);
+
         $services = $agent->services()
             ->with([
                 'category',
@@ -495,6 +504,13 @@ class CalendarController extends Controller
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ])
             ->get()
+            ->filter(function (Service $s) use ($includeLookup) {
+                if (isset($includeLookup[(int) $s->id])) {
+                    return true;
+                }
+
+                return $s->isSelectableInAgenda();
+            })
             ->sortBy(function ($s) {
                 $catOrder = $s->category?->sort_order ?? 999999;
 

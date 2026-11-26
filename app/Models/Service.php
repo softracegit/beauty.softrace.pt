@@ -19,7 +19,7 @@ class Service extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['category_id', 'name', 'description', 'short_description', 'duration', 'price', 'online_price', 'sort_order', 'hidden_from_booking'])
+            ->logOnly(['category_id', 'name', 'description', 'short_description', 'duration', 'price', 'online_price', 'sort_order', 'hidden_from_booking', 'hidden_from_agenda'])
             ->logOnlyDirty()
             ->setDescriptionForEvent(fn (string $eventName) => match ($eventName) {
                 'created' => 'Serviço criado',
@@ -41,6 +41,7 @@ class Service extends Model
         'online_price',
         'sort_order',
         'hidden_from_booking',
+        'hidden_from_agenda',
     ];
 
     protected $casts = [
@@ -49,6 +50,7 @@ class Service extends Model
         'online_price' => 'decimal:2',
         'sort_order' => 'integer',
         'hidden_from_booking' => 'boolean',
+        'hidden_from_agenda' => 'boolean',
     ];
 
     /**
@@ -93,6 +95,30 @@ class Service extends Model
     public function scopeVisibleInBooking(Builder $query): Builder
     {
         return $query->where('hidden_from_booking', false);
+    }
+
+    public function isSelectableInAgenda(): bool
+    {
+        if ($this->hidden_from_agenda) {
+            return false;
+        }
+
+        $this->loadMissing('category');
+
+        if (! $this->category) {
+            return true;
+        }
+
+        return ! $this->category->hidden_from_agenda;
+    }
+
+    public function scopeVisibleInAgenda(Builder $query): Builder
+    {
+        return $query->where('hidden_from_agenda', false)
+            ->where(function (Builder $q): void {
+                $q->whereDoesntHave('category')
+                    ->orWhereHas('category', fn (Builder $cq) => $cq->where('hidden_from_agenda', false));
+            });
     }
 
     /**

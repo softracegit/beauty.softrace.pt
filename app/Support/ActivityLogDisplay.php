@@ -61,6 +61,8 @@ class ActivityLogDisplay
         'type' => 'Tipo de cliente',
         'visible_in_agenda' => 'Visível na agenda',
         'visible_in_booking' => 'Visível na marcação online',
+        'hidden_from_booking' => 'Oculto no booking',
+        'hidden_from_agenda' => 'Oculto na agenda',
         'booking_slug' => 'URL marcação online',
         'agenda_order' => 'Ordem na agenda',
         'weekly_schedule' => 'Horário semanal',

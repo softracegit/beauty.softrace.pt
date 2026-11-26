@@ -27,6 +27,7 @@ class StoreCategoryRequest extends FormRequest
             'color' => ['required', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'hidden_from_booking' => ['nullable', 'boolean'],
+            'hidden_from_agenda' => ['nullable', 'boolean'],
         ];
     }
 }

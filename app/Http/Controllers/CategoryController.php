@@ -114,6 +114,7 @@ class CategoryController extends Controller
     {
         $data = $request->validated();
         $data['hidden_from_booking'] = $request->boolean('hidden_from_booking');
+        $data['hidden_from_agenda'] = $request->boolean('hidden_from_agenda');
         $organizationId = current_organization_id();
 
         // Set sort_order if not provided
@@ -145,6 +146,7 @@ class CategoryController extends Controller
     {
         $data = $request->validated();
         $data['hidden_from_booking'] = $request->boolean('hidden_from_booking');
+        $data['hidden_from_agenda'] = $request->boolean('hidden_from_agenda');
         $category->update($data);
 
         if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest' || $request->wantsJson()) {

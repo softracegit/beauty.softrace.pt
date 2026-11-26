@@ -21,11 +21,13 @@ class Category extends Model
         'color',
         'sort_order',
         'hidden_from_booking',
+        'hidden_from_agenda',
     ];
 
     protected $casts = [
         'sort_order' => 'integer',
         'hidden_from_booking' => 'boolean',
+        'hidden_from_agenda' => 'boolean',
     ];
 
     /**
@@ -63,6 +65,11 @@ class Category extends Model
     public function scopeVisibleInBooking(Builder $query): Builder
     {
         return $query->where('hidden_from_booking', false);
+    }
+
+    public function scopeVisibleInAgenda(Builder $query): Builder
+    {
+        return $query->where('hidden_from_agenda', false);
     }
 
     /**

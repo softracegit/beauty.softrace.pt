@@ -7215,7 +7215,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         svcSel.innerHTML = '<option value="">A carregar…</option>';
         svcSel.disabled = true;
-        fetch(agendaMembersServicesUrl + '/' + memberId + '/services', { headers: { 'Accept': 'application/json' } })
+        var includeIds = eventDetailSelectedServices
+            .map(function(s) { return parseInt(s.service_id, 10); })
+            .filter(function(id) { return Number.isFinite(id) && id > 0; });
+        includeIds = Array.from(new Set(includeIds));
+        var servicesUrl = agendaMembersServicesUrl + '/' + memberId + '/services';
+        if (includeIds.length) {
+            servicesUrl += '?include_service_ids=' + encodeURIComponent(includeIds.join(','));
+        }
+        fetch(servicesUrl, { headers: { 'Accept': 'application/json' } })
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (isStale()) {

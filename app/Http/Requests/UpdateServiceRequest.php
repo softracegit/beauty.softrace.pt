@@ -64,6 +64,7 @@ class UpdateServiceRequest extends FormRequest
             'fee_ids.*' => [Rule::exists('fees', 'id')->where(fn ($q) => $q->where('organization_id', current_organization_id()))],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'hidden_from_booking' => ['nullable', 'boolean'],
+            'hidden_from_agenda' => ['nullable', 'boolean'],
         ];
 
         if ($hasOptions) {
@@ -152,6 +153,7 @@ class UpdateServiceRequest extends FormRequest
 
         $attrs = is_array($only) ? $only : $only->all();
         $attrs['hidden_from_booking'] = $this->boolean('hidden_from_booking');
+        $attrs['hidden_from_agenda'] = $this->boolean('hidden_from_agenda');
 
         return $attrs;
     }

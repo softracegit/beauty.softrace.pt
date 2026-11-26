@@ -13,7 +13,7 @@
         $extrasN = (int) ($service->extras_count ?? ($service->relationLoaded('extras') ? $service->extras->count() : 0));
         $futureN = (int) ($service->future_marcacoes_count ?? 0);
     @endphp
-    <div class="service-item-row {{ $hasOpts ? 'service-item-row--has-options' : '' }}" data-service-id="{{ $service->id }}" data-hidden-from-booking="{{ $service->hidden_from_booking ? '1' : '0' }}">
+    <div class="service-item-row {{ $hasOpts ? 'service-item-row--has-options' : '' }}" data-service-id="{{ $service->id }}" data-hidden-from-booking="{{ $service->hidden_from_booking ? '1' : '0' }}" data-hidden-from-agenda="{{ $service->hidden_from_agenda ? '1' : '0' }}">
         <div class="service-drag-handle" aria-label="Arrastar para reordenar">
             <span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
         </div>
@@ -23,7 +23,10 @@
         <div class="card-body service-item-body--has-options py-3 pe-2">
             <div class="service-item-header">
                 <div class="min-w-0">
-                    <h6 class="mb-0 service-item-name">{{ $service->name }}@if($service->hidden_from_booking)<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>@endif</h6>
+                    <h6 class="mb-0 service-item-name">{{ $service->name }}
+                        @if($service->hidden_from_booking)<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>@endif
+                        @if($service->hidden_from_agenda)<i class="ph ph-calendar-slash text-muted small ms-1" title="Oculto na agenda" aria-label="Oculto na agenda"></i>@endif
+                    </h6>
                     @include('partials.catalog-item-copy', [
                         'shortDescription' => $service->short_description,
                     ])
@@ -60,7 +63,10 @@
         <div class="card-body service-item-body--simple py-3 pe-2">
             <div class="service-item-header">
                 <div class="min-w-0">
-                    <h6 class="mb-0 service-item-name">{{ $service->name }}@if($service->hidden_from_booking)<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>@endif</h6>
+                    <h6 class="mb-0 service-item-name">{{ $service->name }}
+                        @if($service->hidden_from_booking)<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>@endif
+                        @if($service->hidden_from_agenda)<i class="ph ph-calendar-slash text-muted small ms-1" title="Oculto na agenda" aria-label="Oculto na agenda"></i>@endif
+                    </h6>
                     @include('partials.catalog-item-copy', [
                         'shortDescription' => $service->short_description,
                     ])

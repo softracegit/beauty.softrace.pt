@@ -1069,8 +1069,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let editCategoryLoadToken = 0;
     let clinicalFieldsDrake = null;
 
-    function parseCategoryHiddenFromBooking(value) {
+    function parseCategoryHiddenFlag(value) {
         return value === true || value === 1 || value === '1';
+    }
+
+    function parseCategoryHiddenFromBooking(value) {
+        return parseCategoryHiddenFlag(value);
     }
 
     function isPersistedClinicalFieldId(id) {
@@ -1099,6 +1103,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hiddenBookingEl) {
             hiddenBookingEl.checked = parseCategoryHiddenFromBooking(cat.hidden_from_booking);
         }
+        const hiddenAgendaEl = document.getElementById('editCategoryHiddenFromAgenda');
+        if (hiddenAgendaEl) {
+            hiddenAgendaEl.checked = parseCategoryHiddenFlag(cat.hidden_from_agenda);
+        }
         const color = String(cat.color || '').trim();
         const colorSelect = document.getElementById('editCategoryColorSelect');
         if (colorSelect) colorSelect.value = color;
@@ -1117,6 +1125,8 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('editCategoryDescription').value = '';
         const hiddenBookingEl = document.getElementById('editCategoryHiddenFromBooking');
         if (hiddenBookingEl) hiddenBookingEl.checked = false;
+        const hiddenAgendaEl = document.getElementById('editCategoryHiddenFromAgenda');
+        if (hiddenAgendaEl) hiddenAgendaEl.checked = false;
         const colorSelect = document.getElementById('editCategoryColorSelect');
         if (colorSelect) colorSelect.value = '';
         if (editCategoryColorChoices && typeof editCategoryColorChoices.setChoiceByValue === 'function') {
@@ -1134,6 +1144,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetEditCategoryModal() {
         const hiddenBookingEl = document.getElementById('editCategoryHiddenFromBooking');
         if (hiddenBookingEl) hiddenBookingEl.checked = false;
+        const hiddenAgendaEl = document.getElementById('editCategoryHiddenFromAgenda');
+        if (hiddenAgendaEl) hiddenAgendaEl.checked = false;
         document.getElementById('editCategoryId').value = '';
         setCategoryOffcanvasMode('edit');
         renderClinicalFieldsList([]);
@@ -1919,6 +1931,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function insertCategoryHiddenIcon(sidebarItem, icon) {
+        const editBtn = sidebarItem.querySelector('.services-category-sidebar-edit');
+        const badge = sidebarItem.querySelector('.badge');
+        const before = editBtn || badge;
+        if (before) sidebarItem.insertBefore(icon, before);
+        else sidebarItem.appendChild(icon);
+    }
+
     function updateCategoryBookingHiddenIndicator(sidebarItem, hidden) {
         if (!sidebarItem) return;
         sidebarItem.setAttribute('data-hidden-from-booking', hidden ? '1' : '0');
@@ -1929,11 +1949,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 icon.className = 'ph ph-eye-slash text-muted small services-category-hidden-booking-icon';
                 icon.title = 'Oculta no booking';
                 icon.setAttribute('aria-hidden', 'true');
-                const editBtn = sidebarItem.querySelector('.services-category-sidebar-edit');
-                const badge = sidebarItem.querySelector('.badge');
-                const before = editBtn || badge;
-                if (before) sidebarItem.insertBefore(icon, before);
-                else sidebarItem.appendChild(icon);
+                insertCategoryHiddenIcon(sidebarItem, icon);
+            }
+        } else if (icon) {
+            icon.remove();
+        }
+    }
+
+    function updateCategoryAgendaHiddenIndicator(sidebarItem, hidden) {
+        if (!sidebarItem) return;
+        sidebarItem.setAttribute('data-hidden-from-agenda', hidden ? '1' : '0');
+        let icon = sidebarItem.querySelector('.services-category-hidden-agenda-icon');
+        if (hidden) {
+            if (!icon) {
+                icon = document.createElement('i');
+                icon.className = 'ph ph-calendar-slash text-muted small services-category-hidden-agenda-icon';
+                icon.title = 'Oculta na agenda';
+                icon.setAttribute('aria-hidden', 'true');
+                insertCategoryHiddenIcon(sidebarItem, icon);
             }
         } else if (icon) {
             icon.remove();
@@ -2301,9 +2334,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? `<div class="text-muted small">${escapeHtml(service.category.name)}</div>`
                 : '';
             const hiddenBooking = !!service.hidden_from_booking;
-            const hiddenIcon = hiddenBooking
+            const hiddenAgenda = !!service.hidden_from_agenda;
+            const hiddenIcon = (hiddenBooking
                 ? '<i class="ph ph-eye-slash text-muted small ms-1" title="Oculto no booking" aria-label="Oculto no booking"></i>'
-                : '';
+                : '') + (hiddenAgenda
+                ? '<i class="ph ph-calendar-slash text-muted small ms-1" title="Oculto na agenda" aria-label="Oculto na agenda"></i>'
+                : '');
             const nameHtml = escapeHtml(service.name) + hiddenIcon;
             const restoreBtn = archived && canDeleteCatalog
                 ? `<button type="button" class="btn btn-sm btn-outline-primary service-archive-restore-btn" data-restore-service-id="${service.id}">Restaurar</button>`
@@ -2361,7 +2397,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     `</div></div>`;
             }
             return `
-            <div class="service-item-row${rowHasOptionsClass}" data-service-id="${service.id}" data-hidden-from-booking="${hiddenBooking ? '1' : '0'}"${archived ? ' data-archived="1"' : ''}>
+            <div class="service-item-row${rowHasOptionsClass}" data-service-id="${service.id}" data-hidden-from-booking="${hiddenBooking ? '1' : '0'}" data-hidden-from-agenda="${hiddenAgenda ? '1' : '0'}"${archived ? ' data-archived="1"' : ''}>
                 <div class="service-drag-handle" aria-label="Arrastar para reordenar">
                     <span class="service-drag-dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
                 </div>
@@ -2561,6 +2597,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         formData.delete('hidden_from_booking');
         formData.append('hidden_from_booking', document.getElementById('editCategoryHiddenFromBooking')?.checked ? '1' : '0');
+        formData.delete('hidden_from_agenda');
+        formData.append('hidden_from_agenda', document.getElementById('editCategoryHiddenFromAgenda')?.checked ? '1' : '0');
         if (isCreate) {
             formData.delete('_method');
             formData.delete('category_id');
@@ -2623,6 +2661,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     sidebarItem.setAttribute('data-category-name', cat.name || '');
                     sidebarItem.setAttribute('data-category-color', cat.color || '');
                     updateCategoryBookingHiddenIndicator(sidebarItem, !!cat.hidden_from_booking);
+                    updateCategoryAgendaHiddenIndicator(sidebarItem, !!cat.hidden_from_agenda);
                 }
                 const header = document.querySelector(`.services-category-header[data-category-id="${cat.id}"]`);
                 if (header) {
@@ -2670,6 +2709,8 @@ document.addEventListener('DOMContentLoaded', function() {
         feeIds.forEach(id => formData.append('fee_ids[]', id));
         formData.delete('hidden_from_booking');
         formData.append('hidden_from_booking', document.getElementById('addServiceHiddenFromBooking')?.checked ? '1' : '0');
+        formData.delete('hidden_from_agenda');
+        formData.append('hidden_from_agenda', document.getElementById('addServiceHiddenFromAgenda')?.checked ? '1' : '0');
 
         fetch('/services', {
             method: 'POST',
@@ -2703,6 +2744,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     const hiddenCb = document.getElementById('addServiceHiddenFromBooking');
                     if (hiddenCb) {
                         hiddenCb.checked = false;
+                    }
+                    const hiddenAgendaCb = document.getElementById('addServiceHiddenFromAgenda');
+                    if (hiddenAgendaCb) {
+                        hiddenAgendaCb.checked = false;
                     }
                     resetServiceVariants('add');
                     refreshAfterServiceChange();
@@ -2758,6 +2803,8 @@ document.addEventListener('DOMContentLoaded', function() {
         feeIds.forEach(id => formData.append('fee_ids[]', id));
         formData.delete('hidden_from_booking');
         formData.append('hidden_from_booking', document.getElementById('editServiceHiddenFromBooking')?.checked ? '1' : '0');
+        formData.delete('hidden_from_agenda');
+        formData.append('hidden_from_agenda', document.getElementById('editServiceHiddenFromAgenda')?.checked ? '1' : '0');
         
         formData.set('_method', 'PUT');
         
@@ -2827,6 +2874,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const hiddenBookingEl = document.getElementById('editServiceHiddenFromBooking');
                 if (hiddenBookingEl) {
                     hiddenBookingEl.checked = !!service.hidden_from_booking;
+                }
+                const hiddenAgendaEl = document.getElementById('editServiceHiddenFromAgenda');
+                if (hiddenAgendaEl) {
+                    hiddenAgendaEl.checked = !!service.hidden_from_agenda;
                 }
 
                 loadVariantsFromService('edit', service);

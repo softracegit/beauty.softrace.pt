@@ -1099,11 +1099,15 @@ a.clinical-field-ghost-btn {
                        data-category-id="{{ $category->id }}" 
                        data-category-name="{{ $category->name }}"
                        data-category-color="{{ $category->color }}"
-                       data-hidden-from-booking="{{ $category->hidden_from_booking ? '1' : '0' }}">
+                       data-hidden-from-booking="{{ $category->hidden_from_booking ? '1' : '0' }}"
+                       data-hidden-from-agenda="{{ $category->hidden_from_agenda ? '1' : '0' }}">
                         <span class="contacts-group-dot" style="background: {{ $category->color }};"></span>
                         <span class="contacts-group-item__name">{{ $category->name }}</span>
                         @if($category->hidden_from_booking)
                             <i class="ph ph-eye-slash text-muted small services-category-hidden-booking-icon" title="Oculta no booking" aria-hidden="true"></i>
+                        @endif
+                        @if($category->hidden_from_agenda)
+                            <i class="ph ph-calendar-slash text-muted small services-category-hidden-agenda-icon" title="Oculta na agenda" aria-hidden="true"></i>
                         @endif
                         <button type="button" class="services-category-sidebar-edit category-header-edit-btn" title="Editar categoria" aria-label="Editar categoria">
                             <i class="ph ph-pencil-simple" aria-hidden="true"></i>
@@ -1293,6 +1297,13 @@ a.clinical-field-ghost-btn {
                 </div>
                 <div class="form-text">A categoria e os seus serviços deixam de aparecer na marcação online.</div>
             </div>
+            <div class="services-offcanvas__check services-offcanvas__check--agenda mt-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="hidden_from_agenda" value="1" id="editCategoryHiddenFromAgenda">
+                    <label class="form-check-label" for="editCategoryHiddenFromAgenda">Ocultar na Agenda</label>
+                </div>
+                <div class="form-text">Deixa de aparecer ao criar novas marcações na agenda. Marcações já existentes mantêm o serviço.</div>
+            </div>
 
             <hr class="my-3">
             <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
@@ -1351,7 +1362,14 @@ a.clinical-field-ghost-btn {
                     <input class="form-check-input" type="checkbox" name="hidden_from_booking" value="1" id="addServiceHiddenFromBooking">
                     <label class="form-check-label" for="addServiceHiddenFromBooking">Ocultar no Booking</label>
                 </div>
-                <div class="form-text">O serviço deixa de aparecer na marcação online (mantém-se no catálogo e na agenda).</div>
+                <div class="form-text">O serviço deixa de aparecer na marcação online.</div>
+            </div>
+            <div class="services-offcanvas__check services-offcanvas__check--agenda mt-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="hidden_from_agenda" value="1" id="addServiceHiddenFromAgenda">
+                    <label class="form-check-label" for="addServiceHiddenFromAgenda">Ocultar na Agenda</label>
+                </div>
+                <div class="form-text">Deixa de aparecer ao criar novas marcações. Marcações já existentes mantêm o serviço.</div>
             </div>
             @if(isset($extraCategories) && $extraCategories->isNotEmpty())
             <div class="mb-3 services-offcanvas__extras">
@@ -1419,7 +1437,14 @@ a.clinical-field-ghost-btn {
                     <input class="form-check-input" type="checkbox" name="hidden_from_booking" value="1" id="editServiceHiddenFromBooking">
                     <label class="form-check-label" for="editServiceHiddenFromBooking">Ocultar no Booking</label>
                 </div>
-                <div class="form-text">O serviço deixa de aparecer na marcação online (mantém-se no catálogo e na agenda).</div>
+                <div class="form-text">O serviço deixa de aparecer na marcação online.</div>
+            </div>
+            <div class="services-offcanvas__check services-offcanvas__check--agenda mt-2">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="hidden_from_agenda" value="1" id="editServiceHiddenFromAgenda">
+                    <label class="form-check-label" for="editServiceHiddenFromAgenda">Ocultar na Agenda</label>
+                </div>
+                <div class="form-text">Deixa de aparecer ao criar novas marcações. Marcações já existentes mantêm o serviço.</div>
             </div>
             @if(isset($extraCategories) && $extraCategories->isNotEmpty())
             <div class="mb-3 services-offcanvas__extras" id="editServiceExtrasWrap">

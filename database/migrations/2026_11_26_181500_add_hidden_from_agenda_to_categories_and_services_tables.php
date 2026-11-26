@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('categories', function (Blueprint $table): void {
+            $table->boolean('hidden_from_agenda')->default(false)->after('hidden_from_booking');
+        });
+
+        Schema::table('services', function (Blueprint $table): void {
+            $table->boolean('hidden_from_agenda')->default(false)->after('hidden_from_booking');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('categories', function (Blueprint $table): void {
+            $table->dropColumn('hidden_from_agenda');
+        });
+
+        Schema::table('services', function (Blueprint $table): void {
+            $table->dropColumn('hidden_from_agenda');
+        });
+    }
+};
