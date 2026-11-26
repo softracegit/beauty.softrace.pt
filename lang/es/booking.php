@@ -103,7 +103,8 @@ return [
 
     'cookie_consent' => [
         'accept' => 'Aceptar',
-        'message' => 'Utilizamos cookies y tecnologías similares para el funcionamiento de la reserva y para análisis estadístico. Al continuar, acepta nuestra',
+        'refuse' => 'Rechazar',
+        'message' => 'Utilizamos cookies esenciales para el funcionamiento de la reserva y, con su consentimiento, cookies de análisis estadístico. Consulte nuestra',
     ],
 
     'cancellation_policy' => [

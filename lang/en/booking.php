@@ -103,7 +103,8 @@ return [
 
     'cookie_consent' => [
         'accept' => 'Accept',
-        'message' => 'We use cookies and similar technologies to run the booking flow and for analytics. By continuing, you accept our',
+        'refuse' => 'Refuse',
+        'message' => 'We use essential cookies to run the booking flow and, with your consent, analytics cookies. See our',
     ],
 
     'cancellation_policy' => [

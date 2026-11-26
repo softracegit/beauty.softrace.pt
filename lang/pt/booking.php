@@ -103,7 +103,8 @@ return [
 
     'cookie_consent' => [
         'accept' => 'Aceitar',
-        'message' => 'Utilizamos cookies e tecnologias semelhantes para o funcionamento da marcação e para análise estatística. Ao continuar, aceita a nossa',
+        'refuse' => 'Recusar',
+        'message' => 'Utilizamos cookies essenciais para o funcionamento da marcação e, com o seu consentimento, cookies de análise estatística. Consulte a nossa',
     ],
 
     'cancellation_policy' => [

@@ -4,15 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E2MC9BE3P8"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-E2MC9BE3P8');
-    </script>
+    {{-- Google Analytics só após consentimento (booking.partials.cookie-consent) --}}
     @php
         $bookingThemeId = $bookingTheme ?? \App\Support\BookingTheme::FALLBACK;
         $bookingThemeMeta = $bookingThemeMeta ?? \App\Support\BookingTheme::resolved();
