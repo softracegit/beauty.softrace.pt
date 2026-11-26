@@ -6362,7 +6362,16 @@ document.addEventListener('DOMContentLoaded', function() {
             var pr = parseFloat(s.price) || 0;
             var origPr = s.original_price != null ? parseFloat(s.original_price) : pr;
             var extras = (s.extras || []).map(function(e) {
-                return { id: e.extra_id, name: e.name, duration: e.duration || 0, price: e.price || 0, formatted_duration: e.formatted_duration || (e.duration || 0) + ' min', formatted_price: e.formatted_price || (e.price || 0).toFixed(2).replace('.', ',') + ' €' };
+                var exPrice = parseFloat(e.price) || 0;
+                return {
+                    id: e.extra_id,
+                    name: e.name,
+                    duration: e.duration || 0,
+                    price: exPrice,
+                    original_price: exPrice,
+                    formatted_duration: e.formatted_duration || (e.duration || 0) + ' min',
+                    formatted_price: e.formatted_price || (exPrice.toFixed(2).replace('.', ',') + ' €')
+                };
             });
             eventDetailSelectedServices.push({
                 service_id: s.id,
@@ -7626,6 +7635,173 @@ document.addEventListener('DOMContentLoaded', function() {
         var catEsc = cat.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return '<div class="small text-muted mt-2">' + durText + (catEsc ? ' · ' + catEsc : '') + '</div>';
     }
+    function agendaOcFormatMoneyEur(amount) {
+        return (parseFloat(amount) || 0).toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function agendaOcExtraPriceBlockHtml(extra) {
+        var price = parseFloat(extra.price) || 0;
+        var original = extra.original_price != null ? parseFloat(extra.original_price) : price;
+        if (!Number.isFinite(original)) {
+            original = price;
+        }
+        if (Math.abs(price - original) > 0.0001) {
+            return '<span class="text-danger text-decoration-line-through small me-1">' + agendaOcFormatMoneyEur(original) + '</span>' +
+                '<span class="fw-semibold text-nowrap small">' + agendaOcFormatMoneyEur(price) + '</span>';
+        }
+        return '<span class="small text-nowrap">' + (extra.formatted_price || agendaOcFormatMoneyEur(price)) + '</span>';
+    }
+
+    function agendaOcBuildExtraRowsHtml(item, svcIdx, canEdit) {
+        if (!item.extras || !item.extras.length) {
+            return '';
+        }
+        return item.extras.map(function(e, eIdx) {
+            var durText = e.formatted_duration || ((e.duration || 0) + ' min');
+            var dur = parseInt(e.duration, 10);
+            if (isNaN(dur) || dur < 0) {
+                dur = 0;
+            }
+            var price = parseFloat(e.price) || 0;
+            var icons = '';
+            var editPanel = '';
+            if (canEdit) {
+                icons =
+                    '<div class="d-flex gap-1 justify-content-end flex-shrink-0">' +
+                        '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm agenda-oc-edit-extra-btn" data-idx="' + svcIdx + '" data-extra-index="' + eIdx + '" title="Alterar opções" aria-label="Alterar opções do extra"><i class="ph ph-pencil-simple"></i></button>' +
+                        '<button type="button" class="btn btn-outline-danger btn-icon btn-sm agenda-oc-remove-extra-btn" data-idx="' + svcIdx + '" data-extra-index="' + eIdx + '" title="Eliminar" aria-label="Eliminar extra"><i class="ph ph-trash"></i></button>' +
+                    '</div>';
+                editPanel =
+                    '<div class="agenda-oc-edit-extra-panel d-none mt-2 pt-2" data-edit-svc-idx="' + svcIdx + '" data-edit-extra-idx="' + eIdx + '">' +
+                        '<div class="row g-2">' +
+                            '<div class="col-6"><label class="form-label form-label-sm small mb-1">Duração (min)</label><input type="number" min="0" step="1" class="form-control form-control-sm agenda-oc-edit-extra-duration" value="' + dur + '"></div>' +
+                            '<div class="col-6"><label class="form-label form-label-sm small mb-1">Preço (€)</label><input type="number" min="0" step="0.01" class="form-control form-control-sm agenda-oc-edit-extra-price" value="' + price.toFixed(2) + '"></div>' +
+                        '</div>' +
+                        '<div class="d-flex justify-content-end gap-1 mt-2">' +
+                            '<button type="button" class="btn btn-light btn-sm agenda-oc-edit-extra-cancel-btn" data-idx="' + svcIdx + '" data-extra-index="' + eIdx + '">Cancelar</button>' +
+                            '<button type="button" class="btn btn-primary btn-sm agenda-oc-edit-extra-save-btn" data-idx="' + svcIdx + '" data-extra-index="' + eIdx + '">Guardar</button>' +
+                        '</div>' +
+                    '</div>';
+            }
+            return '' +
+                '<div class="agenda-oc-extra-row d-flex justify-content-between align-items-start w-100" data-oc-idx="' + svcIdx + '" data-extra-index="' + eIdx + '">' +
+                    '<div class="nova-marcacao-service-item-left d-flex flex-column min-w-0">' +
+                        '<div class="small fw-medium">+ ' + (e.name || '').replace(/</g, '&lt;') + '</div>' +
+                        '<div class="small text-muted">' + durText + '</div>' +
+                    '</div>' +
+                    '<div class="d-flex flex-column align-items-end gap-1 flex-shrink-0 text-end">' +
+                        '<div class="nova-marcacao-service-item-price-row text-nowrap">' + agendaOcExtraPriceBlockHtml(e) + '</div>' +
+                        icons +
+                    '</div>' +
+                '</div>' +
+                editPanel;
+        }).join('');
+    }
+
+    function agendaOcHideServiceCardPanels(wrap, opts) {
+        opts = opts || {};
+        if (opts.addExtras !== false) {
+            wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
+        }
+        if (opts.editService !== false) {
+            wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+        }
+        if (opts.editExtra !== false) {
+            wrap.querySelectorAll('.agenda-oc-edit-extra-panel').forEach(function(p) { p.classList.add('d-none'); });
+        }
+    }
+
+    function agendaOcBindExtraRowActions(wrap, options) {
+        var getList = options.getList;
+        var afterChange = options.afterChange;
+        var markMutated = options.markMutated;
+
+        wrap.querySelectorAll('.agenda-oc-remove-extra-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sIdx = parseInt(this.dataset.idx, 10);
+                var exIdx = parseInt(this.dataset.extraIndex, 10);
+                var list = getList();
+                if (!isNaN(sIdx) && !isNaN(exIdx) && list[sIdx] && Array.isArray(list[sIdx].extras)) {
+                    if (typeof markMutated === 'function') {
+                        markMutated();
+                    }
+                    list[sIdx].extras.splice(exIdx, 1);
+                    afterChange();
+                }
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-extra-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sIdx = parseInt(this.dataset.idx, 10);
+                var eIdx = parseInt(this.dataset.extraIndex, 10);
+                if (isNaN(sIdx) || isNaN(eIdx)) {
+                    return;
+                }
+                agendaOcHideServiceCardPanels(wrap);
+                var panel = wrap.querySelector(
+                    '.agenda-oc-edit-extra-panel[data-edit-svc-idx="' + sIdx + '"][data-edit-extra-idx="' + eIdx + '"]'
+                );
+                if (panel) {
+                    panel.classList.remove('d-none');
+                }
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-extra-cancel-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sIdx = parseInt(this.dataset.idx, 10);
+                var eIdx = parseInt(this.dataset.extraIndex, 10);
+                var panel = wrap.querySelector(
+                    '.agenda-oc-edit-extra-panel[data-edit-svc-idx="' + sIdx + '"][data-edit-extra-idx="' + eIdx + '"]'
+                );
+                if (panel) {
+                    panel.classList.add('d-none');
+                }
+            });
+        });
+        wrap.querySelectorAll('.agenda-oc-edit-extra-save-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sIdx = parseInt(this.dataset.idx, 10);
+                var eIdx = parseInt(this.dataset.extraIndex, 10);
+                var list = getList();
+                if (isNaN(sIdx) || isNaN(eIdx) || !list[sIdx] || !Array.isArray(list[sIdx].extras) || !list[sIdx].extras[eIdx]) {
+                    return;
+                }
+                var panel = wrap.querySelector(
+                    '.agenda-oc-edit-extra-panel[data-edit-svc-idx="' + sIdx + '"][data-edit-extra-idx="' + eIdx + '"]'
+                );
+                if (!panel) {
+                    return;
+                }
+                var dur = parseInt(panel.querySelector('.agenda-oc-edit-extra-duration').value, 10);
+                var price = parseFloat(panel.querySelector('.agenda-oc-edit-extra-price').value);
+                if (isNaN(dur) || dur < 0) {
+                    showToast('Duração inválida.', 'error');
+                    return;
+                }
+                if (isNaN(price) || price < 0) {
+                    showToast('Preço inválido.', 'error');
+                    return;
+                }
+                if (typeof markMutated === 'function') {
+                    markMutated();
+                }
+                var extra = list[sIdx].extras[eIdx];
+                if (extra.original_price == null) {
+                    extra.original_price = parseFloat(extra.price) || 0;
+                }
+                extra.duration = dur;
+                extra.price = price;
+                extra.formatted_duration = dur + ' min';
+                extra.formatted_price = agendaOcFormatMoneyEur(price);
+                afterChange();
+            });
+        });
+    }
+
     function eventDetailOcRenderSelectedServices() {
         var wrap = $id('eventDetailOcSelectedServicesList');
         if (!wrap) return;
@@ -7667,19 +7843,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm agenda-oc-edit-service-btn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
                     '<button type="button" class="btn btn-outline-danger btn-icon btn-sm agenda-oc-remove-service-btn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
                 '</div>';
-            var extrasLine = (item.extras && item.extras.length)
-                ? item.extras.map(function(e, eIdx) {
-                    var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
-                    var durText = e.formatted_duration || ((e.duration || 0) + ' min');
-                    var rm = isCompleted ? '' :
-                        '<button type="button" class="btn btn-link btn-sm p-0 ms-1 agenda-oc-remove-extra-btn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra"><i class="ph ph-x"></i></button>';
-                    return '<div class="agenda-oc-extra-row d-flex justify-content-between align-items-start mt-1 w-100">' +
-                        '<div class="nova-marcacao-service-item-left d-flex flex-column min-w-0">' +
-                            '<div class="d-flex align-items-center"><div class="small fw-medium">+ ' + (e.name || '').replace(/</g, '&lt;') + '</div>' + rm + '</div>' +
-                            '<div class="small text-muted">' + durText + '</div></div>' +
-                        '<div class="small text-nowrap">' + priceText + '</div></div>';
-                }).join('')
-                : '';
+            var extrasLine = agendaOcBuildExtraRowsHtml(item, idx, !isCompleted);
             var addExtrasPanelHtml = '';
             if (!isCompleted && extrasToAdd.length > 0) {
                 addExtrasPanelHtml =
@@ -7733,8 +7897,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var panel = wrap.querySelector('.agenda-oc-add-extras-panel[data-add-extras-idx="' + idx + '"]');
                 if (!panel) return;
                 var wasHidden = panel.classList.contains('d-none');
-                wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
-                wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+                agendaOcHideServiceCardPanels(wrap);
                 if (wasHidden) panel.classList.remove('d-none');
             });
         });
@@ -7758,36 +7921,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!ex) return;
                 if (!svc.extras) svc.extras = [];
                 eventDetailMarkServiceListMutated();
+                var exPrice = parseFloat(ex.price) || 0;
                 svc.extras.push({
-                    id: ex.id, name: ex.name, duration: ex.duration || 0, price: ex.price || 0,
+                    id: ex.id, name: ex.name, duration: ex.duration || 0, price: exPrice,
+                    original_price: exPrice,
                     formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min',
-                    formatted_price: ex.formatted_price || (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €'
+                    formatted_price: ex.formatted_price || agendaOcFormatMoneyEur(exPrice)
                 });
                 eventDetailOcRenderSelectedServices();
                 EventDetail.updateTotal();
                 EventDetail.updateEndTime();
             });
         });
-        wrap.querySelectorAll('.agenda-oc-remove-extra-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var sIdx = parseInt(this.dataset.idx, 10);
-                var exIdx = parseInt(this.dataset.extraIndex, 10);
-                if (!isNaN(sIdx) && !isNaN(exIdx) && eventDetailSelectedServices[sIdx] && Array.isArray(eventDetailSelectedServices[sIdx].extras)) {
-                    eventDetailMarkServiceListMutated();
-                    eventDetailSelectedServices[sIdx].extras.splice(exIdx, 1);
-                    eventDetailOcRenderSelectedServices();
-                    EventDetail.updateTotal();
-                    EventDetail.updateEndTime();
-                }
-            });
+        agendaOcBindExtraRowActions(wrap, {
+            getList: function() { return eventDetailSelectedServices; },
+            markMutated: eventDetailMarkServiceListMutated,
+            afterChange: function() {
+                eventDetailOcRenderSelectedServices();
+                EventDetail.updateTotal();
+                EventDetail.updateEndTime();
+            }
         });
         wrap.querySelectorAll('.agenda-oc-edit-service-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var idx = parseInt(this.dataset.idx, 10);
                 if (isNaN(idx)) return;
-                wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
-                wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+                agendaOcHideServiceCardPanels(wrap);
                 var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
                 if (panel) panel.classList.remove('d-none');
             });
@@ -8209,7 +8368,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 if (!eventDetailSelectedServices[idx].extras) eventDetailSelectedServices[idx].extras = [];
                 eventDetailMarkServiceListMutated();
-                eventDetailSelectedServices[idx].extras.push({ id: ex.id, name: ex.name, duration: ex.duration || 0, price: ex.price || 0, formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min', formatted_price: ex.formatted_price || (ex.price || 0).toFixed(2).replace('.', ',') + ' €' });
+                var qPrice = parseFloat(ex.price) || 0;
+                eventDetailSelectedServices[idx].extras.push({
+                    id: ex.id,
+                    name: ex.name,
+                    duration: ex.duration || 0,
+                    price: qPrice,
+                    original_price: qPrice,
+                    formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min',
+                    formatted_price: ex.formatted_price || (qPrice.toFixed(2).replace('.', ',') + ' €')
+                });
                 hide();
                 EventDetail.renderSelectedServices();
                 EventDetail.updateTotal();
@@ -9489,25 +9657,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '<button type="button" class="btn btn-outline-secondary btn-icon btn-sm agenda-oc-edit-service-btn" data-idx="' + idx + '" title="Alterar opções" aria-label="Alterar opções"><i class="ph ph-pencil-simple"></i></button>' +
                     '<button type="button" class="btn btn-outline-danger btn-icon btn-sm agenda-oc-remove-service-btn" data-idx="' + idx + '" title="Eliminar" aria-label="Eliminar"><i class="ph ph-trash"></i></button>' +
                 '</div>';
-            var extrasLine = (item.extras && item.extras.length)
-                ? item.extras.map(function(e, eIdx) {
-                    var priceText = e.formatted_price || ((parseFloat(e.price) || 0).toFixed(2).replace('.', ',') + ' €');
-                    var durText = e.formatted_duration || ((e.duration || 0) + ' min');
-                    return '' +
-                        '<div class="agenda-oc-extra-row d-flex justify-content-between align-items-start mt-1 w-100" data-oc-idx="' + idx + '" data-extra-index="' + eIdx + '">' +
-                            '<div class="nova-marcacao-service-item-left d-flex flex-column min-w-0">' +
-                                '<div class="d-flex align-items-center">' +
-                                    '<div class="small fw-medium">+ ' + (e.name || '').replace(/</g, '&lt;') + '</div>' +
-                                    '<button type="button" class="btn btn-link btn-sm p-0 ms-1 agenda-oc-remove-extra-btn" data-idx="' + idx + '" data-extra-index="' + eIdx + '" aria-label="Remover extra">' +
-                                        '<i class="ph ph-x"></i>' +
-                                    '</button>' +
-                                '</div>' +
-                                '<div class="small text-muted">' + durText + '</div>' +
-                            '</div>' +
-                            '<div class="small text-nowrap">' + priceText + '</div>' +
-                        '</div>';
-                }).join('')
-                : '';
+            var extrasLine = agendaOcBuildExtraRowsHtml(item, idx, true);
             var addExtrasPanelHtml = '';
             if (extrasToAdd.length > 0) {
                 addExtrasPanelHtml =
@@ -9569,8 +9719,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 var panel = wrap.querySelector('.agenda-oc-add-extras-panel[data-add-extras-idx="' + idx + '"]');
                 if (!panel) return;
                 var wasHidden = panel.classList.contains('d-none');
-                wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
-                wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+                agendaOcHideServiceCardPanels(wrap);
                 if (wasHidden) panel.classList.remove('d-none');
             });
         });
@@ -9593,34 +9742,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 var ex = svc.available_extras.find(function(x) { return String(x.id) === String(exIdRaw); });
                 if (!ex) return;
                 if (!svc.extras) svc.extras = [];
+                var exPrice = parseFloat(ex.price) || 0;
                 svc.extras.push({
                     id: ex.id,
                     name: ex.name,
                     duration: ex.duration || 0,
-                    price: ex.price || 0,
+                    price: exPrice,
+                    original_price: exPrice,
                     formatted_duration: ex.formatted_duration || (ex.duration || 0) + ' min',
-                    formatted_price: ex.formatted_price || (parseFloat(ex.price) || 0).toFixed(2).replace('.', ',') + ' €'
+                    formatted_price: ex.formatted_price || agendaOcFormatMoneyEur(exPrice)
                 });
                 agendaOcRenderSelectedServices();
             });
         });
-        wrap.querySelectorAll('.agenda-oc-remove-extra-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                var sIdx = parseInt(this.dataset.idx, 10);
-                var exIdx = parseInt(this.dataset.extraIndex, 10);
-                if (!isNaN(sIdx) && !isNaN(exIdx) && agendaOcSelectedServices[sIdx] && Array.isArray(agendaOcSelectedServices[sIdx].extras)) {
-                    agendaOcSelectedServices[sIdx].extras.splice(exIdx, 1);
-                    agendaOcRenderSelectedServices();
-                }
-            });
+        agendaOcBindExtraRowActions(wrap, {
+            getList: function() { return agendaOcSelectedServices; },
+            afterChange: function() {
+                agendaOcRenderSelectedServices();
+            }
         });
         wrap.querySelectorAll('.agenda-oc-edit-service-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var idx = parseInt(this.dataset.idx, 10);
                 if (isNaN(idx)) return;
-                wrap.querySelectorAll('.agenda-oc-add-extras-panel').forEach(function(p) { p.classList.add('d-none'); });
-                wrap.querySelectorAll('.agenda-oc-edit-service-panel').forEach(function(p) { p.classList.add('d-none'); });
+                agendaOcHideServiceCardPanels(wrap);
                 var panel = wrap.querySelector('.agenda-oc-edit-service-panel[data-edit-idx="' + idx + '"]');
                 if (panel) panel.classList.remove('d-none');
             });

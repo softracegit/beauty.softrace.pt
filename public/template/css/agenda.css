@@ -2035,6 +2035,14 @@
     white-space: normal;
     flex-wrap: wrap;
 }
+.agenda-marcacao-test-offcanvas .agenda-oc-extra-row {
+    margin-top: 0.75rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+.agenda-marcacao-test-offcanvas .agenda-oc-edit-extra-panel {
+    border-top: 1px dashed rgba(15, 23, 42, 0.1);
+}
 .agenda-marcacao-test-offcanvas #agendaOcDate,
 .agenda-marcacao-test-offcanvas #eventDetailOcDate,
 .agenda-marcacao-test-offcanvas input.flatpickr-input.form-control {
