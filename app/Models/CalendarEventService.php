@@ -72,7 +72,7 @@ class CalendarEventService extends Pivot
         $parent = trim((string) ($serviceName ?? ''));
         $opt = trim((string) ($optionName ?? ''));
         if ($opt !== '' && $parent !== '' && strcasecmp($opt, $parent) !== 0) {
-            return $parent.' '.$opt;
+            return $parent.' - '.$opt;
         }
         if ($opt !== '') {
             return $opt;
