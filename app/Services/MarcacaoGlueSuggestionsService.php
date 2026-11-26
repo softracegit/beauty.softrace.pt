@@ -437,7 +437,8 @@ class MarcacaoGlueSuggestionsService
     $names = $event->eventServices
       ->map(fn ($service) => CalendarEventService::formatLineLabel(
         $service->name,
-        $service->pivot->option_name ?? null
+        $service->pivot->option_name ?? null,
+        $service->category?->name
       ))
       ->filter()
       ->values();

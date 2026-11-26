@@ -141,7 +141,7 @@
                                 <td>{{ $ev->user?->agent?->name ?? $ev->user?->name ?? '—' }}</td>
                                 @endif
                                 <td>{{ $ev->client?->name ?? '—' }}</td>
-                                <td>{{ $ev->eventServices->map(fn ($s) => \App\Models\CalendarEventService::formatLineLabel($s->name, $s->pivot->option_name ?? null))->filter()->join(', ') ?: '—' }}</td>
+                                <td>{{ $ev->eventServices->map(fn ($s) => \App\Models\CalendarEventService::formatLineLabel($s->name, $s->pivot->option_name ?? null, $s->category?->name))->filter()->join(', ') ?: '—' }}</td>
                                 <td>
                                     <span class="badge bg-light text-dark border">
                                         {{ $statusLabels[$ev->status] ?? $ev->status }}

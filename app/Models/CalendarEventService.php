@@ -58,22 +58,43 @@ class CalendarEventService extends Pivot
     }
 
     /**
-     * Rótulo para UI/relatórios: «serviço pai variante» quando há opção; senão só o serviço.
+     * Rótulo para UI/relatórios:
+     * - variante ≠ pai → «pai - variante»
+     * - variante = pai → «categoria - nome» (se houver categoria distinta)
+     * - sem opção → só o serviço
      */
     public function lineLabel(): string
     {
-        $this->loadMissing('service');
+        $this->loadMissing(['service.category']);
 
-        return self::formatLineLabel($this->service?->name, $this->option_name);
+        return self::formatLineLabel(
+            $this->service?->name,
+            $this->option_name,
+            $this->service?->category?->name
+        );
     }
 
-    public static function formatLineLabel(?string $serviceName, ?string $optionName): string
+    public static function formatLineLabel(?string $serviceName, ?string $optionName, ?string $categoryName = null): string
     {
         $parent = trim((string) ($serviceName ?? ''));
         $opt = trim((string) ($optionName ?? ''));
+        $cat = trim((string) ($categoryName ?? ''));
+
         if ($opt !== '' && $parent !== '' && strcasecmp($opt, $parent) !== 0) {
             return $parent.' - '.$opt;
         }
+
+        $base = $opt !== '' ? $opt : $parent;
+        if (
+            $opt !== ''
+            && $parent !== ''
+            && strcasecmp($opt, $parent) === 0
+            && $cat !== ''
+            && strcasecmp($cat, $base) !== 0
+        ) {
+            return $cat.' - '.$base;
+        }
+
         if ($opt !== '') {
             return $opt;
         }

@@ -146,7 +146,7 @@ class PrestadorDashboardService
             ->where('start_at', '>=', $now)
             ->where('start_at', '<=', $endOfDay)
             ->whereNotIn('status', array_merge(self::COMPLETED_STATUSES, [CalendarEvent::STATUS_FALTOU]))
-            ->with(['client', 'eventServices', 'user.agent'])
+            ->with(['client', 'eventServices.category', 'user.agent'])
             ->orderBy('start_at')
             ->limit(12)
             ->get();

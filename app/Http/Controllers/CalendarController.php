@@ -239,6 +239,7 @@ class CalendarController extends Controller
                 'service',
                 'client.tags',
                 'eventServiceItems.service.fees',
+                'eventServiceItems.service.category',
                 'eventServiceItems.serviceOption',
                 'eventServiceItems.extras.extra',
                 'personalTimeType',

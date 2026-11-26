@@ -9634,12 +9634,26 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     }
 
-    /** Alinhado com CalendarEventService::formatLineLabel — «pai - variante». */
-    function agendaOcFormatServiceLineLabel(serviceName, optionName) {
+    /**
+     * Alinhado com CalendarEventService::formatLineLabel:
+     * variante ≠ pai → «pai - variante»; iguais → «categoria - nome».
+     */
+    function agendaOcFormatServiceLineLabel(serviceName, optionName, categoryName) {
         var parent = String(serviceName == null ? '' : serviceName).trim();
         var opt = String(optionName == null ? '' : optionName).trim();
+        var cat = String(categoryName == null ? '' : categoryName).trim();
         if (opt !== '' && parent !== '' && parent.toLowerCase() !== opt.toLowerCase()) {
             return parent + ' - ' + opt;
+        }
+        var base = opt !== '' ? opt : parent;
+        if (
+            opt !== ''
+            && parent !== ''
+            && parent.toLowerCase() === opt.toLowerCase()
+            && cat !== ''
+            && cat.toLowerCase() !== base.toLowerCase()
+        ) {
+            return cat + ' - ' + base;
         }
         if (opt !== '') {
             return opt;
@@ -9657,7 +9671,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         var dur = parseInt(opt.duration, 10) || 60;
                         var priceNum = opt.price != null && opt.price !== '' ? parseFloat(opt.price) : 0;
                         var optName = String(opt.name || '').trim() || ('Opção #' + opt.id);
-                        var displayName = agendaOcFormatServiceLineLabel(s.name, optName);
+                        var displayName = agendaOcFormatServiceLineLabel(s.name, optName, cat.name);
                         out.push({
                             service_id: String(s.id),
                             service_option_id: String(opt.id),

@@ -495,14 +495,14 @@ class DashboardController extends Controller
         $proximasMarcacoes = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
             ->where('start_at', '>=', StoreBusinessTime::toUtcInstant($today))
-            ->with(['client', 'user', 'eventServices'])
+            ->with(['client', 'user', 'eventServices.category'])
             ->orderBy('start_at')
             ->limit(8)
             ->get();
 
         $marcacoesRecentes = $this->calendarEventsQuery($storeIds)->where('event_type', CalendarEvent::TYPE_MARCACAO)
             ->where('status', '!=', CalendarEvent::STATUS_CANCELADO)
-            ->with(['client', 'user', 'eventServices'])
+            ->with(['client', 'user', 'eventServices.category'])
             ->orderBy('start_at', 'desc')
             ->limit(5)
             ->get();

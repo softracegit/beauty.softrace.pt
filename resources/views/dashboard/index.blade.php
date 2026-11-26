@@ -240,7 +240,7 @@
                                         {{ \App\Support\DateTimeDisplay::marcacao($ev->start_at, $ev->store_id, 'd/m H:i') }}
                                     </td>
                                     <td>{{ $ev->client?->name ?? '—' }}</td>
-                                    <td class="text-truncate" style="max-width: 10rem;">{{ $ev->eventServices->map(fn ($s) => \App\Models\CalendarEventService::formatLineLabel($s->name, $s->pivot->option_name ?? null))->filter()->join(', ') ?: '—' }}</td>
+                                    <td class="text-truncate" style="max-width: 10rem;">{{ $ev->eventServices->map(fn ($s) => \App\Models\CalendarEventService::formatLineLabel($s->name, $s->pivot->option_name ?? null, $s->category?->name))->filter()->join(', ') ?: '—' }}</td>
                                     <td class="text-truncate" style="max-width: 7rem;">{{ $ev->user?->name ?? '—' }}</td>
                                 </tr>
                             @empty
