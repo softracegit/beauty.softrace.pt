@@ -478,9 +478,9 @@ class VendasReportService
 
     private function serviceLabelForSaleItem(SaleItem $item): string
     {
-        $optionName = trim((string) ($item->calendarEventService?->option_name ?? ''));
-        if ($optionName !== '') {
-            return $optionName;
+        $ces = $item->calendarEventService;
+        if ($ces && trim((string) ($ces->option_name ?? '')) !== '') {
+            return $ces->lineLabel();
         }
 
         $descricao = trim((string) $item->descricao);
@@ -533,11 +533,7 @@ class VendasReportService
         }
 
         $names = $event->eventServiceItems
-            ->map(function ($es) {
-                $optionName = trim((string) ($es->option_name ?? ''));
-
-                return $optionName !== '' ? $optionName : ($es->service?->name ?? null);
-            })
+            ->map(fn ($es) => $es->lineLabel())
             ->filter()
             ->values();
 

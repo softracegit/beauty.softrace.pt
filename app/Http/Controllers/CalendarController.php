@@ -2625,13 +2625,7 @@ class CalendarController extends Controller
 
     private static function marcacaoServiceLineLabel(CalendarEventService $item): string
     {
-        $item->loadMissing('service');
-        $opt = trim((string) ($item->option_name ?? ''));
-        if ($opt !== '') {
-            return $opt;
-        }
-
-        return (string) ($item->service?->name ?? '');
+        return $item->lineLabel();
     }
 
     /**

@@ -485,9 +485,9 @@ class ComissoesReportService
 
     private function serviceLabelForSaleItem(SaleItem $item): string
     {
-        $optionName = trim((string) ($item->calendarEventService?->option_name ?? ''));
-        if ($optionName !== '') {
-            return $optionName;
+        $ces = $item->calendarEventService;
+        if ($ces && trim((string) ($ces->option_name ?? '')) !== '') {
+            return $ces->lineLabel();
         }
 
         $descricao = trim((string) $item->descricao);

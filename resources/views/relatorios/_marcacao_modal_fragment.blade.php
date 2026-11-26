@@ -44,7 +44,7 @@
           $totalMins += (int) ($x->duration ?? 0);
           $totalPrice += (float) ($x->price ?? 0);
       }
-      $serviceLabels[] = trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? 'Serviço');
+      $serviceLabels[] = ($lbl = $es->lineLabel()) !== '' ? $lbl : 'Serviço';
   }
   $isTerminal = in_array($ev->status, [CalendarEvent::STATUS_CANCELADO, CalendarEvent::STATUS_FALTOU], true);
   $statusTone = match ($ev->status) {
@@ -109,7 +109,7 @@
       @forelse($items as $es)
         <div class="csheet-service">
           <div class="csheet-service__main">
-            <div class="csheet-service__name">{{ trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? '—') }}</div>
+            <div class="csheet-service__name">{{ ($lbl = $es->lineLabel()) !== '' ? $lbl : '—' }}</div>
             @if($es->service?->category?->name)
               <div class="csheet-service__sub">{{ $es->service->category->name }}</div>
             @endif

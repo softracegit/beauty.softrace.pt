@@ -297,7 +297,7 @@
                                             <td>{{ \App\Support\DateTimeDisplay::business($ev->start_at) }}</td>
                                             <td>
                                                 @foreach($ev->eventServiceItems as $es)
-                                                    <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ trim((string) ($es->option_name ?? '')) !== '' ? $es->option_name : ($es->service?->name ?? '—') }}</span>
+                                                    <span class="badge {{ $isFutura ? 'bg-primary-light text-primary' : 'bg-secondary-light text-secondary' }} me-1">{{ ($lbl = $es->lineLabel()) !== '' ? $lbl : '—' }}</span>
                                                 @endforeach
                                             </td>
                                             <td>

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\CalendarEvent;
+use App\Models\CalendarEventService;
 use App\Models\Client;
 use App\Models\Store;
 use Carbon\Carbon;
@@ -196,11 +197,10 @@ final class MarcacaoMailCopy
     {
         if ($event->eventServices->isNotEmpty()) {
             $line = $event->eventServices
-                ->map(function ($service) {
-                    $optionName = trim((string) ($service->pivot->option_name ?? ''));
-
-                    return $optionName !== '' ? $optionName : $service->name;
-                })
+                ->map(fn ($service) => CalendarEventService::formatLineLabel(
+                    $service->name,
+                    $service->pivot->option_name ?? null
+                ))
                 ->filter()
                 ->implode(', ');
 
@@ -211,14 +211,7 @@ final class MarcacaoMailCopy
 
         if ($event->eventServiceItems->isNotEmpty()) {
             $line = $event->eventServiceItems
-                ->map(function ($item) {
-                    $optionName = trim((string) ($item->option_name ?? ''));
-                    if ($optionName !== '') {
-                        return $optionName;
-                    }
-
-                    return trim((string) ($item->service?->name ?? ''));
-                })
+                ->map(fn ($item) => $item->lineLabel())
                 ->filter()
                 ->implode(', ');
 

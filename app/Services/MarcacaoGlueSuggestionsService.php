@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CalendarEvent;
+use App\Models\CalendarEventService;
 use App\Support\DateTimeDisplay;
 use App\Support\StoreBusinessTime;
 use Carbon\Carbon;
@@ -434,9 +435,10 @@ class MarcacaoGlueSuggestionsService
     private function servicesLabel(CalendarEvent $event): string
   {
     $names = $event->eventServices
-      ->map(fn ($service) => trim((string) ($service->pivot->option_name ?? '')) !== ''
-        ? $service->pivot->option_name
-        : ($service->name ?? ''))
+      ->map(fn ($service) => CalendarEventService::formatLineLabel(
+        $service->name,
+        $service->pivot->option_name ?? null
+      ))
       ->filter()
       ->values();
 

@@ -826,7 +826,7 @@ class ClientController extends Controller
             foreach ($item->extras ?? [] as $ex) {
                 $totalMins += (int) ($ex->duration ?? 0);
             }
-            $label = trim((string) ($item->option_name ?: ($item->service?->name ?? '')));
+            $label = $item->lineLabel();
             if ($label !== '') {
                 $serviceLabels[] = $label;
             }

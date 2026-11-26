@@ -3044,7 +3044,6 @@
         var serviceIds = getSelectedServiceIds();
         var extraPairs = getSelectedExtraPairs();
         var eligibleAll = [];
-        var eligibleAny = [];
 
         rows.forEach(function (row) {
             var isAnyStaff = row.getAttribute('data-any-staff') === '1';
@@ -3077,22 +3076,16 @@
                         && String(techPair.extraId) === String(pair.extraId);
                 });
             });
-            var coversAny = serviceIds.some(function (sid) {
-                return techServiceIds.indexOf(String(sid)) !== -1;
-            });
             if (coversAll && coversExtras) {
                 eligibleAll.push(row);
             }
-            if (coversAny) {
-                eligibleAny.push(row);
-            }
         });
 
-        // Com vários serviços (ou extras), só quem cobre o carrinho completo.
-        // Sem ninguém: mensagem a pedir remoção no resumo — sem fallback a staff parcial.
-        var needsFullCoverage = serviceIds.length > 1 || extraPairs.length > 0;
-        var chosenSet = eligibleAll.length ? eligibleAll : (needsFullCoverage ? [] : eligibleAny);
-        var hideAny = needsFullCoverage && eligibleAll.length === 0;
+        // Só quem cobre o carrinho completo (serviços + extras).
+        // Sem ninguém elegível: esconder também «Qualquer staff» e mostrar aviso —
+        // senão a cliente avançava e o backend devolvia slots vazios / erro no checkout.
+        var chosenSet = eligibleAll;
+        var hideAny = serviceIds.length > 0 && eligibleAll.length === 0;
         rows.forEach(function (row) {
             var isAnyStaff = row.getAttribute('data-any-staff') === '1';
             var isVisible = isAnyStaff ? !hideAny : chosenSet.indexOf(row) !== -1;

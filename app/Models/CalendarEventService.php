@@ -56,4 +56,28 @@ class CalendarEventService extends Pivot
     {
         return $this->hasMany(CalendarEventServiceExtra::class, 'calendar_event_service_id');
     }
+
+    /**
+     * Rótulo para UI/relatórios: «serviço pai variante» quando há opção; senão só o serviço.
+     */
+    public function lineLabel(): string
+    {
+        $this->loadMissing('service');
+
+        return self::formatLineLabel($this->service?->name, $this->option_name);
+    }
+
+    public static function formatLineLabel(?string $serviceName, ?string $optionName): string
+    {
+        $parent = trim((string) ($serviceName ?? ''));
+        $opt = trim((string) ($optionName ?? ''));
+        if ($opt !== '' && $parent !== '' && strcasecmp($opt, $parent) !== 0) {
+            return $parent.' '.$opt;
+        }
+        if ($opt !== '') {
+            return $opt;
+        }
+
+        return $parent;
+    }
 }

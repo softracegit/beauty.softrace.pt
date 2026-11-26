@@ -152,11 +152,7 @@ class MarcacoesReportEstadoFilter
         }
 
         return $event->eventServiceItems
-            ->map(function ($es) {
-                $optionName = trim((string) ($es->option_name ?? ''));
-
-                return $optionName !== '' ? $optionName : ($es->service?->name ?? null);
-            })
+            ->map(fn ($es) => $es->lineLabel())
             ->filter()
             ->implode(', ') ?: '—';
     }

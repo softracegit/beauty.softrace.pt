@@ -185,11 +185,10 @@
                                     <div class="booking-marcacao-card__services-list">
                                         @forelse ($serviceRows as $row)
                                             @php
-                                                $parentName = trim((string) ($row->service?->name ?? ''));
-                                                $optName = trim((string) ($row->option_name ?? ''));
-                                                $serviceTitle = $optName !== ''
-                                                    ? $optName
-                                                    : ($parentName !== '' ? $parentName : __('booking.account.service_fallback'));
+                                                $serviceTitle = $row->lineLabel();
+                                                if ($serviceTitle === '') {
+                                                    $serviceTitle = __('booking.account.service_fallback');
+                                                }
                                                 $linePrice = (float) ($row->price ?? 0);
                                                 $catLabel = trim((string) ($row->service?->category?->name ?? ''));
                                                 $rowExtras = $row->relationLoaded('extras') ? $row->extras : collect();
