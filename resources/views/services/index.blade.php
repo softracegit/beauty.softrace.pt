@@ -258,7 +258,8 @@
 #deleteServiceConfirmModal.modal,
 #clinicalFieldCreateMaterialModal.modal,
 #deleteCategoryConfirmModal.modal,
-#deleteServiceVariantConfirmModal.modal {
+#deleteServiceVariantConfirmModal.modal,
+#serviceMarcacaoActivityLogModal.modal {
     --bs-modal-zindex: 1085;
     z-index: 1085;
 }
@@ -266,8 +267,25 @@ body:has(#serviceVariantModal.show) .modal-backdrop,
 body:has(#deleteServiceConfirmModal.show) .modal-backdrop,
 body:has(#clinicalFieldCreateMaterialModal.show) .modal-backdrop,
 body:has(#deleteCategoryConfirmModal.show) .modal-backdrop,
-body:has(#deleteServiceVariantConfirmModal.show) .modal-backdrop {
+body:has(#deleteServiceVariantConfirmModal.show) .modal-backdrop,
+body:has(#serviceMarcacaoActivityLogModal.show) .modal-backdrop:last-of-type {
     z-index: 1080;
+}
+#serviceFutureMarcacoesModal .modal-content {
+    position: relative;
+    overflow: hidden;
+}
+.service-future-marcacoes-modal__scrim {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: rgba(15, 23, 42, 0.32);
+    border-radius: inherit;
+    pointer-events: auto;
+}
+.service-future-marcacoes-modal__scrim.is-visible {
+    display: block;
 }
 .services-offcanvas.services-offcanvas--stack {
     /* Mais largo que o anterior, mas com faixa clara do painel de trás (~3.5rem) */
@@ -1808,6 +1826,7 @@ a.clinical-field-ghost-btn {
 <div class="modal fade" id="serviceFutureMarcacoesModal" tabindex="-1" aria-labelledby="serviceFutureMarcacoesModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content">
+            <div class="service-future-marcacoes-modal__scrim" id="serviceFutureMarcacoesModalScrim" hidden aria-hidden="true"></div>
             <div class="modal-header">
                 <h5 class="modal-title fw-semibold" id="serviceFutureMarcacoesModalLabel">Marcações — <span id="serviceFutureMarcacoesModalServiceName"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>

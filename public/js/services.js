@@ -133,8 +133,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!serviceId) {
             return;
         }
+        if (modalEl.getAttribute('data-scrim-bound') !== '1') {
+            modalEl.setAttribute('data-scrim-bound', '1');
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                setServiceFutureMarcacoesModalScrim(false);
+                const logModalEl = document.getElementById('serviceMarcacaoActivityLogModal');
+                if (logModalEl && logModalEl.classList.contains('show') && typeof bootstrap !== 'undefined') {
+                    bootstrap.Modal.getOrCreateInstance(logModalEl).hide();
+                }
+            });
+        }
         nameEl.textContent = serviceName;
         bodyEl.innerHTML = '<p class="text-muted mb-0">A carregar…</p>';
+        setServiceFutureMarcacoesModalScrim(false);
         bootstrap.Modal.getOrCreateInstance(modalEl).show();
 
         fetch(`/services/${encodeURIComponent(serviceId)}/future-marcacoes`, {
@@ -248,12 +259,38 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function setServiceFutureMarcacoesModalScrim(on) {
+        const scrim = document.getElementById('serviceFutureMarcacoesModalScrim');
+        if (!scrim) {
+            return;
+        }
+        const active = !!on;
+        scrim.classList.toggle('is-visible', active);
+        scrim.hidden = !active;
+        scrim.setAttribute('aria-hidden', active ? 'false' : 'true');
+    }
+
+    function bindServiceMarcacaoActivityLogModalStack() {
+        const logModalEl = document.getElementById('serviceMarcacaoActivityLogModal');
+        if (!logModalEl || logModalEl.getAttribute('data-stack-bound') === '1') {
+            return;
+        }
+        logModalEl.setAttribute('data-stack-bound', '1');
+        logModalEl.addEventListener('show.bs.modal', function () {
+            setServiceFutureMarcacoesModalScrim(true);
+        });
+        logModalEl.addEventListener('hidden.bs.modal', function () {
+            setServiceFutureMarcacoesModalScrim(false);
+        });
+    }
+
     function openServiceMarcacaoActivityLog(url) {
         const logModalEl = document.getElementById('serviceMarcacaoActivityLogModal');
         const logBodyEl = document.getElementById('serviceMarcacaoActivityLogBody');
         if (!url || !logModalEl || !logBodyEl || typeof bootstrap === 'undefined') {
             return;
         }
+        bindServiceMarcacaoActivityLogModalStack();
         logBodyEl.innerHTML =
             '<p class="text-muted text-center py-3 mb-0"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>A carregar…</p>';
         bootstrap.Modal.getOrCreateInstance(logModalEl).show();
