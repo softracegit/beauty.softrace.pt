@@ -856,6 +856,9 @@
         } catch (e) {
             /* ignore */
         }
+        if (document.body && document.body.classList.contains('booking-page--technician')) {
+            refreshTechnicianEligibility();
+        }
     }
 
     function getSelectedServiceIds() {
@@ -3032,7 +3035,7 @@
         calendarInput.setAttribute('data-flatpickr-ready', '1');
     }
 
-    function initTechnicianStep() {
+    function refreshTechnicianEligibility() {
         var list = document.getElementById('booking-technician-list');
         if (!list) {
             return;
@@ -3065,7 +3068,7 @@
             if (!Array.isArray(techPairs)) {
                 techPairs = [];
             }
-            var coversAll = serviceIds.every(function (sid) {
+            var coversAll = serviceIds.length > 0 && serviceIds.every(function (sid) {
                 return techServiceIds.indexOf(String(sid)) !== -1;
             });
             var coversExtras = extraPairs.every(function (pair) {
@@ -3086,7 +3089,7 @@
         });
 
         // Com vários serviços (ou extras), só quem cobre o carrinho completo.
-        // Sem ninguém: mensagem a pedir marcações individuais — sem fallback a staff parcial.
+        // Sem ninguém: mensagem a pedir remoção no resumo — sem fallback a staff parcial.
         var needsFullCoverage = serviceIds.length > 1 || extraPairs.length > 0;
         var chosenSet = eligibleAll.length ? eligibleAll : (needsFullCoverage ? [] : eligibleAny);
         var hideAny = needsFullCoverage && eligibleAll.length === 0;
@@ -3125,14 +3128,27 @@
                 input.checked = false;
             }
         });
-        if (previousId && !hasPreviousVisible) {
-            clearTechnicianSelection();
+        if ((previousId && !hasPreviousVisible) || visibleCount === 0) {
+            if (previousId || getTechnicianSelection()) {
+                clearTechnicianSelection();
+            }
         }
-        if (visibleCount === 0) {
-            clearTechnicianSelection();
-        }
+    }
 
-        rows.forEach(function (row) {
+    function initTechnicianStep() {
+        var list = document.getElementById('booking-technician-list');
+        if (!list) {
+            return;
+        }
+        refreshTechnicianEligibility();
+
+        if (list.getAttribute('data-tech-bound') === '1') {
+            renderSummary();
+            return;
+        }
+        list.setAttribute('data-tech-bound', '1');
+
+        Array.prototype.forEach.call(list.querySelectorAll('.booking-technician-row'), function (row) {
             var input = row.querySelector('input[type="radio"]');
             if (!input) {
                 return;
