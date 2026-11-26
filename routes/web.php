@@ -370,6 +370,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('agenda/clients/{client}/wallet', [CalendarController::class, 'clientWallet'])->name('agenda.clients.wallet');
     Route::get('agenda/clients/{client}/saved-cards', [CalendarController::class, 'clientSavedCards'])->name('agenda.clients.saved_cards');
     Route::get('agenda/events', [CalendarController::class, 'events'])->name('agenda.events');
+    Route::get('agenda/version', [CalendarController::class, 'version'])->name('agenda.version');
     Route::get('agenda/clinical-schema', [CalendarController::class, 'clinicalSchema'])->name('agenda.clinical_schema');
     Route::get('agenda/events/{calendarEvent}', [CalendarController::class, 'show'])->name('agenda.events.show');
     Route::get('agenda/events/{calendarEvent}/activity-log', [CalendarController::class, 'activityLog'])->name('agenda.events.activity_log');

@@ -205,6 +205,27 @@ class CalendarController extends Controller
      * With for_resources=1 returns events for all consultants (for resource view).
      * Optional filter_user_ids: comma-separated user ids (active agents only) to restrict events (e.g. Semana / 3 dias).
      */
+    /**
+     * Sinal leve para a agenda detectar alterações sem refetch completo.
+     * version = "{count}|{max(updated_at)}" no âmbito da loja (e do user, se não vê tudo).
+     */
+    public function version(): JsonResponse
+    {
+        $query = CalendarEvent::query()->forStore((int) current_store_id());
+        if (! auth()->user()?->canViewAllAgenda()) {
+            $query->where('user_id', auth()->id());
+        }
+
+        $row = $query
+            ->toBase()
+            ->selectRaw('COUNT(*) as cnt, MAX(updated_at) as max_updated')
+            ->first();
+
+        $version = ((int) ($row->cnt ?? 0)).'|'.(string) ($row->max_updated ?? '');
+
+        return response()->json(['version' => $version]);
+    }
+
     public function events(Request $request)
     {
         $start = $request->get('start');

@@ -13185,6 +13185,166 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.refetchEvents();
     }
 
+    /**
+     * Soft refresh: actualiza eventos ao retomar uso, sem polling.
+     * Retoma clara (tab/focus) → só gap mínimo.
+     * Mesma tab → só no primeiro gesto após idle real (≥ 2 min sem gestos).
+     * Modais/offcanvas críticos abertos → nunca.
+     */
+    var AGENDA_SOFT_REFRESH_IDLE_MS = 120000;
+    var AGENDA_SOFT_REFRESH_MIN_GAP_MS = 90000;
+    var AGENDA_SOFT_REFRESH_DEBOUNCE_MS = 300;
+    var agendaSoftRefreshLastActivityAt = Date.now();
+    var agendaSoftRefreshLastRefreshAt = Date.now();
+    var agendaSoftRefreshDebounceTimer = null;
+    var AGENDA_SOFT_REFRESH_BLOCKING_IDS = [
+        'eventDetailEditModal',
+        'agendaMarcacaoTestOffcanvas',
+        'tempoPessoalModal',
+        'cancelMarcacaoModal',
+        'revertSaleModal',
+        'agendaDragConfirmModal',
+        'eventDetailUnsavedChangesModal',
+        'eventDetailActivityLogModal',
+        'paymentModal',
+        'agendaMobileViewModal',
+        'agendaMobileAddModal',
+    ];
+
+    function agendaSoftRefreshCriticalUiOpen() {
+        for (var i = 0; i < AGENDA_SOFT_REFRESH_BLOCKING_IDS.length; i++) {
+            var el = $id(AGENDA_SOFT_REFRESH_BLOCKING_IDS[i]);
+            if (el && el.classList.contains('show')) {
+                return true;
+            }
+        }
+        if (typeof paymentModalIsLayerHost === 'function' && paymentModalIsLayerHost()) {
+            return true;
+        }
+        return false;
+    }
+
+    function agendaMaybeSoftRefresh(/* reason */) {
+        if (agendaSoftRefreshDebounceTimer) {
+            clearTimeout(agendaSoftRefreshDebounceTimer);
+        }
+        agendaSoftRefreshDebounceTimer = setTimeout(function() {
+            agendaSoftRefreshDebounceTimer = null;
+            if (!calendar) {
+                return;
+            }
+            if (agendaSoftRefreshCriticalUiOpen()) {
+                return;
+            }
+            var now = Date.now();
+            if (now - agendaSoftRefreshLastRefreshAt < AGENDA_SOFT_REFRESH_MIN_GAP_MS) {
+                return;
+            }
+            agendaSoftRefreshMarkDataFresh();
+            refreshAgendaData();
+        }, AGENDA_SOFT_REFRESH_DEBOUNCE_MS);
+    }
+
+    function agendaSoftRefreshOnResume() {
+        agendaMaybeSoftRefresh('resume');
+    }
+
+    function agendaSoftRefreshOnUserGesture() {
+        var now = Date.now();
+        var wasIdle = (now - agendaSoftRefreshLastActivityAt) >= AGENDA_SOFT_REFRESH_IDLE_MS;
+        agendaSoftRefreshLastActivityAt = now;
+        if (!wasIdle) {
+            return;
+        }
+        agendaMaybeSoftRefresh('idle_resume');
+    }
+
+    function agendaSoftRefreshMarkDataFresh() {
+        var now = Date.now();
+        agendaSoftRefreshLastRefreshAt = now;
+        agendaSoftRefreshLastActivityAt = now;
+        agendaSoftRefreshKnownVersion = null;
+    }
+
+    /**
+     * Ping leve de versão (~2.5 min, só com aba visível).
+     * Se a versão mudou e não há modal crítico → refetch.
+     */
+    var AGENDA_VERSION_PING_MS = 150000;
+    var agendaVersionUrl = C.versionUrl || '';
+    var agendaSoftRefreshKnownVersion = null;
+    var agendaVersionPingTimer = null;
+    var agendaVersionPingInFlight = false;
+
+    function agendaVersionPingStop() {
+        if (agendaVersionPingTimer) {
+            clearInterval(agendaVersionPingTimer);
+            agendaVersionPingTimer = null;
+        }
+    }
+
+    function agendaVersionPingStart() {
+        if (!agendaVersionUrl || agendaVersionPingTimer) {
+            return;
+        }
+        agendaVersionPingTimer = setInterval(function() {
+            agendaVersionPingTick();
+        }, AGENDA_VERSION_PING_MS);
+    }
+
+    function agendaVersionPingTick() {
+        if (!agendaVersionUrl || !calendar) {
+            return;
+        }
+        if (document.visibilityState !== 'visible') {
+            return;
+        }
+        if (agendaSoftRefreshCriticalUiOpen()) {
+            return;
+        }
+        if (agendaVersionPingInFlight) {
+            return;
+        }
+        agendaVersionPingInFlight = true;
+        fetch(agendaVersionUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        })
+            .then(function(res) {
+                if (!res.ok) {
+                    throw new Error('version_http_' + res.status);
+                }
+                return res.json();
+            })
+            .then(function(data) {
+                var next = data && data.version != null ? String(data.version) : '';
+                if (next === '') {
+                    return;
+                }
+                if (agendaSoftRefreshKnownVersion === null) {
+                    agendaSoftRefreshKnownVersion = next;
+                    return;
+                }
+                if (next === agendaSoftRefreshKnownVersion) {
+                    return;
+                }
+                if (agendaSoftRefreshCriticalUiOpen()) {
+                    return;
+                }
+                agendaSoftRefreshKnownVersion = next;
+                agendaSoftRefreshLastRefreshAt = Date.now();
+                refreshAgendaData();
+            })
+            .catch(function() { /* silencioso: próximo ping tenta de novo */ })
+            .finally(function() {
+                agendaVersionPingInFlight = false;
+            });
+    }
+
     /** Calendário popup (Flatpickr) ao clicar no título da data — navegar para o dia escolhido (mobile e desktop). */
     function ensureAgendaToolbarDateFlatpickr() {
         if (window.agendaToolbarDateFlatpickr) {
@@ -16454,10 +16614,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ev.persisted || eventDetailOcVisibleDateTimeLooksEmpty() || eventDetailOcClientLooksEmpty()) {
             eventDetailOcScheduleRehydrateAfterReturn();
         }
+        if (ev.persisted) {
+            agendaSoftRefreshOnResume();
+        }
     });
     document.addEventListener('visibilitychange', function() {
         if (document.visibilityState === 'visible') {
             eventDetailOcScheduleRehydrateAfterReturn();
+            agendaSoftRefreshOnResume();
+            agendaVersionPingStart();
+            agendaVersionPingTick();
+        } else {
+            agendaVersionPingStop();
         }
     });
+    window.addEventListener('focus', function() {
+        agendaSoftRefreshOnResume();
+    });
+
+    // Mesma tab: primeiro gesto após idle real (≥ 2 min) → soft refresh (antes do clique numa marcação).
+    ['mousemove', 'pointerdown', 'keydown', 'touchstart'].forEach(function(evtName) {
+        document.addEventListener(evtName, agendaSoftRefreshOnUserGesture, { passive: true, capture: true });
+    });
+
+    if (document.visibilityState === 'visible') {
+        agendaVersionPingStart();
+        agendaVersionPingTick();
+    }
 });

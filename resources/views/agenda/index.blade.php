@@ -605,6 +605,7 @@
 window.AGENDA_CONFIG = {
     csrf: @json(csrf_token()),
     eventsUrl: @json(route('agenda.events')),
+    versionUrl: @json(route('agenda.version')),
     resourcesUrl: @json(route('agenda.resources')),
     clientesBaseUrl: @json(url('clientes')),
     currentUserIsAdmin: @json(auth()->user()->role === \App\Models\User::ROLE_ADMIN),
