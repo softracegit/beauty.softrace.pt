@@ -8,6 +8,7 @@ use App\Http\Requests\SyncServiceExtraEquipaRequest;
 use App\Http\Requests\SyncServiceTecnicosRequest;
 use App\Http\Requests\UpdateServiceRequest;
 use App\Models\Agent;
+use App\Models\CalendarEvent;
 use App\Models\Category;
 use App\Models\Service;
 use App\Models\Store;
@@ -105,6 +106,64 @@ class ServiceController extends Controller
                 'fees',
                 'options' => fn ($q) => $q->orderBy('sort_order'),
             ]),
+        ]);
+    }
+
+    /**
+     * Marcações futuras activas deste serviço (mesmo critério do badge na lista).
+     */
+    public function futureMarcacoes(Service $service): JsonResponse
+    {
+        $serviceName = (string) $service->name;
+
+        $events = $service->futureActiveMarcacoes()
+            ->with(['client:id,name', 'user:id,name'])
+            ->orderBy('calendar_events.start_at')
+            ->get();
+
+        $marcacoes = $events->map(function (CalendarEvent $ev) use ($serviceName) {
+            $storeId = (int) ($ev->store_id ?? 0);
+            $variant = trim((string) ($ev->pivot->option_name ?? ''));
+            $duration = (int) ($ev->pivot->duration ?? 0);
+            $price = (float) ($ev->pivot->price ?? 0);
+            $startBiz = DateTimeDisplay::inBusiness($ev->start_at, $storeId);
+            $dateLabel = $startBiz
+                ? $startBiz->format('j').' de '.ucfirst($startBiz->locale('pt')->translatedFormat('M')).' '.$startBiz->format('Y')
+                : '—';
+            $hourLabel = $startBiz ? $startBiz->format('H:i') : '—';
+            $statusKey = (string) ($ev->status ?? CalendarEvent::STATUS_AGENDADO);
+            $servicesLabel = $variant !== ''
+                ? $serviceName.' - '.$variant
+                : $serviceName;
+
+            return [
+                'id' => (int) $ev->id,
+                'service_name' => $serviceName,
+                'variant_name' => $variant,
+                'services_label' => $servicesLabel,
+                'date_label' => $dateLabel,
+                'hour_label' => $hourLabel,
+                'client_name' => trim((string) ($ev->client?->name ?? '')) !== ''
+                    ? (string) $ev->client->name
+                    : '—',
+                'technician_name' => trim((string) ($ev->user?->name ?? '')) !== ''
+                    ? (string) $ev->user->name
+                    : '—',
+                'duration_label' => $duration > 0 ? $this->formatDurationMinutes($duration) : '',
+                'price_label' => number_format($price, 2, ',', '.').' €',
+                'status_label' => CalendarEvent::statuses()[$statusKey] ?? ($statusKey !== '' ? $statusKey : '—'),
+                'status_icon' => $ev->status_icon ?: 'ri-time-fill agenda-status-icon-agendado',
+                'origin_label' => $ev->marcacaoSourceLabel() ?: 'Agenda',
+                'booked_at_label' => DateTimeDisplay::formatInstant($ev->created_at, $storeId, 'd/m/Y H:i') ?: '—',
+                'agenda_url' => route('agenda.index', ['event' => $ev->id]),
+                'activity_log_url' => route('agenda.events.activity_log', $ev),
+            ];
+        })->values();
+
+        return response()->json([
+            'service_name' => $serviceName,
+            'can_view_logs' => (bool) auth()->user()?->isAdmin(),
+            'marcacoes' => $marcacoes,
         ]);
     }
 
@@ -594,5 +653,19 @@ class ServiceController extends Controller
         }
 
         return $storeId;
+    }
+
+    private function formatDurationMinutes(int $minutes): string
+    {
+        $hours = intdiv(max(0, $minutes), 60);
+        $mins = max(0, $minutes) % 60;
+        if ($hours > 0 && $mins > 0) {
+            return $hours.'h '.$mins.'min';
+        }
+        if ($hours > 0) {
+            return $hours.'h';
+        }
+
+        return $mins.'min';
     }
 }

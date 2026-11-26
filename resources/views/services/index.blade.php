@@ -552,7 +552,8 @@ a.clinical-field-ghost-btn {
     background-color: var(--background-color, #f1f5f9) !important;
     border: 1px solid var(--border-color, #e5e7eb);
 }
-.service-item-members-trigger {
+.service-item-members-trigger,
+.service-item-future-marcacoes-trigger {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -562,13 +563,216 @@ a.clinical-field-ghost-btn {
     cursor: pointer;
     max-width: 100%;
 }
-.service-item-members-trigger:hover .badge {
+.service-item-future-marcacoes-trigger:disabled {
+    cursor: default;
+    opacity: 1;
+}
+.service-item-members-trigger:hover .badge,
+.service-item-future-marcacoes-trigger:not(:disabled):hover .badge {
     border-color: color-mix(in srgb, var(--accent-color, #0d6efd), transparent 40%);
 }
-.service-item-members-trigger:focus-visible {
+.service-item-members-trigger:focus-visible,
+.service-item-future-marcacoes-trigger:focus-visible {
     outline: 2px solid color-mix(in srgb, var(--accent-color, #0d6efd), transparent 50%);
     outline-offset: 2px;
     border-radius: 0.35rem;
+}
+/* Timeline (mesmo look de «Últimas marcações» na ficha do cliente) */
+#serviceFutureMarcacoesModal .client-ficha-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin-top: 0.15rem;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__item {
+    --timeline-icon-size: 2.25rem;
+    --timeline-icon-gap: 0.55rem;
+    --timeline-item-gap: 1.75rem;
+    display: grid;
+    grid-template-columns: var(--timeline-icon-size) minmax(0, 1fr);
+    gap: 0.85rem 1.1rem;
+    align-items: start;
+    position: relative;
+    padding: 0 0 var(--timeline-item-gap);
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__item:last-child {
+    padding-bottom: 0.25rem;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__item:not(:last-child) .client-ficha-timeline__rail::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: calc(0.15rem + var(--timeline-icon-size) + var(--timeline-icon-gap));
+    bottom: calc(-1 * var(--timeline-item-gap) + var(--timeline-icon-gap));
+    width: 2px;
+    transform: translateX(-50%);
+    background: color-mix(in srgb, var(--accent-color, #0d6efd) 28%, transparent);
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__rail {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-self: stretch;
+    padding-top: 0.15rem;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--timeline-icon-size);
+    height: var(--timeline-icon-size);
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.05);
+    z-index: 1;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__status-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    color: #6c757d;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__status-icon.agenda-status-icon-agendado { color: #6c757d; }
+#serviceFutureMarcacoesModal .client-ficha-timeline__status-icon.agenda-status-icon-notificado { color: #eab308; }
+#serviceFutureMarcacoesModal .client-ficha-timeline__status-icon.agenda-status-icon-confirmado { color: #16a34a; }
+#serviceFutureMarcacoesModal .client-ficha-timeline__status-icon.agenda-status-icon-chegou,
+#serviceFutureMarcacoesModal .client-ficha-timeline__status-icon.agenda-status-icon-iniciado { color: var(--accent-color, #0d6efd); }
+#serviceFutureMarcacoesModal .client-ficha-timeline__content {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__item:last-child .client-ficha-timeline__content {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__main {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.55rem;
+    min-width: 0;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__date,
+#serviceFutureMarcacoesModal .client-ficha-timeline__hour {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #475569;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__hour {
+    font-variant-numeric: tabular-nums;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__services {
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.35;
+    min-width: 0;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__status-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 0.35rem;
+    font-size: 0.84rem;
+    color: #64748b;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__status {
+    font-weight: 600;
+    color: #1e293b;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__meta {
+    color: #64748b;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__meta-sep {
+    color: #cbd5e1;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__actions {
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.45rem;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    background: #f8fafc;
+    text-decoration: none;
+    padding: 0;
+    cursor: pointer;
+    line-height: 1;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__action-btn .ph {
+    font-size: 1.15rem;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__action-btn--logs {
+    color: #64748b;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__action-btn--logs:hover {
+    background: #f1f5f9;
+    border-color: rgba(100, 116, 139, 0.35);
+    color: #334155;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__action-btn--calendar {
+    color: var(--accent-color, #0d6efd);
+    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 28%, #e2e8f0);
+    background: color-mix(in srgb, var(--accent-color, #0d6efd) 8%, #fff);
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__action-btn--calendar:hover {
+    background: color-mix(in srgb, var(--accent-color, #0d6efd) 14%, #fff);
+    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 40%, #e2e8f0);
+    color: var(--accent-color, #0d6efd);
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__action-btn:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent-color, #0d6efd) 45%, transparent);
+    outline-offset: 2px;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 1.15rem;
+    margin-top: 0.1rem;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__fact {
+    font-size: 0.78rem;
+    color: #334155;
+    line-height: 1.35;
+}
+#serviceFutureMarcacoesModal .client-ficha-timeline__fact-label {
+    display: inline-block;
+    margin-right: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #94a3b8;
+}
+@media (max-width: 767.98px) {
+    #serviceFutureMarcacoesModal .client-ficha-timeline__actions {
+        align-self: flex-start;
+    }
 }
 .service-item-members {
     margin-top: 0;
@@ -1599,6 +1803,38 @@ a.clinical-field-ghost-btn {
         </div>
     </div>
 </div>
+
+{{-- Marcações futuras activas do serviço --}}
+<div class="modal fade" id="serviceFutureMarcacoesModal" tabindex="-1" aria-labelledby="serviceFutureMarcacoesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="serviceFutureMarcacoesModalLabel">Marcações — <span id="serviceFutureMarcacoesModalServiceName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body" id="serviceFutureMarcacoesModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if(auth()->user()?->isAdmin())
+<div class="modal fade" id="serviceMarcacaoActivityLogModal" tabindex="-1" aria-labelledby="serviceMarcacaoActivityLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="serviceMarcacaoActivityLogModalLabel">Histórico da marcação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body py-3" id="serviceMarcacaoActivityLogBody">
+                <p class="text-muted text-center py-3 mb-0">A carregar…</p>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 @endsection
 

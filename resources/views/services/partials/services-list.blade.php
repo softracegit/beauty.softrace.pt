@@ -32,7 +32,7 @@
                         @if($extrasN > 0)
                             <span class="badge text-bg-light">{{ $extrasN }} extra(s)</span>
                         @endif
-                        @include('services.partials.service-future-marcacoes-badge', ['count' => $futureN])
+                        @include('services.partials.service-future-marcacoes-badge', ['count' => $futureN, 'service' => $service])
                         @include('services.partials.service-members-avatars', ['service' => $service])
                     </div>
                 </div>
@@ -68,7 +68,7 @@
                         @if($extrasN > 0)
                             <span class="badge text-bg-light">{{ $extrasN }} extra(s)</span>
                         @endif
-                        @include('services.partials.service-future-marcacoes-badge', ['count' => $futureN])
+                        @include('services.partials.service-future-marcacoes-badge', ['count' => $futureN, 'service' => $service])
                         @include('services.partials.service-members-avatars', ['service' => $service])
                     </div>
                 </div>

@@ -426,6 +426,7 @@ Route::middleware(['auth', 'has.agent', 'set.current.store', 'backoffice.access'
     Route::get('services/export-pdf', [ServiceController::class, 'exportPdf'])->name('services.export_pdf');
     Route::get('services/arquivo', [ServiceController::class, 'archived'])->name('services.archived');
     Route::post('services/{id}/restore', [ServiceController::class, 'restore'])->name('services.restore')->whereNumber('id');
+    Route::get('services/{service}/future-marcacoes', [ServiceController::class, 'futureMarcacoes'])->name('services.future_marcacoes');
     Route::get('services/{service}', [ServiceController::class, 'show'])->name('services.show');
     Route::post('services', [ServiceController::class, 'store'])->name('services.store');
     Route::match(['post', 'put'], 'services/{service}', [ServiceController::class, 'update'])->name('services.update');

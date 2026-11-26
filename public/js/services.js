@@ -103,13 +103,183 @@ document.addEventListener('DOMContentLoaded', function() {
         );
     }
 
-    function renderServiceFutureMarcacoesBadge(count) {
+    function renderServiceFutureMarcacoesBadge(service, count) {
         const n = parseInt(count, 10) || 0;
         const title = 'Marcações futuras activas (ainda não terminadas / pagas / canceladas)';
+        const serviceId = service && service.id != null ? String(service.id) : '';
+        const serviceName = escapeHtml((service && service.name) || '');
+        const disabled = n < 1 ? ' disabled' : '';
         return (
-            `<span class="badge text-bg-light" title="${escapeHtml(title)}">` +
-            `${n} marca${n === 1 ? 'ção' : 'ções'}</span>`
+            `<button type="button" class="service-item-future-marcacoes-trigger"` +
+            ` data-service-id="${escapeHtml(serviceId)}"` +
+            ` data-service-name="${serviceName}"` +
+            ` title="${escapeHtml(title)}"` +
+            ` aria-label="Ver ${n} marca${n === 1 ? 'ção' : 'ções'} futura${n === 1 ? '' : 's'}"` +
+            `${disabled}>` +
+            `<span class="badge text-bg-light">${n} marca${n === 1 ? 'ção' : 'ções'}</span>` +
+            `</button>`
         );
+    }
+
+    function openServiceFutureMarcacoesModal(triggerEl) {
+        const modalEl = document.getElementById('serviceFutureMarcacoesModal');
+        const bodyEl = document.getElementById('serviceFutureMarcacoesModalBody');
+        const nameEl = document.getElementById('serviceFutureMarcacoesModalServiceName');
+        if (!modalEl || !bodyEl || !nameEl || !triggerEl) {
+            return;
+        }
+        const serviceId = triggerEl.getAttribute('data-service-id') || '';
+        const serviceName = triggerEl.getAttribute('data-service-name') || '';
+        if (!serviceId) {
+            return;
+        }
+        nameEl.textContent = serviceName;
+        bodyEl.innerHTML = '<p class="text-muted mb-0">A carregar…</p>';
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+
+        fetch(`/services/${encodeURIComponent(serviceId)}/future-marcacoes`, {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        })
+            .then(function (res) {
+                if (!res.ok) {
+                    throw new Error('http_' + res.status);
+                }
+                return res.json();
+            })
+            .then(function (data) {
+                if (data && data.service_name) {
+                    nameEl.textContent = data.service_name;
+                }
+                const rows = Array.isArray(data && data.marcacoes) ? data.marcacoes : [];
+                const canViewLogs = !!(data && data.can_view_logs);
+                if (!rows.length) {
+                    bodyEl.innerHTML = '<p class="text-muted small mb-0">Não há marcações futuras activas para este serviço.</p>';
+                    return;
+                }
+                bodyEl.innerHTML =
+                    '<div class="client-ficha-timeline" role="list">' +
+                    rows
+                        .map(function (row) {
+                            const statusLabel = escapeHtml(row.status_label || '—');
+                            const statusIcon = escapeHtml(row.status_icon || 'ri-time-fill agenda-status-icon-agendado');
+                            const dateLabel = escapeHtml(row.date_label || '—');
+                            const hourLabel = escapeHtml(row.hour_label || '—');
+                            const servicesLabel = escapeHtml(row.services_label || row.service_name || serviceName || '—');
+                            const clientName = escapeHtml(row.client_name || '—');
+                            const techName = row.technician_name && row.technician_name !== '—'
+                                ? escapeHtml(row.technician_name)
+                                : '';
+                            const durationLabel = row.duration_label ? escapeHtml(row.duration_label) : '';
+                            const priceLabel = row.price_label ? escapeHtml(row.price_label) : '';
+                            const originLabel = escapeHtml(row.origin_label || 'Agenda');
+                            const bookedAt = escapeHtml(row.booked_at_label || '—');
+                            const agendaUrl = escapeHtml(row.agenda_url || '#');
+                            const activityLogUrl = escapeHtml(row.activity_log_url || '');
+
+                            let statusLine =
+                                `<span class="client-ficha-timeline__status">${statusLabel}</span>` +
+                                `<span class="client-ficha-timeline__meta-sep" aria-hidden="true">·</span>` +
+                                `<span class="client-ficha-timeline__meta">${clientName}</span>`;
+                            if (techName) {
+                                statusLine +=
+                                    `<span class="client-ficha-timeline__meta-sep" aria-hidden="true">·</span>` +
+                                    `<span class="client-ficha-timeline__meta">${techName}</span>`;
+                            }
+                            if (durationLabel) {
+                                statusLine +=
+                                    `<span class="client-ficha-timeline__meta-sep" aria-hidden="true">·</span>` +
+                                    `<span class="client-ficha-timeline__meta">${durationLabel}</span>`;
+                            }
+                            if (priceLabel) {
+                                statusLine +=
+                                    `<span class="client-ficha-timeline__meta-sep" aria-hidden="true">·</span>` +
+                                    `<span class="client-ficha-timeline__meta">${priceLabel}</span>`;
+                            }
+
+                            let actionsHtml =
+                                `<div class="client-ficha-timeline__actions">`;
+                            if (canViewLogs && activityLogUrl) {
+                                actionsHtml +=
+                                    `<button type="button" class="client-ficha-timeline__action-btn client-ficha-timeline__action-btn--logs js-service-marcacao-activity-log-trigger" data-activity-log-url="${activityLogUrl}" title="Ver logs" aria-label="Ver logs da marcação">` +
+                                    `<i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>` +
+                                    `</button>`;
+                            }
+                            actionsHtml +=
+                                `<a href="${agendaUrl}" class="client-ficha-timeline__action-btn client-ficha-timeline__action-btn--calendar" title="Ver na agenda" aria-label="Ver marcação na agenda">` +
+                                `<i class="ph ph-calendar-blank" aria-hidden="true"></i>` +
+                                `</a></div>`;
+
+                            return (
+                                `<article class="client-ficha-timeline__item" role="listitem">` +
+                                `<div class="client-ficha-timeline__rail" aria-hidden="true">` +
+                                `<span class="client-ficha-timeline__icon-wrap" title="${statusLabel}">` +
+                                `<i class="${statusIcon} client-ficha-timeline__status-icon"></i>` +
+                                `</span></div>` +
+                                `<div class="client-ficha-timeline__content">` +
+                                `<div class="client-ficha-timeline__top">` +
+                                `<div class="client-ficha-timeline__main">` +
+                                `<div class="client-ficha-timeline__headline">` +
+                                `<span class="client-ficha-timeline__date">${dateLabel}</span>` +
+                                `<span class="client-ficha-timeline__hour">${hourLabel}</span>` +
+                                `<span class="client-ficha-timeline__services">${servicesLabel}</span>` +
+                                `</div>` +
+                                `<div class="client-ficha-timeline__status-line">${statusLine}</div>` +
+                                `<div class="client-ficha-timeline__facts">` +
+                                `<span class="client-ficha-timeline__fact">` +
+                                `<span class="client-ficha-timeline__fact-label">Origem</span>${originLabel}` +
+                                `</span>` +
+                                `<span class="client-ficha-timeline__fact">` +
+                                `<span class="client-ficha-timeline__fact-label">Marcada em</span>${bookedAt}` +
+                                `</span>` +
+                                `</div></div>` +
+                                actionsHtml +
+                                `</div></div></article>`
+                            );
+                        })
+                        .join('') +
+                    '</div>';
+            })
+            .catch(function () {
+                bodyEl.innerHTML = '<p class="text-danger mb-0">Não foi possível carregar as marcações.</p>';
+            });
+    }
+
+    function openServiceMarcacaoActivityLog(url) {
+        const logModalEl = document.getElementById('serviceMarcacaoActivityLogModal');
+        const logBodyEl = document.getElementById('serviceMarcacaoActivityLogBody');
+        if (!url || !logModalEl || !logBodyEl || typeof bootstrap === 'undefined') {
+            return;
+        }
+        logBodyEl.innerHTML =
+            '<p class="text-muted text-center py-3 mb-0"><span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>A carregar…</p>';
+        bootstrap.Modal.getOrCreateInstance(logModalEl).show();
+        fetch(url, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function (r) {
+                return r.json().then(function (res) {
+                    if (!r.ok) {
+                        throw new Error(res.message || res.error || 'Erro ao carregar logs.');
+                    }
+                    return res;
+                });
+            })
+            .then(function (res) {
+                logBodyEl.innerHTML = res && res.html
+                    ? res.html
+                    : '<p class="text-muted text-center py-3 mb-0">Nenhuma atividade registada.</p>';
+            })
+            .catch(function (err) {
+                const msg = err && err.message
+                    ? String(err.message).replace(/</g, '&lt;')
+                    : 'Erro ao carregar logs.';
+                logBodyEl.innerHTML = `<p class="text-danger text-center py-3 mb-0">${msg}</p>`;
+            });
     }
 
     function renderMemberAvatarHtml(agent, sizeClass) {
@@ -1771,8 +1941,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 e.stopPropagation();
                 openServiceMembersModal(membersBtn);
+                return;
+            }
+            const futureBtn = e.target.closest('.service-item-future-marcacoes-trigger');
+            if (futureBtn && listContainer.contains(futureBtn)) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!futureBtn.disabled) {
+                    openServiceFutureMarcacoesModal(futureBtn);
+                }
             }
         }, true);
+
+        document.addEventListener('click', function (e) {
+            const logBtn = e.target.closest('.js-service-marcacao-activity-log-trigger');
+            if (!logBtn) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            openServiceMarcacaoActivityLog(String(logBtn.getAttribute('data-activity-log-url') || '').trim());
+        });
 
         listContainer.addEventListener('click', function(e) {
             const header = e.target.closest('.services-category-header');
@@ -2061,7 +2250,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 fromDurationLabel = formatDuration(minDur);
             }
             const membersTrigger = renderServiceMembersTrigger(service);
-            const futureBadge = renderServiceFutureMarcacoesBadge(futureN);
+            const futureBadge = renderServiceFutureMarcacoesBadge(service, futureN);
             const variantsBadges = hasOpts
                 ? `<span class="badge text-bg-light">${variantsN} variante${variantsN === 1 ? '' : 's'}</span>` +
                   (extrasN > 0 ? `<span class="badge text-bg-light">${extrasN} extra(s)</span>` : '') +
@@ -2744,7 +2933,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (
                     e.target.closest('.service-drag-handle') ||
                     e.target.closest('.service-archive-restore-btn') ||
-                    e.target.closest('.service-item-members-trigger')
+                    e.target.closest('.service-item-members-trigger') ||
+                    e.target.closest('.service-item-future-marcacoes-trigger')
                 ) {
                     return;
                 }
