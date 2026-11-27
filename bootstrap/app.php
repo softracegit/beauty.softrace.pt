@@ -37,6 +37,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'booking.locale' => \App\Http\Middleware\SetBookingLocale::class,
             'booking.client' => \App\Http\Middleware\EnsureUserIsBookingClient::class,
             'api.booking.store' => \App\Http\Middleware\ResolveApiBookingStore::class,
+            'api.client' => \App\Http\Middleware\AuthenticateClientApiToken::class,
+            'api.array_session' => \App\Http\Middleware\UseArraySessionForApi::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request) {

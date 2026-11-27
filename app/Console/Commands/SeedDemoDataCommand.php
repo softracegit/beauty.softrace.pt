@@ -153,6 +153,8 @@ class SeedDemoDataCommand extends Command
 
         foreach ([$store, $porto] as $s) {
             CrmSetting::setBookingTheme(BookingTheme::MINIMAL, $s->id);
+            // Como na Fada: sem pré-pagamento ("Hoje não paga nada").
+            CrmSetting::setBool(CrmSetting::KEY_BOOKING_ONLINE_PAYMENT_REQUIRED, false, $s->id);
             CrmSetting::setBookingCancellationNoticeHours(12, $s->id);
             CrmSetting::setBookingCancellationPolicyText(
                 'Pode cancelar ou reagendar a sua marcação sem custos até 12 horas antes da hora marcada. Se surgir um imprevisto, fale connosco por WhatsApp.',
